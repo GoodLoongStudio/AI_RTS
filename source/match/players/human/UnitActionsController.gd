@@ -15,6 +15,9 @@ class Actions:
 	const Constructing = preload("res://source/match/units/actions/Constructing.gd")
 
 
+@onready var _squad_command_controller = get_parent().get_node_or_null("SquadCommandController")
+
+
 func _ready():
 	MatchSignals.terrain_targeted.connect(_on_terrain_targeted)
 	MatchSignals.unit_targeted.connect(_on_unit_targeted)
@@ -127,11 +130,21 @@ func _try_setting_rally_point_to_unit(unit, target_unit):
 
 
 func _on_terrain_targeted(position):
+	if (
+		_squad_command_controller != null
+		and _squad_command_controller.try_handle_terrain_target(position)
+	):
+		return
 	_try_navigating_selected_units_towards_position(position)
 	_try_setting_rally_points(position)
 
 
 func _on_unit_targeted(unit):
+	if (
+		_squad_command_controller != null
+		and _squad_command_controller.try_handle_unit_target(unit)
+	):
+		return
 	if _navigate_selected_units_towards_unit(unit):
 		var targetability = unit.find_child("Targetability")
 		if targetability != null:

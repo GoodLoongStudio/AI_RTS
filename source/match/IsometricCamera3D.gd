@@ -88,10 +88,19 @@ func _try_handling_movement(delta: float) -> bool:
 func _calculate_screen_move_vector() -> Vector2:
 	var viewport_size = get_viewport().size
 	var mouse_pos = get_viewport().get_mouse_position()
+	var move_vector = Vector2.ZERO
 
-	var x_axis = Input.get_axis("move_map_left", "move_map_right")
-	var y_axis = Input.get_axis("move_map_up", "move_map_down")
-	var move_vector = Vector2(x_axis, y_axis)
+	# Modern command mode keeps QWERDF free for combat. Camera keyboard movement
+	# therefore uses arrow keys while edge scrolling remains available.
+	if not _text_input_has_focus():
+		if Input.is_key_pressed(KEY_LEFT):
+			move_vector.x -= 1
+		if Input.is_key_pressed(KEY_RIGHT):
+			move_vector.x += 1
+		if Input.is_key_pressed(KEY_UP):
+			move_vector.y -= 1
+		if Input.is_key_pressed(KEY_DOWN):
+			move_vector.y += 1
 
 	if mouse_pos.x <= screen_margin_for_movement:
 		move_vector.x = -1
@@ -126,13 +135,14 @@ func _zoom_out():
 
 
 func _try_handling_arrowkey_rotation(delta: float):
-	if _is_rotating():
+	if _is_rotating() or _text_input_has_focus():
 		return
-	var angle_radians = (
-		delta
-		* Input.get_axis("rotate_map_counterclockwise", "rotate_map_clockwise")
-		* arrowkey_rotation_speed
-	)
+	var rotation_axis := 0.0
+	if Input.is_key_pressed(KEY_Z):
+		rotation_axis -= 1.0
+	if Input.is_key_pressed(KEY_C):
+		rotation_axis += 1.0
+	var angle_radians = delta * rotation_axis * arrowkey_rotation_speed
 	if not is_zero_approx(angle_radians):
 		_rotate_from_reference_position_by(global_position, angle_radians)
 
@@ -265,3 +275,8 @@ func _target_position_to_camera_position(target_position: Vector3) -> Vector3:
 	var intersection = target_plane.intersects_ray(global_transform.origin, camera_ray)
 	var offset_yless = (target_position - intersection) * Vector3(1, 0, 1)
 	return global_transform.origin + offset_yless
+
+
+func _text_input_has_focus() -> bool:
+	var focus_owner = get_viewport().gui_get_focus_owner()
+	return focus_owner is LineEdit or focus_owner is TextEdit
