@@ -35,8 +35,8 @@ func _physics_process(_delta: float):
 	var marker = get_parent().get_node_or_null("Map/CampaignZones/%s" % marker_name)
 	if marker == null:
 		return
-	var hero_position := _hero.global_position * Vector3(1, 0, 1)
-	var marker_position := marker.global_position * Vector3(1, 0, 1)
+	var hero_position: Vector3 = _hero.global_position * Vector3(1, 0, 1)
+	var marker_position: Vector3 = marker.global_position * Vector3(1, 0, 1)
 	if hero_position.distance_to(marker_position) <= float(mission_data.get("objective_radius", 7.5)):
 		_reach_objective_location(_objective_index)
 
