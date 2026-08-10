@@ -1,0 +1,61 @@
+name: Three.js 宇宙 RTS 回归
+
+on:
+  push:
+    branches:
+      - agent/threejs-space-rts-vertical-slice
+  pull_request:
+    paths:
+      - 'threejs/**'
+      - '.github/workflows/threejs-space-rts.yml'
+  workflow_dispatch:
+
+jobs:
+  build-and-visual-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 安装项目依赖
+        working-directory: threejs
+        run: npm install
+
+      - name: 生产构建
+        working-directory: threejs
+        run: npm run build
+
+      - name: 安装视觉回归浏览器
+        working-directory: threejs
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+
+      - name: 启动预览
+        working-directory: threejs
+        run: |
+          npm run preview -- --port 4173 > /tmp/threejs-preview.log 2>&1 &
+          for i in {1..40}; do
+            if curl -fsS http://127.0.0.1:4173 >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/threejs-preview.log
+          exit 1
+
+      - name: WebGL 视觉冒烟与截图
+        working-directory: threejs
+        run: node qa/capture.mjs
+
+      - name: 上传截图
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: threejs-space-rts-visual-qa
+          if-no-files-found: warn
+          path: threejs/qa/output/*.png
