@@ -6,6 +6,7 @@ const CampaignMission = preload("res://source/campaign/CampaignMission.gd")
 
 
 func _ready():
+	await get_tree().process_frame
 	await _run_test()
 
 
