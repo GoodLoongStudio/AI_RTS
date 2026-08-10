@@ -82,6 +82,25 @@ jobs:
             exit 1
           fi
 
+      - name: 回声撤离战斗场景回归
+        shell: bash
+        run: |
+          set +e
+          ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless --path . --script res://tests/automated/CampaignSmokeTest.gd 2>&1 | tee godot-campaign-match.log
+          GODOT_EXIT=${PIPESTATUS[0]}
+          set -e
+          echo "===== 战役 Match 诊断 ====="
+          grep -nE "SCRIPT ERROR|Parse Error|ERROR:|WARNING:|CAMPAIGN_SMOKE_TEST" godot-campaign-match.log || true
+          if [ "$GODOT_EXIT" -ne 0 ]; then
+            exit "$GODOT_EXIT"
+          fi
+          grep -q "CAMPAIGN_SMOKE_TEST_OK" godot-campaign-match.log
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script|Cannot open file 'res://source/|Failed loading resource: res://source/" godot-campaign-match.log; then
+            echo "战役 Match 检测到脚本或 source 资源错误"
+            exit 1
+          fi
+
       - name: 上传回归日志
         if: always()
         uses: actions/upload-artifact@v4
@@ -92,3 +111,4 @@ jobs:
             godot-import.log
             godot-main.log
             godot-campaign.log
+            godot-campaign-match.log
