@@ -4,6 +4,7 @@ const Unit = preload("res://source/match/units/Unit.gd")
 const Structure = preload("res://source/match/units/Structure.gd")
 const Player = preload("res://source/match/players/Player.gd")
 const Human = preload("res://source/match/players/human/Human.gd")
+const AICommandHUD = preload("res://source/match/hud/AICommandHUD.gd")
 
 const CommandCenter = preload("res://source/match/units/CommandCenter.tscn")
 const Drone = preload("res://source/match/units/Drone.tscn")
@@ -42,6 +43,7 @@ func _ready():
 	_move_camera_to_initial_position()
 	if settings.visibility == settings.Visibility.FULL:
 		fog_of_war.reveal()
+	_setup_ai_command_hud()
 	MatchSignals.match_started.emit()
 
 
@@ -50,6 +52,14 @@ func _unhandled_input(event):
 		if Input.is_action_pressed("shift_selecting"):
 			return
 		MatchSignals.deselect_all_units.emit()
+
+
+func _setup_ai_command_hud():
+	if _get_human_player() == null:
+		return
+	var ai_command_hud = AICommandHUD.new()
+	ai_command_hud.name = "AICommandHUD"
+	$HUD.add_child(ai_command_hud)
 
 
 func _set_map(a_map):
