@@ -26,6 +26,8 @@ func _run_test():
 	assert(is_equal_approx(float(persisted_camera_config.get_value("camera", "movement_speed")), 1.7), "camera.cfg 移动速度未持久化")
 	assert(is_equal_approx(float(persisted_camera_config.get_value("camera", "bottom_edge_margin")), 90.0), "camera.cfg 底边范围未持久化")
 
+	await _verify_menu_settings_entry_points()
+
 	var mission := CampaignMission.echo_extraction()
 	var settings := MatchSettings.new()
 
@@ -59,6 +61,7 @@ func _run_test():
 	var group_3 = get_tree().get_nodes_in_group("unit_group_3")
 	var ai_hud = a_match.get_node_or_null("HUD/AICommandHUD")
 	var camera = a_match.get_node_or_null("IsometricCamera3D")
+	var pause_menu = a_match.get_node_or_null("Menu")
 
 	assert(a_match.get_node_or_null("CampaignController") != null, "CampaignController 未加载")
 	assert(ai_hud != null, "AICommandHUD 未加载")
@@ -83,6 +86,22 @@ func _run_test():
 	assert(is_equal_approx(camera.movement_deceleration, 16.8), "镜头减速平滑度未按设置派生")
 	assert(is_equal_approx(camera.zoom_step, 1.5), "滚轮缩放速度设置未应用")
 
+	assert(pause_menu != null, "战斗暂停菜单未加载")
+	assert(
+		pause_menu.get_node_or_null("CenterContainer/PanelContainer/MarginContainer/VBoxContainer/SettingsButton") != null,
+		"战斗暂停菜单缺少设置入口"
+	)
+	pause_menu._on_settings_button_pressed()
+	await get_tree().process_frame
+	assert(pause_menu._options_panel != null, "战斗中未能打开统一设置面板")
+	assert(pause_menu._options_panel.embedded_mode, "战斗设置面板未使用嵌入模式")
+	Globals.set_camera_option("movement_speed", 2.2)
+	pause_menu._options_panel._apply_camera_options_live()
+	assert(is_equal_approx(camera.movement_speed, 2.2), "战斗中镜头设置没有即时应用")
+	pause_menu._close_options_panel()
+	Globals.set_camera_option("movement_speed", 1.7)
+	camera._apply_user_camera_options()
+
 	var test_viewport_size := Vector2(1920, 1080)
 	var center_scroll = camera._calculate_edge_scroll_vector(Vector2(960, 540), test_viewport_size)
 	var left_scroll = camera._calculate_edge_scroll_vector(Vector2(1, 540), test_viewport_size)
@@ -98,8 +117,34 @@ func _run_test():
 	assert(bottom_inner_scroll.y > 0.0, "屏幕下方扩展触发区未生效")
 	assert(camera.bottom_screen_margin_for_movement > camera.screen_margin_for_movement, "底边触发区应比普通边缘更宽")
 
-	print("CAMPAIGN_SMOKE_TEST_OK: 回声撤离灰盒地图已启动，单英雄/AI HUD/剧情控制器/camera.cfg 镜头设置均正常")
+	print("CAMPAIGN_SMOKE_TEST_OK: 回声撤离和全局设置入口已验证，战斗中镜头设置可即时应用")
 	a_match.queue_free()
 	await get_tree().process_frame
 	await get_tree().process_frame
 	get_tree().quit(0)
+
+
+func _verify_menu_settings_entry_points():
+	var campaign_menu = load("res://source/campaign/CampaignMenu.tscn").instantiate()
+	get_tree().root.add_child(campaign_menu)
+	await get_tree().process_frame
+	assert(campaign_menu.find_child("SettingsButton", true, false) != null, "单人战役界面缺少设置入口")
+	campaign_menu._on_settings_pressed()
+	await get_tree().process_frame
+	assert(campaign_menu._options_panel != null, "单人战役界面未能打开统一设置面板")
+	assert(campaign_menu._options_panel.embedded_mode, "单人战役设置面板未使用嵌入模式")
+	campaign_menu._close_options_panel()
+	campaign_menu.queue_free()
+	await get_tree().process_frame
+
+	var play_menu = load("res://source/main-menu/Play.tscn").instantiate()
+	get_tree().root.add_child(play_menu)
+	await get_tree().process_frame
+	assert(play_menu.find_child("SettingsButton", true, false) != null, "自定义战斗配置页缺少设置入口")
+	play_menu._open_options_panel()
+	await get_tree().process_frame
+	assert(play_menu._options_panel != null, "自定义战斗配置页未能打开统一设置面板")
+	assert(play_menu._options_panel.embedded_mode, "自定义战斗设置面板未使用嵌入模式")
+	play_menu._close_options_panel()
+	play_menu.queue_free()
+	await get_tree().process_frame
