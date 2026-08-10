@@ -43,6 +43,7 @@ func _run_test():
 	var group_2 = get_tree().get_nodes_in_group("unit_group_2")
 	var group_3 = get_tree().get_nodes_in_group("unit_group_3")
 	var ai_hud = a_match.get_node_or_null("HUD/AICommandHUD")
+	var camera = a_match.get_node_or_null("IsometricCamera3D")
 
 	assert(a_match.get_node_or_null("CampaignController") != null, "CampaignController 未加载")
 	assert(ai_hud != null, "AICommandHUD 未加载")
@@ -58,7 +59,23 @@ func _run_test():
 	assert(a_match.get_node_or_null("Map/CampaignZones/AbandonedConvoy") != null, "灰盒地图缺少 AbandonedConvoy")
 	assert(a_match.get_node_or_null("Map/CampaignZones/EmergencyExtraction") != null, "灰盒地图缺少 EmergencyExtraction")
 
-	print("CAMPAIGN_SMOKE_TEST_OK: 回声撤离灰盒地图已启动，单英雄/AI HUD/剧情控制器/关键区域均存在")
+	assert(camera != null, "RTS 镜头未加载")
+	var test_viewport_size := Vector2(1920, 1080)
+	var center_scroll = camera._calculate_edge_scroll_vector(Vector2(960, 540), test_viewport_size)
+	var left_scroll = camera._calculate_edge_scroll_vector(Vector2(1, 540), test_viewport_size)
+	var right_scroll = camera._calculate_edge_scroll_vector(Vector2(1919, 540), test_viewport_size)
+	var top_scroll = camera._calculate_edge_scroll_vector(Vector2(960, 1), test_viewport_size)
+	var bottom_scroll = camera._calculate_edge_scroll_vector(Vector2(960, 1079), test_viewport_size)
+	var bottom_inner_scroll = camera._calculate_edge_scroll_vector(Vector2(960, 1030), test_viewport_size)
+	assert(center_scroll.is_zero_approx(), "鼠标位于屏幕中央时镜头不应边缘滚动")
+	assert(left_scroll.x < -0.9, "屏幕左边缘滚动方向错误")
+	assert(right_scroll.x > 0.9, "屏幕右边缘滚动方向错误")
+	assert(top_scroll.y < -0.9, "屏幕上边缘滚动方向错误")
+	assert(bottom_scroll.y > 0.9, "屏幕下边缘滚动方向错误")
+	assert(bottom_inner_scroll.y > 0.0, "屏幕下方扩展触发区未生效")
+	assert(camera.bottom_screen_margin_for_movement > camera.screen_margin_for_movement, "底边触发区应比普通边缘更宽")
+
+	print("CAMPAIGN_SMOKE_TEST_OK: 回声撤离灰盒地图已启动，单英雄/AI HUD/剧情控制器/四边镜头滚屏均正常")
 	a_match.queue_free()
 	await get_tree().process_frame
 	await get_tree().process_frame
