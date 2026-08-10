@@ -27,18 +27,18 @@ func _run_test():
 	settings.visibility = MatchSettings.Visibility.PER_PLAYER
 
 	var map = load(mission["map_path"]).instantiate()
-	var match = load("res://source/match/Match.tscn").instantiate()
-	match.settings = settings
-	match.map = map
-	match.campaign_data = mission
-	root.add_child(match)
+	var a_match = load("res://source/match/Match.tscn").instantiate()
+	a_match.settings = settings
+	a_match.map = map
+	a_match.campaign_data = mission
+	root.add_child(a_match)
 
 	for _frame in range(10):
 		await process_frame
 		await physics_frame
 
-	assert(match.get_node_or_null("CampaignController") != null, "CampaignController 未加载")
-	assert(match.get_node_or_null("HUD/AICommandHUD") != null, "AICommandHUD 未加载")
+	assert(a_match.get_node_or_null("CampaignController") != null, "CampaignController 未加载")
+	assert(a_match.get_node_or_null("HUD/AICommandHUD") != null, "AICommandHUD 未加载")
 	assert(not get_nodes_in_group("controlled_units").is_empty(), "未生成玩家可控单位")
 	assert(not get_nodes_in_group("adversary_units").is_empty(), "未生成敌方单位")
 	assert(not get_nodes_in_group("unit_group_1").is_empty(), "突击一队未自动编组")
