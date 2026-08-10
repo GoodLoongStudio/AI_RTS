@@ -2,6 +2,7 @@ extends Control
 
 var match_settings = null
 var map_path = null
+var campaign_data = null
 
 @onready var _label = find_child("Label")
 @onready var _progress_bar = find_child("ProgressBar")
@@ -30,6 +31,7 @@ func _ready():
 	var a_match = match_prototype.instantiate()
 	a_match.settings = match_settings
 	a_match.map = map
+	a_match.campaign_data = campaign_data
 	_progress_bar.value = 0.9
 
 	_label.text = tr("LOADING_STEP_STARTING_MATCH")
