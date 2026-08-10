@@ -1,0 +1,61 @@
+name: 战役模式回归
+
+on:
+  push:
+    branches:
+      - agent/campaign-story-mode
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  godot-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Godot 4.7.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 -o godot.zip \
+            https://github.com/godotengine/godot/releases/download/4.7.1-stable/Godot_v4.7.1-stable_linux.x86_64.zip
+          unzip -q godot.zip
+          chmod +x Godot_v4.7.1-stable_linux.x86_64
+          ./Godot_v4.7.1-stable_linux.x86_64 --version
+
+      - name: 无界面导入与脚本解析
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless --editor --path . --quit 2>&1 | tee godot-import.log
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script|Cannot open file" godot-import.log; then
+            echo "检测到 Godot 脚本或资源解析错误"
+            exit 1
+          fi
+
+      - name: 主菜单启动冒烟测试
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless --path . --quit-after 120 2>&1 | tee godot-main.log
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script|Cannot open file" godot-main.log; then
+            echo "主菜单启动检测到错误"
+            exit 1
+          fi
+
+      - name: 战役菜单启动冒烟测试
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless --path . res://source/campaign/CampaignMenu.tscn --quit-after 120 2>&1 | tee godot-campaign.log
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script|Cannot open file" godot-campaign.log; then
+            echo "战役菜单启动检测到错误"
+            exit 1
+          fi
