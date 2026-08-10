@@ -4,7 +4,6 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-import { SSAOPass } from 'three/addons/postprocessing/SSAOPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { SpaceEnvironment } from './render/SpaceEnvironment.js';
 import { ProceduralShipFactory } from './render/ProceduralShipFactory.js';
@@ -43,11 +42,6 @@ pmremGenerator.dispose();
 
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
-const ssao = new SSAOPass(scene, camera, innerWidth, innerHeight, 16);
-ssao.kernelRadius = 8;
-ssao.minDistance = 0.001;
-ssao.maxDistance = 0.035;
-composer.addPass(ssao);
 const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.72, 0.62, 0.88);
 composer.addPass(bloom);
 composer.addPass(new ShaderPass({
