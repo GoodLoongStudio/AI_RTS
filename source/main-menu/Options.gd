@@ -15,12 +15,25 @@ var _camera_value_labels := {}
 
 
 func _ready():
+	if embedded_mode:
+		_prepare_embedded_mode()
 	_setup_save_timer()
 	_mouse_movement_restricted.button_pressed = Globals.options.mouse_restricted
 	_screen.selected = Globals.options.screen
-	if embedded_mode:
-		$Background.hide()
 	_build_camera_settings()
+
+
+func _prepare_embedded_mode():
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	$Background.hide()
+
+	var dimmer := ColorRect.new()
+	dimmer.name = "EmbeddedDimmer"
+	dimmer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dimmer.color = Color(0.0, 0.0, 0.0, 0.72)
+	dimmer.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(dimmer)
+	move_child(dimmer, 0)
 
 
 func _setup_save_timer():
@@ -136,11 +149,13 @@ func _on_camera_slider_changed(value: float, key: String):
 	Globals.set_camera_option(key, value)
 	var display = _camera_value_labels[key]
 	display[0].text = display[1] % value
+	_apply_camera_options_live()
 	_queue_save()
 
 
 func _on_camera_edge_scroll_toggled(enabled: bool):
 	Globals.set_camera_option("edge_scroll_enabled", enabled)
+	_apply_camera_options_live()
 	_queue_save()
 
 
@@ -152,7 +167,14 @@ func _on_reset_camera_pressed():
 	_camera_controls["bottom_edge_margin"].value = float(Globals.get_camera_option("bottom_edge_margin"))
 	_camera_controls["smoothing"].value = float(Globals.get_camera_option("smoothing"))
 	_camera_controls["zoom_step"].value = float(Globals.get_camera_option("zoom_step"))
+	_apply_camera_options_live()
 	_queue_save()
+
+
+func _apply_camera_options_live():
+	var camera = get_tree().root.find_child("IsometricCamera3D", true, false)
+	if camera != null and camera.has_method("_apply_user_camera_options"):
+		camera.call("_apply_user_camera_options")
 
 
 func _queue_save():
