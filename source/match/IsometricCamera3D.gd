@@ -39,17 +39,14 @@ func _ready():
 
 
 func _apply_user_camera_options():
-	# Match scenes consume the persistent menu settings on startup. Keeping the camera's
-	# exported defaults makes the scene independently usable in editor/manual tests.
-	if Globals.options == null:
-		return
-	edge_scroll_enabled = Globals.options.camera_edge_scroll_enabled
-	movement_speed = Globals.options.camera_movement_speed
-	screen_margin_for_movement = Globals.options.camera_edge_margin
-	bottom_screen_margin_for_movement = Globals.options.camera_bottom_edge_margin
-	movement_acceleration = max(Globals.options.camera_smoothing, 0.1)
-	movement_deceleration = max(Globals.options.camera_smoothing * 1.4, 0.1)
-	zoom_step = max(Globals.options.camera_zoom_step, 0.05)
+	edge_scroll_enabled = bool(Globals.get_camera_option("edge_scroll_enabled"))
+	movement_speed = float(Globals.get_camera_option("movement_speed"))
+	screen_margin_for_movement = float(Globals.get_camera_option("edge_margin"))
+	bottom_screen_margin_for_movement = float(Globals.get_camera_option("bottom_edge_margin"))
+	var smoothing := max(float(Globals.get_camera_option("smoothing")), 0.1)
+	movement_acceleration = smoothing
+	movement_deceleration = smoothing * 1.4
+	zoom_step = max(float(Globals.get_camera_option("zoom_step")), 0.05)
 
 
 func _process(delta: float):
