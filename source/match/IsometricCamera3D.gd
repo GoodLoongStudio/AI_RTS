@@ -43,10 +43,10 @@ func _apply_user_camera_options():
 	movement_speed = float(Globals.get_camera_option("movement_speed"))
 	screen_margin_for_movement = float(Globals.get_camera_option("edge_margin"))
 	bottom_screen_margin_for_movement = float(Globals.get_camera_option("bottom_edge_margin"))
-	var smoothing := max(float(Globals.get_camera_option("smoothing")), 0.1)
+	var smoothing: float = maxf(float(Globals.get_camera_option("smoothing")), 0.1)
 	movement_acceleration = smoothing
 	movement_deceleration = smoothing * 1.4
-	zoom_step = max(float(Globals.get_camera_option("zoom_step")), 0.05)
+	zoom_step = maxf(float(Globals.get_camera_option("zoom_step")), 0.05)
 
 
 func _process(delta: float):
