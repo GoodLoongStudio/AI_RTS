@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="PackedScene" path="res://source/match/Map.tscn" id="1_map"]
 [ext_resource type="Material" path="res://source/match/resources/materials/terrain.material.tres" id="2_terrain"]
@@ -6,8 +6,8 @@
 [sub_resource type="PlaneMesh" id="PlaneMesh_terrain"]
 resource_local_to_scene = true
 material = ExtResource("2_terrain")
-size = Vector2(154, 114)
-center_offset = Vector3(75, 0, 55)
+size = Vector2(604, 454)
+center_offset = Vector3(300, 0, 225)
 
 [sub_resource type="StandardMaterial3D" id="Material_road"]
 albedo_color = Color(0.18, 0.2, 0.22, 1)
@@ -23,167 +23,241 @@ emission_enabled = true
 emission = Color(0.08, 0.28, 0.42, 1)
 emission_energy_multiplier = 1.4
 
-[sub_resource type="BoxMesh" id="BoxMesh_road"]
+[sub_resource type="BoxMesh" id="BoxMesh_road_short"]
 material = SubResource("Material_road")
-size = Vector3(34, 0.08, 4.5)
+size = Vector3(70, 0.08, 6.0)
+
+[sub_resource type="BoxMesh" id="BoxMesh_road_medium"]
+material = SubResource("Material_road")
+size = Vector3(90, 0.08, 6.0)
+
+[sub_resource type="BoxMesh" id="BoxMesh_road_long"]
+material = SubResource("Material_road")
+size = Vector3(130, 0.08, 6.0)
+
+[sub_resource type="BoxMesh" id="BoxMesh_road_huge"]
+material = SubResource("Material_road")
+size = Vector3(170, 0.08, 6.0)
 
 [sub_resource type="BoxMesh" id="BoxMesh_building"]
 material = SubResource("Material_structure")
-size = Vector3(8, 3, 6)
+size = Vector3(12, 5, 9)
 
 [sub_resource type="BoxMesh" id="BoxMesh_small"]
 material = SubResource("Material_structure")
-size = Vector3(4.5, 2, 2.5)
+size = Vector3(6.5, 2.5, 3.5)
 
 [sub_resource type="BoxMesh" id="BoxMesh_gate"]
 material = SubResource("Material_structure")
-size = Vector3(1.2, 4, 1.2)
+size = Vector3(1.8, 6, 1.8)
 
 [sub_resource type="CylinderMesh" id="CylinderMesh_pad"]
 material = SubResource("Material_road")
-top_radius = 7.0
-bottom_radius = 7.0
+top_radius = 11.0
+bottom_radius = 11.0
 height = 0.08
 radial_segments = 32
 
 [sub_resource type="BoxMesh" id="BoxMesh_signal"]
 material = SubResource("Material_signal")
-size = Vector3(1.2, 1.2, 1.2)
+size = Vector3(1.8, 1.8, 1.8)
 
 [sub_resource type="CylinderMesh" id="CylinderMesh_tower"]
 material = SubResource("Material_structure")
-top_radius = 1.2
-bottom_radius = 2.2
-height = 12.0
+top_radius = 2.0
+bottom_radius = 3.5
+height = 22.0
 radial_segments = 12
 
 [node name="Map" instance=ExtResource("1_map")]
-size = Vector2(150, 110)
+size = Vector2(600, 450)
 
 [node name="Terrain" parent="Geometry" index="1"]
 mesh = SubResource("PlaneMesh_terrain")
 
 [node name="PlayerStart" type="Marker3D" parent="SpawnPoints" index="0"]
-position = Vector3(15, 0, 15)
+position = Vector3(40, 0, 40)
 
 [node name="EnemyStart" type="Marker3D" parent="SpawnPoints" index="1"]
-position = Vector3(138, 0, 101)
+position = Vector3(565, 0, 410)
 rotation_degrees = Vector3(0, 180, 0)
 
 [node name="CampaignZones" type="Node3D" parent="."]
 
 [node name="LandingZone" type="Marker3D" parent="CampaignZones"]
-position = Vector3(15, 0, 15)
+position = Vector3(40, 0, 40)
 
 [node name="EmergencyExtraction" type="Marker3D" parent="CampaignZones"]
-position = Vector3(23, 0, 18)
+position = Vector3(70, 0, 55)
 
 [node name="SignalGate" type="Marker3D" parent="CampaignZones"]
-position = Vector3(31, 0, 24)
+position = Vector3(95, 0, 75)
 
 [node name="PerimeterCamp" type="Marker3D" parent="CampaignZones"]
-position = Vector3(48, 0, 34)
+position = Vector3(145, 0, 110)
 
 [node name="AbandonedConvoy" type="Marker3D" parent="CampaignZones"]
-position = Vector3(69, 0, 48)
+position = Vector3(210, 0, 155)
 
 [node name="SupplyDepot" type="Marker3D" parent="CampaignZones"]
-position = Vector3(47, 0, 66)
+position = Vector3(150, 0, 250)
 
 [node name="RelayRidge" type="Marker3D" parent="CampaignZones"]
-position = Vector3(88, 0, 61)
+position = Vector3(310, 0, 230)
 
 [node name="BlackBoxSite" type="Marker3D" parent="CampaignZones"]
-position = Vector3(106, 0, 71)
+position = Vector3(410, 0, 300)
 
 [node name="VehicleRepair" type="Marker3D" parent="CampaignZones"]
-position = Vector3(111, 0, 43)
+position = Vector3(430, 0, 180)
 
 [node name="CommunicationStation" type="Marker3D" parent="CampaignZones"]
-position = Vector3(132, 0, 91)
+position = Vector3(555, 0, 380)
 
 [node name="TunnelExtraction" type="Marker3D" parent="CampaignZones"]
-position = Vector3(88, 0, 100)
+position = Vector3(340, 0, 410)
 
 [node name="LandingPad" type="MeshInstance3D" parent="Decorations"]
-position = Vector3(15, 0.04, 15)
+position = Vector3(40, 0.04, 40)
 mesh = SubResource("CylinderMesh_pad")
 
 [node name="Road01" type="MeshInstance3D" parent="Decorations"]
-position = Vector3(28, 0.04, 22)
-rotation_degrees = Vector3(0, -30, 0)
-mesh = SubResource("BoxMesh_road")
+position = Vector3(67.5, 0.04, 57.5)
+rotation_degrees = Vector3(0, -32.5, 0)
+mesh = SubResource("BoxMesh_road_short")
 
 [node name="Road02" type="MeshInstance3D" parent="Decorations"]
-position = Vector3(52, 0.04, 36)
-rotation_degrees = Vector3(0, -31, 0)
-mesh = SubResource("BoxMesh_road")
+position = Vector3(120, 0.04, 92.5)
+rotation_degrees = Vector3(0, -35, 0)
+mesh = SubResource("BoxMesh_road_short")
 
 [node name="Road03" type="MeshInstance3D" parent="Decorations"]
-position = Vector3(78, 0.04, 52)
-rotation_degrees = Vector3(0, -30, 0)
-mesh = SubResource("BoxMesh_road")
+position = Vector3(177.5, 0.04, 132.5)
+rotation_degrees = Vector3(0, -34.7, 0)
+mesh = SubResource("BoxMesh_road_medium")
 
 [node name="Road04" type="MeshInstance3D" parent="Decorations"]
-position = Vector3(103, 0.04, 67)
-rotation_degrees = Vector3(0, -31, 0)
-mesh = SubResource("BoxMesh_road")
+position = Vector3(260, 0.04, 192.5)
+rotation_degrees = Vector3(0, -36.9, 0)
+mesh = SubResource("BoxMesh_road_long")
 
 [node name="Road05" type="MeshInstance3D" parent="Decorations"]
-position = Vector3(127, 0.04, 84)
-rotation_degrees = Vector3(0, -36, 0)
-mesh = SubResource("BoxMesh_road")
+position = Vector3(360, 0.04, 265)
+rotation_degrees = Vector3(0, -35, 0)
+mesh = SubResource("BoxMesh_road_long")
+
+[node name="Road06" type="MeshInstance3D" parent="Decorations"]
+position = Vector3(482.5, 0.04, 340)
+rotation_degrees = Vector3(0, -28.9, 0)
+mesh = SubResource("BoxMesh_road_huge")
+
+[node name="RoadSupplyBranch" type="MeshInstance3D" parent="Decorations"]
+position = Vector3(180, 0.04, 202.5)
+rotation_degrees = Vector3(0, -122.3, 0)
+mesh = SubResource("BoxMesh_road_long")
+
+[node name="RoadTunnelBranch" type="MeshInstance3D" parent="Decorations"]
+position = Vector3(325, 0.04, 320)
+rotation_degrees = Vector3(0, -80.5, 0)
+mesh = SubResource("BoxMesh_road_huge")
+
+[node name="RoadRepairBranch" type="MeshInstance3D" parent="Decorations"]
+position = Vector3(420, 0.04, 240)
+rotation_degrees = Vector3(0, 80.5, 0)
+mesh = SubResource("BoxMesh_road_long")
 
 [node name="GateLeft" type="MeshInstance3D" parent="Decorations"]
-position = Vector3(29, 2, 27)
+position = Vector3(92, 3, 80)
 mesh = SubResource("BoxMesh_gate")
 
 [node name="GateRight" type="MeshInstance3D" parent="Decorations"]
-position = Vector3(33, 2, 21)
+position = Vector3(98, 3, 70)
 mesh = SubResource("BoxMesh_gate")
 
 [node name="CampBuildingA" type="MeshInstance3D" parent="Decorations"]
-position = Vector3(45, 1.5, 38)
+position = Vector3(137, 2.5, 116)
 mesh = SubResource("BoxMesh_building")
 
 [node name="CampBuildingB" type="MeshInstance3D" parent="Decorations"]
-position = Vector3(53, 1.5, 31)
+position = Vector3(154, 2.5, 102)
 rotation_degrees = Vector3(0, 18, 0)
 mesh = SubResource("BoxMesh_building")
 
+[node name="CampBuildingC" type="MeshInstance3D" parent="Decorations"]
+position = Vector3(155, 2.5, 120)
+rotation_degrees = Vector3(0, -12, 0)
+mesh = SubResource("BoxMesh_building")
+
 [node name="ConvoyTruckA" type="MeshInstance3D" parent="Decorations"]
-position = Vector3(66, 1, 48)
+position = Vector3(202, 1.25, 152)
 rotation_degrees = Vector3(0, -26, 0)
 mesh = SubResource("BoxMesh_small")
 
 [node name="ConvoyTruckB" type="MeshInstance3D" parent="Decorations"]
-position = Vector3(72, 1, 51)
+position = Vector3(212, 1.25, 157)
 rotation_degrees = Vector3(0, -38, 0)
 mesh = SubResource("BoxMesh_small")
 
+[node name="ConvoyTruckC" type="MeshInstance3D" parent="Decorations"]
+position = Vector3(221, 1.25, 161)
+rotation_degrees = Vector3(0, -19, 0)
+mesh = SubResource("BoxMesh_small")
+
 [node name="ConvoySignal" type="MeshInstance3D" parent="Decorations"]
-position = Vector3(69, 0.7, 45)
+position = Vector3(210, 0.9, 148)
 mesh = SubResource("BoxMesh_signal")
 
-[node name="SupplyBuilding" type="MeshInstance3D" parent="Decorations"]
-position = Vector3(47, 1.5, 66)
+[node name="SupplyBuildingA" type="MeshInstance3D" parent="Decorations"]
+position = Vector3(144, 2.5, 246)
 mesh = SubResource("BoxMesh_building")
 
-[node name="VehicleRepairShed" type="MeshInstance3D" parent="Decorations"]
-position = Vector3(111, 1.5, 43)
+[node name="SupplyBuildingB" type="MeshInstance3D" parent="Decorations"]
+position = Vector3(158, 2.5, 255)
+rotation_degrees = Vector3(0, 90, 0)
+mesh = SubResource("BoxMesh_building")
+
+[node name="RelayFacility" type="MeshInstance3D" parent="Decorations"]
+position = Vector3(310, 2.5, 230)
 rotation_degrees = Vector3(0, 25, 0)
 mesh = SubResource("BoxMesh_building")
 
-[node name="BlackBoxBeacon" type="MeshInstance3D" parent="Decorations"]
-position = Vector3(106, 0.7, 71)
-mesh = SubResource("BoxMesh_signal")
-
-[node name="CommunicationTower" type="MeshInstance3D" parent="Decorations"]
-position = Vector3(132, 6, 91)
-mesh = SubResource("CylinderMesh_tower")
-
-[node name="TunnelMarker" type="MeshInstance3D" parent="Decorations"]
-position = Vector3(88, 1.5, 100)
+[node name="VehicleRepairShedA" type="MeshInstance3D" parent="Decorations"]
+position = Vector3(423, 2.5, 175)
+rotation_degrees = Vector3(0, 25, 0)
 mesh = SubResource("BoxMesh_building")
 
-[editable path="."]
+[node name="VehicleRepairShedB" type="MeshInstance3D" parent="Decorations"]
+position = Vector3(438, 2.5, 187)
+rotation_degrees = Vector3(0, -8, 0)
+mesh = SubResource("BoxMesh_building")
+
+[node name="BlackBoxBeacon" type="MeshInstance3D" parent="Decorations"]
+position = Vector3(410, 0.9, 300)
+mesh = SubResource("BoxMesh_signal")
+
+[node name="BlackBoxStructureA" type="MeshInstance3D" parent="Decorations"]
+position = Vector3(399, 2.5, 307)
+rotation_degrees = Vector3(0, -30, 0)
+mesh = SubResource("BoxMesh_building")
+
+[node name="BlackBoxStructureB" type="MeshInstance3D" parent="Decorations"]
+position = Vector3(420, 2.5, 294)
+rotation_degrees = Vector3(0, 12, 0)
+mesh = SubResource("BoxMesh_building")
+
+[node name="CommunicationTower" type="MeshInstance3D" parent="Decorations"]
+position = Vector3(555, 11, 380)
+mesh = SubResource("CylinderMesh_tower")
+
+[node name="CommunicationBuildingA" type="MeshInstance3D" parent="Decorations"]
+position = Vector3(540, 2.5, 372)
+mesh = SubResource("BoxMesh_building")
+
+[node name="CommunicationBuildingB" type="MeshInstance3D" parent="Decorations"]
+position = Vector3(568, 2.5, 391)
+rotation_degrees = Vector3(0, 90, 0)
+mesh = SubResource("BoxMesh_building")
+
+[node name="TunnelMarker" type="MeshInstance3D" parent="Decorations"]
+position = Vector3(340, 2.5, 410)
+mesh = SubResource("BoxMesh_building")

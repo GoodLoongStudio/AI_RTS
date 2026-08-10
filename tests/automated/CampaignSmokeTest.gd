@@ -71,11 +71,17 @@ func _run_test():
 	assert(group_1.size() == 1, "先锋英雄应加入 unit_group_1")
 	assert(group_2.is_empty(), "单英雄序章不应建立第二小队")
 	assert(group_3.is_empty(), "单英雄序章不应建立第三小队")
-	assert(a_match.map.size == Vector2(150, 110), "回声撤离灰盒地图尺寸不正确")
+	assert(a_match.map.size == Vector2(600, 450), "回声撤离超大灰盒地图尺寸不正确")
 	assert(a_match.get_node_or_null("Map/CampaignZones/SignalGate") != null, "灰盒地图缺少 SignalGate")
 	assert(a_match.get_node_or_null("Map/CampaignZones/PerimeterCamp") != null, "灰盒地图缺少 PerimeterCamp")
 	assert(a_match.get_node_or_null("Map/CampaignZones/AbandonedConvoy") != null, "灰盒地图缺少 AbandonedConvoy")
 	assert(a_match.get_node_or_null("Map/CampaignZones/EmergencyExtraction") != null, "灰盒地图缺少 EmergencyExtraction")
+	var communication_station = a_match.get_node_or_null("Map/CampaignZones/CommunicationStation")
+	var tunnel_extraction = a_match.get_node_or_null("Map/CampaignZones/TunnelExtraction")
+	assert(communication_station != null, "超大地图缺少 CommunicationStation")
+	assert(tunnel_extraction != null, "超大地图缺少 TunnelExtraction")
+	assert(communication_station.position.x > 500.0 and communication_station.position.z > 350.0, "通讯站未被拉到大战区深处")
+	assert(tunnel_extraction.position.z > 400.0, "地下撤离点未使用超大地图纵深")
 
 	assert(camera != null, "RTS 镜头未加载")
 	assert(camera.edge_scroll_enabled, "边缘滚屏设置未应用")
@@ -117,7 +123,7 @@ func _run_test():
 	assert(bottom_inner_scroll.y > 0.0, "屏幕下方扩展触发区未生效")
 	assert(camera.bottom_screen_margin_for_movement > camera.screen_margin_for_movement, "底边触发区应比普通边缘更宽")
 
-	print("CAMPAIGN_SMOKE_TEST_OK: 回声撤离和全局设置入口已验证，战斗中镜头设置可即时应用")
+	print("CAMPAIGN_SMOKE_TEST_OK: 回声撤离 600x450 超大地图、单英雄和全局设置入口均已验证")
 	a_match.queue_free()
 	await get_tree().process_frame
 	await get_tree().process_frame
