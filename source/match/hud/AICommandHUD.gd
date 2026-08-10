@@ -1,5 +1,9 @@
 extends Control
 
+signal squad_selected(squad_id)
+signal squad_command_executed(squad_id, command)
+signal player_text_submitted(text)
+
 const WaitingForTargets = preload("res://source/match/units/actions/WaitingForTargets.gd")
 
 const SQUAD_NAMES = {1: "突击队", 2: "侦察队", 3: "支援队"}
@@ -9,15 +13,22 @@ const COMMAND_LABELS = {
 	"SCOUT": "侦察", "RETREAT": "撤退", "STOP": "停止"
 }
 
+var control_mode := "squad"
+var hero_name := "先锋指挥单元"
 var active_squad := 1
 var pending_command := ""
 var squad_status := {1: "待命", 2: "待命", 3: "待命"}
 
 var _squad_buttons := {}
-var _status_labels := {}
 var _chat_log: RichTextLabel
 var _input: LineEdit
 var _command_hint: Label
+var _agent_state: Label
+var _context_label: Label
+var _current_objective := "等待战区任务同步"
+var _current_suggestion := "保持待命，等待新的任务信息。"
+var _current_risk := "未知"
+var _mock_agent_busy := false
 
 
 func _ready():
@@ -26,8 +37,12 @@ func _ready():
 	_build_ui()
 	MatchSignals.terrain_targeted.connect(_on_terrain_targeted)
 	MatchSignals.unit_targeted.connect(_on_unit_targeted)
-	_append_ai("指挥链路已上线。数字键选择小队，QWERDF 下达战斗命令；Enter 可直接输入自然语言。")
+	if _is_hero_mode():
+		_append_ai("先锋链路已上线。你可以直接告诉我想做什么，也可以问我‘下一步做什么’或‘风险怎么样’。")
+	else:
+		_append_ai("指挥链路已上线。你可以直接下达自然语言命令，也可以让我评估当前风险和下一步行动。")
 	_refresh_squad_ui()
+	_refresh_agent_context()
 
 
 func _unhandled_key_input(event: InputEvent):
@@ -38,8 +53,14 @@ func _unhandled_key_input(event: InputEvent):
 			_input.release_focus()
 		return
 	match event.keycode:
-		KEY_1, KEY_2, KEY_3:
-			_select_squad(int(event.keycode - KEY_0))
+		KEY_1:
+			_select_squad(1)
+		KEY_2:
+			if not _is_hero_mode():
+				_select_squad(2)
+		KEY_3:
+			if not _is_hero_mode():
+				_select_squad(3)
 		KEY_ENTER:
 			_input.grab_focus()
 		KEY_Q, KEY_W, KEY_E, KEY_R, KEY_D, KEY_F:
@@ -55,13 +76,13 @@ func _build_ui():
 	add_child(left)
 
 	var left_title := Label.new()
-	left_title.text = "作战小队"
+	left_title.text = "先锋单位" if _is_hero_mode() else "作战小队"
 	left_title.add_theme_font_size_override("font_size", 22)
 	left.add_child(left_title)
-	for squad_id in [1, 2, 3]:
+	for squad_id in _control_ids():
 		var card := Button.new()
 		card.custom_minimum_size = Vector2(250, 82)
-		card.text = "%d  %s\n待命" % [squad_id, SQUAD_NAMES[squad_id]]
+		card.text = "%s\n待命" % _control_display(squad_id)
 		card.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		card.pressed.connect(_select_squad.bind(squad_id))
 		left.add_child(card)
@@ -69,31 +90,64 @@ func _build_ui():
 
 	var right := PanelContainer.new()
 	right.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	right.position = Vector2(-430, 80)
-	right.size = Vector2(410, 610)
+	right.position = Vector2(-450, 62)
+	right.size = Vector2(430, 690)
 	right.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(right)
 	var right_box := VBoxContainer.new()
-	right_box.add_theme_constant_override("separation", 8)
+	right_box.add_theme_constant_override("separation", 7)
 	right.add_child(right_box)
+
+	var title_row := HBoxContainer.new()
+	right_box.add_child(title_row)
 	var ai_title := Label.new()
-	ai_title.text = "AI 指挥频道"
+	ai_title.text = "岚 · AI副官"
 	ai_title.add_theme_font_size_override("font_size", 22)
-	right_box.add_child(ai_title)
+	ai_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_row.add_child(ai_title)
+	_agent_state = Label.new()
+	_agent_state.text = "● 战术链路在线"
+	title_row.add_child(_agent_state)
+
+	_context_label = Label.new()
+	_context_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_context_label.custom_minimum_size = Vector2(405, 66)
+	right_box.add_child(_context_label)
+
+	var quick_row := HBoxContainer.new()
+	quick_row.add_theme_constant_override("separation", 6)
+	right_box.add_child(quick_row)
+	var next_button := Button.new()
+	next_button.text = "下一步？"
+	next_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	next_button.pressed.connect(_ask_mock_agent.bind("NEXT"))
+	quick_row.add_child(next_button)
+	var risk_button := Button.new()
+	risk_button.text = "风险？"
+	risk_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	risk_button.pressed.connect(_ask_mock_agent.bind("RISK"))
+	quick_row.add_child(risk_button)
+	var status_button := Button.new()
+	status_button.text = "战况？"
+	status_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	status_button.pressed.connect(_ask_mock_agent.bind("STATUS"))
+	quick_row.add_child(status_button)
+
 	_chat_log = RichTextLabel.new()
 	_chat_log.bbcode_enabled = true
 	_chat_log.fit_content = false
 	_chat_log.scroll_active = true
-	_chat_log.custom_minimum_size = Vector2(390, 470)
+	_chat_log.custom_minimum_size = Vector2(405, 430)
 	right_box.add_child(_chat_log)
 	_command_hint = Label.new()
-	_command_hint.text = "当前：1 突击队 · 待命"
+	_command_hint.text = "AI理解：%s · 待命" % _control_display(1)
+	_command_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	right_box.add_child(_command_hint)
 
 	var bottom := PanelContainer.new()
 	bottom.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	bottom.offset_left = 290
-	bottom.offset_right = -450
+	bottom.offset_right = -470
 	bottom.offset_top = -160
 	bottom.offset_bottom = -18
 	bottom.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -114,7 +168,10 @@ func _build_ui():
 	var input_row := HBoxContainer.new()
 	bottom_box.add_child(input_row)
 	_input = LineEdit.new()
-	_input.placeholder_text = "告诉 AI：二队向右侦察；一队原地防守，不要追击……"
+	if _is_hero_mode():
+		_input.placeholder_text = "对岚说：去前面看看；下一步做什么；这里危险吗……"
+	else:
+		_input.placeholder_text = "对岚说：二队向右侦察；评估风险；一队原地防守……"
 	_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_input.text_submitted.connect(_on_text_submitted)
 	input_row.add_child(_input)
@@ -125,13 +182,19 @@ func _build_ui():
 
 
 func _select_squad(squad_id: int):
+	if squad_id not in _control_ids():
+		return
 	active_squad = squad_id
 	var units = _get_squad_units(squad_id)
 	if units.is_empty():
-		_append_ai("%d %s 尚未编组。先框选单位并用 Ctrl+%d 保存编组。" % [squad_id, SQUAD_NAMES[squad_id], squad_id])
+		if _is_hero_mode():
+			_append_ai("先锋单位尚未接入战场。")
+		else:
+			_append_ai("%d %s 尚未编组。先框选单位并用 Ctrl+%d 保存编组。" % [squad_id, SQUAD_NAMES[squad_id], squad_id])
 	else:
 		Utils.Match.select_units(Utils.Set.from_array(units))
 	_refresh_squad_ui()
+	squad_selected.emit(squad_id)
 
 
 func _get_squad_units(squad_id: int) -> Array:
@@ -142,7 +205,7 @@ func _get_squad_units(squad_id: int) -> Array:
 
 func _begin_command(command: String):
 	if _get_squad_units(active_squad).is_empty():
-		_append_ai("无法执行：%d %s 还没有单位。" % [active_squad, SQUAD_NAMES[active_squad]])
+		_append_ai("无法执行：%s 还没有可控单位。" % _control_display(active_squad))
 		return
 	match command:
 		"DEFEND":
@@ -151,10 +214,10 @@ func _begin_command(command: String):
 			_execute_stop()
 		"MOVE", "SCOUT", "RETREAT":
 			pending_command = command
-			_append_ai("已理解：%d %s → %s。请在地图上右键指定位置。" % [active_squad, SQUAD_NAMES[active_squad], COMMAND_LABELS[command]])
+			_append_ai("理解你的意图：让%s%s。请在地图上右键指定位置，我会把目标交给 RTS 执行层。" % [_control_display(active_squad), COMMAND_LABELS[command]])
 		"ATTACK":
 			pending_command = command
-			_append_ai("已理解：%d %s → 攻击。请右键指定敌方目标。" % [active_squad, SQUAD_NAMES[active_squad]])
+			_append_ai("理解你的意图：让%s攻击指定目标。请右键选择敌方单位。" % _control_display(active_squad))
 	_refresh_squad_ui()
 
 
@@ -162,10 +225,11 @@ func _execute_defend():
 	for unit in _get_squad_units(active_squad):
 		if unit.attack_range != null:
 			unit.action = WaitingForTargets.new()
-	squad_status[active_squad] = "固守中"
+	squad_status[active_squad] = "警戒中" if _is_hero_mode() else "固守中"
 	pending_command = ""
-	_append_ai("执行：%d %s 原地防守；不会主动追击超出视野的目标。" % [active_squad, SQUAD_NAMES[active_squad]])
+	_append_ai("命令已下达：%s原地警戒。我会继续关注任务状态。" % _control_display(active_squad))
 	_refresh_squad_ui()
+	squad_command_executed.emit(active_squad, "DEFEND")
 
 
 func _execute_stop():
@@ -173,50 +237,119 @@ func _execute_stop():
 		unit.action = null
 	squad_status[active_squad] = "待命"
 	pending_command = ""
-	_append_ai("执行：%d %s 停止当前任务。" % [active_squad, SQUAD_NAMES[active_squad]])
+	_append_ai("命令已下达：%s停止当前任务，重新进入待命。" % _control_display(active_squad))
 	_refresh_squad_ui()
+	squad_command_executed.emit(active_squad, "STOP")
 
 
 func _on_terrain_targeted(_position):
 	if pending_command not in ["MOVE", "SCOUT", "RETREAT"]:
 		return
-	var label = COMMAND_LABELS[pending_command]
+	var executed_command = pending_command
+	var label = COMMAND_LABELS[executed_command]
 	squad_status[active_squad] = "%s中" % label
-	_append_ai("执行确认：%d %s %s。路线已交给现有 RTS 移动系统。" % [active_squad, SQUAD_NAMES[active_squad], label])
+	_append_ai("已确认地图目标。%s开始%s；路线由底层 RTS 系统执行。" % [_control_display(active_squad), label])
 	pending_command = ""
 	_refresh_squad_ui()
+	squad_command_executed.emit(active_squad, executed_command)
 
 
 func _on_unit_targeted(unit):
 	if pending_command != "ATTACK":
 		return
 	if not unit.is_in_group("adversary_units"):
-		_append_ai("目标无效：请选择敌方单位。")
+		_append_ai("这个目标不是已确认敌方单位，我不会替你执行攻击。")
 		return
 	squad_status[active_squad] = "交战中"
-	_append_ai("执行确认：%d %s 集火 %s。" % [active_squad, SQUAD_NAMES[active_squad], unit.type])
+	_append_ai("敌方目标已确认。%s开始集火 %s。" % [_control_display(active_squad), unit.type])
 	pending_command = ""
 	_refresh_squad_ui()
+	squad_command_executed.emit(active_squad, "ATTACK")
 
 
 func _on_text_submitted(text: String):
 	var command_text := text.strip_edges()
-	if command_text.is_empty():
+	if command_text.is_empty() or _mock_agent_busy:
 		return
+	player_text_submitted.emit(command_text)
 	_append_player(command_text)
 	_input.clear()
+	_mock_agent_busy = true
+	_set_agent_state("● 岚正在分析……")
+	await get_tree().create_timer(0.28).timeout
+
+	var question := _parse_ai_question(command_text)
+	if not question.is_empty():
+		_respond_to_ai_question(question)
+		_mock_agent_busy = false
+		_set_agent_state("● 战术链路在线")
+		return
+
 	var squad_id = _parse_squad(command_text)
 	if squad_id != -1:
 		_select_squad(squad_id)
 	var command = _parse_command(command_text)
 	if command.is_empty():
-		_append_ai("我没有把这句话映射到安全命令。当前支持：移动、攻击、防守、侦察、撤退、停止。")
+		_append_ai("我理解到这是一个战术意图，但当前模拟链路还不能安全转换成执行命令。你可以直接说‘去前面看看’、‘原地警戒’、‘攻击目标’，或者问我‘下一步做什么’。")
+		_mock_agent_busy = false
+		_set_agent_state("● 战术链路在线")
 		return
-	_append_ai("解析结果：%d %s · %s。" % [active_squad, SQUAD_NAMES[active_squad], COMMAND_LABELS[command]])
+	_append_ai("我的理解：%s需要%s。%s" % [_control_display(active_squad), COMMAND_LABELS[command], _command_reasoning(command)])
 	_begin_command(command)
+	_mock_agent_busy = false
+	_set_agent_state("● 战术链路在线")
+
+
+func _parse_ai_question(text: String) -> String:
+	if text.contains("下一步") or text.contains("怎么办") or text.contains("做什么") or text.contains("去哪") or text.contains("建议"):
+		return "NEXT"
+	if text.contains("风险") or text.contains("危险") or text.contains("安全吗") or text.contains("敌情"):
+		return "RISK"
+	if text.contains("战况") or text.contains("情况") or text.contains("状态") or text.contains("任务是什么") or text.contains("目标是什么"):
+		return "STATUS"
+	return ""
+
+
+func _ask_mock_agent(question: String):
+	if _mock_agent_busy:
+		return
+	_mock_agent_busy = true
+	_set_agent_state("● 岚正在分析……")
+	await get_tree().create_timer(0.22).timeout
+	_respond_to_ai_question(question)
+	_mock_agent_busy = false
+	_set_agent_state("● 战术链路在线")
+
+
+func _respond_to_ai_question(question: String):
+	match question:
+		"NEXT":
+			_append_ai("建议：%s\n理由：这一步与当前任务目标直接相关，我不会假设战争迷雾外存在未确认目标。" % _current_suggestion)
+		"RISK":
+			_append_ai("当前风险评估：%s。这个判断只基于任务脚本已经确认的信息；未知区域仍按未知处理。" % _current_risk)
+		"STATUS":
+			_append_ai("当前目标：%s\n%s状态：%s。" % [_current_objective, _control_display(active_squad), squad_status[active_squad]])
+
+
+func _command_reasoning(command: String) -> String:
+	match command:
+		"SCOUT":
+			return "我会把它当成侦察意图，而不是直接假定前方存在敌人。"
+		"RETREAT":
+			return "这是脱离当前区域的意图，具体撤退位置仍由你确认。"
+		"DEFEND":
+			return "这是原地保持警戒的安全命令，不需要额外目标点。"
+		"STOP":
+			return "这是立即中断当前任务的安全命令。"
+		"ATTACK":
+			return "攻击必须由你确认一个已识别敌方目标。"
+		_:
+			return "移动方向需要你在地图上确认，避免 AI 擅自决定路线。"
 
 
 func _parse_squad(text: String) -> int:
+	if _is_hero_mode():
+		return 1
 	for pair in [[1, ["一队", "1队", "第一队"]], [2, ["二队", "2队", "第二队"]], [3, ["三队", "3队", "第三队"]]]:
 		for token in pair[1]:
 			if text.contains(token):
@@ -225,11 +358,11 @@ func _parse_squad(text: String) -> int:
 
 
 func _parse_command(text: String) -> String:
-	if text.contains("不要追") or text.contains("防守") or text.contains("守住") or text.contains("原地守"):
+	if text.contains("不要追") or text.contains("防守") or text.contains("守住") or text.contains("原地守") or text.contains("警戒"):
 		return "DEFEND"
-	if text.contains("侦察") or text.contains("探路") or text.contains("搜索"):
+	if text.contains("侦察") or text.contains("探路") or text.contains("搜索") or text.contains("看看"):
 		return "SCOUT"
-	if text.contains("撤退") or text.contains("撤离") or text.contains("后撤"):
+	if text.contains("撤退") or text.contains("撤离") or text.contains("后撤") or text.contains("返回"):
 		return "RETREAT"
 	if text.contains("停止") or text.contains("停下") or text.contains("待命"):
 		return "STOP"
@@ -241,16 +374,60 @@ func _parse_command(text: String) -> String:
 
 
 func _refresh_squad_ui():
-	for squad_id in [1, 2, 3]:
+	for squad_id in _control_ids():
+		if not _squad_buttons.has(squad_id):
+			continue
 		var prefix = "▶ " if squad_id == active_squad else ""
 		var count = _get_squad_units(squad_id).size()
-		_squad_buttons[squad_id].text = "%s%d  %s  · %d\n%s" % [prefix, squad_id, SQUAD_NAMES[squad_id], count, squad_status[squad_id]]
-	_command_hint.text = "当前：%d %s · %s%s" % [active_squad, SQUAD_NAMES[active_squad], squad_status[active_squad], " · 等待目标" if not pending_command.is_empty() else ""]
+		_squad_buttons[squad_id].text = "%s%s  · %d\n%s" % [prefix, _control_display(squad_id), count, squad_status[squad_id]]
+	_command_hint.text = "AI理解：%s · %s%s" % [_control_display(active_squad), squad_status[active_squad], " · 等待你确认目标" if not pending_command.is_empty() else ""]
+
+
+func refresh_control_ui():
+	_refresh_squad_ui()
+
+
+func set_agent_context(objective: String, suggestion: String, risk: String):
+	_current_objective = objective
+	_current_suggestion = suggestion
+	_current_risk = risk
+	_refresh_agent_context()
+
+
+func _refresh_agent_context():
+	if _context_label == null:
+		return
+	_context_label.text = "当前态势：%s\n风险：%s" % [_current_objective, _current_risk]
+
+
+func _set_agent_state(text: String):
+	if _agent_state != null:
+		_agent_state.text = text
+
+
+func post_agent_message(speaker: String, text: String):
+	_chat_log.append_text("[color=#8ee6b2]%s[/color]\n%s\n\n" % [speaker, text])
+	_chat_log.scroll_to_line(_chat_log.get_line_count())
 
 
 func _append_player(text: String):
 	_chat_log.append_text("[color=#a8c7ff]你[/color]\n%s\n\n" % text)
+	_chat_log.scroll_to_line(_chat_log.get_line_count())
 
 
 func _append_ai(text: String):
-	_chat_log.append_text("[color=#8ee6b2]岚 · AI副官[/color]\n%s\n\n" % text)
+	post_agent_message("岚 · AI副官", text)
+
+
+func _is_hero_mode() -> bool:
+	return control_mode == "hero"
+
+
+func _control_ids() -> Array:
+	return [1] if _is_hero_mode() else [1, 2, 3]
+
+
+func _control_display(squad_id: int) -> String:
+	if _is_hero_mode():
+		return hero_name
+	return "%d %s" % [squad_id, SQUAD_NAMES[squad_id]]

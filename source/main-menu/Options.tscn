@@ -24,100 +24,93 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -224.5
-offset_top = -112.0
-offset_right = 224.5
-offset_bottom = 112.0
+offset_left = -350.0
+offset_top = -410.0
+offset_right = 350.0
+offset_bottom = 410.0
 grow_horizontal = 2
 grow_vertical = 2
 
 [node name="MarginContainer" type="MarginContainer" parent="PanelContainer"]
 layout_mode = 2
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 20
-theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 20
+theme_override_constants/margin_left = 26
+theme_override_constants/margin_top = 22
+theme_override_constants/margin_right = 26
+theme_override_constants/margin_bottom = 22
 
 [node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer"]
-custom_minimum_size = Vector2(400, 0)
+custom_minimum_size = Vector2(620, 0)
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 12
 alignment = 1
 
-[node name="PanelContainer" type="PanelContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="Title" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
-
-[node name="MarginContainer" type="MarginContainer" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer"]
-layout_mode = 2
-theme_override_constants/margin_left = 5
-theme_override_constants/margin_top = 5
-theme_override_constants/margin_right = 5
-theme_override_constants/margin_bottom = 5
-
-[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer/MarginContainer"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer/MarginContainer/VBoxContainer"]
-layout_mode = 2
-text = "Video"
+theme_override_font_sizes/font_size = 30
+text = "设置"
 horizontal_alignment = 1
 
-[node name="Panel" type="Panel" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer/MarginContainer/VBoxContainer/Label"]
-show_behind_parent = true
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+[node name="DisplayPanel" type="PanelContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
 
-[node name="Screen" type="OptionButton" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer/MarginContainer/VBoxContainer"]
+[node name="MarginContainer" type="MarginContainer" parent="PanelContainer/MarginContainer/VBoxContainer/DisplayPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer/DisplayPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Label" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/DisplayPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "显示"
+horizontal_alignment = 1
+
+[node name="Screen" type="OptionButton" parent="PanelContainer/MarginContainer/VBoxContainer/DisplayPanel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 focus_mode = 0
 item_count = 2
 selected = 0
-popup/item_0/text = "Fullscreen"
+popup/item_0/text = "全屏"
 popup/item_0/id = 0
-popup/item_1/text = "Window"
+popup/item_1/text = "窗口"
 popup/item_1/id = 1
 
-[node name="PanelContainer2" type="PanelContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="MousePanel" type="PanelContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="MarginContainer" type="MarginContainer" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer2"]
+[node name="MarginContainer" type="MarginContainer" parent="PanelContainer/MarginContainer/VBoxContainer/MousePanel"]
 layout_mode = 2
-theme_override_constants/margin_left = 5
-theme_override_constants/margin_top = 5
-theme_override_constants/margin_right = 5
-theme_override_constants/margin_bottom = 5
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 10
 
-[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer2/MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer/MousePanel/MarginContainer"]
 layout_mode = 2
+theme_override_constants/separation = 8
 
-[node name="Label" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer2/MarginContainer/VBoxContainer"]
+[node name="Label" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/MousePanel/MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "Mouse"
+theme_override_font_sizes/font_size = 22
+text = "鼠标"
 horizontal_alignment = 1
 
-[node name="Panel" type="Panel" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer2/MarginContainer/VBoxContainer/Label"]
-show_behind_parent = true
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="MouseMovementRestricted" type="CheckBox" parent="PanelContainer/MarginContainer/VBoxContainer/PanelContainer2/MarginContainer/VBoxContainer"]
+[node name="MouseMovementRestricted" type="CheckBox" parent="PanelContainer/MarginContainer/VBoxContainer/MousePanel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 focus_mode = 0
-text = "Mouse movement restricted to the game window"
+text = "将鼠标限制在游戏窗口内"
 
 [node name="Button" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
+custom_minimum_size = Vector2(0, 52)
 theme = ExtResource("1_a5uwh")
-text = "BACK"
+text = "返回"
 
-[connection signal="item_selected" from="PanelContainer/MarginContainer/VBoxContainer/PanelContainer/MarginContainer/VBoxContainer/Screen" to="." method="_on_screen_item_selected"]
-[connection signal="pressed" from="PanelContainer/MarginContainer/VBoxContainer/PanelContainer2/MarginContainer/VBoxContainer/MouseMovementRestricted" to="." method="_on_mouse_movement_restricted_pressed"]
+[connection signal="item_selected" from="PanelContainer/MarginContainer/VBoxContainer/DisplayPanel/MarginContainer/VBoxContainer/Screen" to="." method="_on_screen_item_selected"]
+[connection signal="pressed" from="PanelContainer/MarginContainer/VBoxContainer/MousePanel/MarginContainer/VBoxContainer/MouseMovementRestricted" to="." method="_on_mouse_movement_restricted_pressed"]
 [connection signal="pressed" from="PanelContainer/MarginContainer/VBoxContainer/Button" to="." method="_on_back_button_pressed"]

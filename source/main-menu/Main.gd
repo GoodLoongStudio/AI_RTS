@@ -1,6 +1,10 @@
 extends Control
 
 
+func _on_campaign_button_pressed():
+	get_tree().change_scene_to_file("res://source/campaign/CampaignMenu.tscn")
+
+
 func _on_play_button_pressed():
 	get_tree().change_scene_to_file("res://source/main-menu/Play.tscn")
 

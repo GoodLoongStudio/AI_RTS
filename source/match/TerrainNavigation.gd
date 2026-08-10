@@ -12,6 +12,11 @@ var _map_geometry = NavigationMeshSourceGeometryData3D.new()
 
 
 func _ready():
+	# Runtime baking should use physics geometry. Parsing MeshInstance3D geometry forces
+	# a GPU -> CPU readback and Godot 4.7 reports it as a runtime performance warning.
+	_navigation_region.navigation_mesh.geometry_parsed_geometry_type = (
+		NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
+	)
 	assert(_safety_checks())
 	NavigationServer3D.map_set_cell_size(
 		navigation_map_rid, Constants.Match.Terrain.Navmesh.CELL_SIZE
@@ -76,6 +81,11 @@ func _sync_navmesh_changes():
 
 
 func _safety_checks():
+	assert(
+		_navigation_region.navigation_mesh.geometry_parsed_geometry_type
+		== NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS,
+		"runtime terrain navmesh must parse static colliders, not rendering meshes"
+	)
 	assert(
 		is_equal_approx(
 			_navigation_region.navigation_mesh.agent_radius,

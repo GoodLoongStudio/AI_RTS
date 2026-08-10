@@ -5,6 +5,7 @@ const Structure = preload("res://source/match/units/Structure.gd")
 const Player = preload("res://source/match/players/Player.gd")
 const Human = preload("res://source/match/players/human/Human.gd")
 const AICommandHUD = preload("res://source/match/hud/AICommandHUD.gd")
+const CampaignController = preload("res://source/campaign/CampaignController.gd")
 
 const CommandCenter = preload("res://source/match/units/CommandCenter.tscn")
 const Drone = preload("res://source/match/units/Drone.tscn")
@@ -12,6 +13,7 @@ const Worker = preload("res://source/match/units/Worker.tscn")
 
 @export var settings: Resource = null
 
+var campaign_data = null
 var map:
 	set = _set_map,
 	get = _get_map
@@ -44,6 +46,7 @@ func _ready():
 	if settings.visibility == settings.Visibility.FULL:
 		fog_of_war.reveal()
 	_setup_ai_command_hud()
+	_setup_campaign()
 	MatchSignals.match_started.emit()
 
 
@@ -59,7 +62,19 @@ func _setup_ai_command_hud():
 		return
 	var ai_command_hud = AICommandHUD.new()
 	ai_command_hud.name = "AICommandHUD"
+	if campaign_data != null:
+		ai_command_hud.control_mode = campaign_data.get("initial_control_mode", "squad")
+		ai_command_hud.hero_name = campaign_data.get("hero_name", "先锋指挥单元")
 	$HUD.add_child(ai_command_hud)
+
+
+func _setup_campaign():
+	if campaign_data == null:
+		return
+	var campaign_controller = CampaignController.new()
+	campaign_controller.name = "CampaignController"
+	campaign_controller.mission_data = campaign_data
+	add_child(campaign_controller)
 
 
 func _set_map(a_map):
@@ -90,7 +105,13 @@ func _get_visible_players():
 
 
 func _setup_subsystems_dependent_on_map():
-	_terrain.update_shape(map.find_child("Terrain").mesh)
+	var map_terrain := map.find_child("Terrain") as MeshInstance3D
+	assert(map_terrain != null and map_terrain.mesh != null, "map must provide a Terrain MeshInstance3D")
+	_terrain.update_shape(map_terrain.mesh)
+	# Runtime navmesh baking should consume the terrain collider rather than reading
+	# the visual MeshInstance3D back from the GPU. Layer 2 matches the terrain navmesh mask.
+	_terrain.collision_layer = 2
+	_terrain.add_to_group("terrain_navigation_input")
 	fog_of_war.resize(map.size)
 	_recalculate_camera_bounding_planes(map.size)
 	navigation.setup(map)
@@ -139,6 +160,13 @@ func _setup_player_units():
 
 
 func _spawn_player_units(player, spawn_transform):
+	if _should_spawn_campaign_hero(player):
+		var hero_scene_path: String = campaign_data.get("hero_scene", "res://source/match/units/Tank.tscn")
+		var hero_scene = load(hero_scene_path)
+		assert(hero_scene != null, "campaign hero scene could not be loaded: %s" % hero_scene_path)
+		_setup_and_spawn_unit(hero_scene.instantiate(), spawn_transform, player)
+		return
+
 	_setup_and_spawn_unit(CommandCenter.instantiate(), spawn_transform, player, false)
 	_setup_and_spawn_unit(
 		Drone.instantiate(), spawn_transform.translated(Vector3(-2, 0, -2)), player
@@ -148,6 +176,14 @@ func _spawn_player_units(player, spawn_transform):
 	)
 	_setup_and_spawn_unit(
 		Worker.instantiate(), spawn_transform.translated(Vector3(3, 0, 3)), player
+	)
+
+
+func _should_spawn_campaign_hero(player) -> bool:
+	return (
+		campaign_data != null
+		and campaign_data.get("initial_control_mode", "squad") == "hero"
+		and player == _get_human_player()
 	)
 
 
