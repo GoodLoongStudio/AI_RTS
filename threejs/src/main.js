@@ -42,13 +42,13 @@ pmremGenerator.dispose();
 
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
-const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.72, 0.62, 0.88);
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.60, 0.58, 0.90);
 composer.addPass(bloom);
 composer.addPass(new ShaderPass({
   uniforms: {
     tDiffuse: { value: null },
     resolution: { value: new THREE.Vector2(innerWidth, innerHeight) },
-    strength: { value: 0.19 },
+    strength: { value: 0.14 },
   },
   vertexShader: `varying vec2 vUv; void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
   fragmentShader: `
@@ -57,7 +57,7 @@ composer.addPass(new ShaderPass({
     void main(){
       vec2 d=vUv-.5; float vig=1.0-smoothstep(.28,.78,dot(d,d));
       vec3 c=texture2D(tDiffuse,vUv).rgb;
-      float grain=(hash(vUv*resolution+fract(sin(vUv.yx*91.7)))-.5)*.018;
+      float grain=(hash(vUv*resolution+fract(sin(vUv.yx*91.7)))-.5)*.007;
       c=(c+grain)*(mix(1.0,vig,strength));
       gl_FragColor=vec4(c,1.0);
     }`
@@ -80,16 +80,16 @@ environment.build();
 // procedural planet into the same visual plane as the fleet, instead of letting debris
 // dominate the first frame.
 if (environment.planetGroup) {
-  environment.planetGroup.position.set(5600, 1460, -3000);
-  environment.planetGroup.scale.setScalar(0.34);
+  environment.planetGroup.position.set(7500, -150, -3500);
+  environment.planetGroup.scale.setScalar(0.30);
   // The generated ring is useful for alternate random systems but is hidden in this
   // Earth-like hero composition so the planet reads as a clean backdrop, not a HUD-sized disc.
   if (environment.planetGroup.children[2]) environment.planetGroup.children[2].visible = false;
 }
 if (environment.asteroidBelts[0]) {
-  environment.asteroidBelts[0].count = 180;
-  environment.asteroidBelts[0].scale.setScalar(0.14);
-  environment.asteroidBelts[0].position.set(6500, 380, -4100);
+  environment.asteroidBelts[0].count = 160;
+  environment.asteroidBelts[0].scale.setScalar(0.10);
+  environment.asteroidBelts[0].position.set(5000, 80, -3300);
 }
 
 const shipFactory = new ProceduralShipFactory(renderer);
@@ -155,7 +155,7 @@ for (const u of fleetSystem.units) {
   const visual = u.object.children[0];
   if (visual) visual.scale.multiplyScalar(heroScale);
   decorateCapital(u, visual);
-  if (u.object.userData.selectionRing) u.object.userData.selectionRing.scale.setScalar(0.40);
+  if (u.object.userData.selectionRing) u.object.userData.selectionRing.scale.setScalar(0.26);
   if (u.object.userData.marker) u.object.userData.marker.visible = false;
 }
 
@@ -171,7 +171,7 @@ scene.add(tacticalGrid);
 let cameraTarget = new THREE.Vector3(-90, 70, 40);
 let azimuth = -0.62;
 let elevation = 0.34;
-let distance = 1040;
+let distance = 880;
 let targetDistance = distance;
 const keys = new Set();
 let middleDrag = false;
