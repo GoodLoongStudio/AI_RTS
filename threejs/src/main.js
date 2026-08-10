@@ -4,6 +4,8 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { SSAOPass } from 'three/addons/postprocessing/SSAOPass.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { SpaceEnvironment } from './render/SpaceEnvironment.js';
 import { ProceduralShipFactory } from './render/ProceduralShipFactory.js';
 import { FleetSystem } from './game/FleetSystem.js';
@@ -31,8 +33,21 @@ renderer.toneMappingExposure = 1.08;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
+// Low-intensity image based lighting gives metal hulls coherent specular response without replacing the space backdrop.
+const pmremGenerator = new THREE.PMREMGenerator(renderer);
+const roomEnvironment = new RoomEnvironment();
+scene.environment = pmremGenerator.fromScene(roomEnvironment, 0.04).texture;
+scene.environmentIntensity = 0.24;
+roomEnvironment.dispose();
+pmremGenerator.dispose();
+
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
+const ssao = new SSAOPass(scene, camera, innerWidth, innerHeight, 16);
+ssao.kernelRadius = 8;
+ssao.minDistance = 0.001;
+ssao.maxDistance = 0.035;
+composer.addPass(ssao);
 const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.72, 0.62, 0.88);
 composer.addPass(bloom);
 composer.addPass(new ShaderPass({
@@ -71,16 +86,16 @@ environment.build();
 // procedural planet into the same visual plane as the fleet, instead of letting debris
 // dominate the first frame.
 if (environment.planetGroup) {
-  environment.planetGroup.position.set(3900, 1320, -3650);
-  environment.planetGroup.scale.setScalar(0.42);
+  environment.planetGroup.position.set(5600, 1460, -3000);
+  environment.planetGroup.scale.setScalar(0.34);
   // The generated ring is useful for alternate random systems but is hidden in this
   // Earth-like hero composition so the planet reads as a clean backdrop, not a HUD-sized disc.
   if (environment.planetGroup.children[2]) environment.planetGroup.children[2].visible = false;
 }
 if (environment.asteroidBelts[0]) {
-  environment.asteroidBelts[0].count = 220;
-  environment.asteroidBelts[0].scale.setScalar(0.17);
-  environment.asteroidBelts[0].position.set(4900, 460, -4300);
+  environment.asteroidBelts[0].count = 180;
+  environment.asteroidBelts[0].scale.setScalar(0.14);
+  environment.asteroidBelts[0].position.set(6500, 380, -4100);
 }
 
 const shipFactory = new ProceduralShipFactory(renderer);
@@ -122,16 +137,20 @@ const decorateCapital = (unit, visual) => {
     : { halfX:2.78, z0:-3.6, z1:3.7, step:.9, y:.86, topX:1.9 };
   const details = [];
   for (let z=cfg.z0; z<=cfg.z1; z+=cfg.step) {
-    details.push({ p:[-cfg.halfX,cfg.y,z], s:[.34,.28,.72] }, { p:[cfg.halfX,cfg.y,z], s:[.34,.28,.72] });
+    details.push({ p:[-cfg.halfX,cfg.y,z], s:[.24,.19,.52] }, { p:[cfg.halfX,cfg.y,z], s:[.24,.19,.52] });
   }
   for (let z=cfg.z0+.5; z<=cfg.z1-.5; z+=cfg.step*1.7) {
-    for (const x of [-cfg.topX, -cfg.topX*.33, cfg.topX*.33, cfg.topX]) details.push({ p:[x,cfg.y+.58,z], s:[.58,.12,.82] });
+    for (const x of [-cfg.topX, -cfg.topX*.33, cfg.topX*.33, cfg.topX]) details.push({ p:[x,cfg.y+.52,z], s:[.40,.095,.58] });
   }
   const inst = new THREE.InstancedMesh(greebleBox, greebleMat, details.length);
   const dummy = new THREE.Object3D();
   details.forEach((d,i)=>{ dummy.position.set(...d.p); dummy.scale.set(...d.s); dummy.rotation.y=(i%3-1)*.05; dummy.updateMatrix(); inst.setMatrixAt(i,dummy.matrix); });
   inst.instanceMatrix.needsUpdate = true; visual.add(inst);
-  const trench = new THREE.Mesh(greebleBox, trenchMat); trench.position.set(0, -.22, .1); trench.scale.set(cfg.halfX*1.35,.18,(cfg.z1-cfg.z0)*.72); visual.add(trench);
+  const trench = new THREE.Mesh(greebleBox, trenchMat); trench.position.set(0, -.22, .1); trench.scale.set(cfg.halfX*.92,.13,(cfg.z1-cfg.z0)*.43); trench.position.z=1.15; visual.add(trench);
+  if (unit.type === 'mothership') {
+    const bay = new THREE.Mesh(greebleBox, trenchMat); bay.position.set(0, 1.22, 3.25); bay.scale.set(2.15, .10, 2.55); visual.add(bay);
+    for (const side of [-1,1]) { const rail = new THREE.Mesh(greebleBox, greebleMat); rail.position.set(side*2.35, 1.38, 3.25); rail.scale.set(.18,.28,2.8); visual.add(rail); }
+  }
   for (const side of [-1,1]) {
     const light = new THREE.Mesh(greebleBox, cyanMat); light.position.set(side*cfg.halfX*.82,-.48,0); light.scale.set(.06,.045,(cfg.z1-cfg.z0)*.52); visual.add(light);
   }

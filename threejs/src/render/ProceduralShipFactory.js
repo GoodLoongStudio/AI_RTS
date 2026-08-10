@@ -26,20 +26,36 @@ export class ProceduralShipFactory {
       const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');paint(x,w,h);
       const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=Math.min(8,this.renderer.capabilities.getMaxAnisotropy?.()||1); t.colorSpace=THREE.SRGBColorSpace; return t;
     };
-    const hull = make(512,512,(x,w,h)=>{
-      x.fillStyle='#aeb8bd';x.fillRect(0,0,w,h);
-      for(let yy=0;yy<h;yy+=32)for(let xx=0;xx<w;xx+=48){
-        const shade=145+Math.floor(Math.random()*55); x.fillStyle=`rgb(${shade},${shade+5},${shade+7})`;
-        x.fillRect(xx+1,yy+1,45,29); x.strokeStyle='rgba(20,31,38,.28)';x.strokeRect(xx+.5,yy+.5,47,31);
-        if(Math.random()>.66){x.fillStyle='rgba(12,25,31,.38)';x.fillRect(xx+5,yy+5,13,2)}
+    const hull = make(1024,1024,(x,w,h)=>{
+      x.fillStyle='#9ca7ac';x.fillRect(0,0,w,h);
+      // Large modular armor panels with restrained tonal variation: readable up close without looking tiled.
+      const pw=96, ph=72;
+      for(let yy=0;yy<h;yy+=ph)for(let xx=0;xx<w;xx+=pw){
+        const shade=145+Math.floor(Math.random()*24);
+        x.fillStyle=`rgb(${shade},${shade+7},${shade+10})`;x.fillRect(xx+2,yy+2,pw-4,ph-4);
+        x.strokeStyle='rgba(10,20,25,.42)';x.lineWidth=1.25;x.strokeRect(xx+.6,yy+.6,pw-1.2,ph-1.2);
+        x.strokeStyle='rgba(230,242,244,.09)';x.strokeRect(xx+4.5,yy+4.5,pw-9,ph-9);
+        if(Math.random()>.63){
+          x.fillStyle='rgba(9,19,24,.42)';const vw=18+Math.random()*28;x.fillRect(xx+10,yy+12,vw,4);
+          x.fillStyle='rgba(79,189,207,.10)';x.fillRect(xx+10,yy+17,vw*.72,1);
+        }
+        if(Math.random()>.78){x.fillStyle='rgba(20,28,31,.26)';x.fillRect(xx+pw-15,yy+9,4,4);x.fillRect(xx+pw-24,yy+9,4,4);}
       }
-      x.strokeStyle='rgba(20,60,72,.38)';x.lineWidth=1;
-      for(let i=0;i<80;i++){x.beginPath();x.moveTo(Math.random()*w,Math.random()*h);x.lineTo(Math.random()*w,Math.random()*h);x.stroke();}
+      // Directional wear, seams and maintenance markings.
+      for(let i=0;i<42;i++){
+        const y=Math.random()*h, x0=Math.random()*w*.72, len=70+Math.random()*260;
+        x.strokeStyle=`rgba(18,35,40,${.05+Math.random()*.12})`;x.lineWidth=.7+Math.random()*1.1;
+        x.beginPath();x.moveTo(x0,y);x.lineTo(Math.min(w,x0+len),y+(Math.random()-.5)*6);x.stroke();
+      }
+      for(let i=0;i<120;i++){
+        const px=Math.random()*w,py=Math.random()*h,r=.6+Math.random()*1.8;
+        x.fillStyle='rgba(15,23,26,.22)';x.beginPath();x.arc(px,py,r,0,Math.PI*2);x.fill();
+      }
     });
-    hull.repeat.set(2.4,2.4);
+    hull.repeat.set(1.35,1.35);
     const roughness = make(256,256,(x,w,h)=>{
       const d=x.createImageData(w,h);for(let i=0;i<d.data.length;i+=4){const v=130+Math.random()*110;d.data[i]=d.data[i+1]=d.data[i+2]=v;d.data[i+3]=255;}x.putImageData(d,0,0);
-    }); roughness.colorSpace = THREE.NoColorSpace; roughness.repeat.set(4,4);
+    }); roughness.colorSpace = THREE.NoColorSpace; roughness.repeat.set(2.1,2.1);
     const stripe = make(512,64,(x,w,h)=>{
       x.fillStyle='#02070a';x.fillRect(0,0,w,h);x.fillStyle='#7cecff';
       for(let i=0;i<w;i+=22)x.fillRect(i+2,19,13,3);
@@ -167,71 +183,4 @@ export class ProceduralShipFactory {
     this.addBox(g,glass,[0,2.52,-5.0],[1.48,.24,1.08],[0,0,0],.6);
     for(const side of [-1,1]){
       this.addBox(g,h,[side*5.0,.42,1.4],[2.0,.62,10.7]);
-      this.addBox(g,d,[side*6.15,.1,2.4],[.32,.35,8.3]);
-      for(let z=-5;z<6;z+=2.2)this.addBox(g,new THREE.MeshBasicMaterial({color:c,toneMapped:false}),[side*6.35,.18,z],[.08,.08,.72]);
-      for(let z=4.2;z<9.8;z+=1.75)this.addEngine(g,c,[side*3.5,-.1,z],[1.2,1.1,1.4]);
-    }
-    this.addBox(g,d,[0,-.2,-8.2],[4.2,.55,.18]);
-    this.addLightStrips(g,c,5.2,-.72,-3.1);
-    for(const x of [-3.9,-2,0,2,3.9]) for(const z of [-5.5,-1.7,2.2]) this.addTurret(g,c,[x,1.25,z],.42,x*.04);
-    for(const x of [-2.8,2.8]){this.addBox(g,h,[x,1.35,5.5],[1.25,.7,3.0]);this.addBox(g,d,[x,1.76,4.7],[.65,.2,1.5]);}
-    for(const x of [-4.5,4.5]){this.addMesh(g,new THREE.CylinderGeometry(.1,.12,3.2,8),d,[x,2.1,-5.0],[1,1,1],[0,0,.22*x]);}
-  }
-
-  buildBattlecruiser(g,c,h,d,glass){
-    this.addHullPrism(g,h,11.8,7.2,4.6,1.4,[0,0,0],.18);
-    this.addBox(g,d,[0,-.25,1.0],[3.2,.42,8.8]);
-    this.addBox(g,h,[0,.9,-2.7],[2.7,1.0,4.0]);
-    this.addBox(g,glass,[0,1.5,-3.7],[1.08,.18,.76],[0,0,0],.6);
-    for(const s of [-1,1]){
-      this.addBox(g,h,[s*3.3,.2,1.1],[1.1,.65,7.9]);
-      this.addBox(g,d,[s*4.05,-.02,1.8],[.28,.27,6.1]);
-      for(let z=4.4;z<8.0;z+=1.55)this.addEngine(g,c,[s*2.2,-.2,z],[.92,.92,1.14]);
-      this.addTurret(g,c,[s*2.2,.95,-4.5],.48,s*.08);
-      this.addTurret(g,c,[s*2.3,.85,.2],.5,s*.05);
-    }
-    this.addTurret(g,c,[0,1.18,-5.9],.7,0);this.addTurret(g,c,[0,1.12,2.5],.62,0);
-    this.addLightStrips(g,c,3.5,-.58,-1.0);
-  }
-
-  buildDestroyer(g,c,h,d,glass){
-    this.addHullPrism(g,h,8.0,5.4,3.35,1.13,[0,0,0],.16);
-    this.addBox(g,h,[0,.75,-1.9],[2.0,.72,3.2]);this.addBox(g,glass,[0,1.12,-2.6],[.78,.16,.62],[0,0,0],.55);
-    for(const s of [-1,1]){this.addBox(g,h,[s*2.25,.05,.8],[.82,.55,5.4]);this.addEngine(g,c,[s*1.55,-.2,4.6],[.75,.72,.95]);this.addTurret(g,c,[s*1.55,.8,-2.9],.42,s*.08);}
-    this.addTurret(g,c,[0,.92,-3.85],.58);this.addTurret(g,c,[0,.9,1.1],.5);
-    this.addLightStrips(g,c,2.5,-.49,-.5);
-  }
-
-  buildFrigate(g,c,h,d,glass){
-    this.addBox(g,h,[0,0,0],[2.0,.72,5.7],[0,0,0],.55);
-    this.addBox(g,h,[0,.65,-1.25],[1.45,.55,2.3]);this.addBox(g,glass,[0,1.0,-1.9],[.75,.18,.62]);
-    for(const s of [-1,1]){this.addBox(g,d,[s*1.75,-.05,.7],[.32,.32,3.3]);this.addEngine(g,c,[s*.95,-.12,3.45],[.64,.62,.82]);}
-    this.addTurret(g,c,[0,.85,-2.7],.5);this.addTurret(g,c,[0,.78,.75],.39);
-    this.addLightStrips(g,c,1.9,-.42,-.2);
-  }
-
-  buildCorvette(g,c,h,d,glass){
-    this.addBox(g,h,[0,0,0],[1.65,.54,3.55],[0,0,0],.68);
-    this.addBox(g,glass,[0,.5,-1.15],[.85,.24,.78]);
-    this.addBox(g,d,[0,-.28,.45],[1.3,.22,2.0]);
-    for(const s of [-1,1]){this.addBox(g,h,[s*1.42,0,.55],[.55,.33,1.9],[0,0,s*.06]);this.addEngine(g,c,[s*.86,-.08,2.25],[.48,.46,.64]);}
-    this.addTurret(g,c,[0,.57,-1.65],.36);
-    this.addLightStrips(g,c,1.1,-.33,.0);
-  }
-
-  buildFighter(g,c,h,d,glass){
-    this.addBox(g,h,[0,0,0],[.92,.28,2.45],[0,0,0],.72);
-    this.addBox(g,glass,[0,.3,-.65],[.48,.2,.72]);
-    for(const s of [-1,1]){this.addBox(g,h,[s*.9,-.02,.2],[1.0,.12,1.25],[0,s*.1,s*.04]);this.addEngine(g,c,[s*.38,-.03,1.35],[.22,.22,.35]);}
-    this.addMesh(g,new THREE.CylinderGeometry(.035,.045,1.25,6),d,[.36,-.02,-1.3],[1,1,1],[Math.PI/2,0,0]);
-    this.addMesh(g,new THREE.CylinderGeometry(.035,.045,1.25,6),d,[-.36,-.02,-1.3],[1,1,1],[Math.PI/2,0,0]);
-  }
-
-  buildHarvester(g,c,h,d,glass){
-    this.addBox(g,h,[0,0,0],[2.25,.8,4.4],[0,0,0],.6);
-    this.addBox(g,d,[0,-.45,.2],[1.8,.32,2.8]);this.addBox(g,glass,[0,.72,-1.2],[1.1,.25,.9]);
-    for(const s of [-1,1]){this.addBox(g,h,[s*1.9,.0,.5],[.62,.54,2.9]);this.addEngine(g,c,[s*1.1,-.12,2.7],[.55,.52,.72]);}
-    this.addMesh(g,new THREE.TorusGeometry(1.15,.12,8,32),d,[0,-.65,-2.3],[1,.55,1],[Math.PI/2,0,0]);
-    this.addLightStrips(g,c,1.6,-.49,.3);
-  }
-}
+      this.addBox(g,d,[side*6.15,.1,2.4],[.32"Âã3RÃ‚ã5Ò“°¢f÷"†ÆWB£ÒÓS·£Ãc·¢³Ó"ã"—F†—2æFD&÷‚†rÆæWrD…$TRäÖW6„&6–4ÖFW&–Â‡¶6öÆ÷#¦2ÇFöæTÖVC¦fÇ6WÒ’Å·6–FR£bã3RÂã‚Ç¥ÒÅ²ã‚Âã‚Âãs%Ò“°¢f÷"†ÆWB£ÓBã#·£Ã’ãƒ·¢³ÓãsR—F†—2æFDVæv–æR†rÆ2Å·6–FR£2ãRÂÒãÇ¥ÒÅ³ã"ÃãÃãEÒ“°¢Ð¢F†—2æFD&÷‚†rÆBÅ³ÂÒã"ÂÓ‚ã%ÒÅ³Bã"ÂãSRÂã…Ò“°¢F†—2æFDÆ–v‡E7G&—2†rÆ2ÃRã"ÂÒãs"ÂÓ2ã“°¢f÷"†6öç7B‚öb²Ó2ã’ÂÓ"ÃÃ"Ã2ã•Ò’f÷"†6öç7B¢öb²ÓRãRÂÓãrÃ"ã%Ò’F†—2æFEGW'&WB†rÆ2Å·‚Ãã#RÇ¥ÒÂãC"Ç‚¢ãB“°¢f÷"†6öç7B‚öb²Ó"ã‚Ã"ã…Ò—·F†—2æFD&÷‚†rÆ‚Å·‚Ãã3RÃRãUÒÅ³ã#RÂãrÃ2ãÒ“·F†—2æFD&÷‚†rÆBÅ·‚ÃãsbÃBãuÒÅ²ãcRÂã"ÃãUÒ“·Ð¢f÷"†6öç7B‚öb²ÓBãRÃBãUÒ—·F†—2æFDÖW6‚†rÆæWrD…$TRä7–Æ–æFW$vVöÖWG'’‚ãÂã"Ã2ã"Ã‚’ÆBÅ·‚Ã"ãÂÓRãÒÅ³ÃÃÒÅ³ÃÂã#"§…Ò“·Ð¢Ð ¢'V–ÆD&GFÆV7'V—6W"†rÆ2Æ‚ÆBÆvÆ72—°¢F†—2æFD‡VÆÅ&—6Ò†rÆ‚Ãã‚Ãrã"ÃBãbÃãBÅ³ÃÃÒÂã‚“°¢F†—2æFD&÷‚†rÆBÅ³ÂÒã#RÃãÒÅ³2ã"ÂãC"Ã‚ã…Ò“°¢F†—2æFD&÷‚†rÆ‚Å³Âã’ÂÓ"ãuÒÅ³"ãrÃãÃBãÒ“°¢F†—2æFD&÷‚†rÆvÆ72Å³ÃãRÂÓ2ãuÒÅ³ã‚Âã‚ÂãseÒÅ³ÃÃÒÂãb“°¢f÷"†6öç7B2öb²ÓÃÒ—°¢F†—2æFD&÷‚†rÆ‚Å·2£2ã2Âã"ÃãÒÅ³ãÂãcRÃrã•Ò“°¢F†—2æFD&÷‚†rÆBÅ·2£BãRÂÒã"Ãã…ÒÅ²ã#‚Âã#rÃbãÒ“°¢f÷"†ÆWB£ÓBãC·£Ã‚ã·¢³ÓãSR—F†—2æFDVæv–æR†rÆ2Å·2£"ã"ÂÒã"Ç¥ÒÅ²ã“"Âã“"ÃãEÒ“°¢F†—2æFEGW'&WB†rÆ2Å·2£"ã"Âã“RÂÓBãUÒÂãC‚Ç2¢ã‚“°¢F†—2æFEGW'&WB†rÆ2Å·2£"ã2ÂãƒRÂã%ÒÂãRÇ2¢ãR“°¢Ð¢F†—2æFEGW'&WB†rÆ2Å³Ãã‚ÂÓRã•ÒÂãrÃ“·F†—2æFEGW'&WB†rÆ2Å³Ãã"Ã"ãUÒÂãc"Ã“°¢F†—2æFDÆ–v‡E7G&—2†rÆ2Ã2ãRÂÒãS‚ÂÓã“°¢Ð ¢'V–ÆDFW7G&÷–W"†rÆ2Æ‚ÆBÆvÆ72—°¢F†—2æFD‡VÆÅ&—6Ò†rÆ‚Ã‚ãÃRãBÃ2ã3RÃã2Å³ÃÃÒÂãb“°¢F†—2æFD&÷‚†rÆ‚Å³ÂãsRÂÓã•ÒÅ³"ãÂãs"Ã2ã%Ò“·F†—2æFD&÷‚†rÆvÆ72Å³Ãã"ÂÓ"ãeÒÅ²ãs‚ÂãbÂãc%ÒÅ³ÃÃÒÂãSR“°¢f÷"†6öç7B2öb²ÓÃÒ—·F†—2æFD&÷‚†rÆ‚Å·2£"ã#RÂãRÂã…ÒÅ²ãƒ"ÂãSRÃRãEÒ“·F†—2æFDVæv–æR†rÆ2Å·2£ãSRÂÒã"ÃBãeÒÅ²ãsRÂãs"Âã“UÒ“·F†—2æFEGW'&WB†rÆ2Å·2£ãSRÂã‚ÂÓ"ã•ÒÂãC"Ç2¢ã‚“·Ð¢F†—2æFEGW'&WB†rÆ2Å³Âã“"ÂÓ2ãƒUÒÂãS‚“·F†—2æFEGW'&WB†rÆ2Å³Âã’ÃãÒÂãR“°¢F†—2æFDÆ–v‡E7G&—2†rÆ2Ã"ãRÂÒãC’ÂÒãR“°¢Ð ¢'V–ÆDg&–vFR†rÆ2Æ‚ÆBÆvÆ72—°¢F†—2æFD&÷‚†rÆ‚Å³ÃÃÒÅ³"ãÂãs"ÃRãuÒÅ³ÃÃÒÂãSR“°¢F†—2æFD&÷‚†rÆ‚Å³ÂãcRÂÓã#UÒÅ³ãCRÂãSRÃ"ã5Ò“·F†—2æFD&÷‚†rÆvÆ72Å³ÃãÂÓã•ÒÅ²ãsRÂã‚Âãc%Ò“°¢f÷"†6öç7B2öb²ÓÃÒ—·F†—2æFD&÷‚†rÆBÅ·2£ãsRÂÒãRÂãuÒÅ²ã3"Âã3"Ã2ã5Ò“·F†—2æFDVæv–æR†rÆ2Å·2¢ã“RÂÒã"Ã2ãCUÒÅ²ãcBÂãc"Âãƒ%Ò“·Ð¢F†—2æFEGW'&WB†rÆ2Å³ÂãƒRÂÓ"ãuÒÂãR“·F†—2æFEGW'&WB†rÆ2Å³Âãs‚ÂãsUÒÂã3’“°¢F†—2æFDÆ–v‡E7G&—2†rÆ2Ãã’ÂÒãC"ÂÒã"“°¢Ð ¢'V–ÆD6÷'fWGFR†rÆ2Æ‚ÆBÆvÆ72—°¢F†—2æFD&÷‚†rÆ‚Å³ÃÃÒÅ³ãcRÂãSBÃ2ãSUÒÅ³ÃÃÒÂãc‚“°¢F†—2æFD&÷‚†rÆvÆ72Å³ÂãRÂÓãUÒÅ²ãƒRÂã#BÂãs…Ò“°¢F†—2æFD&÷‚†rÆBÅ³ÂÒã#‚ÂãCUÒÅ³ã2Âã#"Ã"ãÒ“°¢f÷"†6öç7B2öb²ÓÃÒ—·F†—2æFD&÷‚†rÆ‚Å·2£ãC"ÃÂãSUÒÅ²ãSRÂã32Ãã•ÒÅ³ÃÇ2¢ãeÒ“·F†—2æFDVæv–æR†rÆ2Å·2¢ãƒbÂÒã‚Ã"ã#UÒÅ²ãC‚ÂãCbÂãcEÒ“·Ð¢F†—2æFEGW'&WB†rÆ2Å³ÂãSrÂÓãcUÒÂã3b“°¢F†—2æFDÆ–v‡E7G&—2†rÆ2ÃãÂÒã32Âã“°¢Ð ¢'V–ÆDf–v‡FW"†rÆ2Æ‚ÆBÆvÆ72—°¢F†—2æFD&÷‚†rÆ‚Å³ÃÃÒÅ²ã“"Âã#‚Ã"ãCUÒÅ³ÃÃÒÂãs"“°¢F†—2æFD&÷‚†rÆvÆ72Å³Âã2ÂÒãcUÒÅ²ãC‚Âã"Âãs%Ò“°¢f÷"†6öç7B2öb²ÓÃÒ—·F†—2æFD&÷‚†rÆ‚Å·2¢ã’ÂÒã"Âã%ÒÅ³ãÂã"Ãã#UÒÅ³Ç2¢ãÇ2¢ãEÒ“·F†—2æFDVæv–æR†rÆ2Å·2¢ã3‚ÂÒã2Ãã3UÒÅ²ã#"Âã#"Âã3UÒ“·Ð¢F†—2æFDÖW6‚†rÆæWrD…$TRä7–Æ–æFW$vVöÖWG'’‚ã3RÂãCRÃã#RÃb’ÆBÅ²ã3bÂÒã"ÂÓã5ÒÅ³ÃÃÒÅ´ÖF‚å’ó"ÃÃÒ“°¢F†—2æFDÖW6‚†rÆæWrD…$TRä7–Æ–æFW$vVöÖWG'’‚ã3RÂãCRÃã#RÃb’ÆBÅ²Òã3bÂÒã"ÂÓã5ÒÅ³ÃÃÒÅ´ÖF‚å’ó"ÃÃÒ“°¢Ð ¢'V–ÆD†'fW7FW"†rÆ2Æ‚ÆBÆvÆ72—°¢F†—2æFD&÷‚†rÆ‚Å³ÃÃÒÅ³"ã#RÂã‚ÃBãEÒÅ³ÃÃÒÂãb“°¢F†—2æFD&÷‚†rÆBÅ³ÂÒãCRÂã%ÒÅ³ã‚Âã3"Ã"ã…Ò“·F†—2æFD&÷‚†rÆvÆ72Å³Âãs"ÂÓã%ÒÅ³ãÂã#RÂã•Ò“°¢f÷"†6öç7B2öb²ÓÃÒ—·F†—2æFD&÷‚†rÆ‚Å·2£ã’ÂãÂãUÒÅ²ãc"ÂãSBÃ"ã•Ò“·F†—2æFDVæv–æR†rÆ2Å·2£ãÂÒã"Ã"ãuÒÅ²ãSRÂãS"Âãs%Ò“·Ð¢F†—2æFDÖW6‚†rÆæWrD…$TRåF÷'W4vVöÖWG'’ƒãRÂã"Ã‚Ã3"’ÆBÅ³ÂÒãcRÂÓ"ã5ÒÅ³ÂãSRÃÒÅ´ÖF‚å’ó"ÃÃÒ“°¢F†—2æFDÆ–v‡E7G&—2†rÆ2ÃãbÂÒãC’Âã2“°¢Ð§Ð 
