@@ -1,5 +1,9 @@
 extends Control
 
+signal squad_selected(squad_id)
+signal squad_command_executed(squad_id, command)
+signal player_text_submitted(text)
+
 const WaitingForTargets = preload("res://source/match/units/actions/WaitingForTargets.gd")
 
 const SQUAD_NAMES = {1: "突击队", 2: "侦察队", 3: "支援队"}
@@ -132,6 +136,7 @@ func _select_squad(squad_id: int):
 	else:
 		Utils.Match.select_units(Utils.Set.from_array(units))
 	_refresh_squad_ui()
+	squad_selected.emit(squad_id)
 
 
 func _get_squad_units(squad_id: int) -> Array:
@@ -166,6 +171,7 @@ func _execute_defend():
 	pending_command = ""
 	_append_ai("执行：%d %s 原地防守；不会主动追击超出视野的目标。" % [active_squad, SQUAD_NAMES[active_squad]])
 	_refresh_squad_ui()
+	squad_command_executed.emit(active_squad, "DEFEND")
 
 
 func _execute_stop():
@@ -175,16 +181,19 @@ func _execute_stop():
 	pending_command = ""
 	_append_ai("执行：%d %s 停止当前任务。" % [active_squad, SQUAD_NAMES[active_squad]])
 	_refresh_squad_ui()
+	squad_command_executed.emit(active_squad, "STOP")
 
 
 func _on_terrain_targeted(_position):
 	if pending_command not in ["MOVE", "SCOUT", "RETREAT"]:
 		return
-	var label = COMMAND_LABELS[pending_command]
+	var executed_command = pending_command
+	var label = COMMAND_LABELS[executed_command]
 	squad_status[active_squad] = "%s中" % label
 	_append_ai("执行确认：%d %s %s。路线已交给现有 RTS 移动系统。" % [active_squad, SQUAD_NAMES[active_squad], label])
 	pending_command = ""
 	_refresh_squad_ui()
+	squad_command_executed.emit(active_squad, executed_command)
 
 
 func _on_unit_targeted(unit):
@@ -197,12 +206,14 @@ func _on_unit_targeted(unit):
 	_append_ai("执行确认：%d %s 集火 %s。" % [active_squad, SQUAD_NAMES[active_squad], unit.type])
 	pending_command = ""
 	_refresh_squad_ui()
+	squad_command_executed.emit(active_squad, "ATTACK")
 
 
 func _on_text_submitted(text: String):
 	var command_text := text.strip_edges()
 	if command_text.is_empty():
 		return
+	player_text_submitted.emit(command_text)
 	_append_player(command_text)
 	_input.clear()
 	var squad_id = _parse_squad(command_text)
@@ -248,9 +259,13 @@ func _refresh_squad_ui():
 	_command_hint.text = "当前：%d %s · %s%s" % [active_squad, SQUAD_NAMES[active_squad], squad_status[active_squad], " · 等待目标" if not pending_command.is_empty() else ""]
 
 
+func post_agent_message(speaker: String, text: String):
+	_chat_log.append_text("[color=#8ee6b2]%s[/color]\n%s\n\n" % [speaker, text])
+
+
 func _append_player(text: String):
 	_chat_log.append_text("[color=#a8c7ff]你[/color]\n%s\n\n" % text)
 
 
 func _append_ai(text: String):
-	_chat_log.append_text("[color=#8ee6b2]岚 · AI副官[/color]\n%s\n\n" % text)
+	post_agent_message("岚 · AI副官", text)
