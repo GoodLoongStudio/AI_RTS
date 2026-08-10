@@ -9,19 +9,36 @@ var _objective_label: Label
 var _story_label: Label
 var _extract_button: Button
 var _ai_hud = null
+var _hero = null
 
 
 func _ready():
 	await get_tree().physics_frame
 	_mission_started_msec = Time.get_ticks_msec()
 	_build_mission_hud()
-	_auto_assign_squads()
 	_ai_hud = get_parent().get_node_or_null("HUD/AICommandHUD")
+	_setup_initial_control()
 	if _ai_hud != null:
 		_ai_hud.squad_selected.connect(_on_squad_selected)
 		_ai_hud.squad_command_executed.connect(_on_squad_command_executed)
+		_ai_hud.refresh_control_ui()
 	await _play_briefing()
 	_set_objective(0)
+
+
+func _physics_process(_delta: float):
+	if _transitioning or _hero == null or not is_instance_valid(_hero):
+		return
+	var marker_name := _get_current_objective_marker()
+	if marker_name.is_empty():
+		return
+	var marker = get_parent().get_node_or_null("Map/CampaignZones/%s" % marker_name)
+	if marker == null:
+		return
+	var hero_position := _hero.global_position * Vector3(1, 0, 1)
+	var marker_position := marker.global_position * Vector3(1, 0, 1)
+	if hero_position.distance_to(marker_position) <= float(mission_data.get("objective_radius", 7.5)):
+		_reach_objective_location(_objective_index)
 
 
 func _build_mission_hud():
@@ -60,13 +77,21 @@ func _build_mission_hud():
 	box.add_child(_extract_button)
 
 
-func _auto_assign_squads():
-	var mobile_units = get_tree().get_nodes_in_group("controlled_units").filter(
-		func(unit): return unit.find_child("Movement") != null
-	)
-	for unit in mobile_units:
+func _setup_initial_control():
+	var controlled_units = get_tree().get_nodes_in_group("controlled_units")
+	for unit in controlled_units:
 		for squad_id in [1, 2, 3]:
 			unit.remove_from_group("unit_group_%d" % squad_id)
+
+	if mission_data.get("initial_control_mode", "squad") == "hero":
+		if controlled_units.is_empty():
+			return
+		_hero = controlled_units[0]
+		_hero.add_to_group("unit_group_1")
+		Utils.Match.select_units(Utils.Set.from_array([_hero]))
+		return
+
+	var mobile_units = controlled_units.filter(func(unit): return unit.find_child("Movement") != null)
 	for index in range(min(3, mobile_units.size())):
 		mobile_units[index].add_to_group("unit_group_%d" % (index + 1))
 
@@ -92,43 +117,48 @@ func _complete_current_objective():
 		_story_label.text = "已完成：%s" % objectives[_objective_index]
 
 
-func _on_squad_selected(squad_id: int):
-	if _objective_index == 0 and squad_id == 2:
-		_complete_current_objective()
-		_post_story("岚 · AI副官", "侦察二队已接入指挥链。建议让他们先覆盖外围营地区域。")
-		_set_objective(1)
+func _get_current_objective_marker() -> String:
+	var markers: Dictionary = mission_data.get("objective_markers", {})
+	return str(markers.get(_objective_index, ""))
+
+
+func _reach_objective_location(index: int):
+	_transitioning = true
+	_complete_current_objective()
+	match index:
+		0:
+			_post_story("岚 · AI副官", "已到达信号门。前方进入通讯不稳定区；建议先观察道路和外围营地，不要假定战争迷雾后存在什么。")
+			_set_objective(1)
+		1:
+			_post_story("岚 · AI副官", "外围营地确认无人值守。地面有近期拖拽痕迹，但这些痕迹本身不能证明敌方仍在附近。")
+			_post_story("岚 · AI副官", "东侧道路上检测到重复信号。继续向废弃车队推进。")
+			_set_objective(2)
+		2:
+			_post_story("岚 · AI副官", "找到信号源。时间戳异常——这不是实时求救，它已经重复播放了至少 63 小时。")
+			_post_story("岚 · AI副官", "车队中有一个仍在工作的黑箱信标。请原地警戒，我开始读取。")
+			_set_objective(3)
+		4:
+			_post_story("岚 · AI副官", "已抵达外围紧急撤离点，信标数据完整。现在可以结束本次侦察。")
+			_set_objective(5)
+			_extract_button.visible = true
+	_transitioning = false
+
+
+func _on_squad_selected(_squad_id: int):
+	pass
 
 
 func _on_squad_command_executed(squad_id: int, command: String):
 	if _transitioning:
 		return
-	if _objective_index == 1 and squad_id == 2 and command in ["SCOUT", "MOVE"]:
+	if _objective_index == 3 and squad_id == 1 and command in ["DEFEND", "STOP"]:
 		_transitioning = true
 		_complete_current_objective()
-		_post_story("隼 · 侦察队长", "收到。二队前出，保持低姿态。")
-		await get_tree().create_timer(2.5).timeout
-		_post_story("岚 · AI副官", "发现求救信号源。但时间戳异常——这不是实时求救，它已经重复播放了至少 63 小时。")
-		_post_story("岚 · AI副官", "附近存在无法确认的热源。建议一队先建立防御，不要追击。")
-		_set_objective(2)
-		_transitioning = false
-		return
-
-	if _objective_index == 2 and squad_id == 1 and command == "DEFEND":
-		_complete_current_objective()
-		_post_story("磐石 · 突击队长", "一队就地展开。我们守住这里，不主动追出去。")
-		_post_story("隼 · 侦察队长", "前面有一支废弃车队。我看到了一个还在工作的信标。")
-		_set_objective(3)
-		return
-
-	if _objective_index == 3 and squad_id == 1 and command == "MOVE":
-		_transitioning = true
-		_complete_current_objective()
-		_post_story("岚 · AI副官", "突击一队开始前推。当前没有足够证据确认敌方规模。")
-		await get_tree().create_timer(2.5).timeout
-		_post_story("隼 · 侦察队长", "确认了，是侦察队留下的黑箱信标。外壳受损，但核心数据还能读取。")
-		_post_story("岚 · AI副官", "我们已经取得第一份可靠情报。继续深入的风险正在上升，现阶段可以撤离。")
+		_post_story("岚 · AI副官", "先锋单位保持警戒。正在读取黑箱信标……")
+		await get_tree().create_timer(2.0).timeout
+		_post_story("岚 · AI副官", "读取完成。里面有北辰区域更深处的通讯碎片，但当前单兵继续深入风险过高。")
+		_post_story("岚 · AI副官", "先把数据带回去。下一次行动，正式战术小队会接入你的指挥链。")
 		_set_objective(4)
-		_extract_button.visible = true
 		_transitioning = false
 
 
@@ -172,7 +202,7 @@ func _show_result():
 
 	var elapsed_seconds := int((Time.get_ticks_msec() - _mission_started_msec) / 1000.0)
 	var result := Label.new()
-	result.text = "撤离方式：外围紧急撤离\n作战时间：%02d:%02d\n取得情报：北辰黑箱信标 01\n发现：求救信号并非实时发送\n\n本次序章已完成。后续版本将把此流程接入专用北辰战役地图、幸存者事件、地下维修通道与多种撤离路线。" % [elapsed_seconds / 60, elapsed_seconds % 60]
+	result.text = "撤离方式：外围紧急撤离\n作战时间：%02d:%02d\n控制单位：先锋指挥单元\n取得情报：北辰黑箱信标 01\n发现：求救信号并非实时发送\n\n序章完成。下一次进入北辰区域时，战术小队将逐步加入，游戏从单英雄操作过渡到真正的 AI RTS 指挥。" % [elapsed_seconds / 60, elapsed_seconds % 60]
 	result.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	result.add_theme_font_size_override("font_size", 19)
 	result.size_flags_vertical = Control.SIZE_EXPAND_FILL
