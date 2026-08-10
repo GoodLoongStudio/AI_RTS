@@ -71,13 +71,16 @@ environment.build();
 // procedural planet into the same visual plane as the fleet, instead of letting debris
 // dominate the first frame.
 if (environment.planetGroup) {
-  environment.planetGroup.position.set(2450, 980, -4700);
-  environment.planetGroup.scale.setScalar(0.46);
+  environment.planetGroup.position.set(3100, 1280, -6250);
+  environment.planetGroup.scale.setScalar(0.52);
+  // The generated ring is useful for alternate random systems but is hidden in this
+  // Earth-like hero composition so the planet reads as a clean backdrop, not a HUD-sized disc.
+  if (environment.planetGroup.children[2]) environment.planetGroup.children[2].visible = false;
 }
 if (environment.asteroidBelts[0]) {
-  environment.asteroidBelts[0].count = 520;
-  environment.asteroidBelts[0].scale.setScalar(0.38);
-  environment.asteroidBelts[0].position.set(2300, 380, -3150);
+  environment.asteroidBelts[0].count = 260;
+  environment.asteroidBelts[0].scale.setScalar(0.20);
+  environment.asteroidBelts[0].position.set(4700, 520, -5200);
 }
 
 const shipFactory = new ProceduralShipFactory(renderer);
@@ -108,11 +111,38 @@ enemy.units.forEach((u, i) => {
 
 // Hero ships are deliberately oversized relative to simulation radii for a readable,
 // cinematic Homeworld-like silhouette at gameplay zoom. Smaller craft retain hierarchy.
+const greebleBox = new THREE.BoxGeometry(1, 1, 1);
+const greebleMat = new THREE.MeshStandardMaterial({ color: 0x717a7f, roughness: .62, metalness: .58 });
+const trenchMat = new THREE.MeshStandardMaterial({ color: 0x11181d, roughness: .44, metalness: .76 });
+const cyanMat = new THREE.MeshBasicMaterial({ color: 0x66e9ff, toneMapped: false });
+const decorateCapital = (unit, visual) => {
+  if (!visual || !['mothership','battlecruiser','destroyer'].includes(unit.type)) return;
+  const cfg = unit.type === 'mothership' ? { halfX:5.7, z0:-6.8, z1:7.2, step:1.15, y:1.18, topX:4.0 }
+    : unit.type === 'battlecruiser' ? { halfX:3.85, z0:-5.4, z1:5.5, step:1.05, y:1.02, topX:2.7 }
+    : { halfX:2.78, z0:-3.6, z1:3.7, step:.9, y:.86, topX:1.9 };
+  const details = [];
+  for (let z=cfg.z0; z<=cfg.z1; z+=cfg.step) {
+    details.push({ p:[-cfg.halfX,cfg.y,z], s:[.34,.28,.72] }, { p:[cfg.halfX,cfg.y,z], s:[.34,.28,.72] });
+  }
+  for (let z=cfg.z0+.5; z<=cfg.z1-.5; z+=cfg.step*1.7) {
+    for (const x of [-cfg.topX, -cfg.topX*.33, cfg.topX*.33, cfg.topX]) details.push({ p:[x,cfg.y+.58,z], s:[.58,.12,.82] });
+  }
+  const inst = new THREE.InstancedMesh(greebleBox, greebleMat, details.length);
+  const dummy = new THREE.Object3D();
+  details.forEach((d,i)=>{ dummy.position.set(...d.p); dummy.scale.set(...d.s); dummy.rotation.y=(i%3-1)*.05; dummy.updateMatrix(); inst.setMatrixAt(i,dummy.matrix); });
+  inst.instanceMatrix.needsUpdate = true; visual.add(inst);
+  const trench = new THREE.Mesh(greebleBox, trenchMat); trench.position.set(0, -.22, .1); trench.scale.set(cfg.halfX*1.35,.18,(cfg.z1-cfg.z0)*.72); visual.add(trench);
+  for (const side of [-1,1]) {
+    const light = new THREE.Mesh(greebleBox, cyanMat); light.position.set(side*cfg.halfX*.82,-.48,0); light.scale.set(.06,.045,(cfg.z1-cfg.z0)*.52); visual.add(light);
+  }
+};
+
 for (const u of fleetSystem.units) {
   const heroScale = u.type === 'mothership' ? 2.0 : u.type === 'battlecruiser' ? 1.85 : u.type === 'destroyer' ? 1.65 : u.type === 'frigate' ? 1.5 : 1.28;
   const visual = u.object.children[0];
   if (visual) visual.scale.multiplyScalar(heroScale);
-  if (u.object.userData.selectionRing) u.object.userData.selectionRing.scale.setScalar(0.66);
+  decorateCapital(u, visual);
+  if (u.object.userData.selectionRing) u.object.userData.selectionRing.scale.setScalar(0.58);
   if (u.object.userData.marker) u.object.userData.marker.visible = false;
 }
 
@@ -125,10 +155,10 @@ tacticalGrid.material.opacity = 0.018;
 tacticalGrid.position.y = -220;
 scene.add(tacticalGrid);
 
-let cameraTarget = player.units[0].object.position.clone();
+let cameraTarget = new THREE.Vector3(-120, 60, 100);
 let azimuth = -0.62;
 let elevation = 0.34;
-let distance = 860;
+let distance = 980;
 let targetDistance = distance;
 const keys = new Set();
 let middleDrag = false;
