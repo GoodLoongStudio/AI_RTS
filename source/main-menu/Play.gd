@@ -3,8 +3,10 @@ extends Control
 const MatchSettings = preload("res://source/data-model/MatchSettings.gd")
 const PlayerSettings = preload("res://source/data-model/PlayerSettings.gd")
 const LoadingScene = preload("res://source/main-menu/Loading.tscn")
+const OptionsScene = preload("res://source/main-menu/Options.tscn")
 
 var _map_paths = []
+var _options_panel: Control = null
 
 @onready var _start_button = find_child("StartButton")
 @onready var _map_list = find_child("MapList")
@@ -14,9 +16,43 @@ var _map_paths = []
 func _ready():
 	_setup_map_list()
 	_on_map_list_item_selected(0)
+	_setup_settings_button()
 	var option_nodes = find_child("GridContainer").find_children("OptionButton*")
 	for option_node_id in range(option_nodes.size()):
 		option_nodes[option_node_id].item_selected.connect(_on_player_selected.bind(option_node_id))
+
+
+func _unhandled_input(event: InputEvent):
+	if event.is_action_pressed("toggle_match_menu") and _options_panel != null:
+		_close_options_panel()
+		get_viewport().set_input_as_handled()
+
+
+func _setup_settings_button():
+	var button_box = $PanelContainer/MarginContainer/VBoxContainer/VBoxContainer
+	var settings_button := Button.new()
+	settings_button.name = "SettingsButton"
+	settings_button.text = "设置"
+	settings_button.custom_minimum_size = Vector2(0, 44)
+	settings_button.pressed.connect(_open_options_panel)
+	button_box.add_child(settings_button)
+	button_box.move_child(settings_button, 1)
+
+
+func _open_options_panel():
+	if _options_panel != null:
+		return
+	_options_panel = OptionsScene.instantiate()
+	_options_panel.embedded_mode = true
+	_options_panel.close_requested.connect(_close_options_panel)
+	add_child(_options_panel)
+
+
+func _close_options_panel():
+	if _options_panel == null:
+		return
+	_options_panel.queue_free()
+	_options_panel = null
 
 
 func _setup_map_list():
