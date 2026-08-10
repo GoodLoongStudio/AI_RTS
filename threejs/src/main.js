@@ -20,7 +20,7 @@ const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(0x050912, 0.000012);
 
 const camera = new THREE.PerspectiveCamera(52, innerWidth / innerHeight, 0.5, 220000);
-camera.position.set(1600, 1100, 2400);
+camera.position.set(900, 620, 1350);
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance', logarithmicDepthBuffer: true });
 renderer.setSize(innerWidth, innerHeight);
@@ -67,6 +67,18 @@ scene.add(rim);
 
 const environment = new SpaceEnvironment(scene, renderer);
 environment.build();
+// Cinematic composition pass: keep the asteroid belt as a distant arc and bring the
+// procedural planet into the same visual plane as the fleet, instead of letting debris
+// dominate the first frame.
+if (environment.planetGroup) {
+  environment.planetGroup.position.set(2450, 980, -4700);
+  environment.planetGroup.scale.setScalar(0.46);
+}
+if (environment.asteroidBelts[0]) {
+  environment.asteroidBelts[0].count = 520;
+  environment.asteroidBelts[0].scale.setScalar(0.38);
+  environment.asteroidBelts[0].position.set(2300, 380, -3150);
+}
 
 const shipFactory = new ProceduralShipFactory(renderer);
 const fleetSystem = new FleetSystem(scene, shipFactory);
@@ -81,27 +93,42 @@ const enemy = fleetSystem.createFleet('enemy', 0xff5a61, new THREE.Vector3(2200,
   ['mothership', 1], ['battlecruiser', 1], ['destroyer', 3], ['frigate', 7], ['corvette', 12], ['fighter', 25]
 ]);
 
+const heroOffsets = [
+  [0,0,0], [-420,-120,-360], [390,90,-390], [640,-100,-180],
+  [-610,120,20], [-470,-170,210], [360,160,150], [610,-150,260], [180,-210,420], [-250,210,440]
+];
 player.units.forEach((u, i) => {
-  u.object.position.add(new THREE.Vector3((i % 7) * 90, Math.floor(i / 10) * 55, (i % 4) * 110));
+  const o = heroOffsets[i] || [((i%7)-3)*145, ((i%5)-2)*65, 520+Math.floor(i/7)*120+(i%3)*45];
+  u.object.position.set(-180+o[0], 70+o[1], 240+o[2]);
 });
 enemy.units.forEach((u, i) => {
   u.object.position.add(new THREE.Vector3((i % 8) * 100, Math.floor(i / 9) * 65, (i % 5) * 120));
   u.object.rotation.y = Math.PI;
 });
 
+// Hero ships are deliberately oversized relative to simulation radii for a readable,
+// cinematic Homeworld-like silhouette at gameplay zoom. Smaller craft retain hierarchy.
+for (const u of fleetSystem.units) {
+  const heroScale = u.type === 'mothership' ? 2.0 : u.type === 'battlecruiser' ? 1.85 : u.type === 'destroyer' ? 1.65 : u.type === 'frigate' ? 1.5 : 1.28;
+  const visual = u.object.children[0];
+  if (visual) visual.scale.multiplyScalar(heroScale);
+  if (u.object.userData.selectionRing) u.object.userData.selectionRing.scale.setScalar(0.66);
+  if (u.object.userData.marker) u.object.userData.marker.visible = false;
+}
+
 selection.setDefaultFocus(player.units[0]);
 hud.bindSelection(selection);
 
 const tacticalGrid = new THREE.GridHelper(16000, 80, 0x1d8097, 0x0c3340);
 tacticalGrid.material.transparent = true;
-tacticalGrid.material.opacity = 0.07;
+tacticalGrid.material.opacity = 0.018;
 tacticalGrid.position.y = -220;
 scene.add(tacticalGrid);
 
 let cameraTarget = player.units[0].object.position.clone();
-let azimuth = -0.52;
-let elevation = 0.38;
-let distance = 3200;
+let azimuth = -0.62;
+let elevation = 0.34;
+let distance = 860;
 let targetDistance = distance;
 const keys = new Set();
 let middleDrag = false;
