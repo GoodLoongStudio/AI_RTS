@@ -50,29 +50,29 @@ func _build_camera_settings():
 
 	_camera_edge_scroll = CheckBox.new()
 	_camera_edge_scroll.text = "启用屏幕边缘滚屏"
-	_camera_edge_scroll.button_pressed = Globals.options.camera_edge_scroll_enabled
+	_camera_edge_scroll.button_pressed = bool(Globals.get_camera_option("edge_scroll_enabled"))
 	_camera_edge_scroll.toggled.connect(_on_camera_edge_scroll_toggled)
 	box.add_child(_camera_edge_scroll)
 
 	_add_camera_slider(
 		box, "movement_speed", "镜头移动速度", 0.4, 3.0, 0.1,
-		Globals.options.camera_movement_speed, "%.1fx"
+		float(Globals.get_camera_option("movement_speed")), "%.1fx"
 	)
 	_add_camera_slider(
 		box, "edge_margin", "边缘触发范围", 16.0, 96.0, 1.0,
-		Globals.options.camera_edge_margin, "%.0f px"
+		float(Globals.get_camera_option("edge_margin")), "%.0f px"
 	)
 	_add_camera_slider(
-		box, "bottom_margin", "底边触发范围", 24.0, 128.0, 1.0,
-		Globals.options.camera_bottom_edge_margin, "%.0f px"
+		box, "bottom_edge_margin", "底边触发范围", 24.0, 128.0, 1.0,
+		float(Globals.get_camera_option("bottom_edge_margin")), "%.0f px"
 	)
 	_add_camera_slider(
 		box, "smoothing", "镜头平滑度", 3.0, 24.0, 1.0,
-		Globals.options.camera_smoothing, "%.0f"
+		float(Globals.get_camera_option("smoothing")), "%.0f"
 	)
 	_add_camera_slider(
 		box, "zoom_step", "滚轮缩放速度", 0.25, 3.0, 0.25,
-		Globals.options.camera_zoom_step, "%.2fx"
+		float(Globals.get_camera_option("zoom_step")), "%.2fx"
 	)
 
 	var hint := Label.new()
@@ -127,32 +127,25 @@ func _add_camera_slider(
 
 
 func _on_camera_slider_changed(value: float, key: String):
-	var property_name := {
-		"movement_speed": "camera_movement_speed",
-		"edge_margin": "camera_edge_margin",
-		"bottom_margin": "camera_bottom_edge_margin",
-		"smoothing": "camera_smoothing",
-		"zoom_step": "camera_zoom_step",
-	}[key]
-	Globals.options.set(property_name, value)
+	Globals.set_camera_option(key, value)
 	var display = _camera_value_labels[key]
 	display[0].text = display[1] % value
 	_queue_save()
 
 
 func _on_camera_edge_scroll_toggled(enabled: bool):
-	Globals.options.camera_edge_scroll_enabled = enabled
+	Globals.set_camera_option("edge_scroll_enabled", enabled)
 	_queue_save()
 
 
 func _on_reset_camera_pressed():
-	Globals.options.reset_camera_to_defaults()
-	_camera_edge_scroll.button_pressed = Globals.options.camera_edge_scroll_enabled
-	_camera_controls["movement_speed"].value = Globals.options.camera_movement_speed
-	_camera_controls["edge_margin"].value = Globals.options.camera_edge_margin
-	_camera_controls["bottom_margin"].value = Globals.options.camera_bottom_edge_margin
-	_camera_controls["smoothing"].value = Globals.options.camera_smoothing
-	_camera_controls["zoom_step"].value = Globals.options.camera_zoom_step
+	Globals.reset_camera_options()
+	_camera_edge_scroll.button_pressed = bool(Globals.get_camera_option("edge_scroll_enabled"))
+	_camera_controls["movement_speed"].value = float(Globals.get_camera_option("movement_speed"))
+	_camera_controls["edge_margin"].value = float(Globals.get_camera_option("edge_margin"))
+	_camera_controls["bottom_edge_margin"].value = float(Globals.get_camera_option("bottom_edge_margin"))
+	_camera_controls["smoothing"].value = float(Globals.get_camera_option("smoothing"))
+	_camera_controls["zoom_step"].value = float(Globals.get_camera_option("zoom_step"))
 	_queue_save()
 
 
@@ -161,7 +154,10 @@ func _queue_save():
 
 
 func _save_options():
-	ResourceSaver.save(Globals.options, Constants.OPTIONS_FILE_PATH)
+	var save_error = ResourceSaver.save(Globals.options, Constants.OPTIONS_FILE_PATH)
+	if save_error != OK:
+		push_warning("无法保存显示设置：%s" % error_string(save_error))
+	Globals.save_camera_options()
 
 
 func _on_mouse_movement_restricted_pressed():
