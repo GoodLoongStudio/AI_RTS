@@ -3,9 +3,11 @@ extends Control
 const MatchSettings = preload("res://source/data-model/MatchSettings.gd")
 const PlayerSettings = preload("res://source/data-model/PlayerSettings.gd")
 const LoadingScene = preload("res://source/main-menu/Loading.tscn")
+const OptionsScene = preload("res://source/main-menu/Options.tscn")
 const CampaignMission = preload("res://source/campaign/CampaignMission.gd")
 
 var _mission: Dictionary
+var _options_panel: Control = null
 
 
 func _ready():
@@ -51,6 +53,11 @@ func _build_ui():
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	chapter_box.add_child(spacer)
+
+	var settings_button := Button.new()
+	settings_button.text = "设置"
+	settings_button.pressed.connect(_on_settings_pressed)
+	chapter_box.add_child(settings_button)
 
 	var back := Button.new()
 	back.text = "返回主菜单"
@@ -104,6 +111,22 @@ func _add_mission_button(parent: Control, text: String, enabled: bool):
 	button.custom_minimum_size = Vector2(0, 58)
 	button.disabled = not enabled
 	parent.add_child(button)
+
+
+func _on_settings_pressed():
+	if _options_panel != null:
+		return
+	_options_panel = OptionsScene.instantiate()
+	_options_panel.embedded_mode = true
+	_options_panel.close_requested.connect(_close_options_panel)
+	add_child(_options_panel)
+
+
+func _close_options_panel():
+	if _options_panel == null:
+		return
+	_options_panel.queue_free()
+	_options_panel = null
 
 
 func _on_start_pressed():
