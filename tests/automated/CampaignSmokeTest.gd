@@ -1,12 +1,12 @@
-extends SceneTree
+extends Node
 
 const MatchSettings = preload("res://source/data-model/MatchSettings.gd")
 const PlayerSettings = preload("res://source/data-model/PlayerSettings.gd")
 const CampaignMission = preload("res://source/campaign/CampaignMission.gd")
 
 
-func _initialize():
-	_run_test.call_deferred()
+func _ready():
+	await _run_test()
 
 
 func _run_test():
@@ -31,19 +31,22 @@ func _run_test():
 	a_match.settings = settings
 	a_match.map = map
 	a_match.campaign_data = mission
-	root.add_child(a_match)
+	get_tree().root.add_child(a_match)
 
 	for _frame in range(10):
-		await process_frame
-		await physics_frame
+		await get_tree().process_frame
+		await get_tree().physics_frame
 
 	assert(a_match.get_node_or_null("CampaignController") != null, "CampaignController 未加载")
 	assert(a_match.get_node_or_null("HUD/AICommandHUD") != null, "AICommandHUD 未加载")
-	assert(not get_nodes_in_group("controlled_units").is_empty(), "未生成玩家可控单位")
-	assert(not get_nodes_in_group("adversary_units").is_empty(), "未生成敌方单位")
-	assert(not get_nodes_in_group("unit_group_1").is_empty(), "突击一队未自动编组")
-	assert(not get_nodes_in_group("unit_group_2").is_empty(), "侦察二队未自动编组")
-	assert(not get_nodes_in_group("unit_group_3").is_empty(), "支援三队未自动编组")
+	assert(not get_tree().get_nodes_in_group("controlled_units").is_empty(), "未生成玩家可控单位")
+	assert(not get_tree().get_nodes_in_group("adversary_units").is_empty(), "未生成敌方单位")
+	assert(not get_tree().get_nodes_in_group("unit_group_1").is_empty(), "突击一队未自动编组")
+	assert(not get_tree().get_nodes_in_group("unit_group_2").is_empty(), "侦察二队未自动编组")
+	assert(not get_tree().get_nodes_in_group("unit_group_3").is_empty(), "支援三队未自动编组")
 
 	print("CAMPAIGN_SMOKE_TEST_OK: 回声撤离战役 Match 已启动，HUD/Controller/三支小队均存在")
-	quit(0)
+	a_match.queue_free()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	get_tree().quit(0)
