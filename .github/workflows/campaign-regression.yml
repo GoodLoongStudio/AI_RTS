@@ -30,9 +30,17 @@ jobs:
       - name: 无界面导入与脚本解析
         shell: bash
         run: |
-          set -euo pipefail
+          set +e
           ./Godot_v4.7.1-stable_linux.x86_64 \
             --headless --editor --path . --quit 2>&1 | tee godot-import.log
+          GODOT_EXIT=${PIPESTATUS[0]}
+          set -e
+          echo "===== Godot 导入错误摘要 ====="
+          grep -nE "SCRIPT ERROR|Parse Error|ERROR:|Failed to load script|Cannot open file|res://source/campaign" godot-import.log || true
+          if [ "$GODOT_EXIT" -ne 0 ]; then
+            echo "Godot 导入进程退出码: $GODOT_EXIT"
+            exit "$GODOT_EXIT"
+          fi
           if grep -E "SCRIPT ERROR|Parse Error|Failed to load script|Cannot open file" godot-import.log; then
             echo "检测到 Godot 脚本或资源解析错误"
             exit 1
@@ -41,9 +49,16 @@ jobs:
       - name: 主菜单启动冒烟测试
         shell: bash
         run: |
-          set -euo pipefail
+          set +e
           ./Godot_v4.7.1-stable_linux.x86_64 \
             --headless --path . --quit-after 120 2>&1 | tee godot-main.log
+          GODOT_EXIT=${PIPESTATUS[0]}
+          set -e
+          echo "===== 主菜单错误摘要 ====="
+          grep -nE "SCRIPT ERROR|Parse Error|ERROR:|Failed to load script|Cannot open file" godot-main.log || true
+          if [ "$GODOT_EXIT" -ne 0 ]; then
+            exit "$GODOT_EXIT"
+          fi
           if grep -E "SCRIPT ERROR|Parse Error|Failed to load script|Cannot open file" godot-main.log; then
             echo "主菜单启动检测到错误"
             exit 1
@@ -52,10 +67,28 @@ jobs:
       - name: 战役菜单启动冒烟测试
         shell: bash
         run: |
-          set -euo pipefail
+          set +e
           ./Godot_v4.7.1-stable_linux.x86_64 \
             --headless --path . res://source/campaign/CampaignMenu.tscn --quit-after 120 2>&1 | tee godot-campaign.log
+          GODOT_EXIT=${PIPESTATUS[0]}
+          set -e
+          echo "===== 战役菜单错误摘要 ====="
+          grep -nE "SCRIPT ERROR|Parse Error|ERROR:|Failed to load script|Cannot open file|res://source/campaign" godot-campaign.log || true
+          if [ "$GODOT_EXIT" -ne 0 ]; then
+            exit "$GODOT_EXIT"
+          fi
           if grep -E "SCRIPT ERROR|Parse Error|Failed to load script|Cannot open file" godot-campaign.log; then
             echo "战役菜单启动检测到错误"
             exit 1
           fi
+
+      - name: 上传回归日志
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-regression-logs
+          if-no-files-found: ignore
+          path: |
+            godot-import.log
+            godot-main.log
+            godot-campaign.log
