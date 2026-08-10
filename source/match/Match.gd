@@ -105,7 +105,13 @@ func _get_visible_players():
 
 
 func _setup_subsystems_dependent_on_map():
-	_terrain.update_shape(map.find_child("Terrain").mesh)
+	var map_terrain := map.find_child("Terrain") as MeshInstance3D
+	assert(map_terrain != null and map_terrain.mesh != null, "map must provide a Terrain MeshInstance3D")
+	_terrain.update_shape(map_terrain.mesh)
+	# Runtime navmesh baking should consume the terrain collider rather than reading
+	# the visual MeshInstance3D back from the GPU. Layer 2 matches the terrain navmesh mask.
+	_terrain.collision_layer = 2
+	_terrain.add_to_group("terrain_navigation_input")
 	fog_of_war.resize(map.size)
 	_recalculate_camera_bounding_planes(map.size)
 	navigation.setup(map)
