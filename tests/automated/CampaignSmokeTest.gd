@@ -12,13 +12,19 @@ func _ready():
 
 func _run_test():
 	# Use non-default values so the smoke test proves Match camera settings come from
-	# the persistent Options resource instead of merely matching scene defaults.
-	Globals.options.camera_edge_scroll_enabled = true
-	Globals.options.camera_movement_speed = 1.7
-	Globals.options.camera_edge_margin = 60.0
-	Globals.options.camera_bottom_edge_margin = 90.0
-	Globals.options.camera_smoothing = 12.0
-	Globals.options.camera_zoom_step = 1.5
+	# the dedicated camera configuration instead of merely matching scene defaults.
+	Globals.set_camera_option("edge_scroll_enabled", true)
+	Globals.set_camera_option("movement_speed", 1.7)
+	Globals.set_camera_option("edge_margin", 60.0)
+	Globals.set_camera_option("bottom_edge_margin", 90.0)
+	Globals.set_camera_option("smoothing", 12.0)
+	Globals.set_camera_option("zoom_step", 1.5)
+	Globals.save_camera_options()
+
+	var persisted_camera_config := ConfigFile.new()
+	assert(persisted_camera_config.load(Globals.CAMERA_CONFIG_PATH) == OK, "camera.cfg 未成功保存")
+	assert(is_equal_approx(float(persisted_camera_config.get_value("camera", "movement_speed")), 1.7), "camera.cfg 移动速度未持久化")
+	assert(is_equal_approx(float(persisted_camera_config.get_value("camera", "bottom_edge_margin")), 90.0), "camera.cfg 底边范围未持久化")
 
 	var mission := CampaignMission.echo_extraction()
 	var settings := MatchSettings.new()
@@ -92,7 +98,7 @@ func _run_test():
 	assert(bottom_inner_scroll.y > 0.0, "屏幕下方扩展触发区未生效")
 	assert(camera.bottom_screen_margin_for_movement > camera.screen_margin_for_movement, "底边触发区应比普通边缘更宽")
 
-	print("CAMPAIGN_SMOKE_TEST_OK: 回声撤离灰盒地图已启动，单英雄/AI HUD/剧情控制器/可配置镜头均正常")
+	print("CAMPAIGN_SMOKE_TEST_OK: 回声撤离灰盒地图已启动，单英雄/AI HUD/剧情控制器/camera.cfg 镜头设置均正常")
 	a_match.queue_free()
 	await get_tree().process_frame
 	await get_tree().process_frame
