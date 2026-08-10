@@ -7,6 +7,7 @@ const EXPECTED_PROJECTION = PROJECTION_ORTHOGONAL
 @export var size_min = 1
 @export var size_max = 20
 @export_group("Movement")
+@export var edge_scroll_enabled = true
 @export var screen_margin_for_movement = 48.0  # px
 @export var bottom_screen_margin_for_movement = 72.0  # px; bottom HUD needs a wider reliable edge zone
 @export var movement_speed = 1.1
@@ -21,6 +22,7 @@ const EXPECTED_PROJECTION = PROJECTION_ORTHOGONAL
 @export_group("View")
 @export var visible_height_min = -10
 @export var visible_height_max = 10
+@export var zoom_step = 1.0
 
 var _mouse_pos_when_rotation_started = null
 var _camera_global_pos_when_rotation_started = null
@@ -32,7 +34,22 @@ func _ready():
 	assert(
 		is_equal_approx(rotation_degrees.x, EXPECTED_X_ROTATION_DEGREES), "unexptected X rotation"
 	)
+	_apply_user_camera_options()
 	_align_camera_properties_to_current_size()
+
+
+func _apply_user_camera_options():
+	# Match scenes consume the persistent menu settings on startup. Keeping the camera's
+	# exported defaults makes the scene independently usable in editor/manual tests.
+	if Globals.options == null:
+		return
+	edge_scroll_enabled = Globals.options.camera_edge_scroll_enabled
+	movement_speed = Globals.options.camera_movement_speed
+	screen_margin_for_movement = Globals.options.camera_edge_margin
+	bottom_screen_margin_for_movement = Globals.options.camera_bottom_edge_margin
+	movement_acceleration = max(Globals.options.camera_smoothing, 0.1)
+	movement_deceleration = max(Globals.options.camera_smoothing * 1.4, 0.1)
+	zoom_step = max(Globals.options.camera_zoom_step, 0.05)
 
 
 func _process(delta: float):
@@ -119,9 +136,11 @@ func _calculate_screen_move_vector() -> Vector2:
 		Input.get_axis("move_map_up", "move_map_down")
 	).limit_length(1.0)
 
-	# Keyboard input is deliberate, so let it take precedence over accidental edge contact.
+	# Keyboard movement stays available even when the player disables edge scrolling.
 	if not keyboard_move_vector.is_zero_approx():
 		return keyboard_move_vector
+	if not edge_scroll_enabled:
+		return Vector2.ZERO
 	return _calculate_edge_scroll_vector(mouse_pos, viewport_size)
 
 
@@ -163,11 +182,11 @@ func _try_handling_zoom(event: InputEvent):
 
 
 func _zoom_in():
-	set_size_safely(size - 1)
+	set_size_safely(size - zoom_step)
 
 
 func _zoom_out():
-	set_size_safely(size + 1)
+	set_size_safely(size + zoom_step)
 
 
 func _try_handling_arrowkey_rotation(delta: float):
