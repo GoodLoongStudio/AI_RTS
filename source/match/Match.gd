@@ -62,6 +62,9 @@ func _setup_ai_command_hud():
 		return
 	var ai_command_hud = AICommandHUD.new()
 	ai_command_hud.name = "AICommandHUD"
+	if campaign_data != null:
+		ai_command_hud.control_mode = campaign_data.get("initial_control_mode", "squad")
+		ai_command_hud.hero_name = campaign_data.get("hero_name", "先锋指挥单元")
 	$HUD.add_child(ai_command_hud)
 
 
@@ -151,6 +154,13 @@ func _setup_player_units():
 
 
 func _spawn_player_units(player, spawn_transform):
+	if _should_spawn_campaign_hero(player):
+		var hero_scene_path: String = campaign_data.get("hero_scene", "res://source/match/units/Tank.tscn")
+		var hero_scene = load(hero_scene_path)
+		assert(hero_scene != null, "campaign hero scene could not be loaded: %s" % hero_scene_path)
+		_setup_and_spawn_unit(hero_scene.instantiate(), spawn_transform, player)
+		return
+
 	_setup_and_spawn_unit(CommandCenter.instantiate(), spawn_transform, player, false)
 	_setup_and_spawn_unit(
 		Drone.instantiate(), spawn_transform.translated(Vector3(-2, 0, -2)), player
@@ -160,6 +170,14 @@ func _spawn_player_units(player, spawn_transform):
 	)
 	_setup_and_spawn_unit(
 		Worker.instantiate(), spawn_transform.translated(Vector3(3, 0, 3)), player
+	)
+
+
+func _should_spawn_campaign_hero(player) -> bool:
+	return (
+		campaign_data != null
+		and campaign_data.get("initial_control_mode", "squad") == "hero"
+		and player == _get_human_player()
 	)
 
 
