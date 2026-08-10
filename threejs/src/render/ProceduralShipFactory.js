@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 
 const SHIP_STATS = {
   mothership:    { label:'母舰',      scale:10.0, hp:9000, speed:34,  range:1300, damage:90,  cooldown:1.45, radius:230, value:9 },
@@ -93,9 +92,21 @@ export class ProceduralShipFactory {
   }
 
   addBox(group, material, pos, scale, rot=[0,0,0], bevel=0) {
-    const g = bevel > 0
-      ? new RoundedBoxGeometry(1, 1, 1, bevel > .55 ? 3 : 2, Math.min(.14, .055 + bevel * .055))
-      : new THREE.BoxGeometry(1,1,1);
+    let g;
+    if (bevel > 0) {
+      // Dependency-free softened hard-surface box. Subdivision plus a tiny corner
+      // contraction preserves reliable builds while avoiding razor-sharp silhouettes.
+      g = new THREE.BoxGeometry(1,1,1,2,2,2);
+      const a = g.attributes.position;
+      const amount = Math.min(.085, .035 + bevel * .03);
+      for (let i=0;i<a.count;i++) {
+        const x=a.getX(i), y=a.getY(i), z=a.getZ(i);
+        const corner=(Math.abs(x)+Math.abs(y)+Math.abs(z))/1.5;
+        const k=1-amount*Math.max(0,corner-.45);
+        a.setXYZ(i,x*k,y*k,z*k);
+      }
+      a.needsUpdate=true; g.computeVertexNormals();
+    } else g = new THREE.BoxGeometry(1,1,1);
     return this.addMesh(group,g,material,pos,scale,rot);
   }
 
