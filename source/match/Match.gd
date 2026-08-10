@@ -5,6 +5,7 @@ const Structure = preload("res://source/match/units/Structure.gd")
 const Player = preload("res://source/match/players/Player.gd")
 const Human = preload("res://source/match/players/human/Human.gd")
 const AICommandHUD = preload("res://source/match/hud/AICommandHUD.gd")
+const CampaignController = preload("res://source/campaign/CampaignController.gd")
 
 const CommandCenter = preload("res://source/match/units/CommandCenter.tscn")
 const Drone = preload("res://source/match/units/Drone.tscn")
@@ -12,6 +13,7 @@ const Worker = preload("res://source/match/units/Worker.tscn")
 
 @export var settings: Resource = null
 
+var campaign_data = null
 var map:
 	set = _set_map,
 	get = _get_map
@@ -44,6 +46,7 @@ func _ready():
 	if settings.visibility == settings.Visibility.FULL:
 		fog_of_war.reveal()
 	_setup_ai_command_hud()
+	_setup_campaign()
 	MatchSignals.match_started.emit()
 
 
@@ -60,6 +63,15 @@ func _setup_ai_command_hud():
 	var ai_command_hud = AICommandHUD.new()
 	ai_command_hud.name = "AICommandHUD"
 	$HUD.add_child(ai_command_hud)
+
+
+func _setup_campaign():
+	if campaign_data == null:
+		return
+	var campaign_controller = CampaignController.new()
+	campaign_controller.name = "CampaignController"
+	campaign_controller.mission_data = campaign_data
+	add_child(campaign_controller)
 
 
 func _set_map(a_map):
