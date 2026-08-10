@@ -64,6 +64,24 @@ jobs:
             exit 1
           fi
 
+      - name: 设置面板启动冒烟测试
+        shell: bash
+        run: |
+          set +e
+          ./Godot_v4.7.1-stable_linux.x86_64 \
+            --headless --path . res://source/main-menu/Options.tscn --quit-after 120 2>&1 | tee godot-options.log
+          GODOT_EXIT=${PIPESTATUS[0]}
+          set -e
+          echo "===== 设置面板诊断 ====="
+          grep -nE "SCRIPT ERROR|Parse Error|Failed to load script|Cannot open file 'res://source/|Failed loading resource: res://source/" godot-options.log || true
+          if [ "$GODOT_EXIT" -ne 0 ]; then
+            exit "$GODOT_EXIT"
+          fi
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script|Cannot open file 'res://source/|Failed loading resource: res://source/" godot-options.log; then
+            echo "设置面板启动检测到脚本或 source 资源错误"
+            exit 1
+          fi
+
       - name: 战役菜单启动冒烟测试
         shell: bash
         run: |
@@ -110,5 +128,6 @@ jobs:
           path: |
             godot-import.log
             godot-main.log
+            godot-options.log
             godot-campaign.log
             godot-campaign-match.log
