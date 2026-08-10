@@ -31,6 +31,13 @@ jobs:
         working-directory: threejs
         run: npm run build
 
+      - name: 上传生产构建
+        uses: actions/upload-artifact@v4
+        with:
+          name: threejs-space-rts-dist
+          path: threejs/dist/**
+          if-no-files-found: error
+
       - name: 安装视觉回归浏览器
         working-directory: threejs
         run: |
