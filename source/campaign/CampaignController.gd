@@ -108,7 +108,36 @@ func _set_objective(index: int):
 	if index < 0 or index >= objectives.size():
 		_objective_label.text = "当前目标：任务完成"
 		return
-	_objective_label.text = "当前目标：%s" % objectives[index]
+	var objective_text := str(objectives[index])
+	_objective_label.text = "当前目标：%s" % objective_text
+	_sync_agent_context(index, objective_text)
+
+
+func _sync_agent_context(index: int, objective_text: String):
+	if _ai_hud == null:
+		return
+	var suggestion := "按当前任务目标行动，必要时先询问我。"
+	var risk := "未知"
+	match index:
+		0:
+			suggestion = "先让先锋单位前往信号门，途中只处理已经确认的威胁。"
+			risk = "低 · 尚未获得可靠敌情"
+		1:
+			suggestion = "进入外围营地前先观察道路和建筑边缘，不要为了探索主动深入未知区域。"
+			risk = "中 · 通讯不稳定，外围情况未确认"
+		2:
+			suggestion = "沿道路推进到废弃车队，优先找到重复求救信号源。"
+			risk = "中 · 信号异常，但敌情仍未确认"
+		3:
+			suggestion = "在车队附近原地警戒，让我读取黑箱信标，不要继续向纵深推进。"
+			risk = "中 · 单兵停留读取数据，机动能力暂时降低"
+		4:
+			suggestion = "携带黑箱信标沿已走过的路线返回外围紧急撤离点。"
+			risk = "中 · 已取得关键情报，继续深入收益低于风险"
+		5:
+			suggestion = "确认信标数据完整后请求撤离，结束本次侦察。"
+			risk = "低 · 已到达已确认撤离区域"
+	_ai_hud.set_agent_context(objective_text, suggestion, risk)
 
 
 func _complete_current_objective():
