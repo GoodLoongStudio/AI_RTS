@@ -7,8 +7,11 @@ const EXPECTED_PROJECTION = PROJECTION_ORTHOGONAL
 @export var size_min = 1
 @export var size_max = 20
 @export_group("Movement")
-@export var screen_margin_for_movement = 32  # px
+@export var screen_margin_for_movement = 48.0  # px
+@export var bottom_screen_margin_for_movement = 72.0  # px; bottom HUD needs a wider reliable edge zone
 @export var movement_speed = 1.1
+@export var movement_acceleration = 10.0
+@export var movement_deceleration = 14.0
 @export var bounding_planes: Array[Plane] = []
 @export_group("Rotation")
 @export var mouse_rotation_speed = 0.005  # [rad/px]
@@ -21,6 +24,7 @@ const EXPECTED_PROJECTION = PROJECTION_ORTHOGONAL
 
 var _mouse_pos_when_rotation_started = null
 var _camera_global_pos_when_rotation_started = null
+var _smoothed_screen_move_vector := Vector2.ZERO
 
 
 func _ready():
@@ -31,8 +35,12 @@ func _ready():
 	_align_camera_properties_to_current_size()
 
 
-func _physics_process(delta: float):
-	var realtime_delta = delta / Engine.time_scale
+func _process(delta: float):
+	# Camera movement is visual feedback and should update on render frames rather than
+	# the fixed physics tick. This avoids visible stepping on 90/120/144 Hz displays.
+	var realtime_delta = delta
+	if not is_zero_approx(Engine.time_scale):
+		realtime_delta /= Engine.time_scale
 	if _try_handling_movement(realtime_delta):
 		return
 	_try_handling_arrowkey_rotation(realtime_delta)
@@ -64,16 +72,34 @@ func get_ray_intersection_with_plane(mouse_pos: Vector2, plane: Plane) -> Varian
 
 func _try_handling_movement(delta: float) -> bool:
 	if _is_rotating():
+		_smoothed_screen_move_vector = Vector2.ZERO
 		return false
 
-	var screen_move_vector = _calculate_screen_move_vector()
-	if screen_move_vector.is_zero_approx():
+	var target_screen_move_vector = _calculate_screen_move_vector()
+	var response_speed = (
+		movement_acceleration
+		if not target_screen_move_vector.is_zero_approx()
+		else movement_deceleration
+	)
+	var smoothing_weight = 1.0 - exp(-response_speed * delta)
+	_smoothed_screen_move_vector = _smoothed_screen_move_vector.lerp(
+		target_screen_move_vector, clamp(smoothing_weight, 0.0, 1.0)
+	)
+
+	if (
+		target_screen_move_vector.is_zero_approx()
+		and _smoothed_screen_move_vector.length_squared() < 0.0001
+	):
+		_smoothed_screen_move_vector = Vector2.ZERO
+
+	if _smoothed_screen_move_vector.is_zero_approx():
 		return false
 
+	var limited_screen_move_vector = _smoothed_screen_move_vector.limit_length(1.0)
 	var scaled_screen_move_vector = (
-		screen_move_vector.normalized()
+		Vector2(limited_screen_move_vector.x, limited_screen_move_vector.y * 2.0)
 		* delta
-		* Vector2(movement_speed, movement_speed * 2.0)
+		* movement_speed
 		* size
 	)
 	var camera_move_vector = (
@@ -86,26 +112,45 @@ func _try_handling_movement(delta: float) -> bool:
 
 
 func _calculate_screen_move_vector() -> Vector2:
-	var viewport_size = get_viewport().size
-	var mouse_pos = get_viewport().get_mouse_position()
+	var viewport_size := Vector2(get_viewport().size)
+	var mouse_pos := get_viewport().get_mouse_position()
+	var keyboard_move_vector := Vector2(
+		Input.get_axis("move_map_left", "move_map_right"),
+		Input.get_axis("move_map_up", "move_map_down")
+	).limit_length(1.0)
 
-	var x_axis = Input.get_axis("move_map_left", "move_map_right")
-	var y_axis = Input.get_axis("move_map_up", "move_map_down")
-	var move_vector = Vector2(x_axis, y_axis)
+	# Keyboard input is deliberate, so let it take precedence over accidental edge contact.
+	if not keyboard_move_vector.is_zero_approx():
+		return keyboard_move_vector
+	return _calculate_edge_scroll_vector(mouse_pos, viewport_size)
 
-	if mouse_pos.x <= screen_margin_for_movement:
-		move_vector.x = -1
 
-	if mouse_pos.x >= viewport_size.x - screen_margin_for_movement:
-		move_vector.x = 1
+func _calculate_edge_scroll_vector(mouse_pos: Vector2, viewport_size: Vector2) -> Vector2:
+	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
+		return Vector2.ZERO
+	if not Rect2(Vector2.ZERO, viewport_size).has_point(mouse_pos):
+		return Vector2.ZERO
 
-	if mouse_pos.y <= screen_margin_for_movement:
-		move_vector.y = -1
+	var horizontal_margin = max(screen_margin_for_movement, 1.0)
+	var top_margin = horizontal_margin
+	var bottom_margin = max(bottom_screen_margin_for_movement, horizontal_margin)
 
-	if mouse_pos.y >= viewport_size.y - screen_margin_for_movement:
-		move_vector.y = 1
+	var left_strength = _edge_strength(mouse_pos.x, horizontal_margin)
+	var right_strength = _edge_strength(viewport_size.x - mouse_pos.x, horizontal_margin)
+	var top_strength = _edge_strength(mouse_pos.y, top_margin)
+	var bottom_strength = _edge_strength(viewport_size.y - mouse_pos.y, bottom_margin)
 
-	return move_vector
+	return Vector2(
+		right_strength - left_strength,
+		bottom_strength - top_strength
+	).limit_length(1.0)
+
+
+func _edge_strength(distance_to_edge: float, margin: float) -> float:
+	if distance_to_edge >= margin:
+		return 0.0
+	var edge_depth = 1.0 - clamp(distance_to_edge / margin, 0.0, 1.0)
+	return smoothstep(0.0, 1.0, edge_depth)
 
 
 func _try_handling_zoom(event: InputEvent):
