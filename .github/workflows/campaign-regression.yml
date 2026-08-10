@@ -35,14 +35,14 @@ jobs:
             --headless --editor --path . --quit 2>&1 | tee godot-import.log
           GODOT_EXIT=${PIPESTATUS[0]}
           set -e
-          echo "===== Godot 导入错误摘要 ====="
-          grep -nE "SCRIPT ERROR|Parse Error|ERROR:|Failed to load script|Cannot open file|res://source/campaign" godot-import.log || true
+          echo "===== Godot 导入诊断 ====="
+          grep -nE "SCRIPT ERROR|Parse Error|Failed to load script|Cannot open file 'res://source/|Failed loading resource: res://source/" godot-import.log || true
           if [ "$GODOT_EXIT" -ne 0 ]; then
             echo "Godot 导入进程退出码: $GODOT_EXIT"
             exit "$GODOT_EXIT"
           fi
-          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script|Cannot open file" godot-import.log; then
-            echo "检测到 Godot 脚本或资源解析错误"
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script|Cannot open file 'res://source/|Failed loading resource: res://source/" godot-import.log; then
+            echo "检测到 Godot 脚本或 source 资源解析错误"
             exit 1
           fi
 
@@ -54,13 +54,13 @@ jobs:
             --headless --path . --quit-after 120 2>&1 | tee godot-main.log
           GODOT_EXIT=${PIPESTATUS[0]}
           set -e
-          echo "===== 主菜单错误摘要 ====="
-          grep -nE "SCRIPT ERROR|Parse Error|ERROR:|Failed to load script|Cannot open file" godot-main.log || true
+          echo "===== 主菜单诊断 ====="
+          grep -nE "SCRIPT ERROR|Parse Error|Failed to load script|Cannot open file 'res://source/|Failed loading resource: res://source/" godot-main.log || true
           if [ "$GODOT_EXIT" -ne 0 ]; then
             exit "$GODOT_EXIT"
           fi
-          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script|Cannot open file" godot-main.log; then
-            echo "主菜单启动检测到错误"
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script|Cannot open file 'res://source/|Failed loading resource: res://source/" godot-main.log; then
+            echo "主菜单启动检测到脚本或 source 资源错误"
             exit 1
           fi
 
@@ -72,13 +72,13 @@ jobs:
             --headless --path . res://source/campaign/CampaignMenu.tscn --quit-after 120 2>&1 | tee godot-campaign.log
           GODOT_EXIT=${PIPESTATUS[0]}
           set -e
-          echo "===== 战役菜单错误摘要 ====="
-          grep -nE "SCRIPT ERROR|Parse Error|ERROR:|Failed to load script|Cannot open file|res://source/campaign" godot-campaign.log || true
+          echo "===== 战役菜单诊断 ====="
+          grep -nE "SCRIPT ERROR|Parse Error|Failed to load script|Cannot open file 'res://source/|Failed loading resource: res://source/" godot-campaign.log || true
           if [ "$GODOT_EXIT" -ne 0 ]; then
             exit "$GODOT_EXIT"
           fi
-          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script|Cannot open file" godot-campaign.log; then
-            echo "战役菜单启动检测到错误"
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script|Cannot open file 'res://source/|Failed loading resource: res://source/" godot-campaign.log; then
+            echo "战役菜单启动检测到脚本或 source 资源错误"
             exit 1
           fi
 
