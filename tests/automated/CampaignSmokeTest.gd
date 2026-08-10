@@ -11,6 +11,15 @@ func _ready():
 
 
 func _run_test():
+	# Use non-default values so the smoke test proves Match camera settings come from
+	# the persistent Options resource instead of merely matching scene defaults.
+	Globals.options.camera_edge_scroll_enabled = true
+	Globals.options.camera_movement_speed = 1.7
+	Globals.options.camera_edge_margin = 60.0
+	Globals.options.camera_bottom_edge_margin = 90.0
+	Globals.options.camera_smoothing = 12.0
+	Globals.options.camera_zoom_step = 1.5
+
 	var mission := CampaignMission.echo_extraction()
 	var settings := MatchSettings.new()
 
@@ -60,13 +69,21 @@ func _run_test():
 	assert(a_match.get_node_or_null("Map/CampaignZones/EmergencyExtraction") != null, "灰盒地图缺少 EmergencyExtraction")
 
 	assert(camera != null, "RTS 镜头未加载")
+	assert(camera.edge_scroll_enabled, "边缘滚屏设置未应用")
+	assert(is_equal_approx(camera.movement_speed, 1.7), "镜头移动速度设置未应用")
+	assert(is_equal_approx(camera.screen_margin_for_movement, 60.0), "边缘触发范围设置未应用")
+	assert(is_equal_approx(camera.bottom_screen_margin_for_movement, 90.0), "底边触发范围设置未应用")
+	assert(is_equal_approx(camera.movement_acceleration, 12.0), "镜头平滑度设置未应用")
+	assert(is_equal_approx(camera.movement_deceleration, 16.8), "镜头减速平滑度未按设置派生")
+	assert(is_equal_approx(camera.zoom_step, 1.5), "滚轮缩放速度设置未应用")
+
 	var test_viewport_size := Vector2(1920, 1080)
 	var center_scroll = camera._calculate_edge_scroll_vector(Vector2(960, 540), test_viewport_size)
 	var left_scroll = camera._calculate_edge_scroll_vector(Vector2(1, 540), test_viewport_size)
 	var right_scroll = camera._calculate_edge_scroll_vector(Vector2(1919, 540), test_viewport_size)
 	var top_scroll = camera._calculate_edge_scroll_vector(Vector2(960, 1), test_viewport_size)
 	var bottom_scroll = camera._calculate_edge_scroll_vector(Vector2(960, 1079), test_viewport_size)
-	var bottom_inner_scroll = camera._calculate_edge_scroll_vector(Vector2(960, 1030), test_viewport_size)
+	var bottom_inner_scroll = camera._calculate_edge_scroll_vector(Vector2(960, 1020), test_viewport_size)
 	assert(center_scroll.is_zero_approx(), "鼠标位于屏幕中央时镜头不应边缘滚动")
 	assert(left_scroll.x < -0.9, "屏幕左边缘滚动方向错误")
 	assert(right_scroll.x > 0.9, "屏幕右边缘滚动方向错误")
@@ -75,7 +92,7 @@ func _run_test():
 	assert(bottom_inner_scroll.y > 0.0, "屏幕下方扩展触发区未生效")
 	assert(camera.bottom_screen_margin_for_movement > camera.screen_margin_for_movement, "底边触发区应比普通边缘更宽")
 
-	print("CAMPAIGN_SMOKE_TEST_OK: 回声撤离灰盒地图已启动，单英雄/AI HUD/剧情控制器/四边镜头滚屏均正常")
+	print("CAMPAIGN_SMOKE_TEST_OK: 回声撤离灰盒地图已启动，单英雄/AI HUD/剧情控制器/可配置镜头均正常")
 	a_match.queue_free()
 	await get_tree().process_frame
 	await get_tree().process_frame
