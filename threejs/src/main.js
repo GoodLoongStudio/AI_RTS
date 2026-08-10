@@ -71,16 +71,16 @@ environment.build();
 // procedural planet into the same visual plane as the fleet, instead of letting debris
 // dominate the first frame.
 if (environment.planetGroup) {
-  environment.planetGroup.position.set(3100, 1280, -6250);
-  environment.planetGroup.scale.setScalar(0.52);
+  environment.planetGroup.position.set(3900, 1320, -3650);
+  environment.planetGroup.scale.setScalar(0.42);
   // The generated ring is useful for alternate random systems but is hidden in this
   // Earth-like hero composition so the planet reads as a clean backdrop, not a HUD-sized disc.
   if (environment.planetGroup.children[2]) environment.planetGroup.children[2].visible = false;
 }
 if (environment.asteroidBelts[0]) {
-  environment.asteroidBelts[0].count = 260;
-  environment.asteroidBelts[0].scale.setScalar(0.20);
-  environment.asteroidBelts[0].position.set(4700, 520, -5200);
+  environment.asteroidBelts[0].count = 220;
+  environment.asteroidBelts[0].scale.setScalar(0.17);
+  environment.asteroidBelts[0].position.set(4900, 460, -4300);
 }
 
 const shipFactory = new ProceduralShipFactory(renderer);
@@ -142,7 +142,7 @@ for (const u of fleetSystem.units) {
   const visual = u.object.children[0];
   if (visual) visual.scale.multiplyScalar(heroScale);
   decorateCapital(u, visual);
-  if (u.object.userData.selectionRing) u.object.userData.selectionRing.scale.setScalar(0.58);
+  if (u.object.userData.selectionRing) u.object.userData.selectionRing.scale.setScalar(0.40);
   if (u.object.userData.marker) u.object.userData.marker.visible = false;
 }
 
@@ -155,10 +155,10 @@ tacticalGrid.material.opacity = 0.018;
 tacticalGrid.position.y = -220;
 scene.add(tacticalGrid);
 
-let cameraTarget = new THREE.Vector3(-120, 60, 100);
+let cameraTarget = new THREE.Vector3(-90, 70, 40);
 let azimuth = -0.62;
 let elevation = 0.34;
-let distance = 980;
+let distance = 1040;
 let targetDistance = distance;
 const keys = new Set();
 let middleDrag = false;

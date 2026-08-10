@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 
 const SHIP_STATS = {
   mothership:    { label:'母舰',      scale:10.0, hp:9000, speed:34,  range:1300, damage:90,  cooldown:1.45, radius:230, value:9 },
@@ -52,11 +53,21 @@ export class ProceduralShipFactory {
     if(this.materialCache.has(key)) return this.materialCache.get(key);
     let mat;
     if(type==='dark') {
-      mat=new THREE.MeshStandardMaterial({color:0x111820,roughness:.54,metalness:.72});
+      mat=new THREE.MeshStandardMaterial({color:0x0c1318,roughness:.42,metalness:.80});
     } else if(type==='glass') {
-      mat=new THREE.MeshPhysicalMaterial({color:0x143d54,roughness:.13,metalness:.35,transmission:.08,clearcoat:.65,clearcoatRoughness:.2,emissive:new THREE.Color(teamColor).multiplyScalar(.10)});
+      mat=new THREE.MeshPhysicalMaterial({color:0x102a35,roughness:.24,metalness:.58,transmission:.02,clearcoat:.72,clearcoatRoughness:.16,emissive:new THREE.Color(teamColor).multiplyScalar(.035),emissiveIntensity:.48});
     } else {
-      mat=new THREE.MeshPhysicalMaterial({map:this.textures.hull,roughnessMap:this.textures.roughness,color:0xc2c9cc,roughness:.51,metalness:.46,clearcoat:.12,clearcoatRoughness:.55});
+      mat=new THREE.MeshPhysicalMaterial({
+        map:this.textures.hull,
+        bumpMap:this.textures.hull,
+        bumpScale:.026,
+        roughnessMap:this.textures.roughness,
+        color:0xaab3b8,
+        roughness:.47,
+        metalness:.60,
+        clearcoat:.08,
+        clearcoatRoughness:.62,
+      });
     }
     this.materialCache.set(key,mat); return mat;
   }
@@ -66,17 +77,32 @@ export class ProceduralShipFactory {
   }
 
   addBox(group, material, pos, scale, rot=[0,0,0], bevel=0) {
-    let g;
-    if(bevel>0){
-      g=new THREE.BoxGeometry(1,1,1,2,2,2);
-      const p=g.attributes.position;
-      for(let i=0;i<p.count;i++){
-        let x=p.getX(i),y=p.getY(i),z=p.getZ(i);
-        const k=1-bevel*.08*(Math.abs(x)+Math.abs(y)+Math.abs(z));p.setXYZ(i,x*k,y*k,z*k);
-      }
-      g.computeVertexNormals();
-    } else g=new THREE.BoxGeometry(1,1,1);
+    const g = bevel > 0
+      ? new RoundedBoxGeometry(1, 1, 1, bevel > .55 ? 3 : 2, Math.min(.14, .055 + bevel * .055))
+      : new THREE.BoxGeometry(1,1,1);
     return this.addMesh(group,g,material,pos,scale,rot);
+  }
+
+  addHullPrism(group, material, length, widthRear, widthFront, height, pos=[0,0,0], bevelTop=.15) {
+    const l=length*.5, h=height*.5;
+    const wr=widthRear*.5, wf=widthFront*.5;
+    const verts=new Float32Array([
+      -wf,-h,-l,  wf,-h,-l,  wf,h,-l,  -wf,h,-l,
+      -wr,-h, l,  wr,-h, l,  wr,h, l,  -wr,h, l,
+    ]);
+    const idx=[
+      0,1,2, 0,2,3, 4,6,5, 4,7,6,
+      0,4,5, 0,5,1, 3,2,6, 3,6,7,
+      1,5,6, 1,6,2, 0,3,7, 0,7,4,
+    ];
+    const geo=new THREE.BufferGeometry();
+    geo.setAttribute('position',new THREE.BufferAttribute(verts,3));geo.setIndex(idx);geo.computeVertexNormals();
+    const mesh=this.addMesh(group,geo,material,pos);
+    // Thin raised spine breaks the monolithic silhouette and catches rim light.
+    if(bevelTop>0){
+      this.addBox(group,material,[pos[0],pos[1]+h*.82,pos[2]+length*.04],[Math.max(.3,widthFront*.45),Math.max(.12,height*.18),length*.72],[0,0,0],.5);
+    }
+    return mesh;
   }
 
   addEngine(group, teamColor, pos, scale=[1,1,1]) {
@@ -134,11 +160,11 @@ export class ProceduralShipFactory {
   }
 
   buildMothership(g,c,h,d,glass){
-    this.addBox(g,h,[0,0,0],[5.9,1.2,15.5],[0,0,0],.5);
+    this.addHullPrism(g,h,15.5,11.8,7.4,1.7,[0,0,0],.2);
     this.addBox(g,d,[0,-.4,-.4],[5.3,.48,12.3]);
     this.addBox(g,h,[0,1.05,-2.5],[4.2,1.3,6.8]);
     this.addBox(g,h,[0,2.0,-4.3],[2.7,1.05,3.0]);
-    this.addBox(g,glass,[0,2.7,-5.25],[1.9,.34,1.45]);
+    this.addBox(g,glass,[0,2.52,-5.0],[1.48,.24,1.08],[0,0,0],.6);
     for(const side of [-1,1]){
       this.addBox(g,h,[side*5.0,.42,1.4],[2.0,.62,10.7]);
       this.addBox(g,d,[side*6.15,.1,2.4],[.32,.35,8.3]);
@@ -153,10 +179,10 @@ export class ProceduralShipFactory {
   }
 
   buildBattlecruiser(g,c,h,d,glass){
-    this.addBox(g,h,[0,0,0],[3.6,1.0,11.8],[0,0,0],.5);
+    this.addHullPrism(g,h,11.8,7.2,4.6,1.4,[0,0,0],.18);
     this.addBox(g,d,[0,-.25,1.0],[3.2,.42,8.8]);
     this.addBox(g,h,[0,.9,-2.7],[2.7,1.0,4.0]);
-    this.addBox(g,glass,[0,1.6,-3.9],[1.45,.25,1.0]);
+    this.addBox(g,glass,[0,1.5,-3.7],[1.08,.18,.76],[0,0,0],.6);
     for(const s of [-1,1]){
       this.addBox(g,h,[s*3.3,.2,1.1],[1.1,.65,7.9]);
       this.addBox(g,d,[s*4.05,-.02,1.8],[.28,.27,6.1]);
@@ -169,8 +195,8 @@ export class ProceduralShipFactory {
   }
 
   buildDestroyer(g,c,h,d,glass){
-    this.addBox(g,h,[0,0,0],[2.7,.82,8.0],[0,0,0],.55);
-    this.addBox(g,h,[0,.75,-1.9],[2.0,.72,3.2]);this.addBox(g,glass,[0,1.2,-2.75],[1.0,.22,.82]);
+    this.addHullPrism(g,h,8.0,5.4,3.35,1.13,[0,0,0],.16);
+    this.addBox(g,h,[0,.75,-1.9],[2.0,.72,3.2]);this.addBox(g,glass,[0,1.12,-2.6],[.78,.16,.62],[0,0,0],.55);
     for(const s of [-1,1]){this.addBox(g,h,[s*2.25,.05,.8],[.82,.55,5.4]);this.addEngine(g,c,[s*1.55,-.2,4.6],[.75,.72,.95]);this.addTurret(g,c,[s*1.55,.8,-2.9],.42,s*.08);}
     this.addTurret(g,c,[0,.92,-3.85],.58);this.addTurret(g,c,[0,.9,1.1],.5);
     this.addLightStrips(g,c,2.5,-.49,-.5);
