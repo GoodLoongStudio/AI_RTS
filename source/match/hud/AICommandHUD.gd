@@ -12,6 +12,7 @@ const COMMAND_LABELS = {
 	"MOVE": "移动", "ATTACK": "攻击", "DEFEND": "防守",
 	"SCOUT": "侦察", "RETREAT": "撤退", "STOP": "停止"
 }
+const F1_DOUBLE_TAP_MS := 350
 
 var control_mode := "squad"
 var hero_name := "先锋指挥单元"
@@ -25,6 +26,9 @@ var _input: LineEdit
 var _command_hint: Label
 var _agent_state: Label
 var _context_label: Label
+var _hero_focus_card: Button
+var _last_f1_press_msec := -100000
+var _hero_camera_locked := false
 var _current_objective := "等待战区任务同步"
 var _current_suggestion := "保持待命，等待新的任务信息。"
 var _current_risk := "未知"
@@ -47,6 +51,10 @@ func _ready():
 
 func _unhandled_key_input(event: InputEvent):
 	if not event.pressed or event.echo:
+		return
+	if event.keycode == KEY_F1 and _is_hero_mode():
+		_handle_hero_focus_hotkey()
+		get_viewport().set_input_as_handled()
 		return
 	if _input.has_focus():
 		if event.keycode == KEY_ESCAPE:
@@ -87,6 +95,9 @@ func _build_ui():
 		card.pressed.connect(_select_squad.bind(squad_id))
 		left.add_child(card)
 		_squad_buttons[squad_id] = card
+
+	if _is_hero_mode():
+		_build_hero_focus_card()
 
 	var right := PanelContainer.new()
 	right.set_anchors_preset(Control.PRESET_TOP_RIGHT)
@@ -179,6 +190,87 @@ func _build_ui():
 	send.text = "发送"
 	send.pressed.connect(func(): _on_text_submitted(_input.text))
 	input_row.add_child(send)
+
+
+func _build_hero_focus_card():
+	# Placeholder portrait card. Keep it immediately to the right of the 176 px minimap so
+	# it occupies the dedicated hero slot without covering the command bar.
+	_hero_focus_card = Button.new()
+	_hero_focus_card.name = "HeroFocusCard"
+	_hero_focus_card.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	_hero_focus_card.offset_left = 190.0
+	_hero_focus_card.offset_right = 280.0
+	_hero_focus_card.offset_top = -160.0
+	_hero_focus_card.offset_bottom = -54.0
+	_hero_focus_card.text = "F1\n先锋\n双击锁定"
+	_hero_focus_card.tooltip_text = "单击 F1：选中先锋\n双击 F1：锁定/解除镜头跟随"
+	_hero_focus_card.mouse_filter = Control.MOUSE_FILTER_STOP
+	_hero_focus_card.pressed.connect(_select_squad.bind(1))
+	_hero_focus_card.gui_input.connect(_on_hero_focus_card_gui_input)
+	add_child(_hero_focus_card)
+
+
+func _handle_hero_focus_hotkey():
+	_select_squad(1)
+	var now_msec := Time.get_ticks_msec()
+	if now_msec - _last_f1_press_msec <= F1_DOUBLE_TAP_MS:
+		_last_f1_press_msec = -100000
+		_toggle_hero_camera_lock()
+	else:
+		_last_f1_press_msec = now_msec
+		_update_hero_focus_card()
+
+
+func _on_hero_focus_card_gui_input(event: InputEvent):
+	if (
+		event is InputEventMouseButton
+		and event.pressed
+		and event.button_index == MOUSE_BUTTON_LEFT
+		and event.double_click
+	):
+		_select_squad(1)
+		_toggle_hero_camera_lock()
+		accept_event()
+
+
+func _toggle_hero_camera_lock():
+	var hero := _get_hero_unit()
+	if hero == null:
+		_append_ai("无法锁定镜头：先锋单位尚未接入战场。")
+		return
+	var camera := get_viewport().get_camera_3d()
+	if camera == null:
+		_append_ai("无法锁定镜头：当前没有可用的主摄像机。")
+		return
+
+	if _hero_camera_locked:
+		if camera.has_method("clear_follow_target"):
+			camera.clear_follow_target()
+		_hero_camera_locked = false
+		_append_ai("镜头已解除先锋跟随。")
+	else:
+		if camera.has_method("set_follow_target"):
+			camera.set_follow_target(hero)
+		elif camera.has_method("set_position_safely"):
+			camera.set_position_safely(hero.global_position)
+		_hero_camera_locked = true
+		_append_ai("镜头已锁定先锋单位。双击 F1 可解除跟随。")
+	_update_hero_focus_card()
+
+
+func _get_hero_unit():
+	var hero_units := _get_squad_units(1)
+	return hero_units[0] if not hero_units.is_empty() else null
+
+
+func _update_hero_focus_card():
+	if _hero_focus_card == null:
+		return
+	_hero_focus_card.text = (
+		"F1\n先锋\n跟随中"
+		if _hero_camera_locked
+		else "F1\n先锋\n双击锁定"
+	)
 
 
 func _select_squad(squad_id: int):
@@ -381,6 +473,7 @@ func _refresh_squad_ui():
 		var count = _get_squad_units(squad_id).size()
 		_squad_buttons[squad_id].text = "%s%s  · %d\n%s" % [prefix, _control_display(squad_id), count, squad_status[squad_id]]
 	_command_hint.text = "AI理解：%s · %s%s" % [_control_display(active_squad), squad_status[active_squad], " · 等待你确认目标" if not pending_command.is_empty() else ""]
+	_update_hero_focus_card()
 
 
 func refresh_control_ui():
