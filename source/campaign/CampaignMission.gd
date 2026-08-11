@@ -10,8 +10,12 @@ static func echo_extraction() -> Dictionary:
 		"map_path": "res://source/match/maps/EchoExtractionGreybox.tscn",
 		"estimated_time": "10～15 分钟",
 		"initial_control_mode": "hero",
+		"hero_id": "vanguard_01",
 		"hero_scene": "res://source/match/units/Tank.tscn",
 		"hero_name": "先锋指挥单元",
+		"hero_portrait_label": "先锋",
+		"hero_role": "primary_combat_hero",
+		"hero_is_primary": true,
 		"summary": "北辰区域失去联系 72 小时。主力部队尚未完成战区接入，你将先以一个先锋指挥单元进入失联区域，在 AI 副官岚的协助下确认求救信号来源，并带回第一份可靠情报。",
 		"briefing": [
 			["岚 · AI副官", "指挥官，先锋链路已经建立。主力小队仍在战区外围，你目前只需要控制这个先锋单位。"],
