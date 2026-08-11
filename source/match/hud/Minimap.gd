@@ -6,12 +6,16 @@ const Moving = preload("res://source/match/units/actions/Moving.gd")
 const GROUND_LEVEL_PLANE = Plane(Vector3.UP, 0)
 const MINIMAP_PIXELS_PER_WORLD_METER = 2
 const MINIMAP_UI_SIZE = Vector2(176, 176)
+const CAMERA_INDICATOR_COLOR = Color(0.35, 0.93, 1.0, 0.95)
+const CAMERA_FOOTPRINT_COLOR = Color(0.35, 0.93, 1.0, 0.10)
 
 var _unit_to_corresponding_node_mapping = {}
 var _camera_movement_active = false
+var _camera_footprint: Polygon2D
+var _map_size := Vector2.ZERO
 
 @onready var _match = find_parent("Match")
-@onready var _camera_indicator = find_child("CameraIndicator")
+@onready var _camera_indicator = find_child("CameraIndicator") as Line2D
 @onready var _viewport_background = find_child("Background")
 @onready var _texture_rect = find_child("MinimapTextureRect")
 
@@ -22,11 +26,12 @@ func _ready():
 		return
 	_remove_dummy_nodes()
 	_configure_fixed_minimap_layout()
+	_configure_camera_indicator()
 	await _match.ready  # make sure Match is ready as it may change map on setup
-	find_child("MinimapViewport").size = (
-		_match.find_child("Map").size * MINIMAP_PIXELS_PER_WORLD_METER
-	)
+	_map_size = _match.find_child("Map").size
+	find_child("MinimapViewport").size = _map_size * MINIMAP_PIXELS_PER_WORLD_METER
 	_texture_rect.gui_input.connect(_on_gui_input)
+	_update_camera_indicator()
 
 
 func _configure_fixed_minimap_layout():
@@ -46,9 +51,28 @@ func _configure_fixed_minimap_layout():
 		outer_container.offset_bottom = 0.0
 
 
+func _configure_camera_indicator():
+	# Standard RTS minimap camera footprint: a translucent polygon plus a bright outline.
+	_camera_indicator.default_color = CAMERA_INDICATOR_COLOR
+	_camera_indicator.width = 2.0
+	_camera_indicator.antialiased = true
+	_camera_indicator.z_index = 101
+
+	_camera_footprint = Polygon2D.new()
+	_camera_footprint.name = "CameraFootprint"
+	_camera_footprint.color = CAMERA_FOOTPRINT_COLOR
+	_camera_footprint.z_index = 100
+	_camera_indicator.get_parent().add_child(_camera_footprint)
+
+
+func _process(_delta):
+	# Camera movement itself is render-frame smooth, so the minimap footprint should follow it
+	# every rendered frame instead of lagging behind on physics ticks.
+	_update_camera_indicator()
+
+
 func _physics_process(_delta):
 	_sync_real_units_with_minimap_representations()
-	_update_camera_indicator()
 
 
 func _remove_dummy_nodes():
@@ -102,30 +126,47 @@ func _cleanup_mapping(unit):
 
 
 func _update_camera_indicator():
-	var viewport = get_viewport()
-	var camera = viewport.get_camera_3d()
-	var camera_corners = [
+	if _camera_indicator == null or _camera_footprint == null or _map_size == Vector2.ZERO:
+		return
+	var viewport := get_viewport()
+	var camera := viewport.get_camera_3d()
+	if camera == null:
+		_camera_indicator.hide()
+		_camera_footprint.hide()
+		return
+
+	var viewport_size := Vector2(viewport.size)
+	var camera_corners := [
 		Vector2.ZERO,
-		Vector2(0, viewport.size.y),
-		viewport.size,
-		Vector2(viewport.size.x, 0),
-		Vector2.ZERO
+		Vector2(viewport_size.x, 0.0),
+		viewport_size,
+		Vector2(0.0, viewport_size.y),
 	]
-	for index in range(camera_corners.size()):
-		var corner_mapped_to_3d_position_on_ground_level = (
-			GROUND_LEVEL_PLANE.intersects_ray(
-				camera.project_ray_origin(camera_corners[index]),
-				camera.project_ray_normal(camera_corners[index])
-			)
-			* MINIMAP_PIXELS_PER_WORLD_METER
+	var minimap_points := PackedVector2Array()
+	for screen_corner in camera_corners:
+		var intersection = GROUND_LEVEL_PLANE.intersects_ray(
+			camera.project_ray_origin(screen_corner),
+			camera.project_ray_normal(screen_corner)
 		)
-		_camera_indicator.set_point_position(
-			index,
-			Vector2(
-				corner_mapped_to_3d_position_on_ground_level.x,
-				corner_mapped_to_3d_position_on_ground_level.z
-			)
+		if intersection == null:
+			_camera_indicator.hide()
+			_camera_footprint.hide()
+			return
+
+		# Keep the footprint readable when the camera reaches a map edge. The actual screen corner
+		# may project outside the playable world, but the minimap should show the visible in-map part.
+		var world_x := clampf(intersection.x, 0.0, _map_size.x)
+		var world_z := clampf(intersection.z, 0.0, _map_size.y)
+		minimap_points.append(
+			Vector2(world_x, world_z) * MINIMAP_PIXELS_PER_WORLD_METER
 		)
+
+	_camera_footprint.polygon = minimap_points
+	var outline_points := PackedVector2Array(minimap_points)
+	outline_points.append(minimap_points[0])
+	_camera_indicator.points = outline_points
+	_camera_indicator.show()
+	_camera_footprint.show()
 
 
 func _texture_rect_position_to_world_position(position_2d_within_texture_rect):
