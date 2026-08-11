@@ -27,6 +27,7 @@ const EXPECTED_PROJECTION = PROJECTION_ORTHOGONAL
 var _mouse_pos_when_rotation_started = null
 var _camera_global_pos_when_rotation_started = null
 var _smoothed_screen_move_vector := Vector2.ZERO
+var _follow_target: Node3D = null
 
 
 func _ready():
@@ -55,6 +56,15 @@ func _process(delta: float):
 	var realtime_delta = delta
 	if not is_zero_approx(Engine.time_scale):
 		realtime_delta /= Engine.time_scale
+
+	if is_following_target():
+		# Follow mode intentionally suppresses edge/keyboard translation so the tracked hero
+		# remains centered. Zoom and rotation stay available because they do not break the lock.
+		_smoothed_screen_move_vector = Vector2.ZERO
+		set_position_safely(_follow_target.global_position)
+		_try_handling_arrowkey_rotation(realtime_delta)
+		return
+
 	if _try_handling_movement(realtime_delta):
 		return
 	_try_handling_arrowkey_rotation(realtime_delta)
@@ -65,11 +75,35 @@ func _unhandled_input(event: InputEvent):
 	_try_handling_mouse_rotation(event)
 
 
+func set_follow_target(target: Node3D):
+	_follow_target = target
+	_smoothed_screen_move_vector = Vector2.ZERO
+	if is_instance_valid(_follow_target):
+		set_position_safely(_follow_target.global_position)
+
+
+func clear_follow_target():
+	_follow_target = null
+	_smoothed_screen_move_vector = Vector2.ZERO
+
+
+func is_following_target() -> bool:
+	if _follow_target != null and not is_instance_valid(_follow_target):
+		_follow_target = null
+	return _follow_target != null
+
+
+func get_follow_target() -> Node3D:
+	return _follow_target if is_following_target() else null
+
+
 func set_size_safely(a_size: float):
 	if a_size == size:
 		return
 	size = clamp(a_size, size_min, size_max)
 	_align_camera_properties_to_current_size()
+	if is_following_target():
+		set_position_safely(_follow_target.global_position)
 
 
 func set_position_safely(target_position: Vector3):
@@ -196,6 +230,8 @@ func _try_handling_arrowkey_rotation(delta: float):
 	)
 	if not is_zero_approx(angle_radians):
 		_rotate_from_reference_position_by(global_position, angle_radians)
+		if is_following_target():
+			set_position_safely(_follow_target.global_position)
 
 
 func _try_handling_mouse_rotation(event: InputEvent):
@@ -212,6 +248,8 @@ func _try_handling_mouse_rotation(event: InputEvent):
 			(mouse_pos.x - _mouse_pos_when_rotation_started.x) * mouse_rotation_speed
 		)
 		_rotate_from_reference_position_by(_camera_global_pos_when_rotation_started, angle_radians)
+		if is_following_target():
+			set_position_safely(_follow_target.global_position)
 
 
 func _reset_rotation():
@@ -229,12 +267,14 @@ func _reset_rotation():
 				-Vector3.UP, deg_to_rad(-default_y_rotation_degrees)
 			)
 			* pivot_to_camera_distance_yless
-		)
+			)
 	)
 	global_position = Vector3(
 		new_camera_position_yless.x, camera_position.y, new_camera_position_yless.z
 	)
 	global_transform = global_transform.looking_at(pivot_point, Vector3(0, 1, 0))
+	if is_following_target():
+		set_position_safely(_follow_target.global_position)
 
 
 func _start_rotation(event: InputEvent):
