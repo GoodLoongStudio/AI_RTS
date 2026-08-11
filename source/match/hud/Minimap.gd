@@ -5,6 +5,7 @@ const Moving = preload("res://source/match/units/actions/Moving.gd")
 
 const GROUND_LEVEL_PLANE = Plane(Vector3.UP, 0)
 const MINIMAP_PIXELS_PER_WORLD_METER = 2
+const MINIMAP_UI_SIZE = Vector2(176, 176)
 
 var _unit_to_corresponding_node_mapping = {}
 var _camera_movement_active = false
@@ -18,12 +19,31 @@ var _camera_movement_active = false
 func _ready():
 	if not FeatureFlags.show_minimap:
 		queue_free()
+		return
 	_remove_dummy_nodes()
+	_configure_fixed_minimap_layout()
 	await _match.ready  # make sure Match is ready as it may change map on setup
 	find_child("MinimapViewport").size = (
 		_match.find_child("Map").size * MINIMAP_PIXELS_PER_WORLD_METER
 	)
 	_texture_rect.gui_input.connect(_on_gui_input)
+
+
+func _configure_fixed_minimap_layout():
+	# A ViewportTexture reports its native render size as TextureRect minimum size by default.
+	# Large world maps therefore used to expand the HUD minimap itself. Ignore texture size and
+	# keep the HUD footprint fixed; STRETCH_KEEP_ASPECT_CENTERED handles visual scaling.
+	_texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_texture_rect.custom_minimum_size = Vector2.ZERO
+	custom_minimum_size = Vector2.ZERO
+	clip_contents = true
+	var outer_container := get_parent() as Control
+	if outer_container != null:
+		outer_container.custom_minimum_size = MINIMAP_UI_SIZE
+		outer_container.offset_left = 0.0
+		outer_container.offset_top = -MINIMAP_UI_SIZE.y
+		outer_container.offset_right = MINIMAP_UI_SIZE.x
+		outer_container.offset_bottom = 0.0
 
 
 func _physics_process(_delta):
