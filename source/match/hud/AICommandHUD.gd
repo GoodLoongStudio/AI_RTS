@@ -193,8 +193,7 @@ func _build_ui():
 
 
 func _build_hero_focus_card():
-	# Placeholder portrait card. Keep it immediately to the right of the 176 px minimap so
-	# it occupies the dedicated hero slot without covering the command bar.
+	# Placeholder portrait card. The actual portrait can replace this button later.
 	_hero_focus_card = Button.new()
 	_hero_focus_card.name = "HeroFocusCard"
 	_hero_focus_card.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
@@ -203,15 +202,15 @@ func _build_hero_focus_card():
 	_hero_focus_card.offset_top = -160.0
 	_hero_focus_card.offset_bottom = -54.0
 	_hero_focus_card.text = "F1\n先锋\n双击锁定"
-	_hero_focus_card.tooltip_text = "单击 F1：选中先锋\n双击 F1：锁定/解除镜头跟随"
+	_hero_focus_card.tooltip_text = "单击 F1：选中先锋英雄\n双击 F1：锁定/解除镜头跟随"
 	_hero_focus_card.mouse_filter = Control.MOUSE_FILTER_STOP
-	_hero_focus_card.pressed.connect(_select_squad.bind(1))
+	_hero_focus_card.pressed.connect(_select_hero)
 	_hero_focus_card.gui_input.connect(_on_hero_focus_card_gui_input)
 	add_child(_hero_focus_card)
 
 
 func _handle_hero_focus_hotkey():
-	_select_squad(1)
+	_select_hero()
 	var now_msec := Time.get_ticks_msec()
 	if now_msec - _last_f1_press_msec <= F1_DOUBLE_TAP_MS:
 		_last_f1_press_msec = -100000
@@ -228,17 +227,28 @@ func _on_hero_focus_card_gui_input(event: InputEvent):
 		and event.button_index == MOUSE_BUTTON_LEFT
 		and event.double_click
 	):
-		_select_squad(1)
+		_select_hero()
 		_toggle_hero_camera_lock()
 		accept_event()
 
 
-func _toggle_hero_camera_lock():
-	var hero := _get_hero_unit()
+func _select_hero():
+	var hero: Node3D = _get_hero_unit()
 	if hero == null:
-		_append_ai("无法锁定镜头：先锋单位尚未接入战场。")
+		_append_ai("先锋英雄尚未接入战场。")
 		return
-	var camera := get_viewport().get_camera_3d()
+	active_squad = 1
+	Utils.Match.select_units(Utils.Set.from_array([hero]))
+	_refresh_squad_ui()
+	squad_selected.emit(1)
+
+
+func _toggle_hero_camera_lock():
+	var hero: Node3D = _get_hero_unit()
+	if hero == null:
+		_append_ai("无法锁定镜头：先锋英雄尚未接入战场。")
+		return
+	var camera: Camera3D = get_viewport().get_camera_3d()
 	if camera == null:
 		_append_ai("无法锁定镜头：当前没有可用的主摄像机。")
 		return
@@ -247,20 +257,23 @@ func _toggle_hero_camera_lock():
 		if camera.has_method("clear_follow_target"):
 			camera.clear_follow_target()
 		_hero_camera_locked = false
-		_append_ai("镜头已解除先锋跟随。")
+		_append_ai("镜头已解除先锋英雄跟随。")
 	else:
 		if camera.has_method("set_follow_target"):
 			camera.set_follow_target(hero)
 		elif camera.has_method("set_position_safely"):
 			camera.set_position_safely(hero.global_position)
 		_hero_camera_locked = true
-		_append_ai("镜头已锁定先锋单位。双击 F1 可解除跟随。")
+		_append_ai("镜头已锁定先锋英雄。双击 F1 可解除跟随。")
 	_update_hero_focus_card()
 
 
-func _get_hero_unit():
-	var hero_units := _get_squad_units(1)
-	return hero_units[0] if not hero_units.is_empty() else null
+func _get_hero_unit() -> Node3D:
+	var hero_units = get_tree().get_nodes_in_group("campaign_hero")
+	for unit in hero_units:
+		if unit is Node3D and unit.is_in_group("controlled_units"):
+			return unit as Node3D
+	return null
 
 
 func _update_hero_focus_card():
