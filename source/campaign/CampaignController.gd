@@ -9,7 +9,7 @@ var _objective_label: Label
 var _story_label: Label
 var _extract_button: Button
 var _ai_hud = null
-var _hero = null
+var _hero: Node3D = null
 
 
 func _ready():
@@ -84,9 +84,13 @@ func _setup_initial_control():
 			unit.remove_from_group("unit_group_%d" % squad_id)
 
 	if mission_data.get("initial_control_mode", "squad") == "hero":
-		if controlled_units.is_empty():
+		var hero_units = get_tree().get_nodes_in_group("campaign_hero").filter(
+			func(unit): return unit.is_in_group("controlled_units") and unit is Node3D
+		)
+		if hero_units.is_empty():
+			push_error("Hero campaign started without a campaign_hero unit")
 			return
-		_hero = controlled_units[0]
+		_hero = hero_units[0] as Node3D
 		_hero.add_to_group("unit_group_1")
 		Utils.Match.select_units(Utils.Set.from_array([_hero]))
 		return
