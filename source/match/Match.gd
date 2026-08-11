@@ -6,6 +6,7 @@ const Player = preload("res://source/match/players/Player.gd")
 const Human = preload("res://source/match/players/human/Human.gd")
 const AICommandHUD = preload("res://source/match/hud/AICommandHUD.gd")
 const CampaignController = preload("res://source/campaign/CampaignController.gd")
+const CampaignHeroIdentity = preload("res://source/campaign/CampaignHeroIdentity.gd")
 
 const CommandCenter = preload("res://source/match/units/CommandCenter.tscn")
 const Drone = preload("res://source/match/units/Drone.tscn")
@@ -162,9 +163,12 @@ func _setup_player_units():
 func _spawn_player_units(player, spawn_transform):
 	if _should_spawn_campaign_hero(player):
 		var hero_scene_path: String = campaign_data.get("hero_scene", "res://source/match/units/Tank.tscn")
-		var hero_scene = load(hero_scene_path)
+		var hero_scene: PackedScene = load(hero_scene_path) as PackedScene
 		assert(hero_scene != null, "campaign hero scene could not be loaded: %s" % hero_scene_path)
-		_setup_and_spawn_unit(hero_scene.instantiate(), spawn_transform, player)
+		var hero_unit: Node3D = hero_scene.instantiate() as Node3D
+		assert(hero_unit != null and hero_unit is Unit, "campaign hero must be a normal RTS Unit")
+		_setup_and_spawn_unit(hero_unit, spawn_transform, player)
+		_register_campaign_hero(hero_unit)
 		return
 
 	_setup_and_spawn_unit(CommandCenter.instantiate(), spawn_transform, player, false)
@@ -177,6 +181,16 @@ func _spawn_player_units(player, spawn_transform):
 	_setup_and_spawn_unit(
 		Worker.instantiate(), spawn_transform.translated(Vector3(3, 0, 3)), player
 	)
+
+
+func _register_campaign_hero(unit: Node3D):
+	# Hero is an identity/role layered on top of a normal RTS Unit. The current prologue
+	# uses Tank.tscn, while future missions can swap in a stronger dedicated unit scene.
+	unit.add_to_group("campaign_hero")
+	var identity = CampaignHeroIdentity.new()
+	identity.name = "CampaignHeroIdentity"
+	identity.configure(campaign_data if campaign_data != null else {})
+	unit.add_child(identity)
 
 
 func _should_spawn_campaign_hero(player) -> bool:
