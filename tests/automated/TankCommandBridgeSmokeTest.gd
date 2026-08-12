@@ -15,6 +15,10 @@ func _ready():
 	var human = match_instance.get_node("Players/Human")
 	var tank = human.get_node("Tank")
 	var gateway = human.get_node("UnitCommandGateway")
+	var second_gateway = gateway.duplicate()
+	second_gateway.name = "SecondaryUnitCommandGateway"
+	human.add_child(second_gateway)
+	await get_tree().process_frame
 	var destination = tank.global_position + Vector3(2.0, 0.0, 0.0)
 
 	var move_result = gateway.MoveUnits([tank], destination, human)
@@ -23,6 +27,10 @@ func _ready():
 	var order_id = move_result["unit_results"][0]["order_id"]
 	_check(not order_id.is_empty(), "accepted Tank move should return an order id")
 	_check(gateway.GetActiveOrderState(tank) == "InProgress", "move order should be in progress")
+	_check(
+		second_gateway.GetOrderState(order_id) == "InProgress",
+		"all gateways should read the same Match-level order store"
+	)
 	tank.find_child("Movement").movement_finished.emit()
 	await get_tree().process_frame
 	_check(gateway.GetOrderState(order_id) == "Arrived", "movement completion should complete its order")
@@ -31,10 +39,14 @@ func _ready():
 	order_id = move_result["unit_results"][0]["order_id"]
 	_check(gateway.GetActiveOrderState(tank) == "InProgress", "replacement move should be in progress")
 
-	var halt_result = gateway.HaltMovement([tank], human)
+	var halt_result = second_gateway.HaltMovement([tank], human)
 	_check(halt_result["status"] == "Accepted", "Tank halt should be accepted")
 	_check(tank.action == null or tank.action.get_script() != Moving, "Tank Moving action should stop")
 	_check(gateway.GetActiveOrderState(tank) == "Suspended", "halt should suspend the active order")
+	_check(
+		second_gateway.GetActiveOrderState(tank) == "Suspended",
+		"halt through another gateway should update the shared order"
+	)
 	tank.find_child("Movement").movement_finished.emit()
 	_check(gateway.GetOrderState(order_id) == "Suspended", "late completion must not overwrite suspension")
 
