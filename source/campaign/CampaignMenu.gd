@@ -55,6 +55,7 @@ func _build_ui():
 	chapter_box.add_child(spacer)
 
 	var settings_button := Button.new()
+	settings_button.name = "SettingsButton"
 	settings_button.text = "设置"
 	settings_button.pressed.connect(_on_settings_pressed)
 	chapter_box.add_child(settings_button)
