@@ -48,9 +48,77 @@ ForceMoveUnitsCommand(UnitIds, Destination, QueueMode)
 - 多单位按独立 UnitOrderId 返回部分成功。
 - ForceMove 属于玩家强烈明确意图，Human Presentation 应立即反馈命令是否接收；未来 AI 是否获得同等反馈仍由观察策略决定。
 
-普通右键移动可暂时映射为 ForceMove，等自动交战行为建立后再决定是否增加非强制 Move。
+2026-08-12 后续评审已确认普通 Move 与 ForceMove 的交互来源不同，但单位执行语义基本相同，不能继续把普通右键移动仅作为未定义的临时映射。详细边界见 3.2 节。
 
-### 3.2 强制攻击
+### 3.2 普通移动与强制移动
+
+建议命名为：
+
+```csharp
+MoveUnitsCommand(UnitIds, Destination, QueueMode)
+ForceMoveUnitsCommand(UnitIds, Destination, QueueMode)
+```
+
+两者共同遵守以下执行规则：
+
+- 以沿当前导航路径到达目的地为最高优先级，不因发现敌人而停下、转向对峙或追击；
+- 具备移动射击能力的单位可以攻击武器射界内、路径附近的合法敌方目标；不具备移动射击能力的单位在移动期间完全不开火；
+- 移动射击只能伴随推进，不得改变底盘路径或令单位停下；
+- 若敌方碰撞体实际阻断导航，单位按碰撞、体积与碾压等级处理，而不是把任何接触都当成 AttackMove；
+- 单位具备碾压能力时，会自动碾压等级较低且可碾压的敌方单位；同级或更高碾压等级单位及不可碾压固定建筑可以阻挡；
+- 碾压能力、可碾压目标和等级来自单位能力/数值契约，Move 与 ForceMove 都不凭空赋予能力；
+- HoldFire 会禁用伴随射击，但不影响移动与合法碾压。
+
+两者差异主要属于 Human Input 与意图记录：
+
+- 普通右键由点击对象决定 Move 或普通 Attack；
+- ForceMove 进入显式地面选点状态，即使鼠标下方有敌方或己方实体，也把点击解析为地面目的地，解决密集单位遮挡地面的碾压操作；
+- 输入层完成地面解析后，两者可以复用同一个移动执行策略，但订单仍保留 `Move` / `ForceMove` 类型，以支持反馈、回放、统计和 AI 操作点策略；
+- ForceMove 不覆盖 HoldFire，也不比 Move 拥有更强的碾压、寻路或移动射击权限。
+
+### 3.3 移动并攻击
+
+建议命名为：
+
+```csharp
+AttackMoveCommand(UnitIds, Target, QueueMode)
+```
+
+`Target` 使用联合类型表达 `GroundTarget(WorldPosition)` 或敌方 `EntityTarget(UnitId)`：
+
+- GroundTarget：沿路线推进到指定地面位置；
+- EntityTarget：以指定敌方实体为最终攻击/追踪目标；目标失效后订单结束或按明确的失效策略处理，不能悄悄改成攻击其他最终目标；
+- 推进途中发现符合目标选择策略的敌人时，可以离开路径交战，清除阻碍后继续原订单；
+- AttackMove 与普通 Move 的核心差异是允许暂停推进、改变局部路径并处理遭遇敌人；
+- AttackMove 不获得 ForceAttack 的停火覆盖权，不允许选择己方目标，也不自动获得对地强制开火能力；
+- HoldFire 下不发生途中交战，实际表现退化为普通 Move；若最终 Target 是敌方实体，仍不得绕过 HoldFire 开火。
+
+交战姿态影响 AttackMove 的离路范围和追击行为：
+
+| 姿态 | 途中交战 | 离开推进路径 | 追击 | 清敌后行为 |
+|---|---|---|---|---|
+| Aggressive 侵略 | 感知范围内积极接敌 | 较宽，受配置上限限制 | 有限追击 | 返回原订单并继续推进 |
+| Guard 警戒 | 处理路径警戒范围内敌人 | 较小 | 不追击脱离范围的敌人 | 逐渐回归原路径 |
+| HoldGround 固守 | 只处理当前武器射程内敌人 | 不主动离路 | 不追击 | 沿下令时确定的较直接路径继续推进 |
+| 任意姿态 + HoldFire | 不交战 | 不离路 | 不追击 | 作为普通移动执行 |
+
+这里的“原路径”是可因地形变化重新求解的订单导航走廊，不要求保存 Godot 导航系统每一个历史拐点。HoldGround 的“较直接路径”也必须服从可通行地形，不能绕过桥梁损毁等动态导航约束。
+
+### 3.4 普通攻击与强制攻击
+
+普通右键敌方实体建议显式建模为：
+
+```csharp
+AttackCommand(UnitIds, EntityTarget, QueueMode)
+```
+
+- 仅接受合法敌方实体，不接受己方实体或纯地面坐标；
+- 追近并持续攻击明确目标，目标失效、订单替换、攻击者损失或规则拒绝时结束；
+- 前往最终实体目标途中，具备移动射击能力的单位可以向射界内其他合法敌人伴随开火，但不得因此转向、停下或更换最终目标；不具备该能力的单位在追近途中不开火；
+- 受 HoldFire 约束，不获得临时开火授权；
+- 对敌方实体的追近、射程和开火表现可以与 ForceAttack 复用执行组件。
+
+强制攻击命名为：
 
 ```csharp
 ForceAttackCommand(UnitIds, Target, QueueMode)
@@ -66,7 +134,9 @@ ForceAttackCommand(UnitIds, Target, QueueMode)
 - ForceAttack 属于玩家强烈明确意图，Human Presentation 应立即反馈是否接受、目标/武器不支持等结果；
 - 对地攻击可以用于炮击区域和建立火力封锁带，但持续封锁属于多个攻击订单或后续 Area Fire 设计，不由一次命令隐式无限执行。
 
-### 3.3 停止
+普通 Attack 与 ForceAttack 的差异不应由攻击 Action 偶然决定：ForceAttack 额外允许地面目标和显式己方目标，并临时覆盖 HoldFire；对普通敌方实体的基础攻击过程则保持一致。
+
+### 3.5 停止
 
 继续采用已批准的 `HaltMovementCommand`：
 
@@ -76,7 +146,7 @@ ForceAttackCommand(UnitIds, Target, QueueMode)
 - 不等同于 CancelCurrentOrder 或 CancelAllOrders；
 - 传统命令栏直接作用于当前 Selection，不依赖控制组。
 
-### 3.4 战术撤退/倒车移动攻击
+### 3.6 战术撤退/倒车移动攻击
 
 建议命名为：
 
@@ -91,8 +161,9 @@ TacticalWithdrawCommand(UnitIds, Destination, QueueMode)
 - 撤退中的攻击仍受 FirePolicy、射程、目标域、移动射击能力和武器相对底盘的射界限制；
 - 无倒车语义的可移动单位自动降级为 ForceMove，避免仓促撤退时要求玩家按单位类型重复下令；不可移动建筑仍逐单位拒绝；
 - 不自动猜测并锁定“最危险敌人”来控制底盘朝向；敌情变化只影响武器选目标，不改变车尾沿路径前进的规则。
+- 撤退始终以移动为最高优先级，Aggressive/Guard/HoldGround 均不得令单位离开撤退路径、停下对峙或追击；允许开火时只进行不干扰撤退的伴随射击。
 
-### 3.5 散开
+### 3.7 散开
 
 ```csharp
 ScatterUnitsCommand(UnitIds, Center, Radius, QueueMode, Seed)
@@ -151,6 +222,34 @@ public enum FirePolicy
 - 解除 HoldFire 后恢复原 EngagementStance，不需要猜测之前是侵略、警戒还是固守；
 - 将来若需要“只还击”，可增加 ReturnFire，不必改写三个移动姿态；
 - UI 可以把“停火”表现为第四个醒目按钮，但底层是独立开关，不是第四种 EngagementStance。
+
+### 4.3 TargetSelectionPolicy
+
+目标选择不并入 EngagementStance。预留独立、可组合的策略：
+
+```csharp
+public sealed record TargetSelectionPolicy(
+    HostileTargetCategory AllowedCategories,
+    TargetPriorityProfile PriorityProfile);
+```
+
+其中 `HostileTargetCategory` 应使用可组合 Flags 或等价集合，候选项至少预留：
+
+- CombatUnit：作战单位；
+- Worker：采集/施工单位；
+- DefensiveStructure：炮塔等防御建筑；
+- ProductionStructure：生产建筑；
+- EconomyStructure：资源类建筑；
+- Objective：桥梁、任务目标等可攻击世界对象。
+
+实施约束：
+
+- 初版默认 `AllHostileTargets`，保持所有合法敌方目标均可被自主攻击；
+- 当前不增加最终 UI 按钮，等待 UI/策划确认交互布局；
+- `AllowedCategories` 决定是否允许自主选择，`PriorityProfile` 只在多个合法目标之间排序；
+- 显式普通 Attack/ForceAttack 的明确实体目标不应被自主目标过滤器擅自改写；是否允许玩家显式攻击被过滤类别，后续作为独立规则评审；
+- 目标分类来自稳定能力标签或世界对象类型，不使用具体 Godot 场景名和节点路径判断；
+- 策略必须可由 Human、传统 AI 和未来大模型 AI 通过同一命令接口设置，并接受所有权与信息权限校验。
 
 ## 5. 列队与控制组
 
