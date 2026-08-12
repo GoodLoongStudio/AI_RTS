@@ -23,9 +23,36 @@ func _ready():
 	_check(not tank.is_in_group("unit_group_1"), "测试 Tank 不应依赖 AI 副官作战小队")
 	var force_move_button = hud.get_node("MarginContainer/VBoxContainer/Buttons/ForceMoveButton")
 	var halt_button = hud.get_node("MarginContainer/VBoxContainer/Buttons/HaltButton")
+	var aggressive_button = hud.get_node(
+		"MarginContainer/VBoxContainer/CombatPolicies/AggressiveButton"
+	)
+	var guard_button = hud.get_node("MarginContainer/VBoxContainer/CombatPolicies/GuardButton")
+	var hold_ground_button = hud.get_node(
+		"MarginContainer/VBoxContainer/CombatPolicies/HoldGroundButton"
+	)
+	var hold_fire_button = hud.get_node(
+		"MarginContainer/VBoxContainer/CombatPolicies/HoldFireButton"
+	)
 	var feedback_label = hud.get_node("MarginContainer/VBoxContainer/FeedbackLabel")
 	_check(not force_move_button.disabled, "选中 Tank 后强制移动按钮应可用")
 	_check(not halt_button.disabled, "选中 Tank 后停止按钮应可用")
+	_check(aggressive_button.button_pressed, "Tank 默认应显示侵略姿态")
+	_check(not hold_fire_button.button_pressed, "Tank 默认应显示自由开火")
+
+	guard_button.pressed.emit()
+	await get_tree().process_frame
+	_check(guard_button.button_pressed, "警戒按钮应反映权威姿态")
+	_check(human.get_node("UnitCommandGateway").GetEngagementStance(tank) == "Guard", "HUD 应设置警戒姿态")
+	hold_ground_button.pressed.emit()
+	await get_tree().process_frame
+	_check(hold_ground_button.button_pressed, "固守按钮应反映权威姿态")
+	hold_fire_button.pressed.emit()
+	await get_tree().process_frame
+	_check(hold_fire_button.button_pressed, "停火按钮应反映权威开火策略")
+	_check(human.get_node("UnitCommandGateway").GetFirePolicy(tank) == "HoldFire", "HUD 应设置停火")
+	hold_fire_button.pressed.emit()
+	await get_tree().process_frame
+	_check(not hold_fire_button.button_pressed, "再次点击停火应恢复自由开火")
 
 	force_move_button.pressed.emit()
 	_check("右键地面" in feedback_label.text, "强制移动应进入一次性目标确认状态")

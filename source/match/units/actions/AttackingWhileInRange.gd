@@ -47,12 +47,12 @@ func _setup_range_check_timer():
 
 
 func _rotate_unit_towards_target():
-	_unit.global_transform = _unit.global_transform.looking_at(
-		Vector3(
-			_target_unit.global_position.x, _unit.global_position.y, _target_unit.global_position.z
-		),
-		Vector3(0, 1, 0)
+	var look_target := Vector3(
+		_target_unit.global_position.x, _unit.global_position.y, _target_unit.global_position.z
 	)
+	if look_target.is_equal_approx(_unit.global_position):
+		return
+	_unit.global_transform = _unit.global_transform.looking_at(look_target, Vector3(0, 1, 0))
 
 
 func _schedule_hit():

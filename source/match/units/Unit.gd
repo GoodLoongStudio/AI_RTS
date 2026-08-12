@@ -74,6 +74,13 @@ func request_legacy_halt_movement() -> bool:
 	return true
 
 
+# Temporary C# migration bridge. It only asks the current autonomous combat
+# action to re-read authoritative policy; it does not choose a stance itself.
+func request_legacy_refresh_combat_policy():
+	if action != null and action.has_method("refresh_combat_policy"):
+		action.refresh_combat_policy()
+
+
 func _set_hp(value):
 	var old_hp = hp
 	hp = max(0, value)

@@ -5,9 +5,15 @@ const FollowingToReachDistance = preload(
 	"res://source/match/units/actions/FollowingToReachDistance.gd"
 )
 
+const POLICY_REFRESH_INTERVAL := 1.0 / 6.0
+const AGGRESSIVE_MAX_CHASE_DISTANCE_FACTOR := 2.0
+
 var _target_unit = null
 var _sub_action = null
+var _engagement_origin := Vector3.ZERO
+var _policy_timer: Timer = null
 @onready var _unit = Utils.NodeEx.find_parent_with_group(self, "units")
+@onready var _command_runtime = _unit.find_parent("Match").get_node("CommandRuntime")
 
 
 static func is_applicable(source_unit, target_unit):
@@ -24,7 +30,12 @@ func _init(target_unit):
 
 
 func _ready():
+	_engagement_origin = _unit.global_position
 	_target_unit.tree_exited.connect(_on_target_unit_removed)
+	_policy_timer = Timer.new()
+	_policy_timer.timeout.connect(_enforce_combat_policy)
+	add_child(_policy_timer)
+	_policy_timer.start(POLICY_REFRESH_INTERVAL)
 	_attack_or_move_closer()
 
 
@@ -60,3 +71,27 @@ func _on_sub_action_finished():
 	if not _target_unit.is_inside_tree():
 		return
 	_attack_or_move_closer()
+
+
+func _enforce_combat_policy():
+	if _command_runtime.GetFirePolicy(_unit) == "HoldFire":
+		queue_free()
+		return
+	var stance: String = _command_runtime.GetEngagementStance(_unit)
+	if stance == "HoldGround" and not _target_in_range():
+		queue_free()
+		return
+	if stance == "Guard":
+		var guard_anchor: Vector3 = _command_runtime.GetGuardAnchor(_unit)
+		if guard_anchor.is_finite() and (
+			_target_unit.global_position_yless.distance_to(guard_anchor * Vector3(1, 0, 1))
+			> _unit.sight_range
+		):
+			queue_free()
+		return
+	if (
+		stance == "Aggressive"
+		and _unit.global_position_yless.distance_to(_engagement_origin * Vector3(1, 0, 1))
+		> _unit.sight_range * AGGRESSIVE_MAX_CHASE_DISTANCE_FACTOR
+	):
+		queue_free()

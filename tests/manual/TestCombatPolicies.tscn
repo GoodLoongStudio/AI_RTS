@@ -1,0 +1,14 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="PackedScene" path="res://tests/manual/TestOneUnit.tscn" id="1_match"]
+[ext_resource type="Script" path="res://source/match/players/Player.gd" id="2_player"]
+[ext_resource type="PackedScene" path="res://source/match/units/CommandCenter.tscn" id="3_target"]
+
+[node name="Match" instance=ExtResource("1_match")]
+
+[node name="PolicyTestEnemy" type="Node3D" parent="Players" index="1"]
+script = ExtResource("2_player")
+color = Color(1, 0.2, 0.2, 1)
+
+[node name="TargetCommandCenter" parent="Players/PolicyTestEnemy" index="0" instance=ExtResource("3_target")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, 12.637)

@@ -6,7 +6,8 @@ namespace AI_RTS.Application.Combat;
 /// <summary>保存单位彼此独立的交战姿态与开火策略。</summary>
 public readonly record struct CombatPolicySnapshot(
     EngagementStance EngagementStance,
-    FirePolicy FirePolicy);
+    FirePolicy FirePolicy,
+    WorldPosition? GuardAnchor);
 
 /// <summary>提供对局生命周期内单位战斗策略的权威读写入口。</summary>
 public interface ICombatPolicyStore
@@ -19,6 +20,9 @@ public interface ICombatPolicyStore
 
     /// <summary>只修改开火策略，保留独立的交战姿态。</summary>
     void SetFirePolicy(UnitId unitId, FirePolicy policy);
+
+    /// <summary>更新警戒岗位点；移动途中可暂时清空，待到达或中断时再写入实际位置。</summary>
+    void SetGuardAnchor(UnitId unitId, WorldPosition? anchor);
 }
 
 /// <summary>在当前 Match 进程中保存战斗策略，不承担存档持久化。</summary>
@@ -27,7 +31,8 @@ public sealed class InMemoryCombatPolicyStore : ICombatPolicyStore
     /// <summary>默认值保持现有单位主动索敌和追击的运行表现。</summary>
     private static readonly CombatPolicySnapshot DefaultPolicy = new(
         EngagementStance.Aggressive,
-        FirePolicy.FireAtWill);
+        FirePolicy.FireAtWill,
+        null);
 
     /// <summary>仅保存已显式修改过的单位策略。</summary>
     private readonly Dictionary<UnitId, CombatPolicySnapshot> _policies = new();
@@ -46,5 +51,11 @@ public sealed class InMemoryCombatPolicyStore : ICombatPolicyStore
     public void SetFirePolicy(UnitId unitId, FirePolicy policy)
     {
         _policies[unitId] = Get(unitId) with { FirePolicy = policy };
+    }
+
+    /// <inheritdoc />
+    public void SetGuardAnchor(UnitId unitId, WorldPosition? anchor)
+    {
+        _policies[unitId] = Get(unitId) with { GuardAnchor = anchor };
     }
 }

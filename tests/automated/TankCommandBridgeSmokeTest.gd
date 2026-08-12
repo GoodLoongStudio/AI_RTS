@@ -27,6 +27,10 @@ func _ready():
 	_check(fire_policy_result["status"] == "Accepted", "Tank HoldFire policy should be accepted")
 	_check(second_gateway.GetEngagementStance(tank) == "Guard", "gateways should share stance state")
 	_check(gateway.GetFirePolicy(tank) == "HoldFire", "gateways should share fire policy state")
+	_check(
+		gateway.GetGuardAnchor(tank).is_equal_approx(tank.global_position),
+		"idle Tank should capture current position as Guard anchor"
+	)
 
 	var move_result = gateway.ForceMoveUnits([tank], destination, human)
 	_check(move_result["status"] == "Accepted", "Tank move should be accepted")
@@ -41,6 +45,10 @@ func _ready():
 	tank.find_child("Movement").movement_finished.emit()
 	await get_tree().process_frame
 	_check(gateway.GetOrderState(order_id) == "Arrived", "movement completion should complete its order")
+	_check(
+		gateway.GetGuardAnchor(tank).is_equal_approx(tank.global_position),
+		"Guard anchor should update to actual position after player movement completes"
+	)
 
 	move_result = gateway.ForceMoveUnits([tank], destination, human)
 	order_id = move_result["unit_results"][0]["order_id"]
@@ -50,6 +58,10 @@ func _ready():
 	_check(halt_result["status"] == "Accepted", "Tank halt should be accepted")
 	_check(tank.action == null or tank.action.get_script() != Moving, "Tank Moving action should stop")
 	_check(gateway.GetActiveOrderState(tank) == "Suspended", "halt should suspend the active order")
+	_check(
+		gateway.GetGuardAnchor(tank).is_equal_approx(tank.global_position),
+		"Guard anchor should update to interruption position after halt"
+	)
 	_check(
 		second_gateway.GetActiveOrderState(tank) == "Suspended",
 		"halt through another gateway should update the shared order"

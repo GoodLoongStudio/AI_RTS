@@ -5,6 +5,10 @@ var _is_force_move_targeting := false
 
 @onready var _force_move_button: Button = %ForceMoveButton
 @onready var _halt_button: Button = %HaltButton
+@onready var _aggressive_button: Button = %AggressiveButton
+@onready var _guard_button: Button = %GuardButton
+@onready var _hold_ground_button: Button = %HoldGroundButton
+@onready var _hold_fire_button: Button = %HoldFireButton
 @onready var _feedback_label: Label = %FeedbackLabel
 
 
@@ -12,6 +16,10 @@ func _ready():
 	assert(actions_controller != null, "TraditionalUnitCommandHUD requires UnitActionsController")
 	_force_move_button.pressed.connect(_on_force_move_pressed)
 	_halt_button.pressed.connect(_on_halt_pressed)
+	_aggressive_button.pressed.connect(func(): _set_engagement_stance("Aggressive"))
+	_guard_button.pressed.connect(func(): _set_engagement_stance("Guard"))
+	_hold_ground_button.pressed.connect(func(): _set_engagement_stance("HoldGround"))
+	_hold_fire_button.pressed.connect(_toggle_hold_fire)
 	actions_controller.command_targeting_changed.connect(_on_command_targeting_changed)
 	actions_controller.command_feedback.connect(_on_command_feedback)
 	MatchSignals.unit_selected.connect(func(_unit): _refresh_availability())
@@ -35,6 +43,18 @@ func _on_halt_pressed():
 	actions_controller.halt_selected_units()
 
 
+func _set_engagement_stance(stance: String):
+	actions_controller.set_selected_engagement_stance(stance)
+	_refresh_policy_buttons()
+
+
+func _toggle_hold_fire():
+	var current_policy: String = actions_controller.get_selected_combat_policy("FirePolicy")
+	var next_policy := "FireAtWill" if current_policy == "HoldFire" else "HoldFire"
+	actions_controller.set_selected_fire_policy(next_policy)
+	_refresh_policy_buttons()
+
+
 func _on_command_targeting_changed(is_targeting: bool):
 	_is_force_move_targeting = is_targeting
 	_force_move_button.text = "取消强制移动" if is_targeting else "强制移动"
@@ -45,16 +65,43 @@ func _on_command_targeting_changed(is_targeting: bool):
 func _on_command_feedback(
 	command_name: String, accepted_count: int, rejected_count: int, status: String
 ):
-	var display_name := "强制移动" if command_name == "ForceMove" else "停止移动"
+	var display_names := {
+		"ForceMove": "强制移动",
+		"HaltMovement": "停止移动",
+		"Aggressive": "侵略姿态",
+		"Guard": "警戒姿态",
+		"HoldGround": "固守姿态",
+		"HoldFire": "停火",
+		"FireAtWill": "自由开火",
+	}
+	var display_name: String = display_names.get(command_name, command_name)
 	_feedback_label.text = "%s：接受 %d，拒绝 %d（%s）" % [
 		display_name, accepted_count, rejected_count, status
 	]
+	_refresh_policy_buttons()
 
 
 func _refresh_availability():
 	var has_supported_units: bool = actions_controller.get_selected_command_unit_count() > 0
 	_force_move_button.disabled = not has_supported_units
 	_halt_button.disabled = not has_supported_units
+	_aggressive_button.disabled = not has_supported_units
+	_guard_button.disabled = not has_supported_units
+	_hold_ground_button.disabled = not has_supported_units
+	_hold_fire_button.disabled = not has_supported_units
 	if not has_supported_units:
 		actions_controller.cancel_command_targeting()
 		_feedback_label.text = "选择 Tank 后可下达传统 RTS 命令"
+	_refresh_policy_buttons()
+
+
+func _refresh_policy_buttons():
+	if actions_controller == null:
+		return
+	var stance: String = actions_controller.get_selected_combat_policy("EngagementStance")
+	var fire_policy: String = actions_controller.get_selected_combat_policy("FirePolicy")
+	_aggressive_button.button_pressed = stance == "Aggressive"
+	_guard_button.button_pressed = stance == "Guard"
+	_hold_ground_button.button_pressed = stance == "HoldGround"
+	_hold_fire_button.button_pressed = fire_policy == "HoldFire"
+	_hold_fire_button.text = "恢复开火" if fire_policy == "HoldFire" else "停火"

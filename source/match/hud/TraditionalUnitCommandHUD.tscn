@@ -8,9 +8,9 @@ anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -210.0
-offset_top = -112.0
-offset_right = 210.0
+offset_left = -310.0
+offset_top = -164.0
+offset_right = 310.0
 offset_bottom = -18.0
 grow_horizontal = 2
 grow_vertical = 0
@@ -44,6 +44,42 @@ custom_minimum_size = Vector2(150, 40)
 layout_mode = 2
 text = "停止移动"
 tooltip_text = "只停止导航，不取消攻击或上层任务"
+
+[node name="CombatPolicies" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="AggressiveButton" type="Button" parent="MarginContainer/VBoxContainer/CombatPolicies"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 36)
+layout_mode = 2
+toggle_mode = true
+text = "侵略"
+tooltip_text = "主动索敌并追击，受最大追击范围约束"
+
+[node name="GuardButton" type="Button" parent="MarginContainer/VBoxContainer/CombatPolicies"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 36)
+layout_mode = 2
+toggle_mode = true
+text = "警戒"
+tooltip_text = "在岗位范围迎击，结束后返回岗位点"
+
+[node name="HoldGroundButton" type="Button" parent="MarginContainer/VBoxContainer/CombatPolicies"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 36)
+layout_mode = 2
+toggle_mode = true
+text = "固守"
+tooltip_text = "不主动移动，只攻击进入武器射程的目标"
+
+[node name="HoldFireButton" type="Button" parent="MarginContainer/VBoxContainer/CombatPolicies"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 36)
+layout_mode = 2
+toggle_mode = true
+text = "停火"
+tooltip_text = "禁止自主开火；未来显式强制攻击仍可临时覆盖"
 
 [node name="FeedbackLabel" type="Label" parent="MarginContainer/VBoxContainer"]
 unique_name_in_owner = true

@@ -96,6 +96,56 @@ func get_selected_command_unit_count() -> int:
 	return _get_selected_controlled_units().filter(func(unit): return unit is Tank).size()
 
 
+## 为当前 Selection 中已迁移的 Tank 设置持续交战姿态，并汇总即时接收结果。
+func set_selected_engagement_stance(stance: String):
+	_submit_selected_combat_policy("EngagementStance", stance)
+
+
+## 为当前 Selection 中已迁移的 Tank 设置持续开火策略，并汇总即时接收结果。
+func set_selected_fire_policy(policy: String):
+	_submit_selected_combat_policy("FirePolicy", policy)
+
+
+## 返回当前选中 Tank 的统一战斗策略；混合值或无选中时返回空字符串。
+func get_selected_combat_policy(policy_name: String) -> String:
+	var tanks = _get_selected_controlled_units().filter(func(unit): return unit is Tank)
+	if tanks.is_empty():
+		return ""
+	var gateway = _get_command_gateway()
+	var first_value: String = (
+		gateway.GetEngagementStance(tanks[0])
+		if policy_name == "EngagementStance"
+		else gateway.GetFirePolicy(tanks[0])
+	)
+	for tank in tanks:
+		var value: String = (
+			gateway.GetEngagementStance(tank)
+			if policy_name == "EngagementStance"
+			else gateway.GetFirePolicy(tank)
+		)
+		if value != first_value:
+			return ""
+	return first_value
+
+
+func _submit_selected_combat_policy(policy_name: String, value: String):
+	var selected_units = _get_selected_controlled_units()
+	var tanks = selected_units.filter(func(unit): return unit is Tank)
+	var accepted_count := 0
+	var rejected_count: int = selected_units.size() - tanks.size()
+	if not tanks.is_empty():
+		var gateway = _get_command_gateway()
+		var result = (
+			gateway.SetEngagementStance(tanks, value, get_parent())
+			if policy_name == "EngagementStance"
+			else gateway.SetFirePolicy(tanks, value, get_parent())
+		)
+		var counts = _count_command_result(result)
+		accepted_count += counts[0]
+		rejected_count += counts[1]
+	_emit_command_feedback(value, accepted_count, rejected_count)
+
+
 func _execute_targeted_force_move(target_point: Vector3):
 	var selected_units = _get_selected_controlled_units()
 	var tanks = selected_units.filter(

@@ -126,10 +126,10 @@ public partial class CSharpCommandSmokeTest : Node
             CommandErrorCode.UnitNotOwned, "foreign combat policy update should be rejected");
         Check(fireResult.Status == CommandStatus.Accepted, "owned fire policy should be accepted");
         Check(policies.Get(ownedUnit) == new CombatPolicySnapshot(
-            EngagementStance.Guard, FirePolicy.HoldFire),
+            EngagementStance.Guard, FirePolicy.HoldFire, null),
             "stance and fire policy should be stored independently");
         Check(policies.Get(foreignUnit) == new CombatPolicySnapshot(
-            EngagementStance.Aggressive, FirePolicy.FireAtWill),
+            EngagementStance.Aggressive, FirePolicy.FireAtWill, null),
             "rejected foreign unit should preserve default policy");
     }
 

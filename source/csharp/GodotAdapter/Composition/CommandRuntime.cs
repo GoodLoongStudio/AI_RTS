@@ -63,8 +63,11 @@ public partial class CommandRuntime : Node
     public CommandResult HaltMovement(IEnumerable<Node> unitNodes, Node issuerPlayer)
     {
         var context = CreateContext(issuerPlayer);
-        var unitIds = unitNodes.Select(_units.Register).ToArray();
-        return _commands.HaltMovement(context, new HaltMovementCommand(unitIds));
+        var nodes = unitNodes.ToArray();
+        var unitIds = nodes.Select(_units.Register).ToArray();
+        var result = _commands.HaltMovement(context, new HaltMovementCommand(unitIds));
+        UpdateGuardAnchorsForAccepted(result);
+        return result;
     }
 
     /// <summary>代表指定玩家设置一组 Godot 单位的持续交战姿态。</summary>
@@ -74,10 +77,30 @@ public partial class CommandRuntime : Node
         Node issuerPlayer)
     {
         var context = CreateContext(issuerPlayer);
-        var unitIds = unitNodes.Select(_units.Register).ToArray();
-        return _commands.SetEngagementStance(
+        var nodes = unitNodes.ToArray();
+        var result = _commands.SetEngagementStance(
             context,
-            new SetEngagementStanceCommand(unitIds, stance));
+            new SetEngagementStanceCommand(nodes.Select(_units.Register).ToArray(), stance));
+        foreach (var item in result.UnitResults.Where(item => item.Accepted))
+        {
+            if (stance != EngagementStance.Guard)
+            {
+                _combatPolicies.SetGuardAnchor(item.UnitId, null);
+                continue;
+            }
+
+            var active = _orders.FindActive(item.UnitId);
+            if (active?.State == UnitOrderState.InProgress)
+            {
+                _combatPolicies.SetGuardAnchor(item.UnitId, null);
+            }
+            else if (_units.TryGetNode(item.UnitId, out var unit))
+            {
+                _combatPolicies.SetGuardAnchor(item.UnitId, ToWorldPosition(unit));
+            }
+        }
+        RefreshLegacyCombatPolicies(result);
+        return result;
     }
 
     /// <summary>代表指定玩家设置一组 Godot 单位的持续开火策略。</summary>
@@ -88,7 +111,9 @@ public partial class CommandRuntime : Node
     {
         var context = CreateContext(issuerPlayer);
         var unitIds = unitNodes.Select(_units.Register).ToArray();
-        return _commands.SetFirePolicy(context, new SetFirePolicyCommand(unitIds, policy));
+        var result = _commands.SetFirePolicy(context, new SetFirePolicyCommand(unitIds, policy));
+        RefreshLegacyCombatPolicies(result);
+        return result;
     }
 
     /// <summary>查询指定 Godot 单位当前权威交战姿态名称。</summary>
@@ -98,6 +123,14 @@ public partial class CommandRuntime : Node
     /// <summary>查询指定 Godot 单位当前权威开火策略名称。</summary>
     public string GetFirePolicy(Node unitNode) =>
         _combatPolicies.Get(_units.Register(unitNode)).FirePolicy.ToString();
+
+    /// <summary>查询警戒岗位点；尚未确定时返回正无穷坐标供 GDScript 明确识别。</summary>
+    public Vector3 GetGuardAnchor(Node unitNode)
+    {
+        var anchor = _combatPolicies.Get(_units.Register(unitNode)).GuardAnchor;
+        return anchor is { } value ?
+            new Vector3(value.X, value.Y, value.Z) : Vector3.Inf;
+    }
 
     /// <summary>查询指定单位当前活动订单的状态名称，主要用于桥接期诊断。</summary>
     public string GetActiveOrderState(Node unitNode)
@@ -149,6 +182,7 @@ public partial class CommandRuntime : Node
         if (active?.OrderId == orderId && active.State == UnitOrderState.InProgress)
         {
             _orders.Transition(orderId, UnitOrderState.Arrived);
+            UpdateGuardAnchor(unitId);
         }
     }
 
@@ -160,5 +194,44 @@ public partial class CommandRuntime : Node
             _orders.Transition(active.OrderId, UnitOrderState.UnitLost);
         }
         _deathTrackedUnits.Remove(unitId);
+    }
+
+    /// <summary>把已接受停止命令后单位的实际位置记录为新警戒岗位点。</summary>
+    private void UpdateGuardAnchorsForAccepted(CommandResult result)
+    {
+        foreach (var item in result.UnitResults.Where(item => item.Accepted))
+        {
+            UpdateGuardAnchor(item.UnitId);
+        }
+    }
+
+    /// <summary>通知迁移期 Legacy 自动战斗 Action 立即重新读取权威策略。</summary>
+    private void RefreshLegacyCombatPolicies(CommandResult result)
+    {
+        foreach (var item in result.UnitResults.Where(item => item.Accepted))
+        {
+            if (_units.TryGetNode(item.UnitId, out var unit) &&
+                unit.HasMethod("request_legacy_refresh_combat_policy"))
+            {
+                unit.Call("request_legacy_refresh_combat_policy");
+            }
+        }
+    }
+
+    /// <summary>仅为 Guard 姿态单位更新岗位点，避免其他姿态保存无意义位置。</summary>
+    private void UpdateGuardAnchor(UnitId unitId)
+    {
+        if (_combatPolicies.Get(unitId).EngagementStance == EngagementStance.Guard &&
+            _units.TryGetNode(unitId, out var unit))
+        {
+            _combatPolicies.SetGuardAnchor(unitId, ToWorldPosition(unit));
+        }
+    }
+
+    /// <summary>把 Godot 单位节点的当前位置转换为不依赖引擎的世界坐标。</summary>
+    private static WorldPosition ToWorldPosition(Node unit)
+    {
+        var position = ((Node3D)unit).GlobalPosition;
+        return new WorldPosition(position.X, position.Y, position.Z);
     }
 }

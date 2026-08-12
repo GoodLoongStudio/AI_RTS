@@ -2,6 +2,7 @@ extends "res://source/match/units/actions/Action.gd"
 
 const AttackingWhileInRange = preload("res://source/match/units/actions/AttackingWhileInRange.gd")
 const AutoAttacking = preload("res://source/match/units/actions/AutoAttacking.gd")
+const Moving = preload("res://source/match/units/actions/Moving.gd")
 
 const REFRESH_INTERVAL = 1.0 / 60.0 * 10.0
 
@@ -9,6 +10,7 @@ var _timer = null
 var _sub_action = null
 
 @onready var _unit = Utils.NodeEx.find_parent_with_group(self, "units")
+@onready var _command_runtime = _unit.find_parent("Match").get_node("CommandRuntime")
 
 
 func _ready():
@@ -26,16 +28,34 @@ func is_idle():
 	return _sub_action == null
 
 
+## 在权威战斗策略变化时立即撤销旧自主行为，避免轮询间隔内继续追击或开火。
+func refresh_combat_policy():
+	var movement = _unit.find_child("Movement")
+	if movement != null:
+		movement.stop()
+	if _sub_action != null:
+		_sub_action.free()
+		return
+	_on_timer_timeout()
+
+
 func _get_units_to_attack():
+	if _command_runtime.GetFirePolicy(_unit) == "HoldFire":
+		return []
+	var stance: String = _command_runtime.GetEngagementStance(_unit)
+	var guard_anchor: Vector3 = _command_runtime.GetGuardAnchor(_unit)
 	return get_tree().get_nodes_in_group("units").filter(
 		func(unit):
+			var detection_origin: Vector3 = _unit.global_position_yless
+			var detection_range: float = _unit.sight_range
+			if stance == "HoldGround":
+				detection_range = _unit.attack_range
+			elif stance == "Guard" and guard_anchor.is_finite():
+				detection_origin = guard_anchor * Vector3(1, 0, 1)
 			return (
 				unit.player != _unit.player
 				and unit.movement_domain in _unit.attack_domains
-				and (
-					_unit.global_position_yless.distance_to(unit.global_position_yless)
-					<= _unit.sight_range
-				)
+				and detection_origin.distance_to(unit.global_position_yless) <= detection_range
 			)
 	)
 
@@ -51,6 +71,10 @@ func _attack_unit(unit):
 
 
 func _on_timer_timeout():
+	if _sub_action != null:
+		return
+	if _try_returning_to_guard_anchor():
+		return
 	var units_to_attack = _get_units_to_attack()
 	if not units_to_attack.is_empty():
 		_attack_unit(_pick_closest_unit(units_to_attack, _unit))
@@ -62,6 +86,20 @@ func _on_attack_finished():
 	_sub_action = null
 	_unit.action_updated.emit()
 	_timer.timeout.connect(_on_timer_timeout)
+
+
+func _try_returning_to_guard_anchor() -> bool:
+	if _command_runtime.GetEngagementStance(_unit) != "Guard":
+		return false
+	var guard_anchor: Vector3 = _command_runtime.GetGuardAnchor(_unit)
+	if not guard_anchor.is_finite() or _unit.global_position.distance_to(guard_anchor) <= 0.5:
+		return false
+	_timer.timeout.disconnect(_on_timer_timeout)
+	_sub_action = Moving.new(guard_anchor)
+	_sub_action.tree_exited.connect(_on_attack_finished)
+	add_child(_sub_action)
+	_unit.action_updated.emit()
+	return true
 
 
 static func _pick_closest_unit(units, unit):

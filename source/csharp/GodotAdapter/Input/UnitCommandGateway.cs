@@ -60,6 +60,9 @@ public partial class UnitCommandGateway : Node
     /// <summary>查询指定单位当前权威开火策略名称。</summary>
     public string GetFirePolicy(Node unitNode) => _runtime.GetFirePolicy(unitNode);
 
+    /// <summary>查询指定单位当前警戒岗位点；尚未确定时返回 Vector3.INF。</summary>
+    public Vector3 GetGuardAnchor(Node unitNode) => _runtime.GetGuardAnchor(unitNode);
+
     /// <summary>查询指定单位当前活动订单的状态名称，主要用于桥接期诊断。</summary>
     public string GetActiveOrderState(Node unitNode)
     {
