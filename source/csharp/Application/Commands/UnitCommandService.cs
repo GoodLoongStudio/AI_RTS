@@ -1,6 +1,8 @@
 using AI_RTS.Application.Commands.Units;
+using AI_RTS.Application.Combat;
 using AI_RTS.Application.Orders;
 using AI_RTS.Application.Units;
+using AI_RTS.Domain.Combat;
 using AI_RTS.Domain.Common;
 
 namespace AI_RTS.Application.Commands;
@@ -13,13 +15,20 @@ public interface IUnitCommandService
 
     /// <summary>停止单位当前移动，并将已有活动订单转为暂停。</summary>
     CommandResult HaltMovement(CommandContext context, HaltMovementCommand command);
+
+    /// <summary>设置单位持续交战姿态，不改变开火策略。</summary>
+    CommandResult SetEngagementStance(CommandContext context, SetEngagementStanceCommand command);
+
+    /// <summary>设置单位持续开火策略，不改变交战姿态。</summary>
+    CommandResult SetFirePolicy(CommandContext context, SetFirePolicyCommand command);
 }
 
 /// <summary>协调单位校验、导航端口调用与订单状态更新。</summary>
 public sealed class UnitCommandService(
     IUnitCommandUnitRepository units,
     IUnitMovementPort movement,
-    IUnitOrderStore orders) : IUnitCommandService
+    IUnitOrderStore orders,
+    ICombatPolicyStore combatPolicies) : IUnitCommandService
 {
     /// <inheritdoc />
     public CommandResult ForceMove(CommandContext context, ForceMoveUnitsCommand command)
@@ -69,6 +78,66 @@ public sealed class UnitCommandService(
         return Summarize(context.CommandId, results);
     }
 
+    /// <inheritdoc />
+    public CommandResult SetEngagementStance(
+        CommandContext context,
+        SetEngagementStanceCommand command)
+    {
+        if (command.UnitIds.Count == 0 || !Enum.IsDefined(command.Stance))
+        {
+            return Rejected(
+                context.CommandId,
+                command.UnitIds,
+                command.UnitIds.Count == 0 ?
+                    CommandErrorCode.EmptyUnitSet : CommandErrorCode.InvalidEngagementStance);
+        }
+
+        return SetCombatPolicy(
+            context,
+            command.UnitIds,
+            unitId => combatPolicies.SetEngagementStance(unitId, command.Stance));
+    }
+
+    /// <inheritdoc />
+    public CommandResult SetFirePolicy(CommandContext context, SetFirePolicyCommand command)
+    {
+        if (command.UnitIds.Count == 0 || !Enum.IsDefined(command.Policy))
+        {
+            return Rejected(
+                context.CommandId,
+                command.UnitIds,
+                command.UnitIds.Count == 0 ?
+                    CommandErrorCode.EmptyUnitSet : CommandErrorCode.InvalidFirePolicy);
+        }
+
+        return SetCombatPolicy(
+            context,
+            command.UnitIds,
+            unitId => combatPolicies.SetFirePolicy(unitId, command.Policy));
+    }
+
+    /// <summary>逐单位校验所有权并修改彼此独立的持续战斗策略。</summary>
+    private CommandResult SetCombatPolicy(
+        CommandContext context,
+        IReadOnlyList<UnitId> unitIds,
+        Action<UnitId> update)
+    {
+        var results = new List<UnitCommandResult>();
+        foreach (var unitId in StableDistinct(unitIds))
+        {
+            var validation = ValidateOwnership(context, unitId);
+            if (validation != CommandErrorCode.None)
+            {
+                results.Add(new UnitCommandResult(unitId, false, validation));
+                continue;
+            }
+
+            update(unitId);
+            results.Add(new UnitCommandResult(unitId, true, CommandErrorCode.None));
+        }
+        return Summarize(context.CommandId, results);
+    }
+
     /// <summary>逐单位校验并执行可独立接受的批量移动请求。</summary>
     private CommandResult Execute(
         CommandContext context,
@@ -101,16 +170,26 @@ public sealed class UnitCommandService(
     /// <summary>校验单位是否存在、属于命令发出者且具备移动能力。</summary>
     private CommandErrorCode Validate(CommandContext context, UnitId unitId)
     {
+        var ownership = ValidateOwnership(context, unitId);
+        if (ownership != CommandErrorCode.None)
+        {
+            return ownership;
+        }
+
+        return units.Find(unitId)!.Value.CanMove ?
+            CommandErrorCode.None : CommandErrorCode.UnitCannotMove;
+    }
+
+    /// <summary>校验单位是否存在并属于命令发出者，不附加移动或攻击能力要求。</summary>
+    private CommandErrorCode ValidateOwnership(CommandContext context, UnitId unitId)
+    {
         var unit = units.Find(unitId);
         if (unit is null)
         {
             return CommandErrorCode.UnitNotFound;
         }
-        if (unit.Value.OwnerId != context.IssuerPlayerId)
-        {
-            return CommandErrorCode.UnitNotOwned;
-        }
-        return unit.Value.CanMove ? CommandErrorCode.None : CommandErrorCode.UnitCannotMove;
+        return unit.Value.OwnerId == context.IssuerPlayerId ?
+            CommandErrorCode.None : CommandErrorCode.UnitNotOwned;
     }
 
     private static IReadOnlyList<UnitId> StableDistinct(IEnumerable<UnitId> ids) =>

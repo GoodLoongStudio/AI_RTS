@@ -1,4 +1,5 @@
 using AI_RTS.Application.Commands;
+using AI_RTS.Domain.Combat;
 using AI_RTS.GodotAdapter.Composition;
 using Godot;
 
@@ -30,6 +31,34 @@ public partial class UnitCommandGateway : Node
     {
         return ToGodot(_runtime.HaltMovement(unitNodes, issuerPlayer));
     }
+
+    /// <summary>按稳定字符串名称设置一组单位的持续交战姿态。</summary>
+    public Godot.Collections.Dictionary SetEngagementStance(
+        Godot.Collections.Array<Node> unitNodes, string stance, Node issuerPlayer)
+    {
+        if (!Enum.TryParse<EngagementStance>(stance, false, out var parsed))
+        {
+            throw new ArgumentException($"Unknown EngagementStance: {stance}", nameof(stance));
+        }
+        return ToGodot(_runtime.SetEngagementStance(unitNodes, parsed, issuerPlayer));
+    }
+
+    /// <summary>按稳定字符串名称设置一组单位的持续开火策略。</summary>
+    public Godot.Collections.Dictionary SetFirePolicy(
+        Godot.Collections.Array<Node> unitNodes, string policy, Node issuerPlayer)
+    {
+        if (!Enum.TryParse<FirePolicy>(policy, false, out var parsed))
+        {
+            throw new ArgumentException($"Unknown FirePolicy: {policy}", nameof(policy));
+        }
+        return ToGodot(_runtime.SetFirePolicy(unitNodes, parsed, issuerPlayer));
+    }
+
+    /// <summary>查询指定单位当前权威交战姿态名称。</summary>
+    public string GetEngagementStance(Node unitNode) => _runtime.GetEngagementStance(unitNode);
+
+    /// <summary>查询指定单位当前权威开火策略名称。</summary>
+    public string GetFirePolicy(Node unitNode) => _runtime.GetFirePolicy(unitNode);
 
     /// <summary>查询指定单位当前活动订单的状态名称，主要用于桥接期诊断。</summary>
     public string GetActiveOrderState(Node unitNode)

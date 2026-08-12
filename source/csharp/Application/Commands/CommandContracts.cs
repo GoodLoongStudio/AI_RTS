@@ -38,7 +38,11 @@ public enum CommandErrorCode
     /// <summary>当前无法向导航系统提交请求。</summary>
     NavigationUnavailable,
     /// <summary>对局尚未开始或已经结束。</summary>
-    MatchNotRunning
+    MatchNotRunning,
+    /// <summary>交战姿态值不属于当前版本支持的枚举项。</summary>
+    InvalidEngagementStance,
+    /// <summary>开火策略值不属于当前版本支持的枚举项。</summary>
+    InvalidFirePolicy
 }
 
 /// <summary>记录批量命令中单个单位的接收结果和订单标识。</summary>

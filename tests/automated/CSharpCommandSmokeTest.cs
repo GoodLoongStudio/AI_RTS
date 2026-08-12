@@ -1,7 +1,9 @@
 using AI_RTS.Application.Commands;
 using AI_RTS.Application.Commands.Units;
+using AI_RTS.Application.Combat;
 using AI_RTS.Application.Orders;
 using AI_RTS.Application.Units;
+using AI_RTS.Domain.Combat;
 using AI_RTS.Domain.Common;
 using Godot;
 
@@ -19,6 +21,7 @@ public partial class CSharpCommandSmokeTest : Node
         TestPartialAcceptanceAndIndependentOrders();
         TestFailedReplacementPreservesActiveOrder();
         TestHaltSuspendsWithoutReplacingOrder();
+        TestCombatPoliciesAreIndependentAndOwnershipChecked();
 
         GD.Print($"C# command smoke test completed: {_failures} failure(s)");
         GetTree().Quit(_failures == 0 ? 0 : 1);
@@ -35,7 +38,7 @@ public partial class CSharpCommandSmokeTest : Node
             new UnitCommandSnapshot(movable, owner, true),
             new UnitCommandSnapshot(immovable, owner, false));
         var orders = new InMemoryUnitOrderStore();
-        var service = new UnitCommandService(repository, new FakeMovementPort(), orders);
+        var service = NewService(repository, new FakeMovementPort(), orders);
 
         var result = service.ForceMove(Context(owner), new ForceMoveUnitsCommand(
             [movable, immovable, missing], new WorldPosition(10, 0, 10)));
@@ -59,7 +62,7 @@ public partial class CSharpCommandSmokeTest : Node
         var repository = new FakeRepository(new UnitCommandSnapshot(unit, owner, true));
         var movement = new FakeMovementPort();
         var orders = new InMemoryUnitOrderStore();
-        var service = new UnitCommandService(repository, movement, orders);
+        var service = NewService(repository, movement, orders);
 
         service.ForceMove(Context(owner), new ForceMoveUnitsCommand([unit], new WorldPosition(1, 0, 1)));
         var original = orders.FindActive(unit);
@@ -78,7 +81,7 @@ public partial class CSharpCommandSmokeTest : Node
         var unit = NewUnitId();
         var repository = new FakeRepository(new UnitCommandSnapshot(unit, owner, true));
         var orders = new InMemoryUnitOrderStore();
-        var service = new UnitCommandService(repository, new FakeMovementPort(), orders);
+        var service = NewService(repository, new FakeMovementPort(), orders);
 
         service.ForceMove(Context(owner), new ForceMoveUnitsCommand([unit], new WorldPosition(1, 0, 1)));
         var original = orders.FindActive(unit);
@@ -89,6 +92,45 @@ public partial class CSharpCommandSmokeTest : Node
             "halt should retain the existing order id");
         Check(orders.Find(original!.OrderId)?.State == UnitOrderState.Suspended,
             "halt should suspend rather than cancel the active order");
+    }
+
+    /// <summary>验证姿态与开火策略正交保存，且不能修改其他玩家单位。</summary>
+    private void TestCombatPoliciesAreIndependentAndOwnershipChecked()
+    {
+        var owner = NewPlayerId();
+        var adversary = NewPlayerId();
+        var ownedUnit = NewUnitId();
+        var foreignUnit = NewUnitId();
+        var repository = new FakeRepository(
+            new UnitCommandSnapshot(ownedUnit, owner, true),
+            new UnitCommandSnapshot(foreignUnit, adversary, true));
+        var policies = new InMemoryCombatPolicyStore();
+        var service = new UnitCommandService(
+            repository,
+            new FakeMovementPort(),
+            new InMemoryUnitOrderStore(),
+            policies);
+
+        var stanceResult = service.SetEngagementStance(
+            Context(owner),
+            new SetEngagementStanceCommand(
+                [ownedUnit, foreignUnit],
+                EngagementStance.Guard));
+        var fireResult = service.SetFirePolicy(
+            Context(owner),
+            new SetFirePolicyCommand([ownedUnit], FirePolicy.HoldFire));
+
+        Check(stanceResult.Status == CommandStatus.PartiallyAccepted,
+            "combat policy batch should enforce ownership per unit");
+        Check(stanceResult.UnitResults.Single(item => item.UnitId == foreignUnit).ErrorCode ==
+            CommandErrorCode.UnitNotOwned, "foreign combat policy update should be rejected");
+        Check(fireResult.Status == CommandStatus.Accepted, "owned fire policy should be accepted");
+        Check(policies.Get(ownedUnit) == new CombatPolicySnapshot(
+            EngagementStance.Guard, FirePolicy.HoldFire),
+            "stance and fire policy should be stored independently");
+        Check(policies.Get(foreignUnit) == new CombatPolicySnapshot(
+            EngagementStance.Aggressive, FirePolicy.FireAtWill),
+            "rejected foreign unit should preserve default policy");
     }
 
     /// <summary>累计失败断言并向 Godot 错误日志报告原因。</summary>
@@ -106,6 +148,12 @@ public partial class CSharpCommandSmokeTest : Node
         new CommandId(Guid.NewGuid()), new MatchId(Guid.NewGuid()), owner, 1);
     private static PlayerId NewPlayerId() => new(Guid.NewGuid());
     private static UnitId NewUnitId() => new(Guid.NewGuid());
+
+    private static UnitCommandService NewService(
+        IUnitCommandUnitRepository repository,
+        IUnitMovementPort movement,
+        IUnitOrderStore orders) =>
+        new(repository, movement, orders, new InMemoryCombatPolicyStore());
 
     /// <summary>提供测试使用的内存单位查询仓储。</summary>
     private sealed class FakeRepository(params UnitCommandSnapshot[] units) : IUnitCommandUnitRepository

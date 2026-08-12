@@ -1,6 +1,8 @@
 using AI_RTS.Application.Commands;
 using AI_RTS.Application.Commands.Units;
+using AI_RTS.Application.Combat;
 using AI_RTS.Application.Orders;
+using AI_RTS.Domain.Combat;
 using AI_RTS.Domain.Common;
 using AI_RTS.GodotAdapter.Navigation;
 using AI_RTS.GodotAdapter.Units;
@@ -17,6 +19,9 @@ public partial class CommandRuntime : Node
     /// <summary>保存本 Match 中所有控制器共享的单位订单状态。</summary>
     private readonly InMemoryUnitOrderStore _orders = new();
 
+    /// <summary>保存本 Match 中所有控制器共享的单位交战姿态与开火策略。</summary>
+    private readonly InMemoryCombatPolicyStore _combatPolicies = new();
+
     /// <summary>记录已订阅单位退出事件的 ID，避免多个控制器重复连接。</summary>
     private readonly HashSet<UnitId> _deathTrackedUnits = new();
 
@@ -30,7 +35,11 @@ public partial class CommandRuntime : Node
     public override void _Ready()
     {
         _matchId = new MatchId(Guid.NewGuid());
-        _commands = new UnitCommandService(_units, new LegacyMovementPort(_units), _orders);
+        _commands = new UnitCommandService(
+            _units,
+            new LegacyMovementPort(_units),
+            _orders,
+            _combatPolicies);
     }
 
     /// <summary>代表指定玩家向一组 Godot 单位节点提交强制移动命令。</summary>
@@ -57,6 +66,38 @@ public partial class CommandRuntime : Node
         var unitIds = unitNodes.Select(_units.Register).ToArray();
         return _commands.HaltMovement(context, new HaltMovementCommand(unitIds));
     }
+
+    /// <summary>代表指定玩家设置一组 Godot 单位的持续交战姿态。</summary>
+    public CommandResult SetEngagementStance(
+        IEnumerable<Node> unitNodes,
+        EngagementStance stance,
+        Node issuerPlayer)
+    {
+        var context = CreateContext(issuerPlayer);
+        var unitIds = unitNodes.Select(_units.Register).ToArray();
+        return _commands.SetEngagementStance(
+            context,
+            new SetEngagementStanceCommand(unitIds, stance));
+    }
+
+    /// <summary>代表指定玩家设置一组 Godot 单位的持续开火策略。</summary>
+    public CommandResult SetFirePolicy(
+        IEnumerable<Node> unitNodes,
+        FirePolicy policy,
+        Node issuerPlayer)
+    {
+        var context = CreateContext(issuerPlayer);
+        var unitIds = unitNodes.Select(_units.Register).ToArray();
+        return _commands.SetFirePolicy(context, new SetFirePolicyCommand(unitIds, policy));
+    }
+
+    /// <summary>查询指定 Godot 单位当前权威交战姿态名称。</summary>
+    public string GetEngagementStance(Node unitNode) =>
+        _combatPolicies.Get(_units.Register(unitNode)).EngagementStance.ToString();
+
+    /// <summary>查询指定 Godot 单位当前权威开火策略名称。</summary>
+    public string GetFirePolicy(Node unitNode) =>
+        _combatPolicies.Get(_units.Register(unitNode)).FirePolicy.ToString();
 
     /// <summary>查询指定单位当前活动订单的状态名称，主要用于桥接期诊断。</summary>
     public string GetActiveOrderState(Node unitNode)

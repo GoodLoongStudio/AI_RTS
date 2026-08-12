@@ -21,6 +21,13 @@ func _ready():
 	await get_tree().process_frame
 	var destination = tank.global_position + Vector3(2.0, 0.0, 0.0)
 
+	var stance_result = gateway.SetEngagementStance([tank], "Guard", human)
+	var fire_policy_result = second_gateway.SetFirePolicy([tank], "HoldFire", human)
+	_check(stance_result["status"] == "Accepted", "Tank Guard stance should be accepted")
+	_check(fire_policy_result["status"] == "Accepted", "Tank HoldFire policy should be accepted")
+	_check(second_gateway.GetEngagementStance(tank) == "Guard", "gateways should share stance state")
+	_check(gateway.GetFirePolicy(tank) == "HoldFire", "gateways should share fire policy state")
+
 	var move_result = gateway.ForceMoveUnits([tank], destination, human)
 	_check(move_result["status"] == "Accepted", "Tank move should be accepted")
 	_check(tank.action != null and tank.action.get_script() == Moving, "Tank should use Moving bridge")
