@@ -67,6 +67,24 @@ func _setup_ai_command_hud():
 		ai_command_hud.control_mode = campaign_data.get("initial_control_mode", "squad")
 		ai_command_hud.hero_name = campaign_data.get("hero_name", "先锋指挥单元")
 	$HUD.add_child(ai_command_hud)
+	_setup_ai_command_hud_toggle(ai_command_hud)
+
+
+func _setup_ai_command_hud_toggle(ai_command_hud: Control):
+	var toggle_button := Button.new()
+	toggle_button.name = "AICommandHUDToggle"
+	toggle_button.text = "显示 AI 副官"
+	toggle_button.tooltip_text = "显示或隐藏 Legacy AI 副官原型界面"
+	toggle_button.position = Vector2(18, 18)
+	toggle_button.custom_minimum_size = Vector2(150, 40)
+	toggle_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	toggle_button.pressed.connect(
+		func():
+			var should_show = not ai_command_hud.is_interface_visible()
+			ai_command_hud.set_interface_visible(should_show)
+			toggle_button.text = "隐藏 AI 副官" if should_show else "显示 AI 副官"
+	)
+	$HUD.add_child(toggle_button)
 
 
 func _setup_campaign():

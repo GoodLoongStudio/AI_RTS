@@ -47,9 +47,25 @@ func _ready():
 		_append_ai("指挥链路已上线。你可以直接下达自然语言命令，也可以让我评估当前风险和下一步行动。")
 	_refresh_squad_ui()
 	_refresh_agent_context()
+	set_interface_visible(false)
+
+
+func set_interface_visible(should_show: bool):
+	visible = should_show
+	set_process_unhandled_key_input(should_show)
+	if not should_show:
+		pending_command = ""
+		if _input != null:
+			_input.release_focus()
+
+
+func is_interface_visible() -> bool:
+	return visible
 
 
 func _unhandled_key_input(event: InputEvent):
+	if not visible:
+		return
 	if not event.pressed or event.echo:
 		return
 	if event.keycode == KEY_F1 and _is_hero_mode():

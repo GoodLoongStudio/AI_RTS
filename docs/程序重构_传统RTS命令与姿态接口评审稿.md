@@ -1,6 +1,6 @@
 # 程序重构：传统 RTS 命令与姿态接口评审稿
 
-> 文档状态：待项目负责人评审，尚未编码
+> 文档状态：命令语义已通过评审；Legacy HUD 隔离已实施，传统命令尚未编码
 >
 > 范围：传统单位操作、持续交战姿态、编队和计划模式；不实现 AI 副官推理
 
@@ -43,8 +43,10 @@ ForceMoveUnitsCommand(UnitIds, Destination, QueueMode)
 - 以到达位置为最高优先级，不因发现敌人而停下或主动追击；
 - 不永久修改单位交战姿态；到达后恢复此前姿态；
 - 能移动射击的单位是否开火由 FirePolicy 和单位能力决定；“强制移动”不等同于禁火；
+- 若单位具有碾压能力，ForceMove 可以令其冒着火力冲向敌人并按碰撞/伤害规则尝试碾压；ForceMove 本身不凭空赋予碾压能力；
 - 新命令默认替换旧移动/工作订单，追加键或计划模式可以使用 Append；
 - 多单位按独立 UnitOrderId 返回部分成功。
+- ForceMove 属于玩家强烈明确意图，Human Presentation 应立即反馈命令是否接收；未来 AI 是否获得同等反馈仍由观察策略决定。
 
 普通右键移动可暂时映射为 ForceMove，等自动交战行为建立后再决定是否增加非强制 Move。
 
@@ -59,8 +61,10 @@ ForceAttackCommand(UnitIds, Target, QueueMode)
 - 对实体目标：持续攻击该目标，直到目标丢失、不可攻击、订单取消或攻击者损失；
 - 对地面目标：武器必须支持 Force Fire/Area Fire，否则逐单位返回 `WeaponCannotForceFire`；
 - 不绕过射程、武器攻击域、冷却、弹药、视野/已知情报和路径规则；
-- 是否允许友军目标及是否造成友军伤害由独立 Match Rule 配置；
-- 建议显式 ForceAttack 临时覆盖 HoldFire，订单结束后仍恢复 HoldFire。此项需要最终确认。
+- 允许显式选择友军或己方单位作为强制攻击目标，以支持阻止其被敌方利用等极端战术；实际伤害仍由友军伤害 Match Rule 决定；
+- ForceAttack 临时覆盖 HoldFire，订单结束后恢复 HoldFire；
+- ForceAttack 属于玩家强烈明确意图，Human Presentation 应立即反馈是否接受、目标/武器不支持等结果；
+- 对地攻击可以用于炮击区域和建立火力封锁带，但持续封锁属于多个攻击订单或后续 Area Fire 设计，不由一次命令隐式无限执行。
 
 ### 3.3 停止
 
@@ -84,7 +88,7 @@ TacticalWithdrawCommand(UnitIds, Destination, FacingPolicy, QueueMode)
 
 - 有倒车能力的车辆保持车体/主武器朝向威胁方向，按倒车速度移动；
 - 可以按 FirePolicy 和武器能力继续攻击；
-- 无倒车语义的步兵、飞行单位或建筑返回 `UnsupportedMovementMode`，或由产品规则明确降级为 ForceMove；
+- 无倒车语义的可移动单位自动降级为 ForceMove，避免仓促撤退时要求玩家按单位类型重复下令；不可移动建筑仍逐单位拒绝；
 - `FacingPolicy` 可选择保持当前朝向、面向指定世界方向，或面向明确威胁 UnitId；
 - 不建议自动猜测“最危险敌人”，否则同一命令会因隐藏信息产生不可预测行为。
 
@@ -121,7 +125,15 @@ public enum EngagementStance
 | Guard 警戒 | 警戒范围内 | 是 | 是，受岗位半径约束 | 返回 GuardAnchor |
 | HoldGround 固守 | 仅武器范围内 | 否 | 否 | 保持原位 |
 
-Guard 在切换时记录 `GuardAnchor`，或由带目标位置的 GuardAreaCommand 明确设置。追击范围、返回容差和索敌刷新间隔属于配置。
+Guard 不在点击姿态按钮时立即固定 `GuardAnchor`。其更新规则为：
+
+- 当前无移动订单时，切换 Guard 后以当前位置为岗位点；
+- 当前正在移动时，移动完成后以目的地/实际完成位置作为岗位点；
+- Guard 状态下收到玩家移动命令，命令完成后以新位置作为岗位点；
+- 移动被 Halt 或其他原因中断后，以中断时实际位置作为岗位点；
+- 由带目标位置的 GuardAreaCommand 可以显式更新岗位区域。
+
+追击范围、返回容差和索敌刷新间隔属于配置。
 
 Aggressive 也应有最大追击距离或时间，防止单位被一个目标引到地图另一端；上限可以比 Guard 大，但不建议无限追击。
 
@@ -142,7 +154,7 @@ public enum FirePolicy
 
 ## 5. 列队与控制组
 
-“列队”建议解释为 Formation，而不是“加入作战小队”。
+“列队”确认解释为 Formation，而不是“加入作战小队”。典型交互是玩家用鼠标拖拽方阵的方向、宽度和纵深；它可以单独整理阵型，也可以同时指定移动终点，本质上仍是为每个单位计算独立目标位置。
 
 ```csharp
 SetFormationCommand(UnitIds, FormationSpec)
@@ -158,6 +170,8 @@ MoveFormationCommand(UnitIds, Destination, Facing, QueueMode)
 - Ctrl+数字 ControlGroup 仅保存选择集合，不自动创建或修改 Formation；
 - AI Battlegroup 只保存 AI 战术成员关系，也不自动成为 Formation。
 
+由于拖拽预览、槽位分配、混合半径、朝向、导航与重排策略均较复杂，Formation 推迟到核心移动、攻击、姿态和公共 CommandRuntime 稳定后实施。
+
 ## 6. 计划模式
 
 计划模式不是一种单位 Action，建议作为 Human 输入/Application 编辑会话：
@@ -171,7 +185,7 @@ BeginPlan
 
 - Commit 前不改变权威游戏状态，也不产生 UnitOrderId；
 - Commit 后为每个单位生成有序订单链，共享 PlanId，并返回逐命令/逐单位结果；
-- 默认不假定计划模式会暂停游戏。是否暂停单人对局属于 Match Rule/UI 决策；多人对局通常不能由单个玩家暂停；
+- 计划模式不暂停游戏时间；其他玩家与 AI 可以继续观察、决策和执行命令；
 - 计划中的路径线、序号和预览属于 Presentation；计划 DTO 不包含 Line2D、NodePath 或鼠标回调；
 - 若地形在编辑和提交之间变化，Commit 必须重新校验；执行过程中仍可能因动态地形进入 Unreachable；
 - 未来大模型可提交相同计划 DTO，但仍受操作点、权限和观察限制。
@@ -180,33 +194,34 @@ BeginPlan
 
 在传统命令实现前先隔离 Legacy HUD：
 
-1. 普通 Match、TestOneUnit 和传统 RTS 测试默认不创建 AICommandHUD；
-2. 战役原型只有在任务数据显式启用时才创建；
-3. 提供隐藏/显示设置，隐藏后释放鼠标拦截、键盘快捷键和焦点；
+1. 当前阶段仍创建 AICommandHUD 以兼容 CampaignController，但默认隐藏；
+2. HUD 提供独立显示/隐藏按钮，隐藏后释放鼠标拦截、键盘快捷键和焦点；
+3. UI/策划确认最终策略后，再决定普通 Match 是否完全不创建、战役是否通过任务数据显式启用；
 4. Legacy HUD 暂停直接写 `unit.action`，后续若保留只通过标准 Command API；
 5. CampaignController 目前依赖其 squad 信号，屏蔽时需要兼容 Feature Flag，不能直接删除节点；
 6. 新建独立传统 UnitCommandHUD，始终读取当前 Selection，不读取 `unit_group_1..3`；
 7. 新 HUD 只负责发命令和显示过滤后的结果，不保存领域状态。
 
-第一步建议只做 Feature Flag 和默认关闭，不立即设计最终 UI 视觉。
+当前已完成默认隐藏和独立切换按钮，不代表最终 UI 视觉方案。
 
 ## 8. 建议实施顺序
 
-1. 屏蔽普通对局的 Legacy AICommandHUD，保留战役显式开关；
+1. 默认隐藏 Legacy AICommandHUD 并保留切换按钮（已完成）；
 2. 将 CommandRuntime 提升到 Match 级，Human Gateway 变成薄适配器；
 3. 建立独立传统 UnitCommandHUD，先接 HaltMovement 与 ForceMove；
 4. 实现 EngagementStance 与 FirePolicy 状态，不先实现完整攻击算法；
 5. 迁移 ForceAttack，并增加多单位、敌我目标与 HoldFire 测试场景；
 6. 实现 TacticalWithdraw 与 Scatter；
-7. 独立实现 Formation；
+7. 核心命令稳定后再独立实现鼠标拖拽 Formation；
 8. 最后实现 OrderPlan 编辑与提交。
 
-## 9. 待评审问题
+## 9. 评审结论
 
-1. ForceAttack 是否应临时覆盖 HoldFire，执行完成后恢复 HoldFire？本文建议“是”。
-2. TacticalWithdraw 对不支持倒车的单位应拒绝，还是降级为 ForceMove？本文建议“拒绝并部分成功”，避免静默改变战术含义。
-3. Aggressive 是否接受“较大但有限”的追击上限，而不是无限追击？本文建议有限。
-4. GuardAnchor 是否在切换警戒姿态时取单位当前位置；若玩家指定区域，则用独立 GuardAreaCommand 更新？本文建议是。
-5. 计划模式第一版是否只做实时队列编辑，不暂停游戏？本文建议是。
-6. “列队”是否确认指 Formation 队形，而非控制组或 AI 作战小队？
-7. Legacy AICommandHUD 是否按“普通对局默认关闭、战役任务显式开启且可隐藏”处理？
+1. ForceAttack 临时覆盖 HoldFire，结束后恢复；允许对地和显式己方目标，并向 Human 及时反馈；
+2. TacticalWithdraw 对不支持倒车的可移动单位降级为 ForceMove；
+3. Aggressive 采用较大但有限的追击上限；
+4. GuardAnchor 在移动完成或中断时更新；无移动时使用切换位置；
+5. 计划模式不暂停游戏，其他 AI/玩家继续操作；
+6. Formation 使用鼠标调整方阵长宽，可替代一次移动，但推迟实现；
+7. Legacy AICommandHUD 当前默认隐藏并提供切换按钮，最终创建策略等待 UI/策划确认；
+8. Demo 关闭鼠标边缘滚屏，只保留键盘镜头平移。
