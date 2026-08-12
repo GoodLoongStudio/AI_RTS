@@ -195,16 +195,15 @@ public interface IGameQueryService
 
 ### 4.5 Command Result 与反馈
 
-统一返回结果建议至少包含：
+统一的同步命令回执建议至少包含：
 
-- `Accepted`：命令已接受并开始执行；
-- `Completed`：即时命令已完成；
+- `Accepted`：命令已接受；不表示跨 Tick 行为已经完成；
 - `PartiallyAccepted`：多选单位中只有部分可执行；
 - `Rejected`：权限、资源、目标、视野或状态不合法；
 - `NeedsTarget`：命令还需要位置或目标确认；
 - `Deferred`：进入生产队列或等待条件。
 
-结果同时服务玩家 HUD、规则 AI 调整策略、未来大模型自我纠错、日志和测试，不能只用无返回值 Signal 表示。
+移动到达、建造完成等后续事实使用 DomainEvent/订单状态表示。内部完整结果服务日志、回放和测试；玩家 HUD、规则 AI 与未来大模型只能获得经过各自反馈/观察策略过滤的结果，不能只用无返回值 Signal 表示，也不能默认把内部错误和事件全部推给大模型。
 
 ## 5. 命令模型建议
 
@@ -215,7 +214,9 @@ public interface IGameQueryService
 - `MoveUnitsCommand`
 - `AttackUnitCommand`
 - `AttackMoveCommand`
-- `StopUnitsCommand`
+- `HaltMovementCommand`
+- `SetFirePolicyCommand`
+- `CancelWorkOrderCommand`
 - `HoldPositionCommand`
 - `PatrolCommand`
 
