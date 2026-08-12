@@ -355,8 +355,11 @@ func _navigate_unit_towards_unit(unit, target_unit):
 		unit.action = Actions.CollectingResourcesSequentially.new(target_unit)
 		return true
 	if Actions.AutoAttacking.is_applicable(unit, target_unit):
-		if unit is Tank and _get_command_gateway().GetFirePolicy(unit) == "HoldFire":
-			return false
+		if unit is Tank:
+			var result = _get_command_gateway().AttackUnits([unit], target_unit, get_parent())
+			var counts = _count_command_result(result)
+			_emit_command_feedback("Attack", counts[0], counts[1])
+			return true
 		unit.action = Actions.AutoAttacking.new(target_unit)
 		return true
 	if Actions.Constructing.is_applicable(unit, target_unit):

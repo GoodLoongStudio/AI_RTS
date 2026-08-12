@@ -8,6 +8,23 @@ namespace AI_RTS.GodotAdapter.Combat;
 public sealed class LegacyAttackPort(GodotUnitRegistry units) : IUnitAttackPort
 {
     /// <inheritdoc />
+    public AttackPortResult RequestEntityAttack(UnitId attackerId, UnitId targetId)
+    {
+        if (!units.TryGetNode(attackerId, out var attacker) ||
+            !units.TryGetNode(targetId, out var target))
+        {
+            return AttackPortResult.Failure(AttackPortError.UnitUnavailable);
+        }
+        if (!attacker.HasMethod("request_legacy_attack"))
+        {
+            return AttackPortResult.Failure(AttackPortError.AttackUnavailable);
+        }
+
+        return attacker.Call("request_legacy_attack", target).AsBool() ?
+            AttackPortResult.Success() : AttackPortResult.Failure(AttackPortError.AttackUnavailable);
+    }
+
+    /// <inheritdoc />
     public AttackPortResult RequestEntityForceAttack(UnitId attackerId, UnitId targetId)
     {
         if (!units.TryGetNode(attackerId, out var attacker) ||

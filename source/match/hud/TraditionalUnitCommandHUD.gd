@@ -116,6 +116,7 @@ func _on_command_feedback(
 ):
 	var display_names := {
 		"ForceMove": "强制移动",
+		"Attack": "攻击",
 		"Stop": "停止",
 		"ForceAttack": "强制攻击",
 		"ForceAttackGround": "地面强制攻击（当前武器不支持）",

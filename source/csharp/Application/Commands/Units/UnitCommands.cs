@@ -45,6 +45,11 @@ public sealed record EntityAttackTarget(UnitId TargetUnitId) : AttackTarget;
 /// <summary>引用一个纯世界坐标；当前纵向样例会稳定返回武器不支持。</summary>
 public sealed record GroundAttackTarget(WorldPosition Position) : AttackTarget;
 
+/// <summary>请求一组单位普通攻击同一敌方实体；命令受持续停火策略约束。</summary>
+public sealed record AttackCommand(
+    IReadOnlyList<UnitId> UnitIds,
+    EntityAttackTarget Target);
+
 /// <summary>请求一组单位持续强制攻击同一目标，并获得订单级临时开火授权。</summary>
 public sealed record ForceAttackCommand(
     IReadOnlyList<UnitId> UnitIds,

@@ -31,6 +31,9 @@ public interface IUnitCommandService
     /// <summary>设置单位持续开火策略，不改变交战姿态。</summary>
     CommandResult SetFirePolicy(CommandContext context, SetFirePolicyCommand command);
 
+    /// <summary>提交批量普通实体攻击；停火或非敌方目标按单位稳定拒绝。</summary>
+    CommandResult Attack(CommandContext context, AttackCommand command);
+
     /// <summary>提交批量显式强制攻击，并返回每个攻击者的接收结果。</summary>
     CommandResult ForceAttack(CommandContext context, ForceAttackCommand command);
 
@@ -184,6 +187,48 @@ public sealed class UnitCommandService(
     }
 
     /// <inheritdoc />
+    public CommandResult Attack(CommandContext context, AttackCommand command)
+    {
+        if (command.UnitIds.Count == 0)
+        {
+            return Rejected(context.CommandId, command.UnitIds, CommandErrorCode.EmptyUnitSet);
+        }
+
+        var target = units.Find(command.Target.TargetUnitId);
+        if (target is null)
+        {
+            return Rejected(context.CommandId, command.UnitIds, CommandErrorCode.TargetNotFound);
+        }
+        if (!target.Value.IsDamageable)
+        {
+            return Rejected(context.CommandId, command.UnitIds, CommandErrorCode.TargetNotDamageable);
+        }
+
+        var results = new List<UnitCommandResult>();
+        foreach (var unitId in StableDistinct(command.UnitIds))
+        {
+            var validation = ValidateAttack(context, unitId, target.Value, false);
+            if (validation != CommandErrorCode.None)
+            {
+                results.Add(new UnitCommandResult(unitId, false, validation));
+                continue;
+            }
+
+            var portResult = attack.RequestEntityAttack(unitId, command.Target.TargetUnitId);
+            if (!portResult.Accepted)
+            {
+                results.Add(new UnitCommandResult(unitId, false, Map(portResult.Error)));
+                continue;
+            }
+
+            var order = orders.Create(context.CommandId, unitId, UnitOrderKind.Attack);
+            orders.Transition(order.OrderId, UnitOrderState.InProgress);
+            results.Add(new UnitCommandResult(unitId, true, CommandErrorCode.None, order.OrderId));
+        }
+        return Summarize(context.CommandId, results);
+    }
+
+    /// <inheritdoc />
     public CommandResult ForceAttack(CommandContext context, ForceAttackCommand command)
     {
         if (command.UnitIds.Count == 0)
@@ -214,7 +259,7 @@ public sealed class UnitCommandService(
         var results = new List<UnitCommandResult>();
         foreach (var unitId in StableDistinct(command.UnitIds))
         {
-            var validation = ValidateForceAttack(context, unitId, target.Value);
+            var validation = ValidateAttack(context, unitId, target.Value, true);
             if (validation != CommandErrorCode.None)
             {
                 results.Add(new UnitCommandResult(unitId, false, validation));
@@ -349,11 +394,12 @@ public sealed class UnitCommandService(
             CommandErrorCode.None : CommandErrorCode.UnitNotOwned;
     }
 
-    /// <summary>校验 ForceAttack 的攻击者所有权、武器能力和目标攻击域。</summary>
-    private CommandErrorCode ValidateForceAttack(
+    /// <summary>校验实体攻击的所有权、敌我关系、停火策略、武器能力和目标域。</summary>
+    private CommandErrorCode ValidateAttack(
         CommandContext context,
         UnitId unitId,
-        UnitCommandSnapshot target)
+        UnitCommandSnapshot target,
+        bool isForceAttack)
     {
         var ownership = ValidateOwnership(context, unitId);
         if (ownership != CommandErrorCode.None)
@@ -362,6 +408,14 @@ public sealed class UnitCommandService(
         }
 
         var attacker = units.Find(unitId)!.Value;
+        if (!isForceAttack && attacker.OwnerId == target.OwnerId)
+        {
+            return CommandErrorCode.InvalidAttackTarget;
+        }
+        if (!isForceAttack && combatPolicies.Get(unitId).FirePolicy == FirePolicy.HoldFire)
+        {
+            return CommandErrorCode.FirePolicyPreventsAttack;
+        }
         if (!attacker.CanAttack)
         {
             return CommandErrorCode.UnitCannotAttack;

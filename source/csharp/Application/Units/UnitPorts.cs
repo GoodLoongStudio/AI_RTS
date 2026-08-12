@@ -84,6 +84,9 @@ public readonly record struct AttackPortResult(bool Accepted, AttackPortError Er
 /// <summary>隔离 Application ForceAttack 逻辑与 Legacy Godot Action。</summary>
 public interface IUnitAttackPort
 {
+    /// <summary>请求攻击者普通攻击指定敌方实体。</summary>
+    AttackPortResult RequestEntityAttack(UnitId attackerId, UnitId targetId);
+
     /// <summary>请求攻击者持续强制攻击指定实体目标。</summary>
     AttackPortResult RequestEntityForceAttack(UnitId attackerId, UnitId targetId);
 

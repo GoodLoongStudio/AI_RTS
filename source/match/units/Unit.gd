@@ -10,6 +10,9 @@ const LegacyGroundAttackMovingAction = preload(
 const LegacyForceAttackAction = preload(
 	"res://source/match/units/actions/ExplicitForceAttacking.gd"
 )
+const LegacyOrdinaryAttackAction = preload(
+	"res://source/match/units/actions/OrdinaryAttacking.gd"
+)
 
 signal selected
 signal deselected
@@ -17,6 +20,7 @@ signal hp_changed
 signal action_changed(new_action)
 signal action_updated
 signal explicit_force_attack_ended(reason)
+signal ordinary_attack_ended(reason)
 
 const MATERIAL_ALBEDO_TO_REPLACE = Color(0.99, 0.81, 0.48)
 const MATERIAL_ALBEDO_TO_REPLACE_EPSILON = 0.05
@@ -115,6 +119,17 @@ func request_legacy_halt_movement() -> bool:
 func request_legacy_refresh_combat_policy():
 	if action != null and action.has_method("refresh_combat_policy"):
 		action.refresh_combat_policy()
+
+
+# Temporary C# migration bridge. Ordinary Attack only accepts authorization
+# already granted by the Application command service.
+func request_legacy_attack(target_unit) -> bool:
+	if attack_range == null or target_unit == null or not "hp" in target_unit:
+		return false
+	var ordinary_attack = LegacyOrdinaryAttackAction.new(target_unit)
+	ordinary_attack.attack_ended.connect(ordinary_attack_ended.emit)
+	action = ordinary_attack
+	return true
 
 
 # Temporary C# migration bridge. Explicit ForceAttack intentionally permits

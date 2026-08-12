@@ -17,6 +17,9 @@ public enum UnitOrderKind
     /// <summary>沿导航路径倒车，或由不具备倒车能力的单位退化执行普通移动。</summary>
     TacticalWithdraw,
 
+    /// <summary>受持续开火策略约束、只允许敌方实体目标的普通攻击订单。</summary>
+    Attack,
+
     /// <summary>带订单级临时开火授权的显式实体强制攻击。</summary>
     ForceAttack
 }

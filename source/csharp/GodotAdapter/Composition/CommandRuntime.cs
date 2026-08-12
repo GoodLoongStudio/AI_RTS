@@ -169,6 +169,22 @@ public partial class CommandRuntime : Node
         return result;
     }
 
+    /// <summary>代表指定玩家向一组单位提交普通敌方实体攻击。</summary>
+    public CommandResult AttackUnits(
+        IEnumerable<Node> unitNodes,
+        Node targetNode,
+        Node issuerPlayer)
+    {
+        var context = CreateContext(issuerPlayer);
+        var unitIds = unitNodes.Select(_units.Register).ToArray();
+        var targetId = _units.Register(targetNode);
+        var result = _commands.Attack(
+            context,
+            new AttackCommand(unitIds, new EntityAttackTarget(targetId)));
+        TrackAcceptedAttacks(result, "ordinary_attack_ended", UnitOrderKind.Attack);
+        return result;
+    }
+
     /// <summary>代表指定玩家向一组 Godot 单位提交持续实体强制攻击。</summary>
     public CommandResult ForceAttackUnits(
         IEnumerable<Node> unitNodes,
@@ -181,7 +197,7 @@ public partial class CommandRuntime : Node
         var result = _commands.ForceAttack(
             context,
             new ForceAttackCommand(unitIds, new EntityAttackTarget(targetId)));
-        TrackAcceptedForceAttacks(result);
+        TrackAcceptedAttacks(result, "explicit_force_attack_ended", UnitOrderKind.ForceAttack);
         return result;
     }
 
@@ -267,8 +283,11 @@ public partial class CommandRuntime : Node
         }
     }
 
-    /// <summary>把 Legacy 显式攻击目标失效事件转换为订单 TargetLost 状态。</summary>
-    private void TrackAcceptedForceAttacks(CommandResult result)
+    /// <summary>把 Legacy 实体攻击目标失效事件转换为对应类型的订单状态。</summary>
+    private void TrackAcceptedAttacks(
+        CommandResult result,
+        string signalName,
+        UnitOrderKind expectedKind)
     {
         foreach (var item in result.UnitResults)
         {
@@ -279,8 +298,9 @@ public partial class CommandRuntime : Node
             }
 
             unit.Connect(
-                "explicit_force_attack_ended",
-                Callable.From<string>(reason => EndForceAttackIfActive(item.UnitId, orderId, reason)),
+                signalName,
+                Callable.From<string>(reason => EndAttackIfActive(
+                    item.UnitId, orderId, expectedKind, reason)),
                 (uint)ConnectFlags.OneShot);
             if (_deathTrackedUnits.Add(item.UnitId))
             {
@@ -289,11 +309,15 @@ public partial class CommandRuntime : Node
         }
     }
 
-    /// <summary>仅在回调仍属于当前 ForceAttack 时转换目标失效状态。</summary>
-    private void EndForceAttackIfActive(UnitId unitId, UnitOrderId orderId, string reason)
+    /// <summary>仅在回调仍属于指定实体攻击订单时转换目标失效状态。</summary>
+    private void EndAttackIfActive(
+        UnitId unitId,
+        UnitOrderId orderId,
+        UnitOrderKind expectedKind,
+        string reason)
     {
         var active = _orders.FindActive(unitId);
-        if (active?.OrderId == orderId && active.Kind == UnitOrderKind.ForceAttack)
+        if (active?.OrderId == orderId && active.Kind == expectedKind)
         {
             _orders.Transition(
                 orderId,

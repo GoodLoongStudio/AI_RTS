@@ -25,6 +25,7 @@ public partial class CSharpCommandSmokeTest : Node
         TestHaltSuspendsWithoutReplacingOrder();
         TestCombatPoliciesAreIndependentAndOwnershipChecked();
         TestForceAttackAndSelectiveCancellation();
+        TestOrdinaryAttackAuthorization();
         TestTacticalWithdrawCapabilityFallback();
 
         GD.Print($"C# command smoke test completed: {_failures} failure(s)");
@@ -231,6 +232,55 @@ public partial class CSharpCommandSmokeTest : Node
             "ground force attack should return stable unsupported weapon error");
     }
 
+    /// <summary>验证普通攻击拒绝己方与停火单位，并为合法敌方目标建立独立订单。</summary>
+    private void TestOrdinaryAttackAuthorization()
+    {
+        var owner = NewPlayerId();
+        var adversary = NewPlayerId();
+        var attacker = NewUnitId();
+        var friendly = NewUnitId();
+        var enemy = NewUnitId();
+        var repository = new FakeRepository(
+            new UnitCommandSnapshot(
+                attacker,
+                owner,
+                true,
+                true,
+                CombatDomain.Terrain,
+                new HashSet<CombatDomain> { CombatDomain.Terrain }),
+            new UnitCommandSnapshot(friendly, owner, true),
+            new UnitCommandSnapshot(enemy, adversary, true));
+        var policies = new InMemoryCombatPolicyStore();
+        var attack = new FakeAttackPort();
+        var orders = new InMemoryUnitOrderStore();
+        var service = new UnitCommandService(
+            repository, new FakeMovementPort(), attack, orders, policies);
+
+        var friendlyResult = service.Attack(
+            Context(owner),
+            new AttackCommand([attacker], new EntityAttackTarget(friendly)));
+        policies.SetFirePolicy(attacker, FirePolicy.HoldFire);
+        var holdFireResult = service.Attack(
+            Context(owner),
+            new AttackCommand([attacker], new EntityAttackTarget(enemy)));
+        policies.SetFirePolicy(attacker, FirePolicy.FireAtWill);
+        var accepted = service.Attack(
+            Context(owner),
+            new AttackCommand([attacker], new EntityAttackTarget(enemy)));
+
+        Check(friendlyResult.UnitResults.Single().ErrorCode == CommandErrorCode.InvalidAttackTarget,
+            "ordinary attack should reject friendly target");
+        Check(holdFireResult.UnitResults.Single().ErrorCode ==
+            CommandErrorCode.FirePolicyPreventsAttack,
+            "ordinary attack should reject HoldFire attacker");
+        Check(accepted.Status == CommandStatus.Accepted,
+            "ordinary enemy attack should be accepted under FireAtWill");
+        Check(orders.FindActive(attacker)?.Kind == UnitOrderKind.Attack,
+            "ordinary attack should retain Attack order kind");
+        Check(attack.OrdinaryAttackRequests == 1,
+            "only authorized ordinary attack should reach attack port");
+    }
+
     /// <summary>验证倒车单位使用撤退端口，而普通可移动单位自动退化为移动且仍创建撤退订单。</summary>
     private void TestTacticalWithdrawCapabilityFallback()
     {
@@ -340,6 +390,16 @@ public partial class CSharpCommandSmokeTest : Node
     {
         /// <summary>累计收到的取消请求数。</summary>
         public int CancelRequests { get; private set; }
+
+        /// <summary>累计收到的普通实体攻击请求数。</summary>
+        public int OrdinaryAttackRequests { get; private set; }
+
+        /// <inheritdoc />
+        public AttackPortResult RequestEntityAttack(UnitId attackerId, UnitId targetId)
+        {
+            OrdinaryAttackRequests++;
+            return AttackPortResult.Success();
+        }
 
         /// <inheritdoc />
         public AttackPortResult RequestEntityForceAttack(UnitId attackerId, UnitId targetId) =>

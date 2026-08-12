@@ -75,6 +75,13 @@ public partial class UnitCommandGateway : Node
         return ToGodot(_runtime.SetFirePolicy(unitNodes, parsed, issuerPlayer));
     }
 
+    /// <summary>提交批量普通实体攻击；只接受敌方目标且不覆盖停火。</summary>
+    public Godot.Collections.Dictionary AttackUnits(
+        Godot.Collections.Array<Node> unitNodes, Node targetNode, Node issuerPlayer)
+    {
+        return ToGodot(_runtime.AttackUnits(unitNodes, targetNode, issuerPlayer));
+    }
+
     /// <summary>提交批量实体强制攻击，允许显式己方或友军目标。</summary>
     public Godot.Collections.Dictionary ForceAttackUnits(
         Godot.Collections.Array<Node> unitNodes, Node targetNode, Node issuerPlayer)

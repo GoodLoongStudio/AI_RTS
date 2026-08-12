@@ -55,6 +55,8 @@ public enum CommandErrorCode
     WeaponCannotTargetDomain,
     /// <summary>攻击者武器不支持向无实体地面位置强制开火。</summary>
     WeaponCannotForceFire,
+    /// <summary>单位处于停火策略，普通攻击不能获得开火授权。</summary>
+    FirePolicyPreventsAttack,
     /// <summary>迁移期攻击执行层暂时无法接收请求。</summary>
     AttackUnavailable
 }
