@@ -3,6 +3,11 @@ using AI_RTS.Domain.Combat;
 
 namespace AI_RTS.Application.Commands.Units;
 
+/// <summary>请求一组单位普通移动到经过编队计算后的目标位置。</summary>
+public sealed record MoveUnitsCommand(
+    IReadOnlyList<UnitId> UnitIds,
+    WorldPosition Destination);
+
 /// <summary>请求一组单位强制移动到经过编队计算后的目标位置。</summary>
 public sealed record ForceMoveUnitsCommand(
     IReadOnlyList<UnitId> UnitIds,

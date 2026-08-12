@@ -75,7 +75,7 @@ func is_revealing():
 func request_legacy_move(target_position: Vector3) -> bool:
 	if find_child("Movement") == null:
 		return false
-	action = LegacyMovingAction.new(target_position)
+	action = LegacyMovingAction.new(target_position, true)
 	return true
 
 

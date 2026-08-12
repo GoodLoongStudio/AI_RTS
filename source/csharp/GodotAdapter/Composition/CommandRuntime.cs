@@ -44,6 +44,23 @@ public partial class CommandRuntime : Node
             _combatPolicies);
     }
 
+    /// <summary>代表指定玩家向一组 Godot 单位节点提交普通移动命令。</summary>
+    public CommandResult MoveUnits(
+        IEnumerable<Node> unitNodes,
+        Vector3 destination,
+        Node issuerPlayer)
+    {
+        var context = CreateContext(issuerPlayer);
+        var unitIds = unitNodes.Select(_units.Register).ToArray();
+        var result = _commands.Move(
+            context,
+            new MoveUnitsCommand(
+                unitIds,
+                new WorldPosition(destination.X, destination.Y, destination.Z)));
+        TrackAcceptedOrders(result);
+        return result;
+    }
+
     /// <summary>代表指定玩家向一组 Godot 单位节点提交强制移动命令。</summary>
     public CommandResult ForceMoveUnits(
         IEnumerable<Node> unitNodes,

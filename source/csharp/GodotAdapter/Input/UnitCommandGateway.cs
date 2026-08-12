@@ -18,6 +18,13 @@ public partial class UnitCommandGateway : Node
         _runtime = match.GetNode<CommandRuntime>("CommandRuntime");
     }
 
+    /// <summary>接收 GDScript 单位节点并提交批量普通移动命令。</summary>
+    public Godot.Collections.Dictionary MoveUnits(
+        Godot.Collections.Array<Node> unitNodes, Vector3 destination, Node issuerPlayer)
+    {
+        return ToGodot(_runtime.MoveUnits(unitNodes, destination, issuerPlayer));
+    }
+
     /// <summary>接收 GDScript 单位节点并提交批量强制移动命令。</summary>
     public Godot.Collections.Dictionary ForceMoveUnits(
         Godot.Collections.Array<Node> unitNodes, Vector3 destination, Node issuerPlayer)

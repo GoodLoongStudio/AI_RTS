@@ -5,6 +5,9 @@ namespace AI_RTS.Application.Orders;
 /// <summary>区分一次性单位订单的执行语义，供停止、取消和状态跟踪精确判断。</summary>
 public enum UnitOrderKind
 {
+    /// <summary>要求单位优先到达指定位置的普通移动订单。</summary>
+    Move,
+
     /// <summary>要求单位优先到达指定位置的强制移动订单。</summary>
     ForceMove,
 

@@ -59,7 +59,7 @@ func _try_navigating_selected_units_towards_position(target_point):
 	assert(command_gateway != null)
 	for tuple in new_unit_targets:
 		if tuple[0] is Tank:
-			command_gateway.ForceMoveUnits([tuple[0]], tuple[1], get_parent())
+			command_gateway.MoveUnits([tuple[0]], tuple[1], get_parent())
 		else:
 			# Non-Tank units remain on the legacy path until their command semantics are reviewed.
 			tuple[0].action = Actions.Moving.new(tuple[1])

@@ -32,7 +32,7 @@ func _ready():
 		"idle Tank should capture current position as Guard anchor"
 	)
 
-	var move_result = gateway.ForceMoveUnits([tank], destination, human)
+	var move_result = gateway.MoveUnits([tank], destination, human)
 	_check(move_result["status"] == "Accepted", "Tank move should be accepted")
 	_check(tank.action != null and tank.action.get_script() == Moving, "Tank should use Moving bridge")
 	var order_id = move_result["unit_results"][0]["order_id"]

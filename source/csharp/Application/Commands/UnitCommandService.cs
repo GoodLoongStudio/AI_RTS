@@ -10,6 +10,9 @@ namespace AI_RTS.Application.Commands;
 /// <summary>提供经过权限与能力校验的单位命令入口。</summary>
 public interface IUnitCommandService
 {
+    /// <summary>提交批量普通移动命令，并返回每个单位的接收结果。</summary>
+    CommandResult Move(CommandContext context, MoveUnitsCommand command);
+
     /// <summary>提交批量强制移动命令，并返回每个单位的接收结果。</summary>
     CommandResult ForceMove(CommandContext context, ForceMoveUnitsCommand command);
 
@@ -40,6 +43,19 @@ public sealed class UnitCommandService(
     IUnitOrderStore orders,
     ICombatPolicyStore combatPolicies) : IUnitCommandService
 {
+    /// <inheritdoc />
+    public CommandResult Move(CommandContext context, MoveUnitsCommand command)
+    {
+        if (command.UnitIds.Count == 0 || !IsFinite(command.Destination))
+        {
+            return Rejected(context.CommandId, command.UnitIds,
+                command.UnitIds.Count == 0 ? CommandErrorCode.EmptyUnitSet : CommandErrorCode.InvalidDestination);
+        }
+
+        return ExecuteMove(context, command.UnitIds, UnitOrderKind.Move, unitId =>
+            movement.RequestMove(unitId, command.Destination));
+    }
+
     /// <inheritdoc />
     public CommandResult ForceMove(CommandContext context, ForceMoveUnitsCommand command)
     {
@@ -97,7 +113,7 @@ public sealed class UnitCommandService(
             }
 
             var active = orders.FindActive(unitId);
-            if (active?.Kind is UnitOrderKind.ForceMove or UnitOrderKind.TacticalWithdraw)
+            if (active?.Kind is UnitOrderKind.Move or UnitOrderKind.ForceMove or UnitOrderKind.TacticalWithdraw)
             {
                 orders.Transition(active.OrderId, UnitOrderState.Suspended);
             }
@@ -105,7 +121,7 @@ public sealed class UnitCommandService(
                 unitId,
                 true,
                 CommandErrorCode.None,
-                active?.Kind is UnitOrderKind.ForceMove or UnitOrderKind.TacticalWithdraw ?
+                active?.Kind is UnitOrderKind.Move or UnitOrderKind.ForceMove or UnitOrderKind.TacticalWithdraw ?
                     active.OrderId : null));
         }
         return Summarize(context.CommandId, results);

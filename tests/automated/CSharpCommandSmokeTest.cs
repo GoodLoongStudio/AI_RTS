@@ -19,6 +19,7 @@ public partial class CSharpCommandSmokeTest : Node
     public override void _Ready()
     {
         TestPartialAcceptanceAndIndependentOrders();
+        TestMoveAndForceMoveKeepDistinctIntent();
         TestFailedReplacementPreservesActiveOrder();
         TestHaltSuspendsWithoutReplacingOrder();
         TestCombatPoliciesAreIndependentAndOwnershipChecked();
@@ -54,6 +55,32 @@ public partial class CSharpCommandSmokeTest : Node
             "missing unit should be rejected independently");
         Check(orders.FindActive(movable)?.State == UnitOrderState.InProgress,
             "accepted move order should become in progress");
+    }
+
+    /// <summary>验证普通移动和强制移动复用导航端口，但保留彼此独立的订单类型。</summary>
+    private void TestMoveAndForceMoveKeepDistinctIntent()
+    {
+        var owner = NewPlayerId();
+        var unit = NewUnitId();
+        var repository = new FakeRepository(new UnitCommandSnapshot(unit, owner, true));
+        var orders = new InMemoryUnitOrderStore();
+        var service = NewService(repository, new FakeMovementPort(), orders);
+
+        var move = service.Move(
+            Context(owner),
+            new MoveUnitsCommand([unit], new WorldPosition(1, 0, 1)));
+        var moveOrder = orders.FindActive(unit);
+        var forceMove = service.ForceMove(
+            Context(owner),
+            new ForceMoveUnitsCommand([unit], new WorldPosition(2, 0, 2)));
+
+        Check(move.Status == CommandStatus.Accepted, "ordinary move should be accepted");
+        Check(moveOrder?.Kind == UnitOrderKind.Move, "ordinary move should retain Move order kind");
+        Check(forceMove.Status == CommandStatus.Accepted, "force move should be accepted");
+        Check(orders.FindActive(unit)?.Kind == UnitOrderKind.ForceMove,
+            "force move should retain ForceMove order kind");
+        Check(moveOrder is not null && orders.Find(moveOrder.OrderId)?.State == UnitOrderState.Cancelled,
+            "force move should replace the previous ordinary move order");
     }
 
     /// <summary>验证新导航请求失败时不会提前取消旧活动订单。</summary>
