@@ -4,6 +4,8 @@
 > 状态：核心语义已通过评审；地面目标身份契约已按评审补充
 > 范围：强制攻击命令、目标联合类型、即时回执与异步订单状态；本稿不实现攻击算法和最终 UI
 
+> 实施进度：2026-08-12 已完成 Tank `EntityAttackTarget` 纵向样例；Ground Target 保持 `WeaponCannotForceFire` 稳定拒绝。
+
 ## 1. 目标
 
 `ForceAttack` 表达玩家、规则 AI 或未来大模型 AI 的强烈明确攻击意图。所有调用方提交同一套 Application 命令；Human HUD 只负责选择目标和显示经过权限过滤的结果，不直接写入 `unit.action`。

@@ -5,6 +5,7 @@ using AI_RTS.Application.Orders;
 using AI_RTS.Domain.Combat;
 using AI_RTS.Domain.Common;
 using AI_RTS.GodotAdapter.Navigation;
+using AI_RTS.GodotAdapter.Combat;
 using AI_RTS.GodotAdapter.Units;
 using Godot;
 
@@ -38,6 +39,7 @@ public partial class CommandRuntime : Node
         _commands = new UnitCommandService(
             _units,
             new LegacyMovementPort(_units),
+            new LegacyAttackPort(_units),
             _orders,
             _combatPolicies);
     }
@@ -116,6 +118,45 @@ public partial class CommandRuntime : Node
         return result;
     }
 
+    /// <summary>代表指定玩家向一组 Godot 单位提交持续实体强制攻击。</summary>
+    public CommandResult ForceAttackUnits(
+        IEnumerable<Node> unitNodes,
+        Node targetNode,
+        Node issuerPlayer)
+    {
+        var context = CreateContext(issuerPlayer);
+        var unitIds = unitNodes.Select(_units.Register).ToArray();
+        var targetId = _units.Register(targetNode);
+        var result = _commands.ForceAttack(
+            context,
+            new ForceAttackCommand(unitIds, new EntityAttackTarget(targetId)));
+        TrackAcceptedForceAttacks(result);
+        return result;
+    }
+
+    /// <summary>提交地面强制攻击；当前武器能力会返回稳定拒绝。</summary>
+    public CommandResult ForceAttackGround(
+        IEnumerable<Node> unitNodes,
+        Vector3 position,
+        Node issuerPlayer)
+    {
+        var context = CreateContext(issuerPlayer);
+        var unitIds = unitNodes.Select(_units.Register).ToArray();
+        return _commands.ForceAttack(
+            context,
+            new ForceAttackCommand(
+                unitIds,
+                new GroundAttackTarget(new WorldPosition(position.X, position.Y, position.Z))));
+    }
+
+    /// <summary>只取消指定单位的显式 ForceAttack，不影响普通自动攻击。</summary>
+    public CommandResult CancelForceAttack(IEnumerable<Node> unitNodes, Node issuerPlayer)
+    {
+        var context = CreateContext(issuerPlayer);
+        var unitIds = unitNodes.Select(_units.Register).ToArray();
+        return _commands.CancelForceAttack(context, new CancelForceAttackCommand(unitIds));
+    }
+
     /// <summary>查询指定 Godot 单位当前权威交战姿态名称。</summary>
     public string GetEngagementStance(Node unitNode) =>
         _combatPolicies.Get(_units.Register(unitNode)).EngagementStance.ToString();
@@ -172,6 +213,40 @@ public partial class CommandRuntime : Node
             {
                 unit.TreeExiting += () => LoseActiveOrder(item.UnitId);
             }
+        }
+    }
+
+    /// <summary>把 Legacy 显式攻击目标失效事件转换为订单 TargetLost 状态。</summary>
+    private void TrackAcceptedForceAttacks(CommandResult result)
+    {
+        foreach (var item in result.UnitResults)
+        {
+            if (!item.Accepted || item.OrderId is not { } orderId ||
+                !_units.TryGetNode(item.UnitId, out var unit))
+            {
+                continue;
+            }
+
+            unit.Connect(
+                "explicit_force_attack_ended",
+                Callable.From<string>(reason => EndForceAttackIfActive(item.UnitId, orderId, reason)),
+                (uint)ConnectFlags.OneShot);
+            if (_deathTrackedUnits.Add(item.UnitId))
+            {
+                unit.TreeExiting += () => LoseActiveOrder(item.UnitId);
+            }
+        }
+    }
+
+    /// <summary>仅在回调仍属于当前 ForceAttack 时转换目标失效状态。</summary>
+    private void EndForceAttackIfActive(UnitId unitId, UnitOrderId orderId, string reason)
+    {
+        var active = _orders.FindActive(unitId);
+        if (active?.OrderId == orderId && active.Kind == UnitOrderKind.ForceAttack)
+        {
+            _orders.Transition(
+                orderId,
+                reason == "TargetLost" ? UnitOrderState.TargetLost : UnitOrderState.Cancelled);
         }
     }
 

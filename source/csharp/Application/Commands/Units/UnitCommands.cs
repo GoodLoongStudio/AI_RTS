@@ -20,3 +20,20 @@ public sealed record SetEngagementStanceCommand(
 public sealed record SetFirePolicyCommand(
     IReadOnlyList<UnitId> UnitIds,
     FirePolicy Policy);
+
+/// <summary>表示 ForceAttack 可接受的实体或地面目标联合类型。</summary>
+public abstract record AttackTarget;
+
+/// <summary>引用一个进程内稳定单位身份作为持续强制攻击目标。</summary>
+public sealed record EntityAttackTarget(UnitId TargetUnitId) : AttackTarget;
+
+/// <summary>引用一个纯世界坐标；当前纵向样例会稳定返回武器不支持。</summary>
+public sealed record GroundAttackTarget(WorldPosition Position) : AttackTarget;
+
+/// <summary>请求一组单位持续强制攻击同一目标，并获得订单级临时开火授权。</summary>
+public sealed record ForceAttackCommand(
+    IReadOnlyList<UnitId> UnitIds,
+    AttackTarget Target);
+
+/// <summary>取消一组单位当前显式 ForceAttack，不影响普通自动攻击。</summary>
+public sealed record CancelForceAttackCommand(IReadOnlyList<UnitId> UnitIds);

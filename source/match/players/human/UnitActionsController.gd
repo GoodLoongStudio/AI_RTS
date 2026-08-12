@@ -1,6 +1,6 @@
 extends Node
 
-signal command_targeting_changed(is_targeting)
+signal command_targeting_changed(command_name)
 signal command_feedback(command_name, accepted_count, rejected_count, status)
 
 const Structure = preload("res://source/match/units/Structure.gd")
@@ -8,6 +8,7 @@ const ResourceUnit = preload("res://source/match/units/non-player/ResourceUnit.g
 const Tank = preload("res://source/match/units/Tank.gd")
 
 var _is_force_move_targeting := false
+var _is_force_attack_targeting := false
 
 
 class Actions:
@@ -65,16 +66,25 @@ func _try_navigating_selected_units_towards_position(target_point):
 
 ## 进入一次性的强制移动目标选择状态；下一次地面目标将消费此状态。
 func begin_force_move_targeting():
+	_is_force_attack_targeting = false
 	_is_force_move_targeting = true
-	command_targeting_changed.emit(true)
+	command_targeting_changed.emit("ForceMove")
+
+
+## 进入一次性的强制攻击目标选择状态；右键实体或地面将消费此状态。
+func begin_force_attack_targeting():
+	_is_force_move_targeting = false
+	_is_force_attack_targeting = true
+	command_targeting_changed.emit("ForceAttack")
 
 
 ## 取消尚未指定目标的显式命令，不影响单位当前正在执行的命令。
 func cancel_command_targeting():
-	if not _is_force_move_targeting:
+	if not _is_force_move_targeting and not _is_force_attack_targeting:
 		return
 	_is_force_move_targeting = false
-	command_targeting_changed.emit(false)
+	_is_force_attack_targeting = false
+	command_targeting_changed.emit("")
 
 
 ## 对当前 Selection 中已迁移的 Tank 提交停止移动命令，并汇总即时接收结果。
@@ -84,11 +94,14 @@ func halt_selected_units():
 	var accepted_count := 0
 	var rejected_count: int = selected_units.size() - tanks.size()
 	if not tanks.is_empty():
-		var result = _get_command_gateway().HaltMovement(tanks, get_parent())
-		var counts = _count_command_result(result)
-		accepted_count += counts[0]
-		rejected_count += counts[1]
-	_emit_command_feedback("HaltMovement", accepted_count, rejected_count)
+		var gateway = _get_command_gateway()
+		var halt_result = gateway.HaltMovement(tanks, get_parent())
+		var cancel_result = gateway.CancelForceAttack(tanks, get_parent())
+		var halt_counts = _count_command_result(halt_result)
+		var cancel_counts = _count_command_result(cancel_result)
+		accepted_count += min(halt_counts[0], cancel_counts[0])
+		rejected_count += max(halt_counts[1], cancel_counts[1])
+	_emit_command_feedback("Stop", accepted_count, rejected_count)
 
 
 ## 返回当前 Selection 中已迁移到 C# 命令链路的可控 Tank 数量，供灰盒 HUD 更新可用状态。
@@ -169,6 +182,32 @@ func _execute_targeted_force_move(target_point: Vector3):
 	_emit_command_feedback("ForceMove", accepted_count, rejected_count)
 
 
+func _execute_targeted_force_attack(target_unit):
+	var selected_units = _get_selected_controlled_units()
+	var tanks = selected_units.filter(func(unit): return unit is Tank)
+	var accepted_count := 0
+	var rejected_count: int = selected_units.size() - tanks.size()
+	if not tanks.is_empty():
+		var result = _get_command_gateway().ForceAttackUnits(tanks, target_unit, get_parent())
+		var counts = _count_command_result(result)
+		accepted_count += counts[0]
+		rejected_count += counts[1]
+	_emit_command_feedback("ForceAttack", accepted_count, rejected_count)
+
+
+func _execute_targeted_ground_force_attack(target_point: Vector3):
+	var selected_units = _get_selected_controlled_units()
+	var tanks = selected_units.filter(func(unit): return unit is Tank)
+	var accepted_count := 0
+	var rejected_count: int = selected_units.size() - tanks.size()
+	if not tanks.is_empty():
+		var result = _get_command_gateway().ForceAttackGround(tanks, target_point, get_parent())
+		var counts = _count_command_result(result)
+		accepted_count += counts[0]
+		rejected_count += counts[1]
+	_emit_command_feedback("ForceAttackGround", accepted_count, rejected_count)
+
+
 func _get_selected_controlled_units() -> Array:
 	return get_tree().get_nodes_in_group("selected_units").filter(
 		func(unit): return unit.is_in_group("controlled_units")
@@ -243,6 +282,8 @@ func _navigate_unit_towards_unit(unit, target_unit):
 		unit.action = Actions.CollectingResourcesSequentially.new(target_unit)
 		return true
 	if Actions.AutoAttacking.is_applicable(unit, target_unit):
+		if unit is Tank and _get_command_gateway().GetFirePolicy(unit) == "HoldFire":
+			return false
 		unit.action = Actions.AutoAttacking.new(target_unit)
 		return true
 	if Actions.Constructing.is_applicable(unit, target_unit):
@@ -279,14 +320,27 @@ func _try_setting_rally_point_to_unit(unit, target_unit):
 func _on_terrain_targeted(position):
 	if _is_force_move_targeting:
 		_is_force_move_targeting = false
-		command_targeting_changed.emit(false)
+		command_targeting_changed.emit("")
 		_execute_targeted_force_move(position)
+		return
+	if _is_force_attack_targeting:
+		_is_force_attack_targeting = false
+		command_targeting_changed.emit("")
+		_execute_targeted_ground_force_attack(position)
 		return
 	_try_navigating_selected_units_towards_position(position)
 	_try_setting_rally_points(position)
 
 
 func _on_unit_targeted(unit):
+	if _is_force_attack_targeting:
+		_is_force_attack_targeting = false
+		command_targeting_changed.emit("")
+		_execute_targeted_force_attack(unit)
+		var explicit_targetability = unit.find_child("Targetability")
+		if explicit_targetability != null:
+			explicit_targetability.animate()
+		return
 	if _navigate_selected_units_towards_unit(unit):
 		var targetability = unit.find_child("Targetability")
 		if targetability != null:

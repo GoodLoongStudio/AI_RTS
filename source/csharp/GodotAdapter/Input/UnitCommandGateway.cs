@@ -54,6 +54,27 @@ public partial class UnitCommandGateway : Node
         return ToGodot(_runtime.SetFirePolicy(unitNodes, parsed, issuerPlayer));
     }
 
+    /// <summary>提交批量实体强制攻击，允许显式己方或友军目标。</summary>
+    public Godot.Collections.Dictionary ForceAttackUnits(
+        Godot.Collections.Array<Node> unitNodes, Node targetNode, Node issuerPlayer)
+    {
+        return ToGodot(_runtime.ForceAttackUnits(unitNodes, targetNode, issuerPlayer));
+    }
+
+    /// <summary>提交地面强制攻击；当前纵向样例返回 WeaponCannotForceFire。</summary>
+    public Godot.Collections.Dictionary ForceAttackGround(
+        Godot.Collections.Array<Node> unitNodes, Vector3 position, Node issuerPlayer)
+    {
+        return ToGodot(_runtime.ForceAttackGround(unitNodes, position, issuerPlayer));
+    }
+
+    /// <summary>只取消显式 ForceAttack，不影响普通自动攻击。</summary>
+    public Godot.Collections.Dictionary CancelForceAttack(
+        Godot.Collections.Array<Node> unitNodes, Node issuerPlayer)
+    {
+        return ToGodot(_runtime.CancelForceAttack(unitNodes, issuerPlayer));
+    }
+
     /// <summary>查询指定单位当前权威交战姿态名称。</summary>
     public string GetEngagementStance(Node unitNode) => _runtime.GetEngagementStance(unitNode);
 

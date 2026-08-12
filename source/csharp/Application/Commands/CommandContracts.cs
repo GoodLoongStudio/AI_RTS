@@ -42,7 +42,21 @@ public enum CommandErrorCode
     /// <summary>交战姿态值不属于当前版本支持的枚举项。</summary>
     InvalidEngagementStance,
     /// <summary>开火策略值不属于当前版本支持的枚举项。</summary>
-    InvalidFirePolicy
+    InvalidFirePolicy,
+    /// <summary>攻击目标联合类型或地面坐标无效。</summary>
+    InvalidAttackTarget,
+    /// <summary>攻击者没有可用武器。</summary>
+    UnitCannotAttack,
+    /// <summary>实体攻击目标不存在或已经失效。</summary>
+    TargetNotFound,
+    /// <summary>实体存在，但不是当前规则下的伤害目标。</summary>
+    TargetNotDamageable,
+    /// <summary>攻击者武器不能攻击目标所在域。</summary>
+    WeaponCannotTargetDomain,
+    /// <summary>攻击者武器不支持向无实体地面位置强制开火。</summary>
+    WeaponCannotForceFire,
+    /// <summary>迁移期攻击执行层暂时无法接收请求。</summary>
+    AttackUnavailable
 }
 
 /// <summary>记录批量命令中单个单位的接收结果和订单标识。</summary>

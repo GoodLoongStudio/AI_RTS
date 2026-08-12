@@ -2,6 +2,16 @@ using AI_RTS.Domain.Common;
 
 namespace AI_RTS.Application.Orders;
 
+/// <summary>区分一次性单位订单的执行语义，供停止、取消和状态跟踪精确判断。</summary>
+public enum UnitOrderKind
+{
+    /// <summary>要求单位优先到达指定位置的强制移动订单。</summary>
+    ForceMove,
+
+    /// <summary>带订单级临时开火授权的显式实体强制攻击。</summary>
+    ForceAttack
+}
+
 /// <summary>表示单个单位订单在生命周期中的权威状态。</summary>
 public enum UnitOrderState
 {
@@ -28,6 +38,7 @@ public sealed record UnitOrderSnapshot(
     UnitOrderId OrderId,
     CommandId CommandId,
     UnitId UnitId,
+    UnitOrderKind Kind,
     UnitOrderState State,
     CommandId? ReplacedByCommandId = null);
 
@@ -35,7 +46,7 @@ public sealed record UnitOrderSnapshot(
 public interface IUnitOrderStore
 {
     /// <summary>为单位创建新订单，并取消其旧活动订单。</summary>
-    UnitOrderSnapshot Create(CommandId commandId, UnitId unitId);
+    UnitOrderSnapshot Create(CommandId commandId, UnitId unitId, UnitOrderKind kind);
 
     /// <summary>查询单位当前仍可继续变化的活动订单。</summary>
     UnitOrderSnapshot? FindActive(UnitId unitId);
@@ -57,7 +68,7 @@ public sealed class InMemoryUnitOrderStore : IUnitOrderStore
     private readonly Dictionary<UnitId, UnitOrderId> _activeByUnit = new();
 
     /// <inheritdoc />
-    public UnitOrderSnapshot Create(CommandId commandId, UnitId unitId)
+    public UnitOrderSnapshot Create(CommandId commandId, UnitId unitId, UnitOrderKind kind)
     {
         if (FindActive(unitId) is { } previous)
         {
@@ -65,7 +76,7 @@ public sealed class InMemoryUnitOrderStore : IUnitOrderStore
         }
 
         var order = new UnitOrderSnapshot(
-            new UnitOrderId(Guid.NewGuid()), commandId, unitId, UnitOrderState.Accepted);
+            new UnitOrderId(Guid.NewGuid()), commandId, unitId, kind, UnitOrderState.Accepted);
         _orders.Add(order.OrderId, order);
         _activeByUnit[unitId] = order.OrderId;
         return order;

@@ -22,6 +22,7 @@ public partial class CSharpCommandSmokeTest : Node
         TestFailedReplacementPreservesActiveOrder();
         TestHaltSuspendsWithoutReplacingOrder();
         TestCombatPoliciesAreIndependentAndOwnershipChecked();
+        TestForceAttackAndSelectiveCancellation();
 
         GD.Print($"C# command smoke test completed: {_failures} failure(s)");
         GetTree().Quit(_failures == 0 ? 0 : 1);
@@ -108,6 +109,7 @@ public partial class CSharpCommandSmokeTest : Node
         var service = new UnitCommandService(
             repository,
             new FakeMovementPort(),
+            new FakeAttackPort(),
             new InMemoryUnitOrderStore(),
             policies);
 
@@ -133,6 +135,52 @@ public partial class CSharpCommandSmokeTest : Node
             "rejected foreign unit should preserve default policy");
     }
 
+    /// <summary>验证显式攻击可选择友军、创建分类订单，并可被选择性取消。</summary>
+    private void TestForceAttackAndSelectiveCancellation()
+    {
+        var owner = NewPlayerId();
+        var attacker = NewUnitId();
+        var friendlyTarget = NewUnitId();
+        var repository = new FakeRepository(
+            new UnitCommandSnapshot(
+                attacker,
+                owner,
+                true,
+                true,
+                CombatDomain.Terrain,
+                new HashSet<CombatDomain> { CombatDomain.Terrain }),
+            new UnitCommandSnapshot(friendlyTarget, owner, true));
+        var orders = new InMemoryUnitOrderStore();
+        var attack = new FakeAttackPort();
+        var service = new UnitCommandService(
+            repository,
+            new FakeMovementPort(),
+            attack,
+            orders,
+            new InMemoryCombatPolicyStore());
+
+        var result = service.ForceAttack(
+            Context(owner),
+            new ForceAttackCommand([attacker], new EntityAttackTarget(friendlyTarget)));
+        var order = orders.FindActive(attacker);
+
+        Check(result.Status == CommandStatus.Accepted, "explicit friendly force attack should be accepted");
+        Check(order?.Kind == UnitOrderKind.ForceAttack, "force attack order should retain its kind");
+        var cancelled = service.CancelForceAttack(
+            Context(owner),
+            new CancelForceAttackCommand([attacker]));
+        Check(cancelled.Status == CommandStatus.Accepted, "force attack cancellation should be accepted");
+        Check(order is not null && orders.Find(order.OrderId)?.State == UnitOrderState.Cancelled,
+            "selective cancellation should cancel active force attack order");
+        Check(attack.CancelRequests == 1, "attack port should receive one cancellation request");
+
+        var ground = service.ForceAttack(
+            Context(owner),
+            new ForceAttackCommand([attacker], new GroundAttackTarget(new WorldPosition(1, 0, 1))));
+        Check(ground.UnitResults.Single().ErrorCode == CommandErrorCode.WeaponCannotForceFire,
+            "ground force attack should return stable unsupported weapon error");
+    }
+
     /// <summary>累计失败断言并向 Godot 错误日志报告原因。</summary>
     private void Check(bool condition, string message)
     {
@@ -153,7 +201,7 @@ public partial class CSharpCommandSmokeTest : Node
         IUnitCommandUnitRepository repository,
         IUnitMovementPort movement,
         IUnitOrderStore orders) =>
-        new(repository, movement, orders, new InMemoryCombatPolicyStore());
+        new(repository, movement, new FakeAttackPort(), orders, new InMemoryCombatPolicyStore());
 
     /// <summary>提供测试使用的内存单位查询仓储。</summary>
     private sealed class FakeRepository(params UnitCommandSnapshot[] units) : IUnitCommandUnitRepository
@@ -179,5 +227,23 @@ public partial class CSharpCommandSmokeTest : Node
 
         /// <inheritdoc />
         public MovementPortResult RequestHalt(UnitId unitId) => MovementPortResult.Success();
+    }
+
+    /// <summary>记录测试中的显式攻击与取消请求。</summary>
+    private sealed class FakeAttackPort : IUnitAttackPort
+    {
+        /// <summary>累计收到的取消请求数。</summary>
+        public int CancelRequests { get; private set; }
+
+        /// <inheritdoc />
+        public AttackPortResult RequestEntityForceAttack(UnitId attackerId, UnitId targetId) =>
+            AttackPortResult.Success();
+
+        /// <inheritdoc />
+        public AttackPortResult RequestCancelForceAttack(UnitId unitId)
+        {
+            CancelRequests++;
+            return AttackPortResult.Success();
+        }
     }
 }

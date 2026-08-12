@@ -1,9 +1,17 @@
 using AI_RTS.Domain.Common;
+using AI_RTS.Domain.Combat;
 
 namespace AI_RTS.Application.Units;
 
 /// <summary>提供命令校验所需的最小单位只读信息。</summary>
-public readonly record struct UnitCommandSnapshot(UnitId UnitId, PlayerId OwnerId, bool CanMove);
+public readonly record struct UnitCommandSnapshot(
+    UnitId UnitId,
+    PlayerId OwnerId,
+    bool CanMove,
+    bool CanAttack = false,
+    CombatDomain Domain = CombatDomain.Terrain,
+    IReadOnlySet<CombatDomain>? AttackDomains = null,
+    bool IsDamageable = true);
 
 /// <summary>为命令服务提供不依赖 Godot Node 的单位查询。</summary>
 public interface IUnitCommandUnitRepository
@@ -41,4 +49,37 @@ public interface IUnitMovementPort
 
     /// <summary>请求单位停止当前位移。</summary>
     MovementPortResult RequestHalt(UnitId unitId);
+}
+
+/// <summary>表示显式攻击端口拒绝请求的稳定原因。</summary>
+public enum AttackPortError
+{
+    /// <summary>没有错误。</summary>
+    None,
+
+    /// <summary>攻击者或目标对应的运行时对象已经不可用。</summary>
+    UnitUnavailable,
+
+    /// <summary>迁移期攻击执行层暂时无法接收请求。</summary>
+    AttackUnavailable
+}
+
+/// <summary>表示显式攻击适配端口是否接受一次请求。</summary>
+public readonly record struct AttackPortResult(bool Accepted, AttackPortError Error)
+{
+    /// <summary>创建成功的攻击端口结果。</summary>
+    public static AttackPortResult Success() => new(true, AttackPortError.None);
+
+    /// <summary>使用指定错误原因创建失败的攻击端口结果。</summary>
+    public static AttackPortResult Failure(AttackPortError error) => new(false, error);
+}
+
+/// <summary>隔离 Application ForceAttack 逻辑与 Legacy Godot Action。</summary>
+public interface IUnitAttackPort
+{
+    /// <summary>请求攻击者持续强制攻击指定实体目标。</summary>
+    AttackPortResult RequestEntityForceAttack(UnitId attackerId, UnitId targetId);
+
+    /// <summary>取消单位当前显式 ForceAttack；没有显式攻击时作为幂等无操作接受。</summary>
+    AttackPortResult RequestCancelForceAttack(UnitId unitId);
 }

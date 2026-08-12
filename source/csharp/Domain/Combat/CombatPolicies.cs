@@ -22,3 +22,13 @@ public enum FirePolicy
     /// <summary>禁止自主开火，但不阻止具有临时授权的显式 ForceAttack。</summary>
     HoldFire
 }
+
+/// <summary>表示武器和目标所在的导航/攻击空间。</summary>
+public enum CombatDomain
+{
+    /// <summary>地面单位、建筑和地表目标。</summary>
+    Terrain,
+
+    /// <summary>飞行单位和空中目标。</summary>
+    Air
+}

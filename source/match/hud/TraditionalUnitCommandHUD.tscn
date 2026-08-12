@@ -43,7 +43,14 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(150, 40)
 layout_mode = 2
 text = "停止移动"
-tooltip_text = "只停止导航，不取消攻击或上层任务"
+tooltip_text = "停止导航并取消显式强制攻击，不影响普通自动攻击"
+
+[node name="ForceAttackButton" type="Button" parent="MarginContainer/VBoxContainer/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 40)
+layout_mode = 2
+text = "强制攻击"
+tooltip_text = "下一次右键单位或地面将作为显式强制攻击目标"
 
 [node name="CombatPolicies" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2

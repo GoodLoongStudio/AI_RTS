@@ -21,12 +21,19 @@ public interface IUnitCommandService
 
     /// <summary>设置单位持续开火策略，不改变交战姿态。</summary>
     CommandResult SetFirePolicy(CommandContext context, SetFirePolicyCommand command);
+
+    /// <summary>提交批量显式强制攻击，并返回每个攻击者的接收结果。</summary>
+    CommandResult ForceAttack(CommandContext context, ForceAttackCommand command);
+
+    /// <summary>只取消当前显式 ForceAttack，不影响普通自动攻击。</summary>
+    CommandResult CancelForceAttack(CommandContext context, CancelForceAttackCommand command);
 }
 
 /// <summary>协调单位校验、导航端口调用与订单状态更新。</summary>
 public sealed class UnitCommandService(
     IUnitCommandUnitRepository units,
     IUnitMovementPort movement,
+    IUnitAttackPort attack,
     IUnitOrderStore orders,
     ICombatPolicyStore combatPolicies) : IUnitCommandService
 {
@@ -39,7 +46,7 @@ public sealed class UnitCommandService(
                 command.UnitIds.Count == 0 ? CommandErrorCode.EmptyUnitSet : CommandErrorCode.InvalidDestination);
         }
 
-        return Execute(context, command.UnitIds, unitId =>
+        return ExecuteMove(context, command.UnitIds, unitId =>
             movement.RequestMove(unitId, command.Destination));
     }
 
@@ -69,11 +76,15 @@ public sealed class UnitCommandService(
             }
 
             var active = orders.FindActive(unitId);
-            if (active is not null)
+            if (active?.Kind == UnitOrderKind.ForceMove)
             {
                 orders.Transition(active.OrderId, UnitOrderState.Suspended);
             }
-            results.Add(new UnitCommandResult(unitId, true, CommandErrorCode.None, active?.OrderId));
+            results.Add(new UnitCommandResult(
+                unitId,
+                true,
+                CommandErrorCode.None,
+                active?.Kind == UnitOrderKind.ForceMove ? active.OrderId : null));
         }
         return Summarize(context.CommandId, results);
     }
@@ -116,6 +127,95 @@ public sealed class UnitCommandService(
             unitId => combatPolicies.SetFirePolicy(unitId, command.Policy));
     }
 
+    /// <inheritdoc />
+    public CommandResult ForceAttack(CommandContext context, ForceAttackCommand command)
+    {
+        if (command.UnitIds.Count == 0)
+        {
+            return Rejected(context.CommandId, command.UnitIds, CommandErrorCode.EmptyUnitSet);
+        }
+        if (command.Target is GroundAttackTarget groundTarget)
+        {
+            return IsFinite(groundTarget.Position) ?
+                Rejected(context.CommandId, command.UnitIds, CommandErrorCode.WeaponCannotForceFire) :
+                Rejected(context.CommandId, command.UnitIds, CommandErrorCode.InvalidAttackTarget);
+        }
+        if (command.Target is not EntityAttackTarget entityTarget)
+        {
+            return Rejected(context.CommandId, command.UnitIds, CommandErrorCode.InvalidAttackTarget);
+        }
+
+        var target = units.Find(entityTarget.TargetUnitId);
+        if (target is null)
+        {
+            return Rejected(context.CommandId, command.UnitIds, CommandErrorCode.TargetNotFound);
+        }
+        if (!target.Value.IsDamageable)
+        {
+            return Rejected(context.CommandId, command.UnitIds, CommandErrorCode.TargetNotDamageable);
+        }
+
+        var results = new List<UnitCommandResult>();
+        foreach (var unitId in StableDistinct(command.UnitIds))
+        {
+            var validation = ValidateForceAttack(context, unitId, target.Value);
+            if (validation != CommandErrorCode.None)
+            {
+                results.Add(new UnitCommandResult(unitId, false, validation));
+                continue;
+            }
+
+            var portResult = attack.RequestEntityForceAttack(unitId, entityTarget.TargetUnitId);
+            if (!portResult.Accepted)
+            {
+                results.Add(new UnitCommandResult(unitId, false, Map(portResult.Error)));
+                continue;
+            }
+
+            var order = orders.Create(context.CommandId, unitId, UnitOrderKind.ForceAttack);
+            orders.Transition(order.OrderId, UnitOrderState.InProgress);
+            results.Add(new UnitCommandResult(unitId, true, CommandErrorCode.None, order.OrderId));
+        }
+        return Summarize(context.CommandId, results);
+    }
+
+    /// <inheritdoc />
+    public CommandResult CancelForceAttack(
+        CommandContext context,
+        CancelForceAttackCommand command)
+    {
+        if (command.UnitIds.Count == 0)
+        {
+            return Rejected(context.CommandId, command.UnitIds, CommandErrorCode.EmptyUnitSet);
+        }
+
+        var results = new List<UnitCommandResult>();
+        foreach (var unitId in StableDistinct(command.UnitIds))
+        {
+            var validation = ValidateOwnership(context, unitId);
+            if (validation != CommandErrorCode.None)
+            {
+                results.Add(new UnitCommandResult(unitId, false, validation));
+                continue;
+            }
+
+            var portResult = attack.RequestCancelForceAttack(unitId);
+            if (!portResult.Accepted)
+            {
+                results.Add(new UnitCommandResult(unitId, false, Map(portResult.Error)));
+                continue;
+            }
+
+            var active = orders.FindActive(unitId);
+            if (active?.Kind == UnitOrderKind.ForceAttack)
+            {
+                orders.Transition(active.OrderId, UnitOrderState.Cancelled, context.CommandId);
+            }
+            results.Add(new UnitCommandResult(unitId, true, CommandErrorCode.None, active?.Kind == UnitOrderKind.ForceAttack ? active.OrderId : null));
+        }
+        return Summarize(context.CommandId, results);
+    }
+
     /// <summary>逐单位校验所有权并修改彼此独立的持续战斗策略。</summary>
     private CommandResult SetCombatPolicy(
         CommandContext context,
@@ -139,7 +239,7 @@ public sealed class UnitCommandService(
     }
 
     /// <summary>逐单位校验并执行可独立接受的批量移动请求。</summary>
-    private CommandResult Execute(
+    private CommandResult ExecuteMove(
         CommandContext context,
         IReadOnlyList<UnitId> unitIds,
         Func<UnitId, MovementPortResult> execute)
@@ -160,7 +260,7 @@ public sealed class UnitCommandService(
                 results.Add(new UnitCommandResult(unitId, false, Map(portResult.Error)));
                 continue;
             }
-            var order = orders.Create(context.CommandId, unitId);
+            var order = orders.Create(context.CommandId, unitId, UnitOrderKind.ForceMove);
             orders.Transition(order.OrderId, UnitOrderState.InProgress);
             results.Add(new UnitCommandResult(unitId, true, CommandErrorCode.None, order.OrderId));
         }
@@ -192,6 +292,27 @@ public sealed class UnitCommandService(
             CommandErrorCode.None : CommandErrorCode.UnitNotOwned;
     }
 
+    /// <summary>校验 ForceAttack 的攻击者所有权、武器能力和目标攻击域。</summary>
+    private CommandErrorCode ValidateForceAttack(
+        CommandContext context,
+        UnitId unitId,
+        UnitCommandSnapshot target)
+    {
+        var ownership = ValidateOwnership(context, unitId);
+        if (ownership != CommandErrorCode.None)
+        {
+            return ownership;
+        }
+
+        var attacker = units.Find(unitId)!.Value;
+        if (!attacker.CanAttack)
+        {
+            return CommandErrorCode.UnitCannotAttack;
+        }
+        return attacker.AttackDomains?.Contains(target.Domain) == true ?
+            CommandErrorCode.None : CommandErrorCode.WeaponCannotTargetDomain;
+    }
+
     private static IReadOnlyList<UnitId> StableDistinct(IEnumerable<UnitId> ids) =>
         ids.Distinct().OrderBy(id => id.Value).ToArray();
 
@@ -201,6 +322,12 @@ public sealed class UnitCommandService(
     private static CommandErrorCode Map(MovementPortError error) => error switch
     {
         MovementPortError.NavigationUnavailable => CommandErrorCode.NavigationUnavailable,
+        _ => CommandErrorCode.UnitNotFound
+    };
+
+    private static CommandErrorCode Map(AttackPortError error) => error switch
+    {
+        AttackPortError.AttackUnavailable => CommandErrorCode.AttackUnavailable,
         _ => CommandErrorCode.UnitNotFound
     };
 

@@ -1,5 +1,6 @@
 using AI_RTS.Application.Units;
 using AI_RTS.Domain.Common;
+using AI_RTS.Domain.Combat;
 using Godot;
 
 namespace AI_RTS.GodotAdapter.Units;
@@ -39,7 +40,16 @@ public sealed class GodotUnitRegistry : IUnitCommandUnitRepository
         var player = unit.GetParent();
         var ownerId = RegisterPlayer(player);
         var movement = unit.FindChild("Movement", false, false);
-        return new UnitCommandSnapshot(unitId, ownerId, movement is not null);
+        var attackDomains = ReadAttackDomains(unit);
+        var hp = unit.Get("hp");
+        return new UnitCommandSnapshot(
+            unitId,
+            ownerId,
+            movement is not null,
+            unit.Get("attack_range").VariantType != Variant.Type.Nil,
+            ReadDomain(unit.Get("movement_domain").AsInt32()),
+            attackDomains,
+            hp.VariantType != Variant.Type.Nil);
     }
 
     /// <summary>尝试取得仍有效且位于 SceneTree 中的单位节点。</summary>
@@ -70,4 +80,19 @@ public sealed class GodotUnitRegistry : IUnitCommandUnitRepository
         node.SetMeta(metaKey, value.ToString("D"));
         return factory(value);
     }
+
+    /// <summary>读取 Legacy attack_domains 数组并转换为不依赖 Godot 常量的领域集合。</summary>
+    private static IReadOnlySet<CombatDomain> ReadAttackDomains(Node unit)
+    {
+        var result = new HashSet<CombatDomain>();
+        foreach (var value in unit.Get("attack_domains").AsGodotArray())
+        {
+            result.Add(ReadDomain(value.AsInt32()));
+        }
+        return result;
+    }
+
+    /// <summary>把现有 Navigation.Domain 的整数约定映射到 C# CombatDomain。</summary>
+    private static CombatDomain ReadDomain(int value) =>
+        value == 0 ? CombatDomain.Air : CombatDomain.Terrain;
 }

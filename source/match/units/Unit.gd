@@ -1,12 +1,16 @@
 extends Area3D
 
 const LegacyMovingAction = preload("res://source/match/units/actions/Moving.gd")
+const LegacyForceAttackAction = preload(
+	"res://source/match/units/actions/ExplicitForceAttacking.gd"
+)
 
 signal selected
 signal deselected
 signal hp_changed
 signal action_changed(new_action)
 signal action_updated
+signal explicit_force_attack_ended(reason)
 
 const MATERIAL_ALBEDO_TO_REPLACE = Color(0.99, 0.81, 0.48)
 const MATERIAL_ALBEDO_TO_REPLACE_EPSILON = 0.05
@@ -79,6 +83,23 @@ func request_legacy_halt_movement() -> bool:
 func request_legacy_refresh_combat_policy():
 	if action != null and action.has_method("refresh_combat_policy"):
 		action.refresh_combat_policy()
+
+
+# Temporary C# migration bridge. Explicit ForceAttack intentionally permits
+# friendly targets and ignores persistent HoldFire for this order only.
+func request_legacy_force_attack(target_unit) -> bool:
+	if attack_range == null or target_unit == null or not "hp" in target_unit:
+		return false
+	var force_attack = LegacyForceAttackAction.new(target_unit)
+	force_attack.force_attack_ended.connect(explicit_force_attack_ended.emit)
+	action = force_attack
+	return true
+
+
+func request_legacy_cancel_force_attack() -> bool:
+	if action != null and action.get_script() == LegacyForceAttackAction:
+		action = null
+	return true
 
 
 func _set_hp(value):

@@ -23,6 +23,9 @@ func _ready():
 	_check(not tank.is_in_group("unit_group_1"), "测试 Tank 不应依赖 AI 副官作战小队")
 	var force_move_button = hud.get_node("MarginContainer/VBoxContainer/Buttons/ForceMoveButton")
 	var halt_button = hud.get_node("MarginContainer/VBoxContainer/Buttons/HaltButton")
+	var force_attack_button = hud.get_node(
+		"MarginContainer/VBoxContainer/Buttons/ForceAttackButton"
+	)
 	var aggressive_button = hud.get_node(
 		"MarginContainer/VBoxContainer/CombatPolicies/AggressiveButton"
 	)
@@ -36,6 +39,11 @@ func _ready():
 	var feedback_label = hud.get_node("MarginContainer/VBoxContainer/FeedbackLabel")
 	_check(not force_move_button.disabled, "选中 Tank 后强制移动按钮应可用")
 	_check(not halt_button.disabled, "选中 Tank 后停止按钮应可用")
+	_check(not force_attack_button.disabled, "选中 Tank 后强制攻击按钮应可用")
+	force_attack_button.pressed.emit()
+	_check("单位或地面" in feedback_label.text, "强制攻击应进入一次性目标确认状态")
+	force_attack_button.pressed.emit()
+	_check(force_attack_button.text == "强制攻击", "再次点击强制攻击应取消目标确认")
 	_check(aggressive_button.button_pressed, "Tank 默认应显示侵略姿态")
 	_check(not hold_fire_button.button_pressed, "Tank 默认应显示自由开火")
 

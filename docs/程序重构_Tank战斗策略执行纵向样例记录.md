@@ -3,6 +3,8 @@
 > 日期：2026-08-12  
 > 范围：Tank 自动索敌消费 `EngagementStance` / `FirePolicy`，传统 HUD 灰盒控件；不包含 ForceAttack
 
+> 人工验收：2026-08-12 已确认单位状态切换生效；警戒返回岗位等细节继续观察。
+
 ## 1. 已实现行为
 
 - `Aggressive`：在 `sight_range` 内自主索敌并追击，初版最大追击距离为 `2 * sight_range`；
