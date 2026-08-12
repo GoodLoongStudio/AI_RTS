@@ -37,7 +37,7 @@ public partial class CSharpCommandSmokeTest : Node
         var orders = new InMemoryUnitOrderStore();
         var service = new UnitCommandService(repository, new FakeMovementPort(), orders);
 
-        var result = service.Move(Context(owner), new MoveUnitsCommand(
+        var result = service.ForceMove(Context(owner), new ForceMoveUnitsCommand(
             [movable, immovable, missing], new WorldPosition(10, 0, 10)));
 
         Check(result.Status == CommandStatus.PartiallyAccepted, "batch should be partially accepted");
@@ -61,10 +61,10 @@ public partial class CSharpCommandSmokeTest : Node
         var orders = new InMemoryUnitOrderStore();
         var service = new UnitCommandService(repository, movement, orders);
 
-        service.Move(Context(owner), new MoveUnitsCommand([unit], new WorldPosition(1, 0, 1)));
+        service.ForceMove(Context(owner), new ForceMoveUnitsCommand([unit], new WorldPosition(1, 0, 1)));
         var original = orders.FindActive(unit);
         movement.FailMoves = true;
-        var failed = service.Move(Context(owner), new MoveUnitsCommand([unit], new WorldPosition(2, 0, 2)));
+        var failed = service.ForceMove(Context(owner), new ForceMoveUnitsCommand([unit], new WorldPosition(2, 0, 2)));
 
         Check(failed.Status == CommandStatus.Rejected, "navigation rejection should reject replacement move");
         Check(orders.FindActive(unit)?.OrderId == original?.OrderId,
@@ -80,7 +80,7 @@ public partial class CSharpCommandSmokeTest : Node
         var orders = new InMemoryUnitOrderStore();
         var service = new UnitCommandService(repository, new FakeMovementPort(), orders);
 
-        service.Move(Context(owner), new MoveUnitsCommand([unit], new WorldPosition(1, 0, 1)));
+        service.ForceMove(Context(owner), new ForceMoveUnitsCommand([unit], new WorldPosition(1, 0, 1)));
         var original = orders.FindActive(unit);
         var halted = service.HaltMovement(Context(owner), new HaltMovementCommand([unit]));
 

@@ -1,8 +1,13 @@
 extends Node
 
+signal command_targeting_changed(is_targeting)
+signal command_feedback(command_name, accepted_count, rejected_count, status)
+
 const Structure = preload("res://source/match/units/Structure.gd")
 const ResourceUnit = preload("res://source/match/units/non-player/ResourceUnit.gd")
 const Tank = preload("res://source/match/units/Tank.gd")
+
+var _is_force_move_targeting := false
 
 
 class Actions:
@@ -52,10 +57,98 @@ func _try_navigating_selected_units_towards_position(target_point):
 	assert(command_gateway != null)
 	for tuple in new_unit_targets:
 		if tuple[0] is Tank:
-			command_gateway.MoveUnits([tuple[0]], tuple[1], get_parent())
+			command_gateway.ForceMoveUnits([tuple[0]], tuple[1], get_parent())
 		else:
 			# Non-Tank units remain on the legacy path until their command semantics are reviewed.
 			tuple[0].action = Actions.Moving.new(tuple[1])
+
+
+## 进入一次性的强制移动目标选择状态；下一次地面目标将消费此状态。
+func begin_force_move_targeting():
+	_is_force_move_targeting = true
+	command_targeting_changed.emit(true)
+
+
+## 取消尚未指定目标的显式命令，不影响单位当前正在执行的命令。
+func cancel_command_targeting():
+	if not _is_force_move_targeting:
+		return
+	_is_force_move_targeting = false
+	command_targeting_changed.emit(false)
+
+
+## 对当前 Selection 中已迁移的 Tank 提交停止移动命令，并汇总即时接收结果。
+func halt_selected_units():
+	var selected_units = _get_selected_controlled_units()
+	var tanks = selected_units.filter(func(unit): return unit is Tank)
+	var accepted_count := 0
+	var rejected_count: int = selected_units.size() - tanks.size()
+	if not tanks.is_empty():
+		var result = _get_command_gateway().HaltMovement(tanks, get_parent())
+		var counts = _count_command_result(result)
+		accepted_count += counts[0]
+		rejected_count += counts[1]
+	_emit_command_feedback("HaltMovement", accepted_count, rejected_count)
+
+
+## 返回当前 Selection 中已迁移到 C# 命令链路的可控 Tank 数量，供灰盒 HUD 更新可用状态。
+func get_selected_command_unit_count() -> int:
+	return _get_selected_controlled_units().filter(func(unit): return unit is Tank).size()
+
+
+func _execute_targeted_force_move(target_point: Vector3):
+	var selected_units = _get_selected_controlled_units()
+	var tanks = selected_units.filter(
+		func(unit): return unit is Tank and Actions.Moving.is_applicable(unit)
+	)
+	var terrain_tanks = tanks.filter(
+		func(unit): return unit.movement_domain == Constants.Match.Navigation.Domain.TERRAIN
+	)
+	var air_tanks = tanks.filter(
+		func(unit): return unit.movement_domain == Constants.Match.Navigation.Domain.AIR
+	)
+	var targets = Utils.Match.Unit.Movement.crowd_moved_to_new_pivot(terrain_tanks, target_point)
+	targets += Utils.Match.Unit.Movement.crowd_moved_to_new_pivot(air_tanks, target_point)
+	var accepted_count := 0
+	var rejected_count: int = selected_units.size() - targets.size()
+	for tuple in targets:
+		var result = _get_command_gateway().ForceMoveUnits([tuple[0]], tuple[1], get_parent())
+		var counts = _count_command_result(result)
+		accepted_count += counts[0]
+		rejected_count += counts[1]
+	_emit_command_feedback("ForceMove", accepted_count, rejected_count)
+
+
+func _get_selected_controlled_units() -> Array:
+	return get_tree().get_nodes_in_group("selected_units").filter(
+		func(unit): return unit.is_in_group("controlled_units")
+	)
+
+
+func _get_command_gateway():
+	var command_gateway = get_parent().find_child("UnitCommandGateway")
+	assert(command_gateway != null)
+	return command_gateway
+
+
+func _count_command_result(result: Dictionary) -> Array[int]:
+	var accepted_count := 0
+	var rejected_count := 0
+	for unit_result in result["unit_results"]:
+		if unit_result["accepted"]:
+			accepted_count += 1
+		else:
+			rejected_count += 1
+	return [accepted_count, rejected_count]
+
+
+func _emit_command_feedback(command_name: String, accepted_count: int, rejected_count: int):
+	var status := "Rejected"
+	if accepted_count > 0 and rejected_count == 0:
+		status = "Accepted"
+	elif accepted_count > 0:
+		status = "PartiallyAccepted"
+	command_feedback.emit(command_name, accepted_count, rejected_count, status)
 
 
 func _try_setting_rally_points(target_point: Vector3):
@@ -134,6 +227,11 @@ func _try_setting_rally_point_to_unit(unit, target_unit):
 
 
 func _on_terrain_targeted(position):
+	if _is_force_move_targeting:
+		_is_force_move_targeting = false
+		command_targeting_changed.emit(false)
+		_execute_targeted_force_move(position)
+		return
 	_try_navigating_selected_units_towards_position(position)
 	_try_setting_rally_points(position)
 

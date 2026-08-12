@@ -5,6 +5,9 @@ const Structure = preload("res://source/match/units/Structure.gd")
 const Player = preload("res://source/match/players/Player.gd")
 const Human = preload("res://source/match/players/human/Human.gd")
 const AICommandHUD = preload("res://source/match/hud/AICommandHUD.gd")
+const TraditionalUnitCommandHUD = preload(
+	"res://source/match/hud/TraditionalUnitCommandHUD.tscn"
+)
 const CampaignController = preload("res://source/campaign/CampaignController.gd")
 const CampaignHeroIdentity = preload("res://source/campaign/CampaignHeroIdentity.gd")
 
@@ -47,6 +50,7 @@ func _ready():
 	if settings.visibility == settings.Visibility.FULL:
 		fog_of_war.reveal()
 	_setup_ai_command_hud()
+	_setup_traditional_unit_command_hud()
 	_setup_campaign()
 	MatchSignals.match_started.emit()
 
@@ -85,6 +89,15 @@ func _setup_ai_command_hud_toggle(ai_command_hud: Control):
 			toggle_button.text = "隐藏 AI 副官" if should_show else "显示 AI 副官"
 	)
 	$HUD.add_child(toggle_button)
+
+
+func _setup_traditional_unit_command_hud():
+	var human_player = _get_human_player()
+	if human_player == null:
+		return
+	var command_hud = TraditionalUnitCommandHUD.instantiate()
+	command_hud.actions_controller = human_player.get_node("UnitActionsController")
+	$HUD.add_child(command_hud)
 
 
 func _setup_campaign():

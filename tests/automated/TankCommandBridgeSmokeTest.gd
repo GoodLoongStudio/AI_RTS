@@ -21,7 +21,7 @@ func _ready():
 	await get_tree().process_frame
 	var destination = tank.global_position + Vector3(2.0, 0.0, 0.0)
 
-	var move_result = gateway.MoveUnits([tank], destination, human)
+	var move_result = gateway.ForceMoveUnits([tank], destination, human)
 	_check(move_result["status"] == "Accepted", "Tank move should be accepted")
 	_check(tank.action != null and tank.action.get_script() == Moving, "Tank should use Moving bridge")
 	var order_id = move_result["unit_results"][0]["order_id"]
@@ -35,7 +35,7 @@ func _ready():
 	await get_tree().process_frame
 	_check(gateway.GetOrderState(order_id) == "Arrived", "movement completion should complete its order")
 
-	move_result = gateway.MoveUnits([tank], destination, human)
+	move_result = gateway.ForceMoveUnits([tank], destination, human)
 	order_id = move_result["unit_results"][0]["order_id"]
 	_check(gateway.GetActiveOrderState(tank) == "InProgress", "replacement move should be in progress")
 

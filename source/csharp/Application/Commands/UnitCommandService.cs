@@ -8,8 +8,8 @@ namespace AI_RTS.Application.Commands;
 /// <summary>提供经过权限与能力校验的单位命令入口。</summary>
 public interface IUnitCommandService
 {
-    /// <summary>提交批量移动命令，并返回每个单位的接收结果。</summary>
-    CommandResult Move(CommandContext context, MoveUnitsCommand command);
+    /// <summary>提交批量强制移动命令，并返回每个单位的接收结果。</summary>
+    CommandResult ForceMove(CommandContext context, ForceMoveUnitsCommand command);
 
     /// <summary>停止单位当前移动，并将已有活动订单转为暂停。</summary>
     CommandResult HaltMovement(CommandContext context, HaltMovementCommand command);
@@ -22,7 +22,7 @@ public sealed class UnitCommandService(
     IUnitOrderStore orders) : IUnitCommandService
 {
     /// <inheritdoc />
-    public CommandResult Move(CommandContext context, MoveUnitsCommand command)
+    public CommandResult ForceMove(CommandContext context, ForceMoveUnitsCommand command)
     {
         if (command.UnitIds.Count == 0 || !IsFinite(command.Destination))
         {

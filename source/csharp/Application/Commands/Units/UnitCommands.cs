@@ -2,8 +2,8 @@ using AI_RTS.Domain.Common;
 
 namespace AI_RTS.Application.Commands.Units;
 
-/// <summary>请求一组单位分别移动到经过编队计算后的目标位置。</summary>
-public sealed record MoveUnitsCommand(
+/// <summary>请求一组单位强制移动到经过编队计算后的目标位置。</summary>
+public sealed record ForceMoveUnitsCommand(
     IReadOnlyList<UnitId> UnitIds,
     WorldPosition Destination);
 

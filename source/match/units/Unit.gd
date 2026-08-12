@@ -67,9 +67,10 @@ func request_legacy_move(target_position: Vector3) -> bool:
 
 
 func request_legacy_halt_movement() -> bool:
-	if action == null or action.get_script() != LegacyMovingAction:
+	if find_child("Movement") == null:
 		return false
-	action = null
+	if action != null and action.get_script() == LegacyMovingAction:
+		action = null
 	return true
 
 

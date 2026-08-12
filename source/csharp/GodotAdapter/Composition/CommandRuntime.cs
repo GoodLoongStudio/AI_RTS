@@ -33,17 +33,17 @@ public partial class CommandRuntime : Node
         _commands = new UnitCommandService(_units, new LegacyMovementPort(_units), _orders);
     }
 
-    /// <summary>代表指定玩家向一组 Godot 单位节点提交移动命令。</summary>
-    public CommandResult MoveUnits(
+    /// <summary>代表指定玩家向一组 Godot 单位节点提交强制移动命令。</summary>
+    public CommandResult ForceMoveUnits(
         IEnumerable<Node> unitNodes,
         Vector3 destination,
         Node issuerPlayer)
     {
         var context = CreateContext(issuerPlayer);
         var unitIds = unitNodes.Select(_units.Register).ToArray();
-        var result = _commands.Move(
+        var result = _commands.ForceMove(
             context,
-            new MoveUnitsCommand(
+            new ForceMoveUnitsCommand(
                 unitIds,
                 new WorldPosition(destination.X, destination.Y, destination.Z)));
         TrackAcceptedOrders(result);
