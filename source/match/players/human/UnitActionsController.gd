@@ -10,6 +10,7 @@ const Tank = preload("res://source/match/units/Tank.gd")
 var _is_force_move_targeting := false
 var _is_force_attack_targeting := false
 var _is_tactical_withdraw_targeting := false
+var _is_ground_attack_move_targeting := false
 
 
 class Actions:
@@ -69,6 +70,7 @@ func _try_navigating_selected_units_towards_position(target_point):
 func begin_force_move_targeting():
 	_is_force_attack_targeting = false
 	_is_tactical_withdraw_targeting = false
+	_is_ground_attack_move_targeting = false
 	_is_force_move_targeting = true
 	command_targeting_changed.emit("ForceMove")
 
@@ -77,6 +79,7 @@ func begin_force_move_targeting():
 func begin_force_attack_targeting():
 	_is_force_move_targeting = false
 	_is_tactical_withdraw_targeting = false
+	_is_ground_attack_move_targeting = false
 	_is_force_attack_targeting = true
 	command_targeting_changed.emit("ForceAttack")
 
@@ -85,8 +88,18 @@ func begin_force_attack_targeting():
 func begin_tactical_withdraw_targeting():
 	_is_force_move_targeting = false
 	_is_force_attack_targeting = false
+	_is_ground_attack_move_targeting = false
 	_is_tactical_withdraw_targeting = true
 	command_targeting_changed.emit("TacticalWithdraw")
+
+
+## 进入一次性的地面移动攻击目标选择状态。
+func begin_ground_attack_move_targeting():
+	_is_force_move_targeting = false
+	_is_force_attack_targeting = false
+	_is_tactical_withdraw_targeting = false
+	_is_ground_attack_move_targeting = true
+	command_targeting_changed.emit("GroundAttackMove")
 
 
 ## 取消尚未指定目标的显式命令，不影响单位当前正在执行的命令。
@@ -95,11 +108,13 @@ func cancel_command_targeting():
 		not _is_force_move_targeting
 		and not _is_force_attack_targeting
 		and not _is_tactical_withdraw_targeting
+		and not _is_ground_attack_move_targeting
 	):
 		return
 	_is_force_move_targeting = false
 	_is_force_attack_targeting = false
 	_is_tactical_withdraw_targeting = false
+	_is_ground_attack_move_targeting = false
 	command_targeting_changed.emit("")
 
 
@@ -217,6 +232,27 @@ func _execute_targeted_tactical_withdraw(target_point: Vector3):
 		accepted_count += counts[0]
 		rejected_count += counts[1]
 	_emit_command_feedback("TacticalWithdraw", accepted_count, rejected_count)
+
+
+func _execute_targeted_ground_attack_move(target_point: Vector3):
+	var selected_units = _get_selected_controlled_units()
+	var tanks = selected_units.filter(
+		func(unit): return unit is Tank and Actions.Moving.is_applicable(unit)
+	)
+	var terrain_tanks = tanks.filter(
+		func(unit): return unit.movement_domain == Constants.Match.Navigation.Domain.TERRAIN
+	)
+	var targets = Utils.Match.Unit.Movement.crowd_moved_to_new_pivot(terrain_tanks, target_point)
+	var accepted_count := 0
+	var rejected_count: int = selected_units.size() - targets.size()
+	for tuple in targets:
+		var result = _get_command_gateway().GroundAttackMoveUnits(
+			[tuple[0]], tuple[1], get_parent()
+		)
+		var counts = _count_command_result(result)
+		accepted_count += counts[0]
+		rejected_count += counts[1]
+	_emit_command_feedback("GroundAttackMove", accepted_count, rejected_count)
 
 
 func _execute_targeted_force_attack(target_unit):
@@ -355,6 +391,11 @@ func _try_setting_rally_point_to_unit(unit, target_unit):
 
 
 func _on_terrain_targeted(position):
+	if _is_ground_attack_move_targeting:
+		_is_ground_attack_move_targeting = false
+		command_targeting_changed.emit("")
+		_execute_targeted_ground_attack_move(position)
+		return
 	if _is_tactical_withdraw_targeting:
 		_is_tactical_withdraw_targeting = false
 		command_targeting_changed.emit("")

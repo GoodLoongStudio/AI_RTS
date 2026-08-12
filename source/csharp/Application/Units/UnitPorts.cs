@@ -48,6 +48,9 @@ public interface IUnitMovementPort
     /// <summary>向单位提交移动到世界坐标的请求。</summary>
     MovementPortResult RequestMove(UnitId unitId, WorldPosition destination);
 
+    /// <summary>请求单位向地面位置移动并按权威交战策略处理中途敌人。</summary>
+    MovementPortResult RequestGroundAttackMove(UnitId unitId, WorldPosition destination);
+
     /// <summary>请求单位沿导航路径倒车撤退；车体朝向由实时路径切线决定。</summary>
     MovementPortResult RequestTacticalWithdraw(UnitId unitId, WorldPosition destination);
 

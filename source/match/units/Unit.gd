@@ -4,6 +4,9 @@ const LegacyMovingAction = preload("res://source/match/units/actions/Moving.gd")
 const LegacyTacticalWithdrawingAction = preload(
 	"res://source/match/units/actions/TacticalWithdrawing.gd"
 )
+const LegacyGroundAttackMovingAction = preload(
+	"res://source/match/units/actions/GroundAttackMoving.gd"
+)
 const LegacyForceAttackAction = preload(
 	"res://source/match/units/actions/ExplicitForceAttacking.gd"
 )
@@ -79,6 +82,15 @@ func request_legacy_move(target_position: Vector3) -> bool:
 	return true
 
 
+# Temporary C# migration bridge. Ground AttackMove owns its encounter state
+# while the Application layer retains the authoritative order identity.
+func request_legacy_ground_attack_move(target_position: Vector3) -> bool:
+	if find_child("Movement") == null or attack_range == null:
+		return false
+	action = LegacyGroundAttackMovingAction.new(target_position)
+	return true
+
+
 # Temporary C# migration bridge. Tactical withdrawal keeps the vehicle rear
 # aligned with the local navigation path instead of locking its initial facing.
 func request_legacy_tactical_withdraw(target_position: Vector3) -> bool:
@@ -92,7 +104,7 @@ func request_legacy_halt_movement() -> bool:
 	if find_child("Movement") == null:
 		return false
 	if action != null and action.get_script() in [
-		LegacyMovingAction, LegacyTacticalWithdrawingAction
+		LegacyMovingAction, LegacyGroundAttackMovingAction, LegacyTacticalWithdrawingAction
 	]:
 		action = null
 	return true

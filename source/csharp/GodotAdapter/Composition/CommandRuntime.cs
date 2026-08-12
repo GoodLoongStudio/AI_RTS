@@ -78,6 +78,23 @@ public partial class CommandRuntime : Node
         return result;
     }
 
+    /// <summary>代表指定玩家向一组单位提交地面移动攻击，并跟踪订单完成状态。</summary>
+    public CommandResult GroundAttackMoveUnits(
+        IEnumerable<Node> unitNodes,
+        Vector3 destination,
+        Node issuerPlayer)
+    {
+        var context = CreateContext(issuerPlayer);
+        var unitIds = unitNodes.Select(_units.Register).ToArray();
+        var result = _commands.GroundAttackMove(
+            context,
+            new GroundAttackMoveCommand(
+                unitIds,
+                new WorldPosition(destination.X, destination.Y, destination.Z)));
+        TrackAcceptedOrders(result);
+        return result;
+    }
+
     /// <summary>代表指定玩家向一组单位提交战术撤退，并跟踪到达与损失状态。</summary>
     public CommandResult TacticalWithdrawUnits(
         IEnumerable<Node> unitNodes,

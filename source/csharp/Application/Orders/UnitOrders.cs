@@ -11,6 +11,9 @@ public enum UnitOrderKind
     /// <summary>要求单位优先到达指定位置的强制移动订单。</summary>
     ForceMove,
 
+    /// <summary>允许按交战姿态暂停推进并清除途中敌人的地面移动攻击订单。</summary>
+    GroundAttackMove,
+
     /// <summary>沿导航路径倒车，或由不具备倒车能力的单位退化执行普通移动。</summary>
     TacticalWithdraw,
 

@@ -20,6 +20,7 @@ public partial class CSharpCommandSmokeTest : Node
     {
         TestPartialAcceptanceAndIndependentOrders();
         TestMoveAndForceMoveKeepDistinctIntent();
+        TestGroundAttackMoveKeepsDistinctIntent();
         TestFailedReplacementPreservesActiveOrder();
         TestHaltSuspendsWithoutReplacingOrder();
         TestCombatPoliciesAreIndependentAndOwnershipChecked();
@@ -81,6 +82,27 @@ public partial class CSharpCommandSmokeTest : Node
             "force move should retain ForceMove order kind");
         Check(moveOrder is not null && orders.Find(moveOrder.OrderId)?.State == UnitOrderState.Cancelled,
             "force move should replace the previous ordinary move order");
+    }
+
+    /// <summary>验证地面移动攻击使用独立执行端口与订单类型。</summary>
+    private void TestGroundAttackMoveKeepsDistinctIntent()
+    {
+        var owner = NewPlayerId();
+        var unit = NewUnitId();
+        var repository = new FakeRepository(new UnitCommandSnapshot(unit, owner, true, true));
+        var movement = new FakeMovementPort();
+        var orders = new InMemoryUnitOrderStore();
+        var service = NewService(repository, movement, orders);
+
+        var result = service.GroundAttackMove(
+            Context(owner),
+            new GroundAttackMoveCommand([unit], new WorldPosition(4, 0, 4)));
+
+        Check(result.Status == CommandStatus.Accepted, "ground attack move should be accepted");
+        Check(movement.GroundAttackMoveRequests == 1,
+            "ground attack move should use its dedicated movement port");
+        Check(orders.FindActive(unit)?.Kind == UnitOrderKind.GroundAttackMove,
+            "ground attack move should retain its order kind");
     }
 
     /// <summary>验证新导航请求失败时不会提前取消旧活动订单。</summary>
@@ -282,6 +304,9 @@ public partial class CSharpCommandSmokeTest : Node
         /// <summary>累计倒车撤退端口调用次数。</summary>
         public int WithdrawRequests { get; private set; }
 
+        /// <summary>累计地面移动攻击端口调用次数。</summary>
+        public int GroundAttackMoveRequests { get; private set; }
+
         /// <inheritdoc />
         public MovementPortResult RequestMove(UnitId unitId, WorldPosition destination)
         {
@@ -294,6 +319,14 @@ public partial class CSharpCommandSmokeTest : Node
         public MovementPortResult RequestTacticalWithdraw(UnitId unitId, WorldPosition destination)
         {
             WithdrawRequests++;
+            return FailMoves ? MovementPortResult.Failure(MovementPortError.NavigationUnavailable) :
+                MovementPortResult.Success();
+        }
+
+        /// <inheritdoc />
+        public MovementPortResult RequestGroundAttackMove(UnitId unitId, WorldPosition destination)
+        {
+            GroundAttackMoveRequests++;
             return FailMoves ? MovementPortResult.Failure(MovementPortError.NavigationUnavailable) :
                 MovementPortResult.Success();
         }

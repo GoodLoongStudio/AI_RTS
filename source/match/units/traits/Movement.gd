@@ -84,6 +84,20 @@ func stop():
 	_is_tactical_withdrawal = false
 
 
+## 暂停所有主动与避障位移，用于必须保持接敌点的固守交战。
+func suspend_motion():
+	stop()
+	set_velocity(Vector3.ZERO)
+	avoidance_enabled = false
+	set_physics_process(false)
+
+
+## 恢复导航与避障更新；调用方随后应重新提交明确导航目标。
+func resume_motion():
+	avoidance_enabled = true
+	set_physics_process(true)
+
+
 func _align_unit_position_to_navigation():
 	await get_tree().process_frame  # wait for navigation to be operational
 	_unit.global_transform.origin = (

@@ -38,6 +38,13 @@ layout_mode = 2
 text = "强制移动"
 tooltip_text = "下一次右键地面将作为强制移动目标"
 
+[node name="GroundAttackMoveButton" type="Button" parent="MarginContainer/VBoxContainer/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 40)
+layout_mode = 2
+text = "移动并攻击"
+tooltip_text = "下一次右键地面指定推进目标；途中按当前交战姿态清除敌人"
+
 [node name="HaltButton" type="Button" parent="MarginContainer/VBoxContainer/Buttons"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(150, 40)

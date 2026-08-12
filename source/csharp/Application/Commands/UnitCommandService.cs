@@ -16,6 +16,9 @@ public interface IUnitCommandService
     /// <summary>提交批量强制移动命令，并返回每个单位的接收结果。</summary>
     CommandResult ForceMove(CommandContext context, ForceMoveUnitsCommand command);
 
+    /// <summary>提交批量地面移动攻击命令，并返回逐单位接收结果。</summary>
+    CommandResult GroundAttackMove(CommandContext context, GroundAttackMoveCommand command);
+
     /// <summary>提交批量战术撤退命令，并按单位能力选择倒车或普通移动执行。</summary>
     CommandResult TacticalWithdraw(CommandContext context, TacticalWithdrawCommand command);
 
@@ -70,6 +73,19 @@ public sealed class UnitCommandService(
     }
 
     /// <inheritdoc />
+    public CommandResult GroundAttackMove(CommandContext context, GroundAttackMoveCommand command)
+    {
+        if (command.UnitIds.Count == 0 || !IsFinite(command.Destination))
+        {
+            return Rejected(context.CommandId, command.UnitIds,
+                command.UnitIds.Count == 0 ? CommandErrorCode.EmptyUnitSet : CommandErrorCode.InvalidDestination);
+        }
+
+        return ExecuteMove(context, command.UnitIds, UnitOrderKind.GroundAttackMove, unitId =>
+            movement.RequestGroundAttackMove(unitId, command.Destination));
+    }
+
+    /// <inheritdoc />
     public CommandResult TacticalWithdraw(CommandContext context, TacticalWithdrawCommand command)
     {
         if (command.UnitIds.Count == 0 || !IsFinite(command.Destination))
@@ -113,7 +129,8 @@ public sealed class UnitCommandService(
             }
 
             var active = orders.FindActive(unitId);
-            if (active?.Kind is UnitOrderKind.Move or UnitOrderKind.ForceMove or UnitOrderKind.TacticalWithdraw)
+            if (active?.Kind is UnitOrderKind.Move or UnitOrderKind.ForceMove or
+                UnitOrderKind.GroundAttackMove or UnitOrderKind.TacticalWithdraw)
             {
                 orders.Transition(active.OrderId, UnitOrderState.Suspended);
             }
@@ -121,7 +138,8 @@ public sealed class UnitCommandService(
                 unitId,
                 true,
                 CommandErrorCode.None,
-                active?.Kind is UnitOrderKind.Move or UnitOrderKind.ForceMove or UnitOrderKind.TacticalWithdraw ?
+                active?.Kind is UnitOrderKind.Move or UnitOrderKind.ForceMove or
+                    UnitOrderKind.GroundAttackMove or UnitOrderKind.TacticalWithdraw ?
                     active.OrderId : null));
         }
         return Summarize(context.CommandId, results);
