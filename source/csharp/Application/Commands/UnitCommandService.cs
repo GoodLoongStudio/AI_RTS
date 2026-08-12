@@ -5,31 +5,42 @@ using AI_RTS.Domain.Common;
 
 namespace AI_RTS.Application.Commands;
 
+/// <summary>提供经过权限与能力校验的单位命令入口。</summary>
 public interface IUnitCommandService
 {
+    /// <summary>提交批量移动命令，并返回每个单位的接收结果。</summary>
     CommandResult Move(CommandContext context, MoveUnitsCommand command);
+
+    /// <summary>停止单位当前移动，并将已有活动订单转为暂停。</summary>
     CommandResult HaltMovement(CommandContext context, HaltMovementCommand command);
 }
 
+/// <summary>协调单位校验、导航端口调用与订单状态更新。</summary>
 public sealed class UnitCommandService(
     IUnitCommandUnitRepository units,
     IUnitMovementPort movement,
     IUnitOrderStore orders) : IUnitCommandService
 {
+    /// <inheritdoc />
     public CommandResult Move(CommandContext context, MoveUnitsCommand command)
     {
         if (command.UnitIds.Count == 0 || !IsFinite(command.Destination))
+        {
             return Rejected(context.CommandId, command.UnitIds,
                 command.UnitIds.Count == 0 ? CommandErrorCode.EmptyUnitSet : CommandErrorCode.InvalidDestination);
+        }
 
         return Execute(context, command.UnitIds, unitId =>
             movement.RequestMove(unitId, command.Destination));
     }
 
+    /// <inheritdoc />
     public CommandResult HaltMovement(CommandContext context, HaltMovementCommand command)
     {
         if (command.UnitIds.Count == 0)
+        {
             return Rejected(context.CommandId, command.UnitIds, CommandErrorCode.EmptyUnitSet);
+        }
 
         var results = new List<UnitCommandResult>();
         foreach (var unitId in StableDistinct(command.UnitIds))
@@ -50,12 +61,15 @@ public sealed class UnitCommandService(
 
             var active = orders.FindActive(unitId);
             if (active is not null)
+            {
                 orders.Transition(active.OrderId, UnitOrderState.Suspended);
+            }
             results.Add(new UnitCommandResult(unitId, true, CommandErrorCode.None, active?.OrderId));
         }
         return Summarize(context.CommandId, results);
     }
 
+    /// <summary>逐单位校验并执行可独立接受的批量移动请求。</summary>
     private CommandResult Execute(
         CommandContext context,
         IReadOnlyList<UnitId> unitIds,
@@ -84,13 +98,18 @@ public sealed class UnitCommandService(
         return Summarize(context.CommandId, results);
     }
 
+    /// <summary>校验单位是否存在、属于命令发出者且具备移动能力。</summary>
     private CommandErrorCode Validate(CommandContext context, UnitId unitId)
     {
         var unit = units.Find(unitId);
         if (unit is null)
+        {
             return CommandErrorCode.UnitNotFound;
+        }
         if (unit.Value.OwnerId != context.IssuerPlayerId)
+        {
             return CommandErrorCode.UnitNotOwned;
+        }
         return unit.Value.CanMove ? CommandErrorCode.None : CommandErrorCode.UnitCannotMove;
     }
 
@@ -111,6 +130,7 @@ public sealed class UnitCommandService(
         new(commandId, CommandStatus.Rejected,
             StableDistinct(unitIds).Select(id => new UnitCommandResult(id, false, error)).ToArray());
 
+    /// <summary>根据逐单位结果计算批量命令的 Accepted、PartiallyAccepted 或 Rejected 状态。</summary>
     private static CommandResult Summarize(CommandId commandId, IReadOnlyList<UnitCommandResult> results)
     {
         var accepted = results.Count(result => result.Accepted);

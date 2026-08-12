@@ -5,14 +5,20 @@ using Godot;
 
 namespace AI_RTS.GodotAdapter.Navigation;
 
+/// <summary>把 C# 移动端口临时适配到现有 GDScript Moving Action。</summary>
 public sealed class LegacyMovementPort(GodotUnitRegistry units) : IUnitMovementPort
 {
+    /// <inheritdoc />
     public MovementPortResult RequestMove(UnitId unitId, WorldPosition destination)
     {
         if (!units.TryGetNode(unitId, out var unit))
+        {
             return MovementPortResult.Failure(MovementPortError.UnitUnavailable);
+        }
         if (!unit.HasMethod("request_legacy_move"))
+        {
             return MovementPortResult.Failure(MovementPortError.NavigationUnavailable);
+        }
 
         var accepted = unit.Call(
             "request_legacy_move", new Vector3(destination.X, destination.Y, destination.Z)).AsBool();
@@ -20,12 +26,17 @@ public sealed class LegacyMovementPort(GodotUnitRegistry units) : IUnitMovementP
             MovementPortResult.Failure(MovementPortError.NavigationUnavailable);
     }
 
+    /// <inheritdoc />
     public MovementPortResult RequestHalt(UnitId unitId)
     {
         if (!units.TryGetNode(unitId, out var unit))
+        {
             return MovementPortResult.Failure(MovementPortError.UnitUnavailable);
+        }
         if (!unit.HasMethod("request_legacy_halt_movement"))
+        {
             return MovementPortResult.Failure(MovementPortError.NavigationUnavailable);
+        }
 
         var accepted = unit.Call("request_legacy_halt_movement").AsBool();
         return accepted ? MovementPortResult.Success() :

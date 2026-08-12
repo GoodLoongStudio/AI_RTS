@@ -2,18 +2,28 @@ using AI_RTS.Domain.Common;
 
 namespace AI_RTS.Application.Orders;
 
+/// <summary>表示单个单位订单在生命周期中的权威状态。</summary>
 public enum UnitOrderState
 {
+    /// <summary>订单已通过校验并被接收。</summary>
     Accepted,
+    /// <summary>单位正在执行订单。</summary>
     InProgress,
+    /// <summary>订单被保留，但不会自动继续执行。</summary>
     Suspended,
+    /// <summary>单位已经到达目标位置。</summary>
     Arrived,
+    /// <summary>重新寻路后仍无法抵达目标。</summary>
     Unreachable,
+    /// <summary>依赖的实体目标已经消失。</summary>
     TargetLost,
+    /// <summary>订单被新命令或明确取消操作终止。</summary>
     Cancelled,
+    /// <summary>执行订单的单位已经损失。</summary>
     UnitLost
 }
 
+/// <summary>记录一个单位订单的身份、来源命令和当前状态。</summary>
 public sealed record UnitOrderSnapshot(
     UnitOrderId OrderId,
     CommandId CommandId,
@@ -21,23 +31,38 @@ public sealed record UnitOrderSnapshot(
     UnitOrderState State,
     CommandId? ReplacedByCommandId = null);
 
+/// <summary>管理单位订单的创建、查询与状态转换。</summary>
 public interface IUnitOrderStore
 {
+    /// <summary>为单位创建新订单，并取消其旧活动订单。</summary>
     UnitOrderSnapshot Create(CommandId commandId, UnitId unitId);
+
+    /// <summary>查询单位当前仍可继续变化的活动订单。</summary>
     UnitOrderSnapshot? FindActive(UnitId unitId);
+
+    /// <summary>按订单 ID 查询快照。</summary>
     UnitOrderSnapshot? Find(UnitOrderId orderId);
+
+    /// <summary>将订单转换到指定状态。</summary>
     void Transition(UnitOrderId orderId, UnitOrderState state, CommandId? replacedBy = null);
 }
 
+/// <summary>在当前对局进程中保存单位订单，不承担存档持久化。</summary>
 public sealed class InMemoryUnitOrderStore : IUnitOrderStore
 {
+    /// <summary>按订单 ID 保存全部订单快照。</summary>
     private readonly Dictionary<UnitOrderId, UnitOrderSnapshot> _orders = new();
+
+    /// <summary>保存每个单位当前活动订单的索引。</summary>
     private readonly Dictionary<UnitId, UnitOrderId> _activeByUnit = new();
 
+    /// <inheritdoc />
     public UnitOrderSnapshot Create(CommandId commandId, UnitId unitId)
     {
         if (FindActive(unitId) is { } previous)
+        {
             Transition(previous.OrderId, UnitOrderState.Cancelled, commandId);
+        }
 
         var order = new UnitOrderSnapshot(
             new UnitOrderId(Guid.NewGuid()), commandId, unitId, UnitOrderState.Accepted);
@@ -46,20 +71,27 @@ public sealed class InMemoryUnitOrderStore : IUnitOrderStore
         return order;
     }
 
+    /// <inheritdoc />
     public UnitOrderSnapshot? FindActive(UnitId unitId) =>
         _activeByUnit.TryGetValue(unitId, out var id) ? Find(id) : null;
 
+    /// <inheritdoc />
     public UnitOrderSnapshot? Find(UnitOrderId orderId) =>
         _orders.TryGetValue(orderId, out var order) ? order : null;
 
+    /// <inheritdoc />
     public void Transition(UnitOrderId orderId, UnitOrderState state, CommandId? replacedBy = null)
     {
         if (!_orders.TryGetValue(orderId, out var current))
+        {
             return;
+        }
 
         _orders[orderId] = current with { State = state, ReplacedByCommandId = replacedBy };
         if (IsTerminal(state) && _activeByUnit.TryGetValue(current.UnitId, out var active) && active == orderId)
+        {
             _activeByUnit.Remove(current.UnitId);
+        }
     }
 
     private static bool IsTerminal(UnitOrderState state) => state is
