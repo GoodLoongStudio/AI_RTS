@@ -1,5 +1,7 @@
 extends Area3D
 
+const LegacyMovingAction = preload("res://source/match/units/actions/Moving.gd")
+
 signal selected
 signal deselected
 signal hp_changed
@@ -53,6 +55,22 @@ func _ready():
 
 func is_revealing():
 	return is_in_group("revealed_units") and visible
+
+
+# Temporary C# migration bridge. Domain/Application code calls this through
+# LegacyMovementPort; new command code must not assign action directly.
+func request_legacy_move(target_position: Vector3) -> bool:
+	if find_child("Movement") == null:
+		return false
+	action = LegacyMovingAction.new(target_position)
+	return true
+
+
+func request_legacy_halt_movement() -> bool:
+	if action == null or action.get_script() != LegacyMovingAction:
+		return false
+	action = null
+	return true
 
 
 func _set_hp(value):

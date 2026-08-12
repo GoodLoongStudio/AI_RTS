@@ -2,6 +2,7 @@ extends Node
 
 const Structure = preload("res://source/match/units/Structure.gd")
 const ResourceUnit = preload("res://source/match/units/non-player/ResourceUnit.gd")
+const Tank = preload("res://source/match/units/Tank.gd")
 
 
 class Actions:
@@ -45,10 +46,16 @@ func _try_navigating_selected_units_towards_position(target_point):
 	new_unit_targets += Utils.Match.Unit.Movement.crowd_moved_to_new_pivot(
 		air_units_to_move, target_point
 	)
+	# Crowd formation still computes a per-unit destination. Submit each destination
+	# through the reviewed command boundary instead of assigning Unit.action here.
+	var command_gateway = get_parent().find_child("UnitCommandGateway")
+	assert(command_gateway != null)
 	for tuple in new_unit_targets:
-		var unit = tuple[0]
-		var new_target = tuple[1]
-		unit.action = Actions.Moving.new(new_target)
+		if tuple[0] is Tank:
+			command_gateway.MoveUnits([tuple[0]], tuple[1], get_parent())
+		else:
+			# Non-Tank units remain on the legacy path until their command semantics are reviewed.
+			tuple[0].action = Actions.Moving.new(tuple[1])
 
 
 func _try_setting_rally_points(target_point: Vector3):

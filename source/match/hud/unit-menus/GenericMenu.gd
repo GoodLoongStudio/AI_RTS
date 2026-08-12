@@ -1,6 +1,7 @@
 extends GridContainer
 
 const Structure = preload("res://source/match/units/Structure.gd")
+const Tank = preload("res://source/match/units/Tank.gd")
 
 var units = []
 
@@ -10,4 +11,9 @@ func _on_cancel_action_button_pressed():
 		units[0].cancel_construction()
 		return
 	for unit in units:
-		unit.action = null
+		if unit is Tank:
+			var gateway = unit.player.find_child("UnitCommandGateway")
+			if gateway != null:
+				gateway.HaltMovement([unit], unit.player)
+		else:
+			unit.action = null
