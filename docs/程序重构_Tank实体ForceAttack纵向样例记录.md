@@ -77,3 +77,5 @@ Application 使用 `EntityAttackTarget(UnitId)`，不持有 Godot Node。Adapter
 7. 解除停火后普通右键红方目标，确认普通攻击恢复。
 
 本场景是程序灰盒验收资源，不代表最终地图、阵营提示或 UI 设计。
+
+2026-08-12 人工验收结果：通过；命令反馈与视觉表现符合预期。

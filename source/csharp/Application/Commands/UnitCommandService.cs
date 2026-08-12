@@ -13,6 +13,9 @@ public interface IUnitCommandService
     /// <summary>提交批量强制移动命令，并返回每个单位的接收结果。</summary>
     CommandResult ForceMove(CommandContext context, ForceMoveUnitsCommand command);
 
+    /// <summary>提交批量战术撤退命令，并按单位能力选择倒车或普通移动执行。</summary>
+    CommandResult TacticalWithdraw(CommandContext context, TacticalWithdrawCommand command);
+
     /// <summary>停止单位当前移动，并将已有活动订单转为暂停。</summary>
     CommandResult HaltMovement(CommandContext context, HaltMovementCommand command);
 
@@ -46,8 +49,26 @@ public sealed class UnitCommandService(
                 command.UnitIds.Count == 0 ? CommandErrorCode.EmptyUnitSet : CommandErrorCode.InvalidDestination);
         }
 
-        return ExecuteMove(context, command.UnitIds, unitId =>
+        return ExecuteMove(context, command.UnitIds, UnitOrderKind.ForceMove, unitId =>
             movement.RequestMove(unitId, command.Destination));
+    }
+
+    /// <inheritdoc />
+    public CommandResult TacticalWithdraw(CommandContext context, TacticalWithdrawCommand command)
+    {
+        if (command.UnitIds.Count == 0 || !IsFinite(command.Destination))
+        {
+            return Rejected(context.CommandId, command.UnitIds,
+                command.UnitIds.Count == 0 ? CommandErrorCode.EmptyUnitSet : CommandErrorCode.InvalidDestination);
+        }
+
+        return ExecuteMove(
+            context,
+            command.UnitIds,
+            UnitOrderKind.TacticalWithdraw,
+            unitId => units.Find(unitId)!.Value.CanReverse ?
+                movement.RequestTacticalWithdraw(unitId, command.Destination) :
+                movement.RequestMove(unitId, command.Destination));
     }
 
     /// <inheritdoc />
@@ -76,7 +97,7 @@ public sealed class UnitCommandService(
             }
 
             var active = orders.FindActive(unitId);
-            if (active?.Kind == UnitOrderKind.ForceMove)
+            if (active?.Kind is UnitOrderKind.ForceMove or UnitOrderKind.TacticalWithdraw)
             {
                 orders.Transition(active.OrderId, UnitOrderState.Suspended);
             }
@@ -84,7 +105,8 @@ public sealed class UnitCommandService(
                 unitId,
                 true,
                 CommandErrorCode.None,
-                active?.Kind == UnitOrderKind.ForceMove ? active.OrderId : null));
+                active?.Kind is UnitOrderKind.ForceMove or UnitOrderKind.TacticalWithdraw ?
+                    active.OrderId : null));
         }
         return Summarize(context.CommandId, results);
     }
@@ -242,6 +264,7 @@ public sealed class UnitCommandService(
     private CommandResult ExecuteMove(
         CommandContext context,
         IReadOnlyList<UnitId> unitIds,
+        UnitOrderKind orderKind,
         Func<UnitId, MovementPortResult> execute)
     {
         var results = new List<UnitCommandResult>();
@@ -260,7 +283,7 @@ public sealed class UnitCommandService(
                 results.Add(new UnitCommandResult(unitId, false, Map(portResult.Error)));
                 continue;
             }
-            var order = orders.Create(context.CommandId, unitId, UnitOrderKind.ForceMove);
+            var order = orders.Create(context.CommandId, unitId, orderKind);
             orders.Transition(order.OrderId, UnitOrderState.InProgress);
             results.Add(new UnitCommandResult(unitId, true, CommandErrorCode.None, order.OrderId));
         }

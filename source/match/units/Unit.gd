@@ -1,6 +1,9 @@
 extends Area3D
 
 const LegacyMovingAction = preload("res://source/match/units/actions/Moving.gd")
+const LegacyTacticalWithdrawingAction = preload(
+	"res://source/match/units/actions/TacticalWithdrawing.gd"
+)
 const LegacyForceAttackAction = preload(
 	"res://source/match/units/actions/ExplicitForceAttacking.gd"
 )
@@ -29,6 +32,12 @@ var movement_domain:
 	get = _get_movement_domain
 var movement_speed:
 	get = _get_movement_speed
+var can_reverse:
+	get = _get_can_reverse
+var can_fire_while_moving:
+	get = _get_can_fire_while_moving
+var moving_weapon_arc_degrees:
+	get = _get_moving_weapon_arc_degrees
 var sight_range = null
 var player:
 	get:
@@ -70,10 +79,21 @@ func request_legacy_move(target_position: Vector3) -> bool:
 	return true
 
 
+# Temporary C# migration bridge. Tactical withdrawal keeps the vehicle rear
+# aligned with the local navigation path instead of locking its initial facing.
+func request_legacy_tactical_withdraw(target_position: Vector3) -> bool:
+	if find_child("Movement") == null or not can_reverse:
+		return false
+	action = LegacyTacticalWithdrawingAction.new(target_position)
+	return true
+
+
 func request_legacy_halt_movement() -> bool:
 	if find_child("Movement") == null:
 		return false
-	if action != null and action.get_script() == LegacyMovingAction:
+	if action != null and action.get_script() in [
+		LegacyMovingAction, LegacyTacticalWithdrawingAction
+	]:
 		action = null
 	return true
 
@@ -136,6 +156,18 @@ func _get_movement_domain():
 func _get_movement_speed():
 	if find_child("Movement") != null:
 		return find_child("Movement").speed
+	return 0.0
+
+
+func _get_can_reverse() -> bool:
+	return false
+
+
+func _get_can_fire_while_moving() -> bool:
+	return false
+
+
+func _get_moving_weapon_arc_degrees() -> float:
 	return 0.0
 
 

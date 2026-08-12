@@ -23,6 +23,7 @@ public partial class CSharpCommandSmokeTest : Node
         TestHaltSuspendsWithoutReplacingOrder();
         TestCombatPoliciesAreIndependentAndOwnershipChecked();
         TestForceAttackAndSelectiveCancellation();
+        TestTacticalWithdrawCapabilityFallback();
 
         GD.Print($"C# command smoke test completed: {_failures} failure(s)");
         GetTree().Quit(_failures == 0 ? 0 : 1);
@@ -181,6 +182,34 @@ public partial class CSharpCommandSmokeTest : Node
             "ground force attack should return stable unsupported weapon error");
     }
 
+    /// <summary>验证倒车单位使用撤退端口，而普通可移动单位自动退化为移动且仍创建撤退订单。</summary>
+    private void TestTacticalWithdrawCapabilityFallback()
+    {
+        var owner = NewPlayerId();
+        var reversing = NewUnitId();
+        var forwardOnly = NewUnitId();
+        var repository = new FakeRepository(
+            new UnitCommandSnapshot(reversing, owner, true, CanReverse: true),
+            new UnitCommandSnapshot(forwardOnly, owner, true));
+        var movement = new FakeMovementPort();
+        var orders = new InMemoryUnitOrderStore();
+        var service = NewService(repository, movement, orders);
+
+        var result = service.TacticalWithdraw(
+            Context(owner),
+            new TacticalWithdrawCommand(
+                [reversing, forwardOnly],
+                new WorldPosition(8, 0, 8)));
+
+        Check(result.Status == CommandStatus.Accepted, "movable withdraw batch should be accepted");
+        Check(movement.WithdrawRequests == 1, "reverse-capable unit should use withdrawal port");
+        Check(movement.MoveRequests == 1, "forward-only unit should degrade to ordinary movement port");
+        Check(orders.FindActive(reversing)?.Kind == UnitOrderKind.TacticalWithdraw,
+            "reversing unit should retain tactical withdraw order kind");
+        Check(orders.FindActive(forwardOnly)?.Kind == UnitOrderKind.TacticalWithdraw,
+            "fallback unit should retain player tactical intent in order kind");
+    }
+
     /// <summary>累计失败断言并向 Godot 错误日志报告原因。</summary>
     private void Check(bool condition, string message)
     {
@@ -220,10 +249,27 @@ public partial class CSharpCommandSmokeTest : Node
         /// <summary>为 true 时拒绝后续所有移动请求。</summary>
         public bool FailMoves { get; set; }
 
+        /// <summary>累计普通移动端口调用次数。</summary>
+        public int MoveRequests { get; private set; }
+
+        /// <summary>累计倒车撤退端口调用次数。</summary>
+        public int WithdrawRequests { get; private set; }
+
         /// <inheritdoc />
-        public MovementPortResult RequestMove(UnitId unitId, WorldPosition destination) =>
-            FailMoves ? MovementPortResult.Failure(MovementPortError.NavigationUnavailable) :
+        public MovementPortResult RequestMove(UnitId unitId, WorldPosition destination)
+        {
+            MoveRequests++;
+            return FailMoves ? MovementPortResult.Failure(MovementPortError.NavigationUnavailable) :
                 MovementPortResult.Success();
+        }
+
+        /// <inheritdoc />
+        public MovementPortResult RequestTacticalWithdraw(UnitId unitId, WorldPosition destination)
+        {
+            WithdrawRequests++;
+            return FailMoves ? MovementPortResult.Failure(MovementPortError.NavigationUnavailable) :
+                MovementPortResult.Success();
+        }
 
         /// <inheritdoc />
         public MovementPortResult RequestHalt(UnitId unitId) => MovementPortResult.Success();

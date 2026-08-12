@@ -11,7 +11,8 @@ public readonly record struct UnitCommandSnapshot(
     bool CanAttack = false,
     CombatDomain Domain = CombatDomain.Terrain,
     IReadOnlySet<CombatDomain>? AttackDomains = null,
-    bool IsDamageable = true);
+    bool IsDamageable = true,
+    bool CanReverse = false);
 
 /// <summary>为命令服务提供不依赖 Godot Node 的单位查询。</summary>
 public interface IUnitCommandUnitRepository
@@ -46,6 +47,9 @@ public interface IUnitMovementPort
 {
     /// <summary>向单位提交移动到世界坐标的请求。</summary>
     MovementPortResult RequestMove(UnitId unitId, WorldPosition destination);
+
+    /// <summary>请求单位沿导航路径倒车撤退；车体朝向由实时路径切线决定。</summary>
+    MovementPortResult RequestTacticalWithdraw(UnitId unitId, WorldPosition destination);
 
     /// <summary>请求单位停止当前位移。</summary>
     MovementPortResult RequestHalt(UnitId unitId);

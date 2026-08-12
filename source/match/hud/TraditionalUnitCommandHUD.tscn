@@ -52,6 +52,13 @@ layout_mode = 2
 text = "强制攻击"
 tooltip_text = "下一次右键单位或地面将作为显式强制攻击目标"
 
+[node name="TacticalWithdrawButton" type="Button" parent="MarginContainer/VBoxContainer/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 40)
+layout_mode = 2
+text = "撤退"
+tooltip_text = "下一次右键地面指定撤退目的地；有倒车能力的单位令车尾沿导航路径前进"
+
 [node name="CombatPolicies" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 alignment = 1

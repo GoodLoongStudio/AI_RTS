@@ -26,6 +26,9 @@ func _ready():
 	var force_attack_button = hud.get_node(
 		"MarginContainer/VBoxContainer/Buttons/ForceAttackButton"
 	)
+	var tactical_withdraw_button = hud.get_node(
+		"MarginContainer/VBoxContainer/Buttons/TacticalWithdrawButton"
+	)
 	var aggressive_button = hud.get_node(
 		"MarginContainer/VBoxContainer/CombatPolicies/AggressiveButton"
 	)
@@ -40,6 +43,11 @@ func _ready():
 	_check(not force_move_button.disabled, "选中 Tank 后强制移动按钮应可用")
 	_check(not halt_button.disabled, "选中 Tank 后停止按钮应可用")
 	_check(not force_attack_button.disabled, "选中 Tank 后强制攻击按钮应可用")
+	_check(not tactical_withdraw_button.disabled, "选中 Tank 后撤退按钮应可用")
+	tactical_withdraw_button.pressed.emit()
+	_check("撤退目的地" in feedback_label.text, "撤退应进入一次性地面目标确认状态")
+	tactical_withdraw_button.pressed.emit()
+	_check(tactical_withdraw_button.text == "撤退", "再次点击撤退应取消目标确认")
 	force_attack_button.pressed.emit()
 	_check("单位或地面" in feedback_label.text, "强制攻击应进入一次性目标确认状态")
 	force_attack_button.pressed.emit()

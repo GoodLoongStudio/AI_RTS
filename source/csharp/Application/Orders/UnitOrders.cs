@@ -8,6 +8,9 @@ public enum UnitOrderKind
     /// <summary>要求单位优先到达指定位置的强制移动订单。</summary>
     ForceMove,
 
+    /// <summary>沿导航路径倒车，或由不具备倒车能力的单位退化执行普通移动。</summary>
+    TacticalWithdraw,
+
     /// <summary>带订单级临时开火授权的显式实体强制攻击。</summary>
     ForceAttack
 }

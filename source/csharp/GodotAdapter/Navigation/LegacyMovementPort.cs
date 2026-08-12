@@ -27,6 +27,25 @@ public sealed class LegacyMovementPort(GodotUnitRegistry units) : IUnitMovementP
     }
 
     /// <inheritdoc />
+    public MovementPortResult RequestTacticalWithdraw(UnitId unitId, WorldPosition destination)
+    {
+        if (!units.TryGetNode(unitId, out var unit))
+        {
+            return MovementPortResult.Failure(MovementPortError.UnitUnavailable);
+        }
+        if (!unit.HasMethod("request_legacy_tactical_withdraw"))
+        {
+            return MovementPortResult.Failure(MovementPortError.NavigationUnavailable);
+        }
+
+        var accepted = unit.Call(
+            "request_legacy_tactical_withdraw",
+            new Vector3(destination.X, destination.Y, destination.Z)).AsBool();
+        return accepted ? MovementPortResult.Success() :
+            MovementPortResult.Failure(MovementPortError.NavigationUnavailable);
+    }
+
+    /// <inheritdoc />
     public MovementPortResult RequestHalt(UnitId unitId)
     {
         if (!units.TryGetNode(unitId, out var unit))

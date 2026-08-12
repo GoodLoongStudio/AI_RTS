@@ -19,8 +19,10 @@ const PASSIVE_MOVEMENT_TRACKING_ENABLED = true
 
 @export var domain = Constants.Match.Navigation.Domain.TERRAIN
 @export var speed: float = 4.0
+@export_range(0.05, 1.0) var reverse_speed_multiplier: float = 0.65
 
 var _interim_speed: float = 0.0
+var _is_tactical_withdrawal := false
 
 var _stuck_prevention_window = []
 var _total_velocity_in_stuck_prevention_window = 0.0
@@ -37,7 +39,8 @@ var _passive_movement_detected = false
 
 
 func _physics_process(delta):
-	_interim_speed = speed * delta
+	var speed_multiplier := reverse_speed_multiplier if _is_tactical_withdrawal else 1.0
+	_interim_speed = speed * speed_multiplier * delta
 	var fake_direction = _get_fake_direction_due_to_stuck_prevention()
 	if fake_direction != null:
 		set_velocity(fake_direction * _interim_speed)
@@ -66,11 +69,19 @@ func _ready():
 
 
 func move(movement_target: Vector3):
+	_is_tactical_withdrawal = false
+	target_position = movement_target
+
+
+## 沿导航路径倒车；车尾对齐每一帧的安全速度方向，因此路径转弯会更新朝向。
+func tactical_withdraw(movement_target: Vector3):
+	_is_tactical_withdrawal = true
 	target_position = movement_target
 
 
 func stop():
 	target_position = Vector3.INF
+	_is_tactical_withdrawal = false
 
 
 func _align_unit_position_to_navigation():
@@ -180,7 +191,8 @@ func _update_passive_movement_tracking(safe_velocity):
 
 func _on_velocity_computed(safe_velocity: Vector3):
 	_update_stuck_prevention(safe_velocity)
-	_rotate_in_direction(safe_velocity * Vector3(1, 0, 1))
+	var chassis_direction := -safe_velocity if _is_tactical_withdrawal else safe_velocity
+	_rotate_in_direction(chassis_direction * Vector3(1, 0, 1))
 	_unit.global_transform.origin = _unit.global_transform.origin.move_toward(
 		_unit.global_transform.origin + safe_velocity, _interim_speed
 	)

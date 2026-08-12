@@ -61,6 +61,23 @@ public partial class CommandRuntime : Node
         return result;
     }
 
+    /// <summary>代表指定玩家向一组单位提交战术撤退，并跟踪到达与损失状态。</summary>
+    public CommandResult TacticalWithdrawUnits(
+        IEnumerable<Node> unitNodes,
+        Vector3 destination,
+        Node issuerPlayer)
+    {
+        var context = CreateContext(issuerPlayer);
+        var unitIds = unitNodes.Select(_units.Register).ToArray();
+        var result = _commands.TacticalWithdraw(
+            context,
+            new TacticalWithdrawCommand(
+                unitIds,
+                new WorldPosition(destination.X, destination.Y, destination.Z)));
+        TrackAcceptedOrders(result);
+        return result;
+    }
+
     /// <summary>代表指定玩家向一组 Godot 单位节点提交停止移动命令。</summary>
     public CommandResult HaltMovement(IEnumerable<Node> unitNodes, Node issuerPlayer)
     {

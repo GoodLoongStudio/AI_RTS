@@ -81,16 +81,16 @@ ForceAttackCommand(UnitIds, Target, QueueMode)
 建议命名为：
 
 ```csharp
-TacticalWithdrawCommand(UnitIds, Destination, FacingPolicy, QueueMode)
+TacticalWithdrawCommand(UnitIds, Destination, QueueMode)
 ```
 
 它不是 AI 副官的宏观“撤退意图”，而是明确的战术机动：
 
-- 有倒车能力的车辆保持车体/主武器朝向威胁方向，按倒车速度移动；
-- 可以按 FirePolicy 和武器能力继续攻击；
+- 有倒车能力的车辆将车尾对齐实时导航路径的局部切线方向，按倒车速度移动；
+- 路径转弯、动态避障或重寻路会令底盘朝向随当前路径方向更新；不锁定下令瞬间朝向，也不直接朝向最终目的地；
+- 撤退中的攻击仍受 FirePolicy、射程、目标域、移动射击能力和武器相对底盘的射界限制；
 - 无倒车语义的可移动单位自动降级为 ForceMove，避免仓促撤退时要求玩家按单位类型重复下令；不可移动建筑仍逐单位拒绝；
-- `FacingPolicy` 可选择保持当前朝向、面向指定世界方向，或面向明确威胁 UnitId；
-- 不建议自动猜测“最危险敌人”，否则同一命令会因隐藏信息产生不可预测行为。
+- 不自动猜测并锁定“最危险敌人”来控制底盘朝向；敌情变化只影响武器选目标，不改变车尾沿路径前进的规则。
 
 ### 3.5 散开
 

@@ -49,7 +49,8 @@ public sealed class GodotUnitRegistry : IUnitCommandUnitRepository
             unit.Get("attack_range").VariantType != Variant.Type.Nil,
             ReadDomain(unit.Get("movement_domain").AsInt32()),
             attackDomains,
-            hp.VariantType != Variant.Type.Nil);
+            hp.VariantType != Variant.Type.Nil,
+            unit.Get("can_reverse").AsBool());
     }
 
     /// <summary>尝试取得仍有效且位于 SceneTree 中的单位节点。</summary>

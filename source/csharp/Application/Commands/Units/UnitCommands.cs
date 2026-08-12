@@ -8,6 +8,11 @@ public sealed record ForceMoveUnitsCommand(
     IReadOnlyList<UnitId> UnitIds,
     WorldPosition Destination);
 
+/// <summary>请求一组单位向指定位置战术撤退；无倒车能力的可移动单位退化为强制移动。</summary>
+public sealed record TacticalWithdrawCommand(
+    IReadOnlyList<UnitId> UnitIds,
+    WorldPosition Destination);
+
 /// <summary>请求一组单位停止当前移动，并保留可暂停的上层任务。</summary>
 public sealed record HaltMovementCommand(IReadOnlyList<UnitId> UnitIds);
 
