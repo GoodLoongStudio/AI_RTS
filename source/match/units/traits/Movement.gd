@@ -100,10 +100,17 @@ func resume_motion():
 
 func _align_unit_position_to_navigation():
 	await get_tree().process_frame  # wait for navigation to be operational
+	var navigation_map := get_navigation_map()
+	var source_position: Vector3 = get_parent().global_transform.origin
+	var closest_point_owner := NavigationServer3D.map_get_closest_point_owner(
+		navigation_map, source_position
+	)
+	# Godot returns Vector3.ZERO when a map has no usable region. Treating that
+	# sentinel as a real point collapses every scene-authored unit onto the origin.
+	if not closest_point_owner.is_valid():
+		return
 	_unit.global_transform.origin = (
-		NavigationServer3D.map_get_closest_point(
-			get_navigation_map(), get_parent().global_transform.origin
-		)
+		NavigationServer3D.map_get_closest_point(navigation_map, source_position)
 		- Vector3(0, path_height_offset, 0)
 	)
 

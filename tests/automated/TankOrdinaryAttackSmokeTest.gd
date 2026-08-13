@@ -43,7 +43,7 @@ func _ready():
 		attacker.action != null and attacker.action.get_script() == OrdinaryAttacking,
 		"普通攻击应进入独立 OrdinaryAttacking 行为"
 	)
-	await get_tree().create_timer(0.25).timeout
+	await get_tree().create_timer(0.8).timeout
 	_check(enemy.hp < hp_before, "普通攻击应对敌方目标造成伤害")
 	enemy.hp = 0
 	await get_tree().create_timer(0.15).timeout
