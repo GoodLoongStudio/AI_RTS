@@ -53,7 +53,8 @@ public partial class CommandRuntime : Node
             new LegacyMovementPort(_units),
             new LegacyAttackPort(_units),
             _orders,
-            _combatPolicies);
+            _combatPolicies,
+            new LegacyStopPort(_units));
     }
 
     /// <summary>代表指定玩家向一组 Godot 单位节点提交普通移动命令。</summary>
@@ -149,6 +150,14 @@ public partial class CommandRuntime : Node
         var result = _commands.HaltMovement(context, new HaltMovementCommand(unitIds));
         UpdateGuardAnchorsForAccepted(result);
         return result;
+    }
+
+    /// <summary>代表指定玩家向一组单位提交单一、可逐单位回执的统一停止命令。</summary>
+    public CommandResult StopUnits(IEnumerable<Node> unitNodes, Node issuerPlayer)
+    {
+        var context = CreateContext(issuerPlayer);
+        var unitIds = unitNodes.Select(_units.Register).ToArray();
+        return _commands.Stop(context, new StopUnitsCommand(unitIds));
     }
 
     /// <summary>代表指定玩家设置一组 Godot 单位的持续交战姿态。</summary>

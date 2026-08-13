@@ -33,6 +33,7 @@ internal sealed class UnitCommandServiceTests
         RunTest(nameof(InvalidDestinationDoesNotReachMovementPort), InvalidDestinationDoesNotReachMovementPort);
         RunTest(nameof(FailedReplacementPreservesActiveOrder), FailedReplacementPreservesActiveOrder);
         RunTest(nameof(HaltSuspendsMovementOrder), HaltSuspendsMovementOrder);
+        RunTest(nameof(UnifiedStopAppliesOrderSpecificSemantics), UnifiedStopAppliesOrderSpecificSemantics);
         RunTest(nameof(CombatPoliciesAreIndependentAndOwnershipChecked), CombatPoliciesAreIndependentAndOwnershipChecked);
         RunTest(nameof(OrdinaryAttackRespectsHoldFire), OrdinaryAttackRespectsHoldFire);
         RunTest(nameof(ForceAttackOverridesHoldFire), ForceAttackOverridesHoldFire);
@@ -160,6 +161,56 @@ internal sealed class UnitCommandServiceTests
         Check(ResultFor(result, unit).OrderId == original.OrderId, "停止移动应保留原订单 ID");
         Check(orders.Find(original.OrderId)?.State == UnitOrderState.Suspended,
             "停止移动应把订单转换为 Suspended");
+    }
+
+    /// <summary>验证统一 Stop 暂停移动、取消强制攻击，但不会停止普通 Attack 或修改停火策略。</summary>
+    private void UnifiedStopAppliesOrderSpecificSemantics()
+    {
+        var owner = NewPlayerId();
+        var enemyOwner = NewPlayerId();
+        var mover = NewUnitId();
+        var forceAttacker = NewUnitId();
+        var ordinaryAttacker = NewUnitId();
+        var target = NewUnitId();
+        var domains = new HashSet<CombatDomain> { CombatDomain.Terrain };
+        var repository = new FakeRepository(
+            new UnitCommandSnapshot(mover, owner, true),
+            new UnitCommandSnapshot(forceAttacker, owner, true, true, CombatDomain.Terrain, domains),
+            new UnitCommandSnapshot(ordinaryAttacker, owner, true, true, CombatDomain.Terrain, domains),
+            new UnitCommandSnapshot(target, enemyOwner, true, true));
+        var orders = new InMemoryUnitOrderStore();
+        var policies = new InMemoryCombatPolicyStore();
+        var stop = new FakeStopPort();
+        var service = NewService(repository, orders: orders, policies: policies, stop: stop);
+
+        service.Move(Context(owner), new MoveUnitsCommand([mover], new WorldPosition(1, 0, 1)));
+        service.ForceAttack(
+            Context(owner),
+            new ForceAttackCommand([forceAttacker], new EntityAttackTarget(target)));
+        service.Attack(
+            Context(owner),
+            new AttackCommand([ordinaryAttacker], new EntityAttackTarget(target)));
+        policies.SetFirePolicy(forceAttacker, FirePolicy.HoldFire);
+        var moverOrder = orders.FindActive(mover)!;
+        var forceOrder = orders.FindActive(forceAttacker)!;
+        var ordinaryOrder = orders.FindActive(ordinaryAttacker)!;
+
+        var result = service.Stop(
+            Context(owner),
+            new StopUnitsCommand([mover, forceAttacker, ordinaryAttacker]));
+
+        Check(result.Status == CommandStatus.Accepted, "统一 Stop 应逐单位接受合法批次");
+        Check(stop.Requests == 3, "每个去重单位应只收到一次原子 Stop 请求");
+        Check(orders.Find(moverOrder.OrderId)?.State == UnitOrderState.Suspended,
+            "移动订单应进入 Suspended 并保留任务身份");
+        Check(orders.Find(forceOrder.OrderId)?.State == UnitOrderState.Cancelled,
+            "显式 ForceAttack 应被统一 Stop 取消");
+        Check(orders.Find(ordinaryOrder.OrderId)?.State == UnitOrderState.InProgress,
+            "普通 Attack 不应被 Stop 命令停止");
+        Check(ResultFor(result, ordinaryAttacker).OrderId is null,
+            "未受影响的普通 Attack 不应伪报为已停止订单");
+        Check(policies.Get(forceAttacker).FirePolicy == FirePolicy.HoldFire,
+            "统一 Stop 不应修改持续停火策略");
     }
 
     /// <summary>验证姿态与开火策略独立保存，并逐单位检查所有权。</summary>
@@ -464,12 +515,14 @@ internal sealed class UnitCommandServiceTests
         IUnitMovementPort? movement = null,
         IUnitAttackPort? attack = null,
         IUnitOrderStore? orders = null,
-        ICombatPolicyStore? policies = null) => new(
+        ICombatPolicyStore? policies = null,
+        IUnitStopPort? stop = null) => new(
             repository,
             movement ?? new FakeMovementPort(),
             attack ?? new FakeAttackPort(),
             orders ?? new InMemoryUnitOrderStore(),
-            policies ?? new InMemoryCombatPolicyStore());
+            policies ?? new InMemoryCombatPolicyStore(),
+            stop ?? new FakeStopPort());
 
     /// <summary>提供纯内存单位快照，不依赖 Godot ObjectDB。</summary>
     private sealed class FakeRepository(params UnitCommandSnapshot[] units) : IUnitCommandUnitRepository
@@ -578,5 +631,23 @@ internal sealed class UnitCommandServiceTests
         private AttackPortResult Result() => Error == AttackPortError.None
             ? AttackPortResult.Success()
             : AttackPortResult.Failure(Error);
+    }
+
+    /// <summary>记录纯 C# 测试中的原子 Stop 请求，并允许注入拒绝原因。</summary>
+    private sealed class FakeStopPort : IUnitStopPort
+    {
+        /// <summary>非 None 时，后续统一停止请求均返回该错误。</summary>
+        public StopPortError Error { get; set; }
+
+        /// <summary>累计收到的统一停止请求数。</summary>
+        public int Requests { get; private set; }
+
+        /// <inheritdoc />
+        public StopPortResult RequestStop(UnitId unitId)
+        {
+            Requests++;
+            return Error == StopPortError.None ?
+                StopPortResult.Success() : StopPortResult.Failure(Error);
+        }
     }
 }

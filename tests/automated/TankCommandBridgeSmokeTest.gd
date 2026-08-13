@@ -69,7 +69,7 @@ func _ready():
 	order_id = move_result["unit_results"][0]["order_id"]
 	_check(gateway.GetActiveOrderState(tank) == "InProgress", "replacement move should be in progress")
 
-	var halt_result = second_gateway.HaltMovement([tank], human)
+	var halt_result = second_gateway.StopUnits([tank], human)
 	_check(halt_result["status"] == "Accepted", "Tank halt should be accepted")
 	_check(tank.action == null or tank.action.get_script() != Moving, "Tank Moving action should stop")
 	_check(gateway.GetActiveOrderState(tank) == "Suspended", "halt should suspend the active order")

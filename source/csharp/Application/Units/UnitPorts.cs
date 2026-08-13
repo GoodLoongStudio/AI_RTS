@@ -62,6 +62,36 @@ public interface IUnitMovementPort
     MovementPortResult RequestHalt(UnitId unitId);
 }
 
+/// <summary>表示统一停止执行端拒绝请求的稳定原因。</summary>
+public enum StopPortError
+{
+    /// <summary>没有错误。</summary>
+    None,
+
+    /// <summary>单位对应的运行时对象已经不可用。</summary>
+    UnitUnavailable,
+
+    /// <summary>单位执行端尚未提供统一停止能力。</summary>
+    StopUnavailable
+}
+
+/// <summary>表示统一停止执行端是否接受一次请求。</summary>
+public readonly record struct StopPortResult(bool Accepted, StopPortError Error)
+{
+    /// <summary>创建成功的统一停止结果。</summary>
+    public static StopPortResult Success() => new(true, StopPortError.None);
+
+    /// <summary>使用指定错误原因创建失败的统一停止结果。</summary>
+    public static StopPortResult Failure(StopPortError error) => new(false, error);
+}
+
+/// <summary>隔离 Application 的统一 Stop 语义与单位内部任务实现。</summary>
+public interface IUnitStopPort
+{
+    /// <summary>暂停可保留任务并取消显式强制攻击；普通攻击与持续战斗策略保持不变。</summary>
+    StopPortResult RequestStop(UnitId unitId);
+}
+
 /// <summary>表示显式攻击端口拒绝请求的稳定原因。</summary>
 public enum AttackPortError
 {

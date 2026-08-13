@@ -135,6 +135,20 @@ func request_legacy_halt_movement() -> bool:
 	return true
 
 
+## 迁移期统一 Stop 桥：暂停移动类任务并取消显式强制攻击，不改变普通 Attack 与持续战斗策略。
+## 采集和施工迁移后应在这里改为“保留任务、暂停且不自动恢复”，而不是丢弃任务身份。
+func request_legacy_stop() -> bool:
+	if action != null and action.get_script() in [
+		LegacyMovingAction,
+		LegacyGroundAttackMovingAction,
+		LegacyTacticalWithdrawingAction,
+		LegacyForceAttackAction,
+		LegacyGroundForceAttackAction,
+	]:
+		action = null
+	return true
+
+
 # Temporary C# migration bridge. It only asks the current autonomous combat
 # action to re-read authoritative policy; it does not choose a stance itself.
 func request_legacy_refresh_combat_policy():

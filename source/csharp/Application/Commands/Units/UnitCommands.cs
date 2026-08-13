@@ -31,6 +31,9 @@ public sealed record TacticalWithdrawCommand(
 /// <summary>请求一组单位停止当前移动，并保留可暂停的上层任务。</summary>
 public sealed record HaltMovementCommand(IReadOnlyList<UnitId> UnitIds);
 
+/// <summary>请求一组单位执行统一停止：暂停可保留任务，并取消显式 ForceAttack。</summary>
+public sealed record StopUnitsCommand(IReadOnlyList<UnitId> UnitIds);
+
 /// <summary>请求一组单位切换持续交战姿态，不改变其独立开火策略。</summary>
 public sealed record SetEngagementStanceCommand(
     IReadOnlyList<UnitId> UnitIds,

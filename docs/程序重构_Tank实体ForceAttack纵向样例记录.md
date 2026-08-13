@@ -60,7 +60,7 @@ Application 使用 `EntityAttackTarget(UnitId)`，不持有 Godot Node。Adapter
 ## 6. 自动化验证
 
 - `CSharpCommandSmokeTest`：友军实体接收、订单分类、选择性取消、地面稳定拒绝；
-- `TankForceAttackSmokeTest`：HoldFire 临时覆盖、己方完整伤害、组合停止、普通右键受停火限制、目标死亡及地面持续炮击；
+- `TankForceAttackSmokeTest`：HoldFire 临时覆盖、己方完整伤害、统一 Stop、普通右键受停火限制、目标死亡及地面持续炮击；
 - `TraditionalUnitCommandHudSmokeTest`：强制攻击目标模式可进入和取消；
 - 原有移动、策略、Gateway、Campaign 测试继续回归。
 

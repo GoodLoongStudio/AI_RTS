@@ -124,7 +124,7 @@ public partial class CSharpCommandSmokeTest : Node
         var orders = new InMemoryUnitOrderStore();
         var policies = new InMemoryCombatPolicyStore();
         var service = new UnitCommandService(
-            repository, movement, new FakeAttackPort(), orders, policies);
+            repository, movement, new FakeAttackPort(), orders, policies, new FakeStopPort());
 
         policies.SetFirePolicy(unit, FirePolicy.HoldFire);
         var accepted = service.EntityAttackMove(
@@ -199,7 +199,8 @@ public partial class CSharpCommandSmokeTest : Node
             new FakeMovementPort(),
             new FakeAttackPort(),
             new InMemoryUnitOrderStore(),
-            policies);
+            policies,
+            new FakeStopPort());
 
         var stanceResult = service.SetEngagementStance(
             Context(owner),
@@ -245,7 +246,8 @@ public partial class CSharpCommandSmokeTest : Node
             new FakeMovementPort(),
             attack,
             orders,
-            new InMemoryCombatPolicyStore());
+            new InMemoryCombatPolicyStore(),
+            new FakeStopPort());
 
         var result = service.ForceAttack(
             Context(owner),
@@ -291,7 +293,7 @@ public partial class CSharpCommandSmokeTest : Node
         var attack = new FakeAttackPort();
         var orders = new InMemoryUnitOrderStore();
         var service = new UnitCommandService(
-            repository, new FakeMovementPort(), attack, orders, policies);
+            repository, new FakeMovementPort(), attack, orders, policies, new FakeStopPort());
 
         var friendlyResult = service.Attack(
             Context(owner),
@@ -366,7 +368,13 @@ public partial class CSharpCommandSmokeTest : Node
         IUnitCommandUnitRepository repository,
         IUnitMovementPort movement,
         IUnitOrderStore orders) =>
-        new(repository, movement, new FakeAttackPort(), orders, new InMemoryCombatPolicyStore());
+        new(
+            repository,
+            movement,
+            new FakeAttackPort(),
+            orders,
+            new InMemoryCombatPolicyStore(),
+            new FakeStopPort());
 
     /// <summary>提供测试使用的内存单位查询仓储。</summary>
     private sealed class FakeRepository(params UnitCommandSnapshot[] units) : IUnitCommandUnitRepository
@@ -463,5 +471,12 @@ public partial class CSharpCommandSmokeTest : Node
             CancelRequests++;
             return AttackPortResult.Success();
         }
+    }
+
+    /// <summary>为 Godot 内 C# 冒烟测试提供始终接受的统一 Stop 端口。</summary>
+    private sealed class FakeStopPort : IUnitStopPort
+    {
+        /// <inheritdoc />
+        public StopPortResult RequestStop(UnitId unitId) => StopPortResult.Success();
     }
 }

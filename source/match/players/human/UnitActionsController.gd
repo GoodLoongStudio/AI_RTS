@@ -118,20 +118,17 @@ func cancel_command_targeting():
 	command_targeting_changed.emit("")
 
 
-## 对当前 Selection 中已迁移的 Tank 提交停止移动命令，并汇总即时接收结果。
+## 对当前 Selection 中已迁移的 Tank 提交单一统一 Stop，并汇总逐单位即时接收结果。
 func halt_selected_units():
 	var selected_units = _get_selected_controlled_units()
 	var tanks = selected_units.filter(func(unit): return unit is Tank)
 	var accepted_count := 0
 	var rejected_count: int = selected_units.size() - tanks.size()
 	if not tanks.is_empty():
-		var gateway = _get_command_gateway()
-		var halt_result = gateway.HaltMovement(tanks, get_parent())
-		var cancel_result = gateway.CancelForceAttack(tanks, get_parent())
-		var halt_counts = _count_command_result(halt_result)
-		var cancel_counts = _count_command_result(cancel_result)
-		accepted_count += min(halt_counts[0], cancel_counts[0])
-		rejected_count += max(halt_counts[1], cancel_counts[1])
+		var result = _get_command_gateway().StopUnits(tanks, get_parent())
+		var counts = _count_command_result(result)
+		accepted_count += counts[0]
+		rejected_count += counts[1]
 	_emit_command_feedback("Stop", accepted_count, rejected_count)
 
 

@@ -83,8 +83,8 @@ func _ready():
 	_check(ground_target.hp < ground_hp_before, "地面落点覆盖单位 footprint 时应造成完整基础伤害")
 	_check(gateway.GetOrderState(ground_order_id) == "InProgress", "地面炮击应持续执行")
 	var hp_before_ground_stop: float = ground_target.hp
-	var ground_cancel = gateway.CancelForceAttack([attacker], human)
-	_check(ground_cancel["status"] == "Accepted", "地面炮击应可由停止语义取消")
+	var ground_cancel = gateway.StopUnits([attacker], human)
+	_check(ground_cancel["status"] == "Accepted", "地面炮击应可由统一 Stop 取消")
 	await get_tree().create_timer(0.9).timeout
 	_check(gateway.GetOrderState(ground_order_id) == "Cancelled", "取消后地面炮击订单应终止")
 	_check(ground_target.hp == hp_before_ground_stop, "取消后不得继续伤害地面落点单位")
@@ -102,7 +102,7 @@ func _ready():
 		gateway.GetOrderState(far_ground_order_id) == "InProgress",
 		"接近射程完成不得把持续地面炮击误判为 Arrived"
 	)
-	gateway.CancelForceAttack([attacker], human)
+	gateway.StopUnits([attacker], human)
 	_check(gateway.GetOrderState(far_ground_order_id) == "Cancelled", "远距离地面炮击应可取消")
 
 	print("Tank force attack smoke test completed: %d failure(s)" % _failures)

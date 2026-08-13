@@ -28,6 +28,9 @@ public interface IUnitCommandService
     /// <summary>停止单位当前移动，并将已有活动订单转为暂停。</summary>
     CommandResult HaltMovement(CommandContext context, HaltMovementCommand command);
 
+    /// <summary>提交批量统一停止命令，并返回每个单位独立的接收结果。</summary>
+    CommandResult Stop(CommandContext context, StopUnitsCommand command);
+
     /// <summary>设置单位持续交战姿态，不改变开火策略。</summary>
     CommandResult SetEngagementStance(CommandContext context, SetEngagementStanceCommand command);
 
@@ -50,7 +53,8 @@ public sealed class UnitCommandService(
     IUnitMovementPort movement,
     IUnitAttackPort attack,
     IUnitOrderStore orders,
-    ICombatPolicyStore combatPolicies) : IUnitCommandService
+    ICombatPolicyStore combatPolicies,
+    IUnitStopPort stop) : IUnitCommandService
 {
     /// <inheritdoc />
     public CommandResult Move(CommandContext context, MoveUnitsCommand command)
@@ -193,6 +197,64 @@ public sealed class UnitCommandService(
                     active.OrderId : null));
         }
         return Summarize(context.CommandId, results);
+    }
+
+    /// <inheritdoc />
+    public CommandResult Stop(CommandContext context, StopUnitsCommand command)
+    {
+        if (command.UnitIds.Count == 0)
+        {
+            return Rejected(context.CommandId, command.UnitIds, CommandErrorCode.EmptyUnitSet);
+        }
+
+        var results = new List<UnitCommandResult>();
+        foreach (var unitId in StableDistinct(command.UnitIds))
+        {
+            var validation = ValidateOwnership(context, unitId);
+            if (validation != CommandErrorCode.None)
+            {
+                results.Add(new UnitCommandResult(unitId, false, validation));
+                continue;
+            }
+
+            var portResult = stop.RequestStop(unitId);
+            if (!portResult.Accepted)
+            {
+                results.Add(new UnitCommandResult(unitId, false, Map(portResult.Error)));
+                continue;
+            }
+
+            var active = orders.FindActive(unitId);
+            var affectedOrderId = TransitionStoppedOrder(context, active);
+            results.Add(new UnitCommandResult(
+                unitId,
+                true,
+                CommandErrorCode.None,
+                affectedOrderId));
+        }
+
+        return Summarize(context.CommandId, results);
+    }
+
+    /// <summary>按照订单种类应用统一停止状态；普通 Attack 不受 Stop 影响。</summary>
+    private UnitOrderId? TransitionStoppedOrder(
+        CommandContext context,
+        UnitOrderSnapshot? active)
+    {
+        if (active?.Kind is UnitOrderKind.Move or UnitOrderKind.ForceMove or
+            UnitOrderKind.GroundAttackMove or UnitOrderKind.EntityAttackMove or
+            UnitOrderKind.TacticalWithdraw)
+        {
+            orders.Transition(active.OrderId, UnitOrderState.Suspended);
+            return active.OrderId;
+        }
+        if (active?.Kind is UnitOrderKind.ForceAttack or UnitOrderKind.GroundForceAttack)
+        {
+            orders.Transition(active.OrderId, UnitOrderState.Cancelled, context.CommandId);
+            return active.OrderId;
+        }
+
+        return null;
     }
 
     /// <inheritdoc />
@@ -580,6 +642,14 @@ public sealed class UnitCommandService(
     {
         AttackPortError.AttackUnavailable => CommandErrorCode.AttackUnavailable,
         _ => CommandErrorCode.UnitNotFound
+    };
+
+    /// <summary>把统一停止端口错误转换为不泄漏执行层细节的稳定命令错误。</summary>
+    private static CommandErrorCode Map(StopPortError error) => error switch
+    {
+        StopPortError.UnitUnavailable => CommandErrorCode.UnitNotFound,
+        StopPortError.StopUnavailable => CommandErrorCode.UnitCannotStop,
+        _ => CommandErrorCode.UnitCannotStop
     };
 
     private static CommandResult Rejected(

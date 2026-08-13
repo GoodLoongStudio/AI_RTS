@@ -60,6 +60,13 @@ public partial class UnitCommandGateway : Node
         return ToGodot(_runtime.HaltMovement(unitNodes, issuerPlayer));
     }
 
+    /// <summary>提交统一 Stop；每个单位只产生一个命令回执。</summary>
+    public Godot.Collections.Dictionary StopUnits(
+        Godot.Collections.Array<Node> unitNodes, Node issuerPlayer)
+    {
+        return ToGodot(_runtime.StopUnits(unitNodes, issuerPlayer));
+    }
+
     /// <summary>按稳定字符串名称设置一组单位的持续交战姿态。</summary>
     public Godot.Collections.Dictionary SetEngagementStance(
         Godot.Collections.Array<Node> unitNodes, string stance, Node issuerPlayer)

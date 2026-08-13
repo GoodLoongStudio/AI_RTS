@@ -58,7 +58,7 @@ TraditionalUnitCommandHUD
 
 `CancelForceAttack` 同时识别实体 `ForceAttack` 与地面 `GroundForceAttack`。Legacy 桥接只会移除对应显式攻击 Action，不修改持续开火策略。
 
-当前 HUD 的“停止”仍分别调用 `HaltMovement` 与 `CancelForceAttack`，完整统一 Stop 命令属于后续 `CMD-017`。
+`CMD-017` 已将 HUD“停止”改为单次 `StopUnits`：地面 `GroundForceAttack` 进入 `Cancelled`，持续开火策略保持不变。底层 `CancelForceAttack` 仍作为精细能力保留。
 
 ## 6. 自动化验证
 
@@ -81,4 +81,4 @@ TraditionalUnitCommandHUD
 5. 点击“停止”，确认炮击立即结束；
 6. 确认停止后持久策略仍为停火。
 
-人工验收前 `CMD-016` 不标记为完成。
+2026-08-14 人工验收通过：可对地强制攻击、停止后终止炮击，停火临时覆盖且停止后仍保持停火。

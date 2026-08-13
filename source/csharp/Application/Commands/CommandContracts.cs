@@ -33,6 +33,8 @@ public enum CommandErrorCode
     UnitNotOwned,
     /// <summary>指定单位不具备移动能力。</summary>
     UnitCannotMove,
+    /// <summary>指定单位尚未提供统一停止能力。</summary>
+    UnitCannotStop,
     /// <summary>目标世界坐标包含非有限值。</summary>
     InvalidDestination,
     /// <summary>当前无法向导航系统提交请求。</summary>
