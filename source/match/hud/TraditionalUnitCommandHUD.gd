@@ -119,7 +119,7 @@ func _on_command_feedback(
 		"Attack": "攻击",
 		"Stop": "停止",
 		"ForceAttack": "强制攻击",
-		"ForceAttackGround": "地面强制攻击（当前武器不支持）",
+		"ForceAttackGround": "地面强制攻击",
 		"TacticalWithdraw": "撤退",
 		"GroundAttackMove": "移动并攻击",
 		"EntityAttackMove": "移动并攻击",

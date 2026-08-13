@@ -4,7 +4,7 @@
 > 状态：核心语义已通过评审；地面目标身份契约已按评审补充
 > 范围：强制攻击命令、目标联合类型、即时回执与异步订单状态；本稿不实现攻击算法和最终 UI
 
-> 实施进度：2026-08-12 已完成 Tank `EntityAttackTarget` 纵向样例；Ground Target 保持 `WeaponCannotForceFire` 稳定拒绝。
+> 实施进度：2026-08-12 已完成 Tank `EntityAttackTarget` 纵向样例；2026-08-14 已完成 Tank `GroundAttackTarget` 代码与自动化纵向样例，等待人工视觉验收。不具备显式地面强制开火能力的单位仍稳定返回 `WeaponCannotForceFire`。
 
 ## 1. 目标
 
@@ -156,7 +156,7 @@ TargetReferenceResult CanReference(
 3. ForceAttack 临时覆盖 HoldFire，订单结束后恢复；
 4. 目标失效转为 `TargetLost`；
 5. 水平位置重合时不调用无效 `looking_at`；
-6. Ground Target 返回稳定的 `WeaponCannotForceFire`，不实现假地面炮击；
+6. 首轮评审时 Ground Target 返回稳定的 `WeaponCannotForceFire`；2026-08-14 后 Tank 已通过显式 `CanForceFireGround` 能力开放纯坐标持续炮击，其他单位仍按能力逐单位拒绝；
 7. 传统 HUD 增加“强制攻击”目标模式及即时反馈；
 8. 多单位、敌我目标、HoldFire、目标中途损失和重合位置自动化测试。
 

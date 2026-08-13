@@ -64,12 +64,46 @@ func _ready():
 		"目标死亡应通过统一订单事件发布 TargetLost"
 	)
 
-	var ground_result = gateway.ForceAttackGround([attacker], attacker.global_position, human)
-	_check(ground_result["status"] == "Rejected", "当前 Tank 地面强制攻击应稳定拒绝")
-	_check(
-		ground_result["unit_results"][0]["error_code"] == "WeaponCannotForceFire",
-		"地面强制攻击应返回 WeaponCannotForceFire"
+	var ground_target = _add_tank(
+		friendly_target.get_parent(),
+		"GroundPointTarget",
+		attacker.position + Vector3(2, 0, 0)
 	)
+	ground_target.add_to_group("controlled_units")
+	var ground_hp_before: float = ground_target.hp
+	var ground_result = gateway.ForceAttackGround(
+		[attacker],
+		ground_target.global_position,
+		human
+	)
+	var ground_order_id: String = ground_result["unit_results"][0]["order_id"]
+	_check(ground_result["status"] == "Accepted", "Tank 地面强制攻击应被接受")
+	_check(gateway.GetFirePolicy(attacker) == "HoldFire", "地面炮击不得修改持久停火策略")
+	await get_tree().create_timer(0.9).timeout
+	_check(ground_target.hp < ground_hp_before, "地面落点覆盖单位 footprint 时应造成完整基础伤害")
+	_check(gateway.GetOrderState(ground_order_id) == "InProgress", "地面炮击应持续执行")
+	var hp_before_ground_stop: float = ground_target.hp
+	var ground_cancel = gateway.CancelForceAttack([attacker], human)
+	_check(ground_cancel["status"] == "Accepted", "地面炮击应可由停止语义取消")
+	await get_tree().create_timer(0.9).timeout
+	_check(gateway.GetOrderState(ground_order_id) == "Cancelled", "取消后地面炮击订单应终止")
+	_check(ground_target.hp == hp_before_ground_stop, "取消后不得继续伤害地面落点单位")
+
+	var far_ground_result = gateway.ForceAttackGround(
+		[attacker],
+		attacker.global_position + Vector3(8.0, 0.0, 0.0),
+		human
+	)
+	var far_ground_order_id: String = far_ground_result["unit_results"][0]["order_id"]
+	_check(far_ground_result["status"] == "Accepted", "远距离地面炮击应先接近射程")
+	attacker.find_child("Movement").movement_finished.emit()
+	await get_tree().process_frame
+	_check(
+		gateway.GetOrderState(far_ground_order_id) == "InProgress",
+		"接近射程完成不得把持续地面炮击误判为 Arrived"
+	)
+	gateway.CancelForceAttack([attacker], human)
+	_check(gateway.GetOrderState(far_ground_order_id) == "Cancelled", "远距离地面炮击应可取消")
 
 	print("Tank force attack smoke test completed: %d failure(s)" % _failures)
 	match_instance.queue_free()

@@ -12,7 +12,8 @@ public readonly record struct UnitCommandSnapshot(
     CombatDomain Domain = CombatDomain.Terrain,
     IReadOnlySet<CombatDomain>? AttackDomains = null,
     bool IsDamageable = true,
-    bool CanReverse = false);
+    bool CanReverse = false,
+    bool CanForceFireGround = false);
 
 /// <summary>为命令服务提供不依赖 Godot Node 的单位查询。</summary>
 public interface IUnitCommandUnitRepository
@@ -92,6 +93,9 @@ public interface IUnitAttackPort
 
     /// <summary>请求攻击者持续强制攻击指定实体目标。</summary>
     AttackPortResult RequestEntityForceAttack(UnitId attackerId, UnitId targetId);
+
+    /// <summary>请求攻击者持续强制攻击纯地面坐标。</summary>
+    AttackPortResult RequestGroundForceAttack(UnitId attackerId, WorldPosition position);
 
     /// <summary>取消单位当前显式 ForceAttack；没有显式攻击时作为幂等无操作接受。</summary>
     AttackPortResult RequestCancelForceAttack(UnitId unitId);

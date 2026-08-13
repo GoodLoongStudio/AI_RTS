@@ -1,6 +1,7 @@
 extends Node3D
 
 var target_unit = null
+var target_position = null
 
 @onready var _unit = get_parent()
 @onready var _unit_particles = find_child("OriginParticles")
@@ -8,11 +9,12 @@ var target_unit = null
 
 
 func _ready():
-	assert(target_unit != null, "target unit was not provided")
+	assert(target_unit != null or target_position != null, "projectile target was not provided")
 	_unit_particles.visible = _unit.visible
 	_setup_unit_particles()
 	_setup_timer()
-	target_unit.hp -= _unit.attack_damage
+	if target_unit != null:
+		target_unit.hp -= _unit.attack_damage
 
 
 func _setup_timer():

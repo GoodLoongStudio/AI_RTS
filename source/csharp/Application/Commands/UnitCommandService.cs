@@ -284,9 +284,15 @@ public sealed class UnitCommandService(
         }
         if (command.Target is GroundAttackTarget groundTarget)
         {
-            return IsFinite(groundTarget.Position) ?
-                Rejected(context.CommandId, command.UnitIds, CommandErrorCode.WeaponCannotForceFire) :
-                Rejected(context.CommandId, command.UnitIds, CommandErrorCode.InvalidAttackTarget);
+            if (!IsFinite(groundTarget.Position))
+            {
+                return Rejected(
+                    context.CommandId,
+                    command.UnitIds,
+                    CommandErrorCode.InvalidAttackTarget);
+            }
+
+            return ExecuteGroundForceAttack(context, command.UnitIds, groundTarget.Position);
         }
         if (command.Target is not EntityAttackTarget entityTarget)
         {
@@ -355,12 +361,70 @@ public sealed class UnitCommandService(
             }
 
             var active = orders.FindActive(unitId);
-            if (active?.Kind == UnitOrderKind.ForceAttack)
+            if (active?.Kind is UnitOrderKind.ForceAttack or UnitOrderKind.GroundForceAttack)
             {
                 orders.Transition(active.OrderId, UnitOrderState.Cancelled, context.CommandId);
             }
-            results.Add(new UnitCommandResult(unitId, true, CommandErrorCode.None, active?.Kind == UnitOrderKind.ForceAttack ? active.OrderId : null));
+            results.Add(new UnitCommandResult(
+                unitId,
+                true,
+                CommandErrorCode.None,
+                active?.Kind is UnitOrderKind.ForceAttack or UnitOrderKind.GroundForceAttack ?
+                    active.OrderId : null));
         }
+        return Summarize(context.CommandId, results);
+    }
+
+    /// <summary>逐单位校验地面强制开火能力并创建持续地面攻击订单。</summary>
+    private CommandResult ExecuteGroundForceAttack(
+        CommandContext context,
+        IReadOnlyList<UnitId> unitIds,
+        WorldPosition position)
+    {
+        var results = new List<UnitCommandResult>();
+        foreach (var unitId in StableDistinct(unitIds))
+        {
+            var ownership = ValidateOwnership(context, unitId);
+            if (ownership != CommandErrorCode.None)
+            {
+                results.Add(new UnitCommandResult(unitId, false, ownership));
+                continue;
+            }
+
+            var attacker = units.Find(unitId)!.Value;
+            if (!attacker.CanAttack)
+            {
+                results.Add(new UnitCommandResult(
+                    unitId,
+                    false,
+                    CommandErrorCode.UnitCannotAttack));
+                continue;
+            }
+            if (!attacker.CanForceFireGround)
+            {
+                results.Add(new UnitCommandResult(
+                    unitId,
+                    false,
+                    CommandErrorCode.WeaponCannotForceFire));
+                continue;
+            }
+
+            var portResult = attack.RequestGroundForceAttack(unitId, position);
+            if (!portResult.Accepted)
+            {
+                results.Add(new UnitCommandResult(unitId, false, Map(portResult.Error)));
+                continue;
+            }
+
+            var order = orders.Create(context.CommandId, unitId, UnitOrderKind.GroundForceAttack);
+            orders.Transition(order.OrderId, UnitOrderState.InProgress);
+            results.Add(new UnitCommandResult(
+                unitId,
+                true,
+                CommandErrorCode.None,
+                order.OrderId));
+        }
+
         return Summarize(context.CommandId, results);
     }
 

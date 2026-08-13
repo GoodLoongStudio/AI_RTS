@@ -42,6 +42,24 @@ public sealed class LegacyAttackPort(GodotUnitRegistry units) : IUnitAttackPort
     }
 
     /// <inheritdoc />
+    public AttackPortResult RequestGroundForceAttack(UnitId attackerId, WorldPosition position)
+    {
+        if (!units.TryGetNode(attackerId, out var attacker))
+        {
+            return AttackPortResult.Failure(AttackPortError.UnitUnavailable);
+        }
+        if (!attacker.HasMethod("request_legacy_ground_force_attack"))
+        {
+            return AttackPortResult.Failure(AttackPortError.AttackUnavailable);
+        }
+
+        return attacker.Call(
+            "request_legacy_ground_force_attack",
+            new Godot.Vector3(position.X, position.Y, position.Z)).AsBool() ?
+            AttackPortResult.Success() : AttackPortResult.Failure(AttackPortError.AttackUnavailable);
+    }
+
+    /// <inheritdoc />
     public AttackPortResult RequestCancelForceAttack(UnitId unitId)
     {
         if (!units.TryGetNode(unitId, out var unit))

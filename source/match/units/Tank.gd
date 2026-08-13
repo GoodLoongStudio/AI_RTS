@@ -11,6 +11,10 @@ func _get_can_fire_while_moving() -> bool:
 	return true
 
 
+func _get_can_force_fire_ground() -> bool:
+	return true
+
+
 func _get_moving_weapon_arc_degrees() -> float:
 	return 120.0
 

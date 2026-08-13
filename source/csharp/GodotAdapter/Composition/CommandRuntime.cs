@@ -229,7 +229,7 @@ public partial class CommandRuntime : Node
         return result;
     }
 
-    /// <summary>提交地面强制攻击；当前武器能力会返回稳定拒绝。</summary>
+    /// <summary>提交持续地面强制攻击，并只跟踪执行单位损失。</summary>
     public CommandResult ForceAttackGround(
         IEnumerable<Node> unitNodes,
         Vector3 position,
@@ -237,11 +237,13 @@ public partial class CommandRuntime : Node
     {
         var context = CreateContext(issuerPlayer);
         var unitIds = unitNodes.Select(_units.Register).ToArray();
-        return _commands.ForceAttack(
+        var result = _commands.ForceAttack(
             context,
             new ForceAttackCommand(
                 unitIds,
                 new GroundAttackTarget(new WorldPosition(position.X, position.Y, position.Z))));
+        TrackAcceptedPersistentOrders(result);
+        return result;
     }
 
     /// <summary>只取消指定单位的显式 ForceAttack，不影响普通自动攻击。</summary>
@@ -341,6 +343,23 @@ public partial class CommandRuntime : Node
                     Callable.From(() => CompleteIfActive(item.UnitId, orderId)),
                     (uint)ConnectFlags.OneShot);
             }
+            if (_deathTrackedUnits.Add(item.UnitId))
+            {
+                unit.TreeExiting += () => LoseActiveOrder(item.UnitId);
+            }
+        }
+    }
+
+    /// <summary>只跟踪持续订单的执行单位损失，不把内部接近移动误判为订单完成。</summary>
+    private void TrackAcceptedPersistentOrders(CommandResult result)
+    {
+        foreach (var item in result.UnitResults)
+        {
+            if (!item.Accepted || item.OrderId is null || !_units.TryGetNode(item.UnitId, out var unit))
+            {
+                continue;
+            }
+
             if (_deathTrackedUnits.Add(item.UnitId))
             {
                 unit.TreeExiting += () => LoseActiveOrder(item.UnitId);

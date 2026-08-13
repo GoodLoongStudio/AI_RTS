@@ -454,6 +454,10 @@ public partial class CSharpCommandSmokeTest : Node
             AttackPortResult.Success();
 
         /// <inheritdoc />
+        public AttackPortResult RequestGroundForceAttack(UnitId attackerId, WorldPosition position) =>
+            AttackPortResult.Success();
+
+        /// <inheritdoc />
         public AttackPortResult RequestCancelForceAttack(UnitId unitId)
         {
             CancelRequests++;

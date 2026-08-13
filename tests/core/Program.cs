@@ -36,6 +36,7 @@ internal sealed class UnitCommandServiceTests
         RunTest(nameof(CombatPoliciesAreIndependentAndOwnershipChecked), CombatPoliciesAreIndependentAndOwnershipChecked);
         RunTest(nameof(OrdinaryAttackRespectsHoldFire), OrdinaryAttackRespectsHoldFire);
         RunTest(nameof(ForceAttackOverridesHoldFire), ForceAttackOverridesHoldFire);
+        RunTest(nameof(GroundForceAttackRequiresExplicitCapability), GroundForceAttackRequiresExplicitCapability);
         RunTest(nameof(AttackMoveKeepsMovingDuringHoldFire), AttackMoveKeepsMovingDuringHoldFire);
         RunTest(nameof(TacticalWithdrawFallsBackToOrdinaryMovement), TacticalWithdrawFallsBackToOrdinaryMovement);
         RunTest(nameof(PortFailuresMapToStableErrors), PortFailuresMapToStableErrors);
@@ -240,6 +241,48 @@ internal sealed class UnitCommandServiceTests
         Check(attack.ForceRequests == 1, "合法 ForceAttack 应调用强制攻击端口");
         Check(policies.Get(attacker).FirePolicy == FirePolicy.HoldFire,
             "临时授权不应修改持续停火策略");
+    }
+
+    /// <summary>验证地面强制攻击逐单位检查显式武器能力，并保持持续停火策略。</summary>
+    private void GroundForceAttackRequiresExplicitCapability()
+    {
+        var owner = NewPlayerId();
+        var capable = NewUnitId();
+        var unsupported = NewUnitId();
+        var attack = new FakeAttackPort();
+        var policies = new InMemoryCombatPolicyStore();
+        var repository = new FakeRepository(
+            new UnitCommandSnapshot(
+                capable,
+                owner,
+                true,
+                true,
+                CanForceFireGround: true),
+            new UnitCommandSnapshot(
+                unsupported,
+                owner,
+                true,
+                true));
+        var orders = new InMemoryUnitOrderStore();
+        var service = NewService(repository, attack: attack, orders: orders, policies: policies);
+        policies.SetFirePolicy(capable, FirePolicy.HoldFire);
+
+        var result = service.ForceAttack(
+            Context(owner),
+            new ForceAttackCommand(
+                [capable, unsupported],
+                new GroundAttackTarget(new WorldPosition(2, 0, 2))));
+
+        Check(result.Status == CommandStatus.PartiallyAccepted,
+            "混合地面强制开火能力应部分接受");
+        Check(ResultFor(result, capable).Accepted, "支持地面炮击的单位应接受");
+        Check(ResultFor(result, unsupported).ErrorCode == CommandErrorCode.WeaponCannotForceFire,
+            "不支持地面炮击的单位应稳定拒绝");
+        Check(attack.GroundForceRequests == 1, "只有支持能力的单位应调用地面攻击端口");
+        Check(orders.FindActive(capable)?.Kind == UnitOrderKind.GroundForceAttack,
+            "地面炮击应保留独立订单类型");
+        Check(policies.Get(capable).FirePolicy == FirePolicy.HoldFire,
+            "临时地面开火授权不应修改持续停火策略");
     }
 
     /// <summary>验证停火只禁止射击，不阻止实体 AttackMove 的移动意图。</summary>
@@ -505,6 +548,9 @@ internal sealed class UnitCommandServiceTests
         /// <summary>强制攻击请求次数。</summary>
         public int ForceRequests { get; private set; }
 
+        /// <summary>地面强制攻击请求次数。</summary>
+        public int GroundForceRequests { get; private set; }
+
         /// <inheritdoc />
         public AttackPortResult RequestEntityAttack(UnitId attackerId, UnitId targetId)
         {
@@ -516,6 +562,13 @@ internal sealed class UnitCommandServiceTests
         public AttackPortResult RequestEntityForceAttack(UnitId attackerId, UnitId targetId)
         {
             ForceRequests++;
+            return Result();
+        }
+
+        /// <inheritdoc />
+        public AttackPortResult RequestGroundForceAttack(UnitId attackerId, WorldPosition position)
+        {
+            GroundForceRequests++;
             return Result();
         }
 

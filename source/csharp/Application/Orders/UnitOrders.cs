@@ -24,7 +24,10 @@ public enum UnitOrderKind
     Attack,
 
     /// <summary>带订单级临时开火授权的显式实体强制攻击。</summary>
-    ForceAttack
+    ForceAttack,
+
+    /// <summary>持续攻击纯地面坐标，不依赖实体目标身份。</summary>
+    GroundForceAttack
 }
 
 /// <summary>表示单个单位订单在生命周期中的权威状态。</summary>

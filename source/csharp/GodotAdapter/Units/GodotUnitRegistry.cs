@@ -50,7 +50,8 @@ public sealed class GodotUnitRegistry : IUnitCommandUnitRepository
             ReadDomain(unit.Get("movement_domain").AsInt32()),
             attackDomains,
             hp.VariantType != Variant.Type.Nil,
-            unit.Get("can_reverse").AsBool());
+            unit.Get("can_reverse").AsBool(),
+            unit.Get("can_force_fire_ground").AsBool());
     }
 
     /// <summary>尝试取得仍有效且位于 SceneTree 中的单位节点。</summary>

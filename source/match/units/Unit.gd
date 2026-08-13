@@ -10,6 +10,9 @@ const LegacyGroundAttackMovingAction = preload(
 const LegacyForceAttackAction = preload(
 	"res://source/match/units/actions/ExplicitForceAttacking.gd"
 )
+const LegacyGroundForceAttackAction = preload(
+	"res://source/match/units/actions/ExplicitGroundForceAttacking.gd"
+)
 const LegacyOrdinaryAttackAction = preload(
 	"res://source/match/units/actions/OrdinaryAttacking.gd"
 )
@@ -44,6 +47,8 @@ var can_reverse:
 	get = _get_can_reverse
 var can_fire_while_moving:
 	get = _get_can_fire_while_moving
+var can_force_fire_ground:
+	get = _get_can_force_fire_ground
 var moving_weapon_arc_degrees:
 	get = _get_moving_weapon_arc_degrees
 var sight_range = null
@@ -159,8 +164,19 @@ func request_legacy_force_attack(target_unit) -> bool:
 	return true
 
 
+## 临时 C# 迁移桥：持续炮击纯地面坐标，命中只按单位 footprint 判定。
+func request_legacy_ground_force_attack(target_position: Vector3) -> bool:
+	if not can_force_fire_ground or attack_range == null or find_child("Movement") == null:
+		return false
+	action = LegacyGroundForceAttackAction.new(target_position)
+	return true
+
+
 func request_legacy_cancel_force_attack() -> bool:
-	if action != null and action.get_script() == LegacyForceAttackAction:
+	if (
+		action != null
+		and action.get_script() in [LegacyForceAttackAction, LegacyGroundForceAttackAction]
+	):
 		action = null
 	return true
 
@@ -207,6 +223,10 @@ func _get_can_reverse() -> bool:
 
 
 func _get_can_fire_while_moving() -> bool:
+	return false
+
+
+func _get_can_force_fire_ground() -> bool:
 	return false
 
 

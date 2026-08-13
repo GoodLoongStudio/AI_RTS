@@ -27,7 +27,7 @@ Application 使用 `EntityAttackTarget(UnitId)`，不持有 Godot Node。Adapter
 - ForceAttack 结束后单位继续服从原有 `HoldFire`；
 - 普通右键敌方目标仍是普通 Attack，Tank 处于 HoldFire 时不会执行；
 - 攻击域按攻击者逐单位校验，Tank 当前只接受 TERRAIN 目标；
-- 地面 Target DTO 已接入，但 Tank 稳定返回 `WeaponCannotForceFire`；
+- 地面 Target DTO 已接入；自 2026-08-14 起 Tank 具备显式地面强制开火能力，其他未声明能力的单位仍返回 `WeaponCannotForceFire`；
 - 显式攻击目标死亡或退出 SceneTree 后，订单进入 `TargetLost`；
 - 新 ForceMove/ForceAttack 订单会按现有订单替换规则取消旧订单。
 
@@ -60,7 +60,7 @@ Application 使用 `EntityAttackTarget(UnitId)`，不持有 Godot Node。Adapter
 ## 6. 自动化验证
 
 - `CSharpCommandSmokeTest`：友军实体接收、订单分类、选择性取消、地面稳定拒绝；
-- `TankForceAttackSmokeTest`：HoldFire 临时覆盖、己方完整伤害、组合停止、普通右键受停火限制、目标死亡及地面拒绝；
+- `TankForceAttackSmokeTest`：HoldFire 临时覆盖、己方完整伤害、组合停止、普通右键受停火限制、目标死亡及地面持续炮击；
 - `TraditionalUnitCommandHudSmokeTest`：强制攻击目标模式可进入和取消；
 - 原有移动、策略、Gateway、Campaign 测试继续回归。
 
@@ -73,7 +73,7 @@ Application 使用 `EntityAttackTarget(UnitId)`，不持有 Godot Node。Adapter
 3. 点击“强制攻击”，右键红方 CommandCenter，确认攻击仍执行；
 4. 攻击途中点击“停止”，确认显式攻击结束，且 HUD 仍显示停火；
 5. 点击“强制攻击”，右键另一辆蓝方 FriendlyTarget，确认可以造成己方伤害；
-6. 重新运行场景，点击“强制攻击”后右键地面，确认返回拒绝且说明当前武器不支持；
+6. 重新运行场景，点击“强制攻击”后右键地面，确认 Tank 持续炮击落点，点击“停止”后立即结束；
 7. 解除停火后普通右键红方目标，确认普通攻击恢复。
 
 本场景是程序灰盒验收资源，不代表最终地图、阵营提示或 UI 设计。

@@ -96,7 +96,7 @@ public partial class UnitCommandGateway : Node
         return ToGodot(_runtime.ForceAttackUnits(unitNodes, targetNode, issuerPlayer));
     }
 
-    /// <summary>提交地面强制攻击；当前纵向样例返回 WeaponCannotForceFire。</summary>
+    /// <summary>提交批量持续地面强制攻击；不支持该能力的单位逐单位拒绝。</summary>
     public Godot.Collections.Dictionary ForceAttackGround(
         Godot.Collections.Array<Node> unitNodes, Vector3 position, Node issuerPlayer)
     {
