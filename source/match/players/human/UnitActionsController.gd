@@ -255,6 +255,23 @@ func _execute_targeted_ground_attack_move(target_point: Vector3):
 	_emit_command_feedback("GroundAttackMove", accepted_count, rejected_count)
 
 
+func _execute_targeted_entity_attack_move(target_unit):
+	var selected_units = _get_selected_controlled_units()
+	var tanks = selected_units.filter(
+		func(unit): return unit is Tank and Actions.Moving.is_applicable(unit)
+	)
+	var accepted_count := 0
+	var rejected_count: int = selected_units.size() - tanks.size()
+	if not tanks.is_empty():
+		var result = _get_command_gateway().EntityAttackMoveUnits(
+			tanks, target_unit, get_parent()
+		)
+		var counts = _count_command_result(result)
+		accepted_count += counts[0]
+		rejected_count += counts[1]
+	_emit_command_feedback("EntityAttackMove", accepted_count, rejected_count)
+
+
 func _execute_targeted_force_attack(target_unit):
 	var selected_units = _get_selected_controlled_units()
 	var tanks = selected_units.filter(func(unit): return unit is Tank)
@@ -426,6 +443,14 @@ func _on_unit_targeted(unit):
 		var explicit_targetability = unit.find_child("Targetability")
 		if explicit_targetability != null:
 			explicit_targetability.animate()
+			return
+	if _is_ground_attack_move_targeting:
+		_is_ground_attack_move_targeting = false
+		command_targeting_changed.emit("")
+		_execute_targeted_entity_attack_move(unit)
+		var attack_move_targetability = unit.find_child("Targetability")
+		if attack_move_targetability != null:
+			attack_move_targetability.animate()
 		return
 	if _navigate_selected_units_towards_unit(unit):
 		var targetability = unit.find_child("Targetability")

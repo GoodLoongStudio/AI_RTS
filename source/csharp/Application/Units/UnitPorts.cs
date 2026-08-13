@@ -51,6 +51,9 @@ public interface IUnitMovementPort
     /// <summary>请求单位向地面位置移动并按权威交战策略处理中途敌人。</summary>
     MovementPortResult RequestGroundAttackMove(UnitId unitId, WorldPosition destination);
 
+    /// <summary>请求单位追踪敌方实体推进，并按权威交战策略处理途中敌人。</summary>
+    MovementPortResult RequestEntityAttackMove(UnitId unitId, UnitId targetId);
+
     /// <summary>请求单位沿导航路径倒车撤退；车体朝向由实时路径切线决定。</summary>
     MovementPortResult RequestTacticalWithdraw(UnitId unitId, WorldPosition destination);
 

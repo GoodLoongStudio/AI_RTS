@@ -21,6 +21,7 @@ signal action_changed(new_action)
 signal action_updated
 signal explicit_force_attack_ended(reason)
 signal ordinary_attack_ended(reason)
+signal entity_attack_move_ended(reason)
 
 const MATERIAL_ALBEDO_TO_REPLACE = Color(0.99, 0.81, 0.48)
 const MATERIAL_ALBEDO_TO_REPLACE_EPSILON = 0.05
@@ -92,6 +93,21 @@ func request_legacy_ground_attack_move(target_position: Vector3) -> bool:
 	if find_child("Movement") == null or attack_range == null:
 		return false
 	action = LegacyGroundAttackMovingAction.new(target_position)
+	return true
+
+
+# 临时 C# 迁移桥：Entity AttackMove 保留最终目标身份，同时复用已评审的接敌与恢复推进 Action。
+func request_legacy_entity_attack_move(target_unit) -> bool:
+	if (
+		find_child("Movement") == null
+		or attack_range == null
+		or target_unit == null
+		or not is_instance_valid(target_unit)
+	):
+		return false
+	var attack_move = LegacyGroundAttackMovingAction.new(target_unit)
+	attack_move.final_target_ended.connect(entity_attack_move_ended.emit)
+	action = attack_move
 	return true
 
 

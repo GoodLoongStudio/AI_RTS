@@ -39,6 +39,13 @@ public partial class UnitCommandGateway : Node
         return ToGodot(_runtime.GroundAttackMoveUnits(unitNodes, destination, issuerPlayer));
     }
 
+    /// <summary>接收 GDScript 单位节点并提交以敌方实体为最终目标的移动攻击命令。</summary>
+    public Godot.Collections.Dictionary EntityAttackMoveUnits(
+        Godot.Collections.Array<Node> unitNodes, Node targetNode, Node issuerPlayer)
+    {
+        return ToGodot(_runtime.EntityAttackMoveUnits(unitNodes, targetNode, issuerPlayer));
+    }
+
     /// <summary>接收 GDScript 单位节点并提交批量战术撤退命令。</summary>
     public Godot.Collections.Dictionary TacticalWithdrawUnits(
         Godot.Collections.Array<Node> unitNodes, Vector3 destination, Node issuerPlayer)

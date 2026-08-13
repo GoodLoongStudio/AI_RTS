@@ -18,6 +18,11 @@ public sealed record GroundAttackMoveCommand(
     IReadOnlyList<UnitId> UnitIds,
     WorldPosition Destination);
 
+/// <summary>请求一组单位以指定敌方实体为最终目标推进，并按持续交战姿态处理途中敌人。</summary>
+public sealed record EntityAttackMoveCommand(
+    IReadOnlyList<UnitId> UnitIds,
+    EntityAttackTarget Target);
+
 /// <summary>请求一组单位向指定位置战术撤退；无倒车能力的可移动单位退化为强制移动。</summary>
 public sealed record TacticalWithdrawCommand(
     IReadOnlyList<UnitId> UnitIds,

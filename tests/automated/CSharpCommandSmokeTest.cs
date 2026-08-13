@@ -21,6 +21,7 @@ public partial class CSharpCommandSmokeTest : Node
         TestPartialAcceptanceAndIndependentOrders();
         TestMoveAndForceMoveKeepDistinctIntent();
         TestGroundAttackMoveKeepsDistinctIntent();
+        TestEntityAttackMoveAuthorization();
         TestFailedReplacementPreservesActiveOrder();
         TestHaltSuspendsWithoutReplacingOrder();
         TestCombatPoliciesAreIndependentAndOwnershipChecked();
@@ -104,6 +105,42 @@ public partial class CSharpCommandSmokeTest : Node
             "ground attack move should use its dedicated movement port");
         Check(orders.FindActive(unit)?.Kind == UnitOrderKind.GroundAttackMove,
             "ground attack move should retain its order kind");
+    }
+
+    /// <summary>验证实体移动攻击保留敌方最终目标、拒绝己方目标，并允许停火单位继续追踪。</summary>
+    private void TestEntityAttackMoveAuthorization()
+    {
+        var owner = NewPlayerId();
+        var enemyOwner = NewPlayerId();
+        var unit = NewUnitId();
+        var friendly = NewUnitId();
+        var enemy = NewUnitId();
+        var terrainDomains = new HashSet<CombatDomain> { CombatDomain.Terrain };
+        var repository = new FakeRepository(
+            new UnitCommandSnapshot(unit, owner, true, true, CombatDomain.Terrain, terrainDomains),
+            new UnitCommandSnapshot(friendly, owner, true, true, CombatDomain.Terrain, terrainDomains),
+            new UnitCommandSnapshot(enemy, enemyOwner, true, true, CombatDomain.Terrain, terrainDomains));
+        var movement = new FakeMovementPort();
+        var orders = new InMemoryUnitOrderStore();
+        var policies = new InMemoryCombatPolicyStore();
+        var service = new UnitCommandService(
+            repository, movement, new FakeAttackPort(), orders, policies);
+
+        policies.SetFirePolicy(unit, FirePolicy.HoldFire);
+        var accepted = service.EntityAttackMove(
+            Context(owner), new EntityAttackMoveCommand([unit], new EntityAttackTarget(enemy)));
+        var rejected = service.EntityAttackMove(
+            Context(owner), new EntityAttackMoveCommand([unit], new EntityAttackTarget(friendly)));
+
+        Check(accepted.Status == CommandStatus.Accepted,
+            "hold-fire entity attack move should still be accepted as movement");
+        Check(movement.EntityAttackMoveRequests == 1,
+            "entity attack move should use its dedicated movement port");
+        Check(orders.FindActive(unit)?.Kind == UnitOrderKind.EntityAttackMove,
+            "entity attack move should retain its order kind");
+        Check(rejected.Status == CommandStatus.Rejected &&
+            rejected.UnitResults.Single().ErrorCode == CommandErrorCode.InvalidAttackTarget,
+            "entity attack move should reject a friendly final target");
     }
 
     /// <summary>验证新导航请求失败时不会提前取消旧活动订单。</summary>
@@ -357,6 +394,9 @@ public partial class CSharpCommandSmokeTest : Node
         /// <summary>累计地面移动攻击端口调用次数。</summary>
         public int GroundAttackMoveRequests { get; private set; }
 
+        /// <summary>累计实体移动攻击端口调用次数。</summary>
+        public int EntityAttackMoveRequests { get; private set; }
+
         /// <inheritdoc />
         public MovementPortResult RequestMove(UnitId unitId, WorldPosition destination)
         {
@@ -377,6 +417,14 @@ public partial class CSharpCommandSmokeTest : Node
         public MovementPortResult RequestGroundAttackMove(UnitId unitId, WorldPosition destination)
         {
             GroundAttackMoveRequests++;
+            return FailMoves ? MovementPortResult.Failure(MovementPortError.NavigationUnavailable) :
+                MovementPortResult.Success();
+        }
+
+        /// <inheritdoc />
+        public MovementPortResult RequestEntityAttackMove(UnitId unitId, UnitId targetId)
+        {
+            EntityAttackMoveRequests++;
             return FailMoves ? MovementPortResult.Failure(MovementPortError.NavigationUnavailable) :
                 MovementPortResult.Success();
         }

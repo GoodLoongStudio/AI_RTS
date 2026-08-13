@@ -108,7 +108,7 @@ func _on_command_targeting_changed(command_name: String):
 	elif command_name == "TacticalWithdraw":
 		_feedback_label.text = "请右键地面指定撤退目的地"
 	elif command_name == "GroundAttackMove":
-		_feedback_label.text = "请右键地面指定移动并攻击目的地"
+		_feedback_label.text = "请右键地面或敌方单位指定移动并攻击目标"
 
 
 func _on_command_feedback(
@@ -122,6 +122,7 @@ func _on_command_feedback(
 		"ForceAttackGround": "地面强制攻击（当前武器不支持）",
 		"TacticalWithdraw": "撤退",
 		"GroundAttackMove": "移动并攻击",
+		"EntityAttackMove": "移动并攻击",
 		"Aggressive": "侵略姿态",
 		"Guard": "警戒姿态",
 		"HoldGround": "固守姿态",

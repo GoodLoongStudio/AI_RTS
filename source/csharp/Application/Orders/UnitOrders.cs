@@ -14,6 +14,9 @@ public enum UnitOrderKind
     /// <summary>允许按交战姿态暂停推进并清除途中敌人的地面移动攻击订单。</summary>
     GroundAttackMove,
 
+    /// <summary>保留敌方实体最终目标身份、允许途中接敌并在清敌后继续追踪的移动攻击订单。</summary>
+    EntityAttackMove,
+
     /// <summary>沿导航路径倒车，或由不具备倒车能力的单位退化执行普通移动。</summary>
     TacticalWithdraw,
 

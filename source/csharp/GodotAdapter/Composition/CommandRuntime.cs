@@ -95,6 +95,22 @@ public partial class CommandRuntime : Node
         return result;
     }
 
+    /// <summary>代表指定玩家提交以敌方实体为最终目标的移动攻击，并跟踪目标失效状态。</summary>
+    public CommandResult EntityAttackMoveUnits(
+        IEnumerable<Node> unitNodes,
+        Node targetNode,
+        Node issuerPlayer)
+    {
+        var context = CreateContext(issuerPlayer);
+        var unitIds = unitNodes.Select(_units.Register).ToArray();
+        var targetId = _units.Register(targetNode);
+        var result = _commands.EntityAttackMove(
+            context,
+            new EntityAttackMoveCommand(unitIds, new EntityAttackTarget(targetId)));
+        TrackAcceptedAttacks(result, "entity_attack_move_ended", UnitOrderKind.EntityAttackMove);
+        return result;
+    }
+
     /// <summary>代表指定玩家向一组单位提交战术撤退，并跟踪到达与损失状态。</summary>
     public CommandResult TacticalWithdrawUnits(
         IEnumerable<Node> unitNodes,

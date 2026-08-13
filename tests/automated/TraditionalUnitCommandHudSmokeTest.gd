@@ -49,7 +49,10 @@ func _ready():
 	_check(not tactical_withdraw_button.disabled, "选中 Tank 后撤退按钮应可用")
 	_check(not ground_attack_move_button.disabled, "选中 Tank 后移动并攻击按钮应可用")
 	ground_attack_move_button.pressed.emit()
-	_check("移动并攻击目的地" in feedback_label.text, "移动并攻击应进入地面目标确认状态")
+	_check(
+		"地面或敌方单位" in feedback_label.text,
+		"移动并攻击应进入地面或敌方单位目标确认状态"
+	)
 	ground_attack_move_button.pressed.emit()
 	_check(ground_attack_move_button.text == "移动并攻击", "再次点击应取消移动并攻击目标确认")
 	tactical_withdraw_button.pressed.emit()

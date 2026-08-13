@@ -19,6 +19,9 @@ public interface IUnitCommandService
     /// <summary>提交批量地面移动攻击命令，并返回逐单位接收结果。</summary>
     CommandResult GroundAttackMove(CommandContext context, GroundAttackMoveCommand command);
 
+    /// <summary>提交以敌方实体为最终目标的移动攻击命令，并返回逐单位接收结果。</summary>
+    CommandResult EntityAttackMove(CommandContext context, EntityAttackMoveCommand command);
+
     /// <summary>提交批量战术撤退命令，并按单位能力选择倒车或普通移动执行。</summary>
     CommandResult TacticalWithdraw(CommandContext context, TacticalWithdrawCommand command);
 
@@ -89,6 +92,48 @@ public sealed class UnitCommandService(
     }
 
     /// <inheritdoc />
+    public CommandResult EntityAttackMove(CommandContext context, EntityAttackMoveCommand command)
+    {
+        if (command.UnitIds.Count == 0)
+        {
+            return Rejected(context.CommandId, command.UnitIds, CommandErrorCode.EmptyUnitSet);
+        }
+
+        var target = units.Find(command.Target.TargetUnitId);
+        if (target is null)
+        {
+            return Rejected(context.CommandId, command.UnitIds, CommandErrorCode.TargetNotFound);
+        }
+        if (!target.Value.IsDamageable)
+        {
+            return Rejected(context.CommandId, command.UnitIds, CommandErrorCode.TargetNotDamageable);
+        }
+
+        var results = new List<UnitCommandResult>();
+        foreach (var unitId in StableDistinct(command.UnitIds))
+        {
+            var validation = ValidateAttackMove(context, unitId, target.Value);
+            if (validation != CommandErrorCode.None)
+            {
+                results.Add(new UnitCommandResult(unitId, false, validation));
+                continue;
+            }
+
+            var portResult = movement.RequestEntityAttackMove(unitId, command.Target.TargetUnitId);
+            if (!portResult.Accepted)
+            {
+                results.Add(new UnitCommandResult(unitId, false, Map(portResult.Error)));
+                continue;
+            }
+
+            var order = orders.Create(context.CommandId, unitId, UnitOrderKind.EntityAttackMove);
+            orders.Transition(order.OrderId, UnitOrderState.InProgress);
+            results.Add(new UnitCommandResult(unitId, true, CommandErrorCode.None, order.OrderId));
+        }
+        return Summarize(context.CommandId, results);
+    }
+
+    /// <inheritdoc />
     public CommandResult TacticalWithdraw(CommandContext context, TacticalWithdrawCommand command)
     {
         if (command.UnitIds.Count == 0 || !IsFinite(command.Destination))
@@ -133,7 +178,8 @@ public sealed class UnitCommandService(
 
             var active = orders.FindActive(unitId);
             if (active?.Kind is UnitOrderKind.Move or UnitOrderKind.ForceMove or
-                UnitOrderKind.GroundAttackMove or UnitOrderKind.TacticalWithdraw)
+                UnitOrderKind.GroundAttackMove or UnitOrderKind.EntityAttackMove or
+                UnitOrderKind.TacticalWithdraw)
             {
                 orders.Transition(active.OrderId, UnitOrderState.Suspended);
             }
@@ -142,7 +188,8 @@ public sealed class UnitCommandService(
                 true,
                 CommandErrorCode.None,
                 active?.Kind is UnitOrderKind.Move or UnitOrderKind.ForceMove or
-                    UnitOrderKind.GroundAttackMove or UnitOrderKind.TacticalWithdraw ?
+                    UnitOrderKind.GroundAttackMove or UnitOrderKind.EntityAttackMove or
+                    UnitOrderKind.TacticalWithdraw ?
                     active.OrderId : null));
         }
         return Summarize(context.CommandId, results);
@@ -415,6 +462,35 @@ public sealed class UnitCommandService(
         if (!isForceAttack && combatPolicies.Get(unitId).FirePolicy == FirePolicy.HoldFire)
         {
             return CommandErrorCode.FirePolicyPreventsAttack;
+        }
+        if (!attacker.CanAttack)
+        {
+            return CommandErrorCode.UnitCannotAttack;
+        }
+        return attacker.AttackDomains?.Contains(target.Domain) == true ?
+            CommandErrorCode.None : CommandErrorCode.WeaponCannotTargetDomain;
+    }
+
+    /// <summary>校验实体移动攻击的所有权、移动与攻击能力、敌我关系及目标域；停火仅抑制开火，不拒绝推进。</summary>
+    private CommandErrorCode ValidateAttackMove(
+        CommandContext context,
+        UnitId unitId,
+        UnitCommandSnapshot target)
+    {
+        var ownership = ValidateOwnership(context, unitId);
+        if (ownership != CommandErrorCode.None)
+        {
+            return ownership;
+        }
+
+        var attacker = units.Find(unitId)!.Value;
+        if (attacker.OwnerId == target.OwnerId)
+        {
+            return CommandErrorCode.InvalidAttackTarget;
+        }
+        if (!attacker.CanMove)
+        {
+            return CommandErrorCode.UnitCannotMove;
         }
         if (!attacker.CanAttack)
         {

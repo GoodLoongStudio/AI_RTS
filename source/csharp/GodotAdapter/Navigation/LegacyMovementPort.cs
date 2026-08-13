@@ -46,6 +46,23 @@ public sealed class LegacyMovementPort(GodotUnitRegistry units) : IUnitMovementP
     }
 
     /// <inheritdoc />
+    public MovementPortResult RequestEntityAttackMove(UnitId unitId, UnitId targetId)
+    {
+        if (!units.TryGetNode(unitId, out var unit) || !units.TryGetNode(targetId, out var target))
+        {
+            return MovementPortResult.Failure(MovementPortError.UnitUnavailable);
+        }
+        if (!unit.HasMethod("request_legacy_entity_attack_move"))
+        {
+            return MovementPortResult.Failure(MovementPortError.NavigationUnavailable);
+        }
+
+        var accepted = unit.Call("request_legacy_entity_attack_move", target).AsBool();
+        return accepted ? MovementPortResult.Success() :
+            MovementPortResult.Failure(MovementPortError.NavigationUnavailable);
+    }
+
+    /// <inheritdoc />
     public MovementPortResult RequestTacticalWithdraw(UnitId unitId, WorldPosition destination)
     {
         if (!units.TryGetNode(unitId, out var unit))

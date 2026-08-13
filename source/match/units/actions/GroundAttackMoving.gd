@@ -1,5 +1,7 @@
 extends "res://source/match/units/actions/Action.gd"
 
+signal final_target_ended(reason)
+
 const AttackingWhileInRange = preload(
 	"res://source/match/units/actions/AttackingWhileInRange.gd"
 )
@@ -10,6 +12,7 @@ const GUARD_DETECTION_RANGE_FACTOR := 1.25
 const GUARD_LEASH_RANGE_FACTOR := 1.0
 
 var _destination: Vector3
+var _final_target = null
 var _engagement_action = null
 var _engagement_target = null
 var _engagement_anchor := Vector3.ZERO
@@ -21,11 +24,17 @@ var _is_transitioning := false
 @onready var _command_runtime = _unit.find_parent("Match").get_node("CommandRuntime")
 
 
-func _init(destination: Vector3):
-	_destination = destination
+func _init(target):
+	if target is Node3D:
+		_final_target = target
+		_destination = target.global_position
+	else:
+		_destination = target
 
 
 func _ready():
+	if _final_target != null:
+		_final_target.tree_exiting.connect(_on_final_target_lost, CONNECT_ONE_SHOT)
 	_movement_trait.movement_finished.connect(_on_movement_finished)
 	_refresh_timer = Timer.new()
 	_refresh_timer.timeout.connect(_refresh)
@@ -46,6 +55,8 @@ func refresh_combat_policy():
 
 
 func _refresh():
+	if not _refresh_final_target_destination():
+		return
 	if _command_runtime.GetFirePolicy(_unit) == "HoldFire":
 		_resume_advancing()
 		return
@@ -137,6 +148,7 @@ func _resume_advancing():
 		_is_transitioning = false
 	_engagement_action = null
 	_engagement_target = null
+	_refresh_final_target_destination()
 	_movement_trait.move(_destination)
 	_unit.action_updated.emit()
 
@@ -151,4 +163,28 @@ func _on_engagement_finished():
 
 func _on_movement_finished():
 	if _engagement_action == null:
-		queue_free()
+		if _final_target == null:
+			queue_free()
+		else:
+			_refresh_final_target_destination()
+			_movement_trait.move(_destination)
+
+
+## 实体最终目标存活时刷新其当前位置；目标失效时结束订单且不前往最后已知位置。
+func _refresh_final_target_destination() -> bool:
+	if _final_target == null:
+		return true
+	if not is_instance_valid(_final_target) or not _final_target.is_inside_tree():
+		_on_final_target_lost()
+		return false
+	_destination = _final_target.global_position
+	if _engagement_action == null and _movement_trait.target_position != _destination:
+		_movement_trait.move(_destination)
+	return true
+
+
+func _on_final_target_lost():
+	if not is_inside_tree():
+		return
+	final_target_ended.emit("TargetLost")
+	queue_free()
