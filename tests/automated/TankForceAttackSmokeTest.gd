@@ -5,6 +5,7 @@ const TankScene = preload("res://source/match/units/Tank.tscn")
 const Player = preload("res://source/match/players/Player.gd")
 
 var _failures := 0
+var _order_events: Array[Dictionary] = []
 
 
 func _ready():
@@ -16,6 +17,7 @@ func _ready():
 	var human = match_instance.get_node("Players/Human")
 	var attacker = human.get_node("Tank")
 	var gateway = human.get_node("UnitCommandGateway")
+	match_instance.get_node("CommandRuntime").connect("OrderStateChanged", _on_order_state_changed)
 	var controller = human.get_node("UnitActionsController")
 	var friendly_target = _add_tank(human, "FriendlyTarget", attacker.position + Vector3(3, 0, 0))
 	friendly_target.add_to_group("controlled_units")
@@ -57,6 +59,10 @@ func _ready():
 	await get_tree().create_timer(0.3).timeout
 	_check(not is_instance_valid(enemy_target) or enemy_target.hp == 0, "显式攻击应能摧毁敌方目标")
 	_check(gateway.GetOrderState(enemy_order_id) == "TargetLost", "目标死亡后订单应进入 TargetLost")
+	_check(
+		_states_for_order(enemy_order_id) == ["Accepted", "InProgress", "TargetLost"],
+		"目标死亡应通过统一订单事件发布 TargetLost"
+	)
 
 	var ground_result = gateway.ForceAttackGround([attacker], attacker.global_position, human)
 	_check(ground_result["status"] == "Rejected", "当前 Tank 地面强制攻击应稳定拒绝")
@@ -96,3 +102,33 @@ func _check(condition: bool, message: String):
 		return
 	_failures += 1
 	push_error("Tank force attack assertion failed: %s" % message)
+
+
+## 收集 ForceAttack 测试所需的权威订单状态事件。
+func _on_order_state_changed(
+	order_id: String,
+	command_id: String,
+	unit_id: String,
+	kind: String,
+	previous_state: String,
+	current_state: String,
+	replaced_by_command_id: String
+):
+	_order_events.append({
+		"order_id": order_id,
+		"command_id": command_id,
+		"unit_id": unit_id,
+		"kind": kind,
+		"previous_state": previous_state,
+		"current_state": current_state,
+		"replaced_by_command_id": replaced_by_command_id,
+	})
+
+
+## 按订单 ID 提取状态序列，忽略同场景其他订单事件。
+func _states_for_order(order_id: String) -> Array[String]:
+	var states: Array[String] = []
+	for event in _order_events:
+		if event["order_id"] == order_id:
+			states.append(event["current_state"])
+	return states

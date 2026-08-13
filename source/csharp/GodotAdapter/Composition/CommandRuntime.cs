@@ -14,6 +14,17 @@ namespace AI_RTS.GodotAdapter.Composition;
 /// <summary>在 Match 生命周期内统一持有单位注册表、订单存储和权威命令服务。</summary>
 public partial class CommandRuntime : Node
 {
+    /// <summary>向 Godot 表现与集成层广播权威订单状态变化；可见性过滤不得在此信号中绕过。</summary>
+    [Signal]
+    public delegate void OrderStateChangedEventHandler(
+        string orderId,
+        string commandId,
+        string unitId,
+        string kind,
+        string previousState,
+        string currentState,
+        string replacedByCommandId);
+
     /// <summary>维护本 Match 中 Godot Node 与稳定单位/玩家 ID 的映射。</summary>
     private readonly GodotUnitRegistry _units = new();
 
@@ -36,6 +47,7 @@ public partial class CommandRuntime : Node
     public override void _Ready()
     {
         _matchId = new MatchId(Guid.NewGuid());
+        _orders.StateChanged += OnOrderStateChanged;
         _commands = new UnitCommandService(
             _units,
             new LegacyMovementPort(_units),
@@ -268,11 +280,48 @@ public partial class CommandRuntime : Node
         Guid.TryParse(orderId, out var value) ?
             _orders.Find(new UnitOrderId(value))?.State.ToString() ?? string.Empty : string.Empty;
 
+    /// <summary>按订单 ID 查询完整权威快照；无效或不存在时返回空 Dictionary。</summary>
+    public Godot.Collections.Dictionary GetOrderSnapshot(string orderId)
+    {
+        if (!Guid.TryParse(orderId, out var value) ||
+            _orders.Find(new UnitOrderId(value)) is not { } order)
+        {
+            return new Godot.Collections.Dictionary();
+        }
+
+        return ToGodot(order);
+    }
+
     private CommandContext CreateContext(Node issuerPlayer) => new(
         new CommandId(Guid.NewGuid()),
         _matchId,
         _units.RegisterPlayer(issuerPlayer),
         checked((long)Engine.GetPhysicsFrames()));
+
+    /// <summary>将纯 C# 权威订单事件转换为 Match 唯一的 Godot Signal。</summary>
+    private void OnOrderStateChanged(UnitOrderStateChanged change)
+    {
+        EmitSignal(
+            SignalName.OrderStateChanged,
+            change.Current.OrderId.Value.ToString("D"),
+            change.Current.CommandId.Value.ToString("D"),
+            change.Current.UnitId.Value.ToString("D"),
+            change.Current.Kind.ToString(),
+            change.Previous?.State.ToString() ?? string.Empty,
+            change.Current.State.ToString(),
+            change.Current.ReplacedByCommandId?.Value.ToString("D") ?? string.Empty);
+    }
+
+    /// <summary>将强类型订单快照转换为 GDScript 可读取的稳定字段集合。</summary>
+    private static Godot.Collections.Dictionary ToGodot(UnitOrderSnapshot order) => new()
+    {
+        ["order_id"] = order.OrderId.Value.ToString("D"),
+        ["command_id"] = order.CommandId.Value.ToString("D"),
+        ["unit_id"] = order.UnitId.Value.ToString("D"),
+        ["kind"] = order.Kind.ToString(),
+        ["state"] = order.State.ToString(),
+        ["replaced_by_command_id"] = order.ReplacedByCommandId?.Value.ToString("D") ?? string.Empty
+    };
 
     /// <summary>把已接受订单连接到 Godot 移动完成和单位退出事件。</summary>
     private void TrackAcceptedOrders(CommandResult result)

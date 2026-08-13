@@ -57,9 +57,17 @@ public sealed record UnitOrderSnapshot(
     UnitOrderState State,
     CommandId? ReplacedByCommandId = null);
 
+/// <summary>记录一次权威订单状态变化，供表现层、任务系统和受权限约束的观察适配器消费。</summary>
+public sealed record UnitOrderStateChanged(
+    UnitOrderSnapshot? Previous,
+    UnitOrderSnapshot Current);
+
 /// <summary>管理单位订单的创建、查询与状态转换。</summary>
 public interface IUnitOrderStore
 {
+    /// <summary>在订单成功创建或状态实际发生变化后发布权威状态事件。</summary>
+    event Action<UnitOrderStateChanged>? StateChanged;
+
     /// <summary>为单位创建新订单，并取消其旧活动订单。</summary>
     UnitOrderSnapshot Create(CommandId commandId, UnitId unitId, UnitOrderKind kind);
 
@@ -76,6 +84,9 @@ public interface IUnitOrderStore
 /// <summary>在当前对局进程中保存单位订单，不承担存档持久化。</summary>
 public sealed class InMemoryUnitOrderStore : IUnitOrderStore
 {
+    /// <inheritdoc />
+    public event Action<UnitOrderStateChanged>? StateChanged;
+
     /// <summary>按订单 ID 保存全部订单快照。</summary>
     private readonly Dictionary<UnitOrderId, UnitOrderSnapshot> _orders = new();
 
@@ -94,6 +105,7 @@ public sealed class InMemoryUnitOrderStore : IUnitOrderStore
             new UnitOrderId(Guid.NewGuid()), commandId, unitId, kind, UnitOrderState.Accepted);
         _orders.Add(order.OrderId, order);
         _activeByUnit[unitId] = order.OrderId;
+        StateChanged?.Invoke(new UnitOrderStateChanged(null, order));
         return order;
     }
 
@@ -113,11 +125,18 @@ public sealed class InMemoryUnitOrderStore : IUnitOrderStore
             return;
         }
 
-        _orders[orderId] = current with { State = state, ReplacedByCommandId = replacedBy };
+        var updated = current with { State = state, ReplacedByCommandId = replacedBy };
+        if (updated == current)
+        {
+            return;
+        }
+
+        _orders[orderId] = updated;
         if (IsTerminal(state) && _activeByUnit.TryGetValue(current.UnitId, out var active) && active == orderId)
         {
             _activeByUnit.Remove(current.UnitId);
         }
+        StateChanged?.Invoke(new UnitOrderStateChanged(current, updated));
     }
 
     private static bool IsTerminal(UnitOrderState state) => state is

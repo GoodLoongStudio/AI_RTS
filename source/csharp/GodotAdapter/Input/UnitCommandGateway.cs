@@ -128,6 +128,10 @@ public partial class UnitCommandGateway : Node
     /// <summary>按字符串形式的 UnitOrderId 查询状态名称，主要用于桥接期诊断。</summary>
     public string GetOrderState(string orderId) => _runtime.GetOrderState(orderId);
 
+    /// <summary>按订单 ID 查询完整权威快照，供迁移期 HUD 和测试按稳定字段读取。</summary>
+    public Godot.Collections.Dictionary GetOrderSnapshot(string orderId) =>
+        _runtime.GetOrderSnapshot(orderId);
+
     /// <summary>沿父节点查找指定名称的装配根，缺失时立即报告场景契约错误。</summary>
     private Node FindAncestor(string nodeName)
     {

@@ -39,6 +39,7 @@ internal sealed class UnitCommandServiceTests
         RunTest(nameof(AttackMoveKeepsMovingDuringHoldFire), AttackMoveKeepsMovingDuringHoldFire);
         RunTest(nameof(TacticalWithdrawFallsBackToOrdinaryMovement), TacticalWithdrawFallsBackToOrdinaryMovement);
         RunTest(nameof(PortFailuresMapToStableErrors), PortFailuresMapToStableErrors);
+        RunTest(nameof(OrderStorePublishesAuthoritativeStateChanges), OrderStorePublishesAuthoritativeStateChanges);
 
         Console.WriteLine($"AI_RTS.Core tests completed: {_tests} test(s), {_failures} failure(s).");
         return _failures == 0 ? 0 : 1;
@@ -321,6 +322,36 @@ internal sealed class UnitCommandServiceTests
             "移动端口 UnitUnavailable 应映射为 UnitNotFound");
         Check(ResultFor(fire, attacker).ErrorCode == CommandErrorCode.AttackUnavailable,
             "攻击端口失败应映射为 AttackUnavailable");
+    }
+
+    /// <summary>验证订单存储发布创建与实际状态变化，并抑制重复状态伪事件。</summary>
+    private void OrderStorePublishesAuthoritativeStateChanges()
+    {
+        var store = new InMemoryUnitOrderStore();
+        var changes = new List<UnitOrderStateChanged>();
+        store.StateChanged += changes.Add;
+        var order = store.Create(
+            new CommandId(Guid.NewGuid()),
+            NewUnitId(),
+            UnitOrderKind.Move);
+
+        store.Transition(order.OrderId, UnitOrderState.InProgress);
+        store.Transition(order.OrderId, UnitOrderState.InProgress);
+        store.Transition(order.OrderId, UnitOrderState.Suspended);
+        store.Transition(order.OrderId, UnitOrderState.Cancelled);
+
+        Check(changes.Count == 4, "创建和三次实际状态变化应产生四个事件");
+        Check(changes[0].Previous is null && changes[0].Current.State == UnitOrderState.Accepted,
+            "创建事件应没有 Previous，并携带 Accepted 快照");
+        Check(changes[1].Previous?.State == UnitOrderState.Accepted &&
+            changes[1].Current.State == UnitOrderState.InProgress,
+            "执行事件应记录 Accepted 到 InProgress");
+        Check(changes[2].Previous?.State == UnitOrderState.InProgress &&
+            changes[2].Current.State == UnitOrderState.Suspended,
+            "暂停事件应记录 InProgress 到 Suspended");
+        Check(changes[3].Previous?.State == UnitOrderState.Suspended &&
+            changes[3].Current.State == UnitOrderState.Cancelled,
+            "取消事件应记录 Suspended 到 Cancelled");
     }
 
     private void RunTest(string name, Action test)
