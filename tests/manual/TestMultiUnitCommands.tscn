@@ -1,0 +1,20 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="PackedScene" path="res://tests/manual/TestOneUnit.tscn" id="1_match"]
+[ext_resource type="PackedScene" path="res://source/match/units/Tank.tscn" id="2_tank"]
+[ext_resource type="PackedScene" path="res://source/match/units/CommandCenter.tscn" id="3_command_center"]
+[ext_resource type="PackedScene" path="res://source/match/players/Player.tscn" id="4_player"]
+
+[node name="Match" instance=ExtResource("1_match")]
+
+[node name="SecondTank" parent="Players/Human" index="2" instance=ExtResource("2_tank")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16.0, 0, 12.637)
+
+[node name="ImmobileCommandCenter" parent="Players/Human" index="3" instance=ExtResource("3_command_center")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.5, 0, 18.5)
+
+[node name="Enemy" parent="Players" index="1" instance=ExtResource("4_player")]
+color = Color(1, 0.2, 0.2, 1)
+
+[node name="EnemyTank" parent="Players/Enemy" index="0" instance=ExtResource("2_tank")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.0, 0, 12.637)
