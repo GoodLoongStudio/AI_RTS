@@ -15,4 +15,9 @@ export_credentials.cfg
 .mono/
 data_*/
 mono_crash.*.json
+
+# .NET build outputs
+**/bin/
+**/obj/
+
 .DS_Store

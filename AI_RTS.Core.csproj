@@ -1,17 +1,15 @@
-<Project Sdk="Godot.NET.Sdk/4.7.0">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
-    <EnableDynamicLoading>true</EnableDynamicLoading>
     <RootNamespace>AI_RTS</RootNamespace>
-    <AssemblyName>OpenRTS</AssemblyName>
+    <AssemblyName>AI_RTS.Core</AssemblyName>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="source/csharp/GodotAdapter/**/*.cs" />
-    <Compile Include="tests/automated/**/*.cs" />
-    <ProjectReference Include="AI_RTS.Core.csproj" />
+    <Compile Include="source/csharp/Domain/**/*.cs" />
+    <Compile Include="source/csharp/Application/**/*.cs" />
   </ItemGroup>
 </Project>
