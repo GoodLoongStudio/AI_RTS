@@ -19,6 +19,7 @@ func _ready():
 	_reference_static_collider_shape.global_transform.origin.y = Constants.Match.Air.Y
 
 
+## 调整空中参考碰撞体后等待 PhysicsServer 同步，再据此烘焙运行时 NavMesh。
 func bake(map):
 	assert(
 		_navigation_region.navigation_mesh.get_polygon_count() == 0,
@@ -29,6 +30,8 @@ func bake(map):
 	_reference_static_collider_shape.shape = shape
 	_reference_static_collider_shape.global_transform.origin.x = map.size.x / 2.0
 	_reference_static_collider_shape.global_transform.origin.z = map.size.y / 2.0
+	await get_tree().physics_frame
+	await get_tree().physics_frame
 	_navigation_region.bake_navigation_mesh(false)
 
 

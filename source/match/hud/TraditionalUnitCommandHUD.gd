@@ -149,7 +149,7 @@ func _refresh_availability():
 	_hold_fire_button.disabled = not has_supported_units
 	if not has_supported_units:
 		actions_controller.cancel_command_targeting()
-		_feedback_label.text = "选择 Tank 后可下达传统 RTS 命令"
+		_feedback_label.text = "选择 Tank 或 Helicopter 后可下达传统 RTS 命令"
 	_refresh_policy_buttons()
 
 

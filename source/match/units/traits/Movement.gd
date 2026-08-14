@@ -16,6 +16,7 @@ const ROTATION_LOW_PASS_FILTER_WINDOW_SIZE = 10  # number of frames for accumula
 const ROTATION_LOW_PASS_FILTER_VELOCITY_THRESHOLD = 0.01  # velocities below will be dropped
 
 const PASSIVE_MOVEMENT_TRACKING_ENABLED = true
+const NAVIGATION_ALIGNMENT_MAX_FRAMES = 180
 
 @export var domain = Constants.Match.Navigation.Domain.TERRAIN
 @export var speed: float = 4.0
@@ -33,6 +34,9 @@ var _total_direction_in_the_low_pass_filter_window = Vector3.ZERO
 var _previously_set_global_transform_of_unit = null
 
 var _passive_movement_detected = false
+var _navigation_initialized := false
+var _pending_target = null
+var _skip_initial_dispersion := false
 
 @onready var _match = find_parent("Match")
 @onready var _unit = get_parent()
@@ -59,29 +63,35 @@ func _ready():
 	velocity_computed.connect(_on_velocity_computed)
 	navigation_finished.connect(_on_navigation_finished)
 	set_navigation_map(_match.navigation.get_navigation_map_rid_by_domain(domain))
-	_align_unit_position_to_navigation()
-	move(
-		(
-			_unit.global_position
-			+ Vector3(randf(), 0, randf()).normalized() * INITIAL_DISPERSION_FACTOR
-		)
-	)
+	target_position = Vector3.INF
+	set_velocity(Vector3.ZERO)
+	_finish_navigation_initialization()
 
 
 func move(movement_target: Vector3):
 	_is_tactical_withdrawal = false
+	if not _navigation_initialized:
+		_pending_target = movement_target
+		_skip_initial_dispersion = true
 	target_position = movement_target
 
 
 ## 沿导航路径倒车；车尾对齐每一帧的安全速度方向，因此路径转弯会更新朝向。
 func tactical_withdraw(movement_target: Vector3):
 	_is_tactical_withdrawal = true
+	if not _navigation_initialized:
+		_pending_target = movement_target
+		_skip_initial_dispersion = true
 	target_position = movement_target
 
 
 func stop():
 	target_position = Vector3.INF
 	_is_tactical_withdrawal = false
+	if not _navigation_initialized:
+		_pending_target = null
+		_skip_initial_dispersion = true
+	set_velocity(Vector3.ZERO)
 
 
 ## 暂停所有主动与避障位移，用于必须保持接敌点的固守交战。
@@ -98,20 +108,41 @@ func resume_motion():
 	set_physics_process(true)
 
 
-func _align_unit_position_to_navigation():
-	await get_tree().process_frame  # wait for navigation to be operational
+## 等待运行时 NavMesh 出现可用 Region 后再对齐单位，避免空中地图异步烘焙竞态。
+func _align_unit_position_to_navigation() -> bool:
 	var navigation_map := get_navigation_map()
 	var source_position: Vector3 = get_parent().global_transform.origin
-	var closest_point_owner := NavigationServer3D.map_get_closest_point_owner(
-		navigation_map, source_position
-	)
-	# Godot returns Vector3.ZERO when a map has no usable region. Treating that
-	# sentinel as a real point collapses every scene-authored unit onto the origin.
-	if not closest_point_owner.is_valid():
+	for _frame in range(NAVIGATION_ALIGNMENT_MAX_FRAMES):
+		await get_tree().process_frame
+		var closest_point_owner := NavigationServer3D.map_get_closest_point_owner(
+			navigation_map, source_position
+		)
+		if not closest_point_owner.is_valid():
+			continue
+		_unit.global_transform.origin = (
+			NavigationServer3D.map_get_closest_point(navigation_map, source_position)
+			- Vector3(0, path_height_offset, 0)
+		)
+		return true
+	push_warning("Navigation alignment timed out for %s; preserving authored position" % _unit.name)
+	return false
+
+
+## 非阻塞完成导航对齐，并恢复初始化期间收到的最后一个显式移动目标。
+func _finish_navigation_initialization():
+	await _align_unit_position_to_navigation()
+	_navigation_initialized = true
+	if _pending_target != null:
+		target_position = _pending_target
+		_pending_target = null
 		return
-	_unit.global_transform.origin = (
-		NavigationServer3D.map_get_closest_point(navigation_map, source_position)
-		- Vector3(0, path_height_offset, 0)
+	if _skip_initial_dispersion:
+		return
+	move(
+		(
+			_unit.global_position
+			+ Vector3(randf(), 0, randf()).normalized() * INITIAL_DISPERSION_FACTOR
+		)
 	)
 
 
