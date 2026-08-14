@@ -16,8 +16,9 @@ internal static class Program
     /// <summary>执行全部纯 C# 测试，并通过进程退出码报告结果。</summary>
     private static int Main()
     {
-        var suite = new UnitCommandServiceTests();
-        return suite.Run();
+        var failures = new UnitCommandServiceTests().Run();
+        failures += new StructurePlacementServiceTests().Run();
+        return failures == 0 ? 0 : 1;
     }
 }
 

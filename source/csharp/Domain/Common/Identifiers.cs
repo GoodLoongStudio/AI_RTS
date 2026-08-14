@@ -31,3 +31,7 @@ public readonly record struct UnitOrderId(Guid Value);
 /// <summary>标识一次已经离开发射者、拥有独立生命周期的攻击实例。</summary>
 /// <param name="Value">进程内唯一的 Guid 值。</param>
 public readonly record struct AttackInstanceId(Guid Value);
+
+/// <summary>标识一个不依赖 Godot 场景路径的建筑定义。</summary>
+/// <param name="Value">项目内稳定且非空的定义键。</param>
+public readonly record struct StructureDefinitionId(string Value);
