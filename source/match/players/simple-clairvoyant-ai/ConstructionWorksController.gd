@@ -2,7 +2,6 @@ extends Node
 
 const Structure = preload("res://source/match/units/Structure.gd")
 const Worker = preload("res://source/match/units/Worker.gd")
-const Constructing = preload("res://source/match/units/actions/Constructing.gd")
 
 const REFRESH_INTERVAL_S = 1.0 / 60.0 * 30.0
 
@@ -25,7 +24,7 @@ func _on_refresh_timer_timeout():
 	var workers = get_tree().get_nodes_in_group("units").filter(
 		func(unit): return unit is Worker and unit.player == _player
 	)
-	if workers.any(func(worker): return worker.action != null and worker.action is Constructing):
+	if workers.any(func(worker): return worker.action != null):
 		return
 	var structures_to_construct = get_tree().get_nodes_in_group("units").filter(
 		func(unit):
@@ -35,4 +34,6 @@ func _on_refresh_timer_timeout():
 		# TODO: introduce some algortihm based on distances
 		workers.shuffle()
 		structures_to_construct.shuffle()
-		workers[0].action = Constructing.new(structures_to_construct[0])
+		find_parent("Match").find_child("StructurePlacementRuntime").AssignBuilders(
+			[workers[0]], structures_to_construct[0], _player, []
+		)

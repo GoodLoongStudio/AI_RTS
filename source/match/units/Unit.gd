@@ -72,6 +72,7 @@ var type:
 	get = _get_type
 
 var _action_locked = false
+var _suppress_damage_event := false
 
 @onready var _match = find_parent("Match")
 
@@ -177,6 +178,43 @@ func request_legacy_suspend_work() -> bool:
 	return action.suspend_task()
 
 
+## 临时 C# 迁移桥：开始或恢复前往指定施工现场的完整任务。
+func request_legacy_construct(construction_site) -> bool:
+	if not LegacyConstructingAction.is_applicable(self, construction_site):
+		return false
+	action = LegacyConstructingAction.new(construction_site)
+	return true
+
+
+## 临时 C# 迁移桥：暂停施工并停止移动/贡献，工地与订单身份由 C# 保留。
+func request_legacy_suspend_construction() -> bool:
+	if action == null or action.get_script() != LegacyConstructingAction:
+		return false
+	return action.suspend_task()
+
+
+## 查询当前 Worker 是否已经贴近指定现场并正在贡献工作量。
+func is_legacy_contributing_to_construction(construction_site) -> bool:
+	return (
+		action != null
+		and action.get_script() == LegacyConstructingAction
+		and action.is_contributing_to(construction_site)
+	)
+
+
+## 终态清理施工表现；不会保留现场 Node 引用。
+func request_legacy_clear_construction():
+	if action != null and action.get_script() == LegacyConstructingAction:
+		action = null
+
+
+## 设置非伤害来源 HP；仍更新血条，但不会广播 unit_damaged。
+func set_hp_without_damage(value):
+	_suppress_damage_event = true
+	hp = value
+	_suppress_damage_event = false
+
+
 # Temporary C# migration bridge. It only asks the current autonomous combat
 # action to re-read authoritative policy; it does not choose a stance itself.
 func request_legacy_refresh_combat_policy():
@@ -226,7 +264,7 @@ func request_legacy_cancel_force_attack() -> bool:
 func _set_hp(value):
 	var old_hp = hp
 	hp = max(0, value)
-	if old_hp != null and hp < old_hp:
+	if old_hp != null and hp < old_hp and not _suppress_damage_event:
 		MatchSignals.unit_damaged.emit(self)
 	hp_changed.emit()
 	if hp == 0:

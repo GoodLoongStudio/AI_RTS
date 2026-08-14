@@ -8,6 +8,7 @@ const UNDER_CONSTRUCTION_MATERIAL = preload(
 
 var _construction_progress = 1.0
 var _construction_refund_requested := false
+var _construction_completion_announced := true
 
 @onready var production_queue = find_child("ProductionQueue"):
 	set(_value):
@@ -21,37 +22,43 @@ func is_revealing():
 func mark_as_under_construction():
 	assert(not is_under_construction(), "structure already under construction")
 	_construction_progress = 0.0
+	_construction_completion_announced = false
 	_change_geometry_material(UNDER_CONSTRUCTION_MATERIAL)
 	if hp == null:
 		await ready
-	hp = 1
+	set_hp_without_damage(1)
 
 
-func construct(progress):
-	assert(is_under_construction(), "structure must be under construction")
+## 镜像 C# 权威整数施工进度；新增 HP 属于施工来源，不触发受击事件。
+func apply_authoritative_construction_work(completed_work: int, required_work: int) -> bool:
+	if required_work <= 0 or completed_work < 0 or completed_work > required_work:
+		return false
+	if not is_under_construction() and completed_work < required_work:
+		return false
+	var previous_entitled_hp = 1 + int(_construction_progress * float(hp_max - 1))
+	_construction_progress = float(completed_work) / float(required_work)
+	var current_entitled_hp = 1 + int(_construction_progress * float(hp_max - 1))
+	if current_entitled_hp > previous_entitled_hp:
+		set_hp_without_damage(min(hp_max, hp + current_entitled_hp - previous_entitled_hp))
+	return true
 
-	var expected_hp_before_progressing = int(_construction_progress * float(hp_max - 1))
-	_construction_progress += progress
-	var expected_hp_after_progressing = int(_construction_progress * float(hp_max - 1))
-	if expected_hp_after_progressing > expected_hp_before_progressing:
-		hp += 1
-	if _construction_progress >= 1.0:
-		_finish_construction()
+
+## 完成施工表现并只发布一次 Legacy 完成事件；保留施工期间受到的伤害。
+func complete_authoritative_construction() -> bool:
+	if _construction_completion_announced or _construction_progress < 1.0:
+		return false
+	_construction_completion_announced = true
+	_finish_construction()
+	return true
 
 
 ## 取消当前施工并保证全额退款最多提交一次。
-func cancel_construction():
-	if _construction_refund_requested:
-		return
+func cancel_authoritative_construction() -> bool:
+	if _construction_refund_requested or not is_under_construction():
+		return false
 	_construction_refund_requested = true
-	var scene_path = get_script().resource_path.replace(".gd", ".tscn")
-	var construction_cost = Constants.Match.Units.CONSTRUCTION_COSTS[scene_path]
-	var accepted = player.add_resources(construction_cost, "ConstructionRefund", self)
-	assert(accepted, "construction refund must reach its authoritative resource account")
-	if not accepted:
-		_construction_refund_requested = false
-		return
 	queue_free()
+	return true
 
 
 func is_constructed():

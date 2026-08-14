@@ -31,6 +31,21 @@ func _ready():
 	_construct_or_move_closer()
 
 
+## 暂停完整施工任务；权威订单保留 SiteId，Legacy Action 不保留目标引用。
+func suspend_task() -> bool:
+	queue_free()
+	return true
+
+
+## 判断 Worker 是否正贴近指定现场并贡献权威整数工作量。
+func is_contributing_to(construction_site) -> bool:
+	return (
+		_target_unit == construction_site
+		and _sub_action != null
+		and _sub_action is ConstructingWhileInRange
+	)
+
+
 func _construct_or_move_closer():
 	_sub_action = (
 		MovingToUnit.new(_target_unit)

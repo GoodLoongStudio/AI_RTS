@@ -353,23 +353,6 @@ func _try_setting_rally_points(target_point: Vector3):
 			rally_point.global_position = target_point
 
 
-func _try_ordering_selected_workers_to_construct_structure(potential_structure):
-	if not potential_structure is Structure or potential_structure.is_constructed():
-		return
-	var structure = potential_structure
-	var displaced_unit_ids = structure.get_meta("ai_rts_displaced_unit_ids", [])
-	var selected_constructors = get_tree().get_nodes_in_group("selected_units").filter(
-		func(unit):
-			return (
-				unit.is_in_group("controlled_units")
-				and not unit.get_meta("ai_rts_unit_id", "") in displaced_unit_ids
-				and Actions.Constructing.is_applicable(unit, structure)
-			)
-	)
-	for unit in selected_constructors:
-		unit.action = Actions.Constructing.new(structure)
-
-
 func _navigate_selected_units_towards_unit(target_unit, target_position: Vector3):
 	var at_least_one_unit_navigated = false
 	var selected_units = get_tree().get_nodes_in_group("selected_units").filter(
@@ -441,6 +424,11 @@ func _navigate_unit_towards_unit(unit, target_unit):
 		unit.action = Actions.AutoAttacking.new(target_unit)
 		return true
 	if Actions.Constructing.is_applicable(unit, target_unit):
+		if _is_migrated_command_unit(unit):
+			var result = _get_command_gateway().ConstructUnits([unit], target_unit, get_parent())
+			var counts = _count_command_result(result)
+			_emit_command_feedback("Construct", counts[0], counts[1])
+			return true
 		unit.action = Actions.Constructing.new(target_unit)
 		return true
 	if (
@@ -538,7 +526,7 @@ func _on_unit_targeted(unit, target_position: Vector3):
 
 
 func _on_unit_spawned(unit):
-	_try_ordering_selected_workers_to_construct_structure(unit)
+	pass
 
 
 func _on_navigate_unit_to_rally_point(unit, rally_point):

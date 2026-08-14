@@ -1,11 +1,15 @@
 using AI_RTS.Application.Commands;
 using AI_RTS.Application.Commands.Units;
 using AI_RTS.Application.Combat;
+using AI_RTS.Application.Construction;
 using AI_RTS.Application.Orders;
 using AI_RTS.Domain.Combat;
 using AI_RTS.Domain.Common;
+using AI_RTS.Domain.Construction;
+using AI_RTS.Domain.Economy;
 using AI_RTS.GodotAdapter.Navigation;
 using AI_RTS.GodotAdapter.Combat;
+using AI_RTS.GodotAdapter.Construction;
 using AI_RTS.GodotAdapter.Economy;
 using AI_RTS.GodotAdapter.Units;
 using Godot;
@@ -32,6 +36,9 @@ public partial class CommandRuntime : Node
     /// <summary>维护非单位资源节点的稳定身份与可采集状态。</summary>
     private readonly GodotResourceNodeRegistry _resourceNodes = new();
 
+    /// <summary>维护施工现场稳定 ID 与 Godot Node 的弱引用映射。</summary>
+    private readonly GodotConstructionSiteRegistry _constructionSites = new();
+
     /// <summary>保存本 Match 中所有控制器共享的单位订单状态。</summary>
     private readonly InMemoryUnitOrderStore _orders = new();
 
@@ -41,8 +48,14 @@ public partial class CommandRuntime : Node
     /// <summary>记录已订阅单位退出事件的 ID，避免多个控制器重复连接。</summary>
     private readonly HashSet<UnitId> _deathTrackedUnits = new();
 
+    /// <summary>等待系统驱逐完成后才启动的施工任务；任意新玩家订单都会使其失效。</summary>
+    private readonly Dictionary<UnitId, PendingConstruction> _pendingConstruction = new();
+
     /// <summary>所有 Human、规则 AI 和未来外部 Adapter 共享的命令服务。</summary>
     private IUnitCommandService _commands = null!;
+
+    /// <summary>当前 Match 的权威施工任务、整数进度与终态服务。</summary>
+    private IConstructionService _construction = null!;
 
     /// <summary>当前 Match 的进程内稳定 ID。</summary>
     private MatchId _matchId;
@@ -50,8 +63,15 @@ public partial class CommandRuntime : Node
     /// <summary>为当前 Match 创建唯一的命令服务及 Legacy 导航适配器。</summary>
     public override void _Ready()
     {
-        _matchId = new MatchId(Guid.NewGuid());
+        var economy = GetParent().GetNode<EconomyRuntime>("EconomyRuntime");
+        _matchId = economy.MatchId;
         _orders.StateChanged += OnOrderStateChanged;
+        _construction = new ConstructionService(
+            _units,
+            _orders,
+            new LegacyConstructionWorkerPort(_units, _constructionSites),
+            _constructionSites,
+            economy.AccountService);
         _commands = new UnitCommandService(
             _units,
             new LegacyMovementPort(_units),
@@ -60,7 +80,14 @@ public partial class CommandRuntime : Node
             _combatPolicies,
             new LegacyStopPort(_units),
             new LegacyWorkerTaskPort(_units, _resourceNodes),
-            _resourceNodes);
+            _resourceNodes,
+            _construction);
+    }
+
+    /// <summary>每个物理 Tick 只推进一次权威施工工作量。</summary>
+    public override void _PhysicsProcess(double delta)
+    {
+        _construction.Advance(checked((long)Engine.GetPhysicsFrames()));
     }
 
     /// <summary>代表指定玩家向一组 Godot 单位节点提交普通移动命令。</summary>
@@ -111,6 +138,87 @@ public partial class CommandRuntime : Node
             new GatherResourcesCommand(workerIds, resourceNodeId));
         TrackAcceptedGatherOrders(result);
         return result;
+    }
+
+    /// <summary>注册已经完成扣款和生成的施工现场，并绑定其销毁清理。</summary>
+    internal bool RegisterConstructionSite(
+        Node site,
+        Node owner,
+        StructureDefinitionId definitionId,
+        IReadOnlyList<ResourceAmount> costs)
+    {
+        var siteId = _constructionSites.Register(site);
+        _units.Register(site);
+        var registered = _construction.Register(new RegisterConstructionSite(
+            siteId,
+            _units.RegisterPlayer(owner),
+            definitionId,
+            200,
+            costs));
+        if (registered)
+        {
+            site.TreeExiting += () => _construction.Destroy(
+                siteId, checked((long)Engine.GetPhysicsFrames()));
+        }
+        return registered;
+    }
+
+    /// <summary>代表控制器向一组 Worker 提交同一施工现场任务。</summary>
+    public CommandResult ConstructUnits(
+        IEnumerable<Node> workerNodes,
+        Node site,
+        Node issuerPlayer)
+    {
+        var workerIds = workerNodes.Select(_units.Register).ToArray();
+        var result = _construction.Construct(
+            CreateContext(issuerPlayer),
+            new ConstructStructureCommand(workerIds, _constructionSites.Register(site)));
+        TrackAcceptedPersistentOrders(result);
+        return result;
+    }
+
+    /// <summary>让放置开始时捕获的 Worker 施工；被驱逐者到位后才开始，期间新命令可取消等待。</summary>
+    public void AssignBuildersAfterPlacement(
+        IEnumerable<Node> workerNodes,
+        Node site,
+        Node issuerPlayer,
+        IReadOnlySet<string> displacedUnitIds)
+    {
+        var immediate = new List<Node>();
+        foreach (var worker in workerNodes.Distinct())
+        {
+            var workerId = _units.Register(worker);
+            if (!displacedUnitIds.Contains(workerId.Value.ToString("D")))
+            {
+                immediate.Add(worker);
+                continue;
+            }
+
+            _pendingConstruction[workerId] = new PendingConstruction(
+                new WeakReference<Node>(site), new WeakReference<Node>(issuerPlayer));
+            var movement = worker.FindChild("Movement", false, false);
+            if (movement is null)
+            {
+                _pendingConstruction.Remove(workerId);
+                continue;
+            }
+            movement.Connect(
+                "movement_finished",
+                Callable.From(() => StartPendingConstruction(workerId)),
+                (uint)ConnectFlags.OneShot);
+        }
+        if (immediate.Count > 0)
+        {
+            ConstructUnits(immediate, site, issuerPlayer);
+        }
+    }
+
+    /// <summary>由拥有者主动取消未完成现场；成功时执行一次全额退款。</summary>
+    public ConstructionSiteCommandResult CancelConstruction(Node site, Node issuerPlayer)
+    {
+        return _construction.Cancel(
+            CreateContext(issuerPlayer),
+            new CancelConstructionCommand(_constructionSites.Register(site)));
     }
 
     /// <summary>代表指定玩家向一组单位提交地面移动攻击，并跟踪订单完成状态。</summary>
@@ -179,6 +287,10 @@ public partial class CommandRuntime : Node
     {
         var context = CreateContext(issuerPlayer);
         var unitIds = unitNodes.Select(_units.Register).ToArray();
+        foreach (var unitId in unitIds)
+        {
+            _pendingConstruction.Remove(unitId);
+        }
         return _commands.Stop(context, new StopUnitsCommand(unitIds));
     }
 
@@ -353,6 +465,10 @@ public partial class CommandRuntime : Node
     /// <summary>将纯 C# 权威订单事件转换为 Match 唯一的 Godot Signal。</summary>
     private void OnOrderStateChanged(UnitOrderStateChanged change)
     {
+        if (change.Previous is null && change.Current.Kind != UnitOrderKind.Construct)
+        {
+            _pendingConstruction.Remove(change.Current.UnitId);
+        }
         EmitSignal(
             SignalName.OrderStateChanged,
             change.Current.OrderId.Value.ToString("D"),
@@ -362,6 +478,21 @@ public partial class CommandRuntime : Node
             change.Previous?.State.ToString() ?? string.Empty,
             change.Current.State.ToString(),
             change.Current.ReplacedByCommandId?.Value.ToString("D") ?? string.Empty);
+    }
+
+    /// <summary>仅在驱逐等待仍有效且现场、玩家、Worker 均存活时提交 Construct。</summary>
+    private void StartPendingConstruction(UnitId workerId)
+    {
+        if (!_pendingConstruction.Remove(workerId, out var pending) ||
+            !_units.TryGetNode(workerId, out var worker) ||
+            !pending.Site.TryGetTarget(out var site) ||
+            !pending.Issuer.TryGetTarget(out var issuer) ||
+            !GodotObject.IsInstanceValid(site) || !site.IsInsideTree() ||
+            !GodotObject.IsInstanceValid(issuer) || !issuer.IsInsideTree())
+        {
+            return;
+        }
+        ConstructUnits([worker], site, issuer);
     }
 
     /// <summary>将强类型订单快照转换为 GDScript 可读取的稳定字段集合。</summary>
@@ -562,4 +693,9 @@ public partial class CommandRuntime : Node
     /// <summary>验证 Godot 世界坐标不含 NaN 或 Infinity。</summary>
     private static bool Finite(Vector3 value) =>
         float.IsFinite(value.X) && float.IsFinite(value.Y) && float.IsFinite(value.Z);
+
+    /// <summary>弱引用保存一次驱逐后的待施工意图，避免延长 Node 生命周期。</summary>
+    private sealed record PendingConstruction(
+        WeakReference<Node> Site,
+        WeakReference<Node> Issuer);
 }

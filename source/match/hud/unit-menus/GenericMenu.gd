@@ -9,7 +9,9 @@ var units = []
 
 func _on_cancel_action_button_pressed():
 	if len(units) == 1 and units[0] is Structure and units[0].is_under_construction():
-		units[0].cancel_construction()
+		var gateway = units[0].player.find_child("UnitCommandGateway")
+		if gateway != null:
+			gateway.CancelConstruction(units[0], units[0].player)
 		return
 	for unit in units:
 		if unit is Tank or unit is Helicopter:

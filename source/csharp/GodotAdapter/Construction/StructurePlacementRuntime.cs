@@ -87,6 +87,11 @@ public partial class StructurePlacementRuntime : Node
         try
         {
             GetParent().Call("_setup_and_spawn_unit", structure, transform, player, true);
+            if (!_commands.RegisterConstructionSite(
+                structure, player, definitionId, definition.ConstructionCost))
+            {
+                throw new InvalidOperationException("无法注册权威施工现场。");
+            }
         }
         catch
         {
@@ -110,8 +115,20 @@ public partial class StructurePlacementRuntime : Node
             ["status"] = "Accepted",
             ["primary_issue"] = string.Empty,
             ["issues"] = new Godot.Collections.Array<string>(),
-            ["structure"] = structure
+            ["structure"] = structure,
+            ["displaced_unit_ids"] = displacedIds
         };
+    }
+
+    /// <summary>把放置开始时捕获的 Worker 交给统一施工入口，并延后被驱逐者的任务。</summary>
+    public void AssignBuilders(
+        Godot.Collections.Array<Node> workers,
+        Node structure,
+        Node player,
+        Godot.Collections.Array<string> displacedUnitIds)
+    {
+        _commands.AssignBuildersAfterPlacement(
+            workers, structure, player, displacedUnitIds.ToHashSet());
     }
 
     /// <summary>把 PackedScene、Legacy 成本和现有圆形半径注册成稳定定义。</summary>

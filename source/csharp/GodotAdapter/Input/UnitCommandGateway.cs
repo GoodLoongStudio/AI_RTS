@@ -1,4 +1,5 @@
 using AI_RTS.Application.Commands;
+using AI_RTS.Application.Construction;
 using AI_RTS.Domain.Combat;
 using AI_RTS.GodotAdapter.Composition;
 using Godot;
@@ -39,6 +40,23 @@ public partial class UnitCommandGateway : Node
         Node issuerPlayer)
     {
         return ToGodot(_runtime.GatherResources(workerNodes, resourceNode, issuerPlayer));
+    }
+
+    /// <summary>接收 Worker 与已注册施工现场并提交批量 Construct 命令。</summary>
+    public Godot.Collections.Dictionary ConstructUnits(
+        Godot.Collections.Array<Node> workerNodes,
+        Node constructionSite,
+        Node issuerPlayer)
+    {
+        return ToGodot(_runtime.ConstructUnits(workerNodes, constructionSite, issuerPlayer));
+    }
+
+    /// <summary>由现场拥有者主动取消未完成建筑并返回退款处理状态。</summary>
+    public Godot.Collections.Dictionary CancelConstruction(
+        Node constructionSite,
+        Node issuerPlayer)
+    {
+        return ToGodot(_runtime.CancelConstruction(constructionSite, issuerPlayer));
     }
 
     /// <summary>接收 GDScript 单位节点并提交批量地面移动攻击命令。</summary>
@@ -180,6 +198,17 @@ public partial class UnitCommandGateway : Node
             ["command_id"] = result.CommandId.Value.ToString("D"),
             ["status"] = result.Status.ToString(),
             ["unit_results"] = unitResults
+        };
+    }
+
+    /// <summary>把单现场命令结果转换为 GDScript 可读取的稳定字段。</summary>
+    private static Godot.Collections.Dictionary ToGodot(ConstructionSiteCommandResult result)
+    {
+        return new Godot.Collections.Dictionary
+        {
+            ["accepted"] = result.Status == ConstructionSiteCommandStatus.Applied,
+            ["status"] = result.Status.ToString(),
+            ["site_state"] = result.Snapshot?.State.ToString() ?? string.Empty
         };
     }
 }

@@ -18,6 +18,7 @@ const BLUEPRINT_INVALID_PATH = MATERIALS_ROOT + "blueprint_invalid.material.tres
 
 var _active_blueprint_node = null
 var _pending_structure_prototype = null
+var _pending_construction_workers := []
 var _blueprint_rotating = false
 
 @onready var _player = get_parent()
@@ -135,6 +136,13 @@ func _start_structure_placement(structure_prototype):
 	if _structure_placement_started():
 		return
 	_pending_structure_prototype = structure_prototype
+	_pending_construction_workers = get_tree().get_nodes_in_group("selected_units").filter(
+		func(unit):
+			return (
+				unit.is_in_group("controlled_units")
+				and unit.has_method("request_legacy_construct")
+			)
+	)
 	_active_blueprint_node = (
 		load(Constants.Match.Units.STRUCTURE_BLUEPRINTS[structure_prototype.resource_path])
 		. instantiate()
@@ -176,6 +184,7 @@ func _cancel_structure_placement():
 		_feedback_label.hide()
 		_active_blueprint_node.queue_free()
 		_active_blueprint_node = null
+	_pending_construction_workers = []
 
 
 func _finish_structure_placement():
@@ -189,6 +198,12 @@ func _finish_structure_placement():
 		construction_cost
 	)
 	if result["accepted"]:
+		_placement_runtime.AssignBuilders(
+			_pending_construction_workers,
+			result["structure"],
+			_player,
+			result["displaced_unit_ids"]
+		)
 		_cancel_structure_placement()
 	elif result["primary_issue"] == "InsufficientResources":
 		MatchSignals.not_enough_resources_for_construction.emit(_player)
