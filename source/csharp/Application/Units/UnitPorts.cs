@@ -16,7 +16,8 @@ public readonly record struct UnitCommandSnapshot(
     bool IsDamageable = true,
     bool CanReverse = false,
     bool CanForceFireGround = false,
-    bool CanGather = false);
+    bool CanGather = false,
+    bool CanConstruct = false);
 
 /// <summary>为命令服务提供不依赖 Godot Node 的单位查询。</summary>
 public interface IUnitCommandUnitRepository

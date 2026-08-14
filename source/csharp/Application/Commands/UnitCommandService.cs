@@ -1,5 +1,6 @@
 using AI_RTS.Application.Commands.Units;
 using AI_RTS.Application.Combat;
+using AI_RTS.Application.Construction;
 using AI_RTS.Application.Orders;
 using AI_RTS.Application.Units;
 using AI_RTS.Domain.Combat;
@@ -59,7 +60,8 @@ public sealed class UnitCommandService(
     ICombatPolicyStore combatPolicies,
     IUnitStopPort stop,
     IWorkerTaskPort? workerTasks = null,
-    IResourceNodeRepository? resourceNodes = null) : IUnitCommandService
+    IResourceNodeRepository? resourceNodes = null,
+    IConstructionTaskCoordinator? constructionTasks = null) : IUnitCommandService
 {
     /// <inheritdoc />
     public CommandResult Move(CommandContext context, MoveUnitsCommand command)
@@ -308,6 +310,20 @@ public sealed class UnitCommandService(
                     continue;
                 }
             }
+            else if (active?.Kind == UnitOrderKind.Construct)
+            {
+                var constructionResult = constructionTasks?.RequestSuspend(unitId);
+                if (constructionResult is null || !constructionResult.Value.Accepted)
+                {
+                    results.Add(new UnitCommandResult(
+                        unitId,
+                        false,
+                        constructionResult is null ?
+                            CommandErrorCode.ConstructionUnavailable :
+                            Map(constructionResult.Value.Error)));
+                    continue;
+                }
+            }
             else
             {
                 var portResult = stop.RequestStop(unitId);
@@ -336,7 +352,8 @@ public sealed class UnitCommandService(
     {
         if (active?.Kind is UnitOrderKind.Move or UnitOrderKind.ForceMove or
             UnitOrderKind.GroundAttackMove or UnitOrderKind.EntityAttackMove or
-            UnitOrderKind.TacticalWithdraw or UnitOrderKind.Gather)
+            UnitOrderKind.TacticalWithdraw or UnitOrderKind.Gather or
+            UnitOrderKind.Construct)
         {
             orders.Transition(active.OrderId, UnitOrderState.Suspended);
             return active.OrderId;
@@ -752,6 +769,13 @@ public sealed class UnitCommandService(
         WorkerTaskPortError.UnitUnavailable => CommandErrorCode.UnitNotFound,
         WorkerTaskPortError.TargetUnavailable => CommandErrorCode.ResourceTargetNotFound,
         _ => CommandErrorCode.WorkUnavailable
+    };
+
+    /// <summary>把施工执行端口错误转换为稳定命令错误。</summary>
+    private static CommandErrorCode Map(ConstructionWorkerPortError error) => error switch
+    {
+        ConstructionWorkerPortError.EntityUnavailable => CommandErrorCode.UnitNotFound,
+        _ => CommandErrorCode.ConstructionUnavailable
     };
 
     private static CommandResult Rejected(

@@ -68,7 +68,17 @@ public enum CommandErrorCode
     /// <summary>指定资源节点已经耗尽。</summary>
     ResourceDepleted,
     /// <summary>迁移期 Worker 工作执行层无法接收请求。</summary>
-    WorkUnavailable
+    WorkUnavailable,
+    /// <summary>指定单位不具备施工能力。</summary>
+    WorkerCannotConstruct,
+    /// <summary>施工现场不存在或已失效。</summary>
+    ConstructionSiteNotFound,
+    /// <summary>施工现场不属于命令发出者。</summary>
+    ConstructionSiteNotOwned,
+    /// <summary>施工现场已经完成。</summary>
+    ConstructionAlreadyCompleted,
+    /// <summary>施工执行层当前无法接收或暂停任务。</summary>
+    ConstructionUnavailable
 }
 
 /// <summary>记录批量命令中单个单位的接收结果和订单标识。</summary>

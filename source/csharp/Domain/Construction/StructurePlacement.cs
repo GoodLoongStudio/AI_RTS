@@ -49,3 +49,38 @@ public sealed record StructurePlacementCandidate(
     StructureDefinitionId DefinitionId,
     WorldPosition Position,
     float YawRadians);
+
+/// <summary>表示施工现场不可逆的权威生命周期状态。</summary>
+public enum ConstructionSiteState
+{
+    /// <summary>现场有效，等待或正在接受 Worker 工作量。</summary>
+    Active,
+
+    /// <summary>工作量达到要求，建筑正式可用。</summary>
+    Completed,
+
+    /// <summary>拥有者主动取消，退款最多执行一次。</summary>
+    Cancelled,
+
+    /// <summary>施工中被伤害或规则效果摧毁，不退款。</summary>
+    Destroyed
+}
+
+/// <summary>记录施工现场的整数工作量、成本和权威版本。</summary>
+/// <param name="SiteId">施工现场复用的稳定建筑 UnitId。</param>
+/// <param name="OwnerId">现场拥有者。</param>
+/// <param name="DefinitionId">现场对应的建筑定义。</param>
+/// <param name="RequiredWork">完成施工所需的正整数工作量。</param>
+/// <param name="CompletedWork">已经完成的工作量。</param>
+/// <param name="ConstructionCost">主动取消时使用的原始完整成本。</param>
+/// <param name="State">当前不可逆生命周期状态。</param>
+/// <param name="Version">每次权威变化后递增的版本。</param>
+public sealed record ConstructionSiteSnapshot(
+    UnitId SiteId,
+    PlayerId OwnerId,
+    StructureDefinitionId DefinitionId,
+    int RequiredWork,
+    int CompletedWork,
+    IReadOnlyList<ResourceAmount> ConstructionCost,
+    ConstructionSiteState State,
+    long Version);

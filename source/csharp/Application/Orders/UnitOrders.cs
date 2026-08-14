@@ -30,7 +30,10 @@ public enum UnitOrderKind
     GroundForceAttack,
 
     /// <summary>持续执行采集、返程与交付循环的 Worker 工作订单。</summary>
-    Gather
+    Gather,
+
+    /// <summary>前往己方施工现场并在到位后持续贡献工作量。</summary>
+    Construct
 }
 
 /// <summary>表示单个单位订单在生命周期中的权威状态。</summary>
