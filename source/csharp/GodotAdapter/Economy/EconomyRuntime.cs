@@ -21,12 +21,17 @@ public partial class EconomyRuntime : Node
 
     private readonly InMemoryResourceAccountService _accounts = new();
     private readonly Dictionary<PlayerId, WeakReference<Node>> _players = new();
-    private MatchId _matchId;
+    private readonly MatchId _matchId = new(Guid.NewGuid());
+
+    /// <summary>向同一 Godot Adapter 程序集中的权威业务 Runtime 提供共享账户服务。</summary>
+    internal IResourceAccountService AccountService => _accounts;
+
+    /// <summary>返回资源账户所属的当前对局身份。</summary>
+    internal MatchId MatchId => _matchId;
 
     /// <summary>建立当前对局身份并订阅账户权威事件。</summary>
     public override void _Ready()
     {
-        _matchId = new MatchId(Guid.NewGuid());
         _accounts.BalanceChanged += OnBalanceChanged;
     }
 

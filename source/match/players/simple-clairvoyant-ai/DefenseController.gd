@@ -137,11 +137,15 @@ func _construct_turret(turret_scene):
 	var target_transform = Transform3D(Basis(), placement_position).looking_at(
 		placement_position + Vector3(0, 0, 1), Vector3.UP
 	)
-	assert(
-		_player.subtract_resources(construction_cost, "ConstructionCost", unit_to_spawn),
-		"resource transaction should succeed after provisioning"
+	unit_to_spawn.free()
+	var result = find_parent("Match").find_child("StructurePlacementRuntime").Place(
+		_player,
+		turret_scene,
+		target_transform,
+		construction_cost
 	)
-	MatchSignals.setup_and_spawn_unit.emit(unit_to_spawn, target_transform, _player)
+	if not result["accepted"]:
+		push_warning("规则 AI 放置防御建筑被拒绝：%s" % result["issues"])
 
 
 func _on_unit_died(unit):

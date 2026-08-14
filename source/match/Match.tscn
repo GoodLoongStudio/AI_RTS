@@ -1,9 +1,10 @@
-[gd_scene load_steps=46 format=3 uid="uid://camns8fqod8d4"]
+[gd_scene load_steps=47 format=3 uid="uid://camns8fqod8d4"]
 
 [ext_resource type="Script" path="res://source/match/Match.gd" id="1_1555u"]
 [ext_resource type="Script" path="res://source/csharp/GodotAdapter/Composition/CommandRuntime.cs" id="1_command_runtime"]
 [ext_resource type="Script" path="res://source/csharp/GodotAdapter/Combat/ProjectileRuntime.cs" id="1_projectile_runtime"]
 [ext_resource type="Script" path="res://source/csharp/GodotAdapter/Economy/EconomyRuntime.cs" id="1_economy_runtime"]
+[ext_resource type="Script" path="res://source/csharp/GodotAdapter/Construction/StructurePlacementRuntime.cs" id="1_structure_placement_runtime"]
 [ext_resource type="Script" path="res://source/match/IsometricCamera3D.gd" id="1_qb2ry"]
 [ext_resource type="Script" path="res://source/match/FogOfWar.gd" id="5_eb52t"]
 [ext_resource type="PackedScene" uid="uid://co800e4shs7bh" path="res://source/generic-scenes-and-nodes/3d/RectangularSelection3D.tscn" id="5_yi0pu"]
@@ -129,6 +130,9 @@ script = ExtResource("1_command_runtime")
 
 [node name="EconomyRuntime" type="Node" parent="."]
 script = ExtResource("1_economy_runtime")
+
+[node name="StructurePlacementRuntime" type="Node" parent="."]
+script = ExtResource("1_structure_placement_runtime")
 
 [node name="ProjectileRuntime" type="Node" parent="."]
 script = ExtResource("1_projectile_runtime")

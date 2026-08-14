@@ -357,10 +357,12 @@ func _try_ordering_selected_workers_to_construct_structure(potential_structure):
 	if not potential_structure is Structure or potential_structure.is_constructed():
 		return
 	var structure = potential_structure
+	var displaced_unit_ids = structure.get_meta("ai_rts_displaced_unit_ids", [])
 	var selected_constructors = get_tree().get_nodes_in_group("selected_units").filter(
 		func(unit):
 			return (
 				unit.is_in_group("controlled_units")
+				and not unit.get_meta("ai_rts_unit_id", "") in displaced_unit_ids
 				and Actions.Constructing.is_applicable(unit, structure)
 			)
 	)

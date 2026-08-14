@@ -6,6 +6,7 @@ enum BlueprintPositionValidity {
 	NOT_NAVIGABLE,
 	NOT_ENOUGH_RESOURCES,
 	OUT_OF_MAP,
+	NOT_VISIBLE,
 }
 
 const ROTATION_BY_KEY_STEP = 45.0
@@ -16,14 +17,13 @@ const BLUEPRINT_VALID_PATH = MATERIALS_ROOT + "blueprint_valid.material.tres"
 const BLUEPRINT_INVALID_PATH = MATERIALS_ROOT + "blueprint_invalid.material.tres"
 
 var _active_blueprint_node = null
-var _pending_structure_radius = null
-var _pending_structure_navmap_rid = null
 var _pending_structure_prototype = null
 var _blueprint_rotating = false
 
 @onready var _player = get_parent()
 @onready var _match = find_parent("Match")
 @onready var _feedback_label = find_child("FeedbackLabel3D")
+@onready var _placement_runtime = _match.find_child("StructurePlacementRuntime")
 
 
 func _ready():
@@ -92,38 +92,28 @@ func _blueprint_rotation_started():
 
 
 func _calculate_blueprint_position_validity():
-	if _active_bluprint_out_of_map():
-		return BlueprintPositionValidity.OUT_OF_MAP
-	if not _player_has_enough_resources():
-		return BlueprintPositionValidity.NOT_ENOUGH_RESOURCES
-	var placement_validity = Utils.Match.Unit.Placement.validate_agent_placement_position(
-		_active_blueprint_node.global_position,
-		_pending_structure_radius,
-		get_tree().get_nodes_in_group("units") + get_tree().get_nodes_in_group("resource_units"),
-		_pending_structure_navmap_rid
-	)
-	if placement_validity == Utils.Match.Unit.Placement.COLLIDES_WITH_AGENT:
-		return BlueprintPositionValidity.COLLIDES_WITH_OBJECT
-	if placement_validity == Utils.Match.Unit.Placement.NOT_NAVIGABLE:
-		return BlueprintPositionValidity.NOT_NAVIGABLE
-	return BlueprintPositionValidity.VALID
-
-
-func _player_has_enough_resources():
 	var construction_cost = Constants.Match.Units.CONSTRUCTION_COSTS[
 		_pending_structure_prototype.resource_path
 	]
-	return _player.has_resources(construction_cost)
-
-
-func _active_bluprint_out_of_map():
-	return not Geometry2D.is_point_in_polygon(
-		Vector2(
-			_active_blueprint_node.global_transform.origin.x,
-			_active_blueprint_node.global_transform.origin.z
-		),
-		_match.map.get_topdown_polygon_2d()
+	var evaluation = _placement_runtime.Evaluate(
+		_player,
+		_pending_structure_prototype,
+		_active_blueprint_node.global_transform,
+		construction_cost
 	)
+	match evaluation["primary_issue"]:
+		"":
+			return BlueprintPositionValidity.VALID
+		"NotVisible":
+			return BlueprintPositionValidity.NOT_VISIBLE
+		"OutOfBounds":
+			return BlueprintPositionValidity.OUT_OF_MAP
+		"InsufficientResources":
+			return BlueprintPositionValidity.NOT_ENOUGH_RESOURCES
+		"Occupied", "FriendlyDisplacementUnavailable":
+			return BlueprintPositionValidity.COLLIDES_WITH_OBJECT
+		_:
+			return BlueprintPositionValidity.NOT_NAVIGABLE
 
 
 func _update_feedback_label(blueprint_position_validity):
@@ -137,6 +127,8 @@ func _update_feedback_label(blueprint_position_validity):
 			_feedback_label.text = tr("BLUEPRINT_NOT_ENOUGH_RESOURCES")
 		BlueprintPositionValidity.OUT_OF_MAP:
 			_feedback_label.text = tr("BLUEPRINT_OUT_OF_MAP")
+		BlueprintPositionValidity.NOT_VISIBLE:
+			_feedback_label.text = tr("BLUEPRINT_NOT_VISIBLE")
 
 
 func _start_structure_placement(structure_prototype):
@@ -157,14 +149,6 @@ func _start_structure_placement(structure_prototype):
 		rotate_towards, Vector3.UP
 	)
 	add_child(_active_blueprint_node)
-	var temporary_structure_instance = _pending_structure_prototype.instantiate()
-	_pending_structure_radius = temporary_structure_instance.radius
-	_pending_structure_navmap_rid = (
-		find_parent("Match")
-		. navigation
-		. get_navigation_map_rid_by_domain(temporary_structure_instance.movement_domain)
-	)
-	temporary_structure_instance.free()
 
 
 func _set_blueprint_position_based_on_mouse_pos():
@@ -195,20 +179,19 @@ func _cancel_structure_placement():
 
 
 func _finish_structure_placement():
-	if _player_has_enough_resources():
-		var construction_cost = Constants.Match.Units.CONSTRUCTION_COSTS[
-			_pending_structure_prototype.resource_path
-		]
-		var structure = _pending_structure_prototype.instantiate()
-		if not _player.subtract_resources(construction_cost, "ConstructionCost", structure):
-			structure.free()
-			return
-		MatchSignals.setup_and_spawn_unit.emit(
-			structure,
-			_active_blueprint_node.global_transform,
-			_player
-		)
-	_cancel_structure_placement()
+	var construction_cost = Constants.Match.Units.CONSTRUCTION_COSTS[
+		_pending_structure_prototype.resource_path
+	]
+	var result = _placement_runtime.Place(
+		_player,
+		_pending_structure_prototype,
+		_active_blueprint_node.global_transform,
+		construction_cost
+	)
+	if result["accepted"]:
+		_cancel_structure_placement()
+	elif result["primary_issue"] == "InsufficientResources":
+		MatchSignals.not_enough_resources_for_construction.emit(_player)
 
 
 func _start_blueprint_rotation():

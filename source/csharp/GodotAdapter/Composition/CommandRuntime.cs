@@ -285,6 +285,25 @@ public partial class CommandRuntime : Node
         return _commands.CancelForceAttack(context, new CancelForceAttackCommand(unitIds));
     }
 
+    /// <summary>结束单位现有订单并执行建筑放置产生的系统驱逐；完成后单位待命。</summary>
+    public bool DisplaceUnitForConstruction(Node unitNode, Vector3 destination, Node ownerPlayer)
+    {
+        var unitId = _units.Register(unitNode);
+        if (_units.Find(unitId) is not { } snapshot ||
+            snapshot.OwnerId != _units.RegisterPlayer(ownerPlayer) ||
+            !snapshot.CanMove || !Finite(destination))
+        {
+            return false;
+        }
+
+        if (_orders.FindActive(unitId) is { } active)
+        {
+            _orders.Transition(active.OrderId, UnitOrderState.Cancelled);
+        }
+        return unitNode.HasMethod("request_legacy_move") &&
+            unitNode.Call("request_legacy_move", destination).AsBool();
+    }
+
     /// <summary>查询指定 Godot 单位当前权威交战姿态名称。</summary>
     public string GetEngagementStance(Node unitNode) =>
         _combatPolicies.Get(_units.Register(unitNode)).EngagementStance.ToString();
@@ -539,4 +558,8 @@ public partial class CommandRuntime : Node
         var position = ((Node3D)unit).GlobalPosition;
         return new WorldPosition(position.X, position.Y, position.Z);
     }
+
+    /// <summary>验证 Godot 世界坐标不含 NaN 或 Infinity。</summary>
+    private static bool Finite(Vector3 value) =>
+        float.IsFinite(value.X) && float.IsFinite(value.Y) && float.IsFinite(value.Z);
 }
