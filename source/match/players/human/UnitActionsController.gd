@@ -450,7 +450,15 @@ func _on_terrain_targeted(position):
 	_try_setting_rally_points(position)
 
 
-func _on_unit_targeted(unit):
+func _on_unit_targeted(unit, target_position: Vector3):
+	if _is_force_move_targeting:
+		_is_force_move_targeting = false
+		command_targeting_changed.emit("")
+		_execute_targeted_force_move(target_position)
+		var force_move_targetability = unit.find_child("Targetability")
+		if force_move_targetability != null:
+			force_move_targetability.animate()
+		return
 	if _is_force_attack_targeting:
 		_is_force_attack_targeting = false
 		command_targeting_changed.emit("")

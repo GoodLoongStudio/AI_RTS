@@ -375,7 +375,7 @@ func _on_terrain_targeted(_position):
 	squad_command_executed.emit(active_squad, executed_command)
 
 
-func _on_unit_targeted(unit):
+func _on_unit_targeted(unit, _target_position):
 	if pending_command != "ATTACK":
 		return
 	if not unit.is_in_group("adversary_units"):

@@ -28,7 +28,7 @@ func _on_unit_selected(unit):
 	# TODO: handle building - perhaps with some sound instead of voice
 
 
-func _on_unit_action_requsted(_ignore):
+func _on_unit_action_requsted(_ignore, _target_position = Vector3.INF):
 	if get_tree().get_nodes_in_group("selected_units").any(
 		func(unit): return not unit is Structure and unit.player == _player
 	):

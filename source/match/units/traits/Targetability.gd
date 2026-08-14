@@ -71,10 +71,10 @@ func _set_width(a_width):
 	_update_circle_params()
 
 
-func _on_input_event(_camera, event, _click_position, _click_normal, _shape_idx):
+func _on_input_event(_camera, event, click_position, _click_normal, _shape_idx):
 	if (
 		event is InputEventMouseButton
 		and event.button_index == MOUSE_BUTTON_RIGHT
 		and event.pressed
 	):
-		MatchSignals.unit_targeted.emit(_unit)
+		MatchSignals.unit_targeted.emit(_unit, click_position)

@@ -92,7 +92,7 @@ Godot 无头退出仍报告已登记的 Navigation/Renderer RID 与 ObjectDB 清
 
 ### 8.1 ForceMove 点击敌方建筑
 
-当前 `ForceMove` 目标选择只在 `terrain_targeted` 中消费。右键命中建筑或单位时发布的是 `unit_targeted`，控制器没有 ForceMove 分支，因此会落回普通右键 Attack/Follow 等解释；这发生在导航、碰撞和未来碾压判定之前。
+验收时的 `ForceMove` 目标选择只在 `terrain_targeted` 中消费。右键命中建筑或单位时发布的是 `unit_targeted`，控制器没有 ForceMove 分支，因此会落回普通右键 Attack/Follow 等解释；这发生在导航、碰撞和未来碾压判定之前。
 
 因此当前现象由两层问题构成：
 
@@ -100,6 +100,10 @@ Godot 无头退出仍报告已登记的 Navigation/Renderer RID 与 ObjectDB 清
 2. 即使后续把实体点击转换为世界坐标，Tank 仍会受建筑 NavMesh/碰撞 footprint 阻挡，能否进入或摧毁该 footprint 应由 `CMD-023` 碾压/阻挡等级决定；Helicopter 的 AIR 导航则不应被地面建筑阻挡。
 
 输入分派问题登记为 `CMD-029`，不能误报为当前已存在碾压等级判定。
+
+2026-08-14 已完成代码修正：`Targetability` 将实体表面的实际世界点击坐标随 `unit_targeted(unit, target_position)` 发布；一次性 ForceMove 状态优先消费该坐标并提交公共 `ForceMove` 订单。自动测试已确认 Tank 与 Helicopter 均不再退化为普通 Attack/Follow，等待人工验收后关闭 `CMD-029`。
+
+本修正不会使 Tank 穿过建筑碰撞或自动获得碾压能力。Tank 命令可被接收，但其合法可达位置仍由地面导航和未来 `CMD-023` 决定；Helicopter 则可按 AIR 导航移动到点击位置上空。
 
 ### 8.2 Helicopter 普通移动到矿石
 

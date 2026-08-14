@@ -53,7 +53,7 @@ func _ready():
 	_check(gateway.GetFirePolicy(attacker) == "HoldFire", "停止后应恢复原持久停火策略")
 
 	var enemy_hp_before: float = enemy_target.hp
-	MatchSignals.unit_targeted.emit(enemy_target)
+	MatchSignals.unit_targeted.emit(enemy_target, enemy_target.global_position)
 	await get_tree().create_timer(2.0).timeout
 	_check(enemy_target.hp == enemy_hp_before, "HoldFire 下普通右键敌人不应绕过停火")
 
