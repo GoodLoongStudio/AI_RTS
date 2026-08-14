@@ -164,7 +164,10 @@ func _construct_structure(structure_scene):
 	var target_transform = Transform3D(Basis(), placement_position).looking_at(
 		placement_position + Vector3(-1, 0, 1), Vector3.UP
 	)
-	_player.subtract_resources(construction_cost)
+	assert(
+		_player.subtract_resources(construction_cost, "ConstructionCost", unit_to_spawn),
+		"resource transaction should succeed after provisioning"
+	)
 	MatchSignals.setup_and_spawn_unit.emit(unit_to_spawn, target_transform, _player)
 	_enforce_primary_units_production.call_deferred()
 

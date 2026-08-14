@@ -118,8 +118,14 @@ func _set_cc_unit(cc_unit):
 
 
 func _transfer_collected_resources_to_player():
-	_unit.player.resource_a += _unit.resource_a
-	_unit.player.resource_b += _unit.resource_b
+	var delivery = {
+		"resource_a": _unit.resource_a,
+		"resource_b": _unit.resource_b,
+	}
+	var accepted = _unit.player.add_resources(delivery, "WorkerDelivery", _unit)
+	assert(accepted, "a valid Worker delivery must reach its authoritative resource account")
+	if not accepted:
+		return
 	_unit.resource_a = 0
 	_unit.resource_b = 0
 

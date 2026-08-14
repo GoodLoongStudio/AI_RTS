@@ -199,9 +199,12 @@ func _finish_structure_placement():
 		var construction_cost = Constants.Match.Units.CONSTRUCTION_COSTS[
 			_pending_structure_prototype.resource_path
 		]
-		_player.subtract_resources(construction_cost)
+		var structure = _pending_structure_prototype.instantiate()
+		if not _player.subtract_resources(construction_cost, "ConstructionCost", structure):
+			structure.free()
+			return
 		MatchSignals.setup_and_spawn_unit.emit(
-			_pending_structure_prototype.instantiate(),
+			structure,
 			_active_blueprint_node.global_transform,
 			_player
 		)

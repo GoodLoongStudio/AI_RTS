@@ -7,6 +7,7 @@ const UNDER_CONSTRUCTION_MATERIAL = preload(
 )
 
 var _construction_progress = 1.0
+var _construction_refund_requested := false
 
 @onready var production_queue = find_child("ProductionQueue"):
 	set(_value):
@@ -38,10 +39,18 @@ func construct(progress):
 		_finish_construction()
 
 
+## 取消当前施工并保证全额退款最多提交一次。
 func cancel_construction():
+	if _construction_refund_requested:
+		return
+	_construction_refund_requested = true
 	var scene_path = get_script().resource_path.replace(".gd", ".tscn")
 	var construction_cost = Constants.Match.Units.CONSTRUCTION_COSTS[scene_path]
-	player.add_resources(construction_cost)
+	var accepted = player.add_resources(construction_cost, "ConstructionRefund", self)
+	assert(accepted, "construction refund must reach its authoritative resource account")
+	if not accepted:
+		_construction_refund_requested = false
+		return
 	queue_free()
 
 

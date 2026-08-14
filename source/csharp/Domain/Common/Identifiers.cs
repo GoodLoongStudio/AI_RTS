@@ -16,6 +16,10 @@ public readonly record struct UnitId(Guid Value);
 /// <param name="Value">当前对局内唯一的 Guid 值。</param>
 public readonly record struct ResourceNodeId(Guid Value);
 
+/// <summary>标识一笔资源交易，用于幂等处理和审计。</summary>
+/// <param name="Value">当前对局内唯一的 Guid 值。</param>
+public readonly record struct ResourceTransactionId(Guid Value);
+
 /// <summary>标识一次批量命令调用。</summary>
 /// <param name="Value">进程内唯一的 Guid 值。</param>
 public readonly record struct CommandId(Guid Value);

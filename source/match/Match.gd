@@ -164,6 +164,7 @@ func _setup_players():
 	for node in _players.get_children():
 		if node is Player:
 			node.add_to_group("players")
+			node.setup_resource_account($EconomyRuntime)
 
 
 func _create_players_from_settings():

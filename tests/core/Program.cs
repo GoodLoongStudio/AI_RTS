@@ -1,6 +1,7 @@
 using AI_RTS.Application.Commands;
 using AI_RTS.Application.Commands.Units;
 using AI_RTS.Application.Combat;
+using AI_RTS.Application.Economy;
 using AI_RTS.Application.Orders;
 using AI_RTS.Application.Units;
 using AI_RTS.Domain.Combat;
@@ -47,6 +48,13 @@ internal sealed class UnitCommandServiceTests
         RunTest(nameof(OrderStorePublishesAuthoritativeStateChanges), OrderStorePublishesAuthoritativeStateChanges);
         RunTest(nameof(AreaWarheadUsesImpactPointAndFootprints), AreaWarheadUsesImpactPointAndFootprints);
         RunTest(nameof(WarheadResultsAreStableUniqueAndRespectFriendlyFire), WarheadResultsAreStableUniqueAndRespectFriendlyFire);
+        RunTest(nameof(ResourceTransactionAppliesMultipleKindsAtomically), ResourceTransactionAppliesMultipleKindsAtomically);
+        RunTest(nameof(ResourceTransactionRejectsPartialPayment), ResourceTransactionRejectsPartialPayment);
+        RunTest(nameof(ResourceTransactionReplayIsIdempotent), ResourceTransactionReplayIsIdempotent);
+        RunTest(nameof(ResourceTransactionIdConflictIsRejected), ResourceTransactionIdConflictIsRejected);
+        RunTest(nameof(ResourceTransactionRejectsInvalidAndOverflowingAmounts), ResourceTransactionRejectsInvalidAndOverflowingAmounts);
+        RunTest(nameof(ResourceAccountSupportsAllIncomeReasons), ResourceAccountSupportsAllIncomeReasons);
+        RunTest(nameof(ResourceAccountSnapshotCannotMutateStore), ResourceAccountSnapshotCannotMutateStore);
 
         Console.WriteLine($"AI_RTS.Core tests completed: {_tests} test(s), {_failures} failure(s).");
         return _failures == 0 ? 0 : 1;
@@ -582,6 +590,216 @@ internal sealed class UnitCommandServiceTests
             "敌军应承受完整基础伤害");
     }
 
+    /// <summary>验证一笔 A/B 交易只增加一次版本并完整应用。</summary>
+    private void ResourceTransactionAppliesMultipleKindsAtomically()
+    {
+        var player = NewPlayerId();
+        var match = new MatchId(Guid.NewGuid());
+        var service = OpenAccount(player, match, 10, 8);
+
+        var result = service.Apply(new ApplyResourceTransaction(
+            NewResourceTransactionId(),
+            match,
+            player,
+            [new ResourceDelta(ResourceKind.A, -4), new ResourceDelta(ResourceKind.B, -3)],
+            ResourceChangeReason.ConstructionCost,
+            null,
+            2));
+
+        Check(result.Status == ResourceTransactionStatus.Applied, "余额足够时多资源交易应成功");
+        Check(result.Snapshot?.GetBalance(ResourceKind.A) == 6, "A 应按交易扣除");
+        Check(result.Snapshot?.GetBalance(ResourceKind.B) == 5, "B 应按交易扣除");
+        Check(result.Snapshot?.Version == 2, "多资源交易只应增加一次账户版本");
+    }
+
+    /// <summary>验证任一资源不足时整笔交易失败且其他资源不被部分扣除。</summary>
+    private void ResourceTransactionRejectsPartialPayment()
+    {
+        var player = NewPlayerId();
+        var match = new MatchId(Guid.NewGuid());
+        var service = OpenAccount(player, match, 10, 1);
+
+        var result = service.Apply(new ApplyResourceTransaction(
+            NewResourceTransactionId(),
+            match,
+            player,
+            [new ResourceDelta(ResourceKind.A, -4), new ResourceDelta(ResourceKind.B, -2)],
+            ResourceChangeReason.ProductionCost,
+            null,
+            2));
+
+        Check(result.Status == ResourceTransactionStatus.InsufficientResources,
+            "任一资源不足时应返回 InsufficientResources");
+        Check(service.Find(player)?.GetBalance(ResourceKind.A) == 10,
+            "失败交易不得部分扣除充足的 A");
+        Check(service.Find(player)?.GetBalance(ResourceKind.B) == 1,
+            "失败交易不得改变不足的 B");
+    }
+
+    /// <summary>验证成功交易重放不会重复入账或重复发布事件。</summary>
+    private void ResourceTransactionReplayIsIdempotent()
+    {
+        var player = NewPlayerId();
+        var match = new MatchId(Guid.NewGuid());
+        var service = OpenAccount(player, match, 0, 0);
+        var changes = 0;
+        service.BalanceChanged += _ => changes++;
+        var transaction = new ApplyResourceTransaction(
+            NewResourceTransactionId(),
+            match,
+            player,
+            [new ResourceDelta(ResourceKind.A, 5)],
+            ResourceChangeReason.WorkerDelivery,
+            NewUnitId().Value,
+            2);
+
+        var first = service.Apply(transaction);
+        var replay = service.Apply(transaction);
+
+        Check(first.Status == ResourceTransactionStatus.Applied, "首次交付应成功");
+        Check(replay.Status == ResourceTransactionStatus.AlreadyApplied, "重放应返回 AlreadyApplied");
+        Check(service.Find(player)?.GetBalance(ResourceKind.A) == 5, "重放不得重复入账");
+        Check(changes == 1, "重放不得重复发布余额变化事件");
+    }
+
+    /// <summary>验证同一交易 ID 不能用于不同交易内容。</summary>
+    private void ResourceTransactionIdConflictIsRejected()
+    {
+        var player = NewPlayerId();
+        var match = new MatchId(Guid.NewGuid());
+        var service = OpenAccount(player, match, 0, 0);
+        var id = NewResourceTransactionId();
+        service.Apply(new ApplyResourceTransaction(
+            id,
+            match,
+            player,
+            [new ResourceDelta(ResourceKind.A, 2)],
+            ResourceChangeReason.MissionReward,
+            null,
+            2));
+
+        var conflict = service.Apply(new ApplyResourceTransaction(
+            id,
+            match,
+            player,
+            [new ResourceDelta(ResourceKind.A, 3)],
+            ResourceChangeReason.MissionReward,
+            null,
+            2));
+
+        Check(conflict.Status == ResourceTransactionStatus.TransactionConflict,
+            "相同 ID 的不同内容应返回 TransactionConflict");
+        Check(service.Find(player)?.GetBalance(ResourceKind.A) == 2,
+            "冲突交易不得修改余额");
+    }
+
+    /// <summary>验证空、零、重复资源和整数溢出交易均被拒绝。</summary>
+    private void ResourceTransactionRejectsInvalidAndOverflowingAmounts()
+    {
+        var player = NewPlayerId();
+        var match = new MatchId(Guid.NewGuid());
+        var service = OpenAccount(player, match, int.MaxValue, 0);
+        var empty = service.Apply(new ApplyResourceTransaction(
+            NewResourceTransactionId(), match, player, [],
+            ResourceChangeReason.ScriptedAdjustment, null, 2));
+        var zero = service.Apply(new ApplyResourceTransaction(
+            NewResourceTransactionId(), match, player,
+            [new ResourceDelta(ResourceKind.A, 0)],
+            ResourceChangeReason.ScriptedAdjustment, null, 3));
+        var duplicate = service.Apply(new ApplyResourceTransaction(
+            NewResourceTransactionId(), match, player,
+            [new ResourceDelta(ResourceKind.B, 1), new ResourceDelta(ResourceKind.B, 1)],
+            ResourceChangeReason.ScriptedAdjustment, null, 4));
+        var wrongDirection = service.Apply(new ApplyResourceTransaction(
+            NewResourceTransactionId(), match, player,
+            [new ResourceDelta(ResourceKind.B, 1)],
+            ResourceChangeReason.ConstructionCost, null, 4));
+        var overflow = service.Apply(new ApplyResourceTransaction(
+            NewResourceTransactionId(), match, player,
+            [new ResourceDelta(ResourceKind.A, 1)],
+            ResourceChangeReason.ScriptedAdjustment, null, 5));
+
+        Check(empty.Status == ResourceTransactionStatus.InvalidTransaction, "空交易应被拒绝");
+        Check(zero.Status == ResourceTransactionStatus.InvalidTransaction, "零变化应被拒绝");
+        Check(duplicate.Status == ResourceTransactionStatus.InvalidTransaction, "重复资源应被拒绝");
+        Check(wrongDirection.Status == ResourceTransactionStatus.InvalidTransaction,
+            "成本交易使用正数时应被拒绝");
+        Check(overflow.Status == ResourceTransactionStatus.Overflow, "整数溢出应被拒绝");
+        Check(service.Find(player)?.GetBalance(ResourceKind.A) == int.MaxValue,
+            "无效交易不得改变账户");
+    }
+
+    /// <summary>验证不同收入来源共享相同账户交易入口。</summary>
+    private void ResourceAccountSupportsAllIncomeReasons()
+    {
+        var player = NewPlayerId();
+        var match = new MatchId(Guid.NewGuid());
+        var service = OpenAccount(player, match, 0, 0);
+        var reasons = new[]
+        {
+            ResourceChangeReason.WorkerDelivery,
+            ResourceChangeReason.ConstructionRefund,
+            ResourceChangeReason.ProductionRefund,
+            ResourceChangeReason.MissionReward,
+            ResourceChangeReason.PassiveIncome,
+            ResourceChangeReason.ScriptedAdjustment
+        };
+
+        foreach (var reason in reasons)
+        {
+            var result = service.Apply(new ApplyResourceTransaction(
+                NewResourceTransactionId(), match, player,
+                [new ResourceDelta(ResourceKind.B, 1)], reason, null, 2));
+            Check(result.Status == ResourceTransactionStatus.Applied,
+                $"{reason} 应能使用统一账户入口");
+        }
+
+        Check(service.Find(player)?.GetBalance(ResourceKind.B) == reasons.Length,
+            "所有已接受收入应进入同一账户");
+    }
+
+    /// <summary>验证外部快照不能反向修改账户内部字典。</summary>
+    private void ResourceAccountSnapshotCannotMutateStore()
+    {
+        var player = NewPlayerId();
+        var service = OpenAccount(player, new MatchId(Guid.NewGuid()), 3, 4);
+        var snapshot = service.Find(player)!;
+        var mutationRejected = false;
+        try
+        {
+            ((IDictionary<ResourceKind, int>)snapshot.Balances)[ResourceKind.A] = 99;
+        }
+        catch (NotSupportedException)
+        {
+            mutationRejected = true;
+        }
+
+        Check(mutationRejected, "快照余额集合应拒绝外部修改");
+        Check(service.Find(player)?.GetBalance(ResourceKind.A) == 3,
+            "修改快照不得影响账户内部余额");
+    }
+
+    /// <summary>建立测试账户并确认初始余额导入成功。</summary>
+    private static InMemoryResourceAccountService OpenAccount(
+        PlayerId player,
+        MatchId match,
+        int resourceA,
+        int resourceB)
+    {
+        var service = new InMemoryResourceAccountService();
+        var result = service.Open(new OpenResourceAccount(
+            NewResourceTransactionId(),
+            match,
+            player,
+            [new ResourceAmount(ResourceKind.A, resourceA), new ResourceAmount(ResourceKind.B, resourceB)],
+            1));
+        if (result.Status != ResourceTransactionStatus.Applied)
+        {
+            throw new InvalidOperationException($"测试账户初始化失败：{result.Status}");
+        }
+        return service;
+    }
+
     /// <summary>创建纯规则测试使用的不可变发射快照。</summary>
     private static AttackLaunchSnapshot LaunchSnapshot(
         PlayerId sourcePlayer,
@@ -646,6 +864,8 @@ internal sealed class UnitCommandServiceTests
     private static UnitId NewUnitId() => new(Guid.NewGuid());
 
     private static ResourceNodeId NewResourceNodeId() => new(Guid.NewGuid());
+
+    private static ResourceTransactionId NewResourceTransactionId() => new(Guid.NewGuid());
 
     private static FakeRepository CombatRepository(
         PlayerId owner,
