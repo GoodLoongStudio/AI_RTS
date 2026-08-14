@@ -194,3 +194,9 @@ Godot Adapter 第一版仍可创建 Legacy 组合 Action，但必须增加明确
 2. 统一 Stop 暂停整个采集任务且不自动恢复；
 3. 首版不增加 `ResumeWorkCommand`。玩家再次右键资源点会创建新 Gather 订单；自动开始挖矿、采集/建造工作优先级作为未来 Worker 能力策略待策划评审；
 4. 资源耗尽后不自动寻找新资源；有载荷则完成最后一次交付，之后 Worker 待机。
+
+## 13. 人工验收补充
+
+2026-08-14 采集—返程—交付循环人工验收通过。验收发现：Worker 携带载荷并被 Stop 暂停后，当前需再次右键资源点才能建立新 Gather 并先返程交付，右键 CommandCenter/资源交付建筑不会直接触发交付。
+
+该行为不在已评审的 `GatherResourcesCommand(ResourceNodeId)` 契约内，也可能与后续上下文右键分派发生冲突，因此本轮不修改接口或实现。后续以 `CMD-031` 单独评审 `ReturnCargoCommand`、交付目标类型、交付后的任务状态及与采集/建造意图的优先级。
