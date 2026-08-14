@@ -96,13 +96,14 @@ func _ready():
 	)
 	var far_ground_order_id: String = far_ground_result["unit_results"][0]["order_id"]
 	_check(far_ground_result["status"] == "Accepted", "远距离地面炮击应先接近射程")
-	attacker.find_child("Movement").movement_finished.emit()
-	await get_tree().process_frame
-	_check(
-		gateway.GetOrderState(far_ground_order_id) == "InProgress",
-		"接近射程完成不得把持续地面炮击误判为 Arrived"
-	)
+	await get_tree().create_timer(0.25).timeout
+	var position_before_far_stop: Vector3 = attacker.global_position
 	gateway.StopUnits([attacker], human)
+	await get_tree().create_timer(0.35).timeout
+	_check(
+		attacker.global_position.distance_to(position_before_far_stop) < 0.02,
+		"远距离地面炮击接近途中收到 Stop 后不得继续向落点移动"
+	)
 	_check(gateway.GetOrderState(far_ground_order_id) == "Cancelled", "远距离地面炮击应可取消")
 
 	print("Tank force attack smoke test completed: %d failure(s)" % _failures)

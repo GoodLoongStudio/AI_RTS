@@ -38,3 +38,11 @@
 ## 5. 验收状态
 
 代码和自动测试已完成，等待人工确认传统 HUD 只产生一次 Stop 反馈，且移动、强制攻击、普通攻击和持续策略的视觉行为符合第 2 节。
+
+## 6. 验收中发现并修复的回归
+
+2026-08-14 人工测试发现：对远距离地面下达 ForceAttack 后，Tank 会先接近射程；此时 Stop 虽已把订单改为 `Cancelled`，但单位仍会沿旧导航目标前进到射程内。
+
+根因不是 NavigationMesh 尺寸或路径计算，而是 `ExplicitGroundForceAttacking` 直接启动了 `Movement`，却没有在 Action 退出时撤销该导航目标。现已增加 `_exit_tree()` 清理，无论 Stop、替换命令还是单位销毁导致 Action 退出，均会调用 `Movement.stop()`。
+
+`TankForceAttackSmokeTest` 已改为真实等待接近运动开始，在 Stop 后继续观察世界坐标；修复后订单为 `Cancelled`，且 0.35 秒观察期内位移小于 0.02，测试为 0 失败。远距离实体 ForceAttack 使用的 `FollowingToReachDistance` 原本已有同类退出清理，本次复核未发现相同遗漏。

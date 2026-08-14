@@ -23,6 +23,12 @@ func _ready():
 	_begin_or_resume_attack()
 
 
+## 无论因 Stop、替换命令还是单位销毁退出，都必须撤销接近射程阶段留下的导航目标。
+func _exit_tree():
+	if _movement != null:
+		_movement.stop()
+
+
 ## 若目标超出射程则移动到射程边缘，否则立即安排开火。
 func _begin_or_resume_attack():
 	var planar_target := _target_position * Vector3(1.0, 0.0, 1.0)
