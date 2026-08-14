@@ -42,6 +42,8 @@ internal sealed class UnitCommandServiceTests
         RunTest(nameof(TacticalWithdrawFallsBackToOrdinaryMovement), TacticalWithdrawFallsBackToOrdinaryMovement);
         RunTest(nameof(PortFailuresMapToStableErrors), PortFailuresMapToStableErrors);
         RunTest(nameof(OrderStorePublishesAuthoritativeStateChanges), OrderStorePublishesAuthoritativeStateChanges);
+        RunTest(nameof(AreaWarheadUsesImpactPointAndFootprints), AreaWarheadUsesImpactPointAndFootprints);
+        RunTest(nameof(WarheadResultsAreStableUniqueAndRespectFriendlyFire), WarheadResultsAreStableUniqueAndRespectFriendlyFire);
 
         Console.WriteLine($"AI_RTS.Core tests completed: {_tests} test(s), {_failures} failure(s).");
         return _failures == 0 ? 0 : 1;
@@ -447,6 +449,92 @@ internal sealed class UnitCommandServiceTests
             changes[3].Current.State == UnitOrderState.Cancelled,
             "取消事件应记录 Suspended 到 Cancelled");
     }
+
+    /// <summary>验证范围弹头以实际爆点查询，并允许 footprint 边缘进入范围的非指定目标受伤。</summary>
+    private void AreaWarheadUsesImpactPointAndFootprints()
+    {
+        var sourcePlayer = NewPlayerId();
+        var enemyPlayer = NewPlayerId();
+        var intended = NewUnitId();
+        var nearby = NewUnitId();
+        var outside = NewUnitId();
+        var launch = LaunchSnapshot(
+            sourcePlayer,
+            intended,
+            radius: 1.0f,
+            selectionMode: ImpactSelectionMode.Area);
+        var resolver = new WarheadDamageResolver();
+
+        var damage = resolver.Resolve(
+            launch,
+            new WorldPosition(5, 0, 5),
+            [
+                new ImpactCandidateSnapshot(
+                    intended, enemyPlayer, new WorldPosition(20, 0, 20), 0.5f, true),
+                new ImpactCandidateSnapshot(
+                    nearby, enemyPlayer, new WorldPosition(6.4f, 0, 5), 0.5f, true),
+                new ImpactCandidateSnapshot(
+                    outside, enemyPlayer, new WorldPosition(6.6f, 0, 5), 0.5f, true)
+            ]);
+
+        Check(damage.Count == 1 && damage[0].UnitId == nearby,
+            "范围弹头应命中 footprint 与爆炸范围相交的非指定目标");
+    }
+
+    /// <summary>验证弹头按稳定 ID 去重排序，并对友军应用发射快照中的伤害倍率。</summary>
+    private void WarheadResultsAreStableUniqueAndRespectFriendlyFire()
+    {
+        var sourcePlayer = NewPlayerId();
+        var enemyPlayer = NewPlayerId();
+        var friendly = NewUnitId();
+        var enemy = NewUnitId();
+        var launch = LaunchSnapshot(
+            sourcePlayer,
+            null,
+            radius: 3.0f,
+            selectionMode: ImpactSelectionMode.Area,
+            friendlyFireMultiplier: 0.5f);
+        var resolver = new WarheadDamageResolver();
+        var friendlyCandidate = new ImpactCandidateSnapshot(
+            friendly, sourcePlayer, new WorldPosition(0, 0, 0), 0.5f, true);
+
+        var damage = resolver.Resolve(
+            launch,
+            new WorldPosition(0, 0, 0),
+            [
+                new ImpactCandidateSnapshot(
+                    enemy, enemyPlayer, new WorldPosition(1, 0, 0), 0.5f, true),
+                friendlyCandidate,
+                friendlyCandidate
+            ]);
+
+        Check(damage.Count == 2, "同一爆炸对每个稳定 UnitId 最多结算一次");
+        Check(damage.SequenceEqual(damage.OrderBy(item => item.UnitId.Value)),
+            "爆点伤害结果应按稳定 UnitId 排序");
+        Check(damage.Single(item => item.UnitId == friendly).Damage == 5.0f,
+            "友军应应用发射快照中的友伤倍率");
+        Check(damage.Single(item => item.UnitId == enemy).Damage == 10.0f,
+            "敌军应承受完整基础伤害");
+    }
+
+    /// <summary>创建纯规则测试使用的不可变发射快照。</summary>
+    private static AttackLaunchSnapshot LaunchSnapshot(
+        PlayerId sourcePlayer,
+        UnitId? intendedTarget,
+        float radius,
+        ImpactSelectionMode selectionMode,
+        float friendlyFireMultiplier = 1.0f) => new(
+            new AttackInstanceId(Guid.NewGuid()),
+            NewUnitId(),
+            sourcePlayer,
+            WeaponDeliveryKind.Projectile,
+            new WorldPosition(0, 0, 0),
+            new WorldPosition(5, 0, 5),
+            intendedTarget,
+            10.0f,
+            radius,
+            friendlyFireMultiplier,
+            selectionMode);
 
     private void RunTest(string name, Action test)
     {

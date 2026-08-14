@@ -45,8 +45,8 @@ func _ready():
 	var hp_before_hold_ground: float = enemy.hp
 	var position_before_engagement: Vector3 = tank.global_position
 	gateway.SetFirePolicy([tank], "FireAtWill", human)
-	await get_tree().create_timer(0.9).timeout
-	_check(enemy.hp < hp_before_hold_ground, "固守 AttackMove 应处理射程内敌人")
+	var encounter_hit: bool = await _wait_for_hp_below(enemy, hp_before_hold_ground, 3.0)
+	_check(encounter_hit, "固守 AttackMove 应处理射程内敌人")
 	_check(
 		tank.global_position.distance_to(position_before_engagement) < 0.6,
 		"固守 AttackMove 交战时不应主动离路追击"
@@ -89,3 +89,14 @@ func _check(condition: bool, message: String):
 		return
 	_failures += 1
 	push_error("Tank ground attack move assertion failed: %s" % message)
+
+
+## 等待途中目标被飞行中的投射物命中。
+func _wait_for_hp_below(unit, previous_hp: float, timeout_seconds: float) -> bool:
+	var elapsed_seconds := 0.0
+	while elapsed_seconds < timeout_seconds:
+		if not is_instance_valid(unit) or unit.hp < previous_hp:
+			return true
+		await get_tree().create_timer(0.1).timeout
+		elapsed_seconds += 0.1
+	return not is_instance_valid(unit) or unit.hp < previous_hp

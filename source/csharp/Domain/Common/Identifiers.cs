@@ -19,3 +19,7 @@ public readonly record struct CommandId(Guid Value);
 /// <summary>标识一个单位独立执行的订单。</summary>
 /// <param name="Value">进程内唯一的 Guid 值。</param>
 public readonly record struct UnitOrderId(Guid Value);
+
+/// <summary>标识一次已经离开发射者、拥有独立生命周期的攻击实例。</summary>
+/// <param name="Value">进程内唯一的 Guid 值。</param>
+public readonly record struct AttackInstanceId(Guid Value);

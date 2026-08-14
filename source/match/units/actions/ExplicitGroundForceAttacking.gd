@@ -7,6 +7,7 @@ var _shot_timer: Timer
 
 @onready var _unit = Utils.NodeEx.find_parent_with_group(self, "units")
 @onready var _movement = _unit.find_child("Movement")
+@onready var _projectile_runtime = _unit.find_parent("Match").get_node("ProjectileRuntime")
 
 
 ## 创建持续攻击纯地面坐标的显式订单 Action。
@@ -67,7 +68,6 @@ func _fire_and_reschedule():
 		"next_attack_availability_time",
 		Time.get_ticks_msec() + int(_unit.attack_interval * 1000.0)
 	)
-	_apply_point_impact()
 	_spawn_shot_visual()
 	_shot_timer.start(_unit.attack_interval)
 
@@ -79,24 +79,10 @@ func _rotate_towards_target():
 		_unit.global_transform = _unit.global_transform.looking_at(look_target, Vector3.UP)
 
 
-## 对 footprint 覆盖落点的所有可伤害单位造成完整基础伤害，不额外定义爆炸半径。
-func _apply_point_impact():
-	var planar_target := _target_position * Vector3(1.0, 0.0, 1.0)
-	for candidate in get_tree().get_nodes_in_group("units"):
-		if not is_instance_valid(candidate) or not "hp" in candidate or candidate.hp == null:
-			continue
-		if candidate.radius == null:
-			continue
-		if candidate.global_position_yless.distance_to(planar_target) <= candidate.radius:
-			candidate.hp -= _unit.attack_damage
-
-
-## 复用当前单位投射物资源生成炮口表现；地面伤害已由落点判定完成。
+## 通过 Match 级运行时生成独立投射物，伤害延后到视觉命中时刻结算。
 func _spawn_shot_visual():
 	var unit_scene_path: String = _unit.get_script().resource_path.replace(".gd", ".tscn")
 	var projectile_path = Constants.Match.Units.PROJECTILES.get(unit_scene_path)
 	if projectile_path == null:
 		return
-	var projectile = load(projectile_path).instantiate()
-	projectile.target_position = _target_position
-	_unit.add_child(projectile)
+	_projectile_runtime.LaunchGround(_unit, _target_position, projectile_path, 0.0)

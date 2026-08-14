@@ -41,8 +41,8 @@ func _ready():
 	# 恢复开火后应攻击最终目标；目标退出运行时后订单必须进入 TargetLost。
 	final_target.global_position = tank.global_position + Vector3(0.0, 0.0, -2.0)
 	gateway.SetFirePolicy([tank], "FireAtWill", human)
-	await get_tree().create_timer(0.7).timeout
-	_check(final_target.hp < target_hp, "恢复开火后应攻击实体最终目标")
+	var final_target_hit: bool = await _wait_for_hp_below(final_target, target_hp, 3.0)
+	_check(final_target_hit, "恢复开火后应攻击实体最终目标")
 	var order_id: String = result["unit_results"][0]["order_id"]
 	final_target.hp = 0
 	await get_tree().process_frame
@@ -80,3 +80,14 @@ func _check(condition: bool, message: String):
 		return
 	_failures += 1
 	push_error("Tank entity attack move assertion failed: %s" % message)
+
+
+## 等待实体目标被飞行中的投射物命中。
+func _wait_for_hp_below(unit, previous_hp: float, timeout_seconds: float) -> bool:
+	var elapsed_seconds := 0.0
+	while elapsed_seconds < timeout_seconds:
+		if not is_instance_valid(unit) or unit.hp < previous_hp:
+			return true
+		await get_tree().create_timer(0.1).timeout
+		elapsed_seconds += 0.1
+	return not is_instance_valid(unit) or unit.hp < previous_hp

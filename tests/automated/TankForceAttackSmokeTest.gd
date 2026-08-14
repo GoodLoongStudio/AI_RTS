@@ -33,30 +33,34 @@ func _ready():
 	var friendly_result = gateway.ForceAttackUnits([attacker], friendly_target, human)
 	var friendly_order_id: String = friendly_result["unit_results"][0]["order_id"]
 	_check(friendly_result["status"] == "Accepted", "HoldFire 下显式攻击己方目标应被接受")
-	await get_tree().create_timer(0.2).timeout
+	await get_tree().create_timer(2.0).timeout
 	_check(friendly_target.hp < friendly_hp_before, "显式攻击己方目标应造成完整基础伤害")
 	_check(gateway.GetFirePolicy(attacker) == "HoldFire", "临时授权不得修改持久停火策略")
 
-	var hp_before_stop: float = friendly_target.hp
 	controller.halt_selected_units()  # 未选择单位时不应影响当前 ForceAttack。
 	await get_tree().create_timer(0.1).timeout
 	_check(gateway.GetOrderState(friendly_order_id) == "InProgress", "空 Selection 停止不应取消攻击")
 	attacker.find_child("Selection").select()
 	controller.halt_selected_units()
-	await get_tree().create_timer(0.9).timeout
 	_check(gateway.GetOrderState(friendly_order_id) == "Cancelled", "停止应取消显式 ForceAttack 订单")
-	_check(friendly_target.hp == hp_before_stop, "停止后不应继续对显式目标造成伤害")
+	await get_tree().create_timer(1.1).timeout
+	var hp_after_in_flight_force_attack: float = friendly_target.hp
+	await get_tree().create_timer(0.8).timeout
+	_check(
+		friendly_target.hp == hp_after_in_flight_force_attack,
+		"停止后允许在途弹命中，但不得继续产生新的显式攻击伤害"
+	)
 	_check(gateway.GetFirePolicy(attacker) == "HoldFire", "停止后应恢复原持久停火策略")
 
 	var enemy_hp_before: float = enemy_target.hp
 	MatchSignals.unit_targeted.emit(enemy_target)
-	await get_tree().create_timer(0.3).timeout
+	await get_tree().create_timer(2.0).timeout
 	_check(enemy_target.hp == enemy_hp_before, "HoldFire 下普通右键敌人不应绕过停火")
 
 	enemy_target.hp = 2
 	var enemy_result = gateway.ForceAttackUnits([attacker], enemy_target, human)
 	var enemy_order_id: String = enemy_result["unit_results"][0]["order_id"]
-	await get_tree().create_timer(0.3).timeout
+	await get_tree().create_timer(2.0).timeout
 	_check(not is_instance_valid(enemy_target) or enemy_target.hp == 0, "显式攻击应能摧毁敌方目标")
 	_check(gateway.GetOrderState(enemy_order_id) == "TargetLost", "目标死亡后订单应进入 TargetLost")
 	_check(
@@ -70,6 +74,8 @@ func _ready():
 		attacker.position + Vector3(2, 0, 0)
 	)
 	ground_target.add_to_group("controlled_units")
+	await get_tree().process_frame
+	ground_target.find_child("Movement").suspend_motion()
 	var ground_hp_before: float = ground_target.hp
 	var ground_result = gateway.ForceAttackGround(
 		[attacker],
@@ -79,15 +85,19 @@ func _ready():
 	var ground_order_id: String = ground_result["unit_results"][0]["order_id"]
 	_check(ground_result["status"] == "Accepted", "Tank 地面强制攻击应被接受")
 	_check(gateway.GetFirePolicy(attacker) == "HoldFire", "地面炮击不得修改持久停火策略")
-	await get_tree().create_timer(0.9).timeout
-	_check(ground_target.hp < ground_hp_before, "地面落点覆盖单位 footprint 时应造成完整基础伤害")
+	var ground_damaged: bool = await _wait_for_hp_below(ground_target, ground_hp_before, 4.0)
+	_check(ground_damaged, "地面落点覆盖单位 footprint 时应造成完整基础伤害")
 	_check(gateway.GetOrderState(ground_order_id) == "InProgress", "地面炮击应持续执行")
-	var hp_before_ground_stop: float = ground_target.hp
 	var ground_cancel = gateway.StopUnits([attacker], human)
 	_check(ground_cancel["status"] == "Accepted", "地面炮击应可由统一 Stop 取消")
-	await get_tree().create_timer(0.9).timeout
 	_check(gateway.GetOrderState(ground_order_id) == "Cancelled", "取消后地面炮击订单应终止")
-	_check(ground_target.hp == hp_before_ground_stop, "取消后不得继续伤害地面落点单位")
+	await get_tree().create_timer(1.1).timeout
+	var hp_after_in_flight_ground_attack: float = ground_target.hp
+	await get_tree().create_timer(0.8).timeout
+	_check(
+		ground_target.hp == hp_after_in_flight_ground_attack,
+		"取消后允许在途弹命中，但不得继续产生新的地面炮击伤害"
+	)
 
 	var far_ground_result = gateway.ForceAttackGround(
 		[attacker],
@@ -97,8 +107,9 @@ func _ready():
 	var far_ground_order_id: String = far_ground_result["unit_results"][0]["order_id"]
 	_check(far_ground_result["status"] == "Accepted", "远距离地面炮击应先接近射程")
 	await get_tree().create_timer(0.25).timeout
-	var position_before_far_stop: Vector3 = attacker.global_position
 	gateway.StopUnits([attacker], human)
+	await get_tree().process_frame
+	var position_before_far_stop: Vector3 = attacker.global_position
 	await get_tree().create_timer(0.35).timeout
 	_check(
 		attacker.global_position.distance_to(position_before_far_stop) < 0.02,
@@ -137,6 +148,17 @@ func _check(condition: bool, message: String):
 		return
 	_failures += 1
 	push_error("Tank force attack assertion failed: %s" % message)
+
+
+## 在超时时间内等待目标生命值降低，避免武器冷却和投射物飞行时间使测试误判。
+func _wait_for_hp_below(unit, previous_hp: float, timeout_seconds: float) -> bool:
+	var elapsed_seconds := 0.0
+	while elapsed_seconds < timeout_seconds:
+		if not is_instance_valid(unit) or unit.hp < previous_hp:
+			return true
+		await get_tree().create_timer(0.1).timeout
+		elapsed_seconds += 0.1
+	return not is_instance_valid(unit) or unit.hp < previous_hp
 
 
 ## 收集 ForceAttack 测试所需的权威订单状态事件。
