@@ -367,14 +367,57 @@ func _try_ordering_selected_workers_to_construct_structure(potential_structure):
 		unit.action = Actions.Constructing.new(structure)
 
 
-func _navigate_selected_units_towards_unit(target_unit):
+func _navigate_selected_units_towards_unit(target_unit, target_position: Vector3):
 	var at_least_one_unit_navigated = false
-	for unit in get_tree().get_nodes_in_group("selected_units"):
-		if not unit.is_in_group("controlled_units"):
+	var selected_units = get_tree().get_nodes_in_group("selected_units").filter(
+		func(unit): return unit.is_in_group("controlled_units")
+	)
+	var air_units_without_entity_interaction = selected_units.filter(
+		func(unit): return _should_air_move_to_entity_position(unit, target_unit)
+	)
+	var air_move_targets = Utils.Match.Unit.Movement.crowd_moved_to_new_pivot(
+		air_units_without_entity_interaction, target_position
+	)
+	var accepted_count := 0
+	var rejected_count := 0
+	for tuple in air_move_targets:
+		if _is_migrated_command_unit(tuple[0]):
+			var result = _get_command_gateway().MoveUnits([tuple[0]], tuple[1], get_parent())
+			var counts = _count_command_result(result)
+			accepted_count += counts[0]
+			rejected_count += counts[1]
+		else:
+			tuple[0].action = Actions.Moving.new(tuple[1])
+			accepted_count += 1
+		at_least_one_unit_navigated = true
+	if not air_move_targets.is_empty():
+		_emit_command_feedback("Move", accepted_count, rejected_count)
+	for unit in selected_units:
+		if unit in air_units_without_entity_interaction:
 			continue
 		if _navigate_unit_towards_unit(unit, target_unit):
 			at_least_one_unit_navigated = true
 	return at_least_one_unit_navigated
+
+
+## 判断空中单位是否对目标没有更高优先级的实体交互，应把本次点击解释为位置移动。
+func _should_air_move_to_entity_position(unit, target_unit) -> bool:
+	if unit.movement_domain != Constants.Match.Navigation.Domain.AIR:
+		return false
+	if not Actions.Moving.is_applicable(unit):
+		return false
+	if Actions.CollectingResourcesSequentially.is_applicable(unit, target_unit):
+		return false
+	if Actions.AutoAttacking.is_applicable(unit, target_unit):
+		return false
+	if Actions.Constructing.is_applicable(unit, target_unit):
+		return false
+	if (
+		(target_unit.is_in_group("adversary_units") or target_unit.is_in_group("controlled_units"))
+		and Actions.Following.is_applicable(unit)
+	):
+		return false
+	return true
 
 
 func _navigate_unit_towards_unit(unit, target_unit):
@@ -475,7 +518,7 @@ func _on_unit_targeted(unit, target_position: Vector3):
 		if attack_move_targetability != null:
 			attack_move_targetability.animate()
 		return
-	if _navigate_selected_units_towards_unit(unit):
+	if _navigate_selected_units_towards_unit(unit, target_position):
 		var targetability = unit.find_child("Targetability")
 		if targetability != null:
 			targetability.animate()

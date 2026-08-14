@@ -101,12 +101,16 @@ Godot 无头退出仍报告已登记的 Navigation/Renderer RID 与 ObjectDB 清
 
 输入分派问题登记为 `CMD-029`，不能误报为当前已存在碾压等级判定。
 
-2026-08-14 已完成代码修正：`Targetability` 将实体表面的实际世界点击坐标随 `unit_targeted(unit, target_position)` 发布；一次性 ForceMove 状态优先消费该坐标并提交公共 `ForceMove` 订单。自动测试已确认 Tank 与 Helicopter 均不再退化为普通 Attack/Follow，等待人工验收后关闭 `CMD-029`。
+2026-08-14 已完成代码修正：`Targetability` 将实体表面的实际世界点击坐标随 `unit_targeted(unit, target_position)` 发布；一次性 ForceMove 状态优先消费该坐标并提交公共 `ForceMove` 订单。自动测试已确认 Tank 与 Helicopter 均不再退化为普通 Attack/Follow。
 
 本修正不会使 Tank 穿过建筑碰撞或自动获得碾压能力。Tank 命令可被接收，但其合法可达位置仍由地面导航和未来 `CMD-023` 决定；Helicopter 则可按 AIR 导航移动到点击位置上空。
+
+2026-08-14 人工验收通过：Helicopter 可正常停在敌方建筑上方；Tank 贴近建筑后出现来回踱步，已登记到导航专项，不阻塞 `CMD-029` 关闭。
 
 ### 8.2 Helicopter 普通移动到矿石
 
 非 Worker 点击矿石时没有采集交互，会落入通用 `MovingToUnit`。该 Action 使用二维距离，并在移动者与目标的 footprint 加间距后停止，没有区分 AIR 与 TERRAIN，因此 Helicopter 也停在矿石旁边。
 
-这符合当前实现，但不建议作为最终规则。建议无采集/施工等交互的空中单位右键地面实体时，把意图解释为移动到点击位置或实体中心上空；地面单位仍按障碍与自身 footprint 保持合法距离。该跨导航域停止距离问题登记为 `CMD-030`，等待接口与输入语义评审后修改。
+这符合验收时的实现，但不建议作为最终规则。无采集/施工等交互的空中单位右键地面实体时，应把意图解释为移动到点击位置或实体中心上空；地面单位仍按障碍与自身 footprint 保持合法距离。
+
+2026-08-14 已完成 `CMD-030` 代码修正和自动测试：输入控制器先保留 Attack、Follow、采集和施工等高优先级实体交互；只有不存在这些交互的 AIR 单位才按实体表面点击位置提交普通 `Move`。多选空中单位继续使用编队目标分配。等待人工验收。
