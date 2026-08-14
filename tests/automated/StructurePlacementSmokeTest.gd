@@ -2,12 +2,15 @@ extends Node
 
 const MatchScene = preload("res://tests/manual/TestOneUnit.tscn")
 const TurretScene = preload("res://source/match/units/AntiGroundTurret.tscn")
+const WorkerScene = preload("res://source/match/units/Worker.tscn")
 
 var _failures := 0
+var _damaged_units := []
 
 
 ## 验证视野门槛、统一最终复验、资源扣款和友军安全驱逐纵向链路。
 func _ready():
+	MatchSignals.unit_damaged.connect(_on_unit_damaged)
 	var match_instance = MatchScene.instantiate()
 	add_child(match_instance)
 	for _frame in range(4):
@@ -68,6 +71,44 @@ func _ready():
 		_planar_distance(tank.global_position, structure.global_position) > required_distance,
 		"被覆盖的友军应移动到建筑 footprint 外并待命"
 	)
+	_check(not structure in _damaged_units, "施工初始化与新增 HP 不应误发 unit_damaged")
+
+	var worker = WorkerScene.instantiate()
+	match_instance.call(
+		"_setup_and_spawn_unit",
+		worker,
+		Transform3D(Basis.IDENTITY, structure.global_position + Vector3(4.0, 0.0, 0.0)),
+		human,
+		false
+	)
+	await get_tree().process_frame
+	var gateway = human.get_node("UnitCommandGateway")
+	var construct = gateway.ConstructUnits([worker], structure, human)
+	_check(construct["status"] == "Accepted", "Worker 应通过公共命令入口接受 Construct")
+	var construct_order_id: String = construct["unit_results"][0]["order_id"]
+	var stopped = gateway.StopUnits([worker], human)
+	_check(stopped["status"] == "Accepted", "Stop 应暂停 Construct")
+	_check(gateway.GetOrderState(construct_order_id) == "Suspended", "Construct Stop 应保留暂停订单")
+	var resumed = gateway.ConstructUnits([worker], structure, human)
+	_check(
+		resumed["unit_results"][0]["order_id"] == construct_order_id,
+		"再次指定同一现场应恢复原 Construct 订单"
+	)
+	for _frame in range(600):
+		if structure.hp > 1:
+			break
+		await get_tree().physics_frame
+	_check(structure.hp > 1, "Worker 到位后应推进权威施工 HP")
+	structure.hp -= 1
+	for _frame in range(600):
+		if structure.is_constructed():
+			break
+		await get_tree().physics_frame
+	_check(structure.is_constructed(), "Worker 应在有限时间内完成施工")
+	_check(gateway.GetOrderState(construct_order_id) == "Completed", "完工应终结 Construct 订单")
+	_check(worker.action == null, "完工后 Worker 不应保留现场 Action 引用")
+	_check(structure.hp == structure.hp_max - 1, "施工期间的伤害应保留至完工")
+	_check(_damaged_units.count(structure) == 1, "施工现场只有真实伤害应发布 unit_damaged")
 
 	var occupied = runtime.Evaluate(human, TurretScene, placement_transform, cost)
 	_check(not occupied["accepted"], "已生成建筑应阻挡同位置再次放置")
@@ -95,3 +136,8 @@ func _check(condition: bool, message: String):
 		return
 	_failures += 1
 	push_error("Structure placement assertion failed: %s" % message)
+
+
+## 收集真实受击事件，用于区分施工初始化与主动测试伤害。
+func _on_unit_damaged(unit):
+	_damaged_units.append(unit)
