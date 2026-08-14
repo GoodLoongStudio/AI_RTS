@@ -236,7 +236,7 @@ public sealed class UnitCommandService(
         return Summarize(context.CommandId, results);
     }
 
-    /// <summary>按照订单种类应用统一停止状态；普通 Attack 不受 Stop 影响。</summary>
+    /// <summary>按照订单种类应用统一停止状态；攻击订单取消，持续战斗策略保持不变。</summary>
     private UnitOrderId? TransitionStoppedOrder(
         CommandContext context,
         UnitOrderSnapshot? active)
@@ -248,7 +248,8 @@ public sealed class UnitCommandService(
             orders.Transition(active.OrderId, UnitOrderState.Suspended);
             return active.OrderId;
         }
-        if (active?.Kind is UnitOrderKind.ForceAttack or UnitOrderKind.GroundForceAttack)
+        if (active?.Kind is UnitOrderKind.Attack or UnitOrderKind.ForceAttack or
+            UnitOrderKind.GroundForceAttack)
         {
             orders.Transition(active.OrderId, UnitOrderState.Cancelled, context.CommandId);
             return active.OrderId;

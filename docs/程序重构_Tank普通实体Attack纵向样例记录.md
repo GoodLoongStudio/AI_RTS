@@ -18,6 +18,8 @@
 
 目标死亡或退出 SceneTree 时，普通 Attack 的订单进入 `TargetLost`；攻击者损失进入 `UnitLost`；新命令按统一订单替换规则取消旧 Attack。
 
+统一 Stop 会取消当前普通 Attack 订单并清除其 `OrdinaryAttacking` Action，但不改变交战姿态、开火策略或武器冷却。策略允许时 Tank 可由自主待命逻辑立即重新发现敌人，因此视觉上的继续射击不代表旧订单未取消。
+
 ## 3. 当前限制
 
 - 只迁移 Tank，其他单位仍保留 Legacy 普通攻击路径；

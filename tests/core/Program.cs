@@ -163,7 +163,7 @@ internal sealed class UnitCommandServiceTests
             "停止移动应把订单转换为 Suspended");
     }
 
-    /// <summary>验证统一 Stop 暂停移动、取消强制攻击，但不会停止普通 Attack 或修改停火策略。</summary>
+    /// <summary>验证统一 Stop 暂停移动、取消普通/强制攻击，但不会修改持续战斗策略。</summary>
     private void UnifiedStopAppliesOrderSpecificSemantics()
     {
         var owner = NewPlayerId();
@@ -205,10 +205,10 @@ internal sealed class UnitCommandServiceTests
             "移动订单应进入 Suspended 并保留任务身份");
         Check(orders.Find(forceOrder.OrderId)?.State == UnitOrderState.Cancelled,
             "显式 ForceAttack 应被统一 Stop 取消");
-        Check(orders.Find(ordinaryOrder.OrderId)?.State == UnitOrderState.InProgress,
-            "普通 Attack 不应被 Stop 命令停止");
-        Check(ResultFor(result, ordinaryAttacker).OrderId is null,
-            "未受影响的普通 Attack 不应伪报为已停止订单");
+        Check(orders.Find(ordinaryOrder.OrderId)?.State == UnitOrderState.Cancelled,
+            "玩家下达的普通 Attack 应被 Stop 命令取消");
+        Check(ResultFor(result, ordinaryAttacker).OrderId == ordinaryOrder.OrderId,
+            "普通 Attack 被取消时应回传受影响的订单 ID");
         Check(policies.Get(forceAttacker).FirePolicy == FirePolicy.HoldFire,
             "统一 Stop 不应修改持续停火策略");
     }

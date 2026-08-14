@@ -88,7 +88,7 @@ public readonly record struct StopPortResult(bool Accepted, StopPortError Error)
 /// <summary>隔离 Application 的统一 Stop 语义与单位内部任务实现。</summary>
 public interface IUnitStopPort
 {
-    /// <summary>暂停可保留任务并取消显式强制攻击；普通攻击与持续战斗策略保持不变。</summary>
+    /// <summary>暂停可保留任务并取消当前普通/强制攻击；持续战斗策略保持不变。</summary>
     StopPortResult RequestStop(UnitId unitId);
 }
 
