@@ -5,6 +5,7 @@ using AI_RTS.Application.Orders;
 using AI_RTS.Application.Units;
 using AI_RTS.Domain.Combat;
 using AI_RTS.Domain.Common;
+using AI_RTS.Domain.Economy;
 
 namespace AI_RTS.Tests.Core;
 
@@ -34,6 +35,8 @@ internal sealed class UnitCommandServiceTests
         RunTest(nameof(FailedReplacementPreservesActiveOrder), FailedReplacementPreservesActiveOrder);
         RunTest(nameof(HaltSuspendsMovementOrder), HaltSuspendsMovementOrder);
         RunTest(nameof(UnifiedStopAppliesOrderSpecificSemantics), UnifiedStopAppliesOrderSpecificSemantics);
+        RunTest(nameof(GatherReturnsPerWorkerResults), GatherReturnsPerWorkerResults);
+        RunTest(nameof(StopSuspendsGatherWithoutUsingGenericStop), StopSuspendsGatherWithoutUsingGenericStop);
         RunTest(nameof(CombatPoliciesAreIndependentAndOwnershipChecked), CombatPoliciesAreIndependentAndOwnershipChecked);
         RunTest(nameof(OrdinaryAttackRespectsHoldFire), OrdinaryAttackRespectsHoldFire);
         RunTest(nameof(ForceAttackOverridesHoldFire), ForceAttackOverridesHoldFire);
@@ -213,6 +216,68 @@ internal sealed class UnitCommandServiceTests
             "普通 Attack 被取消时应回传受影响的订单 ID");
         Check(policies.Get(forceAttacker).FirePolicy == FirePolicy.HoldFire,
             "统一 Stop 不应修改持续停火策略");
+    }
+
+    /// <summary>验证 Gather 只接受自有 Worker，并为每个接受者创建独立持续订单。</summary>
+    private void GatherReturnsPerWorkerResults()
+    {
+        var owner = NewPlayerId();
+        var worker = NewUnitId();
+        var tank = NewUnitId();
+        var resourceId = NewResourceNodeId();
+        var orders = new InMemoryUnitOrderStore();
+        var work = new FakeWorkerTaskPort();
+        var service = NewService(
+            new FakeRepository(
+                new UnitCommandSnapshot(worker, owner, true, CanGather: true),
+                new UnitCommandSnapshot(tank, owner, true)),
+            orders: orders,
+            workerTasks: work,
+            resources: new FakeResourceRepository(
+                new ResourceNodeSnapshot(resourceId, ResourceKind.A, true)));
+
+        var result = service.GatherResources(
+            Context(owner),
+            new GatherResourcesCommand([worker, tank], resourceId));
+
+        Check(result.Status == CommandStatus.PartiallyAccepted,
+            "Worker 与非采集单位混选应返回 PartiallyAccepted");
+        Check(ResultFor(result, worker).Accepted, "具备采集能力的 Worker 应接受 Gather");
+        Check(ResultFor(result, tank).ErrorCode == CommandErrorCode.UnitCannotGather,
+            "非采集单位应返回 UnitCannotGather");
+        Check(orders.FindActive(worker)?.Kind == UnitOrderKind.Gather,
+            "已接受 Worker 应获得 Gather 订单");
+        Check(work.GatherRequests == 1, "只有合法 Worker 应到达工作任务端口");
+    }
+
+    /// <summary>验证统一 Stop 通过工作端口暂停 Gather，且不调用通用 Stop 端口。</summary>
+    private void StopSuspendsGatherWithoutUsingGenericStop()
+    {
+        var owner = NewPlayerId();
+        var worker = NewUnitId();
+        var resourceId = NewResourceNodeId();
+        var orders = new InMemoryUnitOrderStore();
+        var work = new FakeWorkerTaskPort();
+        var stop = new FakeStopPort();
+        var service = NewService(
+            new FakeRepository(new UnitCommandSnapshot(worker, owner, true, CanGather: true)),
+            orders: orders,
+            stop: stop,
+            workerTasks: work,
+            resources: new FakeResourceRepository(
+                new ResourceNodeSnapshot(resourceId, ResourceKind.B, true)));
+
+        var gather = service.GatherResources(
+            Context(owner),
+            new GatherResourcesCommand([worker], resourceId));
+        var orderId = ResultFor(gather, worker).OrderId!.Value;
+        var stopped = service.Stop(Context(owner), new StopUnitsCommand([worker]));
+
+        Check(stopped.Status == CommandStatus.Accepted, "Gather 期间统一 Stop 应被接受");
+        Check(work.SuspendRequests == 1, "Gather Stop 应调用工作暂停端口一次");
+        Check(stop.Requests == 0, "Gather Stop 不应误用通用移动/攻击停止端口");
+        Check(orders.Find(orderId)?.State == UnitOrderState.Suspended,
+            "Gather Stop 应保留订单并转为 Suspended");
     }
 
     /// <summary>验证姿态与开火策略独立保存，并逐单位检查所有权。</summary>
@@ -580,6 +645,8 @@ internal sealed class UnitCommandServiceTests
 
     private static UnitId NewUnitId() => new(Guid.NewGuid());
 
+    private static ResourceNodeId NewResourceNodeId() => new(Guid.NewGuid());
+
     private static FakeRepository CombatRepository(
         PlayerId owner,
         PlayerId targetOwner,
@@ -604,13 +671,17 @@ internal sealed class UnitCommandServiceTests
         IUnitAttackPort? attack = null,
         IUnitOrderStore? orders = null,
         ICombatPolicyStore? policies = null,
-        IUnitStopPort? stop = null) => new(
+        IUnitStopPort? stop = null,
+        IWorkerTaskPort? workerTasks = null,
+        IResourceNodeRepository? resources = null) => new(
             repository,
             movement ?? new FakeMovementPort(),
             attack ?? new FakeAttackPort(),
             orders ?? new InMemoryUnitOrderStore(),
             policies ?? new InMemoryCombatPolicyStore(),
-            stop ?? new FakeStopPort());
+            stop ?? new FakeStopPort(),
+            workerTasks,
+            resources);
 
     /// <summary>提供纯内存单位快照，不依赖 Godot ObjectDB。</summary>
     private sealed class FakeRepository(params UnitCommandSnapshot[] units) : IUnitCommandUnitRepository
@@ -621,6 +692,42 @@ internal sealed class UnitCommandServiceTests
         /// <inheritdoc />
         public UnitCommandSnapshot? Find(UnitId unitId) =>
             _units.TryGetValue(unitId, out var unit) ? unit : null;
+    }
+
+    /// <summary>提供纯内存资源节点快照。</summary>
+    private sealed class FakeResourceRepository(params ResourceNodeSnapshot[] resources) :
+        IResourceNodeRepository
+    {
+        private readonly Dictionary<ResourceNodeId, ResourceNodeSnapshot> _resources =
+            resources.ToDictionary(resource => resource.ResourceNodeId);
+
+        /// <inheritdoc />
+        public ResourceNodeSnapshot? Find(ResourceNodeId resourceNodeId) =>
+            _resources.TryGetValue(resourceNodeId, out var resource) ? resource : null;
+    }
+
+    /// <summary>记录纯 C# 测试中的 Worker 采集与暂停请求。</summary>
+    private sealed class FakeWorkerTaskPort : IWorkerTaskPort
+    {
+        /// <summary>累计收到的采集请求数。</summary>
+        public int GatherRequests { get; private set; }
+
+        /// <summary>累计收到的暂停请求数。</summary>
+        public int SuspendRequests { get; private set; }
+
+        /// <inheritdoc />
+        public WorkerTaskPortResult RequestGather(UnitId workerId, ResourceNodeId resourceNodeId)
+        {
+            GatherRequests++;
+            return WorkerTaskPortResult.Success();
+        }
+
+        /// <inheritdoc />
+        public WorkerTaskPortResult RequestSuspend(UnitId workerId)
+        {
+            SuspendRequests++;
+            return WorkerTaskPortResult.Success();
+        }
     }
 
     /// <summary>记录纯 C# 测试中的移动意图，并允许注入失败。</summary>

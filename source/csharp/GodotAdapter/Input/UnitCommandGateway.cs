@@ -32,6 +32,15 @@ public partial class UnitCommandGateway : Node
         return ToGodot(_runtime.ForceMoveUnits(unitNodes, destination, issuerPlayer));
     }
 
+    /// <summary>接收 GDScript Worker 与资源节点并提交持续采集任务。</summary>
+    public Godot.Collections.Dictionary GatherResources(
+        Godot.Collections.Array<Node> workerNodes,
+        Node resourceNode,
+        Node issuerPlayer)
+    {
+        return ToGodot(_runtime.GatherResources(workerNodes, resourceNode, issuerPlayer));
+    }
+
     /// <summary>接收 GDScript 单位节点并提交批量地面移动攻击命令。</summary>
     public Godot.Collections.Dictionary GroundAttackMoveUnits(
         Godot.Collections.Array<Node> unitNodes, Vector3 destination, Node issuerPlayer)

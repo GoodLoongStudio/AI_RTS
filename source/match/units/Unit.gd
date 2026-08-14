@@ -16,6 +16,10 @@ const LegacyGroundForceAttackAction = preload(
 const LegacyOrdinaryAttackAction = preload(
 	"res://source/match/units/actions/OrdinaryAttacking.gd"
 )
+const LegacyGatherAction = preload(
+	"res://source/match/units/actions/CollectingResourcesSequentially.gd"
+)
+const LegacyConstructingAction = preload("res://source/match/units/actions/Constructing.gd")
 
 signal selected
 signal deselected
@@ -25,6 +29,7 @@ signal action_updated
 signal explicit_force_attack_ended(reason)
 signal ordinary_attack_ended(reason)
 signal entity_attack_move_ended(reason)
+signal gather_task_ended(reason)
 
 const MATERIAL_ALBEDO_TO_REPLACE = Color(0.99, 0.81, 0.48)
 const MATERIAL_ALBEDO_TO_REPLACE_EPSILON = 0.05
@@ -138,6 +143,11 @@ func request_legacy_halt_movement() -> bool:
 ## 迁移期统一 Stop 桥：暂停移动类任务并取消当前普通/强制攻击，不改变持续战斗策略。
 ## 采集和施工迁移后应在这里改为“保留任务、暂停且不自动恢复”，而不是丢弃任务身份。
 func request_legacy_stop() -> bool:
+	if action != null and action.get_script() == LegacyGatherAction:
+		return action.suspend_task()
+	if action != null and action.get_script() == LegacyConstructingAction:
+		# 施工任务尚未具备保留阶段的暂停桥，必须明确拒绝，不能返回假成功。
+		return false
 	if action != null and action.get_script() in [
 		LegacyMovingAction,
 		LegacyGroundAttackMovingAction,
@@ -148,6 +158,23 @@ func request_legacy_stop() -> bool:
 	]:
 		action = null
 	return true
+
+
+## 临时 C# 迁移桥：开始围绕玩家明确指定资源点的持续采集与交付任务。
+func request_legacy_gather(resource_unit) -> bool:
+	if not LegacyGatherAction.is_applicable(self, resource_unit):
+		return false
+	var gather_action = LegacyGatherAction.new(resource_unit)
+	gather_action.task_ended.connect(gather_task_ended.emit)
+	action = gather_action
+	return true
+
+
+## 临时 C# 迁移桥：暂停整个采集任务并保留阶段、目标和未交付载荷。
+func request_legacy_suspend_work() -> bool:
+	if action == null or action.get_script() != LegacyGatherAction:
+		return false
+	return action.suspend_task()
 
 
 # Temporary C# migration bridge. It only asks the current autonomous combat

@@ -7,6 +7,7 @@ const Structure = preload("res://source/match/units/Structure.gd")
 const ResourceUnit = preload("res://source/match/units/non-player/ResourceUnit.gd")
 const Tank = preload("res://source/match/units/Tank.gd")
 const Helicopter = preload("res://source/match/units/Helicopter.gd")
+const Worker = preload("res://source/match/units/Worker.gd")
 
 var _is_force_move_targeting := false
 var _is_force_attack_targeting := false
@@ -150,7 +151,7 @@ func set_selected_fire_policy(policy: String):
 
 ## 返回当前选中已迁移战斗单位的统一战斗策略；混合值或无选中时返回空字符串。
 func get_selected_combat_policy(policy_name: String) -> String:
-	var command_units = _get_selected_controlled_units().filter(_is_migrated_command_unit)
+	var command_units = _get_selected_controlled_units().filter(_is_migrated_combat_unit)
 	if command_units.is_empty():
 		return ""
 	var gateway = _get_command_gateway()
@@ -172,7 +173,7 @@ func get_selected_combat_policy(policy_name: String) -> String:
 
 func _submit_selected_combat_policy(policy_name: String, value: String):
 	var selected_units = _get_selected_controlled_units()
-	var command_units = selected_units.filter(_is_migrated_command_unit)
+	var command_units = selected_units.filter(_is_migrated_combat_unit)
 	var accepted_count := 0
 	var rejected_count: int = selected_units.size() - command_units.size()
 	if not command_units.is_empty():
@@ -422,6 +423,11 @@ func _should_air_move_to_entity_position(unit, target_unit) -> bool:
 
 func _navigate_unit_towards_unit(unit, target_unit):
 	if Actions.CollectingResourcesSequentially.is_applicable(unit, target_unit):
+		if _is_migrated_command_unit(unit):
+			var result = _get_command_gateway().GatherResources([unit], target_unit, get_parent())
+			var counts = _count_command_result(result)
+			_emit_command_feedback("Gather", counts[0], counts[1])
+			return true
 		unit.action = Actions.CollectingResourcesSequentially.new(target_unit)
 		return true
 	if Actions.AutoAttacking.is_applicable(unit, target_unit):
@@ -451,6 +457,11 @@ func _navigate_unit_towards_unit(unit, target_unit):
 
 ## 集中定义已迁移到公共 C# 命令链路的单位类型，避免各命令分散硬编码类型判断。
 func _is_migrated_command_unit(unit) -> bool:
+	return unit is Tank or unit is Helicopter or unit is Worker
+
+
+## 集中定义已接入公共战斗策略的单位，避免 Worker 获得无意义的姿态设置。
+func _is_migrated_combat_unit(unit) -> bool:
 	return unit is Tank or unit is Helicopter
 
 

@@ -60,7 +60,15 @@ public enum CommandErrorCode
     /// <summary>单位处于停火策略，普通攻击不能获得开火授权。</summary>
     FirePolicyPreventsAttack,
     /// <summary>迁移期攻击执行层暂时无法接收请求。</summary>
-    AttackUnavailable
+    AttackUnavailable,
+    /// <summary>指定单位不具备采集能力。</summary>
+    UnitCannotGather,
+    /// <summary>采集命令引用的资源节点不存在或已经失效。</summary>
+    ResourceTargetNotFound,
+    /// <summary>指定资源节点已经耗尽。</summary>
+    ResourceDepleted,
+    /// <summary>迁移期 Worker 工作执行层无法接收请求。</summary>
+    WorkUnavailable
 }
 
 /// <summary>记录批量命令中单个单位的接收结果和订单标识。</summary>

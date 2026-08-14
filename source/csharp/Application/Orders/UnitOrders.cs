@@ -27,7 +27,10 @@ public enum UnitOrderKind
     ForceAttack,
 
     /// <summary>持续攻击纯地面坐标，不依赖实体目标身份。</summary>
-    GroundForceAttack
+    GroundForceAttack,
+
+    /// <summary>持续执行采集、返程与交付循环的 Worker 工作订单。</summary>
+    Gather
 }
 
 /// <summary>表示单个单位订单在生命周期中的权威状态。</summary>
@@ -41,6 +44,8 @@ public enum UnitOrderState
     Suspended,
     /// <summary>单位已经到达目标位置。</summary>
     Arrived,
+    /// <summary>持续任务按规则正常完成。</summary>
+    Completed,
     /// <summary>重新寻路后仍无法抵达目标。</summary>
     Unreachable,
     /// <summary>依赖的实体目标已经消失。</summary>
@@ -135,7 +140,9 @@ public sealed class InMemoryUnitOrderStore : IUnitOrderStore
         }
 
         _orders[orderId] = updated;
-        if (IsTerminal(state) && _activeByUnit.TryGetValue(current.UnitId, out var active) && active == orderId)
+        if (IsTerminal(state) &&
+            _activeByUnit.TryGetValue(current.UnitId, out var active) &&
+            active == orderId)
         {
             _activeByUnit.Remove(current.UnitId);
         }
@@ -143,6 +150,6 @@ public sealed class InMemoryUnitOrderStore : IUnitOrderStore
     }
 
     private static bool IsTerminal(UnitOrderState state) => state is
-        UnitOrderState.Arrived or UnitOrderState.Unreachable or UnitOrderState.TargetLost or
-        UnitOrderState.Cancelled or UnitOrderState.UnitLost;
+        UnitOrderState.Arrived or UnitOrderState.Completed or UnitOrderState.Unreachable or
+        UnitOrderState.TargetLost or UnitOrderState.Cancelled or UnitOrderState.UnitLost;
 }

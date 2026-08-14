@@ -34,6 +34,13 @@ public sealed record HaltMovementCommand(IReadOnlyList<UnitId> UnitIds);
 /// <summary>请求一组单位执行统一停止：暂停可保留任务，并取消显式 ForceAttack。</summary>
 public sealed record StopUnitsCommand(IReadOnlyList<UnitId> UnitIds);
 
+/// <summary>请求一组 Worker 围绕玩家明确指定的资源节点持续采集并自动送回。</summary>
+/// <param name="WorkerIds">需要分别校验和建立订单的 Worker 身份。</param>
+/// <param name="TargetResourceId">玩家明确指定且不会自动替换的资源节点身份。</param>
+public sealed record GatherResourcesCommand(
+    IReadOnlyList<UnitId> WorkerIds,
+    ResourceNodeId TargetResourceId);
+
 /// <summary>请求一组单位切换持续交战姿态，不改变其独立开火策略。</summary>
 public sealed record SetEngagementStanceCommand(
     IReadOnlyList<UnitId> UnitIds,

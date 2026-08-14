@@ -1,9 +1,11 @@
 using AI_RTS.Domain.Common;
 using AI_RTS.Domain.Combat;
+using AI_RTS.Domain.Economy;
 
 namespace AI_RTS.Application.Units;
 
 /// <summary>提供命令校验所需的最小单位只读信息。</summary>
+/// <param name="CanGather">单位是否具备开始资源采集任务的能力。</param>
 public readonly record struct UnitCommandSnapshot(
     UnitId UnitId,
     PlayerId OwnerId,
@@ -13,13 +15,30 @@ public readonly record struct UnitCommandSnapshot(
     IReadOnlySet<CombatDomain>? AttackDomains = null,
     bool IsDamageable = true,
     bool CanReverse = false,
-    bool CanForceFireGround = false);
+    bool CanForceFireGround = false,
+    bool CanGather = false);
 
 /// <summary>为命令服务提供不依赖 Godot Node 的单位查询。</summary>
 public interface IUnitCommandUnitRepository
 {
     /// <summary>按稳定 ID 查询命令校验快照。</summary>
     UnitCommandSnapshot? Find(UnitId unitId);
+}
+
+/// <summary>提供采集命令校验所需的资源节点只读信息。</summary>
+/// <param name="ResourceNodeId">资源节点在当前对局中的稳定身份。</param>
+/// <param name="Kind">资源节点提供的强类型资源种类。</param>
+/// <param name="IsAvailable">资源节点当前是否仍有可采集存量。</param>
+public readonly record struct ResourceNodeSnapshot(
+    ResourceNodeId ResourceNodeId,
+    ResourceKind Kind,
+    bool IsAvailable);
+
+/// <summary>按稳定身份查询资源节点，不向 Application 暴露 Godot Node。</summary>
+public interface IResourceNodeRepository
+{
+    /// <summary>查询资源节点当前种类和可采集状态。</summary>
+    ResourceNodeSnapshot? Find(ResourceNodeId resourceNodeId);
 }
 
 /// <summary>表示移动端口调用失败的稳定原因。</summary>
@@ -90,6 +109,44 @@ public interface IUnitStopPort
 {
     /// <summary>暂停可保留任务并取消当前普通/强制攻击；持续战斗策略保持不变。</summary>
     StopPortResult RequestStop(UnitId unitId);
+}
+
+/// <summary>表示 Worker 工作任务适配端拒绝请求的稳定原因。</summary>
+public enum WorkerTaskPortError
+{
+    /// <summary>没有错误。</summary>
+    None,
+
+    /// <summary>Worker 对应的运行时对象已经失效。</summary>
+    UnitUnavailable,
+
+    /// <summary>资源目标对应的运行时对象已经失效。</summary>
+    TargetUnavailable,
+
+    /// <summary>当前执行端不能开始或暂停 Worker 任务。</summary>
+    WorkUnavailable
+}
+
+/// <summary>表示 Worker 工作任务端口是否接受请求。</summary>
+/// <param name="Accepted">执行端是否接受请求。</param>
+/// <param name="Error">拒绝时的稳定端口错误；接受时为 None。</param>
+public readonly record struct WorkerTaskPortResult(bool Accepted, WorkerTaskPortError Error)
+{
+    /// <summary>创建成功的 Worker 任务端口结果。</summary>
+    public static WorkerTaskPortResult Success() => new(true, WorkerTaskPortError.None);
+
+    /// <summary>创建失败的 Worker 任务端口结果。</summary>
+    public static WorkerTaskPortResult Failure(WorkerTaskPortError error) => new(false, error);
+}
+
+/// <summary>隔离 Application 采集任务与 Legacy Godot 组合 Action。</summary>
+public interface IWorkerTaskPort
+{
+    /// <summary>开始以指定资源节点为唯一目标的持续采集、返程与交付循环。</summary>
+    WorkerTaskPortResult RequestGather(UnitId workerId, ResourceNodeId resourceNodeId);
+
+    /// <summary>暂停整个采集任务并保留目标、阶段和未交付载荷。</summary>
+    WorkerTaskPortResult RequestSuspend(UnitId workerId);
 }
 
 /// <summary>表示显式攻击端口拒绝请求的稳定原因。</summary>

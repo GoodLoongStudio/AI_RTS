@@ -1,5 +1,7 @@
 extends "res://source/match/units/actions/Action.gd"
 
+signal task_ended(reason)
+
 enum State { NULL, MOVING_TO_RESOURCE, COLLECTING, MOVING_TO_CC }
 
 const CommandCenter = preload("res://source/match/units/CommandCenter.gd")
@@ -15,6 +17,8 @@ var _state_locked = false
 var _resource_unit = null
 var _cc_unit = null
 var _sub_action = null
+var _is_suspended := false
+var _terminal_reason_after_delivery := ""
 
 @onready var _unit = Utils.NodeEx.find_parent_with_group(self, "units")
 
@@ -64,10 +68,12 @@ func _exit_state(_a_state):
 func _enter_state(state):
 	match state:
 		State.MOVING_TO_RESOURCE:
-			if (
-				_resource_unit == null
-				and not _set_resource_unit(_find_closest_resource_unit_in_nearby_area())
-			):
+			if _resource_unit == null:
+				_finish_task(
+					_terminal_reason_after_delivery
+					if not _terminal_reason_after_delivery.is_empty()
+					else "TargetLost"
+				)
 				return
 			_sub_action = MovingToUnit.new(_resource_unit)
 			_sub_action.tree_exited.connect(_on_sub_action_finished, CONNECT_DEFERRED)
@@ -118,12 +124,6 @@ func _transfer_collected_resources_to_player():
 	_unit.resource_b = 0
 
 
-func _find_closest_resource_unit_in_nearby_area():
-	return Utils.Match.Resources.find_resource_unit_closest_to_unit_yet_no_further_than(
-		_unit, Constants.Match.Units.NEW_RESOURCE_SEARCH_RADIUS_M
-	)
-
-
 static func _find_cc_closest_to_unit(unit):
 	var ccs_of_the_same_player = unit.get_tree().get_nodes_in_group("units").filter(
 		func(a_unit):
@@ -148,10 +148,15 @@ static func _find_cc_closest_to_unit(unit):
 
 
 func _handle_sub_action_finished_while_moving_to_resource():
-	# react to resource removal
 	if _resource_unit == null:
-		if _set_resource_unit(_find_closest_resource_unit_in_nearby_area()):
-			_change_state_to(State.MOVING_TO_RESOURCE)
+		if _unit.resource_a + _unit.resource_b > 0:
+			_change_state_to(State.MOVING_TO_CC)
+		else:
+			_finish_task(
+				_terminal_reason_after_delivery
+				if not _terminal_reason_after_delivery.is_empty()
+				else "TargetLost"
+			)
 		return
 	# resource reached
 	if not _unit.is_full():
@@ -161,12 +166,18 @@ func _handle_sub_action_finished_while_moving_to_resource():
 
 
 func _handle_sub_action_finished_while_collecting():
+	if _resource_unit == null:
+		if _unit.resource_a + _unit.resource_b > 0:
+			_change_state_to(State.MOVING_TO_CC)
+		else:
+			_finish_task(
+				_terminal_reason_after_delivery
+				if not _terminal_reason_after_delivery.is_empty()
+				else "TargetLost"
+			)
+		return
 	# react to resource not being in range anymore
-	if (
-		_resource_unit != null
-		and not _unit.is_full()
-		and not Utils.Match.Unit.Movement.units_adhere(_unit, _resource_unit)
-	):
+	if not _unit.is_full() and not Utils.Match.Unit.Movement.units_adhere(_unit, _resource_unit):
 		_change_state_to(State.MOVING_TO_RESOURCE)
 		return
 	# finished collecting
@@ -180,11 +191,14 @@ func _handle_sub_action_finished_while_moving_to_cc():
 			_change_state_to(State.MOVING_TO_CC)
 		return
 	_transfer_collected_resources_to_player()
+	if not _terminal_reason_after_delivery.is_empty():
+		_finish_task(_terminal_reason_after_delivery)
+		return
 	_change_state_to(State.MOVING_TO_RESOURCE)
 
 
 func _on_sub_action_finished():
-	if not is_inside_tree():
+	if not is_inside_tree() or _is_suspended:
 		return
 	_sub_action = null
 	_unit.action_updated.emit()
@@ -198,8 +212,49 @@ func _on_sub_action_finished():
 
 
 func _on_resource_unit_removed():
+	_terminal_reason_after_delivery = "Completed" if _is_resource_depleted() else "TargetLost"
 	_resource_unit = null
 
 
 func _on_cc_unit_removed():
 	_cc_unit = null
+
+
+## 暂停整个采集任务并保留当前阶段、目标与 Worker 已携带资源。
+func suspend_task() -> bool:
+	if _is_suspended:
+		return true
+	_is_suspended = true
+	if _sub_action != null:
+		if _sub_action.tree_exited.is_connected(_on_sub_action_finished):
+			_sub_action.tree_exited.disconnect(_on_sub_action_finished)
+		remove_child(_sub_action)
+		_sub_action.queue_free()
+		_sub_action = null
+	_unit.find_child("Movement").stop()
+	_unit.action_updated.emit()
+	return true
+
+
+## 返回当前采集任务是否已由统一 Stop 暂停，供测试与迁移期诊断读取。
+func is_task_suspended() -> bool:
+	return _is_suspended
+
+
+## 判断正在退出的资源节点是否因为存量归零而正常耗尽。
+func _is_resource_depleted() -> bool:
+	if _resource_unit == null:
+		return false
+	if "resource_a" in _resource_unit:
+		return _resource_unit.resource_a <= 0
+	if "resource_b" in _resource_unit:
+		return _resource_unit.resource_b <= 0
+	return false
+
+
+## 发布采集任务终态并结束组合 Action；资源入账只允许在返程交付函数中发生。
+func _finish_task(reason: String):
+	if not is_inside_tree():
+		return
+	task_ended.emit(reason)
+	queue_free()

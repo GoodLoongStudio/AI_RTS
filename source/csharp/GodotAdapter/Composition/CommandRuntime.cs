@@ -6,6 +6,7 @@ using AI_RTS.Domain.Combat;
 using AI_RTS.Domain.Common;
 using AI_RTS.GodotAdapter.Navigation;
 using AI_RTS.GodotAdapter.Combat;
+using AI_RTS.GodotAdapter.Economy;
 using AI_RTS.GodotAdapter.Units;
 using Godot;
 
@@ -27,6 +28,9 @@ public partial class CommandRuntime : Node
 
     /// <summary>维护本 Match 中 Godot Node 与稳定单位/玩家 ID 的映射。</summary>
     private readonly GodotUnitRegistry _units = new();
+
+    /// <summary>维护非单位资源节点的稳定身份与可采集状态。</summary>
+    private readonly GodotResourceNodeRegistry _resourceNodes = new();
 
     /// <summary>保存本 Match 中所有控制器共享的单位订单状态。</summary>
     private readonly InMemoryUnitOrderStore _orders = new();
@@ -54,7 +58,9 @@ public partial class CommandRuntime : Node
             new LegacyAttackPort(_units),
             _orders,
             _combatPolicies,
-            new LegacyStopPort(_units));
+            new LegacyStopPort(_units),
+            new LegacyWorkerTaskPort(_units, _resourceNodes),
+            _resourceNodes);
     }
 
     /// <summary>代表指定玩家向一组 Godot 单位节点提交普通移动命令。</summary>
@@ -88,6 +94,22 @@ public partial class CommandRuntime : Node
                 unitIds,
                 new WorldPosition(destination.X, destination.Y, destination.Z)));
         TrackAcceptedOrders(result);
+        return result;
+    }
+
+    /// <summary>代表指定玩家向一组 Worker 提交持续采集任务。</summary>
+    public CommandResult GatherResources(
+        IEnumerable<Node> workerNodes,
+        Node resourceNode,
+        Node issuerPlayer)
+    {
+        var context = CreateContext(issuerPlayer);
+        var workerIds = workerNodes.Select(_units.Register).ToArray();
+        var resourceNodeId = _resourceNodes.Register(resourceNode);
+        var result = _commands.GatherResources(
+            context,
+            new GatherResourcesCommand(workerIds, resourceNodeId));
+        TrackAcceptedGatherOrders(result);
         return result;
     }
 
@@ -374,6 +396,46 @@ public partial class CommandRuntime : Node
                 unit.TreeExiting += () => LoseActiveOrder(item.UnitId);
             }
         }
+    }
+
+    /// <summary>跟踪 Legacy Worker 采集任务的正常完成、目标失效与单位损失。</summary>
+    private void TrackAcceptedGatherOrders(CommandResult result)
+    {
+        foreach (var item in result.UnitResults)
+        {
+            if (!item.Accepted || item.OrderId is not { } orderId ||
+                !_units.TryGetNode(item.UnitId, out var worker))
+            {
+                continue;
+            }
+
+            worker.Connect(
+                "gather_task_ended",
+                Callable.From<string>(reason => EndGatherIfActive(item.UnitId, orderId, reason)),
+                (uint)ConnectFlags.OneShot);
+            if (_deathTrackedUnits.Add(item.UnitId))
+            {
+                worker.TreeExiting += () => LoseActiveOrder(item.UnitId);
+            }
+        }
+    }
+
+    /// <summary>仅在回调仍属于指定 Gather 订单时转换任务终态。</summary>
+    private void EndGatherIfActive(UnitId unitId, UnitOrderId orderId, string reason)
+    {
+        var active = _orders.FindActive(unitId);
+        if (active?.OrderId != orderId || active.Kind != UnitOrderKind.Gather)
+        {
+            return;
+        }
+
+        var state = reason switch
+        {
+            "Completed" => UnitOrderState.Completed,
+            "TargetLost" => UnitOrderState.TargetLost,
+            _ => UnitOrderState.Cancelled
+        };
+        _orders.Transition(orderId, state);
     }
 
     /// <summary>把 Legacy 实体攻击目标失效事件转换为对应类型的订单状态。</summary>

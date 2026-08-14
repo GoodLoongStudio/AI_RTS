@@ -45,6 +45,9 @@ public interface IUnitCommandService
 
     /// <summary>只取消当前显式 ForceAttack，不影响普通自动攻击。</summary>
     CommandResult CancelForceAttack(CommandContext context, CancelForceAttackCommand command);
+
+    /// <summary>提交持续采集任务，并返回每个 Worker 的独立接收结果。</summary>
+    CommandResult GatherResources(CommandContext context, GatherResourcesCommand command);
 }
 
 /// <summary>协调单位校验、导航端口调用与订单状态更新。</summary>
@@ -54,7 +57,9 @@ public sealed class UnitCommandService(
     IUnitAttackPort attack,
     IUnitOrderStore orders,
     ICombatPolicyStore combatPolicies,
-    IUnitStopPort stop) : IUnitCommandService
+    IUnitStopPort stop,
+    IWorkerTaskPort? workerTasks = null,
+    IResourceNodeRepository? resourceNodes = null) : IUnitCommandService
 {
     /// <inheritdoc />
     public CommandResult Move(CommandContext context, MoveUnitsCommand command)
@@ -200,6 +205,78 @@ public sealed class UnitCommandService(
     }
 
     /// <inheritdoc />
+    public CommandResult GatherResources(
+        CommandContext context,
+        GatherResourcesCommand command)
+    {
+        if (command.WorkerIds.Count == 0)
+        {
+            return Rejected(
+                context.CommandId,
+                command.WorkerIds,
+                CommandErrorCode.EmptyUnitSet);
+        }
+
+        var resource = resourceNodes?.Find(command.TargetResourceId);
+        if (resource is null)
+        {
+            return Rejected(
+                context.CommandId,
+                command.WorkerIds,
+                CommandErrorCode.ResourceTargetNotFound);
+        }
+        if (!resource.Value.IsAvailable)
+        {
+            return Rejected(
+                context.CommandId,
+                command.WorkerIds,
+                CommandErrorCode.ResourceDepleted);
+        }
+
+        var results = new List<UnitCommandResult>();
+        foreach (var workerId in StableDistinct(command.WorkerIds))
+        {
+            var ownership = ValidateOwnership(context, workerId);
+            if (ownership != CommandErrorCode.None)
+            {
+                results.Add(new UnitCommandResult(workerId, false, ownership));
+                continue;
+            }
+
+            var worker = units.Find(workerId)!.Value;
+            if (!worker.CanGather)
+            {
+                results.Add(new UnitCommandResult(
+                    workerId,
+                    false,
+                    CommandErrorCode.UnitCannotGather));
+                continue;
+            }
+
+            var portResult = workerTasks?.RequestGather(workerId, command.TargetResourceId);
+            if (portResult is null || !portResult.Value.Accepted)
+            {
+                results.Add(new UnitCommandResult(
+                    workerId,
+                    false,
+                    portResult is null ?
+                        CommandErrorCode.WorkUnavailable : Map(portResult.Value.Error)));
+                continue;
+            }
+
+            var order = orders.Create(context.CommandId, workerId, UnitOrderKind.Gather);
+            orders.Transition(order.OrderId, UnitOrderState.InProgress);
+            results.Add(new UnitCommandResult(
+                workerId,
+                true,
+                CommandErrorCode.None,
+                order.OrderId));
+        }
+
+        return Summarize(context.CommandId, results);
+    }
+
+    /// <inheritdoc />
     public CommandResult Stop(CommandContext context, StopUnitsCommand command)
     {
         if (command.UnitIds.Count == 0)
@@ -217,14 +294,30 @@ public sealed class UnitCommandService(
                 continue;
             }
 
-            var portResult = stop.RequestStop(unitId);
-            if (!portResult.Accepted)
+            var active = orders.FindActive(unitId);
+            if (active?.Kind == UnitOrderKind.Gather)
             {
-                results.Add(new UnitCommandResult(unitId, false, Map(portResult.Error)));
-                continue;
+                var workResult = workerTasks?.RequestSuspend(unitId);
+                if (workResult is null || !workResult.Value.Accepted)
+                {
+                    results.Add(new UnitCommandResult(
+                        unitId,
+                        false,
+                        workResult is null ?
+                            CommandErrorCode.WorkUnavailable : Map(workResult.Value.Error)));
+                    continue;
+                }
+            }
+            else
+            {
+                var portResult = stop.RequestStop(unitId);
+                if (!portResult.Accepted)
+                {
+                    results.Add(new UnitCommandResult(unitId, false, Map(portResult.Error)));
+                    continue;
+                }
             }
 
-            var active = orders.FindActive(unitId);
             var affectedOrderId = TransitionStoppedOrder(context, active);
             results.Add(new UnitCommandResult(
                 unitId,
@@ -243,7 +336,7 @@ public sealed class UnitCommandService(
     {
         if (active?.Kind is UnitOrderKind.Move or UnitOrderKind.ForceMove or
             UnitOrderKind.GroundAttackMove or UnitOrderKind.EntityAttackMove or
-            UnitOrderKind.TacticalWithdraw)
+            UnitOrderKind.TacticalWithdraw or UnitOrderKind.Gather)
         {
             orders.Transition(active.OrderId, UnitOrderState.Suspended);
             return active.OrderId;
@@ -651,6 +744,14 @@ public sealed class UnitCommandService(
         StopPortError.UnitUnavailable => CommandErrorCode.UnitNotFound,
         StopPortError.StopUnavailable => CommandErrorCode.UnitCannotStop,
         _ => CommandErrorCode.UnitCannotStop
+    };
+
+    /// <summary>把 Worker 工作端口错误转换为稳定命令错误。</summary>
+    private static CommandErrorCode Map(WorkerTaskPortError error) => error switch
+    {
+        WorkerTaskPortError.UnitUnavailable => CommandErrorCode.UnitNotFound,
+        WorkerTaskPortError.TargetUnavailable => CommandErrorCode.ResourceTargetNotFound,
+        _ => CommandErrorCode.WorkUnavailable
     };
 
     private static CommandResult Rejected(

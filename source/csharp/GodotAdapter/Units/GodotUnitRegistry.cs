@@ -51,7 +51,8 @@ public sealed class GodotUnitRegistry : IUnitCommandUnitRepository
             attackDomains,
             hp.VariantType != Variant.Type.Nil,
             unit.Get("can_reverse").AsBool(),
-            unit.Get("can_force_fire_ground").AsBool());
+            unit.Get("can_force_fire_ground").AsBool(),
+            unit.HasMethod("request_legacy_gather"));
     }
 
     /// <summary>尝试取得仍有效且位于 SceneTree 中的单位节点。</summary>

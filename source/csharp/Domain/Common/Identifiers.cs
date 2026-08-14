@@ -12,6 +12,10 @@ public readonly record struct PlayerId(Guid Value);
 /// <param name="Value">进程内唯一的 Guid 值。</param>
 public readonly record struct UnitId(Guid Value);
 
+/// <summary>标识一个可被采集命令引用的资源节点。</summary>
+/// <param name="Value">当前对局内唯一的 Guid 值。</param>
+public readonly record struct ResourceNodeId(Guid Value);
+
 /// <summary>标识一次批量命令调用。</summary>
 /// <param name="Value">进程内唯一的 Guid 值。</param>
 public readonly record struct CommandId(Guid Value);
