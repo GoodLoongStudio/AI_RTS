@@ -4,7 +4,7 @@
 
 对应进度：`CMD-026A`
 
-状态：代码与自动验证完成，等待人工验收
+状态：已完成并通过人工验收
 
 ## 1. 目标与边界
 
@@ -83,3 +83,26 @@ Godot 无头退出仍报告已登记的 Navigation/Renderer RID 与 ObjectDB 清
 4. 切换 HoldFire，普通右键红方建筑应拒绝；
 5. HoldFire 下点击“强制攻击”再右键红方建筑，应发射 Rocket；Stop 后仍保持 HoldFire；
 6. 点击“强制攻击”后右键地面，应显示拒绝，不能静默获得未声明的对地强制攻击能力。
+
+## 7. 人工验收结果
+
+2026-08-14 人工验收通过：Helicopter 的攻击、停火、撤退等运行正确。
+
+## 8. 验收中新发现的语义边界
+
+### 8.1 ForceMove 点击敌方建筑
+
+当前 `ForceMove` 目标选择只在 `terrain_targeted` 中消费。右键命中建筑或单位时发布的是 `unit_targeted`，控制器没有 ForceMove 分支，因此会落回普通右键 Attack/Follow 等解释；这发生在导航、碰撞和未来碾压判定之前。
+
+因此当前现象由两层问题构成：
+
+1. Tank 与 Helicopter 都没有真正收到“移动到该实体位置”的 ForceMove；
+2. 即使后续把实体点击转换为世界坐标，Tank 仍会受建筑 NavMesh/碰撞 footprint 阻挡，能否进入或摧毁该 footprint 应由 `CMD-023` 碾压/阻挡等级决定；Helicopter 的 AIR 导航则不应被地面建筑阻挡。
+
+输入分派问题登记为 `CMD-029`，不能误报为当前已存在碾压等级判定。
+
+### 8.2 Helicopter 普通移动到矿石
+
+非 Worker 点击矿石时没有采集交互，会落入通用 `MovingToUnit`。该 Action 使用二维距离，并在移动者与目标的 footprint 加间距后停止，没有区分 AIR 与 TERRAIN，因此 Helicopter 也停在矿石旁边。
+
+这符合当前实现，但不建议作为最终规则。建议无采集/施工等交互的空中单位右键地面实体时，把意图解释为移动到点击位置或实体中心上空；地面单位仍按障碍与自身 footprint 保持合法距离。该跨导航域停止距离问题登记为 `CMD-030`，等待接口与输入语义评审后修改。
