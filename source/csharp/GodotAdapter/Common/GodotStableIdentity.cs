@@ -12,6 +12,9 @@ public static class GodotStableIdentity
     /// <summary>玩家节点保存稳定 ID 时使用的 Metadata 键。</summary>
     public const string PlayerIdMeta = "ai_rts_player_id";
 
+    /// <summary>资源节点保存稳定 ID 时使用的 Metadata 键。</summary>
+    public const string ResourceNodeIdMeta = "ai_rts_resource_node_id";
+
     /// <summary>取得或创建单位节点的稳定 UnitId。</summary>
     public static UnitId Unit(Node unit) =>
         GetOrCreateId(unit, UnitIdMeta, value => new UnitId(value));
@@ -19,6 +22,10 @@ public static class GodotStableIdentity
     /// <summary>取得或创建玩家节点的稳定 PlayerId。</summary>
     public static PlayerId Player(Node player) =>
         GetOrCreateId(player, PlayerIdMeta, value => new PlayerId(value));
+
+    /// <summary>取得或创建资源节点的稳定 ResourceNodeId。</summary>
+    public static ResourceNodeId ResourceNode(Node resourceNode) =>
+        GetOrCreateId(resourceNode, ResourceNodeIdMeta, value => new ResourceNodeId(value));
 
     /// <summary>读取节点已有 Metadata ID；不存在时创建并保存新 Guid。</summary>
     private static TId GetOrCreateId<TId>(Node node, string metaKey, Func<Guid, TId> factory)

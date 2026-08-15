@@ -34,6 +34,7 @@ var visible_players = null:
 @onready var _players = $Players
 @onready var _terrain = $Terrain
 @onready var _input_runtime = $InputBindingRuntime
+@onready var _query_runtime = $WorldQueryRuntime
 
 
 func _enter_tree():
@@ -47,6 +48,7 @@ func _ready():
 	_setup_players()
 	_setup_player_units()
 	visible_player = get_tree().get_nodes_in_group("players")[settings.visible_player]
+	_query_runtime.Initialize(_players, _get_human_player())
 	_move_camera_to_initial_position()
 	if settings.visibility == settings.Visibility.FULL:
 		fog_of_war.reveal()

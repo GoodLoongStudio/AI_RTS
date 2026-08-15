@@ -32,6 +32,26 @@ public readonly record struct CommandId(Guid Value);
 /// <param name="Value">进程内唯一的 Guid 值。</param>
 public readonly record struct UnitOrderId(Guid Value);
 
+/// <summary>标识由 Match 组合根签发并绑定观察者与权限的查询会话。</summary>
+/// <param name="Value">不可由普通调用方自行选择的随机会话值。</param>
+public readonly record struct QuerySessionId(Guid Value);
+
+/// <summary>统一引用战场中的单位、建筑或资源节点。</summary>
+/// <param name="Kind">实体稳定种类。</param>
+/// <param name="Value">当前对局内的稳定 Guid。</param>
+public readonly record struct BattlefieldEntityId(BattlefieldEntityKind Kind, Guid Value);
+
+/// <summary>区分统一战场实体引用所代表的对象种类。</summary>
+public enum BattlefieldEntityKind
+{
+    /// <summary>可移动或具备单位语义的实体。</summary>
+    Unit,
+    /// <summary>建筑、施工现场或其他结构实体。</summary>
+    Structure,
+    /// <summary>中立或地图上的资源节点。</summary>
+    ResourceNode
+}
+
 /// <summary>标识一次已经离开发射者、拥有独立生命周期的攻击实例。</summary>
 /// <param name="Value">进程内唯一的 Guid 值。</param>
 public readonly record struct AttackInstanceId(Guid Value);

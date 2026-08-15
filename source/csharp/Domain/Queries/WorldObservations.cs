@@ -1,0 +1,83 @@
+using AI_RTS.Domain.Common;
+using AI_RTS.Domain.Economy;
+
+namespace AI_RTS.Domain.Queries;
+
+/// <summary>描述观察者对实体信息的当前知识状态。</summary>
+public enum ObservationState
+{
+    /// <summary>实体属于观察者，基础信息始终准确。</summary>
+    Owned,
+    /// <summary>实体当前处于观察者有效视野中。</summary>
+    VisibleNow,
+    /// <summary>仅保留先前确认的信息；首个纵向样例暂不生成此状态。</summary>
+    LastKnown
+}
+
+/// <summary>声明调用方请求或结果实际包含的实体字段。</summary>
+[Flags]
+public enum ObservationField
+{
+    /// <summary>没有额外可选字段。</summary>
+    None = 0,
+    /// <summary>实体的当前或最后确认位置。</summary>
+    Position = 1 << 0,
+    /// <summary>实体稳定类型键。</summary>
+    Type = 1 << 1,
+    /// <summary>实体与观察者之间的阵营关系。</summary>
+    Relation = 1 << 2,
+    /// <summary>实体当前与最大生命值。</summary>
+    Health = 1 << 3,
+    /// <summary>首版支持的全部可选字段。</summary>
+    All = Position | Type | Relation | Health
+}
+
+/// <summary>描述实体与查询观察者之间的关系。</summary>
+public enum ObserverRelation
+{
+    /// <summary>实体属于查询观察者。</summary>
+    Self,
+    /// <summary>实体属于不可直接操作的盟友。</summary>
+    Ally,
+    /// <summary>实体属于敌对玩家。</summary>
+    Enemy,
+    /// <summary>实体不属于任何玩家。</summary>
+    Neutral,
+    /// <summary>当前规则无法确认阵营关系。</summary>
+    Unknown
+}
+
+/// <summary>返回不包含 Godot Node 或可变内部状态的实体观察快照。</summary>
+/// <param name="EntityId">统一稳定实体引用。</param>
+/// <param name="State">该结果的知识状态。</param>
+/// <param name="ReturnedFields">本次实际获准返回的可选字段。</param>
+/// <param name="Position">位置字段；未返回时为空。</param>
+/// <param name="TypeId">稳定实体类型键；未返回时为空。</param>
+/// <param name="Relation">阵营关系；未返回时为空。</param>
+/// <param name="CurrentHealth">当前生命值；未返回时为空。</param>
+/// <param name="MaximumHealth">最大生命值；未返回时为空。</param>
+public sealed record EntityObservation(
+    BattlefieldEntityId EntityId,
+    ObservationState State,
+    ObservationField ReturnedFields,
+    WorldPosition? Position,
+    string? TypeId,
+    ObserverRelation? Relation,
+    float? CurrentHealth,
+    float? MaximumHealth);
+
+/// <summary>描述一次圆形范围观察请求。</summary>
+/// <param name="Center">范围中心。</param>
+/// <param name="Radius">严格大于零的世界半径。</param>
+/// <param name="RequestedFields">希望返回的可选字段。</param>
+public sealed record CircleObservationRequest(
+    WorldPosition Center,
+    float Radius,
+    ObservationField RequestedFields);
+
+/// <summary>返回观察者自己的准确资源账户快照。</summary>
+/// <param name="Balances">按资源种类稳定排序的整数余额。</param>
+/// <param name="AccountVersion">权威资源账户版本。</param>
+public sealed record ResourceAccountObservation(
+    IReadOnlyList<ResourceAmount> Balances,
+    long AccountVersion);
