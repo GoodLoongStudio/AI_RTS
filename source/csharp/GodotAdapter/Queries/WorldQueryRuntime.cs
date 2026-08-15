@@ -79,13 +79,25 @@ public partial class WorldQueryRuntime : Node
             queryService);
     }
 
-    /// <summary>仅供当前自动/人工测试取得组合根已签发的标准会话；正式 Agent Gateway 不暴露此入口。</summary>
-    public string GetStandardSessionForTests(Node player) =>
-        FindSession(_standardSessions, GodotStableIdentity.Player(player));
+    /// <summary>仅供 Debug 自动/人工测试取得标准会话；Release 构建始终返回空字符串。</summary>
+    public string GetStandardSessionForTests(Node player)
+    {
+        if (!OS.IsDebugBuild())
+        {
+            return string.Empty;
+        }
+        return FindSession(_standardSessions, GodotStableIdentity.Player(player));
+    }
 
-    /// <summary>仅在调试构建返回全知测试会话；正式构建始终为空。</summary>
-    public string GetDebugSessionForTests(Node player) =>
-        FindSession(_debugSessions, GodotStableIdentity.Player(player));
+    /// <summary>仅在 Debug 构建返回全知测试会话；Release 构建始终返回空字符串。</summary>
+    public string GetDebugSessionForTests(Node player)
+    {
+        if (!OS.IsDebugBuild())
+        {
+            return string.Empty;
+        }
+        return FindSession(_debugSessions, GodotStableIdentity.Player(player));
+    }
 
     /// <summary>返回己方单位与建筑摘要，成功空集合也保留 entities 键。</summary>
     public Godot.Collections.Dictionary GetOwnForces(string sessionId, int requestedFields) =>
@@ -104,9 +116,13 @@ public partial class WorldQueryRuntime : Node
                 radius,
                 Fields(requestedFields))));
 
-    /// <summary>返回指定己方单位或建筑的稳定实体引用，主要供桥接测试使用。</summary>
+    /// <summary>仅在 Debug 构建返回指定己方实体的稳定引用；Release 构建始终返回空字典。</summary>
     public Godot.Collections.Dictionary GetOwnEntityReferenceForTests(Node entity, Node owner)
     {
+        if (!OS.IsDebugBuild())
+        {
+            return new Godot.Collections.Dictionary();
+        }
         if (entity.GetParent() != owner || !entity.IsInGroup("units"))
         {
             return new Godot.Collections.Dictionary();

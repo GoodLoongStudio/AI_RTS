@@ -245,6 +245,9 @@ if (-not $SkipCore) {
         180 "Match outcome tests completed: 11 test(s), 0 failure(s)." @()
 }
 if (-not $SkipAudit) {
+    $results += Invoke-CapturedProcess "core-engine-boundary-audit" "powershell.exe" `
+        @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "./tools/audit_core_engine_boundary.ps1") `
+        60 "Core engine boundary audit passed:" @()
     $results += Invoke-CapturedProcess "legacy-authority-audit" "powershell.exe" `
         @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "./tools/audit_legacy_gdscript_authority.ps1") `
         60 "Legacy GDScript authority audit passed:" @()
