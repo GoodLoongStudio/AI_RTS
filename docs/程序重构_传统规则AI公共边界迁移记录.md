@@ -13,7 +13,7 @@
 | 顶层资源优先级调度 | `Player.has_resources` | 绑定身份的 `GetOwnEconomy` | 已迁移 |
 | EconomyController | 单位组遍历、直接采集 Action、直接生产与放置 | 己方查询、采集命令、生产命令、放置命令 | 已迁移 |
 | DefenseController | 单位组遍历、直接放置 | 己方查询、放置命令 | 已迁移 |
-| OffenseController | 全玩家/单位组遍历、直接队列与放置 | 受限观察、生产/放置/作战命令 | 待迁移 |
+| OffenseController | 全玩家/单位组遍历、直接队列与放置 | 受限观察、生产/放置/作战命令 | 部分迁移：生产后勤已完成，Legacy Battlegroup 待迁移 |
 | IntelligenceController | 全知敌军遍历、直接移动 Action | 范围观察、移动命令 | 待迁移 |
 | ConstructionWorksController | 施工现场遍历、直接分配 Worker | 己方查询、施工命令 | 待迁移 |
 | AutoAttackingBattlegroup | 全知选敌、直接攻击/移动 Action | 受限观察、攻击/移动命令 | 待迁移 |
@@ -139,3 +139,30 @@
 - Godot 退出时的 RID/ObjectDB 泄漏仍属于已登记基线，不归因于本切片。
 
 2026-08-15 人工验收：初始 Worker 采集、返程和交付正常；施工后恢复采集、资源重新分配以及 Worker 生产补充符合预期。RAI-001E 通过。
+
+## 9. RAI-001F：进攻生产后勤迁移
+
+本切片只迁移 `OffenseController` 的生产建筑规划和作战单位生产，不修改 `AutoAttackingBattlegroup` 的编组、全知索敌或直接 Action。战斗执行留给 RAI-001G 单独评审，避免把生产回归与战争迷雾语义混在同一改动中。
+
+已完成迁移：
+
+- 主、次生产建筑和产品由现有 `OffensiveStructure` 配置映射为稳定 `vehicle_factory/aircraft_factory` 与 `tank/helicopter` 类型；本切片不新增战术配置；
+- `OffenseController` 通过 `GetOwnForces(Position | Type | Construction | Production)` 统计建筑蓝图、完工生产者和全部相关队列项目；
+- 生产建筑放置复用固定身份 `PlaceStructure`，不再实例化临时建筑、读取 NavMap、直接调用 `StructurePlacementRuntime` 或调用 `Player.has_resources`；
+- 作战单位生产复用固定身份 `EnqueueProduction`，不再读取或调用 `production_queue`；
+- 蓝图已经计入工厂数量；只有 `Construction=Completed` 且存在生产观察的建筑能接收单位生产；
+- 已排队项目与待处理资源请求共同抵扣当前 Legacy 编组缺口，主、次工厂不会在同一缺口上重复下单；
+- 主次建筑类型相同时，共享类型级待放置数量，不会重复建立相同工厂；
+- 资源请求真正执行时重新读取己方快照：建筑已经存在则丢弃过期放置请求，生产缺口已经消失则丢弃过期入队请求；
+- 工厂损失由定时己方查询发现并重新请求放置，不再依赖建筑 Node 的死亡回调；
+- `AutoAttackingBattlegroup` 的 Node 成员、生成信号、敌方玩家遍历和直接战斗 Action 被明确保留为 RAI-001G 边界。
+
+自动验证：
+
+- 新增 `RuleAiOffenseLogisticsSmokeTest`，覆盖稳定类型工厂蓝图放置、只对完工工厂入队 Tank、工厂损失后补建；
+- 为缩短自动回归时间，测试先验证 AI 自己放置蓝图，再注入一座测试用已完工工厂验证生产；自然施工全过程留给人工验收；
+- `RuleAiEconomyQuerySmokeTest` 继续验证对局组合根和其他规则 AI Controller 能正常启动；
+- `dotnet build` 为 0 警告、0 错误，77 项纯 C# 测试全部通过；Godot 后勤冒烟为 0 failure；
+- Godot 退出时的 RID/ObjectDB 泄漏仍属于已登记基线。候选位置在导航/地表尚未稳定时可能暂时返回 `SurfaceNotBuildable`，Controller 会在下一刷新周期重新请求，不在本切片展开导航专项。
+
+待人工验收：运行 `TestPlayerVsAI.tscn`，确认 AI 自然放置并施工主生产建筑、完工后持续生产对应作战单位；第一支编组完成后建立次生产建筑并生产另一类单位；现有编组仍能发起攻击；生产建筑损失后会重新放置并施工；队列没有明显重复超产。

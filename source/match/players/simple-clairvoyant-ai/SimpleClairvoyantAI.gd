@@ -67,7 +67,12 @@ func _ready():
 	_offense_controller.resources_required.connect(
 		_on_resource_request.bind(_offense_controller, ResourceRequestPriority.LOW)
 	)
-	_offense_controller.setup(self)
+	_offense_controller.setup(
+		self,
+		_world_query_runtime,
+		_query_session_id,
+		get_node("RuleAiCommandGateway")
+	)
 	_intelligence_controller.setup(self)
 	_construction_works_controller.setup(
 		_world_query_runtime,
