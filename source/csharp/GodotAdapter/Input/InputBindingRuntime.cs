@@ -124,6 +124,11 @@ public partial class InputBindingRuntime : Node
     public bool IsActionPressed(string actionId) =>
         _pressedActions.Contains(new InputActionId(actionId));
 
+    /// <summary>查询指定输入上下文当前是否实际参与动作解析，供 UI 状态与自动测试核对。</summary>
+    public bool IsContextActive(string contextName) =>
+        Enum.TryParse<InputContextId>(contextName, true, out var context) &&
+        _activeContexts.Contains(context);
+
     /// <summary>计算两个数字动作的 -1、0、1 轴值。</summary>
     public float GetAxis(string negativeActionId, string positiveActionId) =>
         (IsActionPressed(positiveActionId) ? 1.0f : 0.0f) -

@@ -35,8 +35,8 @@ func _ready():
 		tank.action != null and tank.action.get_script() == GroundAttackMoving,
 		"Tank 应进入 GroundAttackMoving"
 	)
-	await get_tree().create_timer(0.45).timeout
-	_check(tank.global_position.distance_to(hold_fire_start) > 0.05, "停火时应继续推进")
+	var hold_fire_advanced := await _wait_for_distance_from(tank, hold_fire_start, 0.05, 2.0)
+	_check(hold_fire_advanced, "停火时应继续推进")
 	_check(enemy.hp == hold_fire_hp, "停火时不应攻击途中敌人")
 
 	# 固守只攻击射程内目标，命中后继续原推进目标。
@@ -100,3 +100,21 @@ func _wait_for_hp_below(unit, previous_hp: float, timeout_seconds: float) -> boo
 		await get_tree().create_timer(0.1).timeout
 		elapsed_seconds += 0.1
 	return not is_instance_valid(unit) or unit.hp < previous_hp
+
+
+## 在导航时序允许的上限内等待单位离开起点，避免用固定帧时间制造假失败。
+func _wait_for_distance_from(
+	unit, starting_position: Vector3, minimum_distance: float, timeout_seconds: float
+) -> bool:
+	var elapsed_seconds := 0.0
+	while elapsed_seconds < timeout_seconds:
+		if not is_instance_valid(unit):
+			return false
+		if unit.global_position.distance_to(starting_position) > minimum_distance:
+			return true
+		await get_tree().create_timer(0.1).timeout
+		elapsed_seconds += 0.1
+	return (
+		is_instance_valid(unit)
+		and unit.global_position.distance_to(starting_position) > minimum_distance
+	)

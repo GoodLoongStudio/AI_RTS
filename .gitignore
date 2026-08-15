@@ -20,4 +20,7 @@ mono_crash.*.json
 **/bin/
 **/obj/
 
+# Local regression logs
+.test-results/
+
 .DS_Store
