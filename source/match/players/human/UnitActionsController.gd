@@ -537,5 +537,5 @@ func _on_unit_targeted(unit, target_position: Vector3):
 			targetability.animate()
 
 
-func _on_unit_spawned(unit):
+func _on_unit_spawned(_unit):
 	pass

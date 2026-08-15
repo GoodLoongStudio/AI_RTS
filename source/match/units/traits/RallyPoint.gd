@@ -29,9 +29,9 @@ func _show():
 
 
 ## 显示权威位置目标；视图不得反向修改 Rally 状态。
-func apply_authoritative_position(position: Vector3):
+func apply_authoritative_position(target_position: Vector3):
 	target_unit = null
-	global_position = position
+	global_position = target_position
 	if _unit.is_in_group("selected_units"):
 		show()
 
