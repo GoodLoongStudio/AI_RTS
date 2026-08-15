@@ -181,3 +181,5 @@ Godot 冒烟测试至少覆盖：
 - 新增 `MatchOutcomeRuntimeSmokeTest.tscn`，覆盖 Human 胜利/失败、同帧平局、无 Human 结束和生成事实桥接。
 
 当前多个既有 Godot 编辑器/测试进程同时存在，另起 headless Mono 进程时，新增场景与既有控制组场景均在脚本执行前发生相同原生崩溃；通过已连接编辑器会话已确认资源可解析，但为避免关闭或覆盖用户未保存的当前场景，没有强行切换场景执行。该冒烟场景与 `TestPlayerVsAI` 的人工运行结果作为本项最终划线依据。
+
+2026-08-15 首次人工启动冒烟场景时发现 GDScript 以 snake_case 访问 C# Signal；`MatchResolvedEventHandler` 在 Godot 中实际保留 `MatchResolved` 名称。现已改为与项目既有 `ActionPressed` 相同的显式字符串连接方式，并通过当前 Godot 编辑器会话复验：`MatchOutcomeRuntimeSmokeTest` 输出 `0 failure(s)`。ARCH-014 仅余 `TestPlayerVsAI` 实际对局回归。

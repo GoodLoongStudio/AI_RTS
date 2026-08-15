@@ -14,7 +14,7 @@ func _ready():
 	_victory_tile.hide()
 	_defeat_tile.hide()
 	_finish_tile.hide()
-	_outcome_runtime.match_resolved.connect(_on_match_resolved)
+	_outcome_runtime.connect("MatchResolved", _on_match_resolved)
 
 
 func _handle_defeat():
