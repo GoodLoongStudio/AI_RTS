@@ -1,5 +1,7 @@
 extends "res://source/match/units/actions/Action.gd"
 
+signal ended(reason)
+
 const MovingToUnit = preload("res://source/match/units/actions/MovingToUnit.gd")
 
 const REFRESH_INTERVAL = 1.0 / 60.0 * 20.0
@@ -8,6 +10,7 @@ var _target_unit = null
 var _timer = null
 var _last_known_target_unit_position = null
 var _sub_action = null
+var _finished := false
 
 @onready var _unit = Utils.NodeEx.find_parent_with_group(self, "units")
 
@@ -21,7 +24,7 @@ func _init(target_unit):
 
 
 func _ready():
-	_target_unit.tree_exited.connect(queue_free)
+	_target_unit.tree_exited.connect(_on_target_exited, CONNECT_ONE_SHOT)
 	_setup_refresh_timer()
 	_refresh()
 
@@ -55,3 +58,12 @@ func _refresh():
 func _on_sub_action_finished():
 	_sub_action = null
 	_unit.action_updated.emit()
+
+
+## 跟随目标退出时以明确原因结束持续订单。
+func _on_target_exited():
+	if _finished:
+		return
+	_finished = true
+	ended.emit("TargetLost")
+	queue_free()

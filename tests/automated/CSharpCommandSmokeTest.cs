@@ -414,6 +414,19 @@ public partial class CSharpCommandSmokeTest : Node
         }
 
         /// <inheritdoc />
+        public MovementPortResult RequestApproachEntity(
+            UnitId unitId,
+            BattlefieldEntityId targetEntityId) => FailMoves ?
+            MovementPortResult.Failure(MovementPortError.NavigationUnavailable) :
+            MovementPortResult.Success();
+
+        /// <inheritdoc />
+        public MovementPortResult RequestFollowEntity(UnitId unitId, UnitId targetId) =>
+            FailMoves ?
+                MovementPortResult.Failure(MovementPortError.NavigationUnavailable) :
+                MovementPortResult.Success();
+
+        /// <inheritdoc />
         public MovementPortResult RequestTacticalWithdraw(UnitId unitId, WorldPosition destination)
         {
             WithdrawRequests++;

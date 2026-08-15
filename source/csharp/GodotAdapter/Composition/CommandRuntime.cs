@@ -82,7 +82,7 @@ public partial class CommandRuntime : Node
             economy.AccountService);
         _commands = new UnitCommandService(
             _units,
-            new LegacyMovementPort(_units),
+            new LegacyMovementPort(_units, _resourceNodes),
             new LegacyAttackPort(_units),
             _orders,
             _combatPolicies,
@@ -112,6 +112,36 @@ public partial class CommandRuntime : Node
                 unitIds,
                 new WorldPosition(destination.X, destination.Y, destination.Z)));
         TrackAcceptedOrders(result);
+        return result;
+    }
+
+    /// <summary>代表指定玩家命令单位靠近单位、建筑或资源实体。</summary>
+    public CommandResult ApproachEntityUnits(
+        IEnumerable<Node> unitNodes,
+        Node targetNode,
+        Node issuerPlayer)
+    {
+        var unitIds = unitNodes.Select(_units.Register).ToArray();
+        var targetId = RegisterApproachTarget(targetNode);
+        var result = _commands.ApproachEntity(
+            CreateContext(issuerPlayer),
+            new ApproachEntityCommand(unitIds, targetId));
+        TrackAcceptedEntityMovement(result, "approach_ended", UnitOrderKind.ApproachEntity);
+        return result;
+    }
+
+    /// <summary>代表指定玩家命令单位持续跟随一个单位或建筑。</summary>
+    public CommandResult FollowEntityUnits(
+        IEnumerable<Node> unitNodes,
+        Node targetNode,
+        Node issuerPlayer)
+    {
+        var unitIds = unitNodes.Select(_units.Register).ToArray();
+        var targetId = _units.Register(targetNode);
+        var result = _commands.FollowEntity(
+            CreateContext(issuerPlayer),
+            new FollowEntityCommand(unitIds, targetId));
+        TrackAcceptedEntityMovement(result, "follow_ended", UnitOrderKind.FollowEntity);
         return result;
     }
 
@@ -550,6 +580,21 @@ public partial class CommandRuntime : Node
     internal ResourceNodeId RegisterRuntimeResource(Node resource) =>
         _resourceNodes.Register(resource);
 
+    /// <summary>把 Godot 实体注册为靠近命令使用的统一稳定目标。</summary>
+    private BattlefieldEntityId RegisterApproachTarget(Node target)
+    {
+        if (target.IsInGroup("resource_units"))
+        {
+            return new BattlefieldEntityId(
+                BattlefieldEntityKind.ResourceNode,
+                _resourceNodes.Register(target).Value);
+        }
+
+        var unitId = _units.Register(target);
+        var kind = _units.Find(unitId)?.EntityKind ?? BattlefieldEntityKind.Unit;
+        return new BattlefieldEntityId(kind, unitId.Value);
+    }
+
     /// <summary>返回查询层可公开的活动订单与原始目标意图；空闲单位返回空。</summary>
     internal OrderObservation? ObserveActiveOrder(Node unit)
     {
@@ -736,6 +781,61 @@ public partial class CommandRuntime : Node
         }
     }
 
+    /// <summary>跟踪 Approach/Follow 的明确完成或目标失效信号，避免中间寻路结束造成假完成。</summary>
+    private void TrackAcceptedEntityMovement(
+        CommandResult result,
+        string signalName,
+        UnitOrderKind expectedKind)
+    {
+        foreach (var item in result.UnitResults)
+        {
+            if (!item.Accepted || item.OrderId is not { } orderId ||
+                !_units.TryGetNode(item.UnitId, out var unit))
+            {
+                continue;
+            }
+
+            unit.Connect(
+                signalName,
+                Callable.From<string>(reason => EndEntityMovementIfActive(
+                    item.UnitId,
+                    orderId,
+                    expectedKind,
+                    reason)),
+                (uint)ConnectFlags.OneShot);
+            if (_deathTrackedUnits.Add(item.UnitId))
+            {
+                unit.TreeExiting += () => LoseActiveOrder(item.UnitId);
+            }
+        }
+    }
+
+    /// <summary>仅在回调仍属于对应实体移动订单时转换其明确终态。</summary>
+    private void EndEntityMovementIfActive(
+        UnitId unitId,
+        UnitOrderId orderId,
+        UnitOrderKind expectedKind,
+        string reason)
+    {
+        var active = _orders.FindActive(unitId);
+        if (active?.OrderId != orderId || active.Kind != expectedKind)
+        {
+            return;
+        }
+
+        var state = reason switch
+        {
+            "Arrived" => UnitOrderState.Arrived,
+            "TargetLost" => UnitOrderState.TargetLost,
+            _ => UnitOrderState.Cancelled
+        };
+        _orders.Transition(orderId, state);
+        if (state == UnitOrderState.Arrived)
+        {
+            UpdateGuardAnchor(unitId);
+        }
+    }
+
     /// <summary>仅在回调仍属于指定 Gather 订单时转换任务终态。</summary>
     private void EndGatherIfActive(UnitId unitId, UnitOrderId orderId, string reason)
     {
@@ -821,6 +921,8 @@ public partial class CommandRuntime : Node
     private static OrderObservationKind MapOrderKind(UnitOrderKind kind) => kind switch
     {
         UnitOrderKind.Move => OrderObservationKind.Move,
+        UnitOrderKind.ApproachEntity => OrderObservationKind.ApproachEntity,
+        UnitOrderKind.FollowEntity => OrderObservationKind.FollowEntity,
         UnitOrderKind.ForceMove => OrderObservationKind.ForceMove,
         UnitOrderKind.GroundAttackMove => OrderObservationKind.GroundAttackMove,
         UnitOrderKind.EntityAttackMove => OrderObservationKind.EntityAttackMove,

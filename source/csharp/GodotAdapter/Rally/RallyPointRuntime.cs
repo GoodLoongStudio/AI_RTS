@@ -145,7 +145,7 @@ public partial class RallyPointRuntime : Node
                 DispatchResource(produced, owner, resource.TargetResourceId);
                 break;
             case RallyUnitTarget unit:
-                DispatchUnit(produced, unit.TargetUnitId);
+                DispatchUnit(produced, owner, unit.TargetUnitId);
                 break;
         }
     }
@@ -162,19 +162,18 @@ public partial class RallyPointRuntime : Node
         {
             _commands.GatherResources([produced], resource, owner);
         }
-        else if (produced.HasMethod("request_legacy_move_to_unit"))
+        else
         {
-            produced.Call("request_legacy_move_to_unit", resource);
+            _commands.ApproachEntityUnits([produced], resource, owner);
         }
     }
 
-    /// <summary>对同玩家单位或建筑使用迁移期持续跟随 Action。</summary>
-    private void DispatchUnit(Node produced, UnitId targetId)
+    /// <summary>对同玩家单位或建筑提交公共持续跟随命令。</summary>
+    private void DispatchUnit(Node produced, Node owner, UnitId targetId)
     {
-        if (_repository.TryGetUnit(targetId, out var target) &&
-            produced.HasMethod("request_legacy_follow"))
+        if (_repository.TryGetUnit(targetId, out var target))
         {
-            produced.Call("request_legacy_follow", target);
+            _commands.FollowEntityUnits([produced], target, owner);
         }
     }
 

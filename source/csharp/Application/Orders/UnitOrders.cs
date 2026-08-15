@@ -8,6 +8,12 @@ public enum UnitOrderKind
     /// <summary>要求单位优先到达指定位置的普通移动订单。</summary>
     Move,
 
+    /// <summary>靠近指定战场实体，并在到达其 footprint 边缘后完成。</summary>
+    ApproachEntity,
+
+    /// <summary>持续跟随指定单位或建筑，不把一次靠近解释为订单完成。</summary>
+    FollowEntity,
+
     /// <summary>要求单位优先到达指定位置的强制移动订单。</summary>
     ForceMove,
 

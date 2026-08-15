@@ -86,6 +86,10 @@ public enum OrderObservationKind
 {
     /// <summary>普通位置移动。</summary>
     Move,
+    /// <summary>靠近实体并在邻接后完成。</summary>
+    ApproachEntity,
+    /// <summary>持续跟随单位或建筑。</summary>
+    FollowEntity,
     /// <summary>强制位置移动。</summary>
     ForceMove,
     /// <summary>对地移动并攻击。</summary>

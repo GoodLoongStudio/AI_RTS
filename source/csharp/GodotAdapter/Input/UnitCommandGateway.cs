@@ -26,6 +26,24 @@ public partial class UnitCommandGateway : Node
         return ToGodot(_runtime.MoveUnits(unitNodes, destination, issuerPlayer));
     }
 
+    /// <summary>接收 GDScript 单位与实体节点并提交靠近实体命令。</summary>
+    public Godot.Collections.Dictionary ApproachEntityUnits(
+        Godot.Collections.Array<Node> unitNodes,
+        Node targetNode,
+        Node issuerPlayer)
+    {
+        return ToGodot(_runtime.ApproachEntityUnits(unitNodes, targetNode, issuerPlayer));
+    }
+
+    /// <summary>接收 GDScript 单位与目标节点并提交持续跟随命令。</summary>
+    public Godot.Collections.Dictionary FollowEntityUnits(
+        Godot.Collections.Array<Node> unitNodes,
+        Node targetNode,
+        Node issuerPlayer)
+    {
+        return ToGodot(_runtime.FollowEntityUnits(unitNodes, targetNode, issuerPlayer));
+    }
+
     /// <summary>接收 GDScript 单位节点并提交批量强制移动命令。</summary>
     public Godot.Collections.Dictionary ForceMoveUnits(
         Godot.Collections.Array<Node> unitNodes, Vector3 destination, Node issuerPlayer)

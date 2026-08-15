@@ -52,6 +52,9 @@ internal sealed class UnitCommandServiceTests
         RunTest(nameof(GroundForceAttackRequiresExplicitCapability), GroundForceAttackRequiresExplicitCapability);
         RunTest(nameof(AttackMoveKeepsMovingDuringHoldFire), AttackMoveKeepsMovingDuringHoldFire);
         RunTest(nameof(TacticalWithdrawFallsBackToOrdinaryMovement), TacticalWithdrawFallsBackToOrdinaryMovement);
+        RunTest(nameof(EntityMovementKeepsDistinctOrderSemantics), EntityMovementKeepsDistinctOrderSemantics);
+        RunTest(nameof(EntityMovementRejectsSelfAndMissingTargets), EntityMovementRejectsSelfAndMissingTargets);
+        RunTest(nameof(StopSuspendsEntityMovementOrders), StopSuspendsEntityMovementOrders);
         RunTest(nameof(PortFailuresMapToStableErrors), PortFailuresMapToStableErrors);
         RunTest(nameof(OrderStorePublishesAuthoritativeStateChanges), OrderStorePublishesAuthoritativeStateChanges);
         RunTest(nameof(AcceptedOrdersPreserveOriginalTargets), AcceptedOrdersPreserveOriginalTargets);
@@ -514,6 +517,116 @@ internal sealed class UnitCommandServiceTests
         Check(movement.MoveRequests == 1, "无倒车能力单位应退化为普通移动");
         Check(orders.FindActive(forwardOnly)?.Kind == UnitOrderKind.TacticalWithdraw,
             "退化执行仍应保留玩家的撤退意图");
+    }
+
+    /// <summary>验证靠近资源与持续跟随使用不同订单种类，并保留稳定实体目标。</summary>
+    private void EntityMovementKeepsDistinctOrderSemantics()
+    {
+        var owner = NewPlayerId();
+        var unit = NewUnitId();
+        var target = NewUnitId();
+        var resource = NewResourceNodeId();
+        var movement = new FakeMovementPort();
+        var orders = new InMemoryUnitOrderStore();
+        var service = NewService(
+            new FakeRepository(
+                new UnitCommandSnapshot(unit, owner, true),
+                new UnitCommandSnapshot(target, owner, true)),
+            movement,
+            orders: orders,
+            resources: new FakeResourceRepository(
+                new ResourceNodeSnapshot(resource, ResourceKind.A, true)));
+
+        var approach = service.ApproachEntity(
+            Context(owner),
+            new ApproachEntityCommand(
+                [unit],
+                new BattlefieldEntityId(BattlefieldEntityKind.ResourceNode, resource.Value)));
+        var approachOrder = orders.Find(ResultFor(approach, unit).OrderId!.Value);
+        var follow = service.FollowEntity(
+            Context(owner),
+            new FollowEntityCommand([unit], target));
+        var followOrder = orders.Find(ResultFor(follow, unit).OrderId!.Value);
+
+        Check(approach.Status == CommandStatus.Accepted && movement.ApproachRequests == 1,
+            "资源实体 Approach 应到达专用移动端口");
+        Check(approachOrder?.Kind == UnitOrderKind.ApproachEntity &&
+            approachOrder.Target is UnitOrderEntityTarget
+            {
+                EntityId.Kind: BattlefieldEntityKind.ResourceNode
+            }, "Approach 应保存资源实体身份");
+        Check(follow.Status == CommandStatus.Accepted && movement.FollowRequests == 1,
+            "单位 Follow 应到达专用移动端口");
+        Check(followOrder?.Kind == UnitOrderKind.FollowEntity &&
+            followOrder.Target is UnitOrderEntityTarget entity &&
+            entity.EntityId.Value == target.Value,
+            "Follow 应保留目标单位身份并使用独立订单种类");
+        Check(approachOrder is not null &&
+            orders.Find(approachOrder.OrderId)?.State == UnitOrderState.Cancelled,
+            "后续 Follow 应按统一替换规则取消旧 Approach");
+    }
+
+    /// <summary>验证实体移动拒绝自目标与失效目标，且不会调用执行端。</summary>
+    private void EntityMovementRejectsSelfAndMissingTargets()
+    {
+        var owner = NewPlayerId();
+        var unit = NewUnitId();
+        var missing = NewUnitId();
+        var movement = new FakeMovementPort();
+        var service = NewService(
+            new FakeRepository(new UnitCommandSnapshot(unit, owner, true)),
+            movement);
+
+        var self = service.FollowEntity(
+            Context(owner),
+            new FollowEntityCommand([unit], unit));
+        var absent = service.FollowEntity(
+            Context(owner),
+            new FollowEntityCommand([unit], missing));
+
+        Check(ResultFor(self, unit).ErrorCode == CommandErrorCode.InvalidMovementTarget,
+            "单位不得持续跟随自身");
+        Check(ResultFor(absent, unit).ErrorCode == CommandErrorCode.TargetNotFound,
+            "失效实体目标应稳定返回 TargetNotFound");
+        Check(movement.FollowRequests == 0,
+            "非法实体目标不得到达移动执行端");
+    }
+
+    /// <summary>验证统一 Stop 会暂停 Approach 与 Follow，且不创建自动恢复。</summary>
+    private void StopSuspendsEntityMovementOrders()
+    {
+        var owner = NewPlayerId();
+        var approachUnit = NewUnitId();
+        var followUnit = NewUnitId();
+        var target = NewUnitId();
+        var orders = new InMemoryUnitOrderStore();
+        var service = NewService(
+            new FakeRepository(
+                new UnitCommandSnapshot(approachUnit, owner, true),
+                new UnitCommandSnapshot(followUnit, owner, true),
+                new UnitCommandSnapshot(target, owner, true)),
+            orders: orders);
+        var approach = service.ApproachEntity(
+            Context(owner),
+            new ApproachEntityCommand(
+                [approachUnit],
+                new BattlefieldEntityId(BattlefieldEntityKind.Unit, target.Value)));
+        var follow = service.FollowEntity(
+            Context(owner),
+            new FollowEntityCommand([followUnit], target));
+
+        var stopped = service.Stop(
+            Context(owner),
+            new StopUnitsCommand([approachUnit, followUnit]));
+
+        Check(stopped.Status == CommandStatus.Accepted,
+            "Stop 应接受两个实体移动订单");
+        Check(orders.Find(ResultFor(approach, approachUnit).OrderId!.Value)?.State ==
+            UnitOrderState.Suspended,
+            "Approach 被 Stop 后应暂停");
+        Check(orders.Find(ResultFor(follow, followUnit).OrderId!.Value)?.State ==
+            UnitOrderState.Suspended,
+            "Follow 被 Stop 后应暂停");
     }
 
     /// <summary>验证引擎适配失败会映射为稳定的 Application 错误码。</summary>
@@ -1019,6 +1132,12 @@ internal sealed class UnitCommandServiceTests
         /// <summary>实体移动攻击请求次数。</summary>
         public int EntityAttackMoveRequests { get; private set; }
 
+        /// <summary>靠近实体请求次数。</summary>
+        public int ApproachRequests { get; private set; }
+
+        /// <summary>持续跟随实体请求次数。</summary>
+        public int FollowRequests { get; private set; }
+
         /// <summary>倒车撤退请求次数。</summary>
         public int WithdrawRequests { get; private set; }
 
@@ -1026,6 +1145,22 @@ internal sealed class UnitCommandServiceTests
         public MovementPortResult RequestMove(UnitId unitId, WorldPosition destination)
         {
             MoveRequests++;
+            return Result();
+        }
+
+        /// <inheritdoc />
+        public MovementPortResult RequestApproachEntity(
+            UnitId unitId,
+            BattlefieldEntityId targetEntityId)
+        {
+            ApproachRequests++;
+            return Result();
+        }
+
+        /// <inheritdoc />
+        public MovementPortResult RequestFollowEntity(UnitId unitId, UnitId targetId)
+        {
+            FollowRequests++;
             return Result();
         }
 

@@ -75,6 +75,14 @@ public interface IUnitMovementPort
     /// <summary>向单位提交移动到世界坐标的请求。</summary>
     MovementPortResult RequestMove(UnitId unitId, WorldPosition destination);
 
+    /// <summary>请求单位靠近指定单位、建筑或资源节点的 footprint。</summary>
+    MovementPortResult RequestApproachEntity(
+        UnitId unitId,
+        BattlefieldEntityId targetEntityId);
+
+    /// <summary>请求单位持续跟随指定单位或建筑。</summary>
+    MovementPortResult RequestFollowEntity(UnitId unitId, UnitId targetId);
+
     /// <summary>请求单位向地面位置移动并按权威交战策略处理中途敌人。</summary>
     MovementPortResult RequestGroundAttackMove(UnitId unitId, WorldPosition destination);
 

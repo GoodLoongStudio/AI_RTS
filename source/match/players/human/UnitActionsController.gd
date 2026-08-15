@@ -5,9 +5,6 @@ signal command_feedback(command_name, accepted_count, rejected_count, status)
 
 const Structure = preload("res://source/match/units/Structure.gd")
 const ResourceUnit = preload("res://source/match/units/non-player/ResourceUnit.gd")
-const Tank = preload("res://source/match/units/Tank.gd")
-const Helicopter = preload("res://source/match/units/Helicopter.gd")
-const Worker = preload("res://source/match/units/Worker.gd")
 
 var _is_force_move_targeting := false
 var _is_force_attack_targeting := false
@@ -60,11 +57,7 @@ func _try_navigating_selected_units_towards_position(target_point):
 	var command_gateway = get_parent().find_child("UnitCommandGateway")
 	assert(command_gateway != null)
 	for tuple in new_unit_targets:
-		if _is_migrated_command_unit(tuple[0]):
-			command_gateway.MoveUnits([tuple[0]], tuple[1], get_parent())
-		else:
-			# 其他单位继续使用 Legacy 路径，直到对应任务语义完成评审。
-			tuple[0].action = Actions.Moving.new(tuple[1])
+		command_gateway.MoveUnits([tuple[0]], tuple[1], get_parent())
 
 
 ## 进入一次性的强制移动目标选择状态；下一次地面目标将消费此状态。
@@ -122,7 +115,7 @@ func cancel_command_targeting():
 ## 对当前 Selection 中已迁移的单位提交单一统一 Stop，并汇总逐单位即时接收结果。
 func halt_selected_units():
 	var selected_units = _get_selected_controlled_units()
-	var command_units = selected_units.filter(_is_migrated_command_unit)
+	var command_units = selected_units
 	var accepted_count := 0
 	var rejected_count: int = selected_units.size() - command_units.size()
 	if not command_units.is_empty():
@@ -135,7 +128,9 @@ func halt_selected_units():
 
 ## 返回当前 Selection 中已迁移到 C# 命令链路的可控单位数量，供灰盒 HUD 更新可用状态。
 func get_selected_command_unit_count() -> int:
-	return _get_selected_controlled_units().filter(_is_migrated_command_unit).size()
+	return _get_selected_controlled_units().filter(
+		func(unit): return unit.find_child("Movement") != null
+	).size()
 
 
 ## 返回可保存自身或出厂默认战斗策略的选中实体数量。
@@ -196,7 +191,7 @@ func _submit_selected_combat_policy(policy_name: String, value: String):
 func _execute_targeted_force_move(target_point: Vector3):
 	var selected_units = _get_selected_controlled_units()
 	var command_units = selected_units.filter(
-		func(unit): return _is_migrated_command_unit(unit) and Actions.Moving.is_applicable(unit)
+		func(unit): return Actions.Moving.is_applicable(unit)
 	)
 	var terrain_units = command_units.filter(
 		func(unit): return unit.movement_domain == Constants.Match.Navigation.Domain.TERRAIN
@@ -219,7 +214,7 @@ func _execute_targeted_force_move(target_point: Vector3):
 func _execute_targeted_tactical_withdraw(target_point: Vector3):
 	var selected_units = _get_selected_controlled_units()
 	var command_units = selected_units.filter(
-		func(unit): return _is_migrated_command_unit(unit) and Actions.Moving.is_applicable(unit)
+		func(unit): return Actions.Moving.is_applicable(unit)
 	)
 	var terrain_units = command_units.filter(
 		func(unit): return unit.movement_domain == Constants.Match.Navigation.Domain.TERRAIN
@@ -244,7 +239,7 @@ func _execute_targeted_tactical_withdraw(target_point: Vector3):
 func _execute_targeted_ground_attack_move(target_point: Vector3):
 	var selected_units = _get_selected_controlled_units()
 	var command_units = selected_units.filter(
-		func(unit): return _is_migrated_command_unit(unit) and Actions.Moving.is_applicable(unit)
+		func(unit): return Actions.Moving.is_applicable(unit)
 	)
 	var terrain_units = command_units.filter(
 		func(unit): return unit.movement_domain == Constants.Match.Navigation.Domain.TERRAIN
@@ -269,7 +264,7 @@ func _execute_targeted_ground_attack_move(target_point: Vector3):
 func _execute_targeted_entity_attack_move(target_unit):
 	var selected_units = _get_selected_controlled_units()
 	var command_units = selected_units.filter(
-		func(unit): return _is_migrated_command_unit(unit) and Actions.Moving.is_applicable(unit)
+		func(unit): return Actions.Moving.is_applicable(unit)
 	)
 	var accepted_count := 0
 	var rejected_count: int = selected_units.size() - command_units.size()
@@ -285,7 +280,7 @@ func _execute_targeted_entity_attack_move(target_unit):
 
 func _execute_targeted_force_attack(target_unit):
 	var selected_units = _get_selected_controlled_units()
-	var command_units = selected_units.filter(_is_migrated_command_unit)
+	var command_units = selected_units
 	var accepted_count := 0
 	var rejected_count: int = selected_units.size() - command_units.size()
 	if not command_units.is_empty():
@@ -300,7 +295,7 @@ func _execute_targeted_force_attack(target_unit):
 
 func _execute_targeted_ground_force_attack(target_point: Vector3):
 	var selected_units = _get_selected_controlled_units()
-	var command_units = selected_units.filter(_is_migrated_command_unit)
+	var command_units = selected_units
 	var accepted_count := 0
 	var rejected_count: int = selected_units.size() - command_units.size()
 	if not command_units.is_empty():
@@ -373,14 +368,10 @@ func _navigate_selected_units_towards_unit(target_unit, target_position: Vector3
 	var accepted_count := 0
 	var rejected_count := 0
 	for tuple in air_move_targets:
-		if _is_migrated_command_unit(tuple[0]):
-			var result = _get_command_gateway().MoveUnits([tuple[0]], tuple[1], get_parent())
-			var counts = _count_command_result(result)
-			accepted_count += counts[0]
-			rejected_count += counts[1]
-		else:
-			tuple[0].action = Actions.Moving.new(tuple[1])
-			accepted_count += 1
+		var result = _get_command_gateway().MoveUnits([tuple[0]], tuple[1], get_parent())
+		var counts = _count_command_result(result)
+		accepted_count += counts[0]
+		rejected_count += counts[1]
 		at_least_one_unit_navigated = true
 	if not air_move_targets.is_empty():
 		_emit_command_feedback("Move", accepted_count, rejected_count)
@@ -414,51 +405,41 @@ func _should_air_move_to_entity_position(unit, target_unit) -> bool:
 
 func _navigate_unit_towards_unit(unit, target_unit):
 	if Actions.CollectingResourcesSequentially.is_applicable(unit, target_unit):
-		if _is_migrated_command_unit(unit):
-			var result = _get_command_gateway().GatherResources([unit], target_unit, get_parent())
-			var counts = _count_command_result(result)
-			_emit_command_feedback("Gather", counts[0], counts[1])
-			return true
-		unit.action = Actions.CollectingResourcesSequentially.new(target_unit)
+		var result = _get_command_gateway().GatherResources([unit], target_unit, get_parent())
+		var counts = _count_command_result(result)
+		_emit_command_feedback("Gather", counts[0], counts[1])
 		return true
 	if Actions.AutoAttacking.is_applicable(unit, target_unit):
-		if _is_migrated_command_unit(unit):
-			var result = _get_command_gateway().AttackUnits([unit], target_unit, get_parent())
-			var counts = _count_command_result(result)
-			_emit_command_feedback("Attack", counts[0], counts[1])
-			return true
-		unit.action = Actions.AutoAttacking.new(target_unit)
+		var result = _get_command_gateway().AttackUnits([unit], target_unit, get_parent())
+		var counts = _count_command_result(result)
+		_emit_command_feedback("Attack", counts[0], counts[1])
 		return true
 	if Actions.Constructing.is_applicable(unit, target_unit):
-		if _is_migrated_command_unit(unit):
-			var result = _get_command_gateway().ConstructUnits([unit], target_unit, get_parent())
-			var counts = _count_command_result(result)
-			_emit_command_feedback("Construct", counts[0], counts[1])
-			return true
-		unit.action = Actions.Constructing.new(target_unit)
+		var result = _get_command_gateway().ConstructUnits([unit], target_unit, get_parent())
+		var counts = _count_command_result(result)
+		_emit_command_feedback("Construct", counts[0], counts[1])
 		return true
 	if (
 		(target_unit.is_in_group("adversary_units") or target_unit.is_in_group("controlled_units"))
 		and Actions.Following.is_applicable(unit)
 	):
-		unit.action = Actions.Following.new(target_unit)
+		var result = _get_command_gateway().FollowEntityUnits([unit], target_unit, get_parent())
+		var counts = _count_command_result(result)
+		_emit_command_feedback("FollowEntity", counts[0], counts[1])
 		return true
 	if Actions.MovingToUnit.is_applicable(unit):
-		unit.action = Actions.MovingToUnit.new(target_unit)
+		var result = _get_command_gateway().ApproachEntityUnits([unit], target_unit, get_parent())
+		var counts = _count_command_result(result)
+		_emit_command_feedback("ApproachEntity", counts[0], counts[1])
 		return true
 	if _try_setting_rally_point_to_unit(unit, target_unit):
 		return true
 	return false  # gdlint: ignore = max-returns
 
 
-## 集中定义已迁移到公共 C# 命令链路的单位类型，避免各命令分散硬编码类型判断。
-func _is_migrated_command_unit(unit) -> bool:
-	return unit is Tank or unit is Helicopter or unit is Worker
-
-
-## 集中定义已接入公共战斗策略的单位，避免 Worker 获得无意义的姿态设置。
+## 按已有战斗或生产能力过滤策略设置，不依赖具体单位类名。
 func _is_migrated_combat_unit(unit) -> bool:
-	return unit is Tank or unit is Helicopter or unit.find_child("RallyPoint") != null
+	return unit.attack_range != null or unit.find_child("RallyPoint") != null
 
 
 func _try_setting_rally_point_to_unit(unit, target_unit):

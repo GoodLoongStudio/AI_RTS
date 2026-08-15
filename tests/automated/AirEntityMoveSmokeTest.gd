@@ -1,8 +1,10 @@
 extends Node
 
 const MatchScene = preload("res://tests/manual/TestHelicopterCommands.tscn")
+const DroneScene = preload("res://source/match/units/Drone.tscn")
 const Moving = preload("res://source/match/units/actions/Moving.gd")
 const MovingToUnit = preload("res://source/match/units/actions/MovingToUnit.gd")
+const Following = preload("res://source/match/units/actions/Following.gd")
 const OrdinaryAttacking = preload("res://source/match/units/actions/OrdinaryAttacking.gd")
 
 var _failures := 0
@@ -24,6 +26,23 @@ func _ready():
 	var enemy_building = match_instance.get_node("Players/PolicyTestEnemy/TargetCommandCenter")
 	var gateway = human.get_node("UnitCommandGateway")
 	var controller = human.get_node("UnitActionsController")
+	var drone = DroneScene.instantiate()
+	match_instance.call(
+		"_setup_and_spawn_unit",
+		drone,
+		Transform3D(Basis.IDENTITY, Vector3(7, 0, 7)),
+		human,
+		false
+	)
+	var follow_target = DroneScene.instantiate()
+	match_instance.call(
+		"_setup_and_spawn_unit",
+		follow_target,
+		Transform3D(Basis.IDENTITY, Vector3(10, 0, 7)),
+		human,
+		false
+	)
+	await get_tree().process_frame
 	match_instance.get_node("CommandRuntime").connect("OrderStateChanged", _on_order_state_changed)
 	controller.command_feedback.connect(_on_command_feedback)
 	gateway.SetFirePolicy([tank, helicopter], "HoldFire", human)
@@ -54,7 +73,41 @@ func _ready():
 		tank.action != null and tank.action.get_script() == MovingToUnit,
 		"地面 Tank 点击矿石应保留按双方 footprint 相接停止的 MovingToUnit 行为"
 	)
+	_check(_has_order_kind(tank, "ApproachEntity"), "Tank 靠近矿石应提交公共 ApproachEntity")
 	gateway.StopUnits([tank], human)
+	_check(
+		tank.action == null or tank.action.get_script() != MovingToUnit,
+		"Stop 应停止尚未到达的 ApproachEntity"
+	)
+	_check(gateway.GetActiveOrderState(tank) == "Suspended", "Stop 后 Approach 应保持暂停订单")
+
+	MatchSignals.deselect_all_units.emit()
+	drone.find_child("Selection").select()
+	MatchSignals.terrain_targeted.emit(Vector3(14, 0, 7))
+	await get_tree().process_frame
+	_check(_has_order_kind(drone, "Move"), "玩家控制 Drone 普通移动应进入公共 Move")
+	_check(drone.action != null and drone.action.get_script() == Moving, "Drone 应执行普通 Moving")
+	gateway.StopUnits([drone], human)
+
+	MatchSignals.unit_targeted.emit(follow_target, follow_target.global_position)
+	await get_tree().process_frame
+	_check(_has_order_kind(drone, "FollowEntity"), "Drone 右键己方单位应提交公共 FollowEntity")
+	_check(drone.action != null and drone.action.get_script() == Following, "Drone 应持续跟随实体")
+	gateway.StopUnits([drone], human)
+	_check(
+		drone.action == null or drone.action.get_script() != Following,
+		"Stop 应终止 Follow 的实际移动"
+	)
+	_check(gateway.GetActiveOrderState(drone) == "Suspended", "Stop 后 Follow 应暂停且不自动恢复")
+
+	MatchSignals.unit_targeted.emit(follow_target, follow_target.global_position)
+	await get_tree().process_frame
+	follow_target.queue_free()
+	await get_tree().process_frame
+	_check(
+		_has_order_state(drone, "FollowEntity", "TargetLost"),
+		"跟随目标退出后权威订单应进入 TargetLost"
+	)
 
 	MatchSignals.deselect_all_units.emit()
 	helicopter.find_child("Selection").select()
@@ -111,6 +164,21 @@ func _has_order_kind(unit: Node, kind: String) -> bool:
 	var unit_id := str(unit.get_meta("ai_rts_unit_id"))
 	for event in _order_events:
 		if event["unit_id"] == unit_id and event["kind"] == kind:
+			return true
+	return false
+
+
+## 判断指定单位的目标订单是否发布过某一权威状态。
+func _has_order_state(unit: Node, kind: String, state: String) -> bool:
+	if not unit.has_meta("ai_rts_unit_id"):
+		return false
+	var unit_id := str(unit.get_meta("ai_rts_unit_id"))
+	for event in _order_events:
+		if (
+			event["unit_id"] == unit_id
+			and event["kind"] == kind
+			and event["current_state"] == state
+		):
 			return true
 	return false
 

@@ -51,7 +51,7 @@
 ```csharp
 public sealed record ApproachEntityCommand(
     IReadOnlyList<UnitId> UnitIds,
-    UnitId TargetUnitId);
+    BattlefieldEntityId TargetEntityId);
 ```
 
 - 含义：移动至目标 footprint 邻接位置；不持续保持编队或护航关系；
@@ -166,3 +166,21 @@ public interface IUnitMovementPort
 7. Rally 出厂靠近/跟随也改走相同公共命令；
 8. Legacy Action 只保留为 GodotAdapter 执行端，导航实现本身留给后续导航专项；
 9. 受限 AI 对非己方实体必须经过观察授权，未知、不可见与不存在统一拒绝。
+
+2026-08-15 项目负责人确认接受以上九项，可以进入实现。
+
+## 10. 实现与自动验证记录
+
+2026-08-15 已完成代码纵向切片，当前等待人工验收：
+
+- `ApproachEntity` 使用 `BattlefieldEntityId`，支持单位、建筑和资源节点；这是为了覆盖已评审的非 Worker 资源集结行为，避免把中立资源错误注册为玩家单位；
+- `FollowEntity` 只接受单位或建筑稳定 ID，与一次性 Approach 保持独立订单种类；
+- 两类订单已贯通 `IUnitCommandService`、`IUnitMovementPort`、`CommandRuntime`、`UnitCommandGateway` 和查询观察枚举；
+- Approach 只在真正邻接后进入 `Arrived`；Follow 不把中间移动完成视为终态；目标退出进入 `TargetLost`；
+- Stop/Halt 会停止两类实际 Action，并将活动订单保留为 `Suspended`，不会自动恢复；
+- Human Controller 已删除 Tank/Helicopter/Worker 类型白名单及全部直接 Action 回退；
+- Rally 的非 Worker 资源靠近和友军实体跟随已改用相同公共命令；
+- 战斗策略筛选改用现有攻击/生产能力特征，不再依赖具体单位类名；
+- 审计时发现所有 Unit 因继承通用桥接方法而被误判为可采集；现已要求 `resources_max > 0`，Drone 不再错误进入 Gather；
+- 核心测试新增 3 项，全套 90 项通过；AirEntityMove、RallyPoint、WorkerGather、RuleAiIntelligence、TraditionalUnitCommandHud、MultiUnitCommand、ProductionQueue、CSharpCommand 与 WorldQueryRuntime 共 9 个 Godot 回归均为 0 失败；
+- 无头退出继续报告已登记的导航 RID/ObjectDB 泄漏；`TestAllUnits.tscn` 的现有 UID 警告及用户修改未纳入本项变更。

@@ -46,7 +46,8 @@ public sealed class GodotUnitRegistry : IUnitCommandUnitRepository
             hp.VariantType != Variant.Type.Nil,
             unit.Get("can_reverse").AsBool(),
             unit.Get("can_force_fire_ground").AsBool(),
-            unit.HasMethod("request_legacy_gather"),
+            unit.HasMethod("request_legacy_gather") &&
+                unit.Get("resources_max").AsInt32() > 0,
             unit.HasMethod("request_legacy_construct") &&
                 unit.Get("construction_work_per_tick").AsInt32() > 0,
             unit.Get("construction_work_per_tick").AsInt32(),

@@ -15,6 +15,12 @@ public interface IUnitCommandService
     /// <summary>提交批量普通移动命令，并返回每个单位的接收结果。</summary>
     CommandResult Move(CommandContext context, MoveUnitsCommand command);
 
+    /// <summary>提交批量靠近实体命令，并在真正邻接后完成。</summary>
+    CommandResult ApproachEntity(CommandContext context, ApproachEntityCommand command);
+
+    /// <summary>提交批量持续跟随命令，并保持目标稳定身份。</summary>
+    CommandResult FollowEntity(CommandContext context, FollowEntityCommand command);
+
     /// <summary>提交批量强制移动命令，并返回每个单位的接收结果。</summary>
     CommandResult ForceMove(CommandContext context, ForceMoveUnitsCommand command);
 
@@ -79,6 +85,52 @@ public sealed class UnitCommandService(
             UnitOrderKind.Move,
             new UnitOrderPositionTarget(command.Destination),
             unitId => movement.RequestMove(unitId, command.Destination));
+    }
+
+    /// <inheritdoc />
+    public CommandResult ApproachEntity(
+        CommandContext context,
+        ApproachEntityCommand command)
+    {
+        if (command.UnitIds.Count == 0)
+        {
+            return Rejected(context.CommandId, command.UnitIds, CommandErrorCode.EmptyUnitSet);
+        }
+
+        var target = FindApproachTarget(command.TargetEntityId);
+        if (target is null)
+        {
+            return Rejected(context.CommandId, command.UnitIds, CommandErrorCode.TargetNotFound);
+        }
+
+        return ExecuteEntityMovement(
+            context,
+            command.UnitIds,
+            UnitOrderKind.ApproachEntity,
+            target,
+            unitId => movement.RequestApproachEntity(unitId, command.TargetEntityId));
+    }
+
+    /// <inheritdoc />
+    public CommandResult FollowEntity(CommandContext context, FollowEntityCommand command)
+    {
+        if (command.UnitIds.Count == 0)
+        {
+            return Rejected(context.CommandId, command.UnitIds, CommandErrorCode.EmptyUnitSet);
+        }
+
+        var target = units.Find(command.TargetUnitId);
+        if (target is null)
+        {
+            return Rejected(context.CommandId, command.UnitIds, CommandErrorCode.TargetNotFound);
+        }
+
+        return ExecuteEntityMovement(
+            context,
+            command.UnitIds,
+            UnitOrderKind.FollowEntity,
+            EntityOrderTarget(target.Value),
+            unitId => movement.RequestFollowEntity(unitId, command.TargetUnitId));
     }
 
     /// <inheritdoc />
@@ -206,7 +258,8 @@ public sealed class UnitCommandService(
             }
 
             var active = orders.FindActive(unitId);
-            if (active?.Kind is UnitOrderKind.Move or UnitOrderKind.ForceMove or
+            if (active?.Kind is UnitOrderKind.Move or UnitOrderKind.ApproachEntity or
+                UnitOrderKind.FollowEntity or UnitOrderKind.ForceMove or
                 UnitOrderKind.GroundAttackMove or UnitOrderKind.EntityAttackMove or
                 UnitOrderKind.TacticalWithdraw)
             {
@@ -216,7 +269,8 @@ public sealed class UnitCommandService(
                 unitId,
                 true,
                 CommandErrorCode.None,
-                active?.Kind is UnitOrderKind.Move or UnitOrderKind.ForceMove or
+                active?.Kind is UnitOrderKind.Move or UnitOrderKind.ApproachEntity or
+                    UnitOrderKind.FollowEntity or UnitOrderKind.ForceMove or
                     UnitOrderKind.GroundAttackMove or UnitOrderKind.EntityAttackMove or
                     UnitOrderKind.TacticalWithdraw ?
                     active.OrderId : null));
@@ -384,7 +438,8 @@ public sealed class UnitCommandService(
         CommandContext context,
         UnitOrderSnapshot? active)
     {
-        if (active?.Kind is UnitOrderKind.Move or UnitOrderKind.ForceMove or
+        if (active?.Kind is UnitOrderKind.Move or UnitOrderKind.ApproachEntity or
+            UnitOrderKind.FollowEntity or UnitOrderKind.ForceMove or
             UnitOrderKind.GroundAttackMove or UnitOrderKind.EntityAttackMove or
             UnitOrderKind.TacticalWithdraw or UnitOrderKind.Gather or
             UnitOrderKind.Construct)
@@ -698,6 +753,67 @@ public sealed class UnitCommandService(
             results.Add(new UnitCommandResult(unitId, true, CommandErrorCode.None, order.OrderId));
         }
         return Summarize(context.CommandId, results);
+    }
+
+    /// <summary>逐单位校验实体移动能力与自目标，并创建保留实体身份的订单。</summary>
+    private CommandResult ExecuteEntityMovement(
+        CommandContext context,
+        IReadOnlyList<UnitId> unitIds,
+        UnitOrderKind orderKind,
+        UnitOrderEntityTarget target,
+        Func<UnitId, MovementPortResult> execute)
+    {
+        var results = new List<UnitCommandResult>();
+        foreach (var unitId in StableDistinct(unitIds))
+        {
+            var validation = Validate(context, unitId);
+            if (validation == CommandErrorCode.None &&
+                target.EntityId.Kind is BattlefieldEntityKind.Unit or BattlefieldEntityKind.Structure &&
+                target.EntityId.Value == unitId.Value)
+            {
+                validation = CommandErrorCode.InvalidMovementTarget;
+            }
+            if (validation != CommandErrorCode.None)
+            {
+                results.Add(new UnitCommandResult(unitId, false, validation));
+                continue;
+            }
+
+            var portResult = execute(unitId);
+            if (!portResult.Accepted)
+            {
+                results.Add(new UnitCommandResult(unitId, false, Map(portResult.Error)));
+                continue;
+            }
+
+            var order = orders.Create(context.CommandId, unitId, orderKind, target);
+            orders.Transition(order.OrderId, UnitOrderState.InProgress);
+            results.Add(new UnitCommandResult(
+                unitId,
+                true,
+                CommandErrorCode.None,
+                order.OrderId));
+        }
+        return Summarize(context.CommandId, results);
+    }
+
+    /// <summary>解析靠近命令允许的单位、建筑或资源目标，并保留稳定类型。</summary>
+    private UnitOrderEntityTarget? FindApproachTarget(BattlefieldEntityId targetEntityId)
+    {
+        if (targetEntityId.Kind == BattlefieldEntityKind.ResourceNode)
+        {
+            var resource = resourceNodes?.Find(new ResourceNodeId(targetEntityId.Value));
+            return resource is null ? null : new UnitOrderEntityTarget(
+                targetEntityId,
+                ResourceTypeId(resource.Value.Kind));
+        }
+
+        var target = units.Find(new UnitId(targetEntityId.Value));
+        if (target is null || target.Value.EntityKind != targetEntityId.Kind)
+        {
+            return null;
+        }
+        return EntityOrderTarget(target.Value);
     }
 
     /// <summary>校验单位是否存在、属于命令发出者且具备移动能力。</summary>

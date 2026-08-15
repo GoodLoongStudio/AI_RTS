@@ -37,6 +37,8 @@ public enum CommandErrorCode
     UnitCannotStop,
     /// <summary>目标世界坐标包含非有限值。</summary>
     InvalidDestination,
+    /// <summary>实体移动目标是执行单位自身，或目标种类不支持该命令。</summary>
+    InvalidMovementTarget,
     /// <summary>当前无法向导航系统提交请求。</summary>
     NavigationUnavailable,
     /// <summary>对局尚未开始或已经结束。</summary>

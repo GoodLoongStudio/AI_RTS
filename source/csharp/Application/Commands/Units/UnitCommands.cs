@@ -8,6 +8,16 @@ public sealed record MoveUnitsCommand(
     IReadOnlyList<UnitId> UnitIds,
     WorldPosition Destination);
 
+/// <summary>请求一组单位靠近指定战场实体，并在到达实体 footprint 边缘后完成。</summary>
+public sealed record ApproachEntityCommand(
+    IReadOnlyList<UnitId> UnitIds,
+    BattlefieldEntityId TargetEntityId);
+
+/// <summary>请求一组单位持续跟随指定单位或建筑，直到停止、替换或目标失效。</summary>
+public sealed record FollowEntityCommand(
+    IReadOnlyList<UnitId> UnitIds,
+    UnitId TargetUnitId);
+
 /// <summary>请求一组单位强制移动到经过编队计算后的目标位置。</summary>
 public sealed record ForceMoveUnitsCommand(
     IReadOnlyList<UnitId> UnitIds,

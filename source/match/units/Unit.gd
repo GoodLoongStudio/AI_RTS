@@ -32,6 +32,8 @@ signal explicit_force_attack_ended(reason)
 signal ordinary_attack_ended(reason)
 signal entity_attack_move_ended(reason)
 signal gather_task_ended(reason)
+signal approach_ended(reason)
+signal follow_ended(reason)
 
 const MATERIAL_ALBEDO_TO_REPLACE = Color(0.99, 0.81, 0.48)
 const MATERIAL_ALBEDO_TO_REPLACE_EPSILON = 0.05
@@ -100,19 +102,23 @@ func request_legacy_move(target_position: Vector3) -> bool:
 	return true
 
 
-## 临时 Rally 桥：非 Worker 出厂后只靠近资源或其他静态实体。
-func request_legacy_move_to_unit(target_unit) -> bool:
+## 临时 C# 迁移桥：靠近单位、建筑或资源实体，并转发明确终态。
+func request_legacy_approach_entity(target_unit) -> bool:
 	if not LegacyMovingToUnitAction.is_applicable(self):
 		return false
-	action = LegacyMovingToUnitAction.new(target_unit)
+	var approach_action = LegacyMovingToUnitAction.new(target_unit)
+	approach_action.ended.connect(approach_ended.emit)
+	action = approach_action
 	return true
 
 
-## 临时 Rally 桥：出厂单位持续跟随同玩家移动实体。
-func request_legacy_follow(target_unit) -> bool:
+## 临时 C# 迁移桥：持续跟随单位或建筑，并转发目标失效终态。
+func request_legacy_follow_entity(target_unit) -> bool:
 	if not LegacyFollowingAction.is_applicable(self):
 		return false
-	action = LegacyFollowingAction.new(target_unit)
+	var follow_action = LegacyFollowingAction.new(target_unit)
+	follow_action.ended.connect(follow_ended.emit)
+	action = follow_action
 	return true
 
 
@@ -153,7 +159,11 @@ func request_legacy_halt_movement() -> bool:
 	if find_child("Movement") == null:
 		return false
 	if action != null and action.get_script() in [
-		LegacyMovingAction, LegacyGroundAttackMovingAction, LegacyTacticalWithdrawingAction
+		LegacyMovingAction,
+		LegacyMovingToUnitAction,
+		LegacyFollowingAction,
+		LegacyGroundAttackMovingAction,
+		LegacyTacticalWithdrawingAction,
 	]:
 		action = null
 	return true
@@ -169,6 +179,8 @@ func request_legacy_stop() -> bool:
 		return false
 	if action != null and action.get_script() in [
 		LegacyMovingAction,
+		LegacyMovingToUnitAction,
+		LegacyFollowingAction,
 		LegacyGroundAttackMovingAction,
 		LegacyTacticalWithdrawingAction,
 		LegacyOrdinaryAttackAction,
