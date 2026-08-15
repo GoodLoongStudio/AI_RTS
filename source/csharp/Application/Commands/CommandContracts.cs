@@ -78,7 +78,15 @@ public enum CommandErrorCode
     /// <summary>施工现场已经完成。</summary>
     ConstructionAlreadyCompleted,
     /// <summary>施工执行层当前无法接收或暂停任务。</summary>
-    ConstructionUnavailable
+    ConstructionUnavailable,
+    /// <summary>指定实体没有声明集结点能力。</summary>
+    UnitCannotSetRallyPoint,
+    /// <summary>集结目标不属于当前允许的友军或资源目标。</summary>
+    RallyTargetNotAllowed,
+    /// <summary>集结目标对命令发出者不可观察。</summary>
+    RallyTargetNotObservable,
+    /// <summary>集结点服务或表现适配器当前不可用。</summary>
+    RallyPointUnavailable
 }
 
 /// <summary>记录批量命令中单个单位的接收结果和订单标识。</summary>

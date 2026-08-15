@@ -20,6 +20,7 @@ internal static class Program
         failures += new StructurePlacementServiceTests().Run();
         failures += new ConstructionServiceTests().Run();
         failures += new ProductionServiceTests().Run();
+        failures += new RallyPointServiceTests().Run();
         return failures == 0 ? 0 : 1;
     }
 }
