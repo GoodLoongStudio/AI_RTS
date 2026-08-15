@@ -33,11 +33,17 @@ public enum ProductionItemState
 }
 
 /// <summary>描述不依赖引擎对象的生产成本、工时与生产建筑资格。</summary>
+/// <param name="DefinitionId">稳定生产定义 ID。</param>
+/// <param name="RequiredWork">完成生产所需的正整数工作量。</param>
+/// <param name="Cost">入队时一次性支付的非负资源成本。</param>
+/// <param name="AllowedProducerDefinitions">允许执行该生产定义的建筑类型。</param>
+/// <param name="ProductTypeId">成功部署后生成的稳定战场实体类型。</param>
 public sealed record ProductionDefinition(
     ProductionDefinitionId DefinitionId,
     int RequiredWork,
     IReadOnlyList<ResourceAmount> Cost,
-    IReadOnlySet<StructureDefinitionId> AllowedProducerDefinitions);
+    IReadOnlySet<StructureDefinitionId> AllowedProducerDefinitions,
+    UnitTypeId ProductTypeId = default);
 
 /// <summary>保存单个生产项目的稳定身份、进度、支付和生命周期。</summary>
 public sealed record ProductionItemSnapshot(

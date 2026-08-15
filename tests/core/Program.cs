@@ -21,6 +21,7 @@ internal static class Program
         failures += new ConstructionServiceTests().Run();
         failures += new ProductionServiceTests().Run();
         failures += new RallyPointServiceTests().Run();
+        failures += new BalanceConfigLoaderTests().Run();
         return failures == 0 ? 0 : 1;
     }
 }

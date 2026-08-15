@@ -12,6 +12,10 @@ public readonly record struct PlayerId(Guid Value);
 /// <param name="Value">进程内唯一的 Guid 值。</param>
 public readonly record struct UnitId(Guid Value);
 
+/// <summary>标识一种跨对局稳定的战场实体类型，包含移动单位和建筑。</summary>
+/// <param name="Value">项目配置内唯一的 snake_case 类型键。</param>
+public readonly record struct UnitTypeId(string Value);
+
 /// <summary>标识一个可被采集命令引用的资源节点。</summary>
 /// <param name="Value">当前对局内唯一的 Guid 值。</param>
 public readonly record struct ResourceNodeId(Guid Value);
@@ -35,3 +39,11 @@ public readonly record struct AttackInstanceId(Guid Value);
 /// <summary>标识一个不依赖 Godot 场景路径的建筑定义。</summary>
 /// <param name="Value">项目内稳定且非空的定义键。</param>
 public readonly record struct StructureDefinitionId(string Value);
+
+/// <summary>标识一个可被单位装配引用的稳定武器定义。</summary>
+/// <param name="Value">项目配置内唯一的 snake_case 武器键。</param>
+public readonly record struct WeaponDefinitionId(string Value);
+
+/// <summary>标识一个决定命中范围与友伤倍率的稳定弹头定义。</summary>
+/// <param name="Value">项目配置内唯一的 snake_case 弹头键。</param>
+public readonly record struct WarheadDefinitionId(string Value);
