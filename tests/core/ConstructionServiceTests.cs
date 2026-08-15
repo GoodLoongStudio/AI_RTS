@@ -19,6 +19,8 @@ internal sealed class ConstructionServiceTests
     public int Run()
     {
         RunTest(nameof(MultipleWorkersCompleteOnce), MultipleWorkersCompleteOnce);
+        RunTest(nameof(ConfiguredWorkerPowerAdvancesIntegerWork),
+            ConfiguredWorkerPowerAdvancesIntegerWork);
         RunTest(nameof(SuspendedWorkerResumesSameOrder), SuspendedWorkerResumesSameOrder);
         RunTest(nameof(ExitedWorkerLeavesNoAssignmentAfterOthersComplete),
             ExitedWorkerLeavesNoAssignmentAfterOthersComplete);
@@ -47,6 +49,22 @@ internal sealed class ConstructionServiceTests
             "完成端口与完成事件都必须恰好发布一次");
         Check(fixture.WorkersPort.ClearCalls == 2,
             "完成现场后必须清理全部 Worker 的执行引用");
+    }
+
+    /// <summary>验证施工服务使用单位快照中的强类型贡献值，不再固定为每 Tick 一点。</summary>
+    private void ConfiguredWorkerPowerAdvancesIntegerWork()
+    {
+        var fixture = CreateFixture(requiredWork: 3, constructionWorkPerTick: 2);
+        fixture.Service.Construct(
+            Context(fixture),
+            new ConstructStructureCommand([fixture.Workers[0]], fixture.SiteId));
+
+        fixture.Service.Advance(1);
+        Check(fixture.Service.Find(fixture.SiteId)?.CompletedWork == 2,
+            "配置为 2 的 Worker 应在一个 Tick 贡献两点工作量");
+        fixture.Service.Advance(2);
+        Check(fixture.Service.Find(fixture.SiteId)?.State == ConstructionSiteState.Completed,
+            "第二个 Tick 应完成 RequiredWork=3 的现场");
     }
 
     /// <summary>验证暂停后再次指定同一现场会恢复原订单，不创建重复施工身份。</summary>
@@ -112,14 +130,19 @@ internal sealed class ConstructionServiceTests
     }
 
     /// <summary>创建已经预扣建筑成本并注册现场的纯 C# 测试夹具。</summary>
-    private static Fixture CreateFixture(int requiredWork)
+    private static Fixture CreateFixture(int requiredWork, int constructionWorkPerTick = 1)
     {
         var owner = new PlayerId(Guid.NewGuid());
         var match = new MatchId(Guid.NewGuid());
         var site = new UnitId(Guid.NewGuid());
         UnitId[] workers = [new(Guid.NewGuid()), new(Guid.NewGuid())];
         var repository = new FakeRepository(workers.Select(worker =>
-            new UnitCommandSnapshot(worker, owner, true, CanConstruct: true)).ToArray());
+            new UnitCommandSnapshot(
+                worker,
+                owner,
+                true,
+                CanConstruct: true,
+                ConstructionWorkPerTick: constructionWorkPerTick)).ToArray());
         var orders = new InMemoryUnitOrderStore();
         var workerPort = new FakeWorkerPort();
         var sitePort = new FakeSitePort();

@@ -81,8 +81,4 @@ func _rotate_towards_target():
 
 ## 通过 Match 级运行时生成独立投射物，伤害延后到视觉命中时刻结算。
 func _spawn_shot_visual():
-	var unit_scene_path: String = _unit.get_script().resource_path.replace(".gd", ".tscn")
-	var projectile_path = Constants.Match.Units.PROJECTILES.get(unit_scene_path)
-	if projectile_path == null:
-		return
-	_projectile_runtime.LaunchGround(_unit, _target_position, projectile_path, 0.0)
+	_projectile_runtime.LaunchGround(_unit, _target_position)

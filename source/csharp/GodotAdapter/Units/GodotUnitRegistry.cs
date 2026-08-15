@@ -47,7 +47,9 @@ public sealed class GodotUnitRegistry : IUnitCommandUnitRepository
             unit.Get("can_reverse").AsBool(),
             unit.Get("can_force_fire_ground").AsBool(),
             unit.HasMethod("request_legacy_gather"),
-            unit.HasMethod("request_legacy_construct"));
+            unit.HasMethod("request_legacy_construct") &&
+                unit.Get("construction_work_per_tick").AsInt32() > 0,
+            unit.Get("construction_work_per_tick").AsInt32());
     }
 
     /// <summary>尝试取得仍有效且位于 SceneTree 中的单位节点。</summary>

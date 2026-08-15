@@ -72,16 +72,7 @@ func _hit_target():
 	_unit.set_meta(
 		"next_attack_availability_time", Time.get_ticks_msec() + int(_unit.attack_interval * 1000.0)
 	)
-	var projectile_path: String = Constants.Match.Units.PROJECTILES[
-		_unit.get_script().resource_path.replace(".gd", ".tscn")
-	]
-	_projectile_runtime.LaunchEntity(
-		_unit,
-		_target_unit,
-		projectile_path,
-		0.0,
-		false
-	)
+	_projectile_runtime.LaunchEntity(_unit, _target_unit)
 	_schedule_hit()
 
 

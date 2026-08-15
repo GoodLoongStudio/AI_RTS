@@ -143,7 +143,11 @@ public sealed class ConstructionService : IConstructionService
             }
 
             var order = _orders.Create(context.CommandId, workerId, UnitOrderKind.Construct);
-            _assignments[workerId] = new Assignment(command.SiteId, order.OrderId, 1);
+            var worker = _units.Find(workerId)!.Value;
+            _assignments[workerId] = new Assignment(
+                command.SiteId,
+                order.OrderId,
+                worker.ConstructionWorkPerTick);
             _orders.Transition(order.OrderId, UnitOrderState.InProgress);
             results.Add(new UnitCommandResult(workerId, true, CommandErrorCode.None, order.OrderId));
         }
@@ -326,7 +330,7 @@ public sealed class ConstructionService : IConstructionService
         {
             return CommandErrorCode.UnitNotOwned;
         }
-        return worker.Value.CanConstruct ?
+        return worker.Value.CanConstruct && worker.Value.ConstructionWorkPerTick > 0 ?
             CommandErrorCode.None : CommandErrorCode.WorkerCannotConstruct;
     }
 

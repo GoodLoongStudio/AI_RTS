@@ -6,6 +6,7 @@ namespace AI_RTS.Application.Units;
 
 /// <summary>提供命令校验所需的最小单位只读信息。</summary>
 /// <param name="CanGather">单位是否具备开始资源采集任务的能力。</param>
+/// <param name="ConstructionWorkPerTick">每个有效施工 Tick 的贡献；零表示不能施工。</param>
 public readonly record struct UnitCommandSnapshot(
     UnitId UnitId,
     PlayerId OwnerId,
@@ -17,7 +18,8 @@ public readonly record struct UnitCommandSnapshot(
     bool CanReverse = false,
     bool CanForceFireGround = false,
     bool CanGather = false,
-    bool CanConstruct = false);
+    bool CanConstruct = false,
+    int ConstructionWorkPerTick = 0);
 
 /// <summary>为命令服务提供不依赖 Godot Node 的单位查询。</summary>
 public interface IUnitCommandUnitRepository

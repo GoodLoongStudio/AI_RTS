@@ -40,6 +40,8 @@ var hp = null:
 	set = _set_hp
 var hp_max = null:
 	set = _set_hp_max
+var unit_type_id := ""
+var weapon_definition_id := ""
 var attack_damage = null
 var attack_interval = null
 var attack_range = null
@@ -50,14 +52,12 @@ var movement_domain:
 	get = _get_movement_domain
 var movement_speed:
 	get = _get_movement_speed
-var can_reverse:
-	get = _get_can_reverse
-var can_fire_while_moving:
-	get = _get_can_fire_while_moving
-var can_force_fire_ground:
-	get = _get_can_force_fire_ground
-var moving_weapon_arc_degrees:
-	get = _get_moving_weapon_arc_degrees
+var can_reverse := false
+var can_fire_while_moving := false
+var can_force_fire_ground := false
+var moving_weapon_arc_degrees := 0.0
+var resources_max := 0
+var construction_work_per_tick := 0
 var sight_range = null
 var player:
 	get:
@@ -83,7 +83,7 @@ func _ready():
 	if not _match.is_node_ready():
 		await _match.ready
 	_setup_color()
-	_setup_default_properties_from_constants()
+	_setup_properties_from_balance_catalog()
 	assert(_safety_checks())
 
 
@@ -316,22 +316,6 @@ func _get_movement_speed():
 	return 0.0
 
 
-func _get_can_reverse() -> bool:
-	return false
-
-
-func _get_can_fire_while_moving() -> bool:
-	return false
-
-
-func _get_can_force_fire_ground() -> bool:
-	return false
-
-
-func _get_moving_weapon_arc_degrees() -> float:
-	return 0.0
-
-
 func _is_movable():
 	return _get_movement_speed() > 0.0
 
@@ -403,12 +387,9 @@ func _handle_unit_death():
 	queue_free()
 
 
-func _setup_default_properties_from_constants():
-	var default_properties = Constants.Match.Units.DEFAULT_PROPERTIES[
-		get_script().resource_path.replace(".gd", ".tscn")
-	]
-	for property in default_properties:
-		set(property, default_properties[property])
+## 从 Match 唯一配置快照注入单位基础属性和当前主武器，不读取场景路径常量字典。
+func _setup_properties_from_balance_catalog():
+	_match.get_node("BalanceConfigRuntime").ConfigureUnit(self)
 
 
 func _on_action_node_tree_exited(action_node):

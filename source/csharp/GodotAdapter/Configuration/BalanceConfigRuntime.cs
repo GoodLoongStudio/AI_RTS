@@ -1,5 +1,6 @@
 using AI_RTS.Application.Configuration;
 using AI_RTS.Domain.Common;
+using AI_RTS.Domain.Combat;
 using AI_RTS.Domain.Configuration;
 using AI_RTS.Domain.Construction;
 using AI_RTS.Domain.Economy;
@@ -79,12 +80,96 @@ public partial class BalanceConfigRuntime : Node
         return definition.CollectionDurationMilliseconds / 1000.0;
     }
 
+    /// <summary>把不可变单位类型和主武器快照写入 Legacy Unit 表现节点。</summary>
+    public void ConfigureUnit(Node unit)
+    {
+        var definition = FindUnitType(unit) ??
+            throw new InvalidOperationException(
+                $"场景 {unit.SceneFilePath} 没有受信任的单位类型定义。");
+        unit.Set("unit_type_id", definition.Id.Value);
+        unit.Set("hp_max", definition.MaxHp);
+        unit.Set("hp", definition.MaxHp);
+        unit.Set("sight_range", definition.SightRangeMeters);
+        unit.Set("can_reverse", definition.Movement?.CanReverse ?? false);
+        unit.Set("can_fire_while_moving", definition.Movement?.CanFireWhileMoving ?? false);
+        unit.Set("can_force_fire_ground", definition.CanForceFireGround);
+        unit.Set("moving_weapon_arc_degrees",
+            definition.Movement?.MovingWeaponArcDegrees ?? 0.0f);
+        unit.Set("resources_max", definition.Gatherer?.CarryCapacity ?? 0);
+        unit.Set("construction_work_per_tick", definition.Constructor?.WorkPerTick ?? 0);
+        ConfigureMovement(unit, definition);
+        ConfigurePrimaryWeapon(unit, definition);
+    }
+
     /// <summary>按 PackedScene 查询已经验证的建筑施工定义。</summary>
     internal StructureConstructionDefinition? FindConstruction(PackedScene scene)
     {
         var unitTypeId = Assets.FindUnitType(scene);
         return unitTypeId is null ? null :
             Catalog.FindConstruction(new StructureDefinitionId(unitTypeId.Value.Value));
+    }
+
+    /// <summary>按运行时单位查询已经完整校验的实体类型定义。</summary>
+    internal UnitTypeDefinition? FindUnitType(Node unit)
+    {
+        var unitTypeId = Assets.FindUnitType(unit.SceneFilePath);
+        return unitTypeId is null ? null : Catalog.FindUnitType(unitTypeId.Value);
+    }
+
+    /// <summary>要求场景的 Movement trait 与配置能力一致，并注入速度和移动空间。</summary>
+    private static void ConfigureMovement(Node unit, UnitTypeDefinition definition)
+    {
+        var movement = unit.FindChild("Movement", false, false);
+        if (definition.Movement is null)
+        {
+            if (movement is not null)
+            {
+                throw new InvalidOperationException(
+                    $"实体 {definition.Id.Value} 有 Movement 节点但配置未声明移动能力。");
+            }
+            return;
+        }
+        if (movement is null)
+        {
+            throw new InvalidOperationException(
+                $"实体 {definition.Id.Value} 声明移动能力但场景缺少 Movement 节点。");
+        }
+        movement.Set("domain", definition.Movement.Domain == CombatDomain.Air ? 0 : 1);
+        movement.Set("speed", definition.Movement.SpeedMetersPerSecond);
+        movement.Set("reverse_speed_multiplier", definition.Movement.ReverseSpeedMultiplier);
+    }
+
+    /// <summary>把当前 Legacy 单武器执行器所需属性绑定到 Catalog 第一主武器。</summary>
+    private void ConfigurePrimaryWeapon(Node unit, UnitTypeDefinition definition)
+    {
+        if (definition.WeaponIds.Count > 1)
+        {
+            throw new InvalidOperationException(
+                $"实体 {definition.Id.Value} 配置了多件武器；当前执行器只支持一件主武器。");
+        }
+        if (definition.WeaponIds.Count == 0)
+        {
+            unit.Set("weapon_definition_id", string.Empty);
+            unit.Set("attack_damage", default(Variant));
+            unit.Set("attack_interval", default(Variant));
+            unit.Set("attack_range", default(Variant));
+            unit.Set("attack_domains", new Godot.Collections.Array());
+            return;
+        }
+
+        var weaponId = definition.WeaponIds[0];
+        var weapon = Catalog.FindWeapon(weaponId) ??
+            throw new InvalidOperationException($"主武器 {weaponId.Value} 不存在。");
+        unit.Set("weapon_definition_id", weapon.Id.Value);
+        unit.Set("attack_damage", weapon.BaseDamage);
+        unit.Set("attack_interval", weapon.CooldownMilliseconds / 1000.0);
+        unit.Set("attack_range", weapon.RangeMeters);
+        var domains = new Godot.Collections.Array();
+        foreach (var domain in weapon.TargetDomains.Order())
+        {
+            domains.Add(domain == CombatDomain.Air ? 0 : 1);
+        }
+        unit.Set("attack_domains", domains);
     }
 
     /// <summary>读取 res:// JSON；缺失或空文件交给上层严格 Loader 报告。</summary>

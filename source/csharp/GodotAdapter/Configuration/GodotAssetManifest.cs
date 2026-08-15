@@ -95,7 +95,11 @@ public sealed class GodotAssetManifest
 
     /// <summary>按 PackedScene 资源路径反查稳定实体类型。</summary>
     public UnitTypeId? FindUnitType(PackedScene scene) =>
-        _unitTypesByScenePath.TryGetValue(scene.ResourcePath, out var unitTypeId) ?
+        FindUnitType(scene.ResourcePath);
+
+    /// <summary>按实例保留的 PackedScene 资源路径反查稳定实体类型。</summary>
+    public UnitTypeId? FindUnitType(string scenePath) =>
+        _unitTypesByScenePath.TryGetValue(scenePath, out var unitTypeId) ?
             unitTypeId : null;
 
     /// <summary>按稳定建筑类型查询放置预览场景。</summary>
