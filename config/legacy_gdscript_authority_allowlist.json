@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "scan_root": "source",
+  "categories": [
+    {
+      "id": "unit_action_assignment",
+      "pattern": "(?:\\baction|\\.action)\\s*(?:\\+=|-=|(?<![=!<>])=(?!=))",
+      "allowed_files": [
+        "source/match/units/Unit.gd",
+        "source/match/units/Tank.gd",
+        "source/match/units/Helicopter.gd",
+        "source/match/units/AntiGroundTurret.gd",
+        "source/match/units/AntiAirTurret.gd"
+      ],
+      "reason": "Godot 单位执行端安装或切换已由公共命令链路授权的 Legacy Action。",
+      "replacement_scope": "导航、动画和武器表现稳定后，可逐类迁移为 C# GodotAdapter 状态节点。"
+    },
+    {
+      "id": "unit_hp_assignment",
+      "pattern": "(?:\\bhp|\\.hp)\\s*(?:\\+=|-=|(?<![=!<>])=(?!=))",
+      "allowed_files": [
+        "source/match/units/Unit.gd",
+        "source/match/debug/UnitsManager.gd"
+      ],
+      "reason": "Unit 是伤害与死亡表现落点；UnitsManager 仅提供受 God Mode 限制的调试删除。",
+      "replacement_scope": "保持伤害结算端口唯一；调试入口不得进入玩家、AI、HUD 或战役路径。"
+    },
+    {
+      "id": "non_damage_hp_mirror",
+      "pattern": "\\bset_hp_without_damage\\s*\\(",
+      "allowed_files": [
+        "source/match/units/Unit.gd",
+        "source/match/units/Structure.gd"
+      ],
+      "reason": "施工表现把 C# 权威工作量镜像到建筑 HP，且不得触发受击事件。",
+      "replacement_scope": "维修与施工 HP 规则确定后，将镜像策略收敛到专用 GodotAdapter。"
+    },
+    {
+      "id": "legacy_resource_state_assignment",
+      "pattern": "(?:\\bresource_[ab]|\\.resource_[ab])\\s*(?:\\+=|-=|(?<![=!<>])=(?!=))",
+      "allowed_files": [
+        "source/match/players/Player.gd",
+        "source/match/units/Worker.gd",
+        "source/match/units/non-player/ResourceA.gd",
+        "source/match/units/non-player/ResourceB.gd",
+        "source/match/units/actions/CollectingResourcesWhileInRange.gd",
+        "source/match/units/actions/CollectingResourcesSequentially.gd"
+      ],
+      "reason": "Player 只镜像 C# 账户快照；资源节点库存与 Worker 在途载荷暂属 Legacy 现场执行状态。",
+      "replacement_scope": "资源刷新、劫掠和载荷转移规则确定后，将现场库存与载荷迁移为独立 C# 服务。"
+    },
+    {
+      "id": "production_deployment_and_entity_composition",
+      "pattern": "(?:\\b_setup_and_spawn_unit\\s*\\(|\\bsetup_and_spawn_unit\\.emit\\s*\\()",
+      "allowed_files": [
+        "source/match/Match.gd",
+        "source/match/units/traits/ProductionQueue.gd"
+      ],
+      "reason": "C# 完成生产或放置决策后，由 Godot 部署端口和 Match 组合根实例化实体。",
+      "replacement_scope": "传送、空投等特殊部署必须新增受权部署端口，不允许调用者直接生成实体。"
+    },
+    {
+      "id": "construction_presentation_lifecycle",
+      "pattern": "\\b(?:mark_as_under_construction|apply_authoritative_construction_work|complete_authoritative_construction|cancel_authoritative_construction)\\s*\\(",
+      "allowed_files": [
+        "source/match/Match.gd",
+        "source/match/units/Structure.gd"
+      ],
+      "reason": "Match 创建已验证蓝图；Structure 接收 C# 权威施工快照与终态并更新表现。",
+      "replacement_scope": "施工成本、进度、Builder、退款与摧毁结果继续由 C# 服务决定。"
+    },
+    {
+      "id": "dynamic_authority_property_write",
+      "pattern": "\\.set\\s*\\(\\s*[\\\"'](?:action|hp|resource_a|resource_b)[\\\"']\\s*,",
+      "allowed_files": [],
+      "reason": "禁止通过动态属性写入隐藏 Action、HP 或资源权威旁路。",
+      "replacement_scope": "必须改用已评审的强类型公共 C# 边界，并在新增权威字段时扩展本清单。"
+    }
+  ]
+}

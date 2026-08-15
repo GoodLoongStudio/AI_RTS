@@ -2,7 +2,7 @@
 
 > 对应进度：`ARCH-015`
 >
-> 状态：规则评审中，尚未建立自动门禁
+> 状态：规则已通过评审，自动门禁已建立
 >
 > 日期：2026-08-15
 
@@ -124,7 +124,7 @@
 
 ## 4. 机器门禁设计
 
-建议新增：
+已新增：
 
 ```text
 config/legacy_gdscript_authority_allowlist.json
@@ -153,7 +153,7 @@ JSON 每一类至少包含：
 
 ## 5. 建议评审结论
 
-建议确认：
+2026-08-15 已确认：
 
 1. 本次重构允许保留上述六类 GDScript 边界，不要求文件数量归零；
 2. Human、规则 AI、HUD、战役和外部 Agent 维持“只能调用公共 C# 边界”的硬规则；
@@ -165,3 +165,30 @@ JSON 每一类至少包含：
 8. 新增一种权威字段或动态写法时必须先更新审计规则并经过评审；
 9. 本轮只建立门禁并清除未登记旁路，不借机重写导航、采集表现或冻结战役；
 10. ARCH-015 完成条件为：扫描脚本通过、人工复核无未知旁路、完整回归无行为变化。
+
+## 6. 使用方法
+
+Windows PowerShell 默认执行策略可能禁止直接运行本地脚本。开发机可从仓库根目录执行：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\audit_legacy_gdscript_authority.ps1
+```
+
+验证审计器能够拒绝未知旁路和错误清单：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\audit_legacy_gdscript_authority.ps1 -SelfTest
+```
+
+GitHub Actions 会在向 `main` 提交 Pull Request、推送 `main` 或手动触发时依次运行自测和生产扫描。修改清单不得用目录通配符放宽权限；新增权威字段、动态写法或 Legacy 执行文件时，应先提交接口评审依据，再精确更新类别。
+
+## 7. 实施与验收记录
+
+2026-08-15：
+
+- 七类扫描规则及精确文件允许清单已写入 `config/legacy_gdscript_authority_allowlist.json`；
+- 扫描器共检查 `source` 下 128 个 GDScript 文件，命中 61 处已登记写入，未知旁路为零；
+- 内置自测确认合法写入通过、未知 Action 写入失败、空原因清单失败；
+- `OpenRTS.csproj` 构建通过，0 警告、0 错误；
+- 101 项纯 C# 核心测试全部通过；
+- 本项只新增配置、审计工具、CI 与文档，没有修改 Godot 运行时代码；此前已通过的功能与人工回归结论不发生行为变化。
