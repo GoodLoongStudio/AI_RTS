@@ -26,11 +26,13 @@ var _blueprint_rotating = false
 @onready var _feedback_label = find_child("FeedbackLabel3D")
 @onready var _placement_runtime = _match.find_child("StructurePlacementRuntime")
 @onready var _balance_runtime = _match.find_child("BalanceConfigRuntime")
+@onready var _input_runtime = _match.get_node("InputBindingRuntime")
 
 
 func _ready():
 	_feedback_label.hide()
 	MatchSignals.place_structure.connect(_on_structure_placement_request)
+	_input_runtime.connect("ActionPressed", _on_input_action_pressed)
 
 
 func _unhandled_input(event):
@@ -38,8 +40,6 @@ func _unhandled_input(event):
 		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 		_handle_lmb_down_event(event)
-	if event.is_action_pressed("rotate_structure"):
-		_try_rotating_blueprint_by(ROTATION_BY_KEY_STEP)
 	if (
 		event is InputEventMouseButton
 		and event.button_index == MOUSE_BUTTON_LEFT
@@ -154,6 +154,7 @@ func _start_structure_placement(structure_prototype):
 		rotate_towards, Vector3.UP
 	)
 	add_child(_active_blueprint_node)
+	_input_runtime.SetContextActive("BuildPlacement", true)
 
 
 func _set_blueprint_position_based_on_mouse_pos():
@@ -182,6 +183,7 @@ func _cancel_structure_placement():
 		_active_blueprint_node.queue_free()
 		_active_blueprint_node = null
 	_pending_construction_workers = []
+	_input_runtime.SetContextActive("BuildPlacement", false)
 
 
 func _finish_structure_placement():
@@ -239,3 +241,8 @@ func _finish_blueprint_rotation():
 
 func _on_structure_placement_request(structure_prototype):
 	_start_structure_placement(structure_prototype)
+
+
+func _on_input_action_pressed(action_id: String):
+	if action_id == "build.rotate":
+		_try_rotating_blueprint_by(ROTATION_BY_KEY_STEP)

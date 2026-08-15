@@ -1,23 +1,21 @@
 extends Node3D
 
-var _set_action_names = [null]
-var _get_action_names = [null]
 var _unit_group_names = [null]
+@onready var _input_runtime = find_parent("Match").get_node("InputBindingRuntime")
 
 
 func _ready():
 	for group_id in range(1, 10):
-		_set_action_names.append("unit_groups_set_{0}".format([group_id]))
-		_get_action_names.append("unit_groups_access_{0}".format([group_id]))
 		_unit_group_names.append("unit_group_{0}".format([group_id]))
+	_input_runtime.connect("ActionPressed", _on_input_action_pressed)
 
 
-func _input(event):
+func _on_input_action_pressed(action_id: String):
 	for group_id in range(1, 10):
-		if event.is_action_pressed(_set_action_names[group_id]):
+		if action_id == "group.set_%d" % group_id:
 			set_group(group_id)
 			return
-		if event.is_action_pressed(_get_action_names[group_id]):
+		if action_id == "group.access_%d" % group_id:
 			access_group(group_id)
 			return
 

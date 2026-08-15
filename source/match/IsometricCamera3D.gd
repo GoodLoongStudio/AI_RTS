@@ -28,6 +28,7 @@ var _mouse_pos_when_rotation_started = null
 var _camera_global_pos_when_rotation_started = null
 var _smoothed_screen_move_vector := Vector2.ZERO
 var _follow_target: Node3D = null
+@onready var _input_runtime = get_parent().get_node("InputBindingRuntime")
 
 
 func _ready():
@@ -168,8 +169,8 @@ func _calculate_screen_move_vector() -> Vector2:
 	var viewport_size := Vector2(get_viewport().size)
 	var mouse_pos := get_viewport().get_mouse_position()
 	var keyboard_move_vector := Vector2(
-		Input.get_axis("move_map_left", "move_map_right"),
-		Input.get_axis("move_map_up", "move_map_down")
+		_input_runtime.GetAxis("camera.move_left", "camera.move_right"),
+		_input_runtime.GetAxis("camera.move_up", "camera.move_down")
 	).limit_length(1.0)
 
 	# Keyboard movement stays available even when the player disables edge scrolling.
@@ -230,7 +231,7 @@ func _try_handling_arrowkey_rotation(delta: float):
 		return
 	var angle_radians = (
 		delta
-		* Input.get_axis("rotate_map_counterclockwise", "rotate_map_clockwise")
+		* _input_runtime.GetAxis("camera.rotate_counterclockwise", "camera.rotate_clockwise")
 		* arrowkey_rotation_speed
 	)
 	if not is_zero_approx(angle_radians):

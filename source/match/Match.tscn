@@ -1,4 +1,4 @@
-[gd_scene load_steps=50 format=3 uid="uid://camns8fqod8d4"]
+[gd_scene load_steps=51 format=3 uid="uid://camns8fqod8d4"]
 
 [ext_resource type="Script" path="res://source/match/Match.gd" id="1_1555u"]
 [ext_resource type="Script" path="res://source/csharp/GodotAdapter/Composition/CommandRuntime.cs" id="1_command_runtime"]
@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://source/csharp/GodotAdapter/Production/ProductionRuntime.cs" id="1_production_runtime"]
 [ext_resource type="Script" path="res://source/csharp/GodotAdapter/Rally/RallyPointRuntime.cs" id="1_rally_runtime"]
 [ext_resource type="Script" path="res://source/csharp/GodotAdapter/Configuration/BalanceConfigRuntime.cs" id="1_balance_config_runtime"]
+[ext_resource type="Script" path="res://source/csharp/GodotAdapter/Input/InputBindingRuntime.cs" id="1_input_binding_runtime"]
 [ext_resource type="Script" path="res://source/match/IsometricCamera3D.gd" id="1_qb2ry"]
 [ext_resource type="Script" path="res://source/match/FogOfWar.gd" id="5_eb52t"]
 [ext_resource type="PackedScene" uid="uid://co800e4shs7bh" path="res://source/generic-scenes-and-nodes/3d/RectangularSelection3D.tscn" id="5_yi0pu"]
@@ -130,6 +131,10 @@ script = ExtResource("1_1555u")
 
 [node name="BalanceConfigRuntime" type="Node" parent="."]
 script = ExtResource("1_balance_config_runtime")
+
+[node name="InputBindingRuntime" type="Node" parent="."]
+process_mode = 3
+script = ExtResource("1_input_binding_runtime")
 
 [node name="CommandRuntime" type="Node" parent="."]
 script = ExtResource("1_command_runtime")

@@ -26,7 +26,13 @@ static func traverse_node_tree_and_replace_materials_matching_albedo(
 
 
 static func select_units(units_to_select):
-	if not units_to_select.empty() and not Input.is_action_pressed("shift_selecting"):
+	var shift_selecting := false
+	if not units_to_select.empty():
+		var first_unit = units_to_select.peek()
+		var match_node = first_unit.find_parent("Match") if first_unit != null else null
+		var input_runtime = match_node.get_node_or_null("InputBindingRuntime") if match_node != null else null
+		shift_selecting = input_runtime != null and input_runtime.IsModifierPressed("Shift")
+	if not units_to_select.empty() and not shift_selecting:
 		MatchSignals.deselect_all_units.emit()
 	for unit in units_to_select.iterate():
 		var selection = unit.find_child("Selection")

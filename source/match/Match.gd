@@ -33,6 +33,7 @@ var visible_players = null:
 @onready var _camera = $IsometricCamera3D
 @onready var _players = $Players
 @onready var _terrain = $Terrain
+@onready var _input_runtime = $InputBindingRuntime
 
 
 func _enter_tree():
@@ -57,7 +58,7 @@ func _ready():
 
 func _unhandled_input(event):
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		if Input.is_action_pressed("shift_selecting"):
+		if _input_runtime.IsModifierPressed("Shift"):
 			return
 		MatchSignals.deselect_all_units.emit()
 

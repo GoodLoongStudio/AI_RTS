@@ -7,7 +7,14 @@ signal player_text_submitted(text)
 const WaitingForTargets = preload("res://source/match/units/actions/WaitingForTargets.gd")
 
 const SQUAD_NAMES = {1: "突击队", 2: "侦察队", 3: "支援队"}
-const COMMAND_KEYS = {KEY_Q: "MOVE", KEY_W: "ATTACK", KEY_E: "DEFEND", KEY_R: "SCOUT", KEY_D: "RETREAT", KEY_F: "STOP"}
+const COMMAND_ACTIONS = {
+	"legacy.command_move": "MOVE",
+	"legacy.command_attack": "ATTACK",
+	"legacy.command_defend": "DEFEND",
+	"legacy.command_scout": "SCOUT",
+	"legacy.command_retreat": "RETREAT",
+	"legacy.command_stop": "STOP",
+}
 const COMMAND_LABELS = {
 	"MOVE": "移动", "ATTACK": "攻击", "DEFEND": "防守",
 	"SCOUT": "侦察", "RETREAT": "撤退", "STOP": "停止"
@@ -33,12 +40,14 @@ var _current_objective := "等待战区任务同步"
 var _current_suggestion := "保持待命，等待新的任务信息。"
 var _current_risk := "未知"
 var _mock_agent_busy := false
+@onready var _input_runtime = find_parent("Match").get_node("InputBindingRuntime")
 
 
 func _ready():
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_build_ui()
+	_input_runtime.connect("ActionPressed", _on_input_action_pressed)
 	MatchSignals.terrain_targeted.connect(_on_terrain_targeted)
 	MatchSignals.unit_targeted.connect(_on_unit_targeted)
 	if _is_hero_mode():
@@ -52,43 +61,36 @@ func _ready():
 
 func set_interface_visible(should_show: bool):
 	visible = should_show
-	set_process_unhandled_key_input(should_show)
 	if not should_show:
 		pending_command = ""
 		if _input != null:
 			_input.release_focus()
+	_input_runtime.SetContextActive("LegacyAgent", should_show)
 
 
 func is_interface_visible() -> bool:
 	return visible
 
 
-func _unhandled_key_input(event: InputEvent):
+func _on_input_action_pressed(action_id: String):
 	if not visible:
 		return
-	if not event.pressed or event.echo:
+	if action_id == "text.cancel":
+		_input.release_focus()
 		return
-	if event.keycode == KEY_F1 and _is_hero_mode():
+	if action_id == "legacy.hero_focus" and _is_hero_mode():
 		_handle_hero_focus_hotkey()
-		get_viewport().set_input_as_handled()
 		return
 	if _input.has_focus():
-		if event.keycode == KEY_ESCAPE:
-			_input.release_focus()
 		return
-	match event.keycode:
-		KEY_1:
-			_select_squad(1)
-		KEY_2:
-			if not _is_hero_mode():
-				_select_squad(2)
-		KEY_3:
-			if not _is_hero_mode():
-				_select_squad(3)
-		KEY_ENTER:
-			_input.grab_focus()
-		KEY_Q, KEY_W, KEY_E, KEY_R, KEY_D, KEY_F:
-			_begin_command(COMMAND_KEYS[event.keycode])
+	if action_id.begins_with("legacy.squad_"):
+		var squad_id := int(action_id.trim_prefix("legacy.squad_"))
+		if squad_id == 1 or not _is_hero_mode():
+			_select_squad(squad_id)
+	elif action_id == "legacy.chat_focus":
+		_input.grab_focus()
+	elif COMMAND_ACTIONS.has(action_id):
+		_begin_command(COMMAND_ACTIONS[action_id])
 
 
 func _build_ui():
@@ -201,6 +203,8 @@ func _build_ui():
 		_input.placeholder_text = "对岚说：二队向右侦察；评估风险；一队原地防守……"
 	_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_input.text_submitted.connect(_on_text_submitted)
+	_input.focus_entered.connect(_input_runtime.EnterTextInputMode)
+	_input.focus_exited.connect(_input_runtime.ExitTextInputMode)
 	input_row.add_child(_input)
 	var send := Button.new()
 	send.text = "发送"
