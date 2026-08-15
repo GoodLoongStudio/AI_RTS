@@ -19,6 +19,8 @@ var _resource_requests = {
 	ResourceRequestPriority.HIGH: [],
 }
 var _call_to_perform_during_process = null
+var _world_query_runtime = null
+var _query_session_id := ""
 
 @onready var _match = find_parent("Match")
 
@@ -29,12 +31,21 @@ var _call_to_perform_during_process = null
 @onready var _construction_works_controller = find_child("ConstructionWorksController")
 
 
+## 接收 Match 组合根签发的本玩家标准查询会话；规则 AI 不得自行选择观察者身份。
+func setup_world_query(world_query_runtime, query_session_id: String):
+	assert(_world_query_runtime == null, "world query session can only be configured once")
+	assert(not query_session_id.is_empty(), "rule AI requires a standard query session")
+	_world_query_runtime = world_query_runtime
+	_query_session_id = query_session_id
+
+
 func _ready():
 	# wait for match to be ready
 	if not _match.is_node_ready():
 		await _match.ready
 	# wait additional frame to make sure other players are in place
 	await get_tree().physics_frame
+	assert(_world_query_runtime != null, "rule AI world query must be configured by Match")
 
 	changed.connect(_on_player_data_changed)
 	_economy_controller.resources_required.connect(
@@ -81,7 +92,7 @@ func _try_fulfilling_resource_requests_according_to_priorities():
 	]:
 		while (
 			not _resource_requests[priority].is_empty()
-			and has_resources(_resource_requests[priority].front()["resources"])
+			and _has_resources(_resource_requests[priority].front()["resources"])
 		):
 			var resource_request = _resource_requests[priority].pop_front()
 			_provision(
@@ -91,9 +102,22 @@ func _try_fulfilling_resource_requests_according_to_priorities():
 			)
 		if (
 			not _resource_requests[priority].is_empty()
-			and not has_resources(_resource_requests[priority].front()["resources"])
+			and not _has_resources(_resource_requests[priority].front()["resources"])
 		):
 			break
+
+
+## 通过己方标准查询会话检查资源请求能否进入执行阶段。
+func _has_resources(resources: Dictionary) -> bool:
+	var result: Dictionary = _world_query_runtime.GetOwnEconomy(_query_session_id)
+	if result.get("status", "") != "Accepted":
+		push_warning("rule AI economy query was rejected: %s" % result.get("error", "Unknown"))
+		return false
+	var balances: Dictionary = result.get("economy", {}).get("balances", {})
+	for resource_name in resources:
+		if not balances.has(resource_name) or balances[resource_name] < resources[resource_name]:
+			return false
+	return true
 
 
 func _on_player_data_changed():

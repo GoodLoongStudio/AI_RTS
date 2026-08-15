@@ -1,5 +1,6 @@
 using AI_RTS.Application.Queries;
 using AI_RTS.Domain.Common;
+using AI_RTS.Domain.Economy;
 using AI_RTS.Domain.Queries;
 using AI_RTS.GodotAdapter.Common;
 using AI_RTS.GodotAdapter.Economy;
@@ -57,6 +58,7 @@ public partial class WorldQueryRuntime : Node
         _queries = new WorldQueryService(
             new GodotWorldObservationRepository(GetParent(), economy.AccountService),
             grants);
+        BindRuleAiSessions(playersRoot, humanPlayer);
     }
 
     /// <summary>仅供当前自动/人工测试取得组合根已签发的标准会话；正式 Agent Gateway 不暴露此入口。</summary>
@@ -128,6 +130,26 @@ public partial class WorldQueryRuntime : Node
     private static QuerySessionId Session(string value) => Guid.TryParse(value, out var id) ?
         new QuerySessionId(id) : new QuerySessionId(Guid.Empty);
 
+    /// <summary>由对局组合根把每个传统规则 AI 绑定到其自身的标准权限会话。</summary>
+    private void BindRuleAiSessions(Node playersRoot, Node? humanPlayer)
+    {
+        foreach (var player in playersRoot.GetChildren().OfType<Node>())
+        {
+            if (player == humanPlayer || !player.IsInGroup("players") ||
+                !player.HasMethod("setup_world_query"))
+            {
+                continue;
+            }
+            var playerId = GodotStableIdentity.Player(player);
+            if (!_standardSessions.TryGetValue(playerId, out var session))
+            {
+                GD.PushError($"无法为传统规则 AI {player.Name} 绑定标准查询会话。");
+                continue;
+            }
+            player.Call("setup_world_query", this, session.Value.ToString("D"));
+        }
+    }
+
     private static ObservationField Fields(int value) => (ObservationField)value;
 
     private static string FindSession(
@@ -167,12 +189,20 @@ public partial class WorldQueryRuntime : Node
             var balances = new Godot.Collections.Dictionary();
             foreach (var amount in result.Value.Balances)
             {
-                balances[amount.Kind.ToString().ToLowerInvariant()] = amount.Amount;
+                balances[ResourceKey(amount.Kind)] = amount.Amount;
             }
             economy["balances"] = balances;
         }
         return Envelope(result.Status, result.ErrorCode, result.ObservationRevision, "economy", economy);
     }
+
+    /// <summary>把强类型资源映射为 Godot 与外置配置共同使用的稳定字段名。</summary>
+    private static string ResourceKey(ResourceKind kind) => kind switch
+    {
+        ResourceKind.A => "resource_a",
+        ResourceKind.B => "resource_b",
+        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "未知资源类型。")
+    };
 
     private static Godot.Collections.Dictionary ToGodot(EntityObservation observation) => new()
     {
