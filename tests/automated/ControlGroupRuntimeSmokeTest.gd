@@ -70,7 +70,7 @@ func _ready():
 	print("Control group runtime smoke test completed: %d failure(s)" % _failures)
 	match_instance.queue_free()
 	await get_tree().process_frame
-	get_tree().quit(0 if _failures == 0 else 1)
+	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1)
 
 
 ## 用指定节点集合替换当前 Godot Selection。

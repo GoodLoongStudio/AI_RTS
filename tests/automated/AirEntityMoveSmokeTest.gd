@@ -6,6 +6,7 @@ const Moving = preload("res://source/match/units/actions/Moving.gd")
 const MovingToUnit = preload("res://source/match/units/actions/MovingToUnit.gd")
 const Following = preload("res://source/match/units/actions/Following.gd")
 const OrdinaryAttacking = preload("res://source/match/units/actions/OrdinaryAttacking.gd")
+const SmokeTestExit = preload("res://tests/automated/SmokeTestExit.gd")
 
 var _failures := 0
 var _order_events: Array[Dictionary] = []
@@ -123,7 +124,7 @@ func _ready():
 	print("Air entity move smoke test completed: %d failure(s)" % _failures)
 	match_instance.queue_free()
 	await get_tree().process_frame
-	get_tree().quit(0 if _failures == 0 else 1)
+	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1)
 
 
 ## 收集 Match 级订单状态，用于确认普通实体点击产生 Move 而非攻击订单。

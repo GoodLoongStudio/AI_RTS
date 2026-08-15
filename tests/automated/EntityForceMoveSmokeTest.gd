@@ -65,7 +65,7 @@ func _ready():
 	print("Entity ForceMove smoke test completed: %d failure(s)" % _failures)
 	match_instance.queue_free()
 	await get_tree().process_frame
-	get_tree().quit(0 if _failures == 0 else 1)
+	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1)
 
 
 ## 收集 Match 级命令运行时发布的订单状态，用于区分 ForceMove 与普通 Move/Attack。

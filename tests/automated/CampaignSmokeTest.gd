@@ -139,7 +139,7 @@ func _run_test():
 	a_match.queue_free()
 	await get_tree().process_frame
 	await get_tree().process_frame
-	get_tree().quit(0 if _failures.is_empty() else 1)
+	SmokeTestExit.request(get_tree(), 0 if _failures.is_empty() else 1)
 
 
 func _check(condition: bool, message: String):

@@ -71,7 +71,7 @@ func _ready():
 	print("Rule AI intelligence smoke test completed: %d failure(s)" % _failures)
 	match_instance.queue_free()
 	await get_tree().process_frame
-	get_tree().quit(0 if _failures == 0 else 1)
+	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1)
 
 
 ## 返回规则 AI 当前全部 Drone 的准确己方观察。

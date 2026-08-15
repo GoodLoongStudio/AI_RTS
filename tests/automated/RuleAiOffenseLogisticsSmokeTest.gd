@@ -130,7 +130,7 @@ func _ready():
 	await get_tree().process_frame
 	var managed_gc_hook = ManagedGcTestHook.new()
 	managed_gc_hook.CollectPendingFinalizers()
-	get_tree().quit(0 if _failures == 0 else 1)
+	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1)
 
 
 ## 返回规则 AI 当前生产后勤所需的己方观察字段。

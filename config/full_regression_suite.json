@@ -8,7 +8,10 @@
     "Cannot open file 'res://source/",
     "Failed loading resource: res://source/",
     "Assertion failed",
-    "ASSERTION_FAILED"
+    "ASSERTION_FAILED",
+    "RID allocations of type .* were leaked at exit",
+    "ObjectDB instances were leaked at exit",
+    "resources still in use at exit"
   ],
   "godot_tests": [
     { "id": "air-entity-move", "category": "commands", "scene": "res://tests/automated/AirEntityMoveSmokeTest.tscn", "expected_marker": "Air entity move smoke test completed: 0 failure(s)", "timeout_seconds": 90 },

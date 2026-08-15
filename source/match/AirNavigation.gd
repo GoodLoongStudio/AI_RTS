@@ -19,6 +19,15 @@ func _ready():
 	_reference_static_collider_shape.global_transform.origin.y = Constants.Match.Air.Y
 
 
+## 释放由本节点通过 NavigationServer3D 直接创建的空域地图 RID。
+func release_navigation_map():
+	if not navigation_map_rid.is_valid():
+		return
+	NavigationServer3D.map_set_active(navigation_map_rid, false)
+	NavigationServer3D.free_rid(navigation_map_rid)
+	navigation_map_rid = RID()
+
+
 ## 调整空中参考碰撞体后等待 PhysicsServer 同步，再据此烘焙运行时 NavMesh。
 func bake(map):
 	assert(

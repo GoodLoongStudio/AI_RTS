@@ -48,6 +48,10 @@ func _ready():
 	_audio_player.finished.connect(_on_audio_finished)
 
 
+func _exit_tree():
+	_release_audio_playback()
+
+
 ## 按稳定优先级播放旁白；高优先级完成提示可打断 training，反向覆盖则被拒绝。
 func _handle_event(event, priority: int = PRIORITY_NORMAL):
 	if (
@@ -132,3 +136,11 @@ func _on_construction_finished(unit):
 func _on_not_enough_resources(player):
 	if player == get_parent():
 		_handle_event(Constants.Match.VoiceNarrator.Events.NOT_ENOUGH_RESOURCES)
+
+
+## 在场景卸载前停止并释放当前旁白流，避免音频线程继续持有已退出场景的资源。
+func _release_audio_playback():
+	if not is_instance_valid(_audio_player):
+		return
+	_audio_player.stop()
+	_audio_player.stream = null

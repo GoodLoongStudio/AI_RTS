@@ -80,7 +80,7 @@ func _ready():
 	print("Multi-unit command smoke test completed: %d failure(s)" % _failures)
 	match_instance.queue_free()
 	await get_tree().process_frame
-	get_tree().quit(0 if _failures == 0 else 1)
+	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1)
 
 
 ## 按 Godot 节点保存的稳定 UnitId 查找逐单位命令结果，不依赖结果数组顺序。

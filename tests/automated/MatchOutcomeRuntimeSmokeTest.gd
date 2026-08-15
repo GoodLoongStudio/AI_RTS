@@ -19,7 +19,7 @@ func _ready():
 	await _test_actual_match_unit_death_path()
 
 	print("Match outcome runtime smoke test completed: %d failure(s)" % _failures)
-	get_tree().quit(0 if _failures == 0 else 1)
+	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1)
 
 
 ## 验证新生成单位会延后淘汰，并在最后一个敌方单位死亡后显示胜利。

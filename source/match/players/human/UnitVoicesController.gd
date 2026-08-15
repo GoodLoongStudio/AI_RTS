@@ -15,6 +15,10 @@ func _ready() -> void:
 	MatchSignals.terrain_targeted.connect(_on_unit_action_requsted)
 
 
+func _exit_tree():
+	_release_audio_playback()
+
+
 func _handle_event(event):
 	if _audio_player.playing:
 		return
@@ -40,3 +44,11 @@ func _on_unit_action_requsted(_ignore, _target_position = Vector3.INF):
 			)
 		)
 		_last_ack_event = (_last_ack_event + 1) % 2
+
+
+## 在场景卸载前停止并释放当前单位语音流，避免播放对象跨越场景生命周期。
+func _release_audio_playback():
+	if not is_instance_valid(_audio_player):
+		return
+	_audio_player.stop()
+	_audio_player.stream = null
