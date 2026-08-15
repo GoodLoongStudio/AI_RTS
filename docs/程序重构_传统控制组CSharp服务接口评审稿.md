@@ -248,3 +248,5 @@ public sealed record ControlGroupSaveResult(
 - `CampaignSmokeTest` 与 `TraditionalUnitCommandHudSmokeTest` 回归通过；无头退出仍报告既有导航 RID/ObjectDB 泄漏，已与本项功能结果分开登记。
 
 人工验收建议只检查本轮可见行为：连续覆盖、同一单位保存到多个编号、空组取消选择、成员死亡后召回，以及 AI 副官 HUD 不再显示玩家控制组。Formation、镜头聚焦和追加选择仍不属于本轮范围。
+
+2026-08-15 项目负责人人工验收通过：传统控制组保存、访问与编队表现符合预期。`CMD-021` 与本纵向切片包含的 `AIFR-011` 工作完成。
