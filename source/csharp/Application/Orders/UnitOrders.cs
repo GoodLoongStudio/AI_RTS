@@ -59,14 +59,29 @@ public enum UnitOrderState
     UnitLost
 }
 
-/// <summary>记录一个单位订单的身份、来源命令和当前状态。</summary>
+/// <summary>表示订单创建时已经确认的目标意图，不承担目标的实时状态查询。</summary>
+public abstract record UnitOrderTarget;
+
+/// <summary>记录订单指向的稳定世界实体以及下令时已知的稳定类型。</summary>
+/// <param name="EntityId">目标实体的稳定身份。</param>
+/// <param name="TypeId">下令时已知的稳定类型；未知时为空。</param>
+public sealed record UnitOrderEntityTarget(
+    BattlefieldEntityId EntityId,
+    string? TypeId = null) : UnitOrderTarget;
+
+/// <summary>记录订单指向的纯世界坐标。</summary>
+/// <param name="Position">下令时确定的世界位置。</param>
+public sealed record UnitOrderPositionTarget(WorldPosition Position) : UnitOrderTarget;
+
+/// <summary>记录一个单位订单的身份、来源命令、当前状态和原始目标意图。</summary>
 public sealed record UnitOrderSnapshot(
     UnitOrderId OrderId,
     CommandId CommandId,
     UnitId UnitId,
     UnitOrderKind Kind,
     UnitOrderState State,
-    CommandId? ReplacedByCommandId = null);
+    CommandId? ReplacedByCommandId = null,
+    UnitOrderTarget? Target = null);
 
 /// <summary>记录一次权威订单状态变化，供表现层、任务系统和受权限约束的观察适配器消费。</summary>
 public sealed record UnitOrderStateChanged(
@@ -80,7 +95,11 @@ public interface IUnitOrderStore
     event Action<UnitOrderStateChanged>? StateChanged;
 
     /// <summary>为单位创建新订单，并取消其旧活动订单。</summary>
-    UnitOrderSnapshot Create(CommandId commandId, UnitId unitId, UnitOrderKind kind);
+    UnitOrderSnapshot Create(
+        CommandId commandId,
+        UnitId unitId,
+        UnitOrderKind kind,
+        UnitOrderTarget? target = null);
 
     /// <summary>查询单位当前仍可继续变化的活动订单。</summary>
     UnitOrderSnapshot? FindActive(UnitId unitId);
@@ -105,7 +124,11 @@ public sealed class InMemoryUnitOrderStore : IUnitOrderStore
     private readonly Dictionary<UnitId, UnitOrderId> _activeByUnit = new();
 
     /// <inheritdoc />
-    public UnitOrderSnapshot Create(CommandId commandId, UnitId unitId, UnitOrderKind kind)
+    public UnitOrderSnapshot Create(
+        CommandId commandId,
+        UnitId unitId,
+        UnitOrderKind kind,
+        UnitOrderTarget? target = null)
     {
         if (FindActive(unitId) is { } previous)
         {
@@ -113,7 +136,12 @@ public sealed class InMemoryUnitOrderStore : IUnitOrderStore
         }
 
         var order = new UnitOrderSnapshot(
-            new UnitOrderId(Guid.NewGuid()), commandId, unitId, kind, UnitOrderState.Accepted);
+            new UnitOrderId(Guid.NewGuid()),
+            commandId,
+            unitId,
+            kind,
+            UnitOrderState.Accepted,
+            Target: target);
         _orders.Add(order.OrderId, order);
         _activeByUnit[unitId] = order.OrderId;
         StateChanged?.Invoke(new UnitOrderStateChanged(null, order));

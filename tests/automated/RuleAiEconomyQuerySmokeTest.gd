@@ -4,6 +4,7 @@ const MatchScene = preload("res://tests/manual/TestPlayerVsAI.tscn")
 const FIELD_TYPE := 1 << 1
 const FIELD_CONSTRUCTION := 1 << 4
 const FIELD_PRODUCTION := 1 << 5
+const FIELD_ORDER := 1 << 6
 
 var _failures := 0
 
@@ -31,7 +32,7 @@ func _ready():
 		"Match 应为传统规则 AI 注入固定身份的稳定 ID 命令适配器")
 	var forces: Dictionary = rule_ai.get("_world_query_runtime").GetOwnForces(
 		rule_ai.get("_query_session_id"),
-		FIELD_TYPE | FIELD_CONSTRUCTION | FIELD_PRODUCTION
+		FIELD_TYPE | FIELD_CONSTRUCTION | FIELD_PRODUCTION | FIELD_ORDER
 	)
 	var workers: Array = forces["entities"].filter(
 		func(entity): return entity.get("type_id", "") == "worker"
@@ -45,6 +46,65 @@ func _ready():
 		func(entity): return entity.get("production", null) != null
 	)
 	_check(not workers.is_empty(), "己方查询应返回规则 AI 的稳定 Worker ID")
+	var gathering_workers: Array = workers.filter(
+		func(worker):
+			var order = worker.get("order", null)
+			return order != null and order.get("kind", "") == "Gather"
+	)
+	_check(not gathering_workers.is_empty(),
+		"EconomyController 应通过稳定 ID Gather 为无订单 Worker 分配可见资源")
+	if not gathering_workers.is_empty():
+		var target = gathering_workers[0]["order"].get("target", null)
+		_check(
+			target != null
+			and target.get("entity_kind", "") == "ResourceNode"
+			and target.get("type_id", "") in ["resource_a", "resource_b"],
+			"Gather 活动订单应返回下令时确认的资源 ID 与稳定类型"
+		)
+		var invalid_gather: Dictionary = rule_ai.get_node("RuleAiCommandGateway").Gather(
+			[gathering_workers[0]["id"]],
+			"00000000-0000-0000-0000-000000000001"
+		)
+		_check(
+			invalid_gather.get("status", "") == "Rejected"
+			and invalid_gather["unit_results"][0].get("error_code", "")
+			== "ResourceTargetNotFound",
+			"固定身份 Gather 应拒绝不存在的稳定资源 ID"
+		)
+		var gathering_worker_id: String = gathering_workers[0]["id"]
+		var gathering_worker_node = null
+		for unit in get_tree().get_nodes_in_group("units"):
+			var reference: Dictionary = (
+			rule_ai
+				. get("_world_query_runtime")
+				. GetOwnEntityReferenceForTests(unit, rule_ai)
+			)
+			if reference.get("id", "") == gathering_worker_id:
+				gathering_worker_node = unit
+				break
+		_check(gathering_worker_node != null,
+			"测试应能用稳定 ID 定位正在 Gather 的 AI Worker")
+		if gathering_worker_node != null:
+			var stop_result: Dictionary = (
+				match_instance
+				. get_node("Players/Human/UnitCommandGateway")
+				. StopUnits([gathering_worker_node], rule_ai)
+			)
+			_check(stop_result.get("status", "") == "Accepted",
+				"测试 Stop 应把规则 AI 的 Gather 订单暂停")
+			await get_tree().create_timer(0.6).timeout
+			var after_stop: Dictionary = rule_ai.get("_world_query_runtime").GetOwnForces(
+				rule_ai.get("_query_session_id"),
+				FIELD_TYPE | FIELD_ORDER
+			)
+			var stopped_worker: Dictionary = after_stop["entities"].filter(
+				func(entity): return entity.get("id", "") == gathering_worker_id
+			)[0]
+			_check(
+				stopped_worker.get("order", null) != null
+				and stopped_worker["order"].get("state", "") == "Suspended",
+				"EconomyController 刷新后仍应保留暂停的 Gather，不得自动恢复"
+			)
 	_check(not completed_structures.is_empty(),
 		"己方查询应把初始完成建筑标记为 Completed")
 	_check(not producers.is_empty(), "己方查询应返回生产建筑的生产观察")

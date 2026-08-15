@@ -262,6 +262,13 @@ internal sealed class UnitCommandServiceTests
             "非采集单位应返回 UnitCannotGather");
         Check(orders.FindActive(worker)?.Kind == UnitOrderKind.Gather,
             "已接受 Worker 应获得 Gather 订单");
+        Check(orders.FindActive(worker)?.Target is UnitOrderEntityTarget
+            {
+                EntityId.Kind: BattlefieldEntityKind.ResourceNode,
+                EntityId.Value: var targetId,
+                TypeId: "resource_a"
+            } && targetId == resourceId.Value,
+            "Gather 订单应保留下令时的资源稳定 ID 与类型，不依赖实时 Node");
         Check(work.GatherRequests == 1, "只有合法 Worker 应到达工作任务端口");
     }
 

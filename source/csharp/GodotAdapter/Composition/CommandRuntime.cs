@@ -148,6 +148,19 @@ public partial class CommandRuntime : Node
         return result;
     }
 
+    /// <summary>由固定身份 Adapter 按 Worker 与资源节点稳定 ID 提交持续采集任务。</summary>
+    internal CommandResult GatherResourcesByStableIds(
+        IReadOnlyList<UnitId> workerIds,
+        ResourceNodeId resourceNodeId,
+        Node issuerPlayer)
+    {
+        var result = _commands.GatherResources(
+            CreateContext(issuerPlayer),
+            new GatherResourcesCommand(workerIds, resourceNodeId));
+        TrackAcceptedGatherOrders(result);
+        return result;
+    }
+
     /// <summary>注册已经完成扣款和生成的施工现场，并绑定其销毁清理。</summary>
     internal bool RegisterConstructionSite(
         Node site,
@@ -497,6 +510,28 @@ public partial class CommandRuntime : Node
     internal ResourceNodeId RegisterRuntimeResource(Node resource) =>
         _resourceNodes.Register(resource);
 
+    /// <summary>返回查询层可公开的活动订单与原始目标意图；空闲单位返回空。</summary>
+    internal OrderObservation? ObserveActiveOrder(Node unit)
+    {
+        var unitId = _units.Register(unit);
+        if (_orders.FindActive(unitId) is not { } order)
+        {
+            return null;
+        }
+        return new OrderObservation(
+            order.OrderId,
+            MapOrderKind(order.Kind),
+            MapOrderState(order.State),
+            order.Target switch
+            {
+                UnitOrderEntityTarget entity => new OrderTargetObservation(
+                    entity.EntityId, null, entity.TypeId),
+                UnitOrderPositionTarget position => new OrderTargetObservation(
+                    null, position.Position, null),
+                _ => null
+            });
+    }
+
     /// <summary>查询 Rally Adapter 所需的单位能力和所有权。</summary>
     internal UnitCommandSnapshot? FindRuntimeUnit(UnitId unitId) => _units.Find(unitId);
 
@@ -741,6 +776,31 @@ public partial class CommandRuntime : Node
         }
         _deathTrackedUnits.Remove(unitId);
     }
+
+    /// <summary>把应用层订单语义映射为不反向依赖 Application 的查询枚举。</summary>
+    private static OrderObservationKind MapOrderKind(UnitOrderKind kind) => kind switch
+    {
+        UnitOrderKind.Move => OrderObservationKind.Move,
+        UnitOrderKind.ForceMove => OrderObservationKind.ForceMove,
+        UnitOrderKind.GroundAttackMove => OrderObservationKind.GroundAttackMove,
+        UnitOrderKind.EntityAttackMove => OrderObservationKind.EntityAttackMove,
+        UnitOrderKind.TacticalWithdraw => OrderObservationKind.TacticalWithdraw,
+        UnitOrderKind.Attack => OrderObservationKind.Attack,
+        UnitOrderKind.ForceAttack => OrderObservationKind.ForceAttack,
+        UnitOrderKind.GroundForceAttack => OrderObservationKind.GroundForceAttack,
+        UnitOrderKind.Gather => OrderObservationKind.Gather,
+        UnitOrderKind.Construct => OrderObservationKind.Construct,
+        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "未知订单类型。")
+    };
+
+    /// <summary>活动索引只允许三种非终态，将其映射为查询枚举。</summary>
+    private static OrderObservationState MapOrderState(UnitOrderState state) => state switch
+    {
+        UnitOrderState.Accepted => OrderObservationState.Accepted,
+        UnitOrderState.InProgress => OrderObservationState.InProgress,
+        UnitOrderState.Suspended => OrderObservationState.Suspended,
+        _ => throw new InvalidOperationException($"终态订单 {state} 不应保留在活动索引中。")
+    };
 
     /// <summary>把已接受停止命令后单位的实际位置记录为新警戒岗位点。</summary>
     private void UpdateGuardAnchorsForAccepted(CommandResult result)

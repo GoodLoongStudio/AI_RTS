@@ -5,6 +5,7 @@ using AI_RTS.Application.Orders;
 using AI_RTS.Application.Units;
 using AI_RTS.Domain.Combat;
 using AI_RTS.Domain.Common;
+using AI_RTS.Domain.Economy;
 
 namespace AI_RTS.Application.Commands;
 
@@ -266,7 +267,15 @@ public sealed class UnitCommandService(
                 continue;
             }
 
-            var order = orders.Create(context.CommandId, workerId, UnitOrderKind.Gather);
+            var order = orders.Create(
+                context.CommandId,
+                workerId,
+                UnitOrderKind.Gather,
+                new UnitOrderEntityTarget(
+                    new BattlefieldEntityId(
+                        BattlefieldEntityKind.ResourceNode,
+                        resource.Value.ResourceNodeId.Value),
+                    ResourceTypeId(resource.Value.Kind)));
             orders.Transition(order.OrderId, UnitOrderState.InProgress);
             results.Add(new UnitCommandResult(
                 workerId,
@@ -277,6 +286,14 @@ public sealed class UnitCommandService(
 
         return Summarize(context.CommandId, results);
     }
+
+    /// <summary>把强类型资源种类转换为公共观察使用的稳定类型键。</summary>
+    private static string ResourceTypeId(ResourceKind kind) => kind switch
+    {
+        ResourceKind.A => "resource_a",
+        ResourceKind.B => "resource_b",
+        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "未知资源种类。")
+    };
 
     /// <inheritdoc />
     public CommandResult Stop(CommandContext context, StopUnitsCommand command)

@@ -75,6 +75,7 @@ public sealed record QuerySessionGrant(
 /// <param name="VisibleToPlayers">当前能够观察该实体的玩家集合。</param>
 /// <param name="Construction">建筑施工状态；非建筑为空。</param>
 /// <param name="Production">生产建筑的容量与队列；非生产建筑为空。</param>
+/// <param name="Order">单位当前活动订单；空闲单位为空。</param>
 public sealed record WorldEntitySnapshot(
     BattlefieldEntityId EntityId,
     PlayerId? OwnerPlayerId,
@@ -85,7 +86,8 @@ public sealed record WorldEntitySnapshot(
     bool RetainsLastKnownWhenHidden,
     IReadOnlySet<PlayerId> VisibleToPlayers,
     ConstructionObservation? Construction = null,
-    ProductionObservation? Production = null);
+    ProductionObservation? Production = null,
+    OrderObservation? Order = null);
 
 /// <summary>查询服务读取的单帧资源账户数据。</summary>
 /// <param name="PlayerId">账户所有者。</param>

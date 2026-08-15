@@ -34,8 +34,10 @@ public enum ObservationField
     Construction = 1 << 4,
     /// <summary>生产建筑的容量与当前非终态队列。</summary>
     Production = 1 << 5,
+    /// <summary>单位当前仍可继续变化的权威活动订单。</summary>
+    Order = 1 << 6,
     /// <summary>首版支持的全部可选字段。</summary>
-    All = Position | Type | Relation | Health | Construction | Production
+    All = Position | Type | Relation | Health | Construction | Production | Order
 }
 
 /// <summary>描述观察接口公开的建筑施工阶段。</summary>
@@ -79,6 +81,62 @@ public sealed record ProductionObservation(
     int QueueLimit,
     IReadOnlyList<ProductionItemObservation> Items);
 
+/// <summary>区分观察接口公开的单位订单语义。</summary>
+public enum OrderObservationKind
+{
+    /// <summary>普通位置移动。</summary>
+    Move,
+    /// <summary>强制位置移动。</summary>
+    ForceMove,
+    /// <summary>对地移动并攻击。</summary>
+    GroundAttackMove,
+    /// <summary>向实体目标移动并攻击。</summary>
+    EntityAttackMove,
+    /// <summary>优先撤离的战术撤退。</summary>
+    TacticalWithdraw,
+    /// <summary>普通实体攻击。</summary>
+    Attack,
+    /// <summary>显式强制攻击。</summary>
+    ForceAttack,
+    /// <summary>持续对地强制攻击。</summary>
+    GroundForceAttack,
+    /// <summary>持续采集、返程和交付。</summary>
+    Gather,
+    /// <summary>前往施工现场并持续施工。</summary>
+    Construct
+}
+
+/// <summary>区分观察接口公开的活动订单阶段。</summary>
+public enum OrderObservationState
+{
+    /// <summary>订单已通过校验。</summary>
+    Accepted,
+    /// <summary>单位正在执行订单。</summary>
+    InProgress,
+    /// <summary>订单被保留且不会自动恢复。</summary>
+    Suspended
+}
+
+/// <summary>记录下令时已确认的目标意图；不表示目标的实时状态。</summary>
+/// <param name="EntityId">稳定实体目标；位置订单或无目标订单为空。</param>
+/// <param name="Position">纯位置目标；实体订单或无目标订单为空。</param>
+/// <param name="TypeId">下令时已知的目标稳定类型；未知时为空。</param>
+public sealed record OrderTargetObservation(
+    BattlefieldEntityId? EntityId,
+    WorldPosition? Position,
+    string? TypeId);
+
+/// <summary>返回单位当前仍可继续变化的权威活动订单。</summary>
+/// <param name="OrderId">订单稳定身份。</param>
+/// <param name="Kind">订单语义。</param>
+/// <param name="State">当前非终态阶段。</param>
+/// <param name="Target">原始目标意图；没有目标时为空。</param>
+public sealed record OrderObservation(
+    UnitOrderId OrderId,
+    OrderObservationKind Kind,
+    OrderObservationState State,
+    OrderTargetObservation? Target);
+
 /// <summary>描述实体与查询观察者之间的关系。</summary>
 public enum ObserverRelation
 {
@@ -106,6 +164,7 @@ public enum ObserverRelation
 /// <param name="MaximumHealth">最大生命值；未返回时为空。</param>
 /// <param name="Construction">施工字段；非建筑、未请求或未获授权时为空。</param>
 /// <param name="Production">生产字段；非生产建筑、未请求或未获授权时为空。</param>
+/// <param name="Order">活动订单；空闲、未请求或未获授权时为空。</param>
 public sealed record EntityObservation(
     BattlefieldEntityId EntityId,
     ObservationState State,
@@ -117,7 +176,8 @@ public sealed record EntityObservation(
     float? CurrentHealth,
     float? MaximumHealth,
     ConstructionObservation? Construction = null,
-    ProductionObservation? Production = null);
+    ProductionObservation? Production = null,
+    OrderObservation? Order = null);
 
 /// <summary>描述一次圆形范围观察请求。</summary>
 /// <param name="Center">范围中心。</param>

@@ -79,10 +79,11 @@ public sealed class GodotWorldObservationRepository : IWorldObservationRepositor
     {
         var ownerNode = unit.GetParent();
         var owner = playerIds.GetValueOrDefault(ownerNode);
+        var unitId = _commands.RegisterRuntimeUnit(unit);
         var kind = unit.HasMethod("is_constructed") ?
             BattlefieldEntityKind.Structure : BattlefieldEntityKind.Unit;
         return new WorldEntitySnapshot(
-            new BattlefieldEntityId(kind, GodotStableIdentity.Unit(unit).Value),
+            new BattlefieldEntityId(kind, unitId.Value),
             owner.Value == Guid.Empty ? null : owner,
             Position(unit),
             UnitType(unit),
@@ -91,16 +92,19 @@ public sealed class GodotWorldObservationRepository : IWorldObservationRepositor
             kind == BattlefieldEntityKind.Structure,
             VisiblePlayers(unit, owner.Value == Guid.Empty ? null : owner, revealers),
             _commands.ObserveConstruction(unit),
-            _production.ObserveProduction(unit));
+            _production.ObserveProduction(unit),
+            _commands.ObserveActiveOrder(unit));
     }
 
     private WorldEntitySnapshot SnapshotResource(
         Node resource,
-        IReadOnlyDictionary<PlayerId, Node[]> revealers) =>
-        new(
+        IReadOnlyDictionary<PlayerId, Node[]> revealers)
+    {
+        var resourceId = _commands.RegisterRuntimeResource(resource);
+        return new WorldEntitySnapshot(
             new BattlefieldEntityId(
                 BattlefieldEntityKind.ResourceNode,
-                GodotStableIdentity.ResourceNode(resource).Value),
+                resourceId.Value),
             null,
             Position(resource),
             ResourceType(resource),
@@ -108,6 +112,7 @@ public sealed class GodotWorldObservationRepository : IWorldObservationRepositor
             null,
             false,
             VisiblePlayers(resource, null, revealers));
+    }
 
     private static IReadOnlySet<PlayerId> VisiblePlayers(
         Node entity,

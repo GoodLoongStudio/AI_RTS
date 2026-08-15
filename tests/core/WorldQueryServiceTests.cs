@@ -36,6 +36,8 @@ internal sealed class WorldQueryServiceTests
             OwnConstructionInformationIsAccurateAndPermissionScoped);
         RunTest(nameof(ProductionInformationIsOwnOnlyExceptForDebug),
             ProductionInformationIsOwnOnlyExceptForDebug);
+        RunTest(nameof(OrderInformationIsOwnOnlyAndIdleIsExplicit),
+            OrderInformationIsOwnOnlyAndIdleIsExplicit);
         RunTest(nameof(InvalidSessionDoesNotCaptureWorld), InvalidSessionDoesNotCaptureWorld);
         RunTest(nameof(InvalidAreaIsRejected), InvalidAreaIsRejected);
         RunTest(nameof(EnemyStructureBecomesLastKnownButMobileDoesNot), EnemyStructureBecomesLastKnownButMobileDoesNot);
@@ -242,6 +244,74 @@ internal sealed class WorldQueryServiceTests
             "普通会话不得读取当前可见敌方生产队列");
         Check(debug.Value!.Single(item => item.EntityId == enemyProducer).Production == enemyProduction,
             "全知调试会话应能读取敌方生产队列用于诊断");
+    }
+
+    /// <summary>验证己方活动订单准确、空闲显式为空，误授权也不能泄漏敌方订单。</summary>
+    private void OrderInformationIsOwnOnlyAndIdleIsExplicit()
+    {
+        var service = NewService(out var repository);
+        var idleUnit = new BattlefieldEntityId(BattlefieldEntityKind.Unit, Guid.NewGuid());
+        var resource = new BattlefieldEntityId(BattlefieldEntityKind.ResourceNode, Guid.NewGuid());
+        var ownOrder = new OrderObservation(
+            new UnitOrderId(Guid.NewGuid()),
+            OrderObservationKind.Gather,
+            OrderObservationState.InProgress,
+            new OrderTargetObservation(resource, null, "resource_a"));
+        var enemyOrder = new OrderObservation(
+            new UnitOrderId(Guid.NewGuid()),
+            OrderObservationKind.Attack,
+            OrderObservationState.InProgress,
+            null);
+        repository.Snapshot = repository.Snapshot with
+        {
+            Entities = repository.Snapshot.Entities
+                .Select(entity => entity.EntityId == _ownedUnit ?
+                    entity with { Order = ownOrder } :
+                    entity.EntityId == _visibleEnemy ?
+                        entity with { Order = enemyOrder } : entity)
+                .Append(Entity(
+                    idleUnit,
+                    _observer,
+                    new WorldPosition(2, 0, 1),
+                    "worker",
+                    5,
+                    5,
+                    new HashSet<PlayerId>()))
+                .ToArray()
+        };
+        var own = service.InspectOwnEntity(
+            _normalSession, _ownedUnit, ObservationField.Order);
+        var idle = service.InspectOwnEntity(
+            _normalSession, idleUnit, ObservationField.Order);
+        var orderGrantedSession = new QuerySessionId(Guid.NewGuid());
+        var ordinaryService = new WorldQueryService(
+            repository,
+            [
+                new QuerySessionGrant(
+                    orderGrantedSession,
+                    _observer,
+                    QuerySourceKind.RuleAI,
+                    ObservationField.All,
+                    ObservationField.Order,
+                    false)
+            ]);
+        var enemy = ordinaryService.ScanCircle(
+            orderGrantedSession,
+            new CircleObservationRequest(
+                new WorldPosition(4, 0, 4), 1, ObservationField.Order));
+        var debug = service.ScanCircle(
+            _debugSession,
+            new CircleObservationRequest(
+                new WorldPosition(4, 0, 4), 1, ObservationField.Order));
+
+        Check(own.Value?.Order == ownOrder,
+            "己方活动 Gather 订单及目标意图应准确返回");
+        Check(idle.Status == QueryStatus.Accepted && idle.Value?.Order is null,
+            "己方空闲单位应成功返回且 Order 显式为空");
+        Check(enemy.Value!.Single(item => item.EntityId == _visibleEnemy).Order is null,
+            "普通会话即使误授 Order 字段也不得读取敌方活动订单");
+        Check(debug.Value!.Single(item => item.EntityId == _visibleEnemy).Order == enemyOrder,
+            "全知调试会话应能读取敌方订单用于诊断");
     }
 
     /// <summary>验证随机会话不能触发世界读取或选择其他观察者。</summary>

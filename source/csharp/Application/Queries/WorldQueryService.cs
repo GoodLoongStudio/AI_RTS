@@ -187,7 +187,7 @@ public sealed class WorldQueryService : IWorldQueryService
         var returned = requestedFields & allowedFields & ObservationField.All;
         if (state != ObservationState.Owned && !session.Omniscient)
         {
-            returned &= ~ObservationField.Production;
+            returned &= ~(ObservationField.Production | ObservationField.Order);
         }
         return new EntityObservation(
             entity.EntityId,
@@ -201,7 +201,8 @@ public sealed class WorldQueryService : IWorldQueryService
             returned.HasFlag(ObservationField.Health) ? entity.CurrentHealth : null,
             returned.HasFlag(ObservationField.Health) ? entity.MaximumHealth : null,
             returned.HasFlag(ObservationField.Construction) ? entity.Construction : null,
-            returned.HasFlag(ObservationField.Production) ? entity.Production : null);
+            returned.HasFlag(ObservationField.Production) ? entity.Production : null,
+            returned.HasFlag(ObservationField.Order) ? entity.Order : null);
     }
 
     private void UpdateLastKnown(

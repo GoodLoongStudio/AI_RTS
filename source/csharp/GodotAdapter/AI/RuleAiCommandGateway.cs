@@ -100,6 +100,26 @@ public partial class RuleAiCommandGateway : Node
             issuer));
     }
 
+    /// <summary>按稳定 Worker 与资源节点 ID 提交统一 Gather 命令。</summary>
+    public Godot.Collections.Dictionary Gather(
+        Godot.Collections.Array<string> workerEntityIds,
+        string resourceEntityId)
+    {
+        if (!_issuer.TryGetTarget(out var issuer) ||
+            !GodotObject.IsInstanceValid(issuer) || !issuer.IsInsideTree())
+        {
+            return Rejected(CommandErrorCode.MatchNotRunning, []);
+        }
+        var workers = workerEntityIds
+            .Select(value => Guid.TryParse(value, out var id) ?
+                new UnitId(id) : new UnitId(Guid.Empty))
+            .ToArray();
+        var resourceId = Guid.TryParse(resourceEntityId, out var parsedResourceId) ?
+            new ResourceNodeId(parsedResourceId) : new ResourceNodeId(Guid.Empty);
+        return ToGodot(_commands.GatherResourcesByStableIds(
+            workers, resourceId, issuer));
+    }
+
     /// <summary>创建未进入权威命令服务时使用的稳定拒绝回执。</summary>
     private static Godot.Collections.Dictionary Rejected(
         CommandErrorCode error,

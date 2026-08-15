@@ -249,7 +249,9 @@ public partial class WorldQueryRuntime : Node
         ["construction"] = observation.Construction is null ? default(Variant) :
             Variant.From(ToGodot(observation.Construction)),
         ["production"] = observation.Production is null ? default(Variant) :
-            Variant.From(ToGodot(observation.Production))
+            Variant.From(ToGodot(observation.Production)),
+        ["order"] = observation.Order is null ? default(Variant) :
+            Variant.From(ToGodot(observation.Order))
     };
 
     /// <summary>把强类型施工观察转换为不暴露内部对象的稳定字段集合。</summary>
@@ -282,6 +284,29 @@ public partial class WorldQueryRuntime : Node
             ["items"] = items
         };
     }
+
+    /// <summary>把己方活动订单转换为稳定 ID、非终态阶段和原始目标意图。</summary>
+    private static Godot.Collections.Dictionary ToGodot(OrderObservation observation) => new()
+    {
+        ["order_id"] = observation.OrderId.Value.ToString("D"),
+        ["kind"] = observation.Kind.ToString(),
+        ["state"] = observation.State.ToString(),
+        ["target"] = observation.Target is null ? default(Variant) :
+            Variant.From(ToGodot(observation.Target))
+    };
+
+    /// <summary>把订单目标转换为互斥的实体或位置字段；缺失字段显式为空。</summary>
+    private static Godot.Collections.Dictionary ToGodot(OrderTargetObservation target) => new()
+    {
+        ["entity_kind"] = target.EntityId?.Kind.ToString() ?? string.Empty,
+        ["entity_id"] = target.EntityId?.Value.ToString("D") ?? string.Empty,
+        ["position"] = target.Position is null ? default(Variant) :
+            Variant.From(new Vector3(
+                target.Position.Value.X,
+                target.Position.Value.Y,
+                target.Position.Value.Z)),
+        ["type_id"] = target.TypeId ?? string.Empty
+    };
 
     private static Godot.Collections.Dictionary Envelope(
         QueryStatus status,

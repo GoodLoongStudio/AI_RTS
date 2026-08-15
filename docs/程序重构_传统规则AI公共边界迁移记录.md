@@ -11,7 +11,7 @@
 | 子系统 | 当前直接依赖 | 目标边界 | 状态 |
 |---|---|---|---|
 | 顶层资源优先级调度 | `Player.has_resources` | 绑定身份的 `GetOwnEconomy` | 已迁移 |
-| EconomyController | 单位组遍历、直接采集 Action、直接生产与放置 | 己方查询、采集命令、生产命令、放置命令 | 部分迁移：生产和 CommandCenter 规划已完成，采集待迁移 |
+| EconomyController | 单位组遍历、直接采集 Action、直接生产与放置 | 己方查询、采集命令、生产命令、放置命令 | 已迁移 |
 | DefenseController | 单位组遍历、直接放置 | 己方查询、放置命令 | 已迁移 |
 | OffenseController | 全玩家/单位组遍历、直接队列与放置 | 受限观察、生产/放置/作战命令 | 待迁移 |
 | IntelligenceController | 全知敌军遍历、直接移动 Action | 范围观察、移动命令 | 待迁移 |
@@ -108,3 +108,34 @@
 - `dotnet build` 与 76 项纯 C# 测试通过；相关 Godot 冒烟均为 0 failure，退出时仍存在已登记的 RID/ObjectDB 基线泄漏。
 
 2026-08-15 人工验收：AI 完成采集后能补足 Worker，Worker 损失后会重新生产补充，采集—返程—交付循环无回归。RAI-001D 通过。
+
+## 8. RAI-001E：活动订单观察与 Worker 采集规划
+
+2026-08-15 接口评审接受以下契约：
+
+- `ObservationField.Order` 返回己方单位当前仍可变化的活动订单；空闲单位成功返回且 `Order` 明确为空；
+- 活动订单包含稳定 `OrderId`、`Kind`、非终态 `State` 和可空原始目标意图；
+- 实体目标返回稳定实体 ID、实体种类以及下令时确认的类型，位置目标返回世界坐标；这些字段是命令意图快照，不是目标实时状态查询；
+- 普通玩家、规则 AI 和未来 Agent 不能读取敌方活动订单，即使外部 Grant 误授字段也由查询服务裁剪；全知调试会话允许读取；
+- 固定身份 `RuleAiCommandGateway.Gather` 只接受稳定 Worker ID 集合与资源节点 ID，继续调用所有命令来源共用的 `IUnitCommandService`；
+- AI 只从以 Worker 为中心的范围查询中选择当前可见资源；成功空集合表示范围内没有可用观察结果，不是查询错误；
+- `Suspended` 订单保持暂停，EconomyController 不会自动恢复或覆盖；资源耗尽导致活动订单结束后，规则 AI 下一轮可以主动选择新资源。
+
+已完成迁移：
+
+- Gather 订单在创建时保存资源节点稳定 ID 与 `resource_a/resource_b` 类型，不依赖后续 Node 读取；
+- Godot 世界快照在统一单位/资源注册表中登记稳定身份，并把权威活动订单复制到查询 DTO；
+- `EconomyController` 不再保存 Worker Node，不再读取或写入 `worker.action`，不再订阅 `action_changed/tree_exited/unit_spawned`；
+- Controller 通过己方 `Position | Type | Construction | Production | Order` 快照完成经济规划；
+- 对无活动订单 Worker，Controller 使用受视野限制的圆形范围查询寻找最近资源，并依据现有 Gather 目标类型平衡两种资源分配；
+- 施工、移动、暂停 Gather 等任何现有活动订单都不会被经济刷新覆盖；订单进入终态并从活动索引移除后，Worker 才会重新获得 Gather。
+
+自动验证：
+
+- 命令核心测试验证 Gather 订单保留资源稳定 ID 与类型；
+- 查询核心测试验证己方订单准确、空闲显式为空、误授权不泄漏敌方订单、全知调试可诊断；
+- Godot 规则 AI 冒烟验证 Worker 获得稳定 ID Gather、目标类型可观察、未知资源 ID 被拒绝，以及 Stop 后跨刷新周期仍保持 `Suspended`；
+- `dotnet build` 为 0 警告、0 错误，77 项纯 C# 测试全部通过；WorldQuery、RuleAI Economy 与 Worker Gather 冒烟均为 0 failure；
+- Godot 退出时的 RID/ObjectDB 泄漏仍属于已登记基线，不归因于本切片。
+
+待人工验收：在 `TestPlayerVsAI.tscn` 中确认初始 Worker 采集、返程、交付正常；AI Worker 参与施工并完成后重新开始采集；资源节点耗尽后 AI 能为无订单 Worker 选择其他可见资源；Worker 补充和生产无回归。
