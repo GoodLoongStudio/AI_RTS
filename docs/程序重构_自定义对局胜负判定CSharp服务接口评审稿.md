@@ -185,3 +185,5 @@ Godot 冒烟测试至少覆盖：
 2026-08-15 首次人工启动冒烟场景时发现 GDScript 以 snake_case 访问 C# Signal；`MatchResolvedEventHandler` 在 Godot 中实际保留 `MatchResolved` 名称。现已改为与项目既有 `ActionPressed` 相同的显式字符串连接方式，并通过当前 Godot 编辑器会话复验：`MatchOutcomeRuntimeSmokeTest` 输出 `0 failure(s)`。ARCH-014 仅余 `TestPlayerVsAI` 实际对局回归。
 
 2026-08-15 `TestPlayerVsAI` 实际对局发现清空可见敌方建筑和单位后没有显示 `Victory`。根因是迁移时把“退出对局”错误收窄为 `unit_died`：旧实现订阅每个单位的 `tree_exited`，而未完工建筑主动取消等合法移除路径只会 `queue_free()`，不会发送死亡信号，导致 C# 服务残留不可见计分实体。现改为在 Runtime 注册实体时同时捕获稳定 `UnitId` 并订阅 `TreeExited`；死亡信号继续保留给语音、战争迷雾等死亡专用语义。冒烟测试同时增加真实 `TestPlayerVsAI` 与 `Unit.gd._handle_unit_death()` 清场回归，待编辑器运行复验。
+
+进一步检查确认，实际面板完全不出现的直接原因是共享测试脚本 `tests/manual/Match.gd` 会无条件删除 `MatchEndHandler`；同一原因也使新增真实 Match 冒烟在访问 Handler 时得到 null。现已将其改为默认开启的显式 `disable_match_end_for_test` 配置，并只在 `TestPlayerVsAI` 中设为 false；其他手动功能场景继续禁用终局，不会中途暂停。修复后 `MatchOutcomeRuntimeSmokeTest` 已在 Godot 编辑器中通过，输出 `0 failure(s)`，其中真实 Match 清场结果和 Victory 面板均已验证。

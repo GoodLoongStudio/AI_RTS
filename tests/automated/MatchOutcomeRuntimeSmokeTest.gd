@@ -117,8 +117,11 @@ func _test_actual_match_unit_death_path():
 	var snapshot: Dictionary = runtime.InspectOutcome()
 	_check(snapshot.get("kind", "") == "Won",
 		"真实 Unit.gd 死亡入口清空敌军后应产生 Won")
-	_check(match_instance.get_node("Handlers/MatchEndHandler").find_child("Victory").visible,
-		"真实 Match 清空敌军后应显示 Victory")
+	var handler = match_instance.get_node_or_null("Handlers/MatchEndHandler")
+	_check(handler != null, "胜负专项 TestPlayerVsAI 不得移除 MatchEndHandler")
+	if handler != null:
+		_check(handler.find_child("Victory").visible,
+			"真实 Match 清空敌军后应显示 Victory")
 	get_tree().paused = false
 	match_instance.queue_free()
 	await get_tree().process_frame
