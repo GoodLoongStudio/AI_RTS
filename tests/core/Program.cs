@@ -19,6 +19,7 @@ internal static class Program
         var failures = new UnitCommandServiceTests().Run();
         failures += new StructurePlacementServiceTests().Run();
         failures += new ConstructionServiceTests().Run();
+        failures += new ProductionServiceTests().Run();
         return failures == 0 ? 0 : 1;
     }
 }

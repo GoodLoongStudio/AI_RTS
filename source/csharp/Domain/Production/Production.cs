@@ -1,0 +1,61 @@
+using AI_RTS.Domain.Common;
+using AI_RTS.Domain.Construction;
+using AI_RTS.Domain.Economy;
+
+namespace AI_RTS.Domain.Production;
+
+/// <summary>标识一种可进入生产队列的单位定义。</summary>
+public readonly record struct ProductionDefinitionId(string Value);
+
+/// <summary>标识一条生产队列中的稳定项目。</summary>
+public readonly record struct ProductionItemId(Guid Value);
+
+/// <summary>表示生产项目从入队到终止的权威状态。</summary>
+public enum ProductionItemState
+{
+    /// <summary>已扣款并排队，尚未取得生产线。</summary>
+    Queued,
+
+    /// <summary>位于队首并正在推进工作量。</summary>
+    Producing,
+
+    /// <summary>生产工作量已完成，正在等待合法部署位置。</summary>
+    AwaitingDeployment,
+
+    /// <summary>单位已经成功生成。</summary>
+    Completed,
+
+    /// <summary>拥有者主动取消并执行退款。</summary>
+    Cancelled,
+
+    /// <summary>生产建筑失效，项目终止且不退款。</summary>
+    ProducerLost
+}
+
+/// <summary>描述不依赖引擎对象的生产成本、工时与生产建筑资格。</summary>
+public sealed record ProductionDefinition(
+    ProductionDefinitionId DefinitionId,
+    int RequiredWork,
+    IReadOnlyList<ResourceAmount> Cost,
+    IReadOnlySet<StructureDefinitionId> AllowedProducerDefinitions);
+
+/// <summary>保存单个生产项目的稳定身份、进度、支付和生命周期。</summary>
+public sealed record ProductionItemSnapshot(
+    ProductionItemId ItemId,
+    UnitId ProducerId,
+    PlayerId OwnerId,
+    ProductionDefinitionId DefinitionId,
+    int RequiredWork,
+    int CompletedWork,
+    IReadOnlyList<ResourceAmount> PaidCost,
+    ProductionItemState State,
+    long Version,
+    UnitId? ProducedUnitId = null);
+
+/// <summary>描述生产建筑在当前 Match 中的能力与可运行状态。</summary>
+public sealed record ProductionProducerSnapshot(
+    UnitId ProducerId,
+    PlayerId OwnerId,
+    StructureDefinitionId DefinitionId,
+    bool IsAlive,
+    bool IsConstructed);
