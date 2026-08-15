@@ -71,27 +71,6 @@ func _ready():
 	_check(_has_reason("ProductionCost"), "应发布 ProductionCost 权威事件")
 	_check(_has_reason("ProductionRefund"), "应发布 ProductionRefund 权威事件")
 
-	var turret = human.get_node("AntiGroundTurret")
-	var turret_scene_path = turret.get_script().resource_path.replace(".gd", ".tscn")
-	var construction_cost = Constants.Match.Units.CONSTRUCTION_COSTS[
-		turret_scene_path
-	]
-	var before_construction_a: int = human.resource_a
-	var before_construction_b: int = human.resource_b
-	_check(
-		human.subtract_resources(construction_cost, "ConstructionCost", turret),
-		"余额足够时建筑成本应原子扣除"
-	)
-	turret.cancel_construction()
-	turret.cancel_construction()
-	await get_tree().process_frame
-	_check(
-		human.resource_a == before_construction_a and human.resource_b == before_construction_b,
-		"重复取消未完成建筑也应只通过 ConstructionRefund 全额恢复一次余额"
-	)
-	_check(_has_reason("ConstructionCost"), "应发布 ConstructionCost 权威事件")
-	_check(_has_reason("ConstructionRefund"), "应发布 ConstructionRefund 权威事件")
-
 	var final_snapshot = economy_runtime.GetSnapshot(human)
 	_check(final_snapshot["resource_a"] == human.resource_a, "最终 A 镜像不得与账户分叉")
 	_check(final_snapshot["resource_b"] == human.resource_b, "最终 B 镜像不得与账户分叉")

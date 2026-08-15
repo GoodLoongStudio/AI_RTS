@@ -3,35 +3,36 @@ extends Node
 signal element_enqueued(element)
 signal element_removed(element)
 
-const Moving = preload("res://source/match/units/actions/Moving.gd")
 
-
+## HUD 使用的只读生产项目视图；权威身份、状态和进度均来自 C#。
 class ProductionQueueElement:
 	extends Resource
+	var item_id := ""
 	var unit_prototype = null
-	var time_total = null
-	var time_left = null:
-		set(value):
-			time_left = value
-			emit_changed()
+	var required_work := 1
+	var completed_work := 0
+	var state := "Queued"
+	var time_total:
+		get:
+			return float(required_work) / 60.0
+	var time_left:
+		get:
+			return float(required_work - completed_work) / 60.0
 
+	## 返回仅用于 HUD 的归一化进度。
 	func progress():
-		return (time_total - time_left) / time_total
+		return float(completed_work) / float(required_work)
 
 
-var _queue = []
+var _queue := []
+var _runtime = null
 
 @onready var _unit = get_parent()
 
 
-func _process(delta):
-	while _queue.size() > 0 and delta > 0.0:
-		var current_queue_element = _queue.front()
-		current_queue_element.time_left = max(0.0, current_queue_element.time_left - delta)
-		if current_queue_element.time_left == 0.0:
-			_remove_element(current_queue_element)
-			_finalize_production(current_queue_element)
-		delta = max(0.0, delta - current_queue_element.time_left)
+func _ready():
+	_runtime = find_parent("Match").get_node("ProductionRuntime")
+	_runtime.RegisterProducer(_unit, self, _unit.get_script().resource_path)
 
 
 func size():
@@ -42,48 +43,74 @@ func get_elements():
 	return _queue
 
 
-func produce(unit_prototype, ignore_limit = false):
-	if not ignore_limit and _queue.size() >= Constants.Match.Units.PRODUCTION_QUEUE_LIMIT:
-		return
-	var production_cost = Constants.Match.Units.PRODUCTION_COSTS[unit_prototype.resource_path]
-	if not _unit.player.subtract_resources(production_cost, "ProductionCost", _unit):
-		MatchSignals.not_enough_resources_for_production.emit(_unit.player)
-		return
-	var queue_element = ProductionQueueElement.new()
-	queue_element.unit_prototype = unit_prototype
-	queue_element.time_total = Constants.Match.Units.PRODUCTION_TIMES[unit_prototype.resource_path]
-	queue_element.time_left = Constants.Match.Units.PRODUCTION_TIMES[unit_prototype.resource_path]
-	_enqueue_element(queue_element)
-	MatchSignals.unit_production_started.emit(unit_prototype, _unit)
+## 通过统一 C# 服务提交生产；不存在暂停、调序或容量绕过参数。
+func produce(unit_prototype):
+	var result = _runtime.Enqueue(
+		_unit,
+		unit_prototype,
+		_unit.player
+	)
+	if not result["accepted"]:
+		if result["status"] == "InsufficientResources":
+			MatchSignals.not_enough_resources_for_production.emit(_unit.player)
+		return null
+	return _find_element(result["item"]["item_id"])
 
 
 func cancel_all():
-	for element in _queue.duplicate():
-		cancel(element)
+	_runtime.CancelAll(_unit, _unit.player)
 
 
 func cancel(element):
-	if not element in _queue:
+	if element == null or not element in _queue:
 		return
-	var production_cost = Constants.Match.Units.PRODUCTION_COSTS[
-		element.unit_prototype.resource_path
-	]
-	_unit.player.add_resources(production_cost, "ProductionRefund", _unit)
-	_remove_element(element)
+	_runtime.Cancel(element.item_id, _unit.player)
 
 
-func _enqueue_element(element):
+## 接收权威入队事件并建立只读 HUD 元素。
+func on_authoritative_item_queued(item, unit_prototype):
+	var element = ProductionQueueElement.new()
+	element.item_id = item["item_id"]
+	element.unit_prototype = unit_prototype
+	_apply_snapshot(element, item)
 	_queue.push_back(element)
 	element_enqueued.emit(element)
 
 
-func _remove_element(element):
+## 项目真正成为队首时刷新视图并兼容发布 Legacy 开始事件。
+func on_authoritative_item_started(item):
+	var element = _find_element(item["item_id"])
+	if element == null:
+		return
+	_apply_snapshot(element, item)
+	element.emit_changed()
+	MatchSignals.unit_production_started.emit(element.unit_prototype, _unit)
+
+
+## 接收权威状态或整数进度变化并刷新 HUD。
+func on_authoritative_item_changed(item):
+	var element = _find_element(item["item_id"])
+	if element == null:
+		return
+	_apply_snapshot(element, item)
+	element.emit_changed()
+
+
+## 接收权威终态并从活动 HUD 队列移除项目。
+func on_authoritative_item_removed(item):
+	var element = _find_element(item["item_id"])
+	if element == null:
+		return
 	_queue.erase(element)
 	element_removed.emit(element)
 
 
-func _finalize_production(former_queue_element):
-	var produced_unit = former_queue_element.unit_prototype.instantiate()
+## 尝试在有限搜索范围内部署完成单位；受阻时返回 null 供 C# 稍后重试。
+func try_deploy_authoritative(unit_prototype):
+	var produced_unit = unit_prototype.instantiate()
+	var navigation_map = find_parent("Match").navigation.get_navigation_map_rid_by_domain(
+		produced_unit.movement_domain
+	)
 	var placement_position = (
 		Utils
 		. Match
@@ -96,17 +123,33 @@ func _finalize_production(former_queue_element):
 			0.1,
 			Vector3(0, 0, 1),
 			false,
-			find_parent("Match").navigation.get_navigation_map_rid_by_domain(
-				produced_unit.movement_domain
-			),
-			get_tree()
+			navigation_map,
+			get_tree(),
+			24
 		)
 	)
+	if placement_position == Vector3.INF:
+		produced_unit.free()
+		return null
 	MatchSignals.setup_and_spawn_unit.emit(
 		produced_unit, Transform3D(Basis(), placement_position), _unit.player
 	)
 	MatchSignals.unit_production_finished.emit(produced_unit, _unit)
-
 	var rally_point = _unit.find_child("RallyPoint")
 	if rally_point != null:
 		MatchSignals.navigate_unit_to_rally_point.emit(produced_unit, rally_point)
+	return produced_unit
+
+
+## 把稳定快照复制到只读 HUD 视图。
+func _apply_snapshot(element, item):
+	element.required_work = item["required_work"]
+	element.completed_work = item["completed_work"]
+	element.state = item["state"]
+
+
+func _find_element(item_id: String):
+	for element in _queue:
+		if element.item_id == item_id:
+			return element
+	return null
