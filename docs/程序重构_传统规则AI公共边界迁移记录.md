@@ -196,4 +196,4 @@
 - `WorldQueryRuntimeSmokeTest` 与 `RuleAiOffenseLogisticsSmokeTest` 均为 0 failure，确认战争迷雾和上一切片生产后勤无回归；
 - `dotnet build` 为 0 警告、0 错误，79 项纯 C# 测试全部通过；Godot 退出时仍只有已登记的 RID/ObjectDB 泄漏基线。
 
-待人工验收：运行 `TestPlayerVsAI.tscn`，确认规则 AI 作战单位满编后能攻击当前侦察到的敌军；敌军目标死亡后可选择下一目标；编组减员不会产生报错或重复命令；生产、施工和胜负判定保持正常。
+2026-08-15 人工验收通过：运行 `TestPlayerVsAI.tscn` 后，敌方 AI 作战编组运行正常，并会在损失后继续补充包括攻击单位在内的单位，未发现生产、施工或作战闭环回归。
