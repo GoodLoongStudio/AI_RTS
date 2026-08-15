@@ -25,6 +25,7 @@ internal static class Program
         failures += new InputBindingServiceTests().Run();
         failures += new ControlGroupServiceTests().Run();
         failures += new WorldQueryServiceTests().Run();
+        failures += new MatchOutcomeServiceTests().Run();
         return failures == 0 ? 0 : 1;
     }
 }

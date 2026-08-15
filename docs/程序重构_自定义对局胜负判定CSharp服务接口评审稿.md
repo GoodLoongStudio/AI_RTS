@@ -161,3 +161,23 @@ Godot 冒烟测试至少覆盖：
 8. 初始化完成后才开启判定，终态一次性且不可逆；
 9. 保留现有 victory/defeat Legacy Signal 作为展示兼容层，不再作为核心结果；
 10. 战役和特殊地图规则继续延期，通过新的规则接口在后续分支实现。
+
+2026-08-15 项目负责人确认接受以上十项。战前选队与分队系统明确留待战前界面专项设计，本轮只提供 `MatchSideId` 扩展边界，不制作对应配置界面。
+
+## 9. 实现与自动验证记录
+
+2026-08-15 已完成首轮代码纵向切片：
+
+- 新增 `MatchSideId`、`MatchParticipant`、`MatchCombatant`、`MatchResolutionKind` 和结构化 `MatchResolution`；
+- 新增 `IMatchOutcomeRule`、`LastSurvivingSideRule` 与 `MatchOutcomeService`；
+- 初始化门闩、稳定 ID 幂等、显式 `CountsForElimination`、多玩家共享 Side、终态不可逆均已进入纯 C# 服务；
+- 单阵营开发测试场景保持 `InProgress`，不会因为只有一个测试玩家而在开局自动暂停；
+- Godot 事实更新先合并、后延迟一次评估，因此同一帧双方全灭能够得到 `Draw`，不依赖 Signal 先后顺序；
+- 新增 `MatchOutcomeRuntime`，只消费权威 `unit_spawned`/`unit_died`，不轮询 SceneTree；
+- `MatchEndHandler.gd` 已移除 Human 类型判断、单位组扫描和死亡订阅，只保留终态面板、暂停、Legacy 语音信号和退出主菜单；
+- 当前 `units` group 中移动单位、建筑和未完工建筑在 Runtime 注册时显式设置 `CountsForElimination=true`，保持 Demo 时机；
+- 新增 11 项纯 C# 测试，全套核心测试由 90 项增至 101 项，全部通过；
+- `OpenRTS.csproj` 构建通过，0 警告、0 错误；Godot 编辑器已成功加载新的 Match 场景与冒烟场景资源；
+- 新增 `MatchOutcomeRuntimeSmokeTest.tscn`，覆盖 Human 胜利/失败、同帧平局、无 Human 结束和生成事实桥接。
+
+当前多个既有 Godot 编辑器/测试进程同时存在，另起 headless Mono 进程时，新增场景与既有控制组场景均在脚本执行前发生相同原生崩溃；通过已连接编辑器会话已确认资源可解析，但为避免关闭或覆盖用户未保存的当前场景，没有强行切换场景执行。该冒烟场景与 `TestPlayerVsAI` 的人工运行结果作为本项最终划线依据。

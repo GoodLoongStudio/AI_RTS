@@ -8,6 +8,10 @@ public readonly record struct MatchId(Guid Value);
 /// <param name="Value">进程内唯一的 Guid 值。</param>
 public readonly record struct PlayerId(Guid Value);
 
+/// <summary>标识胜负判定中的一个阵营侧；多个玩家未来可以归属同一侧。</summary>
+/// <param name="Value">当前对局内唯一的 Guid 值。</param>
+public readonly record struct MatchSideId(Guid Value);
+
 /// <summary>标识一个可被命令或查询引用的单位。</summary>
 /// <param name="Value">进程内唯一的 Guid 值。</param>
 public readonly record struct UnitId(Guid Value);

@@ -1,0 +1,165 @@
+extends Node
+
+const MatchOutcomeRuntimeScript = preload(
+	"res://source/csharp/GodotAdapter/Match/MatchOutcomeRuntime.cs"
+)
+const MatchEndHandlerScene = preload("res://source/match/handlers/MatchEndHandler.tscn")
+
+var _failures := 0
+
+
+## 验证 C# 胜负服务的 Godot 事实桥接、同帧平局和 Legacy 面板映射。
+func _ready():
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	await _test_human_victory_and_spawn_bridge()
+	await _test_human_defeat()
+	await _test_draw()
+	await _test_ai_only_finish()
+
+	print("Match outcome runtime smoke test completed: %d failure(s)" % _failures)
+	get_tree().quit(0 if _failures == 0 else 1)
+
+
+## 验证新生成单位会延后淘汰，并在最后一个敌方单位死亡后显示胜利。
+func _test_human_victory_and_spawn_bridge():
+	var fixture: Dictionary = await _create_fixture(true)
+	var runtime = fixture.runtime
+	var enemy = fixture.second_player
+	var extra_enemy := _add_unit(enemy, "ExtraEnemy")
+	MatchSignals.unit_spawned.emit(extra_enemy)
+	_kill(fixture.second_unit)
+	await get_tree().process_frame
+
+	_check(runtime.InspectOutcome().get("kind", "") == "InProgress",
+		"新生成敌军存活时不得提前胜利")
+	_kill(extra_enemy)
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	_check(runtime.InspectOutcome().get("kind", "") == "Won",
+		"最后一个敌军死亡后应产生 Won")
+	_check(fixture.handler.find_child("Victory").visible,
+		"本机 Human 获胜应显示 Victory")
+	await _dispose_fixture(fixture)
+
+
+## 验证本机 Human 所在阵营淘汰后显示失败。
+func _test_human_defeat():
+	var fixture: Dictionary = await _create_fixture(true)
+	_kill(fixture.first_unit)
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	_check(fixture.handler.find_child("Defeat").visible,
+		"本机 Human 淘汰后应显示 Defeat")
+	await _dispose_fixture(fixture)
+
+
+## 验证同一帧双方全灭只发布平局并复用 Finish 面板。
+func _test_draw():
+	var fixture: Dictionary = await _create_fixture(true)
+	_kill(fixture.first_unit)
+	_kill(fixture.second_unit)
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	var snapshot: Dictionary = fixture.runtime.InspectOutcome()
+	_check(snapshot.get("kind", "") == "Draw", "同帧全灭应判为 Draw")
+	_check(snapshot.get("winning_side_ids", []).is_empty(), "Draw 不应包含胜方")
+	_check(fixture.handler.find_child("Finish").visible,
+		"当前 Draw 应复用 Finish 面板")
+	await _dispose_fixture(fixture)
+
+
+## 验证无 Human 的 AI 对局保留真实胜方但只显示普通结束。
+func _test_ai_only_finish():
+	var fixture: Dictionary = await _create_fixture(false)
+	_kill(fixture.second_unit)
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	var snapshot: Dictionary = fixture.runtime.InspectOutcome()
+	_check(snapshot.get("kind", "") == "Won", "无 Human 对局仍应保留 Won")
+	_check(snapshot.get("winning_side_ids", []).size() == 1,
+		"无 Human 对局仍应包含真实胜方")
+	_check(snapshot.get("local_human_side_id", "").is_empty(),
+		"无 Human 对局应显式返回空本机阵营")
+	_check(fixture.handler.find_child("Finish").visible,
+		"无 Human 对局应显示 Finish")
+	await _dispose_fixture(fixture)
+
+
+## 创建含两名参与者、两单位、C# Runtime 和现有结束面板的最小对局。
+func _create_fixture(has_human: bool) -> Dictionary:
+	get_tree().paused = false
+	var match_root := Node.new()
+	match_root.name = "Match"
+	var players := Node.new()
+	players.name = "Players"
+	match_root.add_child(players)
+	var first_player := _add_player(players, "FirstPlayer")
+	var second_player := _add_player(players, "SecondPlayer")
+	var first_unit := _add_unit(first_player, "FirstUnit")
+	var second_unit := _add_unit(second_player, "SecondUnit")
+	var runtime = MatchOutcomeRuntimeScript.new()
+	runtime.name = "MatchOutcomeRuntime"
+	match_root.add_child(runtime)
+	var handler = MatchEndHandlerScene.instantiate()
+	handler.name = "MatchEndHandler"
+	match_root.add_child(handler)
+	add_child(match_root)
+	await get_tree().process_frame
+
+	runtime.Initialize(players, first_player if has_human else null)
+	var initial: Dictionary = runtime.InspectOutcome()
+	_check(initial.get("kind", "") == "InProgress", "双方初始存活时应继续对局")
+	_check(initial.get("surviving_side_ids", []).size() == 2,
+		"初始快照应包含两个存活阵营")
+	return {
+		"match_root": match_root,
+		"runtime": runtime,
+		"handler": handler,
+		"first_player": first_player,
+		"second_player": second_player,
+		"first_unit": first_unit,
+		"second_unit": second_unit,
+	}
+
+
+## 创建一个参与者节点并加入权威 players group。
+func _add_player(players: Node, player_name: String) -> Node:
+	var player := Node.new()
+	player.name = player_name
+	player.add_to_group("players")
+	players.add_child(player)
+	return player
+
+
+## 创建一个直接归属玩家的计分实体。
+func _add_unit(player: Node, unit_name: String) -> Node:
+	var unit := Node.new()
+	unit.name = unit_name
+	unit.add_to_group("units")
+	player.add_child(unit)
+	return unit
+
+
+## 发布权威死亡事实并移除对应测试节点。
+func _kill(unit: Node):
+	MatchSignals.unit_died.emit(unit)
+	unit.queue_free()
+
+
+## 恢复暂停并释放当前最小对局，使 Runtime 解除全局信号订阅。
+func _dispose_fixture(fixture: Dictionary):
+	get_tree().paused = false
+	fixture.match_root.queue_free()
+	await get_tree().process_frame
+
+
+## 累计断言失败并输出可定位原因。
+func _check(condition: bool, message: String):
+	if condition:
+		return
+	_failures += 1
+	push_error(message)

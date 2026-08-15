@@ -1,10 +1,9 @@
 extends CanvasLayer
 
-const Human = preload("res://source/match/players/human/Human.gd")
-
 @onready var _victory_tile = find_child("Victory")
 @onready var _defeat_tile = find_child("Defeat")
 @onready var _finish_tile = find_child("Finish")
+@onready var _outcome_runtime = find_parent("Match").get_node("MatchOutcomeRuntime")
 
 
 func _ready():
@@ -15,10 +14,7 @@ func _ready():
 	_victory_tile.hide()
 	_defeat_tile.hide()
 	_finish_tile.hide()
-	await find_parent("Match").ready
-	MatchSignals.setup_and_spawn_unit.connect(_on_new_unit)
-	for unit in get_tree().get_nodes_in_group("units"):
-		unit.tree_exited.connect(_on_unit_tree_exited)
+	_outcome_runtime.match_resolved.connect(_on_match_resolved)
 
 
 func _handle_defeat():
@@ -43,25 +39,19 @@ func _show():
 	get_tree().paused = true
 
 
-func _on_new_unit(unit, _transform, _player):
-	unit.tree_exited.connect(_on_unit_tree_exited)
-
-
-func _on_unit_tree_exited():
+## 将结构化终态映射到当前 Legacy 面板；胜负计算不在 UI 中进行。
+func _on_match_resolved(resolution: Dictionary):
 	if visible or not is_inside_tree():
 		return
-	var players = Utils.Set.new()
-	for unit in get_tree().get_nodes_in_group("units"):
-		players.add(unit.player)
-	var human_players = get_tree().get_nodes_in_group("players").filter(
-		func(player): return player is Human
-	)
-	if not human_players.is_empty() and not players.has(human_players[0]):
-		_handle_defeat()
-	elif not human_players.is_empty() and players.has(human_players[0]) and players.size() == 1:
-		_handle_victory()
-	elif players.size() == 1:
+	var kind: String = resolution.get("kind", "InProgress")
+	var local_side: String = resolution.get("local_human_side_id", "")
+	var winners: Array = resolution.get("winning_side_ids", [])
+	if kind == "Draw" or local_side.is_empty():
 		_handle_finish()
+	elif local_side in winners:
+		_handle_victory()
+	else:
+		_handle_defeat()
 
 
 func _on_exit_button_pressed():

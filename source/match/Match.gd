@@ -36,6 +36,7 @@ var visible_players = null:
 @onready var _input_runtime = $InputBindingRuntime
 @onready var _query_runtime = $WorldQueryRuntime
 @onready var _control_group_runtime = $Handlers/UnitGroupSelectionHandler
+@onready var _match_outcome_runtime = $MatchOutcomeRuntime
 
 
 func _enter_tree():
@@ -49,6 +50,8 @@ func _ready():
 	_setup_players()
 	_setup_player_units()
 	_control_group_runtime.Configure(_get_human_player())
+	if FeatureFlags.handle_match_end:
+		_match_outcome_runtime.Initialize(_players, _get_human_player())
 	visible_player = get_tree().get_nodes_in_group("players")[settings.visible_player]
 	_query_runtime.Initialize(_players, _get_human_player())
 	_move_camera_to_initial_position()
