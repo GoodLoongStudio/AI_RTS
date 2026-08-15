@@ -1,3 +1,4 @@
+using AI_RTS.Application.Configuration;
 using AI_RTS.Application.Production;
 using AI_RTS.Domain.Common;
 using AI_RTS.Domain.Construction;
@@ -10,16 +11,28 @@ namespace AI_RTS.GodotAdapter.Production;
 /// <summary>以弱引用维护生产建筑及其 Legacy 队列表现节点。</summary>
 public sealed class GodotProductionProducerRegistry : IProductionProducerRepository
 {
+    private readonly IGameBalanceCatalog _catalog;
     private readonly Dictionary<UnitId, Entry> _entries = new();
+
+    /// <summary>建立使用 Match 不可变单位能力定义的生产建筑注册表。</summary>
+    public GodotProductionProducerRegistry(IGameBalanceCatalog catalog)
+    {
+        _catalog = catalog;
+    }
 
     /// <summary>注册生产建筑、定义名与队列表现节点。</summary>
     public UnitId Register(Node producer, Node queueNode, string producerDefinitionId)
     {
         var producerId = GodotStableIdentity.Unit(producer);
+        var unitTypeId = new UnitTypeId(producerDefinitionId);
+        var producerDefinition = _catalog.FindUnitType(unitTypeId)?.Producer ??
+            throw new InvalidOperationException(
+                $"实体类型 {producerDefinitionId} 没有 Producer 配置。");
         _entries[producerId] = new Entry(
             new WeakReference<Node>(producer),
             new WeakReference<Node>(queueNode),
-            new StructureDefinitionId(producerDefinitionId));
+            new StructureDefinitionId(producerDefinitionId),
+            producerDefinition.QueueLimit);
         return producerId;
     }
 
@@ -38,7 +51,8 @@ public sealed class GodotProductionProducerRegistry : IProductionProducerReposit
             GodotStableIdentity.Player(producer.GetParent()),
             entry.DefinitionId,
             true,
-            constructed);
+            constructed,
+            entry.QueueLimit);
     }
 
     /// <summary>尝试取得仍位于 SceneTree 的生产建筑。</summary>
@@ -74,5 +88,6 @@ public sealed class GodotProductionProducerRegistry : IProductionProducerReposit
     private sealed record Entry(
         WeakReference<Node> Producer,
         WeakReference<Node> QueueNode,
-        StructureDefinitionId DefinitionId);
+        StructureDefinitionId DefinitionId,
+        int QueueLimit);
 }

@@ -25,6 +25,7 @@ var _blueprint_rotating = false
 @onready var _match = find_parent("Match")
 @onready var _feedback_label = find_child("FeedbackLabel3D")
 @onready var _placement_runtime = _match.find_child("StructurePlacementRuntime")
+@onready var _balance_runtime = _match.find_child("BalanceConfigRuntime")
 
 
 func _ready():
@@ -93,14 +94,11 @@ func _blueprint_rotation_started():
 
 
 func _calculate_blueprint_position_validity():
-	var construction_cost = Constants.Match.Units.CONSTRUCTION_COSTS[
-		_pending_structure_prototype.resource_path
-	]
 	var evaluation = _placement_runtime.Evaluate(
 		_player,
 		_pending_structure_prototype,
 		_active_blueprint_node.global_transform,
-		construction_cost
+		{}  # ECO-007B：Legacy 参数保留兼容，权威成本由 C# Catalog 查询。
 	)
 	match evaluation["primary_issue"]:
 		"":
@@ -143,10 +141,9 @@ func _start_structure_placement(structure_prototype):
 				and unit.has_method("request_legacy_construct")
 			)
 	)
-	_active_blueprint_node = (
-		load(Constants.Match.Units.STRUCTURE_BLUEPRINTS[structure_prototype.resource_path])
-		. instantiate()
-	)
+	var blueprint_path = _balance_runtime.GetBlueprintScenePath(structure_prototype)
+	assert(not blueprint_path.is_empty(), "structure is missing blueprint asset mapping")
+	_active_blueprint_node = load(blueprint_path).instantiate()
 	var blueprint_origin = Vector3(-999, 0, -999)
 	var camera_direction_yless = (
 		(get_viewport().get_camera_3d().project_ray_normal(Vector2(0, 0)) * Vector3(1, 0, 1))
@@ -188,14 +185,11 @@ func _cancel_structure_placement():
 
 
 func _finish_structure_placement():
-	var construction_cost = Constants.Match.Units.CONSTRUCTION_COSTS[
-		_pending_structure_prototype.resource_path
-	]
 	var result = _placement_runtime.Place(
 		_player,
 		_pending_structure_prototype,
 		_active_blueprint_node.global_transform,
-		construction_cost
+		{}  # ECO-007B：Legacy 参数保留兼容，权威成本由 C# Catalog 查询。
 	)
 	if result["accepted"]:
 		_placement_runtime.AssignBuilders(

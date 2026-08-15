@@ -13,7 +13,6 @@ public sealed class ProductionService : IProductionService
     private readonly IProductionProducerRepository _producers;
     private readonly IProductionDeploymentPort _deployment;
     private readonly IResourceAccountService _accounts;
-    private readonly int _queueCapacity;
     private readonly Dictionary<ProductionItemId, ItemRuntime> _items = new();
     private readonly Dictionary<UnitId, List<ProductionItemId>> _queues = new();
     private long _lastAdvancedTick = -1;
@@ -23,18 +22,12 @@ public sealed class ProductionService : IProductionService
         IProductionDefinitionRepository definitions,
         IProductionProducerRepository producers,
         IProductionDeploymentPort deployment,
-        IResourceAccountService accounts,
-        int queueCapacity = 5)
+        IResourceAccountService accounts)
     {
-        if (queueCapacity <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(queueCapacity));
-        }
         _definitions = definitions;
         _producers = producers;
         _deployment = deployment;
         _accounts = accounts;
-        _queueCapacity = queueCapacity;
     }
 
     /// <inheritdoc />
@@ -77,27 +70,31 @@ public sealed class ProductionService : IProductionService
         }
 
         var queue = Queue(command.ProducerId);
-        if (queue.Count >= _queueCapacity)
+        if (queue.Count >= producer.QueueLimit)
         {
             return Result(context, ProductionCommandStatus.QueueFull);
         }
 
         var itemId = new ProductionItemId(Guid.NewGuid());
-        var payment = _accounts.Apply(new ApplyResourceTransaction(
-            new ResourceTransactionId(itemId.Value),
-            context.MatchId,
-            context.IssuerPlayerId,
-            definition.Cost.Select(cost => new ResourceDelta(cost.Kind, -cost.Amount)).ToArray(),
-            ResourceChangeReason.ProductionCost,
-            itemId.Value,
-            context.SimulationTick));
-        if (payment.Status == ResourceTransactionStatus.InsufficientResources)
+        if (definition.Cost.Count != 0)
         {
-            return Result(context, ProductionCommandStatus.InsufficientResources);
-        }
-        if (payment.Status != ResourceTransactionStatus.Applied)
-        {
-            return Result(context, ProductionCommandStatus.ExecutionUnavailable);
+            var payment = _accounts.Apply(new ApplyResourceTransaction(
+                new ResourceTransactionId(itemId.Value),
+                context.MatchId,
+                context.IssuerPlayerId,
+                definition.Cost.Select(cost =>
+                    new ResourceDelta(cost.Kind, -cost.Amount)).ToArray(),
+                ResourceChangeReason.ProductionCost,
+                itemId.Value,
+                context.SimulationTick));
+            if (payment.Status == ResourceTransactionStatus.InsufficientResources)
+            {
+                return Result(context, ProductionCommandStatus.InsufficientResources);
+            }
+            if (payment.Status != ResourceTransactionStatus.Applied)
+            {
+                return Result(context, ProductionCommandStatus.ExecutionUnavailable);
+            }
         }
 
         var snapshot = new ProductionItemSnapshot(
@@ -140,18 +137,22 @@ public sealed class ProductionService : IProductionService
             return Result(context, ProductionCommandStatus.ItemNotActive, item);
         }
 
-        var refund = _accounts.Apply(new ApplyResourceTransaction(
-            runtime.RefundTransactionId,
-            context.MatchId,
-            context.IssuerPlayerId,
-            item.PaidCost.Select(cost => new ResourceDelta(cost.Kind, cost.Amount)).ToArray(),
-            ResourceChangeReason.ProductionRefund,
-            item.ItemId.Value,
-            context.SimulationTick));
-        if (refund.Status is not ResourceTransactionStatus.Applied and
-            not ResourceTransactionStatus.AlreadyApplied)
+        if (item.PaidCost.Count != 0)
         {
-            return Result(context, ProductionCommandStatus.ExecutionUnavailable, item);
+            var refund = _accounts.Apply(new ApplyResourceTransaction(
+                runtime.RefundTransactionId,
+                context.MatchId,
+                context.IssuerPlayerId,
+                item.PaidCost.Select(cost =>
+                    new ResourceDelta(cost.Kind, cost.Amount)).ToArray(),
+                ResourceChangeReason.ProductionRefund,
+                item.ItemId.Value,
+                context.SimulationTick));
+            if (refund.Status is not ResourceTransactionStatus.Applied and
+                not ResourceTransactionStatus.AlreadyApplied)
+            {
+                return Result(context, ProductionCommandStatus.ExecutionUnavailable, item);
+            }
         }
 
         var wasFront = RemoveFromQueue(item.ProducerId, item.ItemId);
@@ -337,7 +338,6 @@ public sealed class ProductionService : IProductionService
         return definition is not null &&
             !string.IsNullOrWhiteSpace(definition.DefinitionId.Value) &&
             definition.RequiredWork > 0 &&
-            definition.Cost.Count > 0 &&
             definition.Cost.All(cost =>
                 Enum.IsDefined(cost.Kind) && cost.Amount > 0) &&
             definition.Cost.Select(cost => cost.Kind).Distinct().Count() == definition.Cost.Count &&
@@ -357,6 +357,10 @@ public sealed class ProductionService : IProductionService
         if (producer.OwnerId != context.IssuerPlayerId)
         {
             return ProductionCommandStatus.ProducerNotOwned;
+        }
+        if (producer.QueueLimit <= 0)
+        {
+            return ProductionCommandStatus.ExecutionUnavailable;
         }
         return requireConstructed && !producer.IsConstructed ?
             ProductionCommandStatus.ProducerNotConstructed : ProductionCommandStatus.Accepted;

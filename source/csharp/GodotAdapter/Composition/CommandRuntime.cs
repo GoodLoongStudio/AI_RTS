@@ -146,6 +146,7 @@ public partial class CommandRuntime : Node
         Node site,
         Node owner,
         StructureDefinitionId definitionId,
+        int requiredWork,
         IReadOnlyList<ResourceAmount> costs)
     {
         var siteId = _constructionSites.Register(site);
@@ -154,7 +155,7 @@ public partial class CommandRuntime : Node
             siteId,
             _units.RegisterPlayer(owner),
             definitionId,
-            200,
+            requiredWork,
             costs));
         if (registered)
         {

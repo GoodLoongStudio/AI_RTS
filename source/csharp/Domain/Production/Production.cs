@@ -59,9 +59,16 @@ public sealed record ProductionItemSnapshot(
     UnitId? ProducedUnitId = null);
 
 /// <summary>描述生产建筑在当前 Match 中的能力与可运行状态。</summary>
+/// <param name="ProducerId">生产建筑的对局内稳定身份。</param>
+/// <param name="OwnerId">当前拥有者。</param>
+/// <param name="DefinitionId">稳定建筑类型。</param>
+/// <param name="IsAlive">是否仍可被生产服务引用。</param>
+/// <param name="IsConstructed">是否已经完成施工。</param>
+/// <param name="QueueLimit">该建筑实例允许的活动生产项目上限。</param>
 public sealed record ProductionProducerSnapshot(
     UnitId ProducerId,
     PlayerId OwnerId,
     StructureDefinitionId DefinitionId,
     bool IsAlive,
-    bool IsConstructed);
+    bool IsConstructed,
+    int QueueLimit = 5);

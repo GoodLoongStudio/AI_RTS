@@ -1,9 +1,11 @@
 using AI_RTS.Application.Construction;
 using AI_RTS.Domain.Common;
+using AI_RTS.Domain.Configuration;
 using AI_RTS.Domain.Construction;
 using AI_RTS.Domain.Economy;
 using AI_RTS.GodotAdapter.Common;
 using AI_RTS.GodotAdapter.Composition;
+using AI_RTS.GodotAdapter.Configuration;
 using AI_RTS.GodotAdapter.Economy;
 using Godot;
 
@@ -12,8 +14,8 @@ namespace AI_RTS.GodotAdapter.Construction;
 /// <summary>向 Human、规则 AI 和未来 Agent 暴露同一建筑放置评估与提交入口。</summary>
 public partial class StructurePlacementRuntime : Node
 {
-    private readonly GodotStructurePlacementDefinitionRepository _definitions = new();
-    private readonly Dictionary<string, StructureDefinitionId> _sceneDefinitions = new();
+    private GodotStructurePlacementDefinitionRepository _definitions = null!;
+    private BalanceConfigRuntime _configuration = null!;
     private EconomyRuntime _economy = null!;
     private CommandRuntime _commands = null!;
     private GodotStructurePlacementWorldPort _world = null!;
@@ -24,6 +26,8 @@ public partial class StructurePlacementRuntime : Node
     {
         _economy = GetParent().GetNode<EconomyRuntime>("EconomyRuntime");
         _commands = GetParent().GetNode<CommandRuntime>("CommandRuntime");
+        _configuration = GetParent().GetNode<BalanceConfigRuntime>("BalanceConfigRuntime");
+        _definitions = new GodotStructurePlacementDefinitionRepository(_configuration.Catalog);
         _world = new GodotStructurePlacementWorldPort(GetParent());
         _service = new StructurePlacementService(
             _definitions,
@@ -37,9 +41,9 @@ public partial class StructurePlacementRuntime : Node
         Node player,
         PackedScene prototype,
         Transform3D transform,
-        Godot.Collections.Dictionary constructionCost)
+        Godot.Collections.Dictionary _legacyConstructionCost)
     {
-        var definitionId = EnsureDefinition(prototype, constructionCost);
+        var definitionId = EnsureDefinition(prototype).DefinitionId;
         var playerId = GodotStableIdentity.Player(player);
         _world.RegisterPlayer(playerId, player);
         return ToGodot(_service.Evaluate(Query(playerId, definitionId, transform)));
@@ -50,9 +54,10 @@ public partial class StructurePlacementRuntime : Node
         Node player,
         PackedScene prototype,
         Transform3D transform,
-        Godot.Collections.Dictionary constructionCost)
+        Godot.Collections.Dictionary _legacyConstructionCost)
     {
-        var definitionId = EnsureDefinition(prototype, constructionCost);
+        var construction = EnsureDefinition(prototype);
+        var definitionId = construction.DefinitionId;
         var playerId = GodotStableIdentity.Player(player);
         _world.RegisterPlayer(playerId, player);
         var query = Query(playerId, definitionId, transform);
@@ -62,7 +67,7 @@ public partial class StructurePlacementRuntime : Node
             return ToGodot(evaluation);
         }
 
-        var definition = _definitions.Find(definitionId)!;
+        var definition = construction.Placement;
         var world = _world.EvaluateDetailed(playerId, evaluation.Candidate, definition);
         if (world.Issues.Count != 0)
         {
@@ -76,9 +81,11 @@ public partial class StructurePlacementRuntime : Node
             displacedIds.Add(GodotStableIdentity.Unit(unit).Value.ToString("D"));
         }
         structure.SetMeta("ai_rts_displaced_unit_ids", displacedIds);
-        var payment = _economy.SubtractResources(
-            player, constructionCost, "ConstructionCost", structure);
-        if (!payment["accepted"].AsBool())
+        var constructionCost = ToGodotCosts(definition.ConstructionCost);
+        var paymentAccepted = definition.ConstructionCost.Count == 0 ||
+            _economy.SubtractResources(
+                player, constructionCost, "ConstructionCost", structure)["accepted"].AsBool();
+        if (!paymentAccepted)
         {
             structure.Free();
             return ToGodot(_service.Evaluate(query));
@@ -88,14 +95,21 @@ public partial class StructurePlacementRuntime : Node
         {
             GetParent().Call("_setup_and_spawn_unit", structure, transform, player, true);
             if (!_commands.RegisterConstructionSite(
-                structure, player, definitionId, definition.ConstructionCost))
+                structure,
+                player,
+                definitionId,
+                construction.RequiredWork,
+                definition.ConstructionCost))
             {
                 throw new InvalidOperationException("无法注册权威施工现场。");
             }
         }
         catch
         {
-            _economy.AddResources(player, constructionCost, "ConstructionRefund", structure);
+            if (definition.ConstructionCost.Count != 0)
+            {
+                _economy.AddResources(player, constructionCost, "ConstructionRefund", structure);
+            }
             structure.QueueFree();
             throw;
         }
@@ -131,28 +145,12 @@ public partial class StructurePlacementRuntime : Node
             workers, structure, player, displacedUnitIds.ToHashSet());
     }
 
-    /// <summary>把 PackedScene、Legacy 成本和现有圆形半径注册成稳定定义。</summary>
-    private StructureDefinitionId EnsureDefinition(
-        PackedScene prototype,
-        Godot.Collections.Dictionary constructionCost)
+    /// <summary>按受信任 asset manifest 查询已经完整校验的施工定义。</summary>
+    private StructureConstructionDefinition EnsureDefinition(PackedScene prototype)
     {
-        if (_sceneDefinitions.TryGetValue(prototype.ResourcePath, out var existing))
-        {
-            return existing;
-        }
-
-        var temporary = prototype.Instantiate<Node3D>();
-        var radius = temporary.Get("radius").AsSingle();
-        temporary.Free();
-        var definitionId = new StructureDefinitionId(StableDefinitionName(prototype.ResourcePath));
-        var definition = new StructurePlacementDefinition(
-            definitionId,
-            new CirclePlacementFootprint(radius),
-            new PlacementEnvironmentId("terrain.surface"),
-            ReadCosts(constructionCost));
-        _definitions.Register(definition);
-        _sceneDefinitions.Add(prototype.ResourcePath, definitionId);
-        return definitionId;
+        return _configuration.FindConstruction(prototype) ??
+            throw new InvalidOperationException(
+                $"场景 {prototype.ResourcePath} 没有受信任的施工定义。");
     }
 
     /// <summary>建立使用当前 Match、玩家和 Godot Transform 的只读查询。</summary>
@@ -171,39 +169,22 @@ public partial class StructurePlacementRuntime : Node
                 transform.Basis.GetEuler().Y));
     }
 
-    /// <summary>从 resource_a/resource_b Legacy 字典读取非负建筑成本。</summary>
-    private static ResourceAmount[] ReadCosts(Godot.Collections.Dictionary costs)
+    /// <summary>把强类型成本转换为迁移期经济 Gateway 接受的只读字典副本。</summary>
+    private static Godot.Collections.Dictionary ToGodotCosts(
+        IEnumerable<ResourceAmount> costs)
     {
-        var result = new List<ResourceAmount>();
-        foreach (var key in costs.Keys)
+        var result = new Godot.Collections.Dictionary();
+        foreach (var cost in costs)
         {
-            var kind = key.AsString() switch
+            var key = cost.Kind switch
             {
-                "resource_a" => ResourceKind.A,
-                "resource_b" => ResourceKind.B,
-                _ => throw new ArgumentException($"未知建筑资源类型：{key}")
+                ResourceKind.A => "resource_a",
+                ResourceKind.B => "resource_b",
+                _ => throw new InvalidOperationException($"未知建筑资源类型：{cost.Kind}")
             };
-            var amount = costs[key].AsInt32();
-            if (amount < 0)
-            {
-                throw new ArgumentException("建筑成本不能为负数");
-            }
-            if (amount > 0)
-            {
-                result.Add(new ResourceAmount(kind, amount));
-            }
+            result[key] = cost.Amount;
         }
-        return result.ToArray();
-    }
-
-    /// <summary>从场景文件名生成不暴露目录结构的稳定定义键。</summary>
-    private static string StableDefinitionName(string resourcePath)
-    {
-        var fileName = resourcePath[(resourcePath.LastIndexOf('/') + 1)..];
-        var withoutExtension = fileName[..fileName.LastIndexOf('.')];
-        return string.Concat(withoutExtension.Select((character, index) =>
-            char.IsUpper(character) && index > 0 ? $"_{char.ToLowerInvariant(character)}" :
-                char.ToLowerInvariant(character).ToString()));
+        return result;
     }
 
     /// <summary>把稳定评估转换为 GDScript 可读取的字段集合。</summary>

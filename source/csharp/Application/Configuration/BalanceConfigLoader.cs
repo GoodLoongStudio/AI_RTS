@@ -408,12 +408,22 @@ public sealed class BalanceConfigLoader
         List<BalanceConfigError> errors)
     {
         var ids = new HashSet<string>(StringComparer.Ordinal);
+        var productIds = new HashSet<string>(StringComparer.Ordinal);
         for (var index = 0; index < productions.Count; index++)
         {
             var item = productions[index];
             var path = $"$.productions[{index}]";
             AddStableId(item.Id, $"{path}.id", ids, errors);
-            ValidateUnitReference(item.ProductUnitTypeId, $"{path}.productUnitTypeId", unitTypes, errors);
+            if (ValidateUnitReference(
+                item.ProductUnitTypeId,
+                $"{path}.productUnitTypeId",
+                unitTypes,
+                errors) && !productIds.Add(item.ProductUnitTypeId!))
+            {
+                Add(errors, BalanceConfigErrorCode.InvalidCapability,
+                    $"{path}.productUnitTypeId",
+                    "迁移期 PackedScene 入队入口要求每种产品只有一个生产定义。");
+            }
             RequirePositive(item.RequiredWork, $"{path}.requiredWork", errors);
             ValidateCost(item.Cost, $"{path}.cost", errors);
             if (item.AllowedProducerUnitTypeIds is null ||
@@ -617,7 +627,7 @@ public sealed class BalanceConfigLoader
         item.Producer is null ? null : new ProducerDefinition(item.Producer.QueueLimit!.Value));
 
     private static IReadOnlyList<ResourceAmount> MapCost(IEnumerable<ResourceAmountDto> cost) =>
-        Array.AsReadOnly(cost.Select(item => new ResourceAmount(
+        Array.AsReadOnly(cost.Where(item => item.Amount > 0).Select(item => new ResourceAmount(
             ParseResourceKind(item.Kind!),
             item.Amount!.Value)).ToArray());
 
@@ -983,6 +993,19 @@ internal sealed class InMemoryGameBalanceCatalog : IGameBalanceCatalog
 
     /// <inheritdoc />
     public BalanceConfigVersion Version { get; }
+
+    /// <inheritdoc />
+    public IReadOnlyCollection<UnitTypeDefinition> UnitTypes => _unitTypes.Values;
+
+    /// <inheritdoc />
+    public IReadOnlyCollection<WeaponDefinition> Weapons => _weapons.Values;
+
+    /// <inheritdoc />
+    public IReadOnlyCollection<ProductionDefinition> Productions => _productions.Values;
+
+    /// <inheritdoc />
+    public IReadOnlyCollection<StructureConstructionDefinition> Constructions =>
+        _constructions.Values;
 
     /// <summary>冻结全部定义索引，之后不再接受注册或覆盖。</summary>
     public InMemoryGameBalanceCatalog(

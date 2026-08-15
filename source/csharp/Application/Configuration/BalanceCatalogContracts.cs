@@ -13,6 +13,18 @@ public interface IGameBalanceCatalog
     /// <summary>读取配置格式、内容版本和内容指纹。</summary>
     BalanceConfigVersion Version { get; }
 
+    /// <summary>枚举当前配置中的全部单位和建筑定义。</summary>
+    IReadOnlyCollection<UnitTypeDefinition> UnitTypes { get; }
+
+    /// <summary>枚举当前配置中的全部武器定义。</summary>
+    IReadOnlyCollection<WeaponDefinition> Weapons { get; }
+
+    /// <summary>枚举当前配置中的全部生产定义。</summary>
+    IReadOnlyCollection<ProductionDefinition> Productions { get; }
+
+    /// <summary>枚举当前配置中的全部建筑施工定义。</summary>
+    IReadOnlyCollection<StructureConstructionDefinition> Constructions { get; }
+
     /// <summary>按稳定类型 ID 查询单位或建筑定义。</summary>
     UnitTypeDefinition? FindUnitType(UnitTypeId unitTypeId);
 

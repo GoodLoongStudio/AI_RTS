@@ -1,23 +1,25 @@
+using AI_RTS.Application.Configuration;
 using AI_RTS.Application.Construction;
 using AI_RTS.Domain.Common;
 using AI_RTS.Domain.Construction;
 
 namespace AI_RTS.GodotAdapter.Construction;
 
-/// <summary>在 Match 生命周期内保存由 Godot 配置注册的建筑放置定义。</summary>
+/// <summary>从 Match 不可变 Catalog 查询建筑放置定义。</summary>
 internal sealed class GodotStructurePlacementDefinitionRepository :
     IStructurePlacementDefinitionRepository
 {
-    private readonly Dictionary<StructureDefinitionId, StructurePlacementDefinition> _definitions =
-        new();
+    private readonly IGameBalanceCatalog _catalog;
 
-    /// <summary>注册或更新一个已经过 Godot Adapter 解析的建筑定义。</summary>
-    public void Register(StructurePlacementDefinition definition) =>
-        _definitions[definition.DefinitionId] = definition;
+    /// <summary>建立只读 Catalog 适配器，不接受运行时覆盖。</summary>
+    public GodotStructurePlacementDefinitionRepository(IGameBalanceCatalog catalog)
+    {
+        _catalog = catalog;
+    }
 
     /// <inheritdoc />
     public StructurePlacementDefinition? Find(StructureDefinitionId definitionId) =>
-        _definitions.GetValueOrDefault(definitionId);
+        _catalog.FindConstruction(definitionId)?.Placement;
 }
 
 /// <summary>迁移期允许所有已注册定义；科技树权限以后替换此端口。</summary>

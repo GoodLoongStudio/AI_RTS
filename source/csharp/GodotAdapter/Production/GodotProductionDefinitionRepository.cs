@@ -1,94 +1,47 @@
+using AI_RTS.Application.Configuration;
 using AI_RTS.Application.Production;
 using AI_RTS.Domain.Common;
-using AI_RTS.Domain.Construction;
-using AI_RTS.Domain.Economy;
 using AI_RTS.Domain.Production;
+using AI_RTS.GodotAdapter.Configuration;
 using Godot;
 
 namespace AI_RTS.GodotAdapter.Production;
 
-/// <summary>维护稳定产品定义与 PackedScene 的迁移期映射。</summary>
+/// <summary>把不可变生产 Catalog 与 Godot 产品 PackedScene 映射组合为生产端口。</summary>
 public sealed class GodotProductionDefinitionRepository : IProductionDefinitionRepository
 {
-    private sealed record KnownDefinition(
-        int RequiredWork,
-        ResourceAmount[] Cost,
-        string[] AllowedProducers);
+    private readonly IGameBalanceCatalog _catalog;
+    private readonly GodotAssetManifest _assets;
+    private readonly IReadOnlyDictionary<UnitTypeId, ProductionDefinitionId> _products;
 
-    private static readonly Dictionary<string, KnownDefinition> KnownDefinitions = new()
+    /// <summary>建立每种产品到唯一生产定义的只读索引。</summary>
+    public GodotProductionDefinitionRepository(
+        IGameBalanceCatalog catalog,
+        GodotAssetManifest assets)
     {
-        ["res://source/match/units/Worker.tscn"] = new(
-            180,
-            [new ResourceAmount(ResourceKind.A, 2)],
-            ["command_center"]),
-        ["res://source/match/units/Tank.tscn"] = new(
-            360,
-            [new ResourceAmount(ResourceKind.A, 3), new ResourceAmount(ResourceKind.B, 1)],
-            ["vehicle_factory"]),
-        ["res://source/match/units/Helicopter.tscn"] = new(
-            360,
-            [new ResourceAmount(ResourceKind.A, 1), new ResourceAmount(ResourceKind.B, 3)],
-            ["aircraft_factory"]),
-        ["res://source/match/units/Drone.tscn"] = new(
-            180,
-            [new ResourceAmount(ResourceKind.A, 2)],
-            ["aircraft_factory"])
-    };
-
-    private readonly Dictionary<ProductionDefinitionId, ProductionDefinition> _definitions = new();
-    private readonly Dictionary<ProductionDefinitionId, PackedScene> _scenes = new();
-
-    /// <summary>按受信任目录注册产品定义，调用方不能覆盖成本、工期或生产资格。</summary>
-    public ProductionDefinitionId? Register(PackedScene scene)
-    {
-        if (!KnownDefinitions.TryGetValue(scene.ResourcePath, out var known))
-        {
-            return null;
-        }
-        var definitionId = new ProductionDefinitionId(StableName(scene.ResourcePath));
-        var definition = new ProductionDefinition(
-            definitionId,
-            known.RequiredWork,
-            known.Cost,
-            known.AllowedProducers.Select(value => new StructureDefinitionId(value)).ToHashSet());
-        if (_definitions.TryGetValue(definitionId, out var existing) &&
-            !Equivalent(existing, definition))
-        {
-            return null;
-        }
-        _definitions[definitionId] = definition;
-        _scenes[definitionId] = scene;
-        return definitionId;
+        _catalog = catalog;
+        _assets = assets;
+        _products = catalog.Productions.ToDictionary(
+            item => item.ProductTypeId,
+            item => item.DefinitionId);
     }
 
-    /// <summary>按值比较重复注册的定义，避免集合引用差异造成假冲突。</summary>
-    private static bool Equivalent(
-        ProductionDefinition left,
-        ProductionDefinition right)
+    /// <summary>按受信任 manifest 中的产品场景解析稳定生产定义。</summary>
+    public ProductionDefinitionId? Resolve(PackedScene scene)
     {
-        return left.DefinitionId == right.DefinitionId &&
-            left.RequiredWork == right.RequiredWork &&
-            left.Cost.OrderBy(item => item.Kind).SequenceEqual(
-                right.Cost.OrderBy(item => item.Kind)) &&
-            left.AllowedProducerDefinitions.SetEquals(right.AllowedProducerDefinitions);
+        var unitTypeId = _assets.FindUnitType(scene);
+        return unitTypeId is not null && _products.TryGetValue(unitTypeId.Value, out var definitionId) ?
+            definitionId : null;
     }
 
     /// <inheritdoc />
     public ProductionDefinition? Find(ProductionDefinitionId definitionId) =>
-        _definitions.GetValueOrDefault(definitionId);
+        _catalog.FindProduction(definitionId);
 
-    /// <summary>查询用于部署的产品 PackedScene。</summary>
-    public PackedScene? FindScene(ProductionDefinitionId definitionId) =>
-        _scenes.GetValueOrDefault(definitionId);
-
-    /// <summary>从场景文件名生成不暴露目录结构的稳定 snake_case 名称。</summary>
-    private static string StableName(string resourcePath)
+    /// <summary>查询生产定义部署时使用的受信任 PackedScene。</summary>
+    public PackedScene? FindScene(ProductionDefinitionId definitionId)
     {
-        var fileName = resourcePath[(resourcePath.LastIndexOf('/') + 1)..];
-        var withoutExtension = fileName[..fileName.LastIndexOf('.')];
-        return string.Concat(withoutExtension.Select((character, index) =>
-            char.IsUpper(character) && index > 0 ?
-                $"_{char.ToLowerInvariant(character)}" :
-                char.ToLowerInvariant(character).ToString()));
+        var definition = _catalog.FindProduction(definitionId);
+        return definition is null ? null : _assets.FindUnitScene(definition.ProductTypeId);
     }
 }

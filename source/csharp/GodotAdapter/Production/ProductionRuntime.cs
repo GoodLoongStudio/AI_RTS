@@ -3,6 +3,7 @@ using AI_RTS.Application.Production;
 using AI_RTS.Domain.Common;
 using AI_RTS.Domain.Production;
 using AI_RTS.GodotAdapter.Common;
+using AI_RTS.GodotAdapter.Configuration;
 using AI_RTS.GodotAdapter.Economy;
 using Godot;
 
@@ -11,8 +12,8 @@ namespace AI_RTS.GodotAdapter.Production;
 /// <summary>在 Match 生命周期内装配权威生产服务并兼容现有 GDScript 队列和 Signal。</summary>
 public partial class ProductionRuntime : Node
 {
-    private readonly GodotProductionDefinitionRepository _definitions = new();
-    private readonly GodotProductionProducerRegistry _producers = new();
+    private GodotProductionDefinitionRepository _definitions = null!;
+    private GodotProductionProducerRegistry _producers = null!;
     private readonly HashSet<UnitId> _trackedProducers = new();
     private GodotProductionDeploymentPort _deployment = null!;
     private IProductionService _service = null!;
@@ -25,14 +26,18 @@ public partial class ProductionRuntime : Node
     public override void _Ready()
     {
         var economy = GetParent().GetNode<EconomyRuntime>("EconomyRuntime");
+        var configuration = GetParent().GetNode<BalanceConfigRuntime>("BalanceConfigRuntime");
         _matchId = economy.MatchId;
+        _definitions = new GodotProductionDefinitionRepository(
+            configuration.Catalog,
+            configuration.Assets);
+        _producers = new GodotProductionProducerRegistry(configuration.Catalog);
         _deployment = new GodotProductionDeploymentPort(_definitions, _producers);
         _service = new ProductionService(
             _definitions,
             _producers,
             _deployment,
-            economy.AccountService,
-            5);
+            economy.AccountService);
         _service.Queued += OnQueued;
         _service.Started += OnStarted;
         _service.Progressed += change => NotifyChanged(change.Item);
@@ -70,7 +75,7 @@ public partial class ProductionRuntime : Node
         Node issuerPlayer)
     {
         var producerId = GodotStableIdentity.Unit(producer);
-        var definitionId = _definitions.Register(product);
+        var definitionId = _definitions.Resolve(product);
         if (definitionId is null)
         {
             return ToGodot(new ProductionCommandResult(

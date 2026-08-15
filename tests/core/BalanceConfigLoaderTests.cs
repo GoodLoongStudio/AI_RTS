@@ -24,6 +24,8 @@ internal sealed class BalanceConfigLoaderTests
         RunTest(nameof(InvalidNumberAndEnumAreReportedTogether), InvalidNumberAndEnumAreReportedTogether);
         RunTest(nameof(MissingReferenceAndDuplicateCostAreRejected),
             MissingReferenceAndDuplicateCostAreRejected);
+        RunTest(nameof(DuplicateProductDefinitionIsRejected),
+            DuplicateProductDefinitionIsRejected);
         RunTest(nameof(ProfileRequirementsReportMissingDefinitions),
             ProfileRequirementsReportMissingDefinitions);
         RunTest(nameof(InvalidJsonNeverCreatesCatalog), InvalidJsonNeverCreatesCatalog);
@@ -183,6 +185,29 @@ internal sealed class BalanceConfigLoaderTests
         Check(result.Errors.Any(item => item.Code == BalanceConfigErrorCode.DuplicateResourceCost),
             "同一成本内重复资源应返回 DuplicateResourceCost");
         Check(result.Catalog is null, "引用和成本错误不得创建 Catalog");
+    }
+
+    /// <summary>验证迁移期同一产品不能对应多个依赖 PackedScene 反查的生产定义。</summary>
+    private void DuplicateProductDefinitionIsRejected()
+    {
+        const string duplicate = """
+            {
+              "id": "tank_alternate",
+              "productUnitTypeId": "tank",
+              "requiredWork": 360,
+              "cost": [],
+              "allowedProducerUnitTypeIds": ["vehicle_factory"]
+            },
+            """;
+        var json = BaselineJson().Replace(
+            "\"productions\": [",
+            $"\"productions\": [{duplicate}",
+            StringComparison.Ordinal);
+        var result = _loader.Load(json);
+
+        CheckError(result, BalanceConfigErrorCode.InvalidCapability,
+            "$.productions[3].productUnitTypeId");
+        Check(result.Catalog is null, "产品生产定义不唯一时不得创建 Catalog");
     }
 
     /// <summary>验证 Match 组合根可以在通用 schema 校验之外声明必需定义。</summary>

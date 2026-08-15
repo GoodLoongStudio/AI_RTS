@@ -27,6 +27,8 @@ internal sealed class ProductionServiceTests
             CancelRefundsOnceAndPromotesNextItem);
         RunTest(nameof(ProducerLossTerminatesAllWithoutRefund),
             ProducerLossTerminatesAllWithoutRefund);
+        RunTest(nameof(FreeDefinitionSkipsEmptyPaymentAndRefund),
+            FreeDefinitionSkipsEmptyPaymentAndRefund);
         Console.WriteLine(
             $"Production service tests completed: {_tests} test(s), {_failures} failure(s).");
         return _failures;
@@ -157,6 +159,28 @@ internal sealed class ProductionServiceTests
             "建筑失效后活动队列应清空并逐项发布终止事件");
     }
 
+    /// <summary>验证显式空成本可以生产和取消，且不会提交非法空交易。</summary>
+    private void FreeDefinitionSkipsEmptyPaymentAndRefund()
+    {
+        var fixture = CreateFixture(balance: 0);
+        fixture.Definitions.Definition = fixture.Definitions.Definition! with
+        {
+            Cost = Array.Empty<ResourceAmount>()
+        };
+
+        var queued = fixture.Service.Enqueue(Context(fixture), Command(fixture));
+        var cancelled = fixture.Service.Cancel(
+            Context(fixture),
+            new CancelProductionItemCommand(queued.Item!.ItemId));
+
+        Check(queued.Status == ProductionCommandStatus.Accepted,
+            "显式空成本生产定义应允许入队");
+        Check(cancelled.Status == ProductionCommandStatus.Accepted,
+            "空成本项目应允许取消且无需退款交易");
+        Check(fixture.Accounts.Find(fixture.OwnerId)!.GetBalance(ResourceKind.A) == 0,
+            "免费项目不得改变资源余额");
+    }
+
     /// <summary>建立拥有合法生产定义、建筑和资源账户的测试夹具。</summary>
     private static Fixture CreateFixture(
         int requiredWork = 2,
@@ -175,7 +199,7 @@ internal sealed class ProductionServiceTests
             new HashSet<StructureDefinitionId> { producerDefinition });
         var definitions = new FakeDefinitions(definition);
         var producers = new FakeProducers(new ProductionProducerSnapshot(
-            producerId, owner, producerDefinition, true, true));
+            producerId, owner, producerDefinition, true, true, queueCapacity));
         var deployment = new FakeDeployment();
         var accounts = new InMemoryResourceAccountService();
         accounts.Open(new OpenResourceAccount(
@@ -184,8 +208,7 @@ internal sealed class ProductionServiceTests
             owner,
             [new ResourceAmount(ResourceKind.A, balance)],
             0));
-        var service = new ProductionService(
-            definitions, producers, deployment, accounts, queueCapacity);
+        var service = new ProductionService(definitions, producers, deployment, accounts);
         return new Fixture(
             owner,
             match,
