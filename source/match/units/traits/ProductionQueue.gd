@@ -103,6 +103,8 @@ func on_authoritative_item_removed(item):
 		return
 	_queue.erase(element)
 	element_removed.emit(element)
+	if _queue.is_empty():
+		MatchSignals.unit_production_queue_became_empty.emit(_unit)
 
 
 ## 尝试在有限搜索范围内部署完成单位；受阻时返回 null 供 C# 稍后重试。
