@@ -158,3 +158,13 @@ public interface IWorldQueryService
 public interface IBudgetedWorldQueryService : IWorldQueryService
 {
 }
+
+/// <summary>为固定身份命令网关校验某个敌方实体是否当前可见。</summary>
+/// <remarks>该边界只返回授权布尔值，避免通过错误差异探测隐藏实体。</remarks>
+public interface IVisibleEnemyTargetAuthorizer
+{
+    /// <summary>校验目标在会话的当前权威快照中是否为可见敌方实体。</summary>
+    bool IsCurrentlyVisibleEnemy(
+        QuerySessionId sessionId,
+        BattlefieldEntityId targetEntityId);
+}

@@ -19,7 +19,7 @@ public sealed class NoAlliancePlayerRelationResolver : IPlayerRelationResolver
 }
 
 /// <summary>实现会话授权、战争迷雾过滤、字段裁剪和稳定空结果语义。</summary>
-public sealed class WorldQueryService : IWorldQueryService
+public sealed class WorldQueryService : IWorldQueryService, IVisibleEnemyTargetAuthorizer
 {
     private readonly IWorldObservationRepository _repository;
     private readonly IPlayerRelationResolver _relations;
@@ -174,6 +174,29 @@ public sealed class WorldQueryService : IWorldQueryService
                 QueryErrorCode.EconomyUnavailable,
                 snapshot.Revision) :
             Accepted(economy.Observation, snapshot.Revision);
+    }
+
+    /// <inheritdoc />
+    public bool IsCurrentlyVisibleEnemy(
+        QuerySessionId sessionId,
+        BattlefieldEntityId targetEntityId)
+    {
+        if (!TryGetSession(sessionId, out var session) ||
+            targetEntityId.Value == Guid.Empty ||
+            targetEntityId.Kind == BattlefieldEntityKind.ResourceNode)
+        {
+            return false;
+        }
+
+        var snapshot = _repository.Capture();
+        var target = snapshot.Entities.FirstOrDefault(
+            entity => entity.EntityId == targetEntityId);
+        return target is not null &&
+            target.OwnerPlayerId != session.ObserverPlayerId &&
+            _relations.Resolve(session.ObserverPlayerId, target.OwnerPlayerId) ==
+                ObserverRelation.Enemy &&
+            (session.Omniscient ||
+                target.VisibleToPlayers.Contains(session.ObserverPlayerId));
     }
 
     private EntityObservation Observe(

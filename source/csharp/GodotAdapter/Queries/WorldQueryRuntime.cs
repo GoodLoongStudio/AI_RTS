@@ -64,12 +64,19 @@ public partial class WorldQueryRuntime : Node
         var configuration = GetParent().GetNode<BalanceConfigRuntime>("BalanceConfigRuntime");
         var placement = GetParent().GetNode<StructurePlacementRuntime>("StructurePlacementRuntime");
         var production = GetParent().GetNode<ProductionRuntime>("ProductionRuntime");
-        _queries = new WorldQueryService(
+        var queryService = new WorldQueryService(
             new GodotWorldObservationRepository(
                 GetParent(), economy.AccountService, commands, production),
             grants);
+        _queries = queryService;
         BindRuleAiSessions(
-            playersRoot, humanPlayer, commands, configuration, placement, production);
+            playersRoot,
+            humanPlayer,
+            commands,
+            configuration,
+            placement,
+            production,
+            queryService);
     }
 
     /// <summary>仅供当前自动/人工测试取得组合根已签发的标准会话；正式 Agent Gateway 不暴露此入口。</summary>
@@ -148,7 +155,8 @@ public partial class WorldQueryRuntime : Node
         CommandRuntime commands,
         BalanceConfigRuntime configuration,
         StructurePlacementRuntime placement,
-        ProductionRuntime production)
+        ProductionRuntime production,
+        IVisibleEnemyTargetAuthorizer targetAuthorizer)
     {
         foreach (var player in playersRoot.GetChildren().OfType<Node>())
         {
@@ -168,7 +176,13 @@ public partial class WorldQueryRuntime : Node
                 Name = "RuleAiCommandGateway"
             };
             commandGateway.Configure(
-                commands, configuration, placement, production, player);
+                commands,
+                configuration,
+                placement,
+                production,
+                targetAuthorizer,
+                session,
+                player);
             player.AddChild(commandGateway);
             player.Call("setup_world_query", this, session.Value.ToString("D"));
         }

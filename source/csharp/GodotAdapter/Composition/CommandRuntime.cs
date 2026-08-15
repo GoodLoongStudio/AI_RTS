@@ -115,6 +115,21 @@ public partial class CommandRuntime : Node
         return result;
     }
 
+    /// <summary>由固定身份 Adapter 按稳定单位 ID 提交普通移动命令。</summary>
+    internal CommandResult MoveUnitsByStableIds(
+        IReadOnlyList<UnitId> unitIds,
+        Vector3 destination,
+        Node issuerPlayer)
+    {
+        var result = _commands.Move(
+            CreateContext(issuerPlayer),
+            new MoveUnitsCommand(
+                unitIds,
+                new WorldPosition(destination.X, destination.Y, destination.Z)));
+        TrackAcceptedOrders(result);
+        return result;
+    }
+
     /// <summary>代表指定玩家向一组 Godot 单位节点提交强制移动命令。</summary>
     public CommandResult ForceMoveUnits(
         IEnumerable<Node> unitNodes,
@@ -418,6 +433,19 @@ public partial class CommandRuntime : Node
         var targetId = _units.Register(targetNode);
         var result = _commands.Attack(
             context,
+            new AttackCommand(unitIds, new EntityAttackTarget(targetId)));
+        TrackAcceptedAttacks(result, "ordinary_attack_ended", UnitOrderKind.Attack);
+        return result;
+    }
+
+    /// <summary>由固定身份 Adapter 按稳定单位与目标 ID 提交普通实体攻击。</summary>
+    internal CommandResult AttackUnitsByStableIds(
+        IReadOnlyList<UnitId> unitIds,
+        UnitId targetId,
+        Node issuerPlayer)
+    {
+        var result = _commands.Attack(
+            CreateContext(issuerPlayer),
             new AttackCommand(unitIds, new EntityAttackTarget(targetId)));
         TrackAcceptedAttacks(result, "ordinary_attack_ended", UnitOrderKind.Attack);
         return result;

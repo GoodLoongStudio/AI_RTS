@@ -166,3 +166,34 @@
 - Godot 退出时的 RID/ObjectDB 泄漏仍属于已登记基线。候选位置在导航/地表尚未稳定时可能暂时返回 `SurfaceNotBuildable`，Controller 会在下一刷新周期重新请求，不在本切片展开导航专项。
 
 2026-08-15 人工验收通过：运行 `TestPlayerVsAI.tscn` 后，AI 的生产建筑放置、施工、作战单位生产、现有编组进攻及生产建筑损失后的补建均符合预期，未发现明显重复超产。
+
+## 10. RAI-001G：受视野约束的稳定 ID 作战编组
+
+2026-08-15 接口评审接受以下契约：
+
+- `RuleAiCommandGateway.Move(unitIds, destination)` 和 `Attack(unitIds, targetKind, targetId)` 只接收稳定 ID，并继续调用所有命令来源共享的 `IUnitCommandService`；
+- 普通移动目的地允许位于战争迷雾中；普通攻击提交时，目标必须由规则 AI 固定 `QuerySessionId` 证明为当前 `VisibleNow` 敌方；
+- 隐藏、失效、己方、未知和猜测目标统一返回 `TargetUnavailable`，不允许通过错误差异探测隐藏实体；
+- 编组只保存成员稳定 ID，通过己方 `Position | Type | Order` 快照核对存活、暂停和当前目标，不保存 Unit/Player Node；
+- 满编后选择距离编组中心最近的当前可见敌军；同目标活动 Attack 不重复下令；目标域不兼容或不能攻击的成员退化为普通移动；
+- 敌方建筑 `LastKnown` 只允许作为空闲成员的移动目的地，不能直接作为攻击授权；没有实时敌军或残影时原地等待；
+- 出击后减员不自动补充，全灭后删除编组；传统 AI 战术配置外置化和更复杂策略留给后续专项分支。
+
+已完成迁移：
+
+- `WorldQueryService` 实现只返回布尔授权的 `IVisibleEnemyTargetAuthorizer`，并在每次攻击提交时重新捕获权威快照校验固定会话、敌我关系与当前视野；
+- `RuleAiCommandGateway` 固定绑定 Match 注入的发出者和查询会话；目标授权失败不会进入命令服务；
+- `CommandRuntime` 增加稳定 ID Move/Attack Adapter，并继续维护订单生命周期和 Legacy 执行端口；
+- 普通 Move、ForceMove、AttackMove、Withdraw、Attack 和 ForceAttack 等订单现在保存原始位置或实体目标意图，修复了执行成功但查询结果 `target = null` 的既有缺口；
+- `AutoAttackingBattlegroup` 不再遍历 `players/units` 组、不再读取敌方玩家 Node、不再直接写入 `unit.action`，改为公共范围查询与固定身份命令；
+- `OffenseController` 不再依赖 `unit_spawned` 信号或 Unit Node 分配成员，改用定时己方快照把未分配的 `tank/helicopter` 稳定 ID 交给成军编组；
+- 当前 Demo 使用足以覆盖地图的扫描半径，但返回结果仍由战争迷雾服务裁剪；扫描范围、目标权重与阵营/地图策略留给外置 AI 配置专项。
+
+自动验证：
+
+- 纯 C# 测试验证当前可见敌方授权、离开视野后立即失效、普通与全知调试会话差异，以及移动/实体攻击订单目标意图；
+- 新增 `RuleAiBattlegroupSmokeTest`，覆盖满编后从 `VisibleNow` 结果提交 Attack、隐藏目标统一拒绝、稳定 ID Move 以及订单被替换后的编组恢复；
+- `WorldQueryRuntimeSmokeTest` 与 `RuleAiOffenseLogisticsSmokeTest` 均为 0 failure，确认战争迷雾和上一切片生产后勤无回归；
+- `dotnet build` 为 0 警告、0 错误，79 项纯 C# 测试全部通过；Godot 退出时仍只有已登记的 RID/ObjectDB 泄漏基线。
+
+待人工验收：运行 `TestPlayerVsAI.tscn`，确认规则 AI 作战单位满编后能攻击当前侦察到的敌军；敌军目标死亡后可选择下一目标；编组减员不会产生报错或重复命令；生产、施工和胜负判定保持正常。

@@ -3,10 +3,8 @@ extends Node
 signal resources_required(resources, metadata)
 
 const VehicleFactoryScene = preload("res://source/match/units/VehicleFactory.tscn")
-const Tank = preload("res://source/match/units/Tank.gd")
 const TankScene = preload("res://source/match/units/Tank.tscn")
 const AircraftFactoryScene = preload("res://source/match/units/AircraftFactory.tscn")
-const Helicopter = preload("res://source/match/units/Helicopter.gd")
 const HelicopterScene = preload("res://source/match/units/Helicopter.tscn")
 const AutoAttackingBattlegroup = preload(
 	"res://source/match/players/simple-clairvoyant-ai/AutoAttackingBattlegroup.gd"
@@ -16,6 +14,7 @@ const FIELD_POSITION := 1 << 0
 const FIELD_TYPE := 1 << 1
 const FIELD_CONSTRUCTION := 1 << 4
 const FIELD_PRODUCTION := 1 << 5
+const FIELD_ORDER := 1 << 6
 const REFRESH_INTERVAL_S := 0.5
 const COMMAND_CENTER_TYPE_ID := "command_center"
 const WORKER_TYPE_ID := "worker"
@@ -46,7 +45,7 @@ var _battlegroups := []
 @onready var _balance = find_parent("Match").get_node("BalanceConfigRuntime")
 
 
-## 绑定公共查询与固定身份命令边界，并保留 Legacy Battlegroup 作为后续迁移边界。
+## 绑定公共查询与固定身份命令边界，并初始化稳定 ID 作战编组。
 func setup(player, world_query_runtime, query_session_id: String, command_gateway):
 	_player = player
 	_world_query_runtime = world_query_runtime
@@ -55,8 +54,6 @@ func setup(player, world_query_runtime, query_session_id: String, command_gatewa
 	_configure_primary_and_secondary_types()
 	_setup_refresh_timer()
 	_try_creating_new_battlegroup()
-	_attach_current_battle_units()
-	MatchSignals.unit_spawned.connect(_on_unit_spawned)
 	_refresh_logistics()
 
 
@@ -134,6 +131,7 @@ func _setup_refresh_timer():
 ## 用一次己方快照维护工厂存在性与生产队列，避免直接读取建筑 Node。
 func _refresh_logistics():
 	var own_entities := _get_own_entities()
+	_refresh_battlegroups(own_entities)
 	_enforce_structure_existence(
 		_primary_structure_type_id,
 		_primary_structure_scene,
@@ -332,7 +330,7 @@ func _number_of_additional_units_required() -> int:
 func _get_own_entities() -> Array:
 	var result: Dictionary = _world_query_runtime.GetOwnForces(
 		_query_session_id,
-		FIELD_POSITION | FIELD_TYPE | FIELD_CONSTRUCTION | FIELD_PRODUCTION
+		FIELD_POSITION | FIELD_TYPE | FIELD_CONSTRUCTION | FIELD_PRODUCTION | FIELD_ORDER
 	)
 	if result.get("status", "") != "Accepted":
 		push_warning("rule AI offense query was rejected: %s" % result.get("error", "Unknown"))
@@ -340,20 +338,19 @@ func _get_own_entities() -> Array:
 	return result["entities"]
 
 
-## 创建 Legacy 编组；敌情读取和战斗命令将在 RAI-001G 单独迁移。
+## 创建只持有稳定单位 ID、使用公共查询和固定身份命令的作战编组。
 func _try_creating_new_battlegroup() -> bool:
 	if not _battlegroups.is_empty():
 		_secondary_production_enabled = true
 	if _battlegroups.size() == _ai.expected_number_of_battlegroups:
 		_battlegroup_under_forming = null
 		return false
-	var adversary_players = get_tree().get_nodes_in_group("players").filter(
-		func(player): return player != _player
-	)
-	adversary_players.shuffle()
-	var battlegroup = AutoAttackingBattlegroup.new(
+	var battlegroup = AutoAttackingBattlegroup.new()
+	battlegroup.setup(
 		_ai.expected_number_of_units_in_battlegroup,
-		adversary_players
+		_world_query_runtime,
+		_query_session_id,
+		_command_gateway
 	)
 	_battlegroups.append(battlegroup)
 	battlegroup.tree_exited.connect(_on_battlegroup_died.bind(battlegroup))
@@ -362,25 +359,34 @@ func _try_creating_new_battlegroup() -> bool:
 	return true
 
 
-## 把场景中已有作战单位交给 Legacy 编组；该 Node 边界只保留到 RAI-001G。
-func _attach_current_battle_units():
-	var battle_units = get_tree().get_nodes_in_group("units").filter(
-		func(unit): return unit.player == _player and (unit is Tank or unit is Helicopter)
+## 用己方公共快照维护编组成员，并把尚未分配的作战单位交给当前成军编组。
+func _refresh_battlegroups(own_entities: Array):
+	for battlegroup in _battlegroups.duplicate():
+		if is_instance_valid(battlegroup) and not battlegroup.is_queued_for_deletion():
+			battlegroup.refresh(own_entities)
+	_attach_unassigned_battle_units(own_entities)
+
+
+## 按稳定 ID 分配 Tank 与 Helicopter，不再依赖生成信号或读取 Unit Node。
+func _attach_unassigned_battle_units(own_entities: Array):
+	var battle_entities: Array = own_entities.filter(
+		func(entity):
+			return entity.get("type_id", "") in [TANK_TYPE_ID, HELICOPTER_TYPE_ID]
 	)
-	for battle_unit in battle_units:
-		_on_unit_spawned(battle_unit)
-
-
-## 把新部署的作战单位交给当前 Legacy 编组，并触发下一轮公共生产规划。
-func _on_unit_spawned(unit):
-	if unit.player != _player or not (unit is Tank or unit is Helicopter):
-		return
-	if _battlegroup_under_forming == null:
-		return
-	_battlegroup_under_forming.attach_unit(unit)
-	if _battlegroup_under_forming.size() == _ai.expected_number_of_units_in_battlegroup:
-		_try_creating_new_battlegroup()
-	_refresh_logistics()
+	for entity in battle_entities:
+		var unit_id: String = entity.get("id", "")
+		if _battlegroups.any(
+			func(battlegroup):
+				return is_instance_valid(battlegroup) and battlegroup.has_member(unit_id)
+		):
+			continue
+		if _battlegroup_under_forming == null:
+			return
+		_battlegroup_under_forming.attach_entity(entity)
+		if _battlegroup_under_forming.size() >= (
+			_ai.expected_number_of_units_in_battlegroup
+		):
+			_try_creating_new_battlegroup()
 
 
 func _on_battlegroup_died(battlegroup):

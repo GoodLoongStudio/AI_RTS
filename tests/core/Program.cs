@@ -53,6 +53,7 @@ internal sealed class UnitCommandServiceTests
         RunTest(nameof(TacticalWithdrawFallsBackToOrdinaryMovement), TacticalWithdrawFallsBackToOrdinaryMovement);
         RunTest(nameof(PortFailuresMapToStableErrors), PortFailuresMapToStableErrors);
         RunTest(nameof(OrderStorePublishesAuthoritativeStateChanges), OrderStorePublishesAuthoritativeStateChanges);
+        RunTest(nameof(AcceptedOrdersPreserveOriginalTargets), AcceptedOrdersPreserveOriginalTargets);
         RunTest(nameof(AreaWarheadUsesImpactPointAndFootprints), AreaWarheadUsesImpactPointAndFootprints);
         RunTest(nameof(WarheadResultsAreStableUniqueAndRespectFriendlyFire), WarheadResultsAreStableUniqueAndRespectFriendlyFire);
         RunTest(nameof(ResourceTransactionAppliesMultipleKindsAtomically), ResourceTransactionAppliesMultipleKindsAtomically);
@@ -356,6 +357,44 @@ internal sealed class UnitCommandServiceTests
         Check(ResultFor(result, attacker).ErrorCode == CommandErrorCode.FirePolicyPreventsAttack,
             "停火单位的普通攻击应被拒绝");
         Check(attack.OrdinaryRequests == 0, "停火拒绝不应到达攻击端口");
+    }
+
+    /// <summary>验证移动和实体攻击订单保存公开查询所需的原始目标意图。</summary>
+    private void AcceptedOrdersPreserveOriginalTargets()
+    {
+        var owner = NewPlayerId();
+        var enemyOwner = NewPlayerId();
+        var attacker = NewUnitId();
+        var target = NewUnitId();
+        var destination = new WorldPosition(3, 0, 4);
+        var domains = new HashSet<CombatDomain> { CombatDomain.Terrain };
+        var orders = new InMemoryUnitOrderStore();
+        var service = NewService(
+            new FakeRepository(
+                new UnitCommandSnapshot(
+                    attacker,
+                    owner,
+                    true,
+                    true,
+                    CombatDomain.Terrain,
+                    domains),
+                new UnitCommandSnapshot(
+                    target,
+                    enemyOwner,
+                    false,
+                    EntityKind: BattlefieldEntityKind.Structure,
+                    TypeId: "command_center")),
+            orders: orders);
+
+        service.Move(Context(owner), new MoveUnitsCommand([attacker], destination));
+        Check(orders.FindActive(attacker)?.Target == new UnitOrderPositionTarget(destination),
+            "移动订单应保存下令时的世界位置");
+
+        service.Attack(Context(owner), new AttackCommand([attacker], new EntityAttackTarget(target)));
+        Check(orders.FindActive(attacker)?.Target == new UnitOrderEntityTarget(
+                new BattlefieldEntityId(BattlefieldEntityKind.Structure, target.Value),
+                "command_center"),
+            "实体攻击订单应保存稳定实体种类、ID 与类型");
     }
 
     /// <summary>验证显式强制攻击可以临时覆盖停火而不修改持续策略。</summary>

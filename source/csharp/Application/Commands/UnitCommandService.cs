@@ -73,8 +73,12 @@ public sealed class UnitCommandService(
                 command.UnitIds.Count == 0 ? CommandErrorCode.EmptyUnitSet : CommandErrorCode.InvalidDestination);
         }
 
-        return ExecuteMove(context, command.UnitIds, UnitOrderKind.Move, unitId =>
-            movement.RequestMove(unitId, command.Destination));
+        return ExecuteMove(
+            context,
+            command.UnitIds,
+            UnitOrderKind.Move,
+            new UnitOrderPositionTarget(command.Destination),
+            unitId => movement.RequestMove(unitId, command.Destination));
     }
 
     /// <inheritdoc />
@@ -86,8 +90,12 @@ public sealed class UnitCommandService(
                 command.UnitIds.Count == 0 ? CommandErrorCode.EmptyUnitSet : CommandErrorCode.InvalidDestination);
         }
 
-        return ExecuteMove(context, command.UnitIds, UnitOrderKind.ForceMove, unitId =>
-            movement.RequestMove(unitId, command.Destination));
+        return ExecuteMove(
+            context,
+            command.UnitIds,
+            UnitOrderKind.ForceMove,
+            new UnitOrderPositionTarget(command.Destination),
+            unitId => movement.RequestMove(unitId, command.Destination));
     }
 
     /// <inheritdoc />
@@ -99,8 +107,12 @@ public sealed class UnitCommandService(
                 command.UnitIds.Count == 0 ? CommandErrorCode.EmptyUnitSet : CommandErrorCode.InvalidDestination);
         }
 
-        return ExecuteMove(context, command.UnitIds, UnitOrderKind.GroundAttackMove, unitId =>
-            movement.RequestGroundAttackMove(unitId, command.Destination));
+        return ExecuteMove(
+            context,
+            command.UnitIds,
+            UnitOrderKind.GroundAttackMove,
+            new UnitOrderPositionTarget(command.Destination),
+            unitId => movement.RequestGroundAttackMove(unitId, command.Destination));
     }
 
     /// <inheritdoc />
@@ -138,7 +150,11 @@ public sealed class UnitCommandService(
                 continue;
             }
 
-            var order = orders.Create(context.CommandId, unitId, UnitOrderKind.EntityAttackMove);
+            var order = orders.Create(
+                context.CommandId,
+                unitId,
+                UnitOrderKind.EntityAttackMove,
+                EntityOrderTarget(target.Value));
             orders.Transition(order.OrderId, UnitOrderState.InProgress);
             results.Add(new UnitCommandResult(unitId, true, CommandErrorCode.None, order.OrderId));
         }
@@ -158,6 +174,7 @@ public sealed class UnitCommandService(
             context,
             command.UnitIds,
             UnitOrderKind.TacticalWithdraw,
+            new UnitOrderPositionTarget(command.Destination),
             unitId => units.Find(unitId)!.Value.CanReverse ?
                 movement.RequestTacticalWithdraw(unitId, command.Destination) :
                 movement.RequestMove(unitId, command.Destination));
@@ -458,7 +475,11 @@ public sealed class UnitCommandService(
                 continue;
             }
 
-            var order = orders.Create(context.CommandId, unitId, UnitOrderKind.Attack);
+            var order = orders.Create(
+                context.CommandId,
+                unitId,
+                UnitOrderKind.Attack,
+                EntityOrderTarget(target.Value));
             orders.Transition(order.OrderId, UnitOrderState.InProgress);
             results.Add(new UnitCommandResult(unitId, true, CommandErrorCode.None, order.OrderId));
         }
@@ -516,7 +537,11 @@ public sealed class UnitCommandService(
                 continue;
             }
 
-            var order = orders.Create(context.CommandId, unitId, UnitOrderKind.ForceAttack);
+            var order = orders.Create(
+                context.CommandId,
+                unitId,
+                UnitOrderKind.ForceAttack,
+                EntityOrderTarget(target.Value));
             orders.Transition(order.OrderId, UnitOrderState.InProgress);
             results.Add(new UnitCommandResult(unitId, true, CommandErrorCode.None, order.OrderId));
         }
@@ -606,7 +631,11 @@ public sealed class UnitCommandService(
                 continue;
             }
 
-            var order = orders.Create(context.CommandId, unitId, UnitOrderKind.GroundForceAttack);
+            var order = orders.Create(
+                context.CommandId,
+                unitId,
+                UnitOrderKind.GroundForceAttack,
+                new UnitOrderPositionTarget(position));
             orders.Transition(order.OrderId, UnitOrderState.InProgress);
             results.Add(new UnitCommandResult(
                 unitId,
@@ -645,6 +674,7 @@ public sealed class UnitCommandService(
         CommandContext context,
         IReadOnlyList<UnitId> unitIds,
         UnitOrderKind orderKind,
+        UnitOrderTarget target,
         Func<UnitId, MovementPortResult> execute)
     {
         var results = new List<UnitCommandResult>();
@@ -663,7 +693,7 @@ public sealed class UnitCommandService(
                 results.Add(new UnitCommandResult(unitId, false, Map(portResult.Error)));
                 continue;
             }
-            var order = orders.Create(context.CommandId, unitId, orderKind);
+            var order = orders.Create(context.CommandId, unitId, orderKind, target);
             orders.Transition(order.OrderId, UnitOrderState.InProgress);
             results.Add(new UnitCommandResult(unitId, true, CommandErrorCode.None, order.OrderId));
         }
@@ -756,6 +786,11 @@ public sealed class UnitCommandService(
 
     private static IReadOnlyList<UnitId> StableDistinct(IEnumerable<UnitId> ids) =>
         ids.Distinct().OrderBy(id => id.Value).ToArray();
+
+    /// <summary>把命令仓库中的目标快照转换为不依赖运行时对象的订单目标意图。</summary>
+    private static UnitOrderEntityTarget EntityOrderTarget(UnitCommandSnapshot target) => new(
+        new BattlefieldEntityId(target.EntityKind, target.UnitId.Value),
+        target.TypeId);
 
     private static bool IsFinite(WorldPosition value) =>
         float.IsFinite(value.X) && float.IsFinite(value.Y) && float.IsFinite(value.Z);

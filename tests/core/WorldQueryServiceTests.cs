@@ -42,6 +42,8 @@ internal sealed class WorldQueryServiceTests
         RunTest(nameof(InvalidAreaIsRejected), InvalidAreaIsRejected);
         RunTest(nameof(EnemyStructureBecomesLastKnownButMobileDoesNot), EnemyStructureBecomesLastKnownButMobileDoesNot);
         RunTest(nameof(ReobservedEmptyPositionClearsLastKnown), ReobservedEmptyPositionClearsLastKnown);
+        RunTest(nameof(CommandTargetAuthorizationRequiresCurrentEnemyVisibility),
+            CommandTargetAuthorizationRequiresCurrentEnemyVisibility);
 
         Console.WriteLine($"World query tests completed: {_tests} test(s), {_failures} failure(s).");
         return _failures == 0 ? 0 : 1;
@@ -407,6 +409,37 @@ internal sealed class WorldQueryServiceTests
             "重新侦察确认建筑不存在时应返回显式空集合");
         Check(afterVisionLostAgain.Value is not null && afterVisionLostAgain.Value.Count == 0,
             "已清除残影不能在再次失去视野后复活");
+    }
+
+    /// <summary>验证命令授权只接受当前可见敌方，并让隐藏、己方、未知与非法会话不可区分。</summary>
+    private void CommandTargetAuthorizationRequiresCurrentEnemyVisibility()
+    {
+        var service = NewService(out var repository);
+        var unknown = new BattlefieldEntityId(BattlefieldEntityKind.Unit, Guid.NewGuid());
+
+        Check(service.IsCurrentlyVisibleEnemy(_normalSession, _visibleEnemy),
+            "普通会话应获准攻击当前可见敌方");
+        Check(!service.IsCurrentlyVisibleEnemy(_normalSession, _hiddenEnemy),
+            "普通会话不得获准攻击隐藏敌方");
+        Check(!service.IsCurrentlyVisibleEnemy(_normalSession, _ownedUnit),
+            "己方实体不得通过敌方目标授权");
+        Check(!service.IsCurrentlyVisibleEnemy(_normalSession, unknown),
+            "未知 ID 不得通过目标授权");
+        Check(!service.IsCurrentlyVisibleEnemy(new QuerySessionId(Guid.NewGuid()), _visibleEnemy),
+            "未知会话不得触发目标授权");
+        Check(service.IsCurrentlyVisibleEnemy(_debugSession, _hiddenEnemy),
+            "全知调试会话可获准操作隐藏敌方以支持诊断");
+
+        repository.Snapshot = repository.Snapshot with
+        {
+            Entities = repository.Snapshot.Entities.Select(entity =>
+                entity.EntityId == _visibleEnemy ? entity with
+                {
+                    VisibleToPlayers = new HashSet<PlayerId>()
+                } : entity).ToArray()
+        };
+        Check(!service.IsCurrentlyVisibleEnemy(_normalSession, _visibleEnemy),
+            "敌方离开视野后，先前可见 ID 必须立即失去命令授权");
     }
 
     private void RevealHiddenStructure(FakeWorldRepository repository)

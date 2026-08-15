@@ -51,6 +51,8 @@ public enum CommandErrorCode
     UnitCannotAttack,
     /// <summary>实体攻击目标不存在或已经失效。</summary>
     TargetNotFound,
+    /// <summary>受限命令来源当前未获准操作该目标，不泄漏目标是否存在。</summary>
+    TargetUnavailable,
     /// <summary>实体存在，但不是当前规则下的伤害目标。</summary>
     TargetNotDamageable,
     /// <summary>攻击者武器不能攻击目标所在域。</summary>
