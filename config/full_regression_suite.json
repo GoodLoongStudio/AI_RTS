@@ -4,6 +4,8 @@
   "forbidden_output_patterns": [
     "SCRIPT ERROR",
     "Parse Error",
+    "UNUSED_PARAMETER",
+    "SHADOWED_VARIABLE_BASE_CLASS",
     "Failed to load script",
     "Cannot open file 'res://source/",
     "Failed loading resource: res://source/",

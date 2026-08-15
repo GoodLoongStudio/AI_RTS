@@ -13,35 +13,49 @@ jobs:
   godot-regression:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      GODOT_FAILURE_PATTERN: "SCRIPT ERROR|Parse Error|UNUSED_PARAMETER|SHADOWED_VARIABLE_BASE_CLASS|Failed to load script|Cannot open file 'res://source/|Failed loading resource: res://source/"
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 安装 Godot 4.7.1
+      - name: 按 global.json 安装 .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: 安装 Godot 4.7 Mono
         shell: bash
         run: |
           set -euo pipefail
+          GODOT_PACKAGE="Godot_v4.7-stable_mono_linux_x86_64"
+          GODOT_EXECUTABLE="${GODOT_PACKAGE}/Godot_v4.7-stable_mono_linux.x86_64"
           curl -fL --retry 3 -o godot.zip \
-            https://github.com/godotengine/godot/releases/download/4.7.1-stable/Godot_v4.7.1-stable_linux.x86_64.zip
+            "https://github.com/godotengine/godot-builds/releases/download/4.7-stable/${GODOT_PACKAGE}.zip"
           unzip -q godot.zip
-          chmod +x Godot_v4.7.1-stable_linux.x86_64
-          ./Godot_v4.7.1-stable_linux.x86_64 --version
+          chmod +x "$GODOT_EXECUTABLE"
+          echo "GODOT_BIN=$GODOT_EXECUTABLE" >> "$GITHUB_ENV"
+          "$GODOT_EXECUTABLE" --version
+
+      - name: 构建 Godot C# 程序集
+        shell: bash
+        run: dotnet build ./OpenRTS.csproj --configuration Debug
 
       - name: 无界面导入与脚本解析
         shell: bash
         run: |
           set +e
-          ./Godot_v4.7.1-stable_linux.x86_64 \
+          "$GODOT_BIN" \
             --headless --editor --path . --quit 2>&1 | tee godot-import.log
           GODOT_EXIT=${PIPESTATUS[0]}
           set -e
           echo "===== Godot 导入诊断 ====="
-          grep -nE "SCRIPT ERROR|Parse Error|Failed to load script|Cannot open file 'res://source/|Failed loading resource: res://source/" godot-import.log || true
+          grep -nE "$GODOT_FAILURE_PATTERN" godot-import.log || true
           if [ "$GODOT_EXIT" -ne 0 ]; then
             echo "Godot 导入进程退出码: $GODOT_EXIT"
             exit "$GODOT_EXIT"
           fi
-          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script|Cannot open file 'res://source/|Failed loading resource: res://source/" godot-import.log; then
+          if grep -E "$GODOT_FAILURE_PATTERN" godot-import.log; then
             echo "检测到 Godot 脚本或 source 资源解析错误"
             exit 1
           fi
@@ -50,16 +64,16 @@ jobs:
         shell: bash
         run: |
           set +e
-          ./Godot_v4.7.1-stable_linux.x86_64 \
+          "$GODOT_BIN" \
             --headless --path . --quit-after 120 2>&1 | tee godot-main.log
           GODOT_EXIT=${PIPESTATUS[0]}
           set -e
           echo "===== 主菜单诊断 ====="
-          grep -nE "SCRIPT ERROR|Parse Error|Failed to load script|Cannot open file 'res://source/|Failed loading resource: res://source/" godot-main.log || true
+          grep -nE "$GODOT_FAILURE_PATTERN" godot-main.log || true
           if [ "$GODOT_EXIT" -ne 0 ]; then
             exit "$GODOT_EXIT"
           fi
-          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script|Cannot open file 'res://source/|Failed loading resource: res://source/" godot-main.log; then
+          if grep -E "$GODOT_FAILURE_PATTERN" godot-main.log; then
             echo "主菜单启动检测到脚本或 source 资源错误"
             exit 1
           fi
@@ -68,16 +82,16 @@ jobs:
         shell: bash
         run: |
           set +e
-          ./Godot_v4.7.1-stable_linux.x86_64 \
+          "$GODOT_BIN" \
             --headless --path . res://source/main-menu/Options.tscn --quit-after 120 2>&1 | tee godot-options.log
           GODOT_EXIT=${PIPESTATUS[0]}
           set -e
           echo "===== 设置面板诊断 ====="
-          grep -nE "SCRIPT ERROR|Parse Error|Failed to load script|Cannot open file 'res://source/|Failed loading resource: res://source/" godot-options.log || true
+          grep -nE "$GODOT_FAILURE_PATTERN" godot-options.log || true
           if [ "$GODOT_EXIT" -ne 0 ]; then
             exit "$GODOT_EXIT"
           fi
-          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script|Cannot open file 'res://source/|Failed loading resource: res://source/" godot-options.log; then
+          if grep -E "$GODOT_FAILURE_PATTERN" godot-options.log; then
             echo "设置面板启动检测到脚本或 source 资源错误"
             exit 1
           fi
@@ -86,16 +100,16 @@ jobs:
         shell: bash
         run: |
           set +e
-          ./Godot_v4.7.1-stable_linux.x86_64 \
+          "$GODOT_BIN" \
             --headless --path . res://source/campaign/CampaignMenu.tscn --quit-after 120 2>&1 | tee godot-campaign.log
           GODOT_EXIT=${PIPESTATUS[0]}
           set -e
           echo "===== 战役菜单诊断 ====="
-          grep -nE "SCRIPT ERROR|Parse Error|Failed to load script|Cannot open file 'res://source/|Failed loading resource: res://source/" godot-campaign.log || true
+          grep -nE "$GODOT_FAILURE_PATTERN" godot-campaign.log || true
           if [ "$GODOT_EXIT" -ne 0 ]; then
             exit "$GODOT_EXIT"
           fi
-          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script|Cannot open file 'res://source/|Failed loading resource: res://source/" godot-campaign.log; then
+          if grep -E "$GODOT_FAILURE_PATTERN" godot-campaign.log; then
             echo "战役菜单启动检测到脚本或 source 资源错误"
             exit 1
           fi
@@ -104,7 +118,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          ./Godot_v4.7.1-stable_linux.x86_64 \
+          "$GODOT_BIN" \
             --headless --path . res://tests/automated/CampaignSmokeTest.tscn --quit-after 600 2>&1 | tee godot-campaign-match.log
           GODOT_EXIT=${PIPESTATUS[0]}
           set -e
@@ -114,7 +128,7 @@ jobs:
             exit "$GODOT_EXIT"
           fi
           grep -q "CAMPAIGN_SMOKE_TEST_OK" godot-campaign-match.log
-          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script|Cannot open file 'res://source/|Failed loading resource: res://source/" godot-campaign-match.log; then
+          if grep -E "$GODOT_FAILURE_PATTERN" godot-campaign-match.log; then
             echo "战役 Match 检测到脚本或 source 资源错误"
             exit 1
           fi

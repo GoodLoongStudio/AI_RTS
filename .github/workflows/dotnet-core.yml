@@ -26,9 +26,17 @@ jobs:
         shell: pwsh
         run: dotnet --version
 
+      - name: 审计 Core 引擎隔离边界
+        shell: pwsh
+        run: ./tools/audit_core_engine_boundary.ps1
+
       - name: 构建 Godot C# 项目
         shell: pwsh
         run: dotnet build ./OpenRTS.csproj --configuration Debug
+
+      - name: 构建 Release 并验证发布边界
+        shell: pwsh
+        run: dotnet build ./OpenRTS.csproj --configuration Release
 
       - name: 运行纯 C# 核心测试
         shell: pwsh

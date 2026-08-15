@@ -53,9 +53,11 @@ dotnet run --project .\tests\core\AI_RTS.Core.Tests.csproj
 
 ## 4. CI 约束
 
-`.github/workflows/dotnet-core.yml` 使用 `actions/setup-dotnet` 读取仓库根目录的 `global.json`，随后构建 `OpenRTS.csproj` 并运行纯 C# 核心测试。向 `main` 提交 Pull Request、推送 `main` 或手动触发时都会执行。
+`.github/workflows/dotnet-core.yml` 使用 `actions/setup-dotnet` 读取仓库根目录的 `global.json`，随后执行 Core 引擎隔离审计、Debug/Release 两种配置的 `OpenRTS.csproj` 构建，并运行纯 C# 核心测试。向 `main` 提交 Pull Request、推送 `main` 或手动触发时都会执行。
 
 本地能够构建不等于可以绕过 CI。SDK 策略、Godot SDK 包、项目目标框架和测试必须同时通过。
+
+Godot无头场景CI另见《程序协作_GitHubActions准入门禁.md》。该工作流固定使用Godot 4.7 Mono包，避免普通Godot二进制无法正确装配C#项目。
 
 ## 5. 升级规则
 
