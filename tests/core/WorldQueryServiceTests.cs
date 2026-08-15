@@ -44,6 +44,8 @@ internal sealed class WorldQueryServiceTests
         RunTest(nameof(ReobservedEmptyPositionClearsLastKnown), ReobservedEmptyPositionClearsLastKnown);
         RunTest(nameof(CommandTargetAuthorizationRequiresCurrentEnemyVisibility),
             CommandTargetAuthorizationRequiresCurrentEnemyVisibility);
+        RunTest(nameof(BattlefieldBoundsArePublicAndSessionBound),
+            BattlefieldBoundsArePublicAndSessionBound);
 
         Console.WriteLine($"World query tests completed: {_tests} test(s), {_failures} failure(s).");
         return _failures == 0 ? 0 : 1;
@@ -442,6 +444,35 @@ internal sealed class WorldQueryServiceTests
             "敌方离开视野后，先前可见 ID 必须立即失去命令授权");
     }
 
+    /// <summary>验证地图边界对普通和调试会话一致公开，并在地图未就绪时明确拒绝。</summary>
+    private void BattlefieldBoundsArePublicAndSessionBound()
+    {
+        var service = NewService(out var repository);
+
+        var normal = service.GetBattlefieldBounds(_normalSession);
+        var debug = service.GetBattlefieldBounds(_debugSession);
+
+        Check(normal.Status == QueryStatus.Accepted &&
+            normal.Value == new BattlefieldBounds(0, 50, 0, 50),
+            "普通会话应取得准确公开地图边界");
+        Check(debug.Value == normal.Value,
+            "地图边界不应因普通或全知调试权限而变化");
+
+        var capturesBeforeInvalidSession = repository.CaptureCalls;
+        var invalid = service.GetBattlefieldBounds(new QuerySessionId(Guid.NewGuid()));
+        Check(invalid.Status == QueryStatus.Rejected &&
+            invalid.ErrorCode == QueryErrorCode.InvalidSession,
+            "未知会话不得读取公开地图边界");
+        Check(repository.CaptureCalls == capturesBeforeInvalidSession,
+            "未知边界查询会话不应到达权威世界仓库");
+
+        repository.Snapshot = repository.Snapshot with { Bounds = null };
+        var unavailable = service.GetBattlefieldBounds(_normalSession);
+        Check(unavailable.Status == QueryStatus.Rejected &&
+            unavailable.ErrorCode == QueryErrorCode.BattlefieldUnavailable,
+            "地图未就绪时应明确返回 BattlefieldUnavailable");
+    }
+
     private void RevealHiddenStructure(FakeWorldRepository repository)
     {
         repository.Snapshot = repository.Snapshot with
@@ -468,7 +499,8 @@ internal sealed class WorldQueryServiceTests
                 new ResourceAccountObservation(
                     [new ResourceAmount(ResourceKind.A, 12), new ResourceAmount(ResourceKind.B, 3)],
                     5))],
-            []));
+            [],
+            new BattlefieldBounds(0, 50, 0, 50)));
         return new WorldQueryService(
             repository,
             [

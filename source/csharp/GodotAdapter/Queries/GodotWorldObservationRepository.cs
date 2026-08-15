@@ -69,7 +69,25 @@ public sealed class GodotWorldObservationRepository : IWorldObservationRepositor
             checked((long)Engine.GetPhysicsFrames()),
             entities,
             economies,
-            visibilityRegions);
+            visibilityRegions,
+            CaptureBattlefieldBounds());
+    }
+
+    /// <summary>读取 Map 公开尺寸并转换为不暴露 Node 的轴对齐战场边界。</summary>
+    private BattlefieldBounds? CaptureBattlefieldBounds()
+    {
+        var map = _matchRoot.FindChild("Map", false, false);
+        if (map is null)
+        {
+            return null;
+        }
+        var size = map.Get("size").AsVector2();
+        if (!float.IsFinite(size.X) || !float.IsFinite(size.Y) ||
+            size.X <= 0 || size.Y <= 0)
+        {
+            return null;
+        }
+        return new BattlefieldBounds(0, size.X, 0, size.Y);
     }
 
     private WorldEntitySnapshot SnapshotUnit(

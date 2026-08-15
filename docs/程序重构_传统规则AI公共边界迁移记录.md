@@ -13,10 +13,10 @@
 | 顶层资源优先级调度 | `Player.has_resources` | 绑定身份的 `GetOwnEconomy` | 已迁移 |
 | EconomyController | 单位组遍历、直接采集 Action、直接生产与放置 | 己方查询、采集命令、生产命令、放置命令 | 已迁移 |
 | DefenseController | 单位组遍历、直接放置 | 己方查询、放置命令 | 已迁移 |
-| OffenseController | 全玩家/单位组遍历、直接队列与放置 | 受限观察、生产/放置/作战命令 | 部分迁移：生产后勤已完成，Legacy Battlegroup 待迁移 |
-| IntelligenceController | 全知敌军遍历、直接移动 Action | 范围观察、移动命令 | 待迁移 |
-| ConstructionWorksController | 施工现场遍历、直接分配 Worker | 己方查询、施工命令 | 待迁移 |
-| AutoAttackingBattlegroup | 全知选敌、直接攻击/移动 Action | 受限观察、攻击/移动命令 | 待迁移 |
+| OffenseController | 全玩家/单位组遍历、直接队列与放置 | 受限观察、生产/放置/作战命令 | 已迁移 |
+| IntelligenceController | 全知敌军遍历、直接移动 Action | 公开地图边界、己方查询、移动命令 | 已迁移，待人工验收 |
+| ConstructionWorksController | 施工现场遍历、直接分配 Worker | 己方查询、施工命令 | 已迁移 |
+| AutoAttackingBattlegroup | 全知选敌、直接攻击/移动 Action | 受限观察、攻击/移动命令 | 已迁移 |
 
 ## 3. RAI-001A：经济准入纵向切片
 
@@ -197,3 +197,27 @@
 - `dotnet build` 为 0 警告、0 错误，79 项纯 C# 测试全部通过；Godot 退出时仍只有已登记的 RID/ObjectDB 泄漏基线。
 
 2026-08-15 人工验收通过：运行 `TestPlayerVsAI.tscn` 后，敌方 AI 作战编组运行正常，并会在损失后继续补充包括攻击单位在内的单位，未发现生产、施工或作战闭环回归。
+
+## 11. RAI-001H：公开战场边界与稳定 ID 侦察巡逻
+
+本切片移除 `IntelligenceController` 最后的全知 SceneTree 扫描和直接移动 Action。当前 Demo 不增加威胁规避、导航专项优化或新的侦察战术，只把既有 Drone 巡逻迁移到公共边界。
+
+已确定并实现以下契约：
+
+- `GetBattlefieldBounds(QuerySessionId)` 返回所有参战方均可知的轴对齐可玩矩形；它是地图元数据，不代表导航可达区域，也不泄露敌军信息；
+- 无效会话会在捕获世界快照前被拒绝；地图没有有效边界时稳定返回 `BattlefieldUnavailable`；
+- Godot Adapter 从当前 Match 的 `Map.size` 捕获边界，并向 GDScript 显式返回 `minimum_x/maximum_x/minimum_z/maximum_z`；
+- `IntelligenceController` 只查询己方 `Type | Order`，按稳定实体 ID 排序 Drone，并根据公开边界创建确定性的蛇形网格；
+- 多个 Drone 使用分散的初始网格相位；新生产 Drone 自动加入，死亡 Drone 的索引自动清理；
+- 只有显式空闲的 Drone 才接收下一个稳定 ID `Move`；任何活动订单（包括 `Suspended`）均不会被巡逻刷新覆盖；
+- `RuleAiCommandGateway.Halt` 按稳定单位 ID 暂停任务，不接受调用方传入 Player 或 Node，并继续调用共用命令服务；
+- 本切片不直接查询敌方，也不直接触发攻击。Drone 打开视野后，作战编组仍通过 RAI-001G 的受限观察发现并攻击当前可见目标。
+
+自动验证：
+
+- 纯 C# 查询测试新增公开边界成功、无效会话拒绝且不捕获世界，以及缺失边界稳定拒绝；完整核心测试现为 80 项且全部通过；
+- 新增 `RuleAiIntelligenceSmokeTest`，覆盖初始 Drone 边界内 Move、稳定 ID Halt 后保持 `Suspended`、新增 Drone 自动加入独立巡逻；
+- `WorldQueryRuntimeSmokeTest`、`RuleAiBattlegroupSmokeTest` 与 `RuleAiOffenseLogisticsSmokeTest` 均为 0 failure；
+- `dotnet build` 为 0 警告、0 错误；Godot 退出时仍只有已登记的 RID/ObjectDB 泄漏基线。后勤回归中偶发 `SurfaceNotBuildable` 会由既有重试处理，仍归入导航/地表专项。
+
+人工验收待确认：运行 `TestPlayerVsAI.tscn`，观察敌方 Drone 按地图网格持续巡逻，且其发现敌军后既有作战单位仍能按受视野约束的流程交战。

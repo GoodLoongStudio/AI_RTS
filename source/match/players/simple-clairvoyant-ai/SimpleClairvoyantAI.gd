@@ -73,7 +73,11 @@ func _ready():
 		_query_session_id,
 		get_node("RuleAiCommandGateway")
 	)
-	_intelligence_controller.setup(self)
+	_intelligence_controller.setup(
+		_world_query_runtime,
+		_query_session_id,
+		get_node("RuleAiCommandGateway")
+	)
 	_construction_works_controller.setup(
 		_world_query_runtime,
 		_query_session_id,

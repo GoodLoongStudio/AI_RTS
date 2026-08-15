@@ -177,6 +177,22 @@ public sealed class WorldQueryService : IWorldQueryService, IVisibleEnemyTargetA
     }
 
     /// <inheritdoc />
+    public QueryResult<BattlefieldBounds> GetBattlefieldBounds(QuerySessionId sessionId)
+    {
+        if (!TryGetSession(sessionId, out _))
+        {
+            return Rejected<BattlefieldBounds>(QueryErrorCode.InvalidSession);
+        }
+
+        var snapshot = _repository.Capture();
+        return snapshot.Bounds is null ?
+            Rejected<BattlefieldBounds>(
+                QueryErrorCode.BattlefieldUnavailable,
+                snapshot.Revision) :
+            Accepted(snapshot.Bounds, snapshot.Revision);
+    }
+
+    /// <inheritdoc />
     public bool IsCurrentlyVisibleEnemy(
         QuerySessionId sessionId,
         BattlefieldEntityId targetEntityId)

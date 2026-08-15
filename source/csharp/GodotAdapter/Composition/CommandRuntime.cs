@@ -364,6 +364,18 @@ public partial class CommandRuntime : Node
         return result;
     }
 
+    /// <summary>由固定身份 Adapter 按稳定单位 ID 暂停当前可停止任务。</summary>
+    internal CommandResult HaltMovementByStableIds(
+        IReadOnlyList<UnitId> unitIds,
+        Node issuerPlayer)
+    {
+        var result = _commands.HaltMovement(
+            CreateContext(issuerPlayer),
+            new HaltMovementCommand(unitIds));
+        UpdateGuardAnchorsForAccepted(result);
+        return result;
+    }
+
     /// <summary>代表指定玩家向一组单位提交单一、可逐单位回执的统一停止命令。</summary>
     public CommandResult StopUnits(IEnumerable<Node> unitNodes, Node issuerPlayer)
     {

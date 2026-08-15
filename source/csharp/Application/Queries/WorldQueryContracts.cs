@@ -35,7 +35,9 @@ public enum QueryErrorCode
     /// <summary>己方实体不存在、已失效或并不属于观察者。</summary>
     OwnEntityUnavailable,
     /// <summary>观察者没有可用的资源账户。</summary>
-    EconomyUnavailable
+    EconomyUnavailable,
+    /// <summary>对局地图尚未提供有效的可玩区域。</summary>
+    BattlefieldUnavailable
 }
 
 /// <summary>返回显式状态、不可变值和观察版本；成功空集合仍携带非空集合值。</summary>
@@ -105,6 +107,17 @@ public sealed record VisibilityRegionSnapshot(
     WorldPosition Center,
     float Radius);
 
+/// <summary>描述所有参战方都可知的轴对齐可玩战场范围。</summary>
+/// <param name="MinimumX">可玩区域的最小世界 X 坐标。</param>
+/// <param name="MaximumX">可玩区域的最大世界 X 坐标。</param>
+/// <param name="MinimumZ">可玩区域的最小世界 Z 坐标。</param>
+/// <param name="MaximumZ">可玩区域的最大世界 Z 坐标。</param>
+public sealed record BattlefieldBounds(
+    float MinimumX,
+    float MaximumX,
+    float MinimumZ,
+    float MaximumZ);
+
 /// <summary>把同一观察版本的实体与经济数据封装为不可变读取批次。</summary>
 /// <param name="Revision">单调递增的观察版本。</param>
 /// <param name="Entities">按稳定实体 ID 排序前的实体集合。</param>
@@ -114,7 +127,8 @@ public sealed record WorldObservationSnapshot(
     long Revision,
     IReadOnlyList<WorldEntitySnapshot> Entities,
     IReadOnlyList<WorldEconomySnapshot> Economies,
-    IReadOnlyList<VisibilityRegionSnapshot> VisibilityRegions);
+    IReadOnlyList<VisibilityRegionSnapshot> VisibilityRegions,
+    BattlefieldBounds? Bounds = null);
 
 /// <summary>由 Adapter 在一次读取中捕获权威世界快照。</summary>
 public interface IWorldObservationRepository
@@ -151,6 +165,9 @@ public interface IWorldQueryService
 
     /// <summary>查询观察者自己的准确资源账户。</summary>
     QueryResult<ResourceAccountObservation> GetOwnEconomy(QuerySessionId sessionId);
+
+    /// <summary>查询所有参战方都可知的轴对齐可玩战场边界。</summary>
+    QueryResult<BattlefieldBounds> GetBattlefieldBounds(QuerySessionId sessionId);
 }
 
 /// <summary>未来只向大模型 Gateway 暴露的强制操作点查询边界。</summary>

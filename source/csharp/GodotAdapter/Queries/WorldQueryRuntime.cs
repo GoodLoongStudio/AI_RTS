@@ -142,6 +142,10 @@ public partial class WorldQueryRuntime : Node
     public Godot.Collections.Dictionary GetOwnEconomy(string sessionId) =>
         ToGodot(Queries().GetOwnEconomy(Session(sessionId)));
 
+    /// <summary>返回公开的轴对齐可玩战场边界，不表示区域内任意点都可导航。</summary>
+    public Godot.Collections.Dictionary GetBattlefieldBounds(string sessionId) =>
+        ToGodot(Queries().GetBattlefieldBounds(Session(sessionId)));
+
     private IWorldQueryService Queries() => _queries ??
         throw new InvalidOperationException("WorldQueryRuntime 尚未由 Match 初始化。");
 
@@ -232,6 +236,25 @@ public partial class WorldQueryRuntime : Node
             economy["balances"] = balances;
         }
         return Envelope(result.Status, result.ErrorCode, result.ObservationRevision, "economy", economy);
+    }
+
+    /// <summary>把公开战场边界转换为带显式 bounds 键的稳定查询信封。</summary>
+    private static Godot.Collections.Dictionary ToGodot(QueryResult<BattlefieldBounds> result)
+    {
+        var bounds = new Godot.Collections.Dictionary();
+        if (result.Value is not null)
+        {
+            bounds["minimum_x"] = result.Value.MinimumX;
+            bounds["maximum_x"] = result.Value.MaximumX;
+            bounds["minimum_z"] = result.Value.MinimumZ;
+            bounds["maximum_z"] = result.Value.MaximumZ;
+        }
+        return Envelope(
+            result.Status,
+            result.ErrorCode,
+            result.ObservationRevision,
+            "bounds",
+            bounds);
     }
 
     /// <summary>把强类型资源映射为 Godot 与外置配置共同使用的稳定字段名。</summary>

@@ -59,6 +59,17 @@ public partial class RuleAiCommandGateway : Node
             ParseUnits(unitEntityIds), destination, issuer));
     }
 
+    /// <summary>按稳定单位 ID 暂停当前可停止任务，并保留订单供上层查询其 Suspended 状态。</summary>
+    public Godot.Collections.Dictionary Halt(Godot.Collections.Array<string> unitEntityIds)
+    {
+        var units = ParseUnits(unitEntityIds);
+        if (!TryGetIssuer(out var issuer))
+        {
+            return Rejected(CommandErrorCode.MatchNotRunning, units);
+        }
+        return ToGodot(_commands.HaltMovementByStableIds(units, issuer));
+    }
+
     /// <summary>按稳定实体引用提交普通攻击，并强制要求目标是会话当前可见的敌方。</summary>
     public Godot.Collections.Dictionary Attack(
         Godot.Collections.Array<string> unitEntityIds,
