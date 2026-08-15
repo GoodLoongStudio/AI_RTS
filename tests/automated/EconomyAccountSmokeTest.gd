@@ -45,7 +45,9 @@ func _ready():
 		"拒绝交易不得发布权威余额变化事件"
 	)
 
-	var production_cost = Constants.Match.Units.PRODUCTION_COSTS[TankScene.resource_path]
+	var production_cost = match_instance.get_node("BalanceConfigRuntime").GetProductionCost(
+		TankScene
+	)
 	var before_production_a: int = human.resource_a
 	var before_production_b: int = human.resource_b
 	var queue_size_before: int = vehicle_factory.production_queue.size()

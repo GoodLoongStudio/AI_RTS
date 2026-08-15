@@ -26,7 +26,7 @@ func _ready():
 	)
 	var full_balance_a: int = human.resource_a
 	var full_balance_b: int = human.resource_b
-	var tank_cost = Constants.Match.Units.PRODUCTION_COSTS[TankScene.resource_path]
+	var tank_cost = match_instance.get_node("BalanceConfigRuntime").GetProductionCost(TankScene)
 
 	for _index in range(5):
 		_check(queue.produce(TankScene) != null, "容量内的生产项目应入队")

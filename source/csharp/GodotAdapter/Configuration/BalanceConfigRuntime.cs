@@ -4,6 +4,7 @@ using AI_RTS.Domain.Combat;
 using AI_RTS.Domain.Configuration;
 using AI_RTS.Domain.Construction;
 using AI_RTS.Domain.Economy;
+using AI_RTS.Domain.Production;
 using Godot;
 
 namespace AI_RTS.GodotAdapter.Configuration;
@@ -80,6 +81,51 @@ public partial class BalanceConfigRuntime : Node
         return definition.CollectionDurationMilliseconds / 1000.0;
     }
 
+    /// <summary>返回 HUD 可消费的单位只读显示快照；数值仍以 Catalog 为权威来源。</summary>
+    public Godot.Collections.Dictionary GetUnitDisplaySnapshot(PackedScene scene)
+    {
+        var unitTypeId = Assets.FindUnitType(scene) ??
+            throw new InvalidOperationException($"场景 {scene.ResourcePath} 没有单位映射。");
+        var unit = Catalog.FindUnitType(unitTypeId) ??
+            throw new InvalidOperationException($"单位类型 {unitTypeId.Value} 不存在。");
+        var result = new Godot.Collections.Dictionary
+        {
+            ["unit_type_id"] = unit.Id.Value,
+            ["hp_max"] = unit.MaxHp,
+            ["sight_range"] = unit.SightRangeMeters
+        };
+        if (unit.WeaponIds.Count > 1)
+        {
+            throw new InvalidOperationException(
+                $"实体 {unit.Id.Value} 配置了多件武器；当前 HUD 尚未定义多武器展示规则。");
+        }
+        if (unit.WeaponIds.Count == 1)
+        {
+            var weapon = Catalog.FindWeapon(unit.WeaponIds[0]) ??
+                throw new InvalidOperationException($"主武器 {unit.WeaponIds[0].Value} 不存在。");
+            result["attack_damage"] = weapon.BaseDamage;
+            result["attack_interval"] = weapon.CooldownMilliseconds / 1000.0;
+            result["attack_range"] = weapon.RangeMeters;
+        }
+        return result;
+    }
+
+    /// <summary>按产品场景返回包含 resource_a/resource_b 的生产成本副本。</summary>
+    public Godot.Collections.Dictionary GetProductionCost(PackedScene scene)
+    {
+        var definition = FindProduction(scene) ??
+            throw new InvalidOperationException($"场景 {scene.ResourcePath} 没有生产定义。");
+        return ToLegacyCosts(definition.Cost);
+    }
+
+    /// <summary>按建筑场景返回包含 resource_a/resource_b 的施工成本副本。</summary>
+    public Godot.Collections.Dictionary GetConstructionCost(PackedScene scene)
+    {
+        var definition = FindConstruction(scene) ??
+            throw new InvalidOperationException($"场景 {scene.ResourcePath} 没有施工定义。");
+        return ToLegacyCosts(definition.Placement.ConstructionCost);
+    }
+
     /// <summary>把不可变单位类型和主武器快照写入 Legacy Unit 表现节点。</summary>
     public void ConfigureUnit(Node unit)
     {
@@ -107,6 +153,14 @@ public partial class BalanceConfigRuntime : Node
         var unitTypeId = Assets.FindUnitType(scene);
         return unitTypeId is null ? null :
             Catalog.FindConstruction(new StructureDefinitionId(unitTypeId.Value.Value));
+    }
+
+    /// <summary>按产品场景查询唯一生产定义。</summary>
+    internal ProductionDefinition? FindProduction(PackedScene scene)
+    {
+        var unitTypeId = Assets.FindUnitType(scene);
+        return unitTypeId is null ? null : Catalog.Productions.SingleOrDefault(
+            item => item.ProductTypeId == unitTypeId.Value);
     }
 
     /// <summary>按运行时单位查询已经完整校验的实体类型定义。</summary>
@@ -170,6 +224,22 @@ public partial class BalanceConfigRuntime : Node
             domains.Add(domain == CombatDomain.Air ? 0 : 1);
         }
         unit.Set("attack_domains", domains);
+    }
+
+    /// <summary>把强类型成本转换成 Legacy HUD/规则 AI 使用的完整双资源字典副本。</summary>
+    private static Godot.Collections.Dictionary ToLegacyCosts(
+        IEnumerable<ResourceAmount> costs)
+    {
+        var result = new Godot.Collections.Dictionary
+        {
+            ["resource_a"] = 0,
+            ["resource_b"] = 0
+        };
+        foreach (var cost in costs)
+        {
+            result[cost.Kind == ResourceKind.A ? "resource_a" : "resource_b"] = cost.Amount;
+        }
+        return result;
     }
 
     /// <summary>读取 res:// JSON；缺失或空文件交给上层严格 Loader 报告。</summary>

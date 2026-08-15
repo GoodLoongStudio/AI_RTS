@@ -34,7 +34,7 @@ func _ready():
 
 	var human = match_instance.get_node("Players/Human")
 	var runtime = match_instance.get_node("StructurePlacementRuntime")
-	var cost = Constants.Match.Units.CONSTRUCTION_COSTS[TurretScene.resource_path]
+	var cost = match_instance.get_node("BalanceConfigRuntime").GetConstructionCost(TurretScene)
 	_check(
 		human.add_resources({"resource_a": 10, "resource_b": 10}, "ScriptedAdjustment"),
 		"测试资源注入应成功"
