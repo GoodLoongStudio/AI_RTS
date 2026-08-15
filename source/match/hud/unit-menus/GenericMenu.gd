@@ -16,7 +16,7 @@ func _on_cancel_action_button_pressed():
 	for unit in units:
 		if unit is Tank or unit is Helicopter:
 			var gateway = unit.player.find_child("UnitCommandGateway")
-			if gateway != null:
-				gateway.StopUnits([unit], unit.player)
-			else:
-				unit.action = null
+			if gateway == null:
+				push_error("GenericMenu cannot stop unit without UnitCommandGateway")
+				continue
+			gateway.StopUnits([unit], unit.player)

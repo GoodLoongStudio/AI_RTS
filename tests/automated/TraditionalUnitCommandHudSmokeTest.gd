@@ -20,7 +20,7 @@ func _ready():
 	var selection = tank.find_child("Selection")
 	selection.select()
 	await get_tree().process_frame
-	_check(not tank.is_in_group("unit_group_1"), "测试 Tank 不应依赖 AI 副官作战小队")
+	_check(not tank.is_in_group("legacy_ai_squad_1"), "测试 Tank 不应依赖 AI 副官作战小队")
 	var force_move_button = hud.get_node("MarginContainer/VBoxContainer/Buttons/ForceMoveButton")
 	var halt_button = hud.get_node("MarginContainer/VBoxContainer/Buttons/HaltButton")
 	var force_attack_button = hud.get_node(

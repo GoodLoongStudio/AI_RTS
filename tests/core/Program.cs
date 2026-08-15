@@ -23,6 +23,7 @@ internal static class Program
         failures += new RallyPointServiceTests().Run();
         failures += new BalanceConfigLoaderTests().Run();
         failures += new InputBindingServiceTests().Run();
+        failures += new ControlGroupServiceTests().Run();
         failures += new WorldQueryServiceTests().Run();
         return failures == 0 ? 0 : 1;
     }

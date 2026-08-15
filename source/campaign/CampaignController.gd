@@ -81,7 +81,7 @@ func _setup_initial_control():
 	var controlled_units = get_tree().get_nodes_in_group("controlled_units")
 	for unit in controlled_units:
 		for squad_id in [1, 2, 3]:
-			unit.remove_from_group("unit_group_%d" % squad_id)
+			unit.remove_from_group("legacy_ai_squad_%d" % squad_id)
 
 	if mission_data.get("initial_control_mode", "squad") == "hero":
 		var hero_units = get_tree().get_nodes_in_group("campaign_hero").filter(
@@ -91,13 +91,13 @@ func _setup_initial_control():
 			push_error("Hero campaign started without a campaign_hero unit")
 			return
 		_hero = hero_units[0] as Node3D
-		_hero.add_to_group("unit_group_1")
+		_hero.add_to_group("legacy_ai_squad_1")
 		Utils.Match.select_units(Utils.Set.from_array([_hero]))
 		return
 
 	var mobile_units = controlled_units.filter(func(unit): return unit.find_child("Movement") != null)
 	for index in range(min(3, mobile_units.size())):
-		mobile_units[index].add_to_group("unit_group_%d" % (index + 1))
+		mobile_units[index].add_to_group("legacy_ai_squad_%d" % (index + 1))
 
 
 func _play_briefing():

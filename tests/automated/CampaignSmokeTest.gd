@@ -61,9 +61,9 @@ func _run_test():
 		await get_tree().physics_frame
 
 	var controlled_units = get_tree().get_nodes_in_group("controlled_units")
-	var group_1 = get_tree().get_nodes_in_group("unit_group_1")
-	var group_2 = get_tree().get_nodes_in_group("unit_group_2")
-	var group_3 = get_tree().get_nodes_in_group("unit_group_3")
+	var group_1 = get_tree().get_nodes_in_group("legacy_ai_squad_1")
+	var group_2 = get_tree().get_nodes_in_group("legacy_ai_squad_2")
+	var group_3 = get_tree().get_nodes_in_group("legacy_ai_squad_3")
 	var ai_hud = a_match.get_node_or_null("HUD/AICommandHUD")
 	var ai_hud_toggle = a_match.get_node_or_null("HUD/AICommandHUDToggle")
 	var camera = a_match.get_node_or_null("IsometricCamera3D")
@@ -77,7 +77,7 @@ func _run_test():
 	_check(ai_hud.control_mode == "hero", "AICommandHUD 未进入单英雄模式")
 	_check(controlled_units.size() == 1, "序章开局应且仅应生成一个玩家可控英雄")
 	_check(not get_tree().get_nodes_in_group("adversary_units").is_empty(), "未生成敌方单位")
-	_check(group_1.size() == 1, "先锋英雄应加入 unit_group_1")
+	_check(group_1.size() == 1, "先锋英雄应加入独立 Legacy AI Squad 1")
 	_check(group_2.is_empty(), "单英雄序章不应建立第二小队")
 	_check(group_3.is_empty(), "单英雄序章不应建立第三小队")
 	_check(a_match.map.size == Vector2(600, 450), "回声撤离超大灰盒地图尺寸不正确")

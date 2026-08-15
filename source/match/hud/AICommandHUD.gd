@@ -4,8 +4,6 @@ signal squad_selected(squad_id)
 signal squad_command_executed(squad_id, command)
 signal player_text_submitted(text)
 
-const WaitingForTargets = preload("res://source/match/units/actions/WaitingForTargets.gd")
-
 const SQUAD_NAMES = {1: "突击队", 2: "侦察队", 3: "支援队"}
 const COMMAND_ACTIONS = {
 	"legacy.command_move": "MOVE",
@@ -315,7 +313,7 @@ func _select_squad(squad_id: int):
 		if _is_hero_mode():
 			_append_ai("先锋单位尚未接入战场。")
 		else:
-			_append_ai("%d %s 尚未编组。先框选单位并用 Ctrl+%d 保存编组。" % [squad_id, SQUAD_NAMES[squad_id], squad_id])
+			_append_ai("%d %s 尚未由任务系统建立。" % [squad_id, SQUAD_NAMES[squad_id]])
 	else:
 		Utils.Match.select_units(Utils.Set.from_array(units))
 	_refresh_squad_ui()
@@ -323,7 +321,7 @@ func _select_squad(squad_id: int):
 
 
 func _get_squad_units(squad_id: int) -> Array:
-	return get_tree().get_nodes_in_group("unit_group_%d" % squad_id).filter(
+	return get_tree().get_nodes_in_group("legacy_ai_squad_%d" % squad_id).filter(
 		func(unit): return unit.is_in_group("controlled_units")
 	)
 
@@ -347,9 +345,19 @@ func _begin_command(command: String):
 
 
 func _execute_defend():
-	for unit in _get_squad_units(active_squad):
-		if unit.attack_range != null:
-			unit.action = WaitingForTargets.new()
+	var units = _get_squad_units(active_squad).filter(
+		func(unit): return unit.attack_range != null
+	)
+	if units.is_empty() or not _submit_public_squad_command(
+		func(gateway, player):
+			return gateway.SetEngagementStance(
+				units,
+				"Guard" if _is_hero_mode() else "HoldGround",
+				player
+			)
+	):
+		_append_ai("命令未执行：当前小队没有可设置防守姿态的单位或公共命令入口不可用。")
+		return
 	squad_status[active_squad] = "警戒中" if _is_hero_mode() else "固守中"
 	pending_command = ""
 	_append_ai("命令已下达：%s原地警戒。我会继续关注任务状态。" % _control_display(active_squad))
@@ -358,13 +366,31 @@ func _execute_defend():
 
 
 func _execute_stop():
-	for unit in _get_squad_units(active_squad):
-		unit.action = null
+	var units = _get_squad_units(active_squad)
+	if not _submit_public_squad_command(
+		func(gateway, player): return gateway.StopUnits(units, player)
+	):
+		_append_ai("命令未执行：公共停止命令拒绝或入口不可用。")
+		return
 	squad_status[active_squad] = "待命"
 	pending_command = ""
 	_append_ai("命令已下达：%s停止当前任务，重新进入待命。" % _control_display(active_squad))
 	_refresh_squad_ui()
 	squad_command_executed.emit(active_squad, "STOP")
+
+
+## 通过小队拥有者的公共 Gateway 提交冻结 HUD 命令，至少一个单位接受时返回 true。
+func _submit_public_squad_command(submit: Callable) -> bool:
+	var units = _get_squad_units(active_squad)
+	if units.is_empty():
+		return false
+	var player = units[0].player
+	var gateway = player.find_child("UnitCommandGateway")
+	if gateway == null:
+		push_error("Legacy AI HUD cannot find UnitCommandGateway")
+		return false
+	var result: Dictionary = submit.call(gateway, player)
+	return result.get("status", "Rejected") in ["Accepted", "PartiallyAccepted"]
 
 
 func _on_terrain_targeted(_position):

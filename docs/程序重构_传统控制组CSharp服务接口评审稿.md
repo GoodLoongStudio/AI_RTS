@@ -232,3 +232,19 @@ public sealed record ControlGroupSaveResult(
 8. 首版不增加 Shift/Alt 访问、镜头聚焦和控制组 UI。
 
 八项契约评审通过，可以进入实现。
+
+## 11. 实现与自动验证记录
+
+2026-08-15 已按评审结论完成纵向实现，当前等待项目负责人人工验收：
+
+- Domain/Application 新增 `ControlGroupNumber`、稳定结果 DTO、`IControlGroupService` 与 `ControlGroupService`，不依赖 Godot；
+- Match 级 `ControlGroupRuntime` 复用 `CommandRuntime` 的稳定实体身份，并只监听集中式 `InputBindingRuntime` 发布的 ActionId；
+- `Ctrl+1..9` 采用替换语义，`1..9` 采用替换 Selection 语义；成功空组会显式取消当前选择；
+- 保存和访问都会复验实体存在性、所属玩家与可选择性，单位退出时主动从全部组剔除；
+- 已删除旧 `UnitGroupSelectionHandler.gd/.tscn`，不再建立 `unit_group_N` 兼容镜像；
+- 冻结战役小队改用 `legacy_ai_squad_N`；Legacy AI HUD 的 Stop/Defend 改走公共 `UnitCommandGateway`，不再直接写入单位 Action；
+- 纯 C# 控制组新增 7 项测试；全套核心测试共 87 项通过；
+- `ControlGroupRuntimeSmokeTest` 通过，覆盖多单位、建筑、空组、敌方过滤、退出清理和 AI 小队隔离；
+- `CampaignSmokeTest` 与 `TraditionalUnitCommandHudSmokeTest` 回归通过；无头退出仍报告既有导航 RID/ObjectDB 泄漏，已与本项功能结果分开登记。
+
+人工验收建议只检查本轮可见行为：连续覆盖、同一单位保存到多个编号、空组取消选择、成员死亡后召回，以及 AI 副官 HUD 不再显示玩家控制组。Formation、镜头聚焦和追加选择仍不属于本轮范围。
