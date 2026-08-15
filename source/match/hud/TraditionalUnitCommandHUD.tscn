@@ -102,6 +102,13 @@ toggle_mode = true
 text = "停火"
 tooltip_text = "禁止自主开火；未来显式强制攻击仍可临时覆盖"
 
+[node name="ClearRallyPointButton" type="Button" parent="MarginContainer/VBoxContainer/CombatPolicies"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 36)
+layout_mode = 2
+text = "清除集结"
+tooltip_text = "清除选中生产建筑的自定义集结目标，恢复建筑门口默认出口"
+
 [node name="FeedbackLabel" type="Label" parent="MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2

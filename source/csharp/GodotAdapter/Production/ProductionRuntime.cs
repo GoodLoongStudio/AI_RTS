@@ -14,18 +14,23 @@ public partial class ProductionRuntime : Node
     private readonly GodotProductionDefinitionRepository _definitions = new();
     private readonly GodotProductionProducerRegistry _producers = new();
     private readonly HashSet<UnitId> _trackedProducers = new();
+    private GodotProductionDeploymentPort _deployment = null!;
     private IProductionService _service = null!;
     private MatchId _matchId;
+
+    /// <summary>单位成功部署后通知独立的出厂策略与 Rally 初始化器。</summary>
+    public event Action<Node, Node>? UnitDeployed;
 
     /// <summary>连接统一经济账户、生产定义、建筑注册表与部署端口。</summary>
     public override void _Ready()
     {
         var economy = GetParent().GetNode<EconomyRuntime>("EconomyRuntime");
         _matchId = economy.MatchId;
+        _deployment = new GodotProductionDeploymentPort(_definitions, _producers);
         _service = new ProductionService(
             _definitions,
             _producers,
-            new GodotProductionDeploymentPort(_definitions, _producers),
+            _deployment,
             economy.AccountService,
             5);
         _service.Queued += OnQueued;
@@ -147,8 +152,15 @@ public partial class ProductionRuntime : Node
     }
 
     /// <summary>完成部署后移除 Legacy 队列视图，并携带新单位 ID。</summary>
-    private void OnCompleted(UnitProductionCompleted change) =>
+    private void OnCompleted(UnitProductionCompleted change)
+    {
+        if (_deployment.TryGetProducedUnit(change.ProducedUnitId, out var produced) &&
+            _producers.TryGetProducer(change.Item.ProducerId, out var producer))
+        {
+            UnitDeployed?.Invoke(produced, producer);
+        }
         NotifyRemoved(change.Item);
+    }
 
     /// <summary>把终态项目从 Legacy 队列视图中删除。</summary>
     private void NotifyRemoved(ProductionItemSnapshot item)

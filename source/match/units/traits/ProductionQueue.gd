@@ -135,9 +135,6 @@ func try_deploy_authoritative(unit_prototype):
 		produced_unit, Transform3D(Basis(), placement_position), _unit.player
 	)
 	MatchSignals.unit_production_finished.emit(produced_unit, _unit)
-	var rally_point = _unit.find_child("RallyPoint")
-	if rally_point != null:
-		MatchSignals.navigate_unit_to_rally_point.emit(produced_unit, rally_point)
 	return produced_unit
 
 

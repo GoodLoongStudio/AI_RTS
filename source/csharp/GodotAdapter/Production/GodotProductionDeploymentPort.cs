@@ -1,4 +1,5 @@
 using AI_RTS.Application.Production;
+using AI_RTS.Domain.Common;
 using AI_RTS.Domain.Production;
 using AI_RTS.GodotAdapter.Common;
 using Godot;
@@ -10,6 +11,8 @@ public sealed class GodotProductionDeploymentPort(
     GodotProductionDefinitionRepository definitions,
     GodotProductionProducerRegistry producers) : IProductionDeploymentPort
 {
+    private readonly Dictionary<UnitId, WeakReference<Node>> _producedUnits = new();
+
     /// <inheritdoc />
     public ProductionDeploymentResult TryDeploy(ProductionItemSnapshot item)
     {
@@ -24,8 +27,24 @@ public sealed class GodotProductionDeploymentPort(
         {
             return new ProductionDeploymentResult(ProductionDeploymentStatus.Blocked);
         }
+        var producedUnitId = GodotStableIdentity.Unit(produced);
+        _producedUnits[producedUnitId] = new WeakReference<Node>(produced);
         return new ProductionDeploymentResult(
             ProductionDeploymentStatus.Deployed,
-            GodotStableIdentity.Unit(produced));
+            producedUnitId);
+    }
+
+    /// <summary>解析刚完成部署的单位，供事件驱动的出厂初始化使用。</summary>
+    public bool TryGetProducedUnit(UnitId unitId, out Node unit)
+    {
+        unit = null!;
+        if (!_producedUnits.TryGetValue(unitId, out var reference) ||
+            !reference.TryGetTarget(out var candidate) ||
+            !GodotObject.IsInstanceValid(candidate) || !candidate.IsInsideTree())
+        {
+            return false;
+        }
+        unit = candidate;
+        return true;
     }
 }

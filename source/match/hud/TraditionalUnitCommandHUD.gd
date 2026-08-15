@@ -12,6 +12,7 @@ var _targeting_command := ""
 @onready var _guard_button: Button = %GuardButton
 @onready var _hold_ground_button: Button = %HoldGroundButton
 @onready var _hold_fire_button: Button = %HoldFireButton
+@onready var _clear_rally_point_button: Button = %ClearRallyPointButton
 @onready var _feedback_label: Label = %FeedbackLabel
 
 
@@ -26,6 +27,7 @@ func _ready():
 	_guard_button.pressed.connect(func(): _set_engagement_stance("Guard"))
 	_hold_ground_button.pressed.connect(func(): _set_engagement_stance("HoldGround"))
 	_hold_fire_button.pressed.connect(_toggle_hold_fire)
+	_clear_rally_point_button.pressed.connect(actions_controller.clear_selected_rally_points)
 	actions_controller.command_targeting_changed.connect(_on_command_targeting_changed)
 	actions_controller.command_feedback.connect(_on_command_feedback)
 	MatchSignals.unit_selected.connect(func(_unit): _refresh_availability())
@@ -128,6 +130,8 @@ func _on_command_feedback(
 		"HoldGround": "固守姿态",
 		"HoldFire": "停火",
 		"FireAtWill": "自由开火",
+		"SetRallyPoint": "设置集结点",
+		"ClearRallyPoint": "清除集结点",
 	}
 	var display_name: String = display_names.get(command_name, command_name)
 	_feedback_label.text = "%s：接受 %d，拒绝 %d（%s）" % [
@@ -138,18 +142,21 @@ func _on_command_feedback(
 
 func _refresh_availability():
 	var has_supported_units: bool = actions_controller.get_selected_command_unit_count() > 0
+	var has_policy_units: bool = actions_controller.get_selected_combat_policy_unit_count() > 0
+	var has_rally_producers: bool = actions_controller.get_selected_rally_producer_count() > 0
 	_force_move_button.disabled = not has_supported_units
 	_force_attack_button.disabled = not has_supported_units
 	_tactical_withdraw_button.disabled = not has_supported_units
 	_ground_attack_move_button.disabled = not has_supported_units
 	_halt_button.disabled = not has_supported_units
-	_aggressive_button.disabled = not has_supported_units
-	_guard_button.disabled = not has_supported_units
-	_hold_ground_button.disabled = not has_supported_units
-	_hold_fire_button.disabled = not has_supported_units
+	_aggressive_button.disabled = not has_policy_units
+	_guard_button.disabled = not has_policy_units
+	_hold_ground_button.disabled = not has_policy_units
+	_hold_fire_button.disabled = not has_policy_units
+	_clear_rally_point_button.disabled = not has_rally_producers
 	if not has_supported_units:
 		actions_controller.cancel_command_targeting()
-		_feedback_label.text = "选择 Tank 或 Helicopter 后可下达传统 RTS 命令"
+		_feedback_label.text = "选择单位或生产建筑后可下达适用的传统 RTS 命令"
 	_refresh_policy_buttons()
 
 

@@ -3,6 +3,7 @@ using AI_RTS.Application.Commands.Units;
 using AI_RTS.Application.Combat;
 using AI_RTS.Application.Construction;
 using AI_RTS.Application.Orders;
+using AI_RTS.Application.Units;
 using AI_RTS.Domain.Combat;
 using AI_RTS.Domain.Common;
 using AI_RTS.Domain.Construction;
@@ -423,6 +424,43 @@ public partial class CommandRuntime : Node
     /// <summary>查询指定 Godot 单位当前权威开火策略名称。</summary>
     public string GetFirePolicy(Node unitNode) =>
         _combatPolicies.Get(_units.Register(unitNode)).FirePolicy.ToString();
+
+    /// <summary>把生产者当前姿态与开火策略复制给新出厂单位，再由 Rally 分派初始任务。</summary>
+    internal bool InheritCombatPolicy(Node producer, Node producedUnit, Node ownerPlayer)
+    {
+        var producerId = _units.Register(producer);
+        var policy = _combatPolicies.Get(producerId);
+        var stanceResult = SetEngagementStance(
+            [producedUnit], policy.EngagementStance, ownerPlayer);
+        var fireResult = SetFirePolicy([producedUnit], policy.FirePolicy, ownerPlayer);
+        return stanceResult.Status == CommandStatus.Accepted &&
+            fireResult.Status == CommandStatus.Accepted;
+    }
+
+    /// <summary>为 Rally Adapter 注册单位或建筑并返回稳定身份。</summary>
+    internal UnitId RegisterRuntimeUnit(Node unit) => _units.Register(unit);
+
+    /// <summary>为 Rally Adapter 注册资源节点并返回稳定身份。</summary>
+    internal ResourceNodeId RegisterRuntimeResource(Node resource) =>
+        _resourceNodes.Register(resource);
+
+    /// <summary>查询 Rally Adapter 所需的单位能力和所有权。</summary>
+    internal UnitCommandSnapshot? FindRuntimeUnit(UnitId unitId) => _units.Find(unitId);
+
+    /// <summary>查询 Rally Adapter 所需的资源状态。</summary>
+    internal ResourceNodeSnapshot? FindRuntimeResource(ResourceNodeId resourceNodeId) =>
+        _resourceNodes.Find(resourceNodeId);
+
+    /// <summary>解析 Rally Adapter 保存的单位弱引用。</summary>
+    internal bool TryGetRuntimeUnit(UnitId unitId, out Node unit) =>
+        _units.TryGetNode(unitId, out unit);
+
+    /// <summary>解析 Rally Adapter 保存的资源节点弱引用。</summary>
+    internal bool TryGetRuntimeResource(ResourceNodeId resourceNodeId, out Node resource) =>
+        _resourceNodes.TryGetNode(resourceNodeId, out resource);
+
+    /// <summary>返回当前 Match 的稳定身份。</summary>
+    internal MatchId RuntimeMatchId => _matchId;
 
     /// <summary>查询警戒岗位点；尚未确定时返回正无穷坐标供 GDScript 明确识别。</summary>
     public Vector3 GetGuardAnchor(Node unitNode)

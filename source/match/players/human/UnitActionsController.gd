@@ -30,7 +30,6 @@ func _ready():
 	MatchSignals.terrain_targeted.connect(_on_terrain_targeted)
 	MatchSignals.unit_targeted.connect(_on_unit_targeted)
 	MatchSignals.unit_spawned.connect(_on_unit_spawned)
-	MatchSignals.navigate_unit_to_rally_point.connect(_on_navigate_unit_to_rally_point)
 
 
 func _try_navigating_selected_units_towards_position(target_point):
@@ -137,6 +136,11 @@ func halt_selected_units():
 ## 返回当前 Selection 中已迁移到 C# 命令链路的可控单位数量，供灰盒 HUD 更新可用状态。
 func get_selected_command_unit_count() -> int:
 	return _get_selected_controlled_units().filter(_is_migrated_command_unit).size()
+
+
+## 返回可保存自身或出厂默认战斗策略的选中实体数量。
+func get_selected_combat_policy_unit_count() -> int:
+	return _get_selected_controlled_units().filter(_is_migrated_combat_unit).size()
 
 
 ## 为当前 Selection 中已迁移的战斗单位设置持续交战姿态，并汇总即时接收结果。
@@ -346,11 +350,13 @@ func _try_setting_rally_points(target_point: Vector3):
 		func(unit):
 			return unit.is_in_group("controlled_units") and unit.find_child("RallyPoint") != null
 	)
-	for structure in controlled_structures:
-		var rally_point = structure.find_child("RallyPoint")
-		if rally_point != null:
-			rally_point.target_unit = null
-			rally_point.global_position = target_point
+	if controlled_structures.is_empty():
+		return
+	var result = find_parent("Match").get_node("RallyPointRuntime").SetPosition(
+		controlled_structures, target_point, get_parent()
+	)
+	var counts = _count_command_result(result)
+	_emit_command_feedback("SetRallyPoint", counts[0], counts[1])
 
 
 func _navigate_selected_units_towards_unit(target_unit, target_position: Vector3):
@@ -452,7 +458,7 @@ func _is_migrated_command_unit(unit) -> bool:
 
 ## 集中定义已接入公共战斗策略的单位，避免 Worker 获得无意义的姿态设置。
 func _is_migrated_combat_unit(unit) -> bool:
-	return unit is Tank or unit is Helicopter
+	return unit is Tank or unit is Helicopter or unit.find_child("RallyPoint") != null
 
 
 func _try_setting_rally_point_to_unit(unit, target_unit):
@@ -462,11 +468,36 @@ func _try_setting_rally_point_to_unit(unit, target_unit):
 		# it's not allowed to set rally point to enemy at the moment as with current implementation
 		# the position of enemy unit hidden in the fog of war could be hinted
 		return false
-	var rally_point = unit.find_child("RallyPoint")
-	if rally_point == null:
+	if unit.find_child("RallyPoint") == null:
 		return false
-	rally_point.target_unit = target_unit
+	var result = find_parent("Match").get_node("RallyPointRuntime").SetTarget(
+		[unit], target_unit, get_parent()
+	)
+	var counts = _count_command_result(result)
+	_emit_command_feedback("SetRallyPoint", counts[0], counts[1])
 	return true
+
+
+## 显式清除选中生产建筑的自定义集结点并回归默认门口。
+func clear_selected_rally_points():
+	var structures = _get_selected_controlled_units().filter(
+		func(unit): return unit.find_child("RallyPoint") != null
+	)
+	if structures.is_empty():
+		_emit_command_feedback("ClearRallyPoint", 0, 0)
+		return
+	var result = find_parent("Match").get_node("RallyPointRuntime").Clear(
+		structures, get_parent()
+	)
+	var counts = _count_command_result(result)
+	_emit_command_feedback("ClearRallyPoint", counts[0], counts[1])
+
+
+## 返回当前选中并声明集结能力的生产者数量。
+func get_selected_rally_producer_count() -> int:
+	return _get_selected_controlled_units().filter(
+		func(unit): return unit.find_child("RallyPoint") != null
+	).size()
 
 
 func _on_terrain_targeted(position):
@@ -527,10 +558,3 @@ func _on_unit_targeted(unit, target_position: Vector3):
 
 func _on_unit_spawned(unit):
 	pass
-
-
-func _on_navigate_unit_to_rally_point(unit, rally_point):
-	if rally_point.target_unit != null:
-		_navigate_unit_towards_unit(unit, rally_point.target_unit)
-	elif rally_point.global_position != rally_point.get_parent().global_position:
-		unit.action = Actions.Moving.new(rally_point.global_position)

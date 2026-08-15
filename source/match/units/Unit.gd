@@ -20,6 +20,8 @@ const LegacyGatherAction = preload(
 	"res://source/match/units/actions/CollectingResourcesSequentially.gd"
 )
 const LegacyConstructingAction = preload("res://source/match/units/actions/Constructing.gd")
+const LegacyMovingToUnitAction = preload("res://source/match/units/actions/MovingToUnit.gd")
+const LegacyFollowingAction = preload("res://source/match/units/actions/Following.gd")
 
 signal selected
 signal deselected
@@ -95,6 +97,22 @@ func request_legacy_move(target_position: Vector3) -> bool:
 	if find_child("Movement") == null:
 		return false
 	action = LegacyMovingAction.new(target_position, true)
+	return true
+
+
+## 临时 Rally 桥：非 Worker 出厂后只靠近资源或其他静态实体。
+func request_legacy_move_to_unit(target_unit) -> bool:
+	if not LegacyMovingToUnitAction.is_applicable(self):
+		return false
+	action = LegacyMovingToUnitAction.new(target_unit)
+	return true
+
+
+## 临时 Rally 桥：出厂单位持续跟随同玩家移动实体。
+func request_legacy_follow(target_unit) -> bool:
+	if not LegacyFollowingAction.is_applicable(self):
+		return false
+	action = LegacyFollowingAction.new(target_unit)
 	return true
 
 
