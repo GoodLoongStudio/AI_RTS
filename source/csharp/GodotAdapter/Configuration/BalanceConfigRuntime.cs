@@ -155,6 +155,14 @@ public partial class BalanceConfigRuntime : Node
             Catalog.FindConstruction(new StructureDefinitionId(unitTypeId.Value.Value));
     }
 
+    /// <summary>按运行时建筑的稳定 UnitTypeId 查询施工定义；非建筑返回空。</summary>
+    internal StructureConstructionDefinition? FindConstruction(Node structure)
+    {
+        var unitTypeId = structure.Get("unit_type_id").AsString();
+        return string.IsNullOrWhiteSpace(unitTypeId) ? null :
+            Catalog.FindConstruction(new StructureDefinitionId(unitTypeId));
+    }
+
     /// <summary>按产品场景查询唯一生产定义。</summary>
     internal ProductionDefinition? FindProduction(PackedScene scene)
     {

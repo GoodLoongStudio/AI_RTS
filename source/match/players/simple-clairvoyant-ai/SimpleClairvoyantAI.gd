@@ -61,7 +61,11 @@ func _ready():
 	)
 	_offense_controller.setup(self)
 	_intelligence_controller.setup(self)
-	_construction_works_controller.setup(self)
+	_construction_works_controller.setup(
+		_world_query_runtime,
+		_query_session_id,
+		get_node("RuleAiCommandGateway")
+	)
 
 
 func _process(_delta):

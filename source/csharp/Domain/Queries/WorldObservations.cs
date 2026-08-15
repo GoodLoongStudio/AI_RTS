@@ -28,9 +28,32 @@ public enum ObservationField
     Relation = 1 << 2,
     /// <summary>实体当前与最大生命值。</summary>
     Health = 1 << 3,
+    /// <summary>建筑施工状态、整数进度与当前活动建造者数量。</summary>
+    Construction = 1 << 4,
     /// <summary>首版支持的全部可选字段。</summary>
-    All = Position | Type | Relation | Health
+    All = Position | Type | Relation | Health | Construction
 }
+
+/// <summary>描述观察接口公开的建筑施工阶段。</summary>
+public enum ConstructionObservationState
+{
+    /// <summary>建筑仍需 Worker 提供施工工作量。</summary>
+    UnderConstruction,
+
+    /// <summary>建筑已经完成施工并可正常工作。</summary>
+    Completed
+}
+
+/// <summary>返回建筑施工生命周期、整数工作量和当前活动建造者数量。</summary>
+/// <param name="State">查询接口公开的施工阶段。</param>
+/// <param name="CompletedWork">已经完成的非负整数工作量。</param>
+/// <param name="RequiredWork">完成施工所需的正整数工作量。</param>
+/// <param name="ActiveBuilderCount">当前持有进行中 Construct 订单的 Worker 数量。</param>
+public sealed record ConstructionObservation(
+    ConstructionObservationState State,
+    int CompletedWork,
+    int RequiredWork,
+    int ActiveBuilderCount);
 
 /// <summary>描述实体与查询观察者之间的关系。</summary>
 public enum ObserverRelation
@@ -57,6 +80,7 @@ public enum ObserverRelation
 /// <param name="Relation">阵营关系；未返回时为空。</param>
 /// <param name="CurrentHealth">当前生命值；未返回时为空。</param>
 /// <param name="MaximumHealth">最大生命值；未返回时为空。</param>
+/// <param name="Construction">施工字段；非建筑、未请求或未获授权时为空。</param>
 public sealed record EntityObservation(
     BattlefieldEntityId EntityId,
     ObservationState State,
@@ -66,7 +90,8 @@ public sealed record EntityObservation(
     string? TypeId,
     ObserverRelation? Relation,
     float? CurrentHealth,
-    float? MaximumHealth);
+    float? MaximumHealth,
+    ConstructionObservation? Construction = null);
 
 /// <summary>描述一次圆形范围观察请求。</summary>
 /// <param name="Center">范围中心。</param>

@@ -10,9 +10,12 @@ using AI_RTS.Domain.Construction;
 using AI_RTS.Domain.Economy;
 using AI_RTS.GodotAdapter.Navigation;
 using AI_RTS.GodotAdapter.Combat;
+using AI_RTS.GodotAdapter.Common;
+using AI_RTS.GodotAdapter.Configuration;
 using AI_RTS.GodotAdapter.Construction;
 using AI_RTS.GodotAdapter.Economy;
 using AI_RTS.GodotAdapter.Units;
+using AI_RTS.Domain.Queries;
 using Godot;
 
 namespace AI_RTS.GodotAdapter.Composition;
@@ -58,6 +61,9 @@ public partial class CommandRuntime : Node
     /// <summary>当前 Match 的权威施工任务、整数进度与终态服务。</summary>
     private IConstructionService _construction = null!;
 
+    /// <summary>提供初始完成建筑的权威施工定义。</summary>
+    private BalanceConfigRuntime _balance = null!;
+
     /// <summary>当前 Match 的进程内稳定 ID。</summary>
     private MatchId _matchId;
 
@@ -65,6 +71,7 @@ public partial class CommandRuntime : Node
     public override void _Ready()
     {
         var economy = GetParent().GetNode<EconomyRuntime>("EconomyRuntime");
+        _balance = GetParent().GetNode<BalanceConfigRuntime>("BalanceConfigRuntime");
         _matchId = economy.MatchId;
         _orders.StateChanged += OnOrderStateChanged;
         _construction = new ConstructionService(
@@ -177,6 +184,51 @@ public partial class CommandRuntime : Node
             new ConstructStructureCommand(workerIds, _constructionSites.Register(site)));
         TrackAcceptedPersistentOrders(result);
         return result;
+    }
+
+    /// <summary>代表已绑定身份的 Adapter 按稳定 ID 提交施工命令。</summary>
+    internal CommandResult ConstructUnitsByStableIds(
+        IReadOnlyList<UnitId> workerIds,
+        UnitId siteId,
+        Node issuerPlayer)
+    {
+        foreach (var workerId in workerIds.Distinct())
+        {
+            _units.TryResolveInMatch(workerId, GetParent(), out _);
+        }
+        var result = _construction.Construct(
+            CreateContext(issuerPlayer),
+            new ConstructStructureCommand(workerIds, siteId));
+        TrackAcceptedPersistentOrders(result);
+        return result;
+    }
+
+    /// <summary>返回建筑可公开给查询层的施工阶段、工作量与活动建造者数量。</summary>
+    internal ConstructionObservation? ObserveConstruction(Node structure)
+    {
+        if (!structure.HasMethod("is_constructed") ||
+            _balance.FindConstruction(structure) is not { } definition)
+        {
+            return null;
+        }
+        var siteId = GodotStableIdentity.Unit(structure);
+        if (_construction.Find(siteId) is { } site)
+        {
+            return new ConstructionObservation(
+                site.State == ConstructionSiteState.Completed ?
+                    ConstructionObservationState.Completed :
+                    ConstructionObservationState.UnderConstruction,
+                site.CompletedWork,
+                site.RequiredWork,
+                _construction.GetActiveBuilderCount(siteId));
+        }
+        var completed = structure.Call("is_constructed").AsBool();
+        return new ConstructionObservation(
+            completed ? ConstructionObservationState.Completed :
+                ConstructionObservationState.UnderConstruction,
+            completed ? definition.RequiredWork : 0,
+            definition.RequiredWork,
+            0);
     }
 
     /// <summary>让放置开始时捕获的 Worker 施工；被驱逐者到位后才开始，期间新命令可取消等待。</summary>

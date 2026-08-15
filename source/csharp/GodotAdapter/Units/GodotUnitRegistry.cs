@@ -68,6 +68,27 @@ public sealed class GodotUnitRegistry : IUnitCommandUnitRepository
         return true;
     }
 
+    /// <summary>在指定 Match 的单位组中按稳定 ID 查找并注册仍有效的实体。</summary>
+    public bool TryResolveInMatch(UnitId unitId, Node matchRoot, out Node unit)
+    {
+        if (TryGetNode(unitId, out unit))
+        {
+            return true;
+        }
+        foreach (var candidate in matchRoot.GetTree().GetNodesInGroup("units").OfType<Node>())
+        {
+            if (!matchRoot.IsAncestorOf(candidate) || GodotStableIdentity.Unit(candidate) != unitId)
+            {
+                continue;
+            }
+            Register(candidate);
+            unit = candidate;
+            return true;
+        }
+        unit = null!;
+        return false;
+    }
+
     /// <summary>读取 Legacy attack_domains 数组并转换为不依赖 Godot 常量的领域集合。</summary>
     private static IReadOnlySet<CombatDomain> ReadAttackDomains(Node unit)
     {

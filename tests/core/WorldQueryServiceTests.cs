@@ -30,6 +30,8 @@ internal sealed class WorldQueryServiceTests
         RunTest(nameof(VisibleFieldPermissionsDoNotLeakHealth), VisibleFieldPermissionsDoNotLeakHealth);
         RunTest(nameof(EnemyAndUnknownDirectInspectionAreIndistinguishable), EnemyAndUnknownDirectInspectionAreIndistinguishable);
         RunTest(nameof(OwnEconomyIsExactAndVersioned), OwnEconomyIsExactAndVersioned);
+        RunTest(nameof(OwnConstructionInformationIsAccurateAndPermissionScoped),
+            OwnConstructionInformationIsAccurateAndPermissionScoped);
         RunTest(nameof(InvalidSessionDoesNotCaptureWorld), InvalidSessionDoesNotCaptureWorld);
         RunTest(nameof(InvalidAreaIsRejected), InvalidAreaIsRejected);
         RunTest(nameof(EnemyStructureBecomesLastKnownButMobileDoesNot), EnemyStructureBecomesLastKnownButMobileDoesNot);
@@ -139,6 +141,41 @@ internal sealed class WorldQueryServiceTests
         Check(result.Value?.AccountVersion == 5, "资源账户版本应准确返回");
         Check(result.Value?.Balances.Single(item => item.Kind == ResourceKind.A).Amount == 12,
             "资源 A 余额应准确返回");
+    }
+
+    /// <summary>验证己方施工详情准确返回，未授权敌方不会泄漏施工进度。</summary>
+    private void OwnConstructionInformationIsAccurateAndPermissionScoped()
+    {
+        var service = NewService(out var repository);
+        var ownStructure = new BattlefieldEntityId(BattlefieldEntityKind.Structure, Guid.NewGuid());
+        repository.Snapshot = repository.Snapshot with
+        {
+            Entities = repository.Snapshot.Entities.Append(new WorldEntitySnapshot(
+                ownStructure,
+                _observer,
+                new WorldPosition(2, 0, 2),
+                "vehicle_factory",
+                4,
+                16,
+                true,
+                new HashSet<PlayerId>(),
+                new ConstructionObservation(
+                    ConstructionObservationState.UnderConstruction, 50, 200, 1))).ToArray()
+        };
+
+        var own = service.InspectOwnEntity(
+            _normalSession, ownStructure, ObservationField.Construction);
+        var enemy = service.ScanCircle(
+            _normalSession,
+            new CircleObservationRequest(
+                new WorldPosition(4, 0, 4), 2, ObservationField.Construction));
+
+        Check(own.Value?.Construction ==
+            new ConstructionObservation(
+                ConstructionObservationState.UnderConstruction, 50, 200, 1),
+            "己方施工工作量与活动建造者数量应准确返回");
+        Check(enemy.Value!.Single(item => item.EntityId == _visibleEnemy).Construction is null,
+            "未授权敌军不得通过施工字段泄漏进度");
     }
 
     /// <summary>验证随机会话不能触发世界读取或选择其他观察者。</summary>

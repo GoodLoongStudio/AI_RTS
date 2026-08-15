@@ -1,6 +1,8 @@
 extends Node
 
 const MatchScene = preload("res://tests/manual/TestPlayerVsAI.tscn")
+const FIELD_TYPE := 1 << 1
+const FIELD_CONSTRUCTION := 1 << 4
 
 var _failures := 0
 
@@ -22,6 +24,30 @@ func _ready():
 		"公共己方经济查询应允许等于当前余额的请求")
 	_check(not rule_ai.call("_has_resources", {"resource_a": rule_ai.resource_a + 1}),
 		"公共己方经济查询应拒绝超过当前余额的请求")
+	_check(rule_ai.has_node("RuleAiCommandGateway"),
+		"Match 应为传统规则 AI 注入固定身份的稳定 ID 命令适配器")
+	var forces: Dictionary = rule_ai.get("_world_query_runtime").GetOwnForces(
+		rule_ai.get("_query_session_id"),
+		FIELD_TYPE | FIELD_CONSTRUCTION
+	)
+	var workers: Array = forces["entities"].filter(
+		func(entity): return entity.get("type_id", "") == "worker"
+	)
+	var completed_structures: Array = forces["entities"].filter(
+		func(entity):
+			var construction = entity.get("construction", null)
+			return construction != null and construction.get("state", "") == "Completed"
+	)
+	_check(not workers.is_empty(), "己方查询应返回规则 AI 的稳定 Worker ID")
+	_check(not completed_structures.is_empty(),
+		"己方查询应把初始完成建筑标记为 Completed")
+	if not workers.is_empty() and not completed_structures.is_empty():
+		var invalid_construct: Dictionary = rule_ai.get_node("RuleAiCommandGateway").Construct(
+			[workers[0]["id"]],
+			completed_structures[0]["id"]
+		)
+		_check(invalid_construct["status"] == "Rejected",
+			"稳定 ID 施工命令应拒绝已经完成的建筑")
 
 	print("Rule AI economy query smoke test completed: %d failure(s)" % _failures)
 	match_instance.queue_free()

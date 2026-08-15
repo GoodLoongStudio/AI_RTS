@@ -135,6 +135,9 @@ public interface IConstructionService : IConstructionTaskCoordinator
     /// <summary>查询现场当前快照。</summary>
     ConstructionSiteSnapshot? Find(UnitId siteId);
 
+    /// <summary>返回当前持有进行中 Construct 订单的 Worker 数量。</summary>
+    int GetActiveBuilderCount(UnitId siteId);
+
     /// <summary>提交批量 Worker 施工命令。</summary>
     CommandResult Construct(CommandContext context, ConstructStructureCommand command);
 

@@ -38,3 +38,30 @@
 5. 完成人机经济、生产、移动、战斗和胜负闭环回归。
 
 传统 AI 战术配置外置、阵营/指挥官/地图/玩法差异仍按《程序重构_传统AI外置配置约束》执行；本阶段不实现新的策略内容。
+
+## 5. RAI-001B：施工观察与稳定 ID 命令
+
+2026-08-15 接口评审接受以下契约：
+
+- `ObservationField.Construction` 返回 `State`、`CompletedWork`、`RequiredWork` 和 `ActiveBuilderCount`；
+- 非建筑以及未请求、未获授权的结果中，`Construction` 必须为空；
+- 己方施工信息准确；敌方施工进度仍受字段权限和战争迷雾约束；
+- 传统 AI 的命令 Adapter 由 Match 绑定固定玩家身份，只接受稳定 Worker/Site ID，不接受调用方传入 Player Node；
+- Adapter 只负责身份与 Godot 参数转换，实际施工仍调用玩家共用的 `IConstructionService`。
+
+已完成迁移：
+
+- `ConstructionWorksController` 不再遍历 SceneTree，也不再读取或写入 `worker.action`；
+- Controller 通过 `GetOwnForces(Type | Construction)` 选择 Worker 和未完工建筑；
+- 施工命令可以用玩家明确的高优先级意图替换采集任务；施工结束后，既有 EconomyController 仍会让 Worker 恢复采集；
+- 为保持原有简单策略，只要任一己方蓝图已有活动建造者，本轮就不再分配其他现场；
+- Worker 退出、订单暂停或终结后，权威 `ActiveBuilderCount` 会立即更新，下一轮允许重新分配。
+
+此前“AI 放置蓝图但不施工”的原因是桥接时把“已有 Worker 正在施工才跳过”扩大成了“任意 Worker 有任务都跳过”，而采集控制器又会持续占用 Worker。RAI-001B 删除了该 Legacy 判断，不再要求 Worker 先进入空闲状态。
+
+自动验证：
+
+- 施工核心测试覆盖活动建造者在开始、暂停、恢复和单位失效时的计数；
+- 查询核心测试覆盖己方施工详情和敌方字段权限裁剪；
+- Godot 规则 AI 冒烟覆盖绑定命令 Adapter、初始完成建筑观察和稳定 ID 施工拒绝路径；
+- 实际“AI 蓝图—派遣 Worker—完成建筑”仍需 `TestPlayerVsAI` 人工观察，避免自动测试注入大量资源改变 AI 请求优先级。

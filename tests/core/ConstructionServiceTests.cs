@@ -24,6 +24,8 @@ internal sealed class ConstructionServiceTests
         RunTest(nameof(SuspendedWorkerResumesSameOrder), SuspendedWorkerResumesSameOrder);
         RunTest(nameof(ExitedWorkerLeavesNoAssignmentAfterOthersComplete),
             ExitedWorkerLeavesNoAssignmentAfterOthersComplete);
+        RunTest(nameof(ActiveBuilderCountTracksOrderLifecycle),
+            ActiveBuilderCountTracksOrderLifecycle);
         RunTest(nameof(CancelRefundsButDestructionDoesNot), CancelRefundsButDestructionDoesNot);
         Console.WriteLine(
             $"Construction service tests completed: {_tests} test(s), {_failures} failure(s).");
@@ -105,6 +107,29 @@ internal sealed class ConstructionServiceTests
             "退出者与完工者的 Legacy 现场引用都应被删除");
         Check(!fixture.Service.RequestSuspend(exitedWorker).Accepted,
             "已经退出并清理的 Worker 不应再存在可暂停的残留分配");
+    }
+
+    /// <summary>验证活动建造者数量随开始、暂停、恢复和退出立即变化。</summary>
+    private void ActiveBuilderCountTracksOrderLifecycle()
+    {
+        var fixture = CreateFixture(requiredWork: 10);
+        var started = fixture.Service.Construct(
+            Context(fixture), new ConstructStructureCommand([fixture.Workers[0]], fixture.SiteId));
+        var orderId = started.UnitResults.Single().OrderId!.Value;
+
+        Check(fixture.Service.GetActiveBuilderCount(fixture.SiteId) == 1,
+            "接受施工后活动建造者数量应为一");
+        fixture.Service.RequestSuspend(fixture.Workers[0]);
+        fixture.Orders.Transition(orderId, UnitOrderState.Suspended);
+        Check(fixture.Service.GetActiveBuilderCount(fixture.SiteId) == 0,
+            "暂停且不自动恢复的 Worker 不应计入活动建造者");
+        fixture.Service.Construct(
+            Context(fixture), new ConstructStructureCommand([fixture.Workers[0]], fixture.SiteId));
+        Check(fixture.Service.GetActiveBuilderCount(fixture.SiteId) == 1,
+            "恢复同一施工订单后应重新计入活动建造者");
+        fixture.Orders.Transition(orderId, UnitOrderState.UnitLost);
+        Check(fixture.Service.GetActiveBuilderCount(fixture.SiteId) == 0,
+            "Worker 失效后不应留下活动建造者计数");
     }
 
     /// <summary>验证主动取消全额退款且幂等，而被摧毁现场不产生退款。</summary>

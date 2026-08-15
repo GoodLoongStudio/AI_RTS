@@ -3,7 +3,9 @@ using AI_RTS.Domain.Common;
 using AI_RTS.Domain.Economy;
 using AI_RTS.Domain.Queries;
 using AI_RTS.GodotAdapter.Common;
+using AI_RTS.GodotAdapter.Composition;
 using AI_RTS.GodotAdapter.Economy;
+using AI_RTS.GodotAdapter.AI;
 using Godot;
 
 namespace AI_RTS.GodotAdapter.Queries;
@@ -55,8 +57,10 @@ public partial class WorldQueryRuntime : Node
             }
         }
         var economy = GetParent().GetNode<EconomyRuntime>("EconomyRuntime");
+        var commands = GetParent().GetNode<CommandRuntime>("CommandRuntime");
         _queries = new WorldQueryService(
-            new GodotWorldObservationRepository(GetParent(), economy.AccountService),
+            new GodotWorldObservationRepository(
+                GetParent(), economy.AccountService, commands),
             grants);
         BindRuleAiSessions(playersRoot, humanPlayer);
     }
@@ -133,6 +137,7 @@ public partial class WorldQueryRuntime : Node
     /// <summary>由对局组合根把每个传统规则 AI 绑定到其自身的标准权限会话。</summary>
     private void BindRuleAiSessions(Node playersRoot, Node? humanPlayer)
     {
+        var commands = GetParent().GetNode<CommandRuntime>("CommandRuntime");
         foreach (var player in playersRoot.GetChildren().OfType<Node>())
         {
             if (player == humanPlayer || !player.IsInGroup("players") ||
@@ -146,6 +151,12 @@ public partial class WorldQueryRuntime : Node
                 GD.PushError($"无法为传统规则 AI {player.Name} 绑定标准查询会话。");
                 continue;
             }
+            var commandGateway = new RuleAiCommandGateway
+            {
+                Name = "RuleAiCommandGateway"
+            };
+            commandGateway.Configure(commands, player);
+            player.AddChild(commandGateway);
             player.Call("setup_world_query", this, session.Value.ToString("D"));
         }
     }
@@ -221,7 +232,18 @@ public partial class WorldQueryRuntime : Node
         ["current_health"] = observation.CurrentHealth is null ? default(Variant) :
             Variant.From(observation.CurrentHealth.Value),
         ["maximum_health"] = observation.MaximumHealth is null ? default(Variant) :
-            Variant.From(observation.MaximumHealth.Value)
+            Variant.From(observation.MaximumHealth.Value),
+        ["construction"] = observation.Construction is null ? default(Variant) :
+            Variant.From(ToGodot(observation.Construction))
+    };
+
+    /// <summary>把强类型施工观察转换为不暴露内部对象的稳定字段集合。</summary>
+    private static Godot.Collections.Dictionary ToGodot(ConstructionObservation observation) => new()
+    {
+        ["state"] = observation.State.ToString(),
+        ["completed_work"] = observation.CompletedWork,
+        ["required_work"] = observation.RequiredWork,
+        ["active_builder_count"] = observation.ActiveBuilderCount
     };
 
     private static Godot.Collections.Dictionary Envelope(

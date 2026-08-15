@@ -73,6 +73,7 @@ public sealed record QuerySessionGrant(
 /// <param name="MaximumHealth">最大生命值；无生命语义时为空。</param>
 /// <param name="RetainsLastKnownWhenHidden">失去视野后是否允许该实体留下观察记忆。</param>
 /// <param name="VisibleToPlayers">当前能够观察该实体的玩家集合。</param>
+/// <param name="Construction">建筑施工状态；非建筑为空。</param>
 public sealed record WorldEntitySnapshot(
     BattlefieldEntityId EntityId,
     PlayerId? OwnerPlayerId,
@@ -81,7 +82,8 @@ public sealed record WorldEntitySnapshot(
     float? CurrentHealth,
     float? MaximumHealth,
     bool RetainsLastKnownWhenHidden,
-    IReadOnlySet<PlayerId> VisibleToPlayers);
+    IReadOnlySet<PlayerId> VisibleToPlayers,
+    ConstructionObservation? Construction = null);
 
 /// <summary>查询服务读取的单帧资源账户数据。</summary>
 /// <param name="PlayerId">账户所有者。</param>

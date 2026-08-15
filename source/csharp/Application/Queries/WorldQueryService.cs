@@ -195,7 +195,8 @@ public sealed class WorldQueryService : IWorldQueryService
             returned.HasFlag(ObservationField.Relation) ?
                 _relations.Resolve(session.ObserverPlayerId, entity.OwnerPlayerId) : null,
             returned.HasFlag(ObservationField.Health) ? entity.CurrentHealth : null,
-            returned.HasFlag(ObservationField.Health) ? entity.MaximumHealth : null);
+            returned.HasFlag(ObservationField.Health) ? entity.MaximumHealth : null,
+            returned.HasFlag(ObservationField.Construction) ? entity.Construction : null);
     }
 
     private void UpdateLastKnown(

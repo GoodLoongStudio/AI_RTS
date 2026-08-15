@@ -77,6 +77,11 @@ public sealed class ConstructionService : IConstructionService
         _sites.GetValueOrDefault(siteId);
 
     /// <inheritdoc />
+    public int GetActiveBuilderCount(UnitId siteId) => _assignments.Values.Count(assignment =>
+        assignment.SiteId == siteId &&
+        _orders.Find(assignment.OrderId)?.State == UnitOrderState.InProgress);
+
+    /// <inheritdoc />
     public CommandResult Construct(CommandContext context, ConstructStructureCommand command)
     {
         if (command.WorkerIds.Count == 0)
