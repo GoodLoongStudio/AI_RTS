@@ -107,4 +107,4 @@
 - 既有生产队列冒烟继续覆盖入队、推进、完成、取消与退款链路；
 - `dotnet build` 与 76 项纯 C# 测试通过；相关 Godot 冒烟均为 0 failure，退出时仍存在已登记的 RID/ObjectDB 基线泄漏。
 
-待人工验收：在 `TestPlayerVsAI.tscn` 中观察 AI 完成采集后补足 Worker；摧毁一名 AI Worker 后应再次生产补充；采集—返程—交付循环不应回归。验收通过后再将 RAI-001D 标记完成。
+2026-08-15 人工验收：AI 完成采集后能补足 Worker，Worker 损失后会重新生产补充，采集—返程—交付循环无回归。RAI-001D 通过。
