@@ -48,6 +48,15 @@ func _ready():
 		)
 		_check(invalid_construct["status"] == "Rejected",
 			"稳定 ID 施工命令应拒绝已经完成的建筑")
+	var invalid_placement: Dictionary = rule_ai.get_node("RuleAiCommandGateway").PlaceStructure(
+		"unknown_structure_for_test",
+		Transform3D.IDENTITY
+	)
+	_check(
+		invalid_placement["status"] == "Rejected"
+		and invalid_placement["primary_issue"] == "UnknownDefinition",
+		"固定身份放置适配器应按稳定类型拒绝未知建筑"
+	)
 
 	print("Rule AI economy query smoke test completed: %d failure(s)" % _failures)
 	match_instance.queue_free()

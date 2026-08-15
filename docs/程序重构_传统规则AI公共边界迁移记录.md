@@ -65,3 +65,16 @@
 - 查询核心测试覆盖己方施工详情和敌方字段权限裁剪；
 - Godot 规则 AI 冒烟覆盖绑定命令 Adapter、初始完成建筑观察和稳定 ID 施工拒绝路径；
 - 实际“AI 蓝图—派遣 Worker—完成建筑”仍需 `TestPlayerVsAI` 人工观察，避免自动测试注入大量资源改变 AI 请求优先级。
+
+2026-08-15 人工验收：AI 会为蓝图正确派遣 Worker、完成建筑并继续生产攻击单位，RAI-001B 通过。
+
+## 6. RAI-001C：防御建筑规划与稳定类型放置
+
+- `DefenseController` 通过 `GetOwnForces(Position | Type)` 统计对地/防空炮塔，并读取己方 Worker 与 CommandCenter；
+- 移除单位组遍历、Node 类型判断、生成事件订阅、死亡 Node 回调和 `Player.has_resources` 断言；
+- 固定身份的 `RuleAiCommandGateway.PlaceStructure` 只接受稳定 `UnitTypeId` 与世界变换；
+- Adapter 从受信任 asset manifest 解析实际 PackedScene，调用玩家共用的 `StructurePlacementRuntime`，返回时删除 Node，只保留稳定施工现场 ID 与问题码；
+- DefenseController 仍维持一座对地炮塔和一座防空炮塔，围绕第一个 CommandCenter 随机尝试合法候选位置；
+- 已放下但未完工的蓝图计入当前建筑数量，不会重复下单；被摧毁后由定时查询重新发现缺口。
+
+该切片不实现敌情分析、威胁方向选址或更多炮塔战术。候选位置改为由规则 AI 生成，最终合法性、视野、占地、友军驱逐和原子扣款仍由公共放置服务复验。

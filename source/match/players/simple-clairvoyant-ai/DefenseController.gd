@@ -2,57 +2,48 @@ extends Node
 
 signal resources_required(resources, metadata)
 
-const Worker = preload("res://source/match/units/Worker.gd")
-const CommandCenter = preload("res://source/match/units/CommandCenter.gd")
-const AGTurret = preload("res://source/match/units/AntiGroundTurret.gd")
 const AGTurretScene = preload("res://source/match/units/AntiGroundTurret.tscn")
-const AATurret = preload("res://source/match/units/AntiAirTurret.gd")
 const AATurretScene = preload("res://source/match/units/AntiAirTurret.tscn")
 
-const REFRESH_INTERVAL_S = 1.0 / 60.0 * 30.0
+const FIELD_POSITION := 1 << 0
+const FIELD_TYPE := 1 << 1
+const REFRESH_INTERVAL_S := 1.0 / 60.0 * 30.0
+const COMMAND_CENTER_TYPE_ID := "command_center"
+const WORKER_TYPE_ID := "worker"
+const AG_TURRET_TYPE_ID := "anti_ground_turret"
+const AA_TURRET_TYPE_ID := "anti_air_turret"
 
-var _player = null
-var _number_of_pending_ag_turret_resource_requests = 0
-var _number_of_pending_aa_turret_resource_requests = 0
+var _world_query_runtime = null
+var _query_session_id := ""
+var _command_gateway = null
+var _number_of_pending_ag_turret_resource_requests := 0
+var _number_of_pending_aa_turret_resource_requests := 0
 
 @onready var _ai = get_parent()
 @onready var _balance = find_parent("Match").get_node("BalanceConfigRuntime")
 
 
-func setup(player):
+## 绑定己方观察与固定身份放置命令，并开始维持防御建筑数量。
+func setup(world_query_runtime, query_session_id: String, command_gateway):
+	_world_query_runtime = world_query_runtime
+	_query_session_id = query_session_id
+	_command_gateway = command_gateway
 	_setup_refresh_timer()
-	_player = player
-	_attach_current_turrets()
-	MatchSignals.unit_spawned.connect(_on_unit_spawned)
 	_enforce_number_of_ag_turrets()
 	_enforce_number_of_aa_turrets()
 
 
+## 使用已经获准的资源请求尝试放置对应防御建筑。
 func provision(resources, metadata):
-	var workers = get_tree().get_nodes_in_group("units").filter(
-		func(unit): return unit is Worker and unit.player == _player
-	)
-	var ccs = get_tree().get_nodes_in_group("units").filter(
-		func(unit): return unit is CommandCenter and unit.player == _player
-	)
+	var own_entities := _get_own_entities()
 	if metadata == "ag_turret":
-		assert(
-			resources == _balance.GetConstructionCost(AGTurretScene),
-			"unexpected amount of resources"
-		)
+		assert(resources == _balance.GetConstructionCost(AGTurretScene), "unexpected resources")
 		_number_of_pending_ag_turret_resource_requests -= 1
-		if workers.is_empty() or ccs.is_empty():
-			return
-		_construct_turret(AGTurretScene)
+		_try_construct_turret(AG_TURRET_TYPE_ID, own_entities)
 	elif metadata == "aa_turret":
-		assert(
-			resources == _balance.GetConstructionCost(AATurretScene),
-			"unexpected amount of resources"
-		)
+		assert(resources == _balance.GetConstructionCost(AATurretScene), "unexpected resources")
 		_number_of_pending_aa_turret_resource_requests -= 1
-		if workers.is_empty() or ccs.is_empty():
-			return
-		_construct_turret(AATurretScene)
+		_try_construct_turret(AA_TURRET_TYPE_ID, own_entities)
 	else:
 		assert(false, "unexpected flow")
 
@@ -64,107 +55,87 @@ func _setup_refresh_timer():
 	timer.start(REFRESH_INTERVAL_S)
 
 
-func _attach_current_turrets():
-	var turrets = get_tree().get_nodes_in_group("units").filter(
-		func(unit): return (unit is AGTurret or unit is AATurret) and unit.player == _player
-	)
-	for turret in turrets:
-		_attach_turret(turret)
-
-
-func _attach_turret(turret):
-	turret.tree_exited.connect(_on_unit_died.bind(turret))
-
-
+## 根据己方查询结果补齐期望的对地炮塔数量。
 func _enforce_number_of_ag_turrets():
-	var ag_turrets = get_tree().get_nodes_in_group("units").filter(
-		func(unit): return unit is AGTurret and unit.player == _player
+	_enforce_structure_count(
+		AG_TURRET_TYPE_ID,
+		_ai.expected_number_of_ag_turrets,
+		"ag_turret",
+		AGTurretScene,
+		"_number_of_pending_ag_turret_resource_requests"
 	)
-	if (
-		ag_turrets.size() + _number_of_pending_ag_turret_resource_requests
-		>= _ai.expected_number_of_ag_turrets
-	):
-		return
-	var number_of_extra_ag_turrets_required = (
-		_ai.expected_number_of_ag_turrets
-		- (ag_turrets.size() + _number_of_pending_ag_turret_resource_requests)
-	)
-	for _i in range(number_of_extra_ag_turrets_required):
-		resources_required.emit(
-			_balance.GetConstructionCost(AGTurretScene), "ag_turret"
-		)
-		_number_of_pending_ag_turret_resource_requests += 1
 
 
+## 根据己方查询结果补齐期望的防空炮塔数量。
 func _enforce_number_of_aa_turrets():
-	var aa_turrets = get_tree().get_nodes_in_group("units").filter(
-		func(unit): return unit is AATurret and unit.player == _player
+	_enforce_structure_count(
+		AA_TURRET_TYPE_ID,
+		_ai.expected_number_of_aa_turrets,
+		"aa_turret",
+		AATurretScene,
+		"_number_of_pending_aa_turret_resource_requests"
 	)
-	if (
-		aa_turrets.size() + _number_of_pending_aa_turret_resource_requests
-		>= _ai.expected_number_of_aa_turrets
-	):
+
+
+## 按稳定类型统计己方建筑，并为缺口提交资源请求。
+func _enforce_structure_count(
+	unit_type_id: String,
+	expected_count: int,
+	metadata: String,
+	prototype: PackedScene,
+	pending_property: String
+):
+	var own_entities := _get_own_entities()
+	var current_count := own_entities.filter(
+		func(entity): return entity.get("type_id", "") == unit_type_id
+	).size()
+	var pending_count: int = get(pending_property)
+	var missing_count := expected_count - current_count - pending_count
+	for _i in range(max(0, missing_count)):
+		resources_required.emit(_balance.GetConstructionCost(prototype), metadata)
+		pending_count += 1
+	set(pending_property, pending_count)
+
+
+## 围绕己方指挥中心尝试一组随机化候选位置，并提交首个合法放置。
+func _try_construct_turret(unit_type_id: String, own_entities: Array):
+	if not own_entities.any(func(entity): return entity.get("type_id", "") == WORKER_TYPE_ID):
 		return
-	var number_of_extra_aa_turrets_required = (
-		_ai.expected_number_of_aa_turrets
-		- (aa_turrets.size() + _number_of_pending_aa_turret_resource_requests)
+	var command_centers: Array = own_entities.filter(
+		func(entity): return entity.get("type_id", "") == COMMAND_CENTER_TYPE_ID
 	)
-	for _i in range(number_of_extra_aa_turrets_required):
-		resources_required.emit(
-			_balance.GetConstructionCost(AATurretScene), "aa_turret"
+	if command_centers.is_empty():
+		return
+	var center: Vector3 = command_centers[0]["position"]
+	var candidates: Array[Vector3] = []
+	for radius in range(3, 18, 2):
+		for sector in range(16):
+			var angle := TAU * float(sector) / 16.0
+			candidates.append(center + Vector3(cos(angle) * radius, 0.0, sin(angle) * radius))
+	candidates.shuffle()
+	var last_result: Dictionary = {}
+	for position in candidates:
+		last_result = _command_gateway.PlaceStructure(
+			unit_type_id,
+			Transform3D(Basis.IDENTITY, position)
 		)
-		_number_of_pending_aa_turret_resource_requests += 1
+		if last_result.get("accepted", false):
+			return
+		if last_result.get("primary_issue", "") == "InsufficientResources":
+			break
+	push_warning("规则 AI 放置防御建筑被拒绝：%s" % last_result)
 
 
-func _construct_turret(turret_scene):
-	var construction_cost = _balance.GetConstructionCost(turret_scene)
-	assert(
-		_player.has_resources(construction_cost),
-		"player should have enough resources at this point"
+## 查询准确己方实体；查询失败时返回显式空集合并保留诊断。
+func _get_own_entities() -> Array:
+	var result: Dictionary = _world_query_runtime.GetOwnForces(
+		_query_session_id,
+		FIELD_POSITION | FIELD_TYPE
 	)
-	var ccs = get_tree().get_nodes_in_group("units").filter(
-		func(unit): return unit is CommandCenter and unit.player == _player
-	)
-	var unit_to_spawn = turret_scene.instantiate()
-	# TODO: introduce actual algorithm which takes enemy positions into account
-	var placement_position = Utils.Match.Unit.Placement.find_valid_position_radially(
-		ccs[0].global_position,
-		unit_to_spawn.radius + Constants.Match.Units.EMPTY_SPACE_RADIUS_SURROUNDING_STRUCTURE_M,
-		find_parent("Match").navigation.get_navigation_map_rid_by_domain(
-			unit_to_spawn.movement_domain
-		),
-		get_tree()
-	)
-	var target_transform = Transform3D(Basis(), placement_position).looking_at(
-		placement_position + Vector3(0, 0, 1), Vector3.UP
-	)
-	unit_to_spawn.free()
-	var result = find_parent("Match").find_child("StructurePlacementRuntime").Place(
-		_player,
-		turret_scene,
-		target_transform,
-		construction_cost
-	)
-	if not result["accepted"]:
-		push_warning("规则 AI 放置防御建筑被拒绝：%s" % result["issues"])
-
-
-func _on_unit_died(unit):
-	if not is_inside_tree():
-		return
-	if unit is AGTurret:
-		_enforce_number_of_ag_turrets()
-	elif unit is AATurret:
-		_enforce_number_of_aa_turrets()
-	else:
-		assert(false, "unexpected flow")
-
-
-func _on_unit_spawned(unit):
-	if unit.player != _player:
-		return
-	if unit is AGTurret or unit is AATurret:
-		_attach_turret(unit)
+	if result.get("status", "") != "Accepted":
+		push_warning("rule AI force query was rejected: %s" % result.get("error", "Unknown"))
+		return []
+	return result["entities"]
 
 
 func _on_refresh_timer_timeout():

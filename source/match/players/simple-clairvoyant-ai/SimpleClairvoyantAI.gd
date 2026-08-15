@@ -55,7 +55,11 @@ func _ready():
 	_defense_controller.resources_required.connect(
 		_on_resource_request.bind(_defense_controller, ResourceRequestPriority.MEDIUM)
 	)
-	_defense_controller.setup(self)
+	_defense_controller.setup(
+		_world_query_runtime,
+		_query_session_id,
+		get_node("RuleAiCommandGateway")
+	)
 	_offense_controller.resources_required.connect(
 		_on_resource_request.bind(_offense_controller, ResourceRequestPriority.LOW)
 	)

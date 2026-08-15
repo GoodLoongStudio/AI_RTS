@@ -6,6 +6,8 @@ using AI_RTS.GodotAdapter.Common;
 using AI_RTS.GodotAdapter.Composition;
 using AI_RTS.GodotAdapter.Economy;
 using AI_RTS.GodotAdapter.AI;
+using AI_RTS.GodotAdapter.Configuration;
+using AI_RTS.GodotAdapter.Construction;
 using Godot;
 
 namespace AI_RTS.GodotAdapter.Queries;
@@ -58,11 +60,14 @@ public partial class WorldQueryRuntime : Node
         }
         var economy = GetParent().GetNode<EconomyRuntime>("EconomyRuntime");
         var commands = GetParent().GetNode<CommandRuntime>("CommandRuntime");
+        var configuration = GetParent().GetNode<BalanceConfigRuntime>("BalanceConfigRuntime");
+        var placement = GetParent().GetNode<StructurePlacementRuntime>("StructurePlacementRuntime");
         _queries = new WorldQueryService(
             new GodotWorldObservationRepository(
                 GetParent(), economy.AccountService, commands),
             grants);
-        BindRuleAiSessions(playersRoot, humanPlayer);
+        BindRuleAiSessions(
+            playersRoot, humanPlayer, commands, configuration, placement);
     }
 
     /// <summary>仅供当前自动/人工测试取得组合根已签发的标准会话；正式 Agent Gateway 不暴露此入口。</summary>
@@ -135,9 +140,13 @@ public partial class WorldQueryRuntime : Node
         new QuerySessionId(id) : new QuerySessionId(Guid.Empty);
 
     /// <summary>由对局组合根把每个传统规则 AI 绑定到其自身的标准权限会话。</summary>
-    private void BindRuleAiSessions(Node playersRoot, Node? humanPlayer)
+    private void BindRuleAiSessions(
+        Node playersRoot,
+        Node? humanPlayer,
+        CommandRuntime commands,
+        BalanceConfigRuntime configuration,
+        StructurePlacementRuntime placement)
     {
-        var commands = GetParent().GetNode<CommandRuntime>("CommandRuntime");
         foreach (var player in playersRoot.GetChildren().OfType<Node>())
         {
             if (player == humanPlayer || !player.IsInGroup("players") ||
@@ -155,7 +164,7 @@ public partial class WorldQueryRuntime : Node
             {
                 Name = "RuleAiCommandGateway"
             };
-            commandGateway.Configure(commands, player);
+            commandGateway.Configure(commands, configuration, placement, player);
             player.AddChild(commandGateway);
             player.Call("setup_world_query", this, session.Value.ToString("D"));
         }

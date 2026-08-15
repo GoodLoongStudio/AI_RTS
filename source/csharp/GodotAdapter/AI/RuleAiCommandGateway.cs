@@ -1,6 +1,10 @@
 using AI_RTS.Application.Commands;
 using AI_RTS.Domain.Common;
+using AI_RTS.Domain.Configuration;
+using AI_RTS.GodotAdapter.Common;
 using AI_RTS.GodotAdapter.Composition;
+using AI_RTS.GodotAdapter.Configuration;
+using AI_RTS.GodotAdapter.Construction;
 using Godot;
 
 namespace AI_RTS.GodotAdapter.AI;
@@ -10,15 +14,23 @@ public partial class RuleAiCommandGateway : Node
 {
     private CommandRuntime _commands = null!;
     private WeakReference<Node> _issuer = null!;
+    private BalanceConfigRuntime _configuration = null!;
+    private StructurePlacementRuntime _placement = null!;
 
     /// <summary>由 Match 组合根一次性绑定共享命令运行时和不可更换的发出者身份。</summary>
-    internal void Configure(CommandRuntime commands, Node issuer)
+    internal void Configure(
+        CommandRuntime commands,
+        BalanceConfigRuntime configuration,
+        StructurePlacementRuntime placement,
+        Node issuer)
     {
         if (_commands is not null)
         {
             throw new InvalidOperationException("RuleAiCommandGateway 只能配置一次。");
         }
         _commands = commands;
+        _configuration = configuration;
+        _placement = placement;
         _issuer = new WeakReference<Node>(issuer);
     }
 
@@ -40,6 +52,26 @@ public partial class RuleAiCommandGateway : Node
             new UnitId(siteId) : new UnitId(Guid.Empty);
         return ToGodot(_commands.ConstructUnitsByStableIds(
             parsedWorkers, parsedSite, issuer));
+    }
+
+    /// <summary>按稳定建筑类型和世界变换提交统一放置命令，不向 AI 返回 Godot Node。</summary>
+    public Godot.Collections.Dictionary PlaceStructure(string unitTypeId, Transform3D transform)
+    {
+        if (!_issuer.TryGetTarget(out var issuer) ||
+            !GodotObject.IsInstanceValid(issuer) || !issuer.IsInsideTree())
+        {
+            return RejectedPlacement("MatchNotRunning");
+        }
+        var prototype = _configuration.Assets.FindUnitScene(new UnitTypeId(unitTypeId));
+        if (prototype is null || _configuration.FindConstruction(prototype) is null)
+        {
+            return RejectedPlacement("UnknownDefinition");
+        }
+        return ToStablePlacement(_placement.Place(
+            issuer,
+            prototype,
+            transform,
+            new Godot.Collections.Dictionary()));
     }
 
     /// <summary>创建未进入权威命令服务时使用的稳定拒绝回执。</summary>
@@ -71,4 +103,31 @@ public partial class RuleAiCommandGateway : Node
             ["unit_results"] = unitResults
         };
     }
+
+    /// <summary>删除 Legacy 放置结果中的 Node，只保留稳定现场 ID 和公开问题。</summary>
+    private static Godot.Collections.Dictionary ToStablePlacement(
+        Godot.Collections.Dictionary result)
+    {
+        var accepted = result.GetValueOrDefault("accepted").AsBool();
+        var structure = accepted ? result.GetValueOrDefault("structure").AsGodotObject() as Node : null;
+        return new Godot.Collections.Dictionary
+        {
+            ["accepted"] = accepted,
+            ["status"] = result.GetValueOrDefault("status").AsString(),
+            ["primary_issue"] = result.GetValueOrDefault("primary_issue").AsString(),
+            ["issues"] = result.GetValueOrDefault("issues"),
+            ["construction_site_id"] = structure is null ? string.Empty :
+                GodotStableIdentity.Unit(structure).Value.ToString("D")
+        };
+    }
+
+    /// <summary>创建未到达放置服务时使用的稳定拒绝回执。</summary>
+    private static Godot.Collections.Dictionary RejectedPlacement(string issue) => new()
+    {
+        ["accepted"] = false,
+        ["status"] = "Rejected",
+        ["primary_issue"] = issue,
+        ["issues"] = new Godot.Collections.Array<string> { issue },
+        ["construction_site_id"] = string.Empty
+    };
 }
