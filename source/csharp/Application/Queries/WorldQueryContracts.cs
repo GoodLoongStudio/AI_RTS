@@ -71,6 +71,7 @@ public sealed record QuerySessionGrant(
 /// <param name="TypeId">稳定类型键。</param>
 /// <param name="CurrentHealth">当前生命值；无生命语义时为空。</param>
 /// <param name="MaximumHealth">最大生命值；无生命语义时为空。</param>
+/// <param name="RetainsLastKnownWhenHidden">失去视野后是否允许该实体留下观察记忆。</param>
 /// <param name="VisibleToPlayers">当前能够观察该实体的玩家集合。</param>
 public sealed record WorldEntitySnapshot(
     BattlefieldEntityId EntityId,
@@ -79,6 +80,7 @@ public sealed record WorldEntitySnapshot(
     string TypeId,
     float? CurrentHealth,
     float? MaximumHealth,
+    bool RetainsLastKnownWhenHidden,
     IReadOnlySet<PlayerId> VisibleToPlayers);
 
 /// <summary>查询服务读取的单帧资源账户数据。</summary>
@@ -88,14 +90,25 @@ public sealed record WorldEconomySnapshot(
     PlayerId PlayerId,
     ResourceAccountObservation Observation);
 
+/// <summary>描述某观察者当前真实可见的一块圆形区域。</summary>
+/// <param name="PlayerId">拥有该视野的玩家。</param>
+/// <param name="Center">视野圆心。</param>
+/// <param name="Radius">包含现有视野补偿后的正半径。</param>
+public sealed record VisibilityRegionSnapshot(
+    PlayerId PlayerId,
+    WorldPosition Center,
+    float Radius);
+
 /// <summary>把同一观察版本的实体与经济数据封装为不可变读取批次。</summary>
 /// <param name="Revision">单调递增的观察版本。</param>
 /// <param name="Entities">按稳定实体 ID 排序前的实体集合。</param>
 /// <param name="Economies">玩家资源账户集合。</param>
+/// <param name="VisibilityRegions">用于确认最后已知位置是否被重新侦察的当前视野区域。</param>
 public sealed record WorldObservationSnapshot(
     long Revision,
     IReadOnlyList<WorldEntitySnapshot> Entities,
-    IReadOnlyList<WorldEconomySnapshot> Economies);
+    IReadOnlyList<WorldEconomySnapshot> Economies,
+    IReadOnlyList<VisibilityRegionSnapshot> VisibilityRegions);
 
 /// <summary>由 Adapter 在一次读取中捕获权威世界快照。</summary>
 public interface IWorldObservationRepository

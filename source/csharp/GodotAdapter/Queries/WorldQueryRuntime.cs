@@ -180,6 +180,7 @@ public partial class WorldQueryRuntime : Node
         ["id"] = observation.EntityId.Value.ToString("D"),
         ["state"] = observation.State.ToString(),
         ["returned_fields"] = (int)observation.ReturnedFields,
+        ["observed_revision"] = observation.ObservedRevision,
         ["position"] = observation.Position is null ? default(Variant) :
             Variant.From(new Vector3(
                 observation.Position.Value.X,

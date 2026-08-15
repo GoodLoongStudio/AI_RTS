@@ -51,6 +51,7 @@ public enum ObserverRelation
 /// <param name="EntityId">统一稳定实体引用。</param>
 /// <param name="State">该结果的知识状态。</param>
 /// <param name="ReturnedFields">本次实际获准返回的可选字段。</param>
+/// <param name="ObservedRevision">这些字段最后被该会话实际观察时的版本。</param>
 /// <param name="Position">位置字段；未返回时为空。</param>
 /// <param name="TypeId">稳定实体类型键；未返回时为空。</param>
 /// <param name="Relation">阵营关系；未返回时为空。</param>
@@ -60,6 +61,7 @@ public sealed record EntityObservation(
     BattlefieldEntityId EntityId,
     ObservationState State,
     ObservationField ReturnedFields,
+    long ObservedRevision,
     WorldPosition? Position,
     string? TypeId,
     ObserverRelation? Relation,

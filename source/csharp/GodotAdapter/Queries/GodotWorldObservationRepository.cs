@@ -49,10 +49,17 @@ public sealed class GodotWorldObservationRepository : IWorldObservationRepositor
                         .ToArray(),
                     snapshot.Version)))
             .ToArray();
+        var visibilityRegions = revealers
+            .SelectMany(item => item.Value.Select(revealer => new VisibilityRegionSnapshot(
+                item.Key,
+                Position(revealer),
+                NullableFloat(revealer.Get("sight_range"))!.Value + SightCompensation)))
+            .ToArray();
         return new WorldObservationSnapshot(
             checked((long)Engine.GetPhysicsFrames()),
             entities,
-            economies);
+            economies,
+            visibilityRegions);
     }
 
     private WorldEntitySnapshot SnapshotUnit(
@@ -71,6 +78,7 @@ public sealed class GodotWorldObservationRepository : IWorldObservationRepositor
             UnitType(unit),
             NullableFloat(unit.Get("hp")),
             NullableFloat(unit.Get("hp_max")),
+            kind == BattlefieldEntityKind.Structure,
             VisiblePlayers(unit, owner.Value == Guid.Empty ? null : owner, revealers));
     }
 
@@ -86,6 +94,7 @@ public sealed class GodotWorldObservationRepository : IWorldObservationRepositor
             ResourceType(resource),
             null,
             null,
+            false,
             VisiblePlayers(resource, null, revealers));
 
     private static IReadOnlySet<PlayerId> VisiblePlayers(

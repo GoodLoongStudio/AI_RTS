@@ -56,22 +56,66 @@ func _ready():
 	_check(empty_scan.has("entities") and empty_scan["entities"].is_empty(),
 		"合法空范围必须保留 entities 键和空数组")
 
-	enemy.global_position = Vector3(29, 0, 29)
+	var enemy_position: Vector3 = enemy.global_position
+	var initially_visible = runtime.ScanCircle(
+		standard_session,
+		enemy_position,
+		1.0,
+		FIELD_ALL
+	)
+	_check(initially_visible["entities"].size() == 1,
+		"敌方建筑进入范围查询时应建立当前观察")
+	var enemy_id: String = initially_visible["entities"][0]["id"]
+	own_tank.global_position = Vector3(2, 0, 2)
+	await get_tree().physics_frame
 	var normal_hidden = runtime.ScanCircle(
 		standard_session,
-		enemy.global_position,
+		enemy_position,
 		1.0,
 		FIELD_ALL
 	)
 	var debug_hidden = runtime.ScanCircle(
 		debug_session,
-		enemy.global_position,
+		enemy_position,
 		1.0,
 		FIELD_ALL
 	)
-	_check(normal_hidden["entities"].is_empty(), "普通会话不得看到视野外敌方建筑")
+	_check(normal_hidden["entities"].size() == 1,
+		"普通会话应保留曾观察敌方建筑的 LastKnown")
+	_check(normal_hidden["entities"][0]["state"] == "LastKnown",
+		"普通会话不得把视野外敌方建筑标记为实时可见")
 	_check(debug_hidden["entities"].size() == 1,
 		"全知调试会话应看到同一视野外敌方建筑")
+	_check(debug_hidden["entities"][0]["state"] == "VisibleNow",
+		"全知调试会话应返回实时而非残影状态")
+	_check(
+		normal_hidden["entities"][0]["observed_revision"]
+		< normal_hidden["observation_revision"],
+		"LastKnown 应区分最后观察版本和当前查询版本"
+	)
+
+	enemy.queue_free()
+	await get_tree().process_frame
+	var destroyed_while_hidden = runtime.ScanCircle(
+		standard_session,
+		enemy_position,
+		1.0,
+		FIELD_TYPE
+	)
+	_check(destroyed_while_hidden["entities"].size() == 1,
+		"敌方建筑在视野外被摧毁时不应立即泄漏并清除残影")
+	own_tank.global_position = enemy_position
+	await get_tree().physics_frame
+	var reobserved_empty = runtime.ScanCircle(
+		standard_session,
+		enemy_position,
+		1.0,
+		FIELD_TYPE
+	)
+	_check(not reobserved_empty["entities"].any(
+		func(entity): return entity["id"] == enemy_id
+	),
+		"重新获得最后位置视野并确认建筑不存在后应清除残影")
 
 	var economy = runtime.GetOwnEconomy(standard_session)
 	_check(economy["status"] == "Accepted", "己方经济查询应成功")
@@ -88,4 +132,5 @@ func _check(condition: bool, message: String):
 	if condition:
 		return
 	_failures += 1
+	print("FAIL: %s" % message)
 	push_error(message)

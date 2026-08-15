@@ -32,6 +32,8 @@ internal sealed class WorldQueryServiceTests
         RunTest(nameof(OwnEconomyIsExactAndVersioned), OwnEconomyIsExactAndVersioned);
         RunTest(nameof(InvalidSessionDoesNotCaptureWorld), InvalidSessionDoesNotCaptureWorld);
         RunTest(nameof(InvalidAreaIsRejected), InvalidAreaIsRejected);
+        RunTest(nameof(EnemyStructureBecomesLastKnownButMobileDoesNot), EnemyStructureBecomesLastKnownButMobileDoesNot);
+        RunTest(nameof(ReobservedEmptyPositionClearsLastKnown), ReobservedEmptyPositionClearsLastKnown);
 
         Console.WriteLine($"World query tests completed: {_tests} test(s), {_failures} failure(s).");
         return _failures == 0 ? 0 : 1;
@@ -165,6 +167,87 @@ internal sealed class WorldQueryServiceTests
         Check(repository.CaptureCalls == 0, "非法范围不应读取世界");
     }
 
+    /// <summary>验证只有曾被范围观察的敌方建筑在失去视野后成为 LastKnown。</summary>
+    private void EnemyStructureBecomesLastKnownButMobileDoesNot()
+    {
+        var service = NewService(out var repository);
+        RevealHiddenStructure(repository);
+        var request = new CircleObservationRequest(
+            new WorldPosition(6, 0, 6),
+            5,
+            ObservationField.All);
+        service.ScanCircle(_normalSession, request);
+        repository.Snapshot = repository.Snapshot with
+        {
+            Revision = 43,
+            Entities = repository.Snapshot.Entities.Select(entity => entity with
+            {
+                VisibleToPlayers = new HashSet<PlayerId>()
+            }).ToArray(),
+            VisibilityRegions = []
+        };
+
+        var result = service.ScanCircle(_normalSession, request);
+
+        var memory = result.Value!.Single(item => item.EntityId == _hiddenEnemy);
+        Check(memory.State == ObservationState.LastKnown, "失去视野的敌方建筑应成为 LastKnown");
+        Check(memory.ObservedRevision == 42 && result.ObservationRevision == 43,
+            "残影应区分最后观察版本和本次查询版本");
+        Check(result.Value!.All(item => item.EntityId != _visibleEnemy),
+            "可移动敌军失去视野后不应保留残影");
+    }
+
+    /// <summary>验证重新获得最后位置视野且建筑不存在时自动清除残影。</summary>
+    private void ReobservedEmptyPositionClearsLastKnown()
+    {
+        var service = NewService(out var repository);
+        RevealHiddenStructure(repository);
+        var request = new CircleObservationRequest(
+            new WorldPosition(8, 0, 8),
+            2,
+            ObservationField.All);
+        service.ScanCircle(_normalSession, request);
+        repository.Snapshot = repository.Snapshot with
+        {
+            Revision = 43,
+            Entities = repository.Snapshot.Entities
+                .Where(entity => entity.EntityId != _hiddenEnemy)
+                .ToArray(),
+            VisibilityRegions =
+            [
+                new VisibilityRegionSnapshot(
+                    _observer,
+                    new WorldPosition(8, 0, 8),
+                    3)
+            ]
+        };
+
+        var result = service.ScanCircle(_normalSession, request);
+        repository.Snapshot = repository.Snapshot with
+        {
+            Revision = 44,
+            VisibilityRegions = []
+        };
+        var afterVisionLostAgain = service.ScanCircle(_normalSession, request);
+
+        Check(result.Value is not null && result.Value.Count == 0,
+            "重新侦察确认建筑不存在时应返回显式空集合");
+        Check(afterVisionLostAgain.Value is not null && afterVisionLostAgain.Value.Count == 0,
+            "已清除残影不能在再次失去视野后复活");
+    }
+
+    private void RevealHiddenStructure(FakeWorldRepository repository)
+    {
+        repository.Snapshot = repository.Snapshot with
+        {
+            Entities = repository.Snapshot.Entities.Select(entity =>
+                entity.EntityId == _hiddenEnemy ? entity with
+                {
+                    VisibleToPlayers = new HashSet<PlayerId> { _observer }
+                } : entity).ToArray()
+        };
+    }
+
     private WorldQueryService NewService(out FakeWorldRepository repository)
     {
         repository = new FakeWorldRepository(new WorldObservationSnapshot(
@@ -178,7 +261,8 @@ internal sealed class WorldQueryServiceTests
                 _observer,
                 new ResourceAccountObservation(
                     [new ResourceAmount(ResourceKind.A, 12), new ResourceAmount(ResourceKind.B, 3)],
-                    5))]));
+                    5))],
+            []));
         return new WorldQueryService(
             repository,
             [
@@ -207,7 +291,15 @@ internal sealed class WorldQueryServiceTests
         float hp,
         float hpMax,
         IReadOnlySet<PlayerId> visibleTo) =>
-        new(id, owner, position, type, hp, hpMax, visibleTo);
+        new(
+            id,
+            owner,
+            position,
+            type,
+            hp,
+            hpMax,
+            id.Kind == BattlefieldEntityKind.Structure,
+            visibleTo);
 
     private void RunTest(string name, Action test)
     {
@@ -237,10 +329,12 @@ internal sealed class WorldQueryServiceTests
     {
         public int CaptureCalls { get; private set; }
 
+        public WorldObservationSnapshot Snapshot { get; set; } = snapshot;
+
         public WorldObservationSnapshot Capture()
         {
             CaptureCalls++;
-            return snapshot;
+            return Snapshot;
         }
     }
 }

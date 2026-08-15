@@ -24,6 +24,8 @@ public sealed class WorldQueryService : IWorldQueryService
     private readonly IWorldObservationRepository _repository;
     private readonly IPlayerRelationResolver _relations;
     private readonly IReadOnlyDictionary<QuerySessionId, QuerySessionGrant> _sessions;
+    private readonly Dictionary<QuerySessionId, Dictionary<BattlefieldEntityId, RememberedEntity>>
+        _lastKnownBySession = new();
 
     /// <summary>使用组合根预先签发的不可变授权建立查询服务。</summary>
     public WorldQueryService(
@@ -36,6 +38,10 @@ public sealed class WorldQueryService : IWorldQueryService
         var grantArray = grants?.ToArray() ?? throw new ArgumentNullException(nameof(grants));
         ValidateGrants(grantArray);
         _sessions = grantArray.ToDictionary(item => item.SessionId);
+        foreach (var grant in grantArray.Where(item => !item.Omniscient))
+        {
+            _lastKnownBySession[grant.SessionId] = new Dictionary<BattlefieldEntityId, RememberedEntity>();
+        }
     }
 
     /// <inheritdoc />
@@ -63,7 +69,8 @@ public sealed class WorldQueryService : IWorldQueryService
                 session,
                 ObservationState.Owned,
                 requestedFields,
-                session.OwnFields))
+                session.OwnFields,
+                snapshot.Revision))
             .ToArray();
         return Accepted<IReadOnlyList<EntityObservation>>(observations, snapshot.Revision);
     }
@@ -84,12 +91,17 @@ public sealed class WorldQueryService : IWorldQueryService
 
         var snapshot = _repository.Capture();
         var radiusSquared = request.Radius * request.Radius;
-        var observations = snapshot.Entities
+        var currentEntities = snapshot.Entities
             .Where(entity => PlanarDistanceSquared(entity.Position, request.Center) <= radiusSquared)
             .Where(entity => IsObservable(entity, session))
             .OrderBy(entity => entity.EntityId.Kind)
             .ThenBy(entity => entity.EntityId.Value)
-            .Select(entity =>
+            .ToArray();
+        if (!session.Omniscient)
+        {
+            UpdateLastKnown(sessionId, session, snapshot, request, currentEntities);
+        }
+        var observations = currentEntities.Select(entity =>
             {
                 var owned = entity.OwnerPlayerId == session.ObserverPlayerId;
                 return Observe(
@@ -97,8 +109,16 @@ public sealed class WorldQueryService : IWorldQueryService
                     session,
                     owned ? ObservationState.Owned : ObservationState.VisibleNow,
                     request.RequestedFields,
-                    owned ? session.OwnFields : session.VisibleFields);
+                    owned ? session.OwnFields : session.VisibleFields,
+                    snapshot.Revision);
             })
+            .Concat(LastKnownInCircle(
+                sessionId,
+                session,
+                request,
+                currentEntities.Select(item => item.EntityId).ToHashSet()))
+            .OrderBy(entity => entity.EntityId.Kind)
+            .ThenBy(entity => entity.EntityId.Value)
             .ToArray();
         return Accepted<IReadOnlyList<EntityObservation>>(observations, snapshot.Revision);
     }
@@ -133,7 +153,8 @@ public sealed class WorldQueryService : IWorldQueryService
                 session,
                 ObservationState.Owned,
                 requestedFields,
-                session.OwnFields),
+                session.OwnFields,
+                snapshot.Revision),
             snapshot.Revision);
     }
 
@@ -160,13 +181,15 @@ public sealed class WorldQueryService : IWorldQueryService
         QuerySessionGrant session,
         ObservationState state,
         ObservationField requestedFields,
-        ObservationField allowedFields)
+        ObservationField allowedFields,
+        long observedRevision)
     {
         var returned = requestedFields & allowedFields & ObservationField.All;
         return new EntityObservation(
             entity.EntityId,
             state,
             returned,
+            observedRevision,
             returned.HasFlag(ObservationField.Position) ? entity.Position : null,
             returned.HasFlag(ObservationField.Type) ? entity.TypeId : null,
             returned.HasFlag(ObservationField.Relation) ?
@@ -174,6 +197,75 @@ public sealed class WorldQueryService : IWorldQueryService
             returned.HasFlag(ObservationField.Health) ? entity.CurrentHealth : null,
             returned.HasFlag(ObservationField.Health) ? entity.MaximumHealth : null);
     }
+
+    private void UpdateLastKnown(
+        QuerySessionId sessionId,
+        QuerySessionGrant session,
+        WorldObservationSnapshot snapshot,
+        CircleObservationRequest request,
+        IReadOnlyList<WorldEntitySnapshot> currentEntities)
+    {
+        var memories = _lastKnownBySession[sessionId];
+        var currentIds = currentEntities.Select(item => item.EntityId).ToHashSet();
+        var staleIds = memories.Values
+            .Where(memory => IsInsideCircle(memory.Entity.Position, request))
+            .Where(memory => IsPositionVisible(
+                snapshot,
+                session.ObserverPlayerId,
+                memory.Entity.Position))
+            .Where(memory => !currentIds.Contains(memory.Entity.EntityId))
+            .Select(memory => memory.Entity.EntityId)
+            .ToArray();
+        foreach (var staleId in staleIds)
+        {
+            memories.Remove(staleId);
+        }
+
+        foreach (var entity in currentEntities.Where(entity =>
+            entity.RetainsLastKnownWhenHidden &&
+            entity.OwnerPlayerId != session.ObserverPlayerId &&
+            entity.VisibleToPlayers.Contains(session.ObserverPlayerId) &&
+            _relations.Resolve(session.ObserverPlayerId, entity.OwnerPlayerId) ==
+                ObserverRelation.Enemy))
+        {
+            memories[entity.EntityId] = new RememberedEntity(entity, snapshot.Revision);
+        }
+    }
+
+    private IEnumerable<EntityObservation> LastKnownInCircle(
+        QuerySessionId sessionId,
+        QuerySessionGrant session,
+        CircleObservationRequest request,
+        IReadOnlySet<BattlefieldEntityId> currentIds)
+    {
+        if (!_lastKnownBySession.TryGetValue(sessionId, out var memories))
+        {
+            return [];
+        }
+        return memories.Values
+            .Where(memory => !currentIds.Contains(memory.Entity.EntityId) &&
+                IsInsideCircle(memory.Entity.Position, request))
+            .Select(memory => Observe(
+                memory.Entity,
+                session,
+                ObservationState.LastKnown,
+                request.RequestedFields,
+                session.VisibleFields,
+                memory.ObservedRevision))
+            .ToArray();
+    }
+
+    private static bool IsPositionVisible(
+        WorldObservationSnapshot snapshot,
+        PlayerId playerId,
+        WorldPosition position) => snapshot.VisibilityRegions.Any(region =>
+            region.PlayerId == playerId &&
+            PlanarDistanceSquared(region.Center, position) <= region.Radius * region.Radius);
+
+    private static bool IsInsideCircle(
+        WorldPosition position,
+        CircleObservationRequest request) =>
+        PlanarDistanceSquared(position, request.Center) <= request.Radius * request.Radius;
 
     private static bool IsObservable(
         WorldEntitySnapshot entity,
@@ -225,4 +317,8 @@ public sealed class WorldQueryService : IWorldQueryService
             throw new ArgumentException("只有 OmniscientDebug 来源可以获得全知权限。", nameof(grants));
         }
     }
+
+    private sealed record RememberedEntity(
+        WorldEntitySnapshot Entity,
+        long ObservedRevision);
 }
