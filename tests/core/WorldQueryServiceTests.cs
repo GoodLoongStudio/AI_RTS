@@ -1,6 +1,8 @@
 using AI_RTS.Application.Queries;
 using AI_RTS.Domain.Common;
+using AI_RTS.Domain.Configuration;
 using AI_RTS.Domain.Economy;
+using AI_RTS.Domain.Production;
 using AI_RTS.Domain.Queries;
 
 namespace AI_RTS.Tests.Core;
@@ -32,6 +34,8 @@ internal sealed class WorldQueryServiceTests
         RunTest(nameof(OwnEconomyIsExactAndVersioned), OwnEconomyIsExactAndVersioned);
         RunTest(nameof(OwnConstructionInformationIsAccurateAndPermissionScoped),
             OwnConstructionInformationIsAccurateAndPermissionScoped);
+        RunTest(nameof(ProductionInformationIsOwnOnlyExceptForDebug),
+            ProductionInformationIsOwnOnlyExceptForDebug);
         RunTest(nameof(InvalidSessionDoesNotCaptureWorld), InvalidSessionDoesNotCaptureWorld);
         RunTest(nameof(InvalidAreaIsRejected), InvalidAreaIsRejected);
         RunTest(nameof(EnemyStructureBecomesLastKnownButMobileDoesNot), EnemyStructureBecomesLastKnownButMobileDoesNot);
@@ -176,6 +180,68 @@ internal sealed class WorldQueryServiceTests
             "己方施工工作量与活动建造者数量应准确返回");
         Check(enemy.Value!.Single(item => item.EntityId == _visibleEnemy).Construction is null,
             "未授权敌军不得通过施工字段泄漏进度");
+    }
+
+    /// <summary>验证生产空队列显式返回，普通会话即使获授字段也不能读取敌方队列。</summary>
+    private void ProductionInformationIsOwnOnlyExceptForDebug()
+    {
+        var service = NewService(out var repository);
+        var ownProducer = new BattlefieldEntityId(BattlefieldEntityKind.Structure, Guid.NewGuid());
+        var enemyProducer = new BattlefieldEntityId(BattlefieldEntityKind.Structure, Guid.NewGuid());
+        var emptyProduction = new ProductionObservation(5, []);
+        var enemyProduction = new ProductionObservation(5,
+        [
+            new ProductionItemObservation(
+                new ProductionItemId(Guid.NewGuid()),
+                new UnitTypeId("tank"),
+                ProductionItemState.Producing,
+                10,
+                100)
+        ]);
+        repository.Snapshot = repository.Snapshot with
+        {
+            Entities = repository.Snapshot.Entities.Concat(
+            [
+                new WorldEntitySnapshot(
+                    ownProducer, _observer, new WorldPosition(2, 0, 2),
+                    "command_center", 20, 20, true, new HashSet<PlayerId>(),
+                    Production: emptyProduction),
+                new WorldEntitySnapshot(
+                    enemyProducer, _enemy, new WorldPosition(3, 0, 3),
+                    "vehicle_factory", 16, 16, true,
+                    new HashSet<PlayerId> { _observer }, Production: enemyProduction)
+            ]).ToArray()
+        };
+        var own = service.InspectOwnEntity(
+            _normalSession, ownProducer, ObservationField.Production);
+        var productionGrantedSession = new QuerySessionId(Guid.NewGuid());
+        var ordinaryService = new WorldQueryService(
+            repository,
+            [
+                new QuerySessionGrant(
+                    productionGrantedSession,
+                    _observer,
+                    QuerySourceKind.Agent,
+                    ObservationField.All,
+                    ObservationField.Production,
+                    false)
+            ]);
+        var normal = ordinaryService.ScanCircle(
+            productionGrantedSession,
+            new CircleObservationRequest(
+                new WorldPosition(3, 0, 3), 1, ObservationField.Production));
+        var debug = service.ScanCircle(
+            _debugSession,
+            new CircleObservationRequest(
+                new WorldPosition(3, 0, 3), 1, ObservationField.Production));
+
+        Check(own.Value?.Production is { QueueLimit: 5 } &&
+            own.Value.Production.Items.Count == 0,
+            "己方空生产队列应显式返回容量和空 Items");
+        Check(normal.Value!.Single(item => item.EntityId == enemyProducer).Production is null,
+            "普通会话不得读取当前可见敌方生产队列");
+        Check(debug.Value!.Single(item => item.EntityId == enemyProducer).Production == enemyProduction,
+            "全知调试会话应能读取敌方生产队列用于诊断");
     }
 
     /// <summary>验证随机会话不能触发世界读取或选择其他观察者。</summary>

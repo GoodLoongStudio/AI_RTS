@@ -1,5 +1,7 @@
 using AI_RTS.Domain.Common;
+using AI_RTS.Domain.Configuration;
 using AI_RTS.Domain.Economy;
+using AI_RTS.Domain.Production;
 
 namespace AI_RTS.Domain.Queries;
 
@@ -30,8 +32,10 @@ public enum ObservationField
     Health = 1 << 3,
     /// <summary>建筑施工状态、整数进度与当前活动建造者数量。</summary>
     Construction = 1 << 4,
+    /// <summary>生产建筑的容量与当前非终态队列。</summary>
+    Production = 1 << 5,
     /// <summary>首版支持的全部可选字段。</summary>
-    All = Position | Type | Relation | Health | Construction
+    All = Position | Type | Relation | Health | Construction | Production
 }
 
 /// <summary>描述观察接口公开的建筑施工阶段。</summary>
@@ -54,6 +58,26 @@ public sealed record ConstructionObservation(
     int CompletedWork,
     int RequiredWork,
     int ActiveBuilderCount);
+
+/// <summary>返回一个生产项目的稳定产品类型、状态和整数工作量。</summary>
+/// <param name="ItemId">生产项目的稳定身份。</param>
+/// <param name="ProductTypeId">最终部署单位的稳定类型。</param>
+/// <param name="State">项目当前生命周期状态。</param>
+/// <param name="CompletedWork">已经完成的非负整数工作量。</param>
+/// <param name="RequiredWork">完成生产所需的正整数工作量。</param>
+public sealed record ProductionItemObservation(
+    ProductionItemId ItemId,
+    UnitTypeId ProductTypeId,
+    ProductionItemState State,
+    int CompletedWork,
+    int RequiredWork);
+
+/// <summary>返回生产建筑的队列容量和按当前顺序排列的非终态项目。</summary>
+/// <param name="QueueLimit">生产建筑允许的最大非终态项目数量。</param>
+/// <param name="Items">按实际队列顺序排列；空队列返回显式空集合。</param>
+public sealed record ProductionObservation(
+    int QueueLimit,
+    IReadOnlyList<ProductionItemObservation> Items);
 
 /// <summary>描述实体与查询观察者之间的关系。</summary>
 public enum ObserverRelation
@@ -81,6 +105,7 @@ public enum ObserverRelation
 /// <param name="CurrentHealth">当前生命值；未返回时为空。</param>
 /// <param name="MaximumHealth">最大生命值；未返回时为空。</param>
 /// <param name="Construction">施工字段；非建筑、未请求或未获授权时为空。</param>
+/// <param name="Production">生产字段；非生产建筑、未请求或未获授权时为空。</param>
 public sealed record EntityObservation(
     BattlefieldEntityId EntityId,
     ObservationState State,
@@ -91,7 +116,8 @@ public sealed record EntityObservation(
     ObserverRelation? Relation,
     float? CurrentHealth,
     float? MaximumHealth,
-    ConstructionObservation? Construction = null);
+    ConstructionObservation? Construction = null,
+    ProductionObservation? Production = null);
 
 /// <summary>描述一次圆形范围观察请求。</summary>
 /// <param name="Center">范围中心。</param>

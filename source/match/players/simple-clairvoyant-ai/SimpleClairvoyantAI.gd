@@ -51,7 +51,12 @@ func _ready():
 	_economy_controller.resources_required.connect(
 		_on_resource_request.bind(_economy_controller, ResourceRequestPriority.HIGH)
 	)
-	_economy_controller.setup(self)
+	_economy_controller.setup(
+		self,
+		_world_query_runtime,
+		_query_session_id,
+		get_node("RuleAiCommandGateway")
+	)
 	_defense_controller.resources_required.connect(
 		_on_resource_request.bind(_defense_controller, ResourceRequestPriority.MEDIUM)
 	)

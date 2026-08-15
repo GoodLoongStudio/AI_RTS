@@ -3,6 +3,7 @@ extends Node
 const MatchScene = preload("res://tests/manual/TestPlayerVsAI.tscn")
 const FIELD_TYPE := 1 << 1
 const FIELD_CONSTRUCTION := 1 << 4
+const FIELD_PRODUCTION := 1 << 5
 
 var _failures := 0
 
@@ -13,6 +14,8 @@ func _ready():
 	add_child(match_instance)
 	await get_tree().process_frame
 	await get_tree().physics_frame
+	await get_tree().process_frame
+	await get_tree().process_frame
 
 	var rule_ai = match_instance.get_node("Players/SimpleClairvoyantAI")
 	_check(rule_ai.get("_world_query_runtime") != null,
@@ -28,7 +31,7 @@ func _ready():
 		"Match 应为传统规则 AI 注入固定身份的稳定 ID 命令适配器")
 	var forces: Dictionary = rule_ai.get("_world_query_runtime").GetOwnForces(
 		rule_ai.get("_query_session_id"),
-		FIELD_TYPE | FIELD_CONSTRUCTION
+		FIELD_TYPE | FIELD_CONSTRUCTION | FIELD_PRODUCTION
 	)
 	var workers: Array = forces["entities"].filter(
 		func(entity): return entity.get("type_id", "") == "worker"
@@ -38,9 +41,27 @@ func _ready():
 			var construction = entity.get("construction", null)
 			return construction != null and construction.get("state", "") == "Completed"
 	)
+	var producers: Array = forces["entities"].filter(
+		func(entity): return entity.get("production", null) != null
+	)
 	_check(not workers.is_empty(), "己方查询应返回规则 AI 的稳定 Worker ID")
 	_check(not completed_structures.is_empty(),
 		"己方查询应把初始完成建筑标记为 Completed")
+	_check(not producers.is_empty(), "己方查询应返回生产建筑的生产观察")
+	if not producers.is_empty():
+		var production: Dictionary = producers[0]["production"]
+		_check(production.has("queue_limit") and production.has("items"),
+			"生产观察应显式返回队列容量与 Items，空队列也不能省略")
+		var invalid_production: Dictionary = (
+			rule_ai
+			. get_node("RuleAiCommandGateway")
+			. EnqueueProduction(producers[0]["id"], "unknown_product_for_test")
+		)
+		_check(
+			not invalid_production.get("accepted", false)
+			and invalid_production.get("status", "") == "DefinitionNotFound",
+			"固定身份生产适配器应按稳定类型拒绝未知产品"
+		)
 	if not workers.is_empty() and not completed_structures.is_empty():
 		var invalid_construct: Dictionary = rule_ai.get_node("RuleAiCommandGateway").Construct(
 			[workers[0]["id"]],

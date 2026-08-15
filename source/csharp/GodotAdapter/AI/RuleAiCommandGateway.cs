@@ -1,10 +1,12 @@
 using AI_RTS.Application.Commands;
+using AI_RTS.Application.Production;
 using AI_RTS.Domain.Common;
 using AI_RTS.Domain.Configuration;
 using AI_RTS.GodotAdapter.Common;
 using AI_RTS.GodotAdapter.Composition;
 using AI_RTS.GodotAdapter.Configuration;
 using AI_RTS.GodotAdapter.Construction;
+using AI_RTS.GodotAdapter.Production;
 using Godot;
 
 namespace AI_RTS.GodotAdapter.AI;
@@ -16,12 +18,14 @@ public partial class RuleAiCommandGateway : Node
     private WeakReference<Node> _issuer = null!;
     private BalanceConfigRuntime _configuration = null!;
     private StructurePlacementRuntime _placement = null!;
+    private ProductionRuntime _production = null!;
 
     /// <summary>由 Match 组合根一次性绑定共享命令运行时和不可更换的发出者身份。</summary>
     internal void Configure(
         CommandRuntime commands,
         BalanceConfigRuntime configuration,
         StructurePlacementRuntime placement,
+        ProductionRuntime production,
         Node issuer)
     {
         if (_commands is not null)
@@ -31,6 +35,7 @@ public partial class RuleAiCommandGateway : Node
         _commands = commands;
         _configuration = configuration;
         _placement = placement;
+        _production = production;
         _issuer = new WeakReference<Node>(issuer);
     }
 
@@ -72,6 +77,27 @@ public partial class RuleAiCommandGateway : Node
             prototype,
             transform,
             new Godot.Collections.Dictionary()));
+    }
+
+    /// <summary>按稳定生产建筑 ID 和产品类型提交统一生产入队命令。</summary>
+    public Godot.Collections.Dictionary EnqueueProduction(
+        string producerEntityId,
+        string productTypeId)
+    {
+        if (!_issuer.TryGetTarget(out var issuer) ||
+            !GodotObject.IsInstanceValid(issuer) || !issuer.IsInsideTree())
+        {
+            return ToGodot(new ProductionCommandResult(
+                new CommandId(Guid.NewGuid()),
+                ProductionCommandStatus.ExecutionUnavailable,
+                null));
+        }
+        var producerId = Guid.TryParse(producerEntityId, out var parsedProducerId) ?
+            new UnitId(parsedProducerId) : new UnitId(Guid.Empty);
+        return ToGodot(_production.EnqueueByStableIds(
+            producerId,
+            new UnitTypeId(productTypeId),
+            issuer));
     }
 
     /// <summary>创建未进入权威命令服务时使用的稳定拒绝回执。</summary>
@@ -130,4 +156,22 @@ public partial class RuleAiCommandGateway : Node
         ["issues"] = new Godot.Collections.Array<string> { issue },
         ["construction_site_id"] = string.Empty
     };
+
+    /// <summary>把生产命令回执转换为不暴露内部对象的稳定字段集合。</summary>
+    private static Godot.Collections.Dictionary ToGodot(ProductionCommandResult result)
+    {
+        var dictionary = new Godot.Collections.Dictionary
+        {
+            ["accepted"] = result.Status == ProductionCommandStatus.Accepted,
+            ["status"] = result.Status.ToString(),
+            ["command_id"] = result.CommandId.Value.ToString("D")
+        };
+        if (result.Item is not null)
+        {
+            dictionary["item_id"] = result.Item.ItemId.Value.ToString("D");
+            dictionary["producer_id"] = result.Item.ProducerId.Value.ToString("D");
+            dictionary["state"] = result.Item.State.ToString();
+        }
+        return dictionary;
+    }
 }

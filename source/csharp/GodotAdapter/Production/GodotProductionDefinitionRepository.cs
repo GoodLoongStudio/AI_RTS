@@ -30,9 +30,12 @@ public sealed class GodotProductionDefinitionRepository : IProductionDefinitionR
     public ProductionDefinitionId? Resolve(PackedScene scene)
     {
         var unitTypeId = _assets.FindUnitType(scene);
-        return unitTypeId is not null && _products.TryGetValue(unitTypeId.Value, out var definitionId) ?
-            definitionId : null;
+        return unitTypeId is null ? null : Resolve(unitTypeId.Value);
     }
+
+    /// <summary>按稳定产品类型解析唯一生产定义。</summary>
+    public ProductionDefinitionId? Resolve(UnitTypeId productTypeId) =>
+        _products.TryGetValue(productTypeId, out var definitionId) ? definitionId : null;
 
     /// <inheritdoc />
     public ProductionDefinition? Find(ProductionDefinitionId definitionId) =>

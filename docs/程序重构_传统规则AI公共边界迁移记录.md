@@ -11,8 +11,8 @@
 | 子系统 | 当前直接依赖 | 目标边界 | 状态 |
 |---|---|---|---|
 | 顶层资源优先级调度 | `Player.has_resources` | 绑定身份的 `GetOwnEconomy` | 已迁移 |
-| EconomyController | 单位组遍历、直接采集 Action、直接生产与放置 | 己方查询、采集命令、生产命令、放置命令 | 待迁移 |
-| DefenseController | 单位组遍历、直接放置 | 己方查询、放置命令 | 待迁移 |
+| EconomyController | 单位组遍历、直接采集 Action、直接生产与放置 | 己方查询、采集命令、生产命令、放置命令 | 部分迁移：生产和 CommandCenter 规划已完成，采集待迁移 |
+| DefenseController | 单位组遍历、直接放置 | 己方查询、放置命令 | 已迁移 |
 | OffenseController | 全玩家/单位组遍历、直接队列与放置 | 受限观察、生产/放置/作战命令 | 待迁移 |
 | IntelligenceController | 全知敌军遍历、直接移动 Action | 范围观察、移动命令 | 待迁移 |
 | ConstructionWorksController | 施工现场遍历、直接分配 Worker | 己方查询、施工命令 | 待迁移 |
@@ -80,3 +80,31 @@
 该切片不实现敌情分析、威胁方向选址或更多炮塔战术。候选位置改为由规则 AI 生成，最终合法性、视野、占地、友军驱逐和原子扣款仍由公共放置服务复验。
 
 2026-08-15 人工验收：敌方 AI 会建造炮塔；炮塔损失后会重新放置并施工补充；完工炮塔正常工作。RAI-001C 通过。
+
+## 7. RAI-001D：生产观察与 Worker 补充
+
+2026-08-15 接口评审接受以下契约：
+
+- `ObservationField.Production` 返回 `QueueLimit` 以及按权威顺序排列的非终态 `Items`；
+- 每个项目返回稳定 `ItemId`、`ProductTypeId`、`State`、`CompletedWork` 和 `RequiredWork`；
+- 非生产建筑返回空值，生产建筑的空队列必须明确返回 `items = []`；
+- 生产信息属于己方准确情报。普通玩家与规则 AI 即使外部 Grant 误授字段，也不能读取当前可见敌方的生产队列；全知调试会话允许读取；
+- `RuleAiCommandGateway.EnqueueProduction` 只接受生产建筑稳定 ID 与产品稳定类型 ID，身份固定为 Match 注入的规则 AI；
+- Adapter 解析受信任配置后仍调用玩家共用的 `IProductionService`，队列容量、建筑归属、施工完成状态与原子扣款不会被绕过。
+
+已完成迁移：
+
+- `EconomyController` 通过己方查询统计已部署 Worker 与所有生产队列中的 Worker，不再把生成事件或直接队列节点当作规划真相；
+- Worker 补充通过稳定 ID 生产命令入队，不再调用 `production_queue.produce`；
+- CommandCenter 数量统计、缺口发现和放置改用己方查询及稳定类型放置命令，不再保存建筑 Node、监听建筑死亡或直接调用放置 Runtime；
+- 初始资源不足时，既有资源优先级队列会保留请求，采集入账后再执行；最终扣款仍由权威生产/放置服务复验；
+- Worker 的资源点选择与采集 Action 暂时保留 Legacy Node 链路，明确划入后续 RAI-001E，避免本切片同时改变经济策略。
+
+自动验证：
+
+- 查询核心测试覆盖己方显式空队列、误授权限仍不能读取敌方队列、全知调试读取；
+- Godot 查询与规则 AI 冒烟覆盖生产字段序列化、空队列键、未知产品稳定拒绝；
+- 既有生产队列冒烟继续覆盖入队、推进、完成、取消与退款链路；
+- `dotnet build` 与 76 项纯 C# 测试通过；相关 Godot 冒烟均为 0 failure，退出时仍存在已登记的 RID/ObjectDB 基线泄漏。
+
+待人工验收：在 `TestPlayerVsAI.tscn` 中观察 AI 完成采集后补足 Worker；摧毁一名 AI Worker 后应再次生产补充；采集—返程—交付循环不应回归。验收通过后再将 RAI-001D 标记完成。

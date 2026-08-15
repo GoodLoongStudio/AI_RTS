@@ -2,6 +2,7 @@ using AI_RTS.Application.Commands;
 using AI_RTS.Application.Production;
 using AI_RTS.Domain.Common;
 using AI_RTS.Domain.Production;
+using AI_RTS.Domain.Queries;
 using AI_RTS.GodotAdapter.Common;
 using AI_RTS.GodotAdapter.Configuration;
 using AI_RTS.GodotAdapter.Economy;
@@ -86,6 +87,46 @@ public partial class ProductionRuntime : Node
         return ToGodot(_service.Enqueue(
             Context(issuerPlayer),
             new EnqueueProductionCommand(producerId, definitionId.Value)));
+    }
+
+    /// <summary>由固定身份 Adapter 按生产建筑与产品稳定 ID 提交入队。</summary>
+    internal ProductionCommandResult EnqueueByStableIds(
+        UnitId producerId,
+        UnitTypeId productTypeId,
+        Node issuerPlayer)
+    {
+        var definitionId = _definitions.Resolve(productTypeId);
+        return definitionId is null ?
+            new ProductionCommandResult(
+                new CommandId(Guid.NewGuid()),
+                ProductionCommandStatus.DefinitionNotFound,
+                null) :
+            _service.Enqueue(
+                Context(issuerPlayer),
+                new EnqueueProductionCommand(producerId, definitionId.Value));
+    }
+
+    /// <summary>返回生产建筑可公开给查询层的容量和当前非终态队列。</summary>
+    internal ProductionObservation? ObserveProduction(Node producer)
+    {
+        var producerId = GodotStableIdentity.Unit(producer);
+        if (_producers.Find(producerId) is not { } producerSnapshot)
+        {
+            return null;
+        }
+        var items = _service.GetQueue(producerId).Select(item =>
+        {
+            var definition = _definitions.Find(item.DefinitionId) ??
+                throw new InvalidOperationException(
+                    $"生产项目 {item.ItemId.Value:D} 引用了未知定义 {item.DefinitionId.Value}。");
+            return new ProductionItemObservation(
+                item.ItemId,
+                definition.ProductTypeId,
+                item.State,
+                item.CompletedWork,
+                item.RequiredWork);
+        }).ToArray();
+        return new ProductionObservation(producerSnapshot.QueueLimit, items);
     }
 
     /// <summary>由拥有者按稳定 ItemId 取消单项并全额退款。</summary>

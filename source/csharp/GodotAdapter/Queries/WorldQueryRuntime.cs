@@ -8,6 +8,7 @@ using AI_RTS.GodotAdapter.Economy;
 using AI_RTS.GodotAdapter.AI;
 using AI_RTS.GodotAdapter.Configuration;
 using AI_RTS.GodotAdapter.Construction;
+using AI_RTS.GodotAdapter.Production;
 using Godot;
 
 namespace AI_RTS.GodotAdapter.Queries;
@@ -62,12 +63,13 @@ public partial class WorldQueryRuntime : Node
         var commands = GetParent().GetNode<CommandRuntime>("CommandRuntime");
         var configuration = GetParent().GetNode<BalanceConfigRuntime>("BalanceConfigRuntime");
         var placement = GetParent().GetNode<StructurePlacementRuntime>("StructurePlacementRuntime");
+        var production = GetParent().GetNode<ProductionRuntime>("ProductionRuntime");
         _queries = new WorldQueryService(
             new GodotWorldObservationRepository(
-                GetParent(), economy.AccountService, commands),
+                GetParent(), economy.AccountService, commands, production),
             grants);
         BindRuleAiSessions(
-            playersRoot, humanPlayer, commands, configuration, placement);
+            playersRoot, humanPlayer, commands, configuration, placement, production);
     }
 
     /// <summary>仅供当前自动/人工测试取得组合根已签发的标准会话；正式 Agent Gateway 不暴露此入口。</summary>
@@ -145,7 +147,8 @@ public partial class WorldQueryRuntime : Node
         Node? humanPlayer,
         CommandRuntime commands,
         BalanceConfigRuntime configuration,
-        StructurePlacementRuntime placement)
+        StructurePlacementRuntime placement,
+        ProductionRuntime production)
     {
         foreach (var player in playersRoot.GetChildren().OfType<Node>())
         {
@@ -164,7 +167,8 @@ public partial class WorldQueryRuntime : Node
             {
                 Name = "RuleAiCommandGateway"
             };
-            commandGateway.Configure(commands, configuration, placement, player);
+            commandGateway.Configure(
+                commands, configuration, placement, production, player);
             player.AddChild(commandGateway);
             player.Call("setup_world_query", this, session.Value.ToString("D"));
         }
@@ -243,7 +247,9 @@ public partial class WorldQueryRuntime : Node
         ["maximum_health"] = observation.MaximumHealth is null ? default(Variant) :
             Variant.From(observation.MaximumHealth.Value),
         ["construction"] = observation.Construction is null ? default(Variant) :
-            Variant.From(ToGodot(observation.Construction))
+            Variant.From(ToGodot(observation.Construction)),
+        ["production"] = observation.Production is null ? default(Variant) :
+            Variant.From(ToGodot(observation.Production))
     };
 
     /// <summary>把强类型施工观察转换为不暴露内部对象的稳定字段集合。</summary>
@@ -254,6 +260,28 @@ public partial class WorldQueryRuntime : Node
         ["required_work"] = observation.RequiredWork,
         ["active_builder_count"] = observation.ActiveBuilderCount
     };
+
+    /// <summary>把生产观察转换为显式容量和稳定顺序项目集合。</summary>
+    private static Godot.Collections.Dictionary ToGodot(ProductionObservation observation)
+    {
+        var items = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        foreach (var item in observation.Items)
+        {
+            items.Add(new Godot.Collections.Dictionary
+            {
+                ["item_id"] = item.ItemId.Value.ToString("D"),
+                ["product_type_id"] = item.ProductTypeId.Value,
+                ["state"] = item.State.ToString(),
+                ["completed_work"] = item.CompletedWork,
+                ["required_work"] = item.RequiredWork
+            });
+        }
+        return new Godot.Collections.Dictionary
+        {
+            ["queue_limit"] = observation.QueueLimit,
+            ["items"] = items
+        };
+    }
 
     private static Godot.Collections.Dictionary Envelope(
         QueryStatus status,

@@ -5,6 +5,7 @@ using AI_RTS.Domain.Economy;
 using AI_RTS.Domain.Queries;
 using AI_RTS.GodotAdapter.Common;
 using AI_RTS.GodotAdapter.Composition;
+using AI_RTS.GodotAdapter.Production;
 using Godot;
 
 namespace AI_RTS.GodotAdapter.Queries;
@@ -16,16 +17,19 @@ public sealed class GodotWorldObservationRepository : IWorldObservationRepositor
     private readonly Node _matchRoot;
     private readonly IResourceAccountService _accounts;
     private readonly CommandRuntime _commands;
+    private readonly ProductionRuntime _production;
 
     /// <summary>绑定单个 Match 根节点和该 Match 唯一资源账户服务。</summary>
     public GodotWorldObservationRepository(
         Node matchRoot,
         IResourceAccountService accounts,
-        CommandRuntime commands)
+        CommandRuntime commands,
+        ProductionRuntime production)
     {
         _matchRoot = matchRoot;
         _accounts = accounts;
         _commands = commands;
+        _production = production;
     }
 
     /// <inheritdoc />
@@ -86,7 +90,8 @@ public sealed class GodotWorldObservationRepository : IWorldObservationRepositor
             NullableFloat(unit.Get("hp_max")),
             kind == BattlefieldEntityKind.Structure,
             VisiblePlayers(unit, owner.Value == Guid.Empty ? null : owner, revealers),
-            _commands.ObserveConstruction(unit));
+            _commands.ObserveConstruction(unit),
+            _production.ObserveProduction(unit));
     }
 
     private WorldEntitySnapshot SnapshotResource(

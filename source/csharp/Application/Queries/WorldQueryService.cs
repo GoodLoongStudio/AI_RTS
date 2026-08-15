@@ -185,6 +185,10 @@ public sealed class WorldQueryService : IWorldQueryService
         long observedRevision)
     {
         var returned = requestedFields & allowedFields & ObservationField.All;
+        if (state != ObservationState.Owned && !session.Omniscient)
+        {
+            returned &= ~ObservationField.Production;
+        }
         return new EntityObservation(
             entity.EntityId,
             state,
@@ -196,7 +200,8 @@ public sealed class WorldQueryService : IWorldQueryService
                 _relations.Resolve(session.ObserverPlayerId, entity.OwnerPlayerId) : null,
             returned.HasFlag(ObservationField.Health) ? entity.CurrentHealth : null,
             returned.HasFlag(ObservationField.Health) ? entity.MaximumHealth : null,
-            returned.HasFlag(ObservationField.Construction) ? entity.Construction : null);
+            returned.HasFlag(ObservationField.Construction) ? entity.Construction : null,
+            returned.HasFlag(ObservationField.Production) ? entity.Production : null);
     }
 
     private void UpdateLastKnown(

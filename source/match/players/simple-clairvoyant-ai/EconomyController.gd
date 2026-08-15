@@ -2,7 +2,6 @@ extends Node
 
 signal resources_required(resources, metadata)
 
-const CommandCenter = preload("res://source/match/units/CommandCenter.gd")
 const CommandCenterScene = preload("res://source/match/units/CommandCenter.tscn")
 const Worker = preload("res://source/match/units/Worker.gd")
 const WorkerScene = preload("res://source/match/units/Worker.tscn")
@@ -10,27 +9,39 @@ const CollectingResourcesSequentially = preload(
 	"res://source/match/units/actions/CollectingResourcesSequentially.gd"
 )
 
+const FIELD_POSITION := 1 << 0
+const FIELD_TYPE := 1 << 1
+const FIELD_CONSTRUCTION := 1 << 4
+const FIELD_PRODUCTION := 1 << 5
+const REFRESH_INTERVAL_S := 0.5
+const COMMAND_CENTER_TYPE_ID := "command_center"
+const WORKER_TYPE_ID := "worker"
+
 var _player = null
-var _ccs = []
 var _workers = []
-var _number_of_pending_cc_resource_requests = 0
-var _number_of_pending_worker_resource_requests = 0
-var _number_of_pending_workers = 0
-var _cc_base_position = null
+var _world_query_runtime = null
+var _query_session_id := ""
+var _command_gateway = null
+var _number_of_pending_cc_resource_requests := 0
+var _number_of_pending_worker_resource_requests := 0
 
 @onready var _ai = get_parent()
 @onready var _balance = find_parent("Match").get_node("BalanceConfigRuntime")
 
 
-func setup(player):
+## 绑定己方观察与固定身份命令边界，并开始维护经济单位数量。
+func setup(player, world_query_runtime, query_session_id: String, command_gateway):
 	_player = player
-	_attach_current_ccs()
+	_world_query_runtime = world_query_runtime
+	_query_session_id = query_session_id
+	_command_gateway = command_gateway
 	_attach_current_workers()
 	MatchSignals.unit_spawned.connect(_on_unit_spawned)
-	_enforce_number_of_ccs()
-	_enforce_number_of_workers()
+	_setup_refresh_timer()
+	_refresh_planning()
 
 
+## 使用已经获准的资源请求，通过公共命令边界生产 Worker 或放置 CommandCenter。
 func provision(resources, metadata):
 	if metadata == "worker":
 		assert(
@@ -38,36 +49,134 @@ func provision(resources, metadata):
 			"unexpected amount of resources"
 		)
 		_number_of_pending_worker_resource_requests -= 1
-		if _ccs.is_empty():
-			return
-		if _ccs[0].production_queue.produce(WorkerScene) != null:
-			_number_of_pending_workers += 1
+		_try_produce_worker(_get_own_entities())
 	elif metadata == "cc":
 		assert(
 			resources == _balance.GetConstructionCost(CommandCenterScene),
 			"unexpected amount of resources"
 		)
 		_number_of_pending_cc_resource_requests -= 1
-		if _workers.is_empty():
-			return
-		_construct_cc()
+		_try_construct_cc(_get_own_entities())
 	else:
 		assert(false, "unexpected flow")
 
 
-func _attach_cc(cc):
-	_ccs.append(cc)
-	cc.tree_exited.connect(_on_cc_died.bind(cc))
+func _setup_refresh_timer():
+	var timer = Timer.new()
+	add_child(timer)
+	timer.timeout.connect(_on_refresh_timer_timeout)
+	timer.start(REFRESH_INTERVAL_S)
 
 
-func _attach_current_ccs():
-	var ccs = get_tree().get_nodes_in_group("units").filter(
-		func(unit): return unit is CommandCenter and unit.player == _player
+## 根据己方查询快照同时补齐 CommandCenter 与 Worker 规划，避免直接遍历建筑节点。
+func _refresh_planning():
+	var own_entities := _get_own_entities()
+	_enforce_number_of_ccs(own_entities)
+	_enforce_number_of_workers(own_entities)
+
+
+## 统计己方 CommandCenter（含施工现场）并为数量缺口提交资源请求。
+func _enforce_number_of_ccs(own_entities: Array):
+	var current_count := own_entities.filter(
+		func(entity): return entity.get("type_id", "") == COMMAND_CENTER_TYPE_ID
+	).size()
+	var missing_count: int = (
+		_ai.expected_number_of_ccs
+		- current_count
+		- _number_of_pending_cc_resource_requests
 	)
-	if not ccs.is_empty():
-		_cc_base_position = ccs[0].global_position
-	for cc in ccs:
-		_attach_cc(cc)
+	for _i in range(max(0, missing_count)):
+		resources_required.emit(_balance.GetConstructionCost(CommandCenterScene), "cc")
+		_number_of_pending_cc_resource_requests += 1
+
+
+## 统计已部署及所有生产队列中的 Worker，并为数量缺口提交资源请求。
+func _enforce_number_of_workers(own_entities: Array):
+	var current_count := own_entities.filter(
+		func(entity): return entity.get("type_id", "") == WORKER_TYPE_ID
+	).size()
+	var queued_count := 0
+	for entity in own_entities:
+		var production = entity.get("production", null)
+		if production == null:
+			continue
+		for item in production.get("items", []):
+			if item.get("product_type_id", "") == WORKER_TYPE_ID:
+				queued_count += 1
+	var missing_count: int = (
+		_ai.expected_number_of_workers
+		- current_count
+		- queued_count
+		- _number_of_pending_worker_resource_requests
+	)
+	for _i in range(max(0, missing_count)):
+		resources_required.emit(_balance.GetProductionCost(WorkerScene), "worker")
+		_number_of_pending_worker_resource_requests += 1
+
+
+## 选择一个已经完工的己方生产建筑，并以稳定 ID 提交 Worker 入队命令。
+func _try_produce_worker(own_entities: Array):
+	var producers: Array = own_entities.filter(
+		func(entity):
+			if entity.get("type_id", "") != COMMAND_CENTER_TYPE_ID:
+				return false
+			if entity.get("production", null) == null:
+				return false
+			var construction = entity.get("construction", null)
+			return construction != null and construction.get("state", "") == "Completed"
+	)
+	if producers.is_empty():
+		return
+	var result: Dictionary = _command_gateway.EnqueueProduction(
+		producers[0]["id"],
+		WORKER_TYPE_ID
+	)
+	if not result.get("accepted", false):
+		push_warning("规则 AI 生产 Worker 被拒绝：%s" % result)
+
+
+## 围绕己方 CommandCenter（失去全部基地时改用 Worker）尝试放置新 CommandCenter。
+func _try_construct_cc(own_entities: Array):
+	var workers: Array = own_entities.filter(
+		func(entity): return entity.get("type_id", "") == WORKER_TYPE_ID
+	)
+	if workers.is_empty():
+		return
+	var command_centers: Array = own_entities.filter(
+		func(entity): return entity.get("type_id", "") == COMMAND_CENTER_TYPE_ID
+	)
+	var center: Vector3 = (
+		workers[0]["position"] if command_centers.is_empty() else command_centers[0]["position"]
+	)
+	var candidates: Array[Vector3] = []
+	for radius in range(3, 18, 2):
+		for sector in range(16):
+			var angle := TAU * float(sector) / 16.0
+			candidates.append(center + Vector3(cos(angle) * radius, 0.0, sin(angle) * radius))
+	candidates.shuffle()
+	var last_result: Dictionary = {}
+	for position in candidates:
+		last_result = _command_gateway.PlaceStructure(
+			COMMAND_CENTER_TYPE_ID,
+			Transform3D(Basis.IDENTITY, position)
+		)
+		if last_result.get("accepted", false):
+			return
+		if last_result.get("primary_issue", "") == "InsufficientResources":
+			break
+	push_warning("规则 AI 放置 CommandCenter 被拒绝：%s" % last_result)
+
+
+## 查询准确己方实体以及生产、施工状态；失败时返回显式空集合。
+func _get_own_entities() -> Array:
+	var result: Dictionary = _world_query_runtime.GetOwnForces(
+		_query_session_id,
+		FIELD_POSITION | FIELD_TYPE | FIELD_CONSTRUCTION | FIELD_PRODUCTION
+	)
+	if result.get("status", "") != "Accepted":
+		push_warning("rule AI force query was rejected: %s" % result.get("error", "Unknown"))
+		return []
+	return result["entities"]
 
 
 func _attach_worker(worker):
@@ -87,69 +196,6 @@ func _attach_current_workers():
 	)
 	for worker in workers:
 		_attach_worker(worker)
-
-
-func _enforce_number_of_ccs():
-	if (
-		_ccs.size() + _number_of_pending_cc_resource_requests + _number_of_pending_workers
-		>= _ai.expected_number_of_ccs
-	):
-		return
-	var number_of_extra_ccs_required = (
-		_ai.expected_number_of_ccs
-		- (_ccs.size() + _number_of_pending_cc_resource_requests + _number_of_pending_workers)
-	)
-	for _i in range(number_of_extra_ccs_required):
-		resources_required.emit(
-			_balance.GetConstructionCost(CommandCenterScene), "cc"
-		)
-		_number_of_pending_cc_resource_requests += 1
-
-
-func _enforce_number_of_workers():
-	if (
-		_workers.size() + _number_of_pending_worker_resource_requests
-		>= _ai.expected_number_of_workers
-	):
-		return
-	var number_of_extra_workers_required = (
-		_ai.expected_number_of_workers
-		- (_workers.size() + _number_of_pending_worker_resource_requests)
-	)
-	for _i in range(number_of_extra_workers_required):
-		resources_required.emit(
-			_balance.GetProductionCost(WorkerScene), "worker"
-		)
-		_number_of_pending_worker_resource_requests += 1
-
-
-func _construct_cc():
-	var construction_cost = _balance.GetConstructionCost(CommandCenterScene)
-	assert(
-		_player.has_resources(construction_cost),
-		"player should have enough resources at this point"
-	)
-	var unit_to_spawn = CommandCenterScene.instantiate()
-	var placement_position = Utils.Match.Unit.Placement.find_valid_position_radially(
-		_cc_base_position if _cc_base_position != null else _workers[0].global_position,
-		unit_to_spawn.radius + Constants.Match.Units.EMPTY_SPACE_RADIUS_SURROUNDING_STRUCTURE_M,
-		find_parent("Match").navigation.get_navigation_map_rid_by_domain(
-			unit_to_spawn.movement_domain
-		),
-		get_tree()
-	)
-	var target_transform = Transform3D(Basis(), placement_position).looking_at(
-		placement_position + Vector3(0, 0, 1), Vector3.UP
-	)
-	unit_to_spawn.free()
-	var result = find_parent("Match").find_child("StructurePlacementRuntime").Place(
-		_player,
-		CommandCenterScene,
-		target_transform,
-		construction_cost
-	)
-	if not result["accepted"]:
-		push_warning("规则 AI 放置 CommandCenter 被拒绝：%s" % result["issues"])
 
 
 func _calculate_resource_collecting_statistics():
@@ -212,18 +258,10 @@ func _retarget_workers_if_necessary():
 			_make_worker_collecting_resources(worker)
 
 
-func _on_cc_died(cc):
-	if not is_inside_tree():
-		return
-	_ccs.erase(cc)
-	_enforce_number_of_ccs()
-
-
 func _on_worker_died(worker):
 	if not is_inside_tree():
 		return
 	_workers.erase(worker)
-	_enforce_number_of_workers()
 	_retarget_workers_if_necessary()
 
 
@@ -231,14 +269,14 @@ func _on_unit_spawned(unit):
 	if unit.player != _player:
 		return
 	if unit is Worker:
-		if _number_of_pending_workers > 0:
-			_number_of_pending_workers -= 1
 		_attach_worker(unit)
-	elif unit is CommandCenter:
-		_attach_cc(unit)
 
 
 func _on_worker_action_changed(new_action, worker):
 	if new_action != null:
 		return
 	_make_worker_collecting_resources(worker)
+
+
+func _on_refresh_timer_timeout():
+	_refresh_planning()
