@@ -101,8 +101,8 @@ Godot Adapter 可以复用当前稳定身份和弱引用注册表，但 `IContro
 2. 输入 UnitId 去重；同一单位允许同时属于多个不同控制组；
 3. 仍存在、属于发出玩家且可选择的实体进入新集合；
 4. 已死亡、未知、敌方或不可选择实体返回逐项拒绝，不进入集合；
-5. 至少一个成员有效且至少一个无效时返回 `PartiallyAccepted`；
-6. 输入非空但没有任何有效成员时返回 `Rejected`，保留原组，避免一次生命周期竞争意外清空已有组；
+5. 输入包含任何无效成员时返回 `AcceptedWithFilteredMembers`，只用有效成员替换原组；
+6. 输入非空但没有任何有效成员时同样返回 `AcceptedWithFilteredMembers`，并用过滤后的空集合清空原组；
 7. 输入显式为空时返回 `Accepted` 并清空该组，这是玩家主动执行 `Ctrl+数字` 保存空 Selection 的结果；
 8. 成员快照按 UnitId 稳定排序，不把 Selection 顺序解释为主单位或 Formation 顺序。
 
@@ -115,7 +115,7 @@ public sealed record ControlGroupMemberResult(
     ControlGroupErrorCode ErrorCode);
 
 public sealed record ControlGroupSaveResult(
-    ControlGroupStatus Status,
+    ControlGroupSaveStatus Status,
     ControlGroupNumber Group,
     IReadOnlyList<UnitId> StoredUnitIds,
     IReadOnlyList<ControlGroupMemberResult> MemberResults);
@@ -131,6 +131,14 @@ public sealed record ControlGroupSaveResult(
 
 错误差异只涉及玩家试图保存的本地己方选择输入，不提供敌军远程探测入口。
 
+`ControlGroupSaveStatus` 首版包含：
+
+- `Accepted`：输入没有成员被过滤，替换已经应用；
+- `AcceptedWithFilteredMembers`：至少一个输入成员被过滤，替换仍以剩余有效集合（可以为空）应用；
+- `Rejected`：控制组编号或调用上下文非法，存储没有发生变化。
+
+该命名刻意不复用命令系统的 `PartiallyAccepted`。控制组 Replace 是一次本地集合替换，不是向多个单位分别执行命令；即使全部成员被过滤，清空原组仍是一次已应用的状态变更。
+
 ## 5. 访问语义
 
 建议 `Recall` 使用以下规则：
@@ -140,7 +148,7 @@ public sealed record ControlGroupSaveResult(
 3. 失效成员从存储中永久剔除，并在结果中返回 `PrunedUnitIds` 供测试/诊断；
 4. 至少一个有效成员时返回 `Accepted` 和稳定 UnitId 集合；Godot Adapter 用它替换当前 Selection；
 5. 组从未保存、已被清空或成员全部失效时，返回 `Accepted`、`UnitIds = []` 和显式 `IsEmpty = true`；
-6. 访问空组不清空玩家当前 Selection，也不播放失败反馈。这保持当前旧项目行为和常见 RTS 操作习惯；
+6. Godot Adapter 对成功空结果发出取消选择，使访问空组等价于清空当前 Selection；这不是查询失败；
 7. 首版不实现 `Shift+数字` 追加访问，也不实现双击数字让镜头聚焦。
 
 `Recall` 的成功空结果不能用 `null` 或缺失键表示，以便自动测试和未来 UI 区分“空组”与“服务错误”。
@@ -178,7 +186,7 @@ public sealed record ControlGroupSaveResult(
 - 保存、覆盖、清空和访问 1～9；
 - 同组输入去重、跨组重复允许；
 - 敌方、未知、不可选择和已死亡成员结果；
-- 非空全无效保存不会清空原组；
+- 非空全无效保存以过滤后的空集合清空原组；
 - 部分成功保存；
 - 退出事件主动清理与 Recall 二次惰性清理；
 - 玩家之间同编号完全隔离；
@@ -187,7 +195,7 @@ public sealed record ControlGroupSaveResult(
 ### 8.2 Godot 冒烟
 
 - `Ctrl+1` 保存、`1` 替换召回；
-- 保存空 Selection 清组，访问空组保持当前 Selection；
+- 保存空 Selection 清组，访问空组取消当前 Selection；
 - 单位死亡后访问不会返回失效 Node；
 - 建筑和移动单位都可以保存；
 - 敌方单位不能通过 Adapter 进入玩家控制组；
@@ -210,13 +218,17 @@ public sealed record ControlGroupSaveResult(
 - 战役强类型任务和英雄控制；
 - 联机同步、回放序列化或存档格式。
 
-## 10. 待项目负责人确认
+## 10. 评审结论
 
-1. 是否接受“空选择保存会清空组；访问空组保持当前 Selection”；
-2. 是否接受非空输入全无效时拒绝并保留原组，而不是清空；
-3. 是否接受有效与失效混合时部分成功，并用有效成员替换原组；
-4. 是否接受单位可同时属于多个控制组；
-5. 是否接受召回时剔除死亡、失去归属或不可选择成员；
-6. 是否接受首版成员按稳定 UnitId 排序，不保存 Selection/Formation 顺序；
-7. 是否接受传统控制组不维护 `unit_group_N` 兼容镜像，并将冻结战役小队临时改名为 `legacy_ai_squad_N`；
-8. 是否接受首版不增加 Shift/Alt 访问、镜头聚焦和控制组 UI。
+2026-08-15 项目负责人确认：
+
+1. 空选择保存会清空组；访问空组等价于取消当前 Selection；
+2. 非空输入全部失效时，以过滤后的空集合清空原组；
+3. 有效与失效混合时，以有效成员替换原组；
+4. 同一单位允许同时属于多个控制组；
+5. 死亡或失效单位自动从组中剔除；
+6. 首版成员按稳定 UnitId 排序，不保存 Selection/Formation 顺序；
+7. 传统控制组不维护 `unit_group_N` 兼容镜像，冻结战役小队临时改名为 `legacy_ai_squad_N`；
+8. 首版不增加 Shift/Alt 访问、镜头聚焦和控制组 UI。
+
+八项契约评审通过，可以进入实现。
