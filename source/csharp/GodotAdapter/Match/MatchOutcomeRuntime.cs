@@ -14,6 +14,7 @@ public partial class MatchOutcomeRuntime : Node
     public delegate void MatchResolvedEventHandler(Godot.Collections.Dictionary resolution);
 
     private readonly HashSet<PlayerId> _registeredPlayers = [];
+    private readonly HashSet<UnitId> _exitSubscriptions = [];
     private IMatchOutcomeService _service = null!;
     private Node _match = null!;
     private Node _matchSignals = null!;
@@ -21,6 +22,7 @@ public partial class MatchOutcomeRuntime : Node
     private bool _configured;
     private bool _evaluationPending;
     private bool _terminalPublished;
+    private bool _shuttingDown;
 
     /// <summary>在 Match 完成玩家和初始单位装配后建立权威快照并开启判定。</summary>
     public void Initialize(Node playersContainer, Node? localHumanPlayer)
@@ -50,26 +52,21 @@ public partial class MatchOutcomeRuntime : Node
 
         _matchSignals = GetNode("/root/MatchSignals");
         _matchSignals.Connect("unit_spawned", Callable.From<Node>(OnUnitSpawned));
-        _matchSignals.Connect("unit_died", Callable.From<Node>(OnUnitDied));
         PublishIfTerminal(_service.StartMatch());
     }
 
     /// <summary>退出对局时解除全局事实订阅，避免旧 Runtime 接收下一局事件。</summary>
     public override void _ExitTree()
     {
+        _shuttingDown = true;
         if (!_configured || !GodotObject.IsInstanceValid(_matchSignals))
         {
             return;
         }
         var spawned = Callable.From<Node>(OnUnitSpawned);
-        var died = Callable.From<Node>(OnUnitDied);
         if (_matchSignals.IsConnected("unit_spawned", spawned))
         {
             _matchSignals.Disconnect("unit_spawned", spawned);
-        }
-        if (_matchSignals.IsConnected("unit_died", died))
-        {
-            _matchSignals.Disconnect("unit_died", died);
         }
     }
 
@@ -102,21 +99,18 @@ public partial class MatchOutcomeRuntime : Node
         ScheduleEvaluation();
     }
 
-    /// <summary>登记权威死亡事实；未知与重复死亡由 Application 服务幂等处理。</summary>
-    private void OnUnitDied(Node unit)
+    /// <summary>处理任何已登记实体退出，包括死亡、取消蓝图和系统移除。</summary>
+    private void OnCombatantExited(UnitId unitId)
     {
-        if (!GodotObject.IsInstanceValid(unit) || !unit.HasMeta(GodotStableIdentity.UnitIdMeta))
-        {
-            return;
-        }
-        _service.RemoveCombatant(GodotStableIdentity.Unit(unit));
+        _exitSubscriptions.Remove(unitId);
+        _service.RemoveCombatant(unitId);
         ScheduleEvaluation();
     }
 
     /// <summary>将同一帧中的生成和死亡事实合并，支持真正的同时全灭平局。</summary>
     private void ScheduleEvaluation()
     {
-        if (_evaluationPending || _terminalPublished)
+        if (_evaluationPending || _terminalPublished || _shuttingDown)
         {
             return;
         }
@@ -160,10 +154,15 @@ public partial class MatchOutcomeRuntime : Node
         {
             return;
         }
+        var unitId = GodotStableIdentity.Unit(unit);
         _service.RegisterCombatant(new MatchCombatant(
-            GodotStableIdentity.Unit(unit),
+            unitId,
             ownerId,
             true));
+        if (_exitSubscriptions.Add(unitId))
+        {
+            unit.TreeExited += () => OnCombatantExited(unitId);
+        }
     }
 
     /// <summary>确保终态只向 Godot 展示层发布一次。</summary>

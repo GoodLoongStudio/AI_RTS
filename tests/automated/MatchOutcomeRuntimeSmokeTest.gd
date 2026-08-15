@@ -4,6 +4,7 @@ const MatchOutcomeRuntimeScript = preload(
 	"res://source/csharp/GodotAdapter/Match/MatchOutcomeRuntime.cs"
 )
 const MatchEndHandlerScene = preload("res://source/match/handlers/MatchEndHandler.tscn")
+const PlayerVsAiScene = preload("res://tests/manual/TestPlayerVsAI.tscn")
 
 var _failures := 0
 
@@ -15,6 +16,7 @@ func _ready():
 	await _test_human_defeat()
 	await _test_draw()
 	await _test_ai_only_finish()
+	await _test_actual_match_unit_death_path()
 
 	print("Match outcome runtime smoke test completed: %d failure(s)" % _failures)
 	get_tree().quit(0 if _failures == 0 else 1)
@@ -89,6 +91,39 @@ func _test_ai_only_finish():
 	await _dispose_fixture(fixture)
 
 
+## 验证真实 Match 与 Unit.gd 的 tree_exited 死亡通知能够触发 Victory。
+func _test_actual_match_unit_death_path():
+	get_tree().paused = false
+	var match_instance = PlayerVsAiScene.instantiate()
+	add_child(match_instance)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var human = match_instance.get_node("Players/Human")
+	var enemy_players: Array = match_instance.get_node("Players").get_children().filter(
+		func(player): return player != human and player.is_in_group("players")
+	)
+	for player in enemy_players:
+		player.process_mode = Node.PROCESS_MODE_DISABLED
+	var enemy_units: Array = get_tree().get_nodes_in_group("units").filter(
+		func(unit): return match_instance.is_ancestor_of(unit) and unit.player != human
+	)
+	_check(not enemy_units.is_empty(), "真实 Match 应至少生成一个敌方单位")
+	for unit in enemy_units:
+		unit.call("_handle_unit_death")
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	var runtime = match_instance.get_node("MatchOutcomeRuntime")
+	var snapshot: Dictionary = runtime.InspectOutcome()
+	_check(snapshot.get("kind", "") == "Won",
+		"真实 Unit.gd 死亡入口清空敌军后应产生 Won")
+	_check(match_instance.get_node("Handlers/MatchEndHandler").find_child("Victory").visible,
+		"真实 Match 清空敌军后应显示 Victory")
+	get_tree().paused = false
+	match_instance.queue_free()
+	await get_tree().process_frame
+
+
 ## 创建含两名参与者、两单位、C# Runtime 和现有结束面板的最小对局。
 func _create_fixture(has_human: bool) -> Dictionary:
 	get_tree().paused = false
@@ -146,7 +181,6 @@ func _add_unit(player: Node, unit_name: String) -> Node:
 
 ## 发布权威死亡事实并移除对应测试节点。
 func _kill(unit: Node):
-	MatchSignals.unit_died.emit(unit)
 	unit.queue_free()
 
 
