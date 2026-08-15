@@ -138,4 +138,4 @@
 - `dotnet build` 为 0 警告、0 错误，77 项纯 C# 测试全部通过；WorldQuery、RuleAI Economy 与 Worker Gather 冒烟均为 0 failure；
 - Godot 退出时的 RID/ObjectDB 泄漏仍属于已登记基线，不归因于本切片。
 
-待人工验收：在 `TestPlayerVsAI.tscn` 中确认初始 Worker 采集、返程、交付正常；AI Worker 参与施工并完成后重新开始采集；资源节点耗尽后 AI 能为无订单 Worker 选择其他可见资源；Worker 补充和生产无回归。
+2026-08-15 人工验收：初始 Worker 采集、返程和交付正常；施工后恢复采集、资源重新分配以及 Worker 生产补充符合预期。RAI-001E 通过。
