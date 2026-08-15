@@ -1,0 +1,35 @@
+name: .NET 核心构建与测试
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 按 global.json 安装 .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: 显示实际 SDK
+        shell: pwsh
+        run: dotnet --version
+
+      - name: 构建 Godot C# 项目
+        shell: pwsh
+        run: dotnet build ./OpenRTS.csproj --configuration Debug
+
+      - name: 运行纯 C# 核心测试
+        shell: pwsh
+        run: dotnet run --project ./tests/core/AI_RTS.Core.Tests.csproj --configuration Debug
