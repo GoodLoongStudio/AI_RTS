@@ -184,3 +184,15 @@ public interface IUnitMovementPort
 - 审计时发现所有 Unit 因继承通用桥接方法而被误判为可采集；现已要求 `resources_max > 0`，Drone 不再错误进入 Gather；
 - 核心测试新增 3 项，全套 90 项通过；AirEntityMove、RallyPoint、WorkerGather、RuleAiIntelligence、TraditionalUnitCommandHud、MultiUnitCommand、ProductionQueue、CSharpCommand 与 WorldQueryRuntime 共 9 个 Godot 回归均为 0 失败；
 - 无头退出继续报告已登记的导航 RID/ObjectDB 泄漏；`TestAllUnits.tscn` 的现有 UID 警告及用户修改未纳入本项变更。
+
+## 11. 人工验收记录
+
+2026-08-15 项目负责人完成五项关键人工测试，全部通过：
+
+- Drone 的实体 Approach 行为符合预期；
+- Drone 的持续 Follow 行为符合预期；
+- Stop/Halt 能暂停实体移动任务，且不会自动恢复；
+- 目标失效能够结束任务并反馈 `TargetLost`；
+- 生产集结的实体靠近/跟随链路无回归。
+
+据此，`CMD-026C` 完成人工验收；`CMD-026` 按当前 Demo 已存在的 Tank、Helicopter、Worker、Drone 与施工单位类型收口。旧仓库中不存在的步兵等新增单位不作为本次重构的迁移门槛，后续应通过相同公共命令契约接入。
