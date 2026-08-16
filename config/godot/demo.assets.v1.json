@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": "demo-assets-2026-08-15",
+  "unitAssets": [
+    {
+      "unitTypeId": "drone",
+      "scenePath": "res://source/match/units/Drone.tscn"
+    },
+    {
+      "unitTypeId": "worker",
+      "scenePath": "res://source/match/units/Worker.tscn"
+    },
+    {
+      "unitTypeId": "helicopter",
+      "scenePath": "res://source/match/units/Helicopter.tscn"
+    },
+    {
+      "unitTypeId": "tank",
+      "scenePath": "res://source/match/units/Tank.tscn"
+    },
+    {
+      "unitTypeId": "command_center",
+      "scenePath": "res://source/match/units/CommandCenter.tscn",
+      "blueprintScenePath": "res://source/match/units/structure-geometries/CommandCenter.tscn"
+    },
+    {
+      "unitTypeId": "vehicle_factory",
+      "scenePath": "res://source/match/units/VehicleFactory.tscn",
+      "blueprintScenePath": "res://source/match/units/structure-geometries/VehicleFactory.tscn"
+    },
+    {
+      "unitTypeId": "aircraft_factory",
+      "scenePath": "res://source/match/units/AircraftFactory.tscn",
+      "blueprintScenePath": "res://source/match/units/structure-geometries/AircraftFactory.tscn"
+    },
+    {
+      "unitTypeId": "anti_ground_turret",
+      "scenePath": "res://source/match/units/AntiGroundTurret.tscn",
+      "blueprintScenePath": "res://source/match/units/structure-geometries/AntiGroundTurret.tscn"
+    },
+    {
+      "unitTypeId": "anti_air_turret",
+      "scenePath": "res://source/match/units/AntiAirTurret.tscn",
+      "blueprintScenePath": "res://source/match/units/structure-geometries/AntiAirTurret.tscn"
+    }
+  ],
+  "weaponAssets": [
+    {
+      "weaponId": "helicopter_rocket",
+      "projectileScenePath": "res://source/match/units/projectiles/Rocket.tscn"
+    },
+    {
+      "weaponId": "tank_cannon",
+      "projectileScenePath": "res://source/match/units/projectiles/CannonShell.tscn"
+    },
+    {
+      "weaponId": "anti_ground_turret_cannon",
+      "projectileScenePath": "res://source/match/units/projectiles/CannonShell.tscn"
+    },
+    {
+      "weaponId": "anti_air_turret_rocket",
+      "projectileScenePath": "res://source/match/units/projectiles/Rocket.tscn"
+    }
+  ]
+}

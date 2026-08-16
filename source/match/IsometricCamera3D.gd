@@ -7,7 +7,7 @@ const EXPECTED_PROJECTION = PROJECTION_ORTHOGONAL
 @export var size_min = 1
 @export var size_max = 20
 @export_group("Movement")
-@export var edge_scroll_enabled = true
+@export var edge_scroll_enabled = false
 @export var screen_margin_for_movement = 48.0  # px
 @export var bottom_screen_margin_for_movement = 72.0  # px; bottom HUD needs a wider reliable edge zone
 @export var movement_speed = 1.1
@@ -28,6 +28,7 @@ var _mouse_pos_when_rotation_started = null
 var _camera_global_pos_when_rotation_started = null
 var _smoothed_screen_move_vector := Vector2.ZERO
 var _follow_target: Node3D = null
+@onready var _input_runtime = get_parent().get_node("InputBindingRuntime")
 
 
 func _ready():
@@ -40,7 +41,12 @@ func _ready():
 
 
 func _apply_user_camera_options():
-	edge_scroll_enabled = bool(Globals.get_camera_option("edge_scroll_enabled"))
+	# Demo builds disable edge scrolling even if an older user://camera.cfg enabled it.
+	# Keyboard camera movement remains available through the same movement path.
+	edge_scroll_enabled = (
+		FeatureFlags.enable_edge_scroll
+		and bool(Globals.get_camera_option("edge_scroll_enabled"))
+	)
 	movement_speed = float(Globals.get_camera_option("movement_speed"))
 	screen_margin_for_movement = float(Globals.get_camera_option("edge_margin"))
 	bottom_screen_margin_for_movement = float(Globals.get_camera_option("bottom_edge_margin"))
@@ -163,8 +169,8 @@ func _calculate_screen_move_vector() -> Vector2:
 	var viewport_size := Vector2(get_viewport().size)
 	var mouse_pos := get_viewport().get_mouse_position()
 	var keyboard_move_vector := Vector2(
-		Input.get_axis("move_map_left", "move_map_right"),
-		Input.get_axis("move_map_up", "move_map_down")
+		_input_runtime.GetAxis("camera.move_left", "camera.move_right"),
+		_input_runtime.GetAxis("camera.move_up", "camera.move_down")
 	).limit_length(1.0)
 
 	# Keyboard movement stays available even when the player disables edge scrolling.
@@ -225,7 +231,7 @@ func _try_handling_arrowkey_rotation(delta: float):
 		return
 	var angle_radians = (
 		delta
-		* Input.get_axis("rotate_map_counterclockwise", "rotate_map_clockwise")
+		* _input_runtime.GetAxis("camera.rotate_counterclockwise", "camera.rotate_clockwise")
 		* arrowkey_rotation_speed
 	)
 	if not is_zero_approx(angle_radians):

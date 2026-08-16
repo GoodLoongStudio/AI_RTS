@@ -17,7 +17,8 @@ static func find_valid_position_radially_yet_skip_starting_radius(
 	starting_direction: Vector3,
 	shuffle: bool,
 	navigation_map_rid: RID,
-	scene_tree
+	scene_tree,
+	max_ring_count: int = -1
 ):
 	var starting_position_yless = starting_position * Vector3(1, 0, 1)
 	var units = (
@@ -34,7 +35,8 @@ static func find_valid_position_radially_yet_skip_starting_radius(
 		)
 	):
 		return starting_position_yless
-	for ring_number in range(starting_offset, 999999):
+	var ring_end = 999999 if max_ring_count < 0 else starting_offset + max_ring_count
+	for ring_number in range(starting_offset, ring_end):
 		var ring_distance_from_starting_position: float = (
 			starting_distance + radius * 0.5 * ring_number
 		)
@@ -59,7 +61,8 @@ static func find_valid_position_radially_yet_skip_starting_radius(
 				radial_position, radius, units, navigation_map_rid
 			):
 				return radial_position
-	assert(false, "unexpected flow")
+	if max_ring_count < 0:
+		assert(false, "unexpected flow")
 	return Vector3.INF
 
 

@@ -27,6 +27,10 @@ func setup(map):
 	_setup_static_obstacles()
 
 
+func _exit_tree():
+	_release_server_owned_navigation_resources()
+
+
 func _setup_static_obstacles():
 	if not _static_obstacles.is_empty():
 		return
@@ -49,3 +53,13 @@ func _setup_static_obstacles():
 		NavigationServer3D.obstacle_set_vertices(obstacle, obstacle_vertices)
 		NavigationServer3D.obstacle_set_avoidance_enabled(obstacle, true)
 		_static_obstacles.append(obstacle)
+
+
+## 按依赖顺序释放脚本直接创建的障碍与空域地图，Node 所有的 RID 仍由 Godot 管理。
+func _release_server_owned_navigation_resources():
+	for obstacle in _static_obstacles:
+		if obstacle.is_valid():
+			NavigationServer3D.free_rid(obstacle)
+	_static_obstacles.clear()
+	if air != null:
+		air.release_navigation_map()

@@ -1,0 +1,268 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": "demo-baseline-2026-08-12",
+  "resources": [
+    {
+      "kind": "A",
+      "collectionDurationMilliseconds": 1000
+    },
+    {
+      "kind": "B",
+      "collectionDurationMilliseconds": 2000
+    }
+  ],
+  "warheads": [
+    {
+      "id": "direct_full_damage",
+      "impactSelectionMode": "intendedTargetOnly",
+      "radiusMeters": 0.0,
+      "friendlyFireDamageMultiplier": 1.0
+    }
+  ],
+  "weapons": [
+    {
+      "id": "helicopter_rocket",
+      "deliveryKind": "projectile",
+      "baseDamage": 1.0,
+      "cooldownMilliseconds": 1000,
+      "rangeMeters": 5.0,
+      "targetDomains": ["terrain", "air"],
+      "warheadId": "direct_full_damage"
+    },
+    {
+      "id": "tank_cannon",
+      "deliveryKind": "projectile",
+      "baseDamage": 2.0,
+      "cooldownMilliseconds": 750,
+      "rangeMeters": 5.0,
+      "targetDomains": ["terrain"],
+      "warheadId": "direct_full_damage"
+    },
+    {
+      "id": "anti_ground_turret_cannon",
+      "deliveryKind": "projectile",
+      "baseDamage": 2.0,
+      "cooldownMilliseconds": 1000,
+      "rangeMeters": 8.0,
+      "targetDomains": ["terrain"],
+      "warheadId": "direct_full_damage"
+    },
+    {
+      "id": "anti_air_turret_rocket",
+      "deliveryKind": "projectile",
+      "baseDamage": 2.0,
+      "cooldownMilliseconds": 750,
+      "rangeMeters": 8.0,
+      "targetDomains": ["air"],
+      "warheadId": "direct_full_damage"
+    }
+  ],
+  "unitTypes": [
+    {
+      "id": "drone",
+      "maxHp": 6.0,
+      "sightRangeMeters": 10.0,
+      "movement": {
+        "domain": "air",
+        "speedMetersPerSecond": 4.0,
+        "canReverse": false,
+        "reverseSpeedMultiplier": 0.65,
+        "canFireWhileMoving": false,
+        "movingWeaponArcDegrees": 0.0
+      },
+      "weaponIds": [],
+      "canForceFireGround": false
+    },
+    {
+      "id": "worker",
+      "maxHp": 6.0,
+      "sightRangeMeters": 5.0,
+      "movement": {
+        "domain": "terrain",
+        "speedMetersPerSecond": 2.5,
+        "canReverse": false,
+        "reverseSpeedMultiplier": 0.65,
+        "canFireWhileMoving": false,
+        "movingWeaponArcDegrees": 0.0
+      },
+      "weaponIds": [],
+      "canForceFireGround": false,
+      "gatherer": {
+        "carryCapacity": 2
+      },
+      "constructor": {
+        "workPerTick": 1
+      }
+    },
+    {
+      "id": "helicopter",
+      "maxHp": 10.0,
+      "sightRangeMeters": 8.0,
+      "movement": {
+        "domain": "air",
+        "speedMetersPerSecond": 4.0,
+        "canReverse": false,
+        "reverseSpeedMultiplier": 0.65,
+        "canFireWhileMoving": false,
+        "movingWeaponArcDegrees": 0.0
+      },
+      "weaponIds": ["helicopter_rocket"],
+      "canForceFireGround": false
+    },
+    {
+      "id": "tank",
+      "maxHp": 10.0,
+      "sightRangeMeters": 8.0,
+      "movement": {
+        "domain": "terrain",
+        "speedMetersPerSecond": 2.75,
+        "canReverse": true,
+        "reverseSpeedMultiplier": 0.65,
+        "canFireWhileMoving": true,
+        "movingWeaponArcDegrees": 120.0
+      },
+      "weaponIds": ["tank_cannon"],
+      "canForceFireGround": true
+    },
+    {
+      "id": "command_center",
+      "maxHp": 20.0,
+      "sightRangeMeters": 10.0,
+      "weaponIds": [],
+      "canForceFireGround": false,
+      "producer": {
+        "queueLimit": 5
+      }
+    },
+    {
+      "id": "vehicle_factory",
+      "maxHp": 16.0,
+      "sightRangeMeters": 8.0,
+      "weaponIds": [],
+      "canForceFireGround": false,
+      "producer": {
+        "queueLimit": 5
+      }
+    },
+    {
+      "id": "aircraft_factory",
+      "maxHp": 16.0,
+      "sightRangeMeters": 8.0,
+      "weaponIds": [],
+      "canForceFireGround": false,
+      "producer": {
+        "queueLimit": 5
+      }
+    },
+    {
+      "id": "anti_ground_turret",
+      "maxHp": 8.0,
+      "sightRangeMeters": 8.0,
+      "weaponIds": ["anti_ground_turret_cannon"],
+      "canForceFireGround": false
+    },
+    {
+      "id": "anti_air_turret",
+      "maxHp": 8.0,
+      "sightRangeMeters": 8.0,
+      "weaponIds": ["anti_air_turret_rocket"],
+      "canForceFireGround": false
+    }
+  ],
+  "productions": [
+    {
+      "id": "worker",
+      "productUnitTypeId": "worker",
+      "requiredWork": 180,
+      "cost": [
+        { "kind": "A", "amount": 2 }
+      ],
+      "allowedProducerUnitTypeIds": ["command_center"]
+    },
+    {
+      "id": "drone",
+      "productUnitTypeId": "drone",
+      "requiredWork": 180,
+      "cost": [
+        { "kind": "A", "amount": 2 }
+      ],
+      "allowedProducerUnitTypeIds": ["aircraft_factory"]
+    },
+    {
+      "id": "tank",
+      "productUnitTypeId": "tank",
+      "requiredWork": 360,
+      "cost": [
+        { "kind": "A", "amount": 3 },
+        { "kind": "B", "amount": 1 }
+      ],
+      "allowedProducerUnitTypeIds": ["vehicle_factory"]
+    },
+    {
+      "id": "helicopter",
+      "productUnitTypeId": "helicopter",
+      "requiredWork": 360,
+      "cost": [
+        { "kind": "A", "amount": 1 },
+        { "kind": "B", "amount": 3 }
+      ],
+      "allowedProducerUnitTypeIds": ["aircraft_factory"]
+    }
+  ],
+  "constructions": [
+    {
+      "id": "command_center",
+      "unitTypeId": "command_center",
+      "requiredWork": 200,
+      "cost": [
+        { "kind": "A", "amount": 8 },
+        { "kind": "B", "amount": 8 }
+      ],
+      "environmentId": "terrain.surface",
+      "footprintRadiusMeters": 2.0
+    },
+    {
+      "id": "vehicle_factory",
+      "unitTypeId": "vehicle_factory",
+      "requiredWork": 200,
+      "cost": [
+        { "kind": "A", "amount": 6 }
+      ],
+      "environmentId": "terrain.surface",
+      "footprintRadiusMeters": 1.5
+    },
+    {
+      "id": "aircraft_factory",
+      "unitTypeId": "aircraft_factory",
+      "requiredWork": 200,
+      "cost": [
+        { "kind": "A", "amount": 4 },
+        { "kind": "B", "amount": 4 }
+      ],
+      "environmentId": "terrain.surface",
+      "footprintRadiusMeters": 1.5
+    },
+    {
+      "id": "anti_ground_turret",
+      "unitTypeId": "anti_ground_turret",
+      "requiredWork": 200,
+      "cost": [
+        { "kind": "A", "amount": 2 },
+        { "kind": "B", "amount": 2 }
+      ],
+      "environmentId": "terrain.surface",
+      "footprintRadiusMeters": 0.6
+    },
+    {
+      "id": "anti_air_turret",
+      "unitTypeId": "anti_air_turret",
+      "requiredWork": 200,
+      "cost": [
+        { "kind": "A", "amount": 2 },
+        { "kind": "B", "amount": 2 }
+      ],
+      "environmentId": "terrain.surface",
+      "footprintRadiusMeters": 0.6
+    }
+  ]
+}

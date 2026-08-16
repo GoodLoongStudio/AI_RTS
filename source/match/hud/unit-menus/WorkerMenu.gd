@@ -14,9 +14,9 @@ const AntiAirTurretUnit = preload("res://source/match/units/AntiAirTurret.tscn")
 
 
 func _ready():
-	var ag_turret_properties = Constants.Match.Units.DEFAULT_PROPERTIES[
-		AntiGroundTurretUnit.resource_path
-	]
+	var balance = find_parent("Match").get_node("BalanceConfigRuntime")
+	var ag_turret_properties = balance.GetUnitDisplaySnapshot(AntiGroundTurretUnit)
+	var ag_turret_cost = balance.GetConstructionCost(AntiGroundTurretUnit)
 	_ag_turret_button.tooltip_text = ("{0} - {1}\n{2} HP, {3} DPS\n{4}: {5}, {6}: {7}".format(
 		[
 			tr("AG_TURRET"),
@@ -24,24 +24,13 @@ func _ready():
 			ag_turret_properties["hp_max"],
 			ag_turret_properties["attack_damage"] * ag_turret_properties["attack_interval"],
 			tr("RESOURCE_A"),
-			(
-				Constants
-				. Match
-				. Units
-				. CONSTRUCTION_COSTS[AntiGroundTurretUnit.resource_path]["resource_a"]
-			),
+			ag_turret_cost["resource_a"],
 			tr("RESOURCE_B"),
-			(
-				Constants
-				. Match
-				. Units
-				. CONSTRUCTION_COSTS[AntiGroundTurretUnit.resource_path]["resource_b"]
-			)
+			ag_turret_cost["resource_b"]
 		]
 	))
-	var aa_turret_properties = Constants.Match.Units.DEFAULT_PROPERTIES[
-		AntiAirTurretUnit.resource_path
-	]
+	var aa_turret_properties = balance.GetUnitDisplaySnapshot(AntiAirTurretUnit)
+	var aa_turret_cost = balance.GetConstructionCost(AntiAirTurretUnit)
 	_aa_turret_button.tooltip_text = ("{0} - {1}\n{2} HP, {3} DPS\n{4}: {5}, {6}: {7}".format(
 		[
 			tr("AA_TURRET"),
@@ -49,57 +38,48 @@ func _ready():
 			aa_turret_properties["hp_max"],
 			aa_turret_properties["attack_damage"] * aa_turret_properties["attack_interval"],
 			tr("RESOURCE_A"),
-			Constants.Match.Units.CONSTRUCTION_COSTS[AntiAirTurretUnit.resource_path]["resource_a"],
+			aa_turret_cost["resource_a"],
 			tr("RESOURCE_B"),
-			Constants.Match.Units.CONSTRUCTION_COSTS[AntiAirTurretUnit.resource_path]["resource_b"]
+			aa_turret_cost["resource_b"]
 		]
 	))
+	var cc_properties = balance.GetUnitDisplaySnapshot(CommandCenterUnit)
+	var cc_cost = balance.GetConstructionCost(CommandCenterUnit)
 	_cc_button.tooltip_text = ("{0} - {1}\n{2} HP\n{3}: {4}, {5}: {6}".format(
 		[
 			tr("CC"),
 			tr("CC_DESCRIPTION"),
-			Constants.Match.Units.DEFAULT_PROPERTIES[CommandCenterUnit.resource_path]["hp_max"],
+			cc_properties["hp_max"],
 			tr("RESOURCE_A"),
-			Constants.Match.Units.CONSTRUCTION_COSTS[CommandCenterUnit.resource_path]["resource_a"],
+			cc_cost["resource_a"],
 			tr("RESOURCE_B"),
-			Constants.Match.Units.CONSTRUCTION_COSTS[CommandCenterUnit.resource_path]["resource_b"]
+			cc_cost["resource_b"]
 		]
 	))
+	var vehicle_factory_properties = balance.GetUnitDisplaySnapshot(VehicleFactoryUnit)
+	var vehicle_factory_cost = balance.GetConstructionCost(VehicleFactoryUnit)
 	_vehicle_factory_button.tooltip_text = ("{0} - {1}\n{2} HP\n{3}: {4}, {5}: {6}".format(
 		[
 			tr("VEHICLE_FACTORY"),
 			tr("VEHICLE_FACTORY_DESCRIPTION"),
-			Constants.Match.Units.DEFAULT_PROPERTIES[VehicleFactoryUnit.resource_path]["hp_max"],
+			vehicle_factory_properties["hp_max"],
 			tr("RESOURCE_A"),
-			(
-				Constants
-				. Match
-				. Units
-				. CONSTRUCTION_COSTS[VehicleFactoryUnit.resource_path]["resource_a"]
-			),
+			vehicle_factory_cost["resource_a"],
 			tr("RESOURCE_B"),
-			Constants.Match.Units.CONSTRUCTION_COSTS[VehicleFactoryUnit.resource_path]["resource_b"]
+			vehicle_factory_cost["resource_b"]
 		]
 	))
+	var aircraft_factory_properties = balance.GetUnitDisplaySnapshot(AircraftFactoryUnit)
+	var aircraft_factory_cost = balance.GetConstructionCost(AircraftFactoryUnit)
 	_aircraft_factory_button.tooltip_text = ("{0} - {1}\n{2} HP\n{3}: {4}, {5}: {6}".format(
 		[
 			tr("AIRCRAFT_FACTORY"),
 			tr("AIRCRAFT_FACTORY_DESCRIPTION"),
-			Constants.Match.Units.DEFAULT_PROPERTIES[AircraftFactoryUnit.resource_path]["hp_max"],
+			aircraft_factory_properties["hp_max"],
 			tr("RESOURCE_A"),
-			(
-				Constants
-				. Match
-				. Units
-				. CONSTRUCTION_COSTS[AircraftFactoryUnit.resource_path]["resource_a"]
-			),
+			aircraft_factory_cost["resource_a"],
 			tr("RESOURCE_B"),
-			(
-				Constants
-				. Match
-				. Units
-				. CONSTRUCTION_COSTS[AircraftFactoryUnit.resource_path]["resource_b"]
-			)
+			aircraft_factory_cost["resource_b"]
 		]
 	))
 

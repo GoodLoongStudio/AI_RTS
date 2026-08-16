@@ -10,6 +10,7 @@ var _selected = false
 
 @onready var _unit = get_parent()
 @onready var _circle = find_child("FadedCircle3D")
+@onready var _input_runtime = find_parent("Match").get_node("InputBindingRuntime")
 
 
 func _ready():
@@ -77,7 +78,7 @@ func _update_circle_params():
 
 func _on_input_event(_camera, event, _click_position, _click_normal, _shape_idx):
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		if _selected and Input.is_action_pressed("shift_selecting"):
+		if _selected and _input_runtime.IsModifierPressed("Shift"):
 			deselect()
 			return
 		select()

@@ -4,10 +4,15 @@ signal squad_selected(squad_id)
 signal squad_command_executed(squad_id, command)
 signal player_text_submitted(text)
 
-const WaitingForTargets = preload("res://source/match/units/actions/WaitingForTargets.gd")
-
 const SQUAD_NAMES = {1: "突击队", 2: "侦察队", 3: "支援队"}
-const COMMAND_KEYS = {KEY_Q: "MOVE", KEY_W: "ATTACK", KEY_E: "DEFEND", KEY_R: "SCOUT", KEY_D: "RETREAT", KEY_F: "STOP"}
+const COMMAND_ACTIONS = {
+	"legacy.command_move": "MOVE",
+	"legacy.command_attack": "ATTACK",
+	"legacy.command_defend": "DEFEND",
+	"legacy.command_scout": "SCOUT",
+	"legacy.command_retreat": "RETREAT",
+	"legacy.command_stop": "STOP",
+}
 const COMMAND_LABELS = {
 	"MOVE": "移动", "ATTACK": "攻击", "DEFEND": "防守",
 	"SCOUT": "侦察", "RETREAT": "撤退", "STOP": "停止"
@@ -33,12 +38,14 @@ var _current_objective := "等待战区任务同步"
 var _current_suggestion := "保持待命，等待新的任务信息。"
 var _current_risk := "未知"
 var _mock_agent_busy := false
+@onready var _input_runtime = find_parent("Match").get_node("InputBindingRuntime")
 
 
 func _ready():
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_build_ui()
+	_input_runtime.connect("ActionPressed", _on_input_action_pressed)
 	MatchSignals.terrain_targeted.connect(_on_terrain_targeted)
 	MatchSignals.unit_targeted.connect(_on_unit_targeted)
 	if _is_hero_mode():
@@ -47,32 +54,41 @@ func _ready():
 		_append_ai("指挥链路已上线。你可以直接下达自然语言命令，也可以让我评估当前风险和下一步行动。")
 	_refresh_squad_ui()
 	_refresh_agent_context()
+	set_interface_visible(false)
 
 
-func _unhandled_key_input(event: InputEvent):
-	if not event.pressed or event.echo:
+func set_interface_visible(should_show: bool):
+	visible = should_show
+	if not should_show:
+		pending_command = ""
+		if _input != null:
+			_input.release_focus()
+	_input_runtime.SetContextActive("LegacyAgent", should_show)
+
+
+func is_interface_visible() -> bool:
+	return visible
+
+
+func _on_input_action_pressed(action_id: String):
+	if not visible:
 		return
-	if event.keycode == KEY_F1 and _is_hero_mode():
+	if action_id == "text.cancel":
+		_input.release_focus()
+		return
+	if action_id == "legacy.hero_focus" and _is_hero_mode():
 		_handle_hero_focus_hotkey()
-		get_viewport().set_input_as_handled()
 		return
 	if _input.has_focus():
-		if event.keycode == KEY_ESCAPE:
-			_input.release_focus()
 		return
-	match event.keycode:
-		KEY_1:
-			_select_squad(1)
-		KEY_2:
-			if not _is_hero_mode():
-				_select_squad(2)
-		KEY_3:
-			if not _is_hero_mode():
-				_select_squad(3)
-		KEY_ENTER:
-			_input.grab_focus()
-		KEY_Q, KEY_W, KEY_E, KEY_R, KEY_D, KEY_F:
-			_begin_command(COMMAND_KEYS[event.keycode])
+	if action_id.begins_with("legacy.squad_"):
+		var squad_id := int(action_id.trim_prefix("legacy.squad_"))
+		if squad_id == 1 or not _is_hero_mode():
+			_select_squad(squad_id)
+	elif action_id == "legacy.chat_focus":
+		_input.grab_focus()
+	elif COMMAND_ACTIONS.has(action_id):
+		_begin_command(COMMAND_ACTIONS[action_id])
 
 
 func _build_ui():
@@ -185,6 +201,8 @@ func _build_ui():
 		_input.placeholder_text = "对岚说：二队向右侦察；评估风险；一队原地防守……"
 	_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_input.text_submitted.connect(_on_text_submitted)
+	_input.focus_entered.connect(_input_runtime.EnterTextInputMode)
+	_input.focus_exited.connect(_input_runtime.ExitTextInputMode)
 	input_row.add_child(_input)
 	var send := Button.new()
 	send.text = "发送"
@@ -295,7 +313,7 @@ func _select_squad(squad_id: int):
 		if _is_hero_mode():
 			_append_ai("先锋单位尚未接入战场。")
 		else:
-			_append_ai("%d %s 尚未编组。先框选单位并用 Ctrl+%d 保存编组。" % [squad_id, SQUAD_NAMES[squad_id], squad_id])
+			_append_ai("%d %s 尚未由任务系统建立。" % [squad_id, SQUAD_NAMES[squad_id]])
 	else:
 		Utils.Match.select_units(Utils.Set.from_array(units))
 	_refresh_squad_ui()
@@ -303,7 +321,7 @@ func _select_squad(squad_id: int):
 
 
 func _get_squad_units(squad_id: int) -> Array:
-	return get_tree().get_nodes_in_group("unit_group_%d" % squad_id).filter(
+	return get_tree().get_nodes_in_group("legacy_ai_squad_%d" % squad_id).filter(
 		func(unit): return unit.is_in_group("controlled_units")
 	)
 
@@ -327,9 +345,19 @@ func _begin_command(command: String):
 
 
 func _execute_defend():
-	for unit in _get_squad_units(active_squad):
-		if unit.attack_range != null:
-			unit.action = WaitingForTargets.new()
+	var units = _get_squad_units(active_squad).filter(
+		func(unit): return unit.attack_range != null
+	)
+	if units.is_empty() or not _submit_public_squad_command(
+		func(gateway, player):
+			return gateway.SetEngagementStance(
+				units,
+				"Guard" if _is_hero_mode() else "HoldGround",
+				player
+			)
+	):
+		_append_ai("命令未执行：当前小队没有可设置防守姿态的单位或公共命令入口不可用。")
+		return
 	squad_status[active_squad] = "警戒中" if _is_hero_mode() else "固守中"
 	pending_command = ""
 	_append_ai("命令已下达：%s原地警戒。我会继续关注任务状态。" % _control_display(active_squad))
@@ -338,13 +366,31 @@ func _execute_defend():
 
 
 func _execute_stop():
-	for unit in _get_squad_units(active_squad):
-		unit.action = null
+	var units = _get_squad_units(active_squad)
+	if not _submit_public_squad_command(
+		func(gateway, player): return gateway.StopUnits(units, player)
+	):
+		_append_ai("命令未执行：公共停止命令拒绝或入口不可用。")
+		return
 	squad_status[active_squad] = "待命"
 	pending_command = ""
 	_append_ai("命令已下达：%s停止当前任务，重新进入待命。" % _control_display(active_squad))
 	_refresh_squad_ui()
 	squad_command_executed.emit(active_squad, "STOP")
+
+
+## 通过小队拥有者的公共 Gateway 提交冻结 HUD 命令，至少一个单位接受时返回 true。
+func _submit_public_squad_command(submit: Callable) -> bool:
+	var units = _get_squad_units(active_squad)
+	if units.is_empty():
+		return false
+	var player = units[0].player
+	var gateway = player.find_child("UnitCommandGateway")
+	if gateway == null:
+		push_error("Legacy AI HUD cannot find UnitCommandGateway")
+		return false
+	var result: Dictionary = submit.call(gateway, player)
+	return result.get("status", "Rejected") in ["Accepted", "PartiallyAccepted"]
 
 
 func _on_terrain_targeted(_position):
@@ -359,7 +405,7 @@ func _on_terrain_targeted(_position):
 	squad_command_executed.emit(active_squad, executed_command)
 
 
-func _on_unit_targeted(unit):
+func _on_unit_targeted(unit, _target_position):
 	if pending_command != "ATTACK":
 		return
 	if not unit.is_in_group("adversary_units"):

@@ -15,4 +15,12 @@ export_credentials.cfg
 .mono/
 data_*/
 mono_crash.*.json
+
+# .NET build outputs
+**/bin/
+**/obj/
+
+# Local regression logs
+.test-results/
+
 .DS_Store

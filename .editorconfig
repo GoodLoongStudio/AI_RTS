@@ -1,0 +1,5 @@
+root = true
+
+[*.cs]
+# 所有控制语句必须使用大括号；IDE 与 dotnet format 应把违规视为错误。
+csharp_prefer_braces = true:error

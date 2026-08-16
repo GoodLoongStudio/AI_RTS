@@ -77,7 +77,9 @@ func _rebake():
 # TODO: remove whenever Godot fixes that on its side
 func _sync_navmesh_changes():
 	"""this function forces synchronization between server-level primitives and nodes"""
-	_navigation_region.navigation_mesh = _navigation_region.navigation_mesh
+	NavigationServer3D.region_set_navigation_mesh(
+		_navigation_region.get_region_rid(), _navigation_region.navigation_mesh
+	)
 
 
 func _safety_checks():

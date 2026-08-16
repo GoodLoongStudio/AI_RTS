@@ -1,5 +1,30 @@
 # Changelog
 
+## [Unreleased - C# refactor]
+
+### Added
+
+- Added layered `AI_RTS` C# Domain, Application, and GodotAdapter architecture with a Godot-independent Core assembly.
+- Added shared command, query, economy, construction, production, rally point, control group, match outcome, input, and strongly typed balance configuration services.
+- Added public command/query boundaries for players and traditional rule AI while keeping the LLM officer integration frozen.
+- Added 101 pure C# tests, 31 Godot automated scenes, a complete regression runner, architecture audits, and GitHub Actions gates.
+- Added project structure, extension, interface review, manual acceptance, performance baseline, and deferred-work documentation.
+
+### Changed
+
+- Migrated the main RTS execution paths and traditional AI authority writes toward C# services while retaining audited Legacy GDScript adapters where migration is intentionally deferred.
+- Updated the project baseline to Godot 4.7 Mono/.NET, `Godot.NET.Sdk/4.7.0`, and .NET 8.
+- Separated the traditional RTS command HUD and control groups from the frozen Legacy AI officer interface.
+
+### Fixed
+
+- Fixed unit and structure runtime placement collapsing near the map origin.
+- Fixed Stop cancellation, projectile post-launch damage ownership, helicopter command integration, construction damage notifications, match victory reporting, generated UID tracking, and Godot shutdown resource leaks.
+
+### Deferred
+
+- Navigation quality and large-unit optimization, advanced combat policies, formation/scatter/plan commands, campaign migration, detailed traditional AI design, and Python/LLM/database integration remain separate follow-up work.
+
 ## [main]
 
 ### New features

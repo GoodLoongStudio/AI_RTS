@@ -8,6 +8,7 @@ var _range_check_timer = null
 
 @onready var _unit = Utils.NodeEx.find_parent_with_group(self, "units")
 @onready var _unit_movement_trait = _unit.find_child("Movement")
+@onready var _projectile_runtime = _unit.find_parent("Match").get_node("ProjectileRuntime")
 
 
 func _init(target_unit):
@@ -47,12 +48,12 @@ func _setup_range_check_timer():
 
 
 func _rotate_unit_towards_target():
-	_unit.global_transform = _unit.global_transform.looking_at(
-		Vector3(
-			_target_unit.global_position.x, _unit.global_position.y, _target_unit.global_position.z
-		),
-		Vector3(0, 1, 0)
+	var look_target := Vector3(
+		_target_unit.global_position.x, _unit.global_position.y, _target_unit.global_position.z
 	)
+	if look_target.is_equal_approx(_unit.global_position):
+		return
+	_unit.global_transform = _unit.global_transform.looking_at(look_target, Vector3(0, 1, 0))
 
 
 func _schedule_hit():
@@ -71,16 +72,7 @@ func _hit_target():
 	_unit.set_meta(
 		"next_attack_availability_time", Time.get_ticks_msec() + int(_unit.attack_interval * 1000.0)
 	)
-	var projectile = (
-		load(
-			Constants.Match.Units.PROJECTILES[_unit.get_script().resource_path.replace(
-				".gd", ".tscn"
-			)]
-		)
-		. instantiate()
-	)
-	projectile.target_unit = _target_unit
-	_unit.add_child(projectile)
+	_projectile_runtime.LaunchEntity(_unit, _target_unit)
 	_schedule_hit()
 
 

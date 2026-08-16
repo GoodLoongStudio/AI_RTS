@@ -43,7 +43,6 @@ viewport_path = NodePath("HUD/MarginContainer/Minimap/MarginContainer/MinimapVie
 
 [node name="Match" instance=ExtResource("1_f87ft")]
 script = ExtResource("2_iedaw")
-allow_resources_deficit_spending = true
 settings = SubResource("Resource_e2qbq")
 
 [node name="Map" parent="." index="0" instance=ExtResource("10_3dtqy")]

@@ -4,34 +4,61 @@ signal changed
 
 @export var resource_a = 0:
 	set(value):
+		if _economy_runtime != null and not _applying_authoritative_snapshot:
+			push_error("resource_a is an authoritative C# account mirror; use a resource transaction")
+			return
 		resource_a = value
-		emit_changed()
+		if not _applying_authoritative_snapshot:
+			emit_changed()
 @export var resource_b = 0:
 	set(value):
+		if _economy_runtime != null and not _applying_authoritative_snapshot:
+			push_error("resource_b is an authoritative C# account mirror; use a resource transaction")
+			return
 		resource_b = value
-		emit_changed()
+		if not _applying_authoritative_snapshot:
+			emit_changed()
 @export var color = Color.WHITE
 
 var _color_material = null
+var _economy_runtime = null
+var _resource_account_id := ""
+var _resource_account_version := 0
+var _applying_authoritative_snapshot := false
 
 
-func add_resources(resources):
-	for resource in resources:
-		set(resource, get(resource) + resources[resource])
+## 将 Player 接入当前 Match 唯一的 C# 资源账户，并导入场景初始余额。
+func setup_resource_account(economy_runtime):
+	assert(_economy_runtime == null, "resource account can only be configured once")
+	_economy_runtime = economy_runtime
+	_resource_account_id = _economy_runtime.RegisterPlayer(self, resource_a, resource_b)
+
+
+## 接收 C# 权威账户快照并更新 Legacy 只读字段，供现有 HUD 与测试读取。
+func apply_authoritative_resource_snapshot(a: int, b: int, version: int):
+	if version < _resource_account_version:
+		return
+	_resource_account_version = version
+	_applying_authoritative_snapshot = true
+	resource_a = a
+	resource_b = b
+	_applying_authoritative_snapshot = false
+	emit_changed()
+
+
+func add_resources(resources, reason := "ScriptedAdjustment", source = null) -> bool:
+	assert(_economy_runtime != null, "resource account must be configured before use")
+	return _economy_runtime.AddResources(self, resources, reason, source)["accepted"]
 
 
 func has_resources(resources):
-	if FeatureFlags.allow_resources_deficit_spending:
-		return true
-	for resource in resources:
-		if get(resource) < resources[resource]:
-			return false
-	return true
+	assert(_economy_runtime != null, "resource account must be configured before use")
+	return _economy_runtime.HasResources(self, resources)
 
 
-func subtract_resources(resources):
-	for resource in resources:
-		set(resource, get(resource) - resources[resource])
+func subtract_resources(resources, reason := "ScriptedAdjustment", source = null) -> bool:
+	assert(_economy_runtime != null, "resource account must be configured before use")
+	return _economy_runtime.SubtractResources(self, resources, reason, source)["accepted"]
 
 
 func get_color_material():

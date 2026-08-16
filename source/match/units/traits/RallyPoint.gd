@@ -1,22 +1,13 @@
 extends Node3D
 
-var target_unit = null:
-	set(a_target_unit):
-		if target_unit == null and a_target_unit != null:
-			a_target_unit.tree_exited.connect(_on_target_unit_tree_exited)
-			hide()
-		elif target_unit != null and a_target_unit == null:
-			target_unit.tree_exited.disconnect(_on_target_unit_tree_exited)
-			_reset_position_to_parent()
-			if _unit.is_in_group("selected_units"):
-				show()
-		target_unit = a_target_unit
+var target_unit = null
 
 @onready var _unit = get_parent()
 @onready var _animation_player = find_child("AnimationPlayer")
 
 
 func _ready():
+	find_parent("Match").get_node("RallyPointRuntime").RegisterProducer(_unit, self)
 	_animation_player.play("idle")
 	visible = _unit.is_in_group("selected_units")
 	_unit.selected.connect(_show)
@@ -37,9 +28,23 @@ func _show():
 			targetability.animate()
 
 
-func _reset_position_to_parent():
-	global_position = _unit.global_position
-
-
-func _on_target_unit_tree_exited():
+## 显示权威位置目标；视图不得反向修改 Rally 状态。
+func apply_authoritative_position(target_position: Vector3):
 	target_unit = null
+	global_position = target_position
+	if _unit.is_in_group("selected_units"):
+		show()
+
+
+## 显示权威实体目标；沿用目标高亮并隐藏地面标记。
+func apply_authoritative_target(target):
+	target_unit = target
+	hide()
+
+
+## 清除自定义目标后把表现复位到建筑门口默认状态。
+func apply_authoritative_default():
+	target_unit = null
+	global_position = _unit.global_position
+	if _unit.is_in_group("selected_units"):
+		show()

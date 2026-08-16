@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>AI_RTS</RootNamespace>
+    <AssemblyName>AI_RTS.Core</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="source/csharp/Domain/**/*.cs" />
+    <Compile Include="source/csharp/Application/**/*.cs" />
+  </ItemGroup>
+</Project>
