@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tests/automated/TraditionalUnitCommandHudSmokeTest.gd" id="1_hud_test"]
+
+[node name="TraditionalUnitCommandHudSmokeTest" type="Node"]
+script = ExtResource("1_hud_test")

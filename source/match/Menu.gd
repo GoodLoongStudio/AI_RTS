@@ -7,20 +7,19 @@ var _options_panel: Control = null
 
 func _ready():
 	hide()
+	get_parent().get_node("InputBindingRuntime").connect("ActionPressed", _on_input_action_pressed)
 
 
-func _unhandled_input(event):
-	if not event.is_action_pressed("toggle_match_menu"):
+func _on_input_action_pressed(action_id: String):
+	if action_id != "global.toggle_menu":
 		return
 
 	if _options_panel != null:
 		_close_options_panel()
-		get_viewport().set_input_as_handled()
 		return
 
 	if ((not visible and not get_tree().paused) or (visible and get_tree().paused)):
 		_toggle()
-		get_viewport().set_input_as_handled()
 
 
 func _toggle():

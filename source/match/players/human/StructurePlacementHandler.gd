@@ -6,6 +6,7 @@ enum BlueprintPositionValidity {
 	NOT_NAVIGABLE,
 	NOT_ENOUGH_RESOURCES,
 	OUT_OF_MAP,
+	NOT_VISIBLE,
 }
 
 const ROTATION_BY_KEY_STEP = 45.0
@@ -16,19 +17,22 @@ const BLUEPRINT_VALID_PATH = MATERIALS_ROOT + "blueprint_valid.material.tres"
 const BLUEPRINT_INVALID_PATH = MATERIALS_ROOT + "blueprint_invalid.material.tres"
 
 var _active_blueprint_node = null
-var _pending_structure_radius = null
-var _pending_structure_navmap_rid = null
 var _pending_structure_prototype = null
+var _pending_construction_workers := []
 var _blueprint_rotating = false
 
 @onready var _player = get_parent()
 @onready var _match = find_parent("Match")
 @onready var _feedback_label = find_child("FeedbackLabel3D")
+@onready var _placement_runtime = _match.find_child("StructurePlacementRuntime")
+@onready var _balance_runtime = _match.find_child("BalanceConfigRuntime")
+@onready var _input_runtime = _match.get_node("InputBindingRuntime")
 
 
 func _ready():
 	_feedback_label.hide()
 	MatchSignals.place_structure.connect(_on_structure_placement_request)
+	_input_runtime.connect("ActionPressed", _on_input_action_pressed)
 
 
 func _unhandled_input(event):
@@ -36,8 +40,6 @@ func _unhandled_input(event):
 		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 		_handle_lmb_down_event(event)
-	if event.is_action_pressed("rotate_structure"):
-		_try_rotating_blueprint_by(ROTATION_BY_KEY_STEP)
 	if (
 		event is InputEventMouseButton
 		and event.button_index == MOUSE_BUTTON_LEFT
@@ -92,38 +94,25 @@ func _blueprint_rotation_started():
 
 
 func _calculate_blueprint_position_validity():
-	if _active_bluprint_out_of_map():
-		return BlueprintPositionValidity.OUT_OF_MAP
-	if not _player_has_enough_resources():
-		return BlueprintPositionValidity.NOT_ENOUGH_RESOURCES
-	var placement_validity = Utils.Match.Unit.Placement.validate_agent_placement_position(
-		_active_blueprint_node.global_position,
-		_pending_structure_radius,
-		get_tree().get_nodes_in_group("units") + get_tree().get_nodes_in_group("resource_units"),
-		_pending_structure_navmap_rid
+	var evaluation = _placement_runtime.Evaluate(
+		_player,
+		_pending_structure_prototype,
+		_active_blueprint_node.global_transform,
+		{}  # ECO-007B：Legacy 参数保留兼容，权威成本由 C# Catalog 查询。
 	)
-	if placement_validity == Utils.Match.Unit.Placement.COLLIDES_WITH_AGENT:
-		return BlueprintPositionValidity.COLLIDES_WITH_OBJECT
-	if placement_validity == Utils.Match.Unit.Placement.NOT_NAVIGABLE:
-		return BlueprintPositionValidity.NOT_NAVIGABLE
-	return BlueprintPositionValidity.VALID
-
-
-func _player_has_enough_resources():
-	var construction_cost = Constants.Match.Units.CONSTRUCTION_COSTS[
-		_pending_structure_prototype.resource_path
-	]
-	return _player.has_resources(construction_cost)
-
-
-func _active_bluprint_out_of_map():
-	return not Geometry2D.is_point_in_polygon(
-		Vector2(
-			_active_blueprint_node.global_transform.origin.x,
-			_active_blueprint_node.global_transform.origin.z
-		),
-		_match.map.get_topdown_polygon_2d()
-	)
+	match evaluation["primary_issue"]:
+		"":
+			return BlueprintPositionValidity.VALID
+		"NotVisible":
+			return BlueprintPositionValidity.NOT_VISIBLE
+		"OutOfBounds":
+			return BlueprintPositionValidity.OUT_OF_MAP
+		"InsufficientResources":
+			return BlueprintPositionValidity.NOT_ENOUGH_RESOURCES
+		"Occupied", "FriendlyDisplacementUnavailable":
+			return BlueprintPositionValidity.COLLIDES_WITH_OBJECT
+		_:
+			return BlueprintPositionValidity.NOT_NAVIGABLE
 
 
 func _update_feedback_label(blueprint_position_validity):
@@ -137,16 +126,24 @@ func _update_feedback_label(blueprint_position_validity):
 			_feedback_label.text = tr("BLUEPRINT_NOT_ENOUGH_RESOURCES")
 		BlueprintPositionValidity.OUT_OF_MAP:
 			_feedback_label.text = tr("BLUEPRINT_OUT_OF_MAP")
+		BlueprintPositionValidity.NOT_VISIBLE:
+			_feedback_label.text = tr("BLUEPRINT_NOT_VISIBLE")
 
 
 func _start_structure_placement(structure_prototype):
 	if _structure_placement_started():
 		return
 	_pending_structure_prototype = structure_prototype
-	_active_blueprint_node = (
-		load(Constants.Match.Units.STRUCTURE_BLUEPRINTS[structure_prototype.resource_path])
-		. instantiate()
+	_pending_construction_workers = get_tree().get_nodes_in_group("selected_units").filter(
+		func(unit):
+			return (
+				unit.is_in_group("controlled_units")
+				and unit.has_method("request_legacy_construct")
+			)
 	)
+	var blueprint_path = _balance_runtime.GetBlueprintScenePath(structure_prototype)
+	assert(not blueprint_path.is_empty(), "structure is missing blueprint asset mapping")
+	_active_blueprint_node = load(blueprint_path).instantiate()
 	var blueprint_origin = Vector3(-999, 0, -999)
 	var camera_direction_yless = (
 		(get_viewport().get_camera_3d().project_ray_normal(Vector2(0, 0)) * Vector3(1, 0, 1))
@@ -157,14 +154,7 @@ func _start_structure_placement(structure_prototype):
 		rotate_towards, Vector3.UP
 	)
 	add_child(_active_blueprint_node)
-	var temporary_structure_instance = _pending_structure_prototype.instantiate()
-	_pending_structure_radius = temporary_structure_instance.radius
-	_pending_structure_navmap_rid = (
-		find_parent("Match")
-		. navigation
-		. get_navigation_map_rid_by_domain(temporary_structure_instance.movement_domain)
-	)
-	temporary_structure_instance.free()
+	_input_runtime.SetContextActive("BuildPlacement", true)
 
 
 func _set_blueprint_position_based_on_mouse_pos():
@@ -192,20 +182,27 @@ func _cancel_structure_placement():
 		_feedback_label.hide()
 		_active_blueprint_node.queue_free()
 		_active_blueprint_node = null
+	_pending_construction_workers = []
+	_input_runtime.SetContextActive("BuildPlacement", false)
 
 
 func _finish_structure_placement():
-	if _player_has_enough_resources():
-		var construction_cost = Constants.Match.Units.CONSTRUCTION_COSTS[
-			_pending_structure_prototype.resource_path
-		]
-		_player.subtract_resources(construction_cost)
-		MatchSignals.setup_and_spawn_unit.emit(
-			_pending_structure_prototype.instantiate(),
-			_active_blueprint_node.global_transform,
-			_player
+	var result = _placement_runtime.Place(
+		_player,
+		_pending_structure_prototype,
+		_active_blueprint_node.global_transform,
+		{}  # ECO-007B：Legacy 参数保留兼容，权威成本由 C# Catalog 查询。
+	)
+	if result["accepted"]:
+		_placement_runtime.AssignBuilders(
+			_pending_construction_workers,
+			result["structure"],
+			_player,
+			result["displaced_unit_ids"]
 		)
-	_cancel_structure_placement()
+		_cancel_structure_placement()
+	elif result["primary_issue"] == "InsufficientResources":
+		MatchSignals.not_enough_resources_for_construction.emit(_player)
 
 
 func _start_blueprint_rotation():
@@ -244,3 +241,8 @@ func _finish_blueprint_rotation():
 
 func _on_structure_placement_request(structure_prototype):
 	_start_structure_placement(structure_prototype)
+
+
+func _on_input_action_pressed(action_id: String):
+	if action_id == "build.rotate":
+		_try_rotating_blueprint_by(ROTATION_BY_KEY_STEP)

@@ -1,0 +1,31 @@
+# Keep repository text deterministic across Windows, macOS, Linux, and Godot.
+* text=auto eol=lf
+
+# Godot text formats and generated import metadata.
+*.gd text eol=lf
+*.gdshader text eol=lf
+*.godot text eol=lf
+*.tscn text eol=lf
+*.tres text eol=lf
+*.theme text eol=lf
+*.uid text eol=lf
+*.import text eol=lf
+
+# Project documentation and configuration.
+*.cfg text eol=lf
+*.csv text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.svg text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Asset formats must never receive line-ending conversion.
+*.glb binary
+*.jpg binary
+*.jpeg binary
+*.kra binary
+*.ogg binary
+*.png binary
+*.wav binary
+*.webp binary

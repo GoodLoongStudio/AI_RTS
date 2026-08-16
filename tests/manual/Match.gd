@@ -1,9 +1,12 @@
 extends "res://source/match/Match.gd"
 
-@export var allow_resources_deficit_spending = true
+## 普通功能测试默认移除终局面板，避免测试中途暂停；胜负专项场景可以显式关闭。
+@export var disable_match_end_for_test := true
 
 
 func _ready():
-	find_child("MatchEndHandler").queue_free()
-	FeatureFlags.allow_resources_deficit_spending = allow_resources_deficit_spending
+	if disable_match_end_for_test:
+		var handler = find_child("MatchEndHandler")
+		if handler != null:
+			handler.queue_free()
 	super()

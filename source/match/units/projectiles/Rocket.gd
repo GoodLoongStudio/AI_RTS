@@ -1,8 +1,10 @@
 extends Node3D
 
-var target_unit = null
+var attack_id := ""
+var projectile_runtime = null
+var launch_transform := Transform3D.IDENTITY
+var visible_snapshot := true
 
-@onready var _unit = get_parent()
 @onready var _visuals = find_child("Visuals")
 @onready var _path = find_child("Path3D")
 @onready var _animation_player = find_child("AnimationPlayer")
@@ -10,33 +12,36 @@ var target_unit = null
 @onready var _particles = find_child("GPUParticles3D")
 
 
+## 使用独立攻击快照建立导弹路径；发射者后续退出不会影响本节点。
 func _ready():
-	assert(target_unit != null, "target unit was not provided")
-	_visuals.visible = _unit.visible
+	assert(not attack_id.is_empty(), "attack instance id was not provided")
+	assert(projectile_runtime != null, "projectile runtime was not provided")
+	_visuals.visible = visible_snapshot
 	_rocket.hide()
 	_particles.hide()
-	target_unit.tree_exited.connect(queue_free)
 	_animation_player.animation_finished.connect(func(_animation): queue_free())
 	_setup_path()
-	# wait 2 frames for path curve setup so that path follow has correct transform
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	_animation_player.play("animate")
 
 
+## 在目标有效时刷新瞄准点；目标失效后运行时返回最后已知位置。
 func _physics_process(_delta):
-	_path.curve.set_point_position(1, target_unit.global_position)
+	var aim_point: Vector3 = projectile_runtime.GetAimPoint(attack_id)
+	if aim_point.is_finite() and _path.curve.point_count >= 2:
+		_path.curve.set_point_position(1, aim_point)
 
 
+## 使用发射世界坐标和当前瞄准点初始化视觉曲线。
 func _setup_path():
-	var projectile_origin = (
-		_unit.global_position
-		if _unit.find_child("ProjectileOrigin") == null
-		else _unit.find_child("ProjectileOrigin").global_position
-	)
-	_path.curve.add_point(projectile_origin)
-	_path.curve.add_point(target_unit.global_position)
+	var aim_point: Vector3 = projectile_runtime.GetAimPoint(attack_id)
+	_path.curve.add_point(launch_transform.origin)
+	_path.curve.add_point(aim_point)
 
 
+## 动画抵达末端时仅结算一次实际爆点伤害。
 func _perform_hit():
-	target_unit.hp -= _unit.attack_damage
+	if _path.curve.point_count < 2:
+		return
+	projectile_runtime.ResolveImpact(attack_id, _path.curve.get_point_position(1))

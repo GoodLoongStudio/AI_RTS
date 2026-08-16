@@ -5,6 +5,9 @@ const Structure = preload("res://source/match/units/Structure.gd")
 const Player = preload("res://source/match/players/Player.gd")
 const Human = preload("res://source/match/players/human/Human.gd")
 const AICommandHUD = preload("res://source/match/hud/AICommandHUD.gd")
+const TraditionalUnitCommandHUD = preload(
+	"res://source/match/hud/TraditionalUnitCommandHUD.tscn"
+)
 const CampaignController = preload("res://source/campaign/CampaignController.gd")
 const CampaignHeroIdentity = preload("res://source/campaign/CampaignHeroIdentity.gd")
 
@@ -30,6 +33,10 @@ var visible_players = null:
 @onready var _camera = $IsometricCamera3D
 @onready var _players = $Players
 @onready var _terrain = $Terrain
+@onready var _input_runtime = $InputBindingRuntime
+@onready var _query_runtime = $WorldQueryRuntime
+@onready var _control_group_runtime = $Handlers/UnitGroupSelectionHandler
+@onready var _match_outcome_runtime = $MatchOutcomeRuntime
 
 
 func _enter_tree():
@@ -42,18 +49,23 @@ func _ready():
 	_setup_subsystems_dependent_on_map()
 	_setup_players()
 	_setup_player_units()
+	_control_group_runtime.Configure(_get_human_player())
+	if FeatureFlags.handle_match_end:
+		_match_outcome_runtime.Initialize(_players, _get_human_player())
 	visible_player = get_tree().get_nodes_in_group("players")[settings.visible_player]
+	_query_runtime.Initialize(_players, _get_human_player())
 	_move_camera_to_initial_position()
 	if settings.visibility == settings.Visibility.FULL:
 		fog_of_war.reveal()
 	_setup_ai_command_hud()
+	_setup_traditional_unit_command_hud()
 	_setup_campaign()
 	MatchSignals.match_started.emit()
 
 
 func _unhandled_input(event):
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		if Input.is_action_pressed("shift_selecting"):
+		if _input_runtime.IsModifierPressed("Shift"):
 			return
 		MatchSignals.deselect_all_units.emit()
 
@@ -67,6 +79,33 @@ func _setup_ai_command_hud():
 		ai_command_hud.control_mode = campaign_data.get("initial_control_mode", "squad")
 		ai_command_hud.hero_name = campaign_data.get("hero_name", "先锋指挥单元")
 	$HUD.add_child(ai_command_hud)
+	_setup_ai_command_hud_toggle(ai_command_hud)
+
+
+func _setup_ai_command_hud_toggle(ai_command_hud: Control):
+	var toggle_button := Button.new()
+	toggle_button.name = "AICommandHUDToggle"
+	toggle_button.text = "显示 AI 副官"
+	toggle_button.tooltip_text = "显示或隐藏 Legacy AI 副官原型界面"
+	toggle_button.position = Vector2(18, 18)
+	toggle_button.custom_minimum_size = Vector2(150, 40)
+	toggle_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	toggle_button.pressed.connect(
+		func():
+			var should_show = not ai_command_hud.is_interface_visible()
+			ai_command_hud.set_interface_visible(should_show)
+			toggle_button.text = "隐藏 AI 副官" if should_show else "显示 AI 副官"
+	)
+	$HUD.add_child(toggle_button)
+
+
+func _setup_traditional_unit_command_hud():
+	var human_player = _get_human_player()
+	if human_player == null:
+		return
+	var command_hud = TraditionalUnitCommandHUD.instantiate()
+	command_hud.actions_controller = human_player.get_node("UnitActionsController")
+	$HUD.add_child(command_hud)
 
 
 func _setup_campaign():
@@ -133,6 +172,7 @@ func _setup_players():
 	for node in _players.get_children():
 		if node is Player:
 			node.add_to_group("players")
+			node.setup_resource_account($EconomyRuntime)
 
 
 func _create_players_from_settings():

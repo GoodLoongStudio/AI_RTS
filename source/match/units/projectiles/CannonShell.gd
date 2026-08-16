@@ -1,31 +1,28 @@
 extends Node3D
 
-var target_unit = null
+var attack_id := ""
+var projectile_runtime = null
+var launch_transform := Transform3D.IDENTITY
+var visible_snapshot := true
 
-@onready var _unit = get_parent()
-@onready var _unit_particles = find_child("OriginParticles")
+@onready var _particles = find_child("OriginParticles")
 @onready var _timer = find_child("Timer")
 
 
+## 使用发射快照初始化炮弹视觉，并把伤害延后到粒子飞行结束时结算。
 func _ready():
-	assert(target_unit != null, "target unit was not provided")
-	_unit_particles.visible = _unit.visible
-	_setup_unit_particles()
-	_setup_timer()
-	target_unit.hp -= _unit.attack_damage
+	assert(not attack_id.is_empty(), "attack instance id was not provided")
+	assert(projectile_runtime != null, "projectile runtime was not provided")
+	_particles.visible = visible_snapshot
+	_particles.global_transform = launch_transform
+	_particles.emitting = true
+	_timer.timeout.connect(_perform_impact)
+	_timer.start(_particles.lifetime)
 
 
-func _setup_timer():
-	_timer.timeout.connect(queue_free)
-	_timer.start(_unit_particles.lifetime)
-
-
-func _setup_unit_particles():
-	await get_tree().physics_frame  # wait for rotation to kick in if remote transform is used
-	var a_global_transform = (
-		_unit.global_transform
-		if _unit.find_child("ProjectileOrigin") == null
-		else _unit.find_child("ProjectileOrigin").global_transform
-	)
-	_unit_particles.global_transform = a_global_transform
-	_unit_particles.emitting = true
+## 在最后有效瞄准点执行一次权威命中，随后释放视觉节点。
+func _perform_impact():
+	var impact_point: Vector3 = projectile_runtime.GetAimPoint(attack_id)
+	if impact_point.is_finite():
+		projectile_runtime.ResolveImpact(attack_id, impact_point)
+	queue_free()

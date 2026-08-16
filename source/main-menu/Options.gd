@@ -68,8 +68,12 @@ func _build_camera_settings():
 	box.add_child(title)
 
 	_camera_edge_scroll = CheckBox.new()
-	_camera_edge_scroll.text = "启用屏幕边缘滚屏"
-	_camera_edge_scroll.button_pressed = bool(Globals.get_camera_option("edge_scroll_enabled"))
+	_camera_edge_scroll.text = "启用屏幕边缘滚屏（当前 Demo 已停用）"
+	_camera_edge_scroll.disabled = not FeatureFlags.enable_edge_scroll
+	_camera_edge_scroll.button_pressed = (
+		FeatureFlags.enable_edge_scroll
+		and bool(Globals.get_camera_option("edge_scroll_enabled"))
+	)
 	_camera_edge_scroll.toggled.connect(_on_camera_edge_scroll_toggled)
 	box.add_child(_camera_edge_scroll)
 
@@ -95,7 +99,7 @@ func _build_camera_settings():
 	)
 
 	var hint := Label.new()
-	hint.text = "提示：边缘范围越大越容易触发；平滑度越高，镜头响应越直接。"
+	hint.text = "提示：当前 Demo 仅保留键盘平移；平滑度越高，镜头响应越直接。"
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint.modulate = Color(0.78, 0.82, 0.88)
 	box.add_child(hint)

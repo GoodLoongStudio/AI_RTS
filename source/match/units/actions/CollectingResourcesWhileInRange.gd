@@ -39,10 +39,14 @@ func _setup_timer():
 	_timer = Timer.new()
 	_timer.timeout.connect(_transfer_single_resource_unit_from_resource_to_worker)
 	add_child(_timer)
+	var resource_name := ""
 	if "resource_a" in _resource_unit:
-		_timer.start(Constants.Match.Resources.A.COLLECTING_TIME_S)
+		resource_name = "resource_a"
 	elif "resource_b" in _resource_unit:
-		_timer.start(Constants.Match.Resources.B.COLLECTING_TIME_S)
+		resource_name = "resource_b"
+	assert(not resource_name.is_empty(), "resource unit has no supported resource kind")
+	var balance_runtime = find_parent("Match").get_node("BalanceConfigRuntime")
+	_timer.start(balance_runtime.GetCollectionDurationSeconds(resource_name))
 
 
 func _transfer_single_resource_unit_from_resource_to_worker():
