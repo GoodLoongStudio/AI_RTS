@@ -19,6 +19,15 @@
 - `第一战役_回声撤离地图与流程设计.md`
 - `策划需求_TODO.md`
 
+### AI 下一阶段实施入口
+
+RTS Core 重构完成后，AI 副官、程序接入、训练和评测按以下文档推进：
+
+1. `AI副官_下一阶段开发训练与评测规格.md`：总实施合同，冻结 Observation → Policy → Intent → Validator → RTS Core → Trace 主链和开发顺序。
+2. `AI副官_权限与情报规则_P0.md`：P0 权限矩阵、战争迷雾情报语义、玩家接管、侧信道与自动化验收。
+3. `单人战役_回声撤离_AI纵向切片验收表.md`：把当前“回声撤离”流程转换为第一个 Human / Scripted / LLM 共用的端到端 AI Benchmark。
+4. `AI训练数据与Benchmark规范_P0P1.md`：Episode Trace、训练数据导出、数据切分、Baseline / Candidate 和 CI / 离线 Benchmark 规则。
+
 后续世界观、兵种、技能、英雄、科技突破、AI 副官产品规则、战役和关卡等文档统一进入这里。
 
 ## 程序文档
