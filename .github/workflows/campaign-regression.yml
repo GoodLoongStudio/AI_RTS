@@ -3,7 +3,7 @@ name: 战役模式回归
 on:
   push:
     branches:
-      - agent/campaign-story-mode
+      - main
   pull_request:
     branches:
       - main
@@ -24,14 +24,14 @@ jobs:
         with:
           global-json-file: global.json
 
-      - name: 安装 Godot 4.7 Mono
+      - name: 安装 Godot Mono 4.7.1
         shell: bash
         run: |
           set -euo pipefail
-          GODOT_PACKAGE="Godot_v4.7-stable_mono_linux_x86_64"
-          GODOT_EXECUTABLE="${GODOT_PACKAGE}/Godot_v4.7-stable_mono_linux.x86_64"
+          GODOT_PACKAGE="Godot_v4.7.1-stable_mono_linux_x86_64"
+          GODOT_EXECUTABLE="${GODOT_PACKAGE}/Godot_v4.7.1-stable_mono_linux.x86_64"
           curl -fL --retry 3 -o godot.zip \
-            "https://github.com/godotengine/godot-builds/releases/download/4.7-stable/${GODOT_PACKAGE}.zip"
+            "https://github.com/godotengine/godot/releases/download/4.7.1-stable/${GODOT_PACKAGE}.zip"
           unzip -q godot.zip
           chmod +x "$GODOT_EXECUTABLE"
           echo "GODOT_BIN=$GODOT_EXECUTABLE" >> "$GITHUB_ENV"
