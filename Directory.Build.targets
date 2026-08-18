@@ -25,11 +25,15 @@
 
       <_ForbiddenGodotPackage
         Include="@(PackageReference)"
-        Condition="$([System.String]::Copy('%(Identity)').ToLowerInvariant().StartsWith('godot'))" />
+        Condition="$([System.String]::Copy('%(PackageReference.Identity)').ToLowerInvariant().StartsWith('godot'))" />
 
       <_ForbiddenGodotProject
         Include="@(ProjectReference)"
-        Condition="$([System.String]::Copy('%(Filename)').ToLowerInvariant().Contains('godot')) Or '$([System.String]::Copy('%(Filename)').ToLowerInvariant())' == 'openrts'" />
+        Condition="$([System.String]::Copy('%(ProjectReference.Filename)').ToLowerInvariant().Contains('godot'))" />
+
+      <_ForbiddenGodotProject
+        Include="@(ProjectReference)"
+        Condition="'%(ProjectReference.Filename)' == 'OpenRTS'" />
 
     </ItemGroup>
 
@@ -54,7 +58,7 @@
 
       <_ForbiddenGodotReference
         Include="@(ReferencePath)"
-        Condition="$([System.String]::Copy('%(Filename)').ToLowerInvariant().StartsWith('godot'))" />
+        Condition="$([System.String]::Copy('%(ReferencePath.Filename)').ToLowerInvariant().StartsWith('godot'))" />
 
     </ItemGroup>
 
