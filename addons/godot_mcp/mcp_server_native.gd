@@ -234,7 +234,7 @@ func _exit_tree() -> void:
 		_main_panel = null
 
 	# Remove MCPRuntimeProbe autoload on plugin exit
-	_remove_runtime_probe_autoload()
+	# _remove_runtime_probe_autoload()
 
 	if _debugger_bridge:
 		remove_debugger_plugin(_debugger_bridge)
