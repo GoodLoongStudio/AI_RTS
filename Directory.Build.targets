@@ -1,0 +1,67 @@
+<Project>
+
+  <!-- 所有 C# 项目必须使用 net8.0 -->
+  <Target
+    Name="EnforceTargetFramework"
+    BeforeTargets="PrepareForBuild">
+
+    <Error
+      Condition="'$(TargetFramework)' != 'net8.0'"
+      Text="ARCH001: 项目必须使用 net8.0。当前项目 $(MSBuildProjectName) 使用 $(TargetFramework)。" />
+
+  </Target>
+
+
+  <!--
+    AI_RTS.Core 包含 Domain 和 Application。
+    Core 禁止引用 Godot/OpenRTS。
+  -->
+  <Target
+    Name="EnforceCoreProjectReferences"
+    BeforeTargets="ResolveReferences"
+    Condition="'$(MSBuildProjectName)' == 'AI_RTS.Core'">
+
+    <ItemGroup>
+
+      <_ForbiddenGodotPackage
+        Include="@(PackageReference)"
+        Condition="$([System.String]::Copy('%(Identity)').ToLowerInvariant().StartsWith('godot'))" />
+
+      <_ForbiddenGodotProject
+        Include="@(ProjectReference)"
+        Condition="$([System.String]::Copy('%(Filename)').ToLowerInvariant().Contains('godot')) Or '$([System.String]::Copy('%(Filename)').ToLowerInvariant())' == 'openrts'" />
+
+    </ItemGroup>
+
+    <Error
+      Condition="'@(_ForbiddenGodotPackage)' != ''"
+      Text="ARCH002: Domain/Application 禁止引用 Godot Package：@(_ForbiddenGodotPackage)。" />
+
+    <Error
+      Condition="'@(_ForbiddenGodotProject)' != ''"
+      Text="ARCH003: Domain/Application 禁止引用 Godot/OpenRTS 项目：@(_ForbiddenGodotProject)。" />
+
+  </Target>
+
+
+  <!-- 防止 Godot 通过其他依赖进入 Core -->
+  <Target
+    Name="EnforceCoreResolvedReferences"
+    AfterTargets="ResolveReferences"
+    Condition="'$(MSBuildProjectName)' == 'AI_RTS.Core'">
+
+    <ItemGroup>
+
+      <_ForbiddenGodotReference
+        Include="@(ReferencePath)"
+        Condition="$([System.String]::Copy('%(Filename)').ToLowerInvariant().StartsWith('godot'))" />
+
+    </ItemGroup>
+
+    <Error
+      Condition="'@(_ForbiddenGodotReference)' != ''"
+      Text="ARCH004: Domain/Application 禁止依赖 Godot 程序集：@(_ForbiddenGodotReference)。" />
+
+  </Target>
+
+</Project>
