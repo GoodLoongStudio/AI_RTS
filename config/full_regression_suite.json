@@ -18,6 +18,7 @@
   "godot_tests": [
     { "id": "air-entity-move", "category": "commands", "scene": "res://tests/automated/AirEntityMoveSmokeTest.tscn", "expected_marker": "Air entity move smoke test completed: 0 failure(s)", "timeout_seconds": 90 },
     { "id": "balance-config-runtime", "category": "configuration", "scene": "res://tests/automated/BalanceConfigRuntimeSmokeTest.tscn", "expected_marker": "Balance config runtime smoke test completed: 0 failure(s)", "timeout_seconds": 90 },
+    { "id": "battlefield-event-camera", "category": "input-ui", "scene": "res://tests/automated/BattlefieldEventCameraSmokeTest.tscn", "expected_marker": "Battlefield event camera smoke test completed: 0 failure(s)", "timeout_seconds": 90 },
     { "id": "campaign-assembly", "category": "frozen-campaign", "scene": "res://tests/automated/CampaignSmokeTest.tscn", "expected_marker": "CAMPAIGN_SMOKE_TEST_OK:", "timeout_seconds": 150 },
     { "id": "control-groups", "category": "selection", "scene": "res://tests/automated/ControlGroupRuntimeSmokeTest.tscn", "expected_marker": "Control group runtime smoke test completed: 0 failure(s)", "timeout_seconds": 90 },
     { "id": "csharp-command", "category": "commands", "scene": "res://tests/automated/CSharpCommandSmokeTest.tscn", "expected_marker": "C# command smoke test completed: 0 failure(s)", "timeout_seconds": 60 },
@@ -37,6 +38,10 @@
     { "id": "runtime-placement", "category": "placement", "scene": "res://tests/automated/RuntimePlacementSmokeTest.tscn", "expected_marker": "Runtime placement smoke test completed: 0 failure(s)", "timeout_seconds": 90 },
     { "id": "structure-placement", "category": "construction", "scene": "res://tests/automated/StructurePlacementSmokeTest.tscn", "expected_marker": "Structure placement smoke test completed: 0 failure(s)", "timeout_seconds": 120 },
     { "id": "tank-combat-policy", "category": "combat", "scene": "res://tests/automated/TankCombatPolicySmokeTest.tscn", "expected_marker": "Tank combat policy smoke test completed: 0 failure(s)", "timeout_seconds": 90 },
+    { "id": "death-cleanup", "category": "combat", "scene": "res://tests/automated/DeathCleanupSmokeTest.tscn", "expected_marker": "Death cleanup smoke test completed: 0 failure(s)", "timeout_seconds": 90 },
+    { "id": "attack-simulation-time", "category": "combat", "scene": "res://tests/automated/AttackSimulationTimeSmokeTest.tscn", "expected_marker": "Attack simulation time smoke test completed: 0 failure(s)", "timeout_seconds": 90 },
+    { "id": "local-avoidance", "category": "navigation", "scene": "res://tests/automated/LocalAvoidanceSmokeTest.tscn", "expected_marker": "Local avoidance smoke test completed: 0 failure(s)", "timeout_seconds": 90 },
+    { "id": "navigation-stability", "category": "navigation", "scene": "res://tests/automated/NavigationStabilitySmokeTest.tscn", "expected_marker": "Navigation stability smoke test completed: 0 failure(s)", "timeout_seconds": 90 },
     { "id": "tank-command-bridge", "category": "commands", "scene": "res://tests/automated/TankCommandBridgeSmokeTest.tscn", "expected_marker": "Tank command bridge smoke test completed: 0 failure(s)", "timeout_seconds": 90 },
     { "id": "tank-entity-attack-move", "category": "combat", "scene": "res://tests/automated/TankEntityAttackMoveSmokeTest.tscn", "expected_marker": "Tank entity attack move smoke test completed: 0 failure(s)", "timeout_seconds": 120 },
     { "id": "tank-force-attack", "category": "combat", "scene": "res://tests/automated/TankForceAttackSmokeTest.tscn", "expected_marker": "Tank force attack smoke test completed: 0 failure(s)", "timeout_seconds": 120 },

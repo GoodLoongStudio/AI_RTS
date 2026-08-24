@@ -10,7 +10,9 @@ public static class DefaultInputBindings
     {
         var result = new List<InputBindingDefinition>
         {
-            Bind("global.toggle_menu", InputContextId.Global, "ESCAPE"),
+            Bind("global.toggle_menu", InputContextId.Global, "F10"),
+            Bind("global.cancel", InputContextId.Global, "ESCAPE"),
+            Bind("global.toggle_ai_hud", InputContextId.Global, "TAB"),
             Bind("text.cancel", InputContextId.MenuTextInput, "ESCAPE"),
             Bind("camera.move_up", InputContextId.Camera, "W"),
             Bind("camera.move_down", InputContextId.Camera, "S"),
@@ -18,26 +20,28 @@ public static class DefaultInputBindings
             Bind("camera.move_right", InputContextId.Camera, "D"),
             Bind("camera.rotate_clockwise", InputContextId.Camera, "Q"),
             Bind("camera.rotate_counterclockwise", InputContextId.Camera, "E"),
+            Bind("camera.focus_latest_event", InputContextId.Camera, "SPACE"),
             Bind("build.rotate", InputContextId.BuildPlacement, "R"),
             Bind("legacy.hero_focus", InputContextId.LegacyAgent, "F1"),
             Bind("legacy.chat_focus", InputContextId.LegacyAgent, "ENTER"),
             Bind("legacy.squad_1", InputContextId.LegacyAgent, "1"),
             Bind("legacy.squad_2", InputContextId.LegacyAgent, "2"),
             Bind("legacy.squad_3", InputContextId.LegacyAgent, "3"),
-            Bind("legacy.command_move", InputContextId.LegacyAgent, "Q"),
-            Bind("legacy.command_attack", InputContextId.LegacyAgent, "W"),
-            Bind("legacy.command_defend", InputContextId.LegacyAgent, "E"),
-            Bind("legacy.command_scout", InputContextId.LegacyAgent, "R"),
-            Bind("legacy.command_retreat", InputContextId.LegacyAgent, "D"),
-            Bind("legacy.command_stop", InputContextId.LegacyAgent, "F"),
-            ButtonOnly("unit.force_move"),
-            ButtonOnly("unit.force_attack"),
+            ButtonOnly("legacy.command_move", InputContextId.LegacyAgent),
+            ButtonOnly("legacy.command_attack", InputContextId.LegacyAgent),
+            ButtonOnly("legacy.command_defend", InputContextId.LegacyAgent),
+            ButtonOnly("legacy.command_scout", InputContextId.LegacyAgent),
+            ButtonOnly("legacy.command_retreat", InputContextId.LegacyAgent),
+            ButtonOnly("legacy.command_stop", InputContextId.LegacyAgent),
+            Bind("unit.attack_move", InputContextId.UnitCommand, "R"),
+            Bind("unit.stop", InputContextId.UnitCommand, "F"),
+            Bind("unit.stance_hold_ground", InputContextId.UnitCommand, "G"),
+            Bind("unit.force_move", InputContextId.UnitCommand, "C"),
+            Bind("unit.force_attack", InputContextId.UnitCommand, "X"),
+            Bind("unit.tactical_withdraw", InputContextId.UnitCommand, "Z"),
             ButtonOnly("unit.halt"),
-            ButtonOnly("unit.tactical_withdraw"),
-            ButtonOnly("unit.attack_move"),
             ButtonOnly("unit.stance_aggressive"),
             ButtonOnly("unit.stance_guard"),
-            ButtonOnly("unit.stance_hold_ground"),
             ButtonOnly("unit.toggle_hold_fire")
         };
         for (var index = 1; index <= 9; index++)
@@ -61,6 +65,8 @@ public static class DefaultInputBindings
         return new InputBindingDefinition(new InputActionId(actionId), context, chord, true);
     }
 
-    private static InputBindingDefinition ButtonOnly(string actionId) => new(
-        new InputActionId(actionId), InputContextId.UnitCommand, null, false);
+    private static InputBindingDefinition ButtonOnly(
+        string actionId,
+        InputContextId context = InputContextId.UnitCommand) => new(
+        new InputActionId(actionId), context, null, false);
 }

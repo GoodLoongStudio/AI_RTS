@@ -1,10 +1,8 @@
 extends Control
 
-const MatchSettings = preload("res://source/data-model/MatchSettings.gd")
-const PlayerSettings = preload("res://source/data-model/PlayerSettings.gd")
-const LoadingScene = preload("res://source/main-menu/Loading.tscn")
 const OptionsScene = preload("res://source/main-menu/Options.tscn")
 const CampaignMission = preload("res://source/campaign/CampaignMission.gd")
+const CampaignFlow = preload("res://source/campaign/CampaignFlow.gd")
 
 var _mission: Dictionary
 var _options_panel: Control = null
@@ -131,29 +129,8 @@ func _close_options_panel():
 
 
 func _on_start_pressed():
-	var settings := MatchSettings.new()
-
-	var human := PlayerSettings.new()
-	human.controller = Constants.PlayerType.HUMAN
-	human.color = Constants.Player.COLORS[0]
-	settings.players.append(human)
-
-	var enemy := PlayerSettings.new()
-	enemy.controller = Constants.PlayerType.SIMPLE_CLAIRVOYANT_AI
-	enemy.color = Constants.Player.COLORS[1]
-	settings.players.append(enemy)
-
-	settings.visible_player = 0
-	settings.visibility = MatchSettings.Visibility.PER_PLAYER
-
 	hide()
-	var loading = LoadingScene.instantiate()
-	loading.match_settings = settings
-	loading.map_path = _mission["map_path"]
-	loading.campaign_data = _mission
-	get_parent().add_child(loading)
-	get_tree().current_scene = loading
-	queue_free()
+	CampaignFlow.start_mission(get_tree(), _mission, self)
 
 
 func _on_back_pressed():

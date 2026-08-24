@@ -37,6 +37,18 @@ var visible_players = null:
 @onready var _query_runtime = $WorldQueryRuntime
 @onready var _control_group_runtime = $Handlers/UnitGroupSelectionHandler
 @onready var _match_outcome_runtime = $MatchOutcomeRuntime
+@onready var _battlefield_event_runtime = $BattlefieldEventRuntime
+@onready var _simulation_clock = $SimulationClock
+
+
+## 返回当前战局模拟毫秒；树暂停时不会继续增加。
+func get_simulation_msec() -> int:
+	return _simulation_clock.get_msec()
+
+
+## 战局执行（单位、战斗、AI、任务时间）是否因暂停而冻结。
+func is_simulation_paused() -> bool:
+	return get_tree().paused
 
 
 func _enter_tree():
@@ -54,6 +66,7 @@ func _ready():
 		_match_outcome_runtime.Initialize(_players, _get_human_player())
 	visible_player = get_tree().get_nodes_in_group("players")[settings.visible_player]
 	_query_runtime.Initialize(_players, _get_human_player())
+	_battlefield_event_runtime.Initialize(_get_human_player())
 	_move_camera_to_initial_position()
 	if settings.visibility == settings.Visibility.FULL:
 		fog_of_war.reveal()
@@ -86,15 +99,22 @@ func _setup_ai_command_hud_toggle(ai_command_hud: Control):
 	var toggle_button := Button.new()
 	toggle_button.name = "AICommandHUDToggle"
 	toggle_button.text = "显示 AI 副官"
-	toggle_button.tooltip_text = "显示或隐藏 Legacy AI 副官原型界面"
+	toggle_button.tooltip_text = "Tab：普通 RTS HUD ↔ AI 副官 HUD"
 	toggle_button.position = Vector2(18, 18)
 	toggle_button.custom_minimum_size = Vector2(150, 40)
 	toggle_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	var apply_visibility := func(should_show: bool):
+		ai_command_hud.set_interface_visible(should_show)
+		toggle_button.text = "隐藏 AI 副官" if should_show else "显示 AI 副官"
 	toggle_button.pressed.connect(
-		func():
-			var should_show = not ai_command_hud.is_interface_visible()
-			ai_command_hud.set_interface_visible(should_show)
-			toggle_button.text = "隐藏 AI 副官" if should_show else "显示 AI 副官"
+		func(): apply_visibility.call(not ai_command_hud.is_interface_visible())
+	)
+	_input_runtime.connect(
+		"ActionPressed",
+		func(action_id: String):
+			if action_id != "global.toggle_ai_hud":
+				return
+			apply_visibility.call(not ai_command_hud.is_interface_visible())
 	)
 	$HUD.add_child(toggle_button)
 

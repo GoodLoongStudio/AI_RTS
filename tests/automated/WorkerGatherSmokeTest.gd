@@ -42,7 +42,7 @@ func _ready():
 
 	_check(await _wait_for_worker_cargo(worker, 1, 5.0), "Worker 应从目标资源点取得第一份载荷")
 	_check(human.resource_b == player_resources_before, "未返回 CommandCenter 前玩家资源不得增长")
-	controller.halt_selected_units()
+	controller.stop_selected_units()
 	await get_tree().process_frame
 	_check(gateway.GetOrderState(first_order_id) == "Suspended", "Stop 应暂停并保留 Gather 订单")
 	_check(

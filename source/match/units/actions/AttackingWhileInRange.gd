@@ -57,7 +57,7 @@ func _rotate_unit_towards_target():
 
 
 func _schedule_hit():
-	var now = Time.get_ticks_msec()
+	var now = _simulation_msec()
 	var next_attack_availability_time = _unit.get_meta("next_attack_availability_time", now)
 	if next_attack_availability_time > now:
 		var delay_millis = next_attack_availability_time - now
@@ -70,7 +70,7 @@ func _hit_target():
 	if _teardown_if_out_of_range():
 		return
 	_unit.set_meta(
-		"next_attack_availability_time", Time.get_ticks_msec() + int(_unit.attack_interval * 1000.0)
+		"next_attack_availability_time", _simulation_msec() + int(_unit.attack_interval * 1000.0)
 	)
 	_projectile_runtime.LaunchEntity(_unit, _target_unit)
 	_schedule_hit()
@@ -97,3 +97,7 @@ func _on_passive_movement_started():
 func _on_passive_movement_finished():
 	_rotate_unit_towards_target()
 	_schedule_hit()
+
+
+func _simulation_msec() -> int:
+	return _unit.find_parent("Match").get_simulation_msec()

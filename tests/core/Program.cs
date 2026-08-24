@@ -26,6 +26,7 @@ internal static class Program
         failures += new ControlGroupServiceTests().Run();
         failures += new WorldQueryServiceTests().Run();
         failures += new MatchOutcomeServiceTests().Run();
+        failures += new BattlefieldEventLogTests().Run();
         return failures == 0 ? 0 : 1;
     }
 }

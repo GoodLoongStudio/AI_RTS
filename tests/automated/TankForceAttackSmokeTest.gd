@@ -39,10 +39,12 @@ func _ready():
 
 	controller.halt_selected_units()  # 未选择单位时不应影响当前 ForceAttack。
 	await get_tree().create_timer(0.1).timeout
-	_check(gateway.GetOrderState(friendly_order_id) == "InProgress", "空 Selection 停止不应取消攻击")
+	_check(gateway.GetOrderState(friendly_order_id) == "InProgress", "空 Selection 停止移动不应取消攻击")
 	attacker.find_child("Selection").select()
 	controller.halt_selected_units()
-	_check(gateway.GetOrderState(friendly_order_id) == "Cancelled", "停止应取消显式 ForceAttack 订单")
+	_check(gateway.GetOrderState(friendly_order_id) == "InProgress", "停止移动不应取消显式 ForceAttack")
+	controller.stop_selected_units()
+	_check(gateway.GetOrderState(friendly_order_id) == "Cancelled", "完整停止应取消显式 ForceAttack 订单")
 	await get_tree().create_timer(1.1).timeout
 	var hp_after_in_flight_force_attack: float = friendly_target.hp
 	await get_tree().create_timer(0.8).timeout

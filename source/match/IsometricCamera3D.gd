@@ -38,6 +38,27 @@ func _ready():
 	)
 	_apply_user_camera_options()
 	_align_camera_properties_to_current_size()
+	_input_runtime.connect("ActionPressed", _on_input_action_pressed)
+	MatchSignals.unit_died.connect(_on_followed_unit_died)
+
+
+func _on_input_action_pressed(action_id: String):
+	if action_id != "camera.focus_latest_event":
+		return
+	focus_latest_battlefield_event()
+
+
+## 解除镜头跟随并跳到最近一条玩家可知的重要战场事件。
+func focus_latest_battlefield_event() -> bool:
+	var event_runtime = get_parent().get_node_or_null("BattlefieldEventRuntime")
+	if event_runtime == null:
+		return false
+	var focus: Dictionary = event_runtime.TryGetLatestImportantFocus()
+	if focus.is_empty():
+		return false
+	clear_follow_target()
+	set_position_safely(focus["position"])
+	return true
 
 
 func _apply_user_camera_options():
@@ -101,6 +122,11 @@ func is_following_target() -> bool:
 
 func get_follow_target() -> Node3D:
 	return _follow_target if is_following_target() else null
+
+
+func _on_followed_unit_died(unit):
+	if _follow_target == unit:
+		clear_follow_target()
 
 
 func set_size_safely(a_size: float):

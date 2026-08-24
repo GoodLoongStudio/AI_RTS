@@ -24,6 +24,10 @@ internal sealed class MatchOutcomeServiceTests
         RunTest(nameof(TerminalResolutionIsImmutable), TerminalResolutionIsImmutable);
         RunTest(nameof(SnapshotVersionAndSidesAreStable), SnapshotVersionAndSidesAreStable);
         RunTest(nameof(SingleSideDebugMatchDoesNotAutoFinish), SingleSideDebugMatchDoesNotAutoFinish);
+        RunTest(nameof(ExplicitVictoryLocksWhileEnemiesRemain), ExplicitVictoryLocksWhileEnemiesRemain);
+        RunTest(nameof(ExplicitDefeatLocksWhileBothRemain), ExplicitDefeatLocksWhileBothRemain);
+        RunTest(nameof(ExplicitVictoryDoesNotOverrideTerminal), ExplicitVictoryDoesNotOverrideTerminal);
+        RunTest(nameof(ExplicitDefeatDoesNotOverrideExplicitVictory), ExplicitDefeatDoesNotOverrideExplicitVictory);
 
         Console.WriteLine(
             $"Match outcome tests completed: {_tests} test(s), {_failures} failure(s).");
@@ -192,6 +196,72 @@ internal sealed class MatchOutcomeServiceTests
 
         Check(service.StartMatch().Kind == MatchResolutionKind.InProgress,
             "单阵营开发场景不应自动结束");
+    }
+
+    /// <summary>验证战役式显式胜利可在双方仍存活时锁定 Won。</summary>
+    private void ExplicitVictoryLocksWhileEnemiesRemain()
+    {
+        var fixture = TwoSides();
+        fixture.Service.StartMatch();
+        var result = fixture.Service.ResolveExplicit(
+            MatchResolutionKind.Won,
+            [fixture.FirstSide]);
+
+        Check(result.Kind == MatchResolutionKind.Won,
+            "显式胜利应进入 Won");
+        Check(result.WinningSideIds.SequenceEqual([fixture.FirstSide]),
+            "显式胜利胜方应为本机阵营");
+        Check(result.SurvivingSideIds.Count == 2,
+            "敌军仍在时存活阵营应保持两方");
+        fixture.Service.RemoveCombatant(fixture.FirstUnit);
+        Check(fixture.Service.Evaluate() == result,
+            "显式终局后歼灭评估不得改写结果");
+    }
+
+    /// <summary>验证战役式显式失败可在双方仍存活时锁定敌方 Won。</summary>
+    private void ExplicitDefeatLocksWhileBothRemain()
+    {
+        var fixture = TwoSides();
+        fixture.Service.StartMatch();
+        var result = fixture.Service.ResolveExplicit(
+            MatchResolutionKind.Won,
+            [fixture.SecondSide]);
+
+        Check(result.Kind == MatchResolutionKind.Won,
+            "显式失败应进入 Won");
+        Check(result.WinningSideIds.SequenceEqual([fixture.SecondSide]),
+            "显式失败胜方应为敌方阵营");
+        Check(result.SurvivingSideIds.Count == 2,
+            "双方仍在时存活阵营应保持两方");
+    }
+
+    /// <summary>验证歼灭终局后显式胜利不会覆盖已锁定结果。</summary>
+    private void ExplicitVictoryDoesNotOverrideTerminal()
+    {
+        var fixture = TwoSides();
+        fixture.Service.StartMatch();
+        fixture.Service.RemoveCombatant(fixture.FirstUnit);
+        var terminal = fixture.Service.Evaluate();
+        var ignored = fixture.Service.ResolveExplicit(
+            MatchResolutionKind.Won,
+            [fixture.FirstSide]);
+
+        Check(ignored == terminal, "已终局后显式胜利必须忽略");
+    }
+
+    /// <summary>验证显式胜利后的显式失败不能改写已锁定结果。</summary>
+    private void ExplicitDefeatDoesNotOverrideExplicitVictory()
+    {
+        var fixture = TwoSides();
+        fixture.Service.StartMatch();
+        var victory = fixture.Service.ResolveExplicit(
+            MatchResolutionKind.Won,
+            [fixture.FirstSide]);
+        var ignored = fixture.Service.ResolveExplicit(
+            MatchResolutionKind.Won,
+            [fixture.SecondSide]);
+
+        Check(ignored == victory, "战役失败不得覆盖已锁定的战役胜利");
     }
 
     /// <summary>创建两名玩家各自拥有一个计分实体的标准样例。</summary>

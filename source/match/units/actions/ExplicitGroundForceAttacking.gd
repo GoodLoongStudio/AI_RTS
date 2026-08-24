@@ -54,7 +54,7 @@ func _on_approach_finished():
 
 ## 按全局武器冷却安排下一发，防止切换命令重置射速。
 func _schedule_next_shot():
-	var now := Time.get_ticks_msec()
+	var now := _simulation_msec()
 	var available_at: int = _unit.get_meta("next_attack_availability_time", now)
 	_shot_timer.start(max(0, available_at - now) / 1000.0)
 
@@ -66,7 +66,7 @@ func _fire_and_reschedule():
 	_rotate_towards_target()
 	_unit.set_meta(
 		"next_attack_availability_time",
-		Time.get_ticks_msec() + int(_unit.attack_interval * 1000.0)
+		_simulation_msec() + int(_unit.attack_interval * 1000.0)
 	)
 	_spawn_shot_visual()
 	_shot_timer.start(_unit.attack_interval)
@@ -82,3 +82,7 @@ func _rotate_towards_target():
 ## 通过 Match 级运行时生成独立投射物，伤害延后到视觉命中时刻结算。
 func _spawn_shot_visual():
 	_projectile_runtime.LaunchGround(_unit, _target_position)
+
+
+func _simulation_msec() -> int:
+	return _unit.find_parent("Match").get_simulation_msec()

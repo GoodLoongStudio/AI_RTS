@@ -39,6 +39,7 @@ path_height_offset = 0.8
 radius = 0.6
 neighbor_distance = 8.0
 max_neighbors = 40
+time_horizon_agents = 3.0
 domain = 0
 
 [node name="HealthBar" parent="." instance=ExtResource("5_vqiw1")]

@@ -50,7 +50,7 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(150, 40)
 layout_mode = 2
 text = "停止移动"
-tooltip_text = "停止导航并取消显式强制攻击，不影响普通自动攻击"
+tooltip_text = "只停止当前位移并暂停移动类命令，不取消攻击、采集或施工。完整停止请按 F"
 
 [node name="ForceAttackButton" type="Button" parent="MarginContainer/VBoxContainer/Buttons"]
 unique_name_in_owner = true

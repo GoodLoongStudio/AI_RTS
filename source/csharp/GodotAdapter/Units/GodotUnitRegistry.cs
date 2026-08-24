@@ -23,6 +23,9 @@ public sealed class GodotUnitRegistry : IUnitCommandUnitRepository
     /// <summary>注册玩家节点，并返回其进程内稳定 PlayerId。</summary>
     public PlayerId RegisterPlayer(Node player) => GodotStableIdentity.Player(player);
 
+    /// <summary>死亡或离树后删除稳定 ID 映射，避免命令与查询继续解析到失效单位。</summary>
+    public void Unregister(UnitId unitId) => _nodes.Remove(unitId);
+
     /// <inheritdoc />
     public UnitCommandSnapshot? Find(UnitId unitId)
     {

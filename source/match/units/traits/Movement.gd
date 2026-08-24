@@ -1,6 +1,8 @@
 extends NavigationAgent3D
 
 signal movement_finished
+## 主动移动结束原因：Arrived 或 Unreachable，供命令订单终态回传。
+signal movement_ended(reason)
 signal passive_movement_started
 signal passive_movement_finished
 
@@ -10,6 +12,9 @@ const STUCK_PREVENTION_ENABLED = true
 const STUCK_PREVENTION_WINDOW_SIZE = 10  # number of frames for accumulating distance traveled
 const STUCK_PREVENTION_THRESHOLD = 0.3  # fraction of expected distance traveled at full speed
 const STUCK_PREVENTION_SIDE_MOVES = 15  # number of forced moves to the side if stuck
+const STUCK_RECOVERY_MAX_CYCLES = 3
+const NO_PROGRESS_FRAMES_BEFORE_UNREACHABLE = 180
+const OSCILLATION_FLIPS_BEFORE_UNREACHABLE = 6
 
 const ROTATION_LOW_PASS_FILTER_ENABLED = true
 const ROTATION_LOW_PASS_FILTER_WINDOW_SIZE = 10  # number of frames for accumulating directions
@@ -28,6 +33,12 @@ var _is_tactical_withdrawal := false
 var _stuck_prevention_window = []
 var _total_velocity_in_stuck_prevention_window = 0.0
 var _number_of_forced_side_moves_left = 0
+var _stuck_recovery_cycles := 0
+var _best_distance_to_target := INF
+var _frames_without_progress := 0
+var _last_planar_direction := Vector3.ZERO
+var _direction_flips := 0
+var _movement_end_emitted := false
 
 var _rotation_low_pass_filter_window = []
 var _total_direction_in_the_low_pass_filter_window = Vector3.ZERO
@@ -62,6 +73,7 @@ func _ready():
 		await _match.ready
 	velocity_computed.connect(_on_velocity_computed)
 	navigation_finished.connect(_on_navigation_finished)
+	_apply_crowd_avoidance_defaults()
 	set_navigation_map(_match.navigation.get_navigation_map_rid_by_domain(domain))
 	target_position = Vector3.INF
 	set_velocity(Vector3.ZERO)
@@ -70,6 +82,7 @@ func _ready():
 
 func move(movement_target: Vector3):
 	_is_tactical_withdrawal = false
+	_reset_stability_state()
 	if not _navigation_initialized:
 		_pending_target = movement_target
 		_skip_initial_dispersion = true
@@ -79,6 +92,7 @@ func move(movement_target: Vector3):
 ## 沿导航路径倒车；车尾对齐每一帧的安全速度方向，因此路径转弯会更新朝向。
 func tactical_withdraw(movement_target: Vector3):
 	_is_tactical_withdrawal = true
+	_reset_stability_state()
 	if not _navigation_initialized:
 		_pending_target = movement_target
 		_skip_initial_dispersion = true
@@ -88,6 +102,7 @@ func tactical_withdraw(movement_target: Vector3):
 func stop():
 	target_position = Vector3.INF
 	_is_tactical_withdrawal = false
+	_reset_stability_state()
 	if not _navigation_initialized:
 		_pending_target = null
 		_skip_initial_dispersion = true
@@ -106,6 +121,17 @@ func suspend_motion():
 func resume_motion():
 	avoidance_enabled = true
 	set_physics_process(true)
+
+
+## 默认可考虑足够多的邻居，避免拥挤时只躲一个单位而互相穿透。
+func _apply_crowd_avoidance_defaults():
+	avoidance_enabled = true
+	if neighbor_distance < 1.0:
+		neighbor_distance = 8.0
+	if max_neighbors < 8:
+		max_neighbors = 40
+	if time_horizon_agents < 1.0:
+		time_horizon_agents = 3.0
 
 
 ## 等待运行时 NavMesh 出现可用 Region 后再对齐单位，避免空中地图异步烘焙竞态。
@@ -190,7 +216,13 @@ func _update_stuck_prevention(safe_velocity: Vector3):
 		_stuck_prevention_window.size() == STUCK_PREVENTION_WINDOW_SIZE
 		and _total_velocity_in_stuck_prevention_window < stuck_prevention_threshold
 	):
+		_stuck_recovery_cycles += 1
+		if _stuck_recovery_cycles > STUCK_RECOVERY_MAX_CYCLES:
+			_fail_as_unreachable()
+			return
 		_number_of_forced_side_moves_left = STUCK_PREVENTION_SIDE_MOVES
+		_stuck_prevention_window.clear()
+		_total_velocity_in_stuck_prevention_window = 0.0
 
 
 func _get_filtered_rotation_direction(safe_velocity: Vector3):
@@ -243,6 +275,7 @@ func _update_passive_movement_tracking(safe_velocity):
 
 func _on_velocity_computed(safe_velocity: Vector3):
 	_update_stuck_prevention(safe_velocity)
+	_update_progress_and_oscillation(safe_velocity)
 	var chassis_direction := -safe_velocity if _is_tactical_withdrawal else safe_velocity
 	_rotate_in_direction(chassis_direction * Vector3(1, 0, 1))
 	_unit.global_transform.origin = _unit.global_transform.origin.move_toward(
@@ -253,5 +286,81 @@ func _on_velocity_computed(safe_velocity: Vector3):
 
 
 func _on_navigation_finished():
+	var reason := _classify_navigation_end()
 	target_position = Vector3.INF
+	_emit_movement_end(reason)
+
+
+## 导航结束时区分真正到达与最近可达点停下。
+func _classify_navigation_end() -> String:
+	if target_position == Vector3.INF:
+		return "Arrived"
+	if is_target_reachable():
+		return "Arrived"
+	return "Unreachable"
+
+
+func _reset_stability_state():
+	_stuck_prevention_window.clear()
+	_total_velocity_in_stuck_prevention_window = 0.0
+	_number_of_forced_side_moves_left = 0
+	_stuck_recovery_cycles = 0
+	_best_distance_to_target = INF
+	_frames_without_progress = 0
+	_last_planar_direction = Vector3.ZERO
+	_direction_flips = 0
+	_movement_end_emitted = false
+
+
+func _planar_distance_to_target() -> float:
+	if target_position == Vector3.INF:
+		return 0.0
+	return Vector2(_unit.global_position.x, _unit.global_position.z).distance_to(
+		Vector2(target_position.x, target_position.z)
+	)
+
+
+func _update_progress_and_oscillation(safe_velocity: Vector3):
+	if target_position == Vector3.INF or _movement_end_emitted:
+		return
+	var distance := _planar_distance_to_target()
+	if distance < _best_distance_to_target - 0.05:
+		_best_distance_to_target = distance
+		_frames_without_progress = 0
+	else:
+		_frames_without_progress += 1
+	var planar := safe_velocity * Vector3(1, 0, 1)
+	if planar.length() >= ROTATION_LOW_PASS_FILTER_VELOCITY_THRESHOLD:
+		var direction := planar.normalized()
+		if (
+			not _last_planar_direction.is_zero_approx()
+			and direction.dot(_last_planar_direction) < -0.5
+		):
+			_direction_flips += 1
+		_last_planar_direction = direction
+	if _direction_flips >= OSCILLATION_FLIPS_BEFORE_UNREACHABLE:
+		_fail_as_unreachable()
+		return
+	if (
+		_frames_without_progress >= NO_PROGRESS_FRAMES_BEFORE_UNREACHABLE
+		and not is_target_reachable()
+	):
+		_fail_as_unreachable()
+
+
+func _fail_as_unreachable():
+	if _movement_end_emitted:
+		return
+	target_position = Vector3.INF
+	_is_tactical_withdrawal = false
+	_number_of_forced_side_moves_left = 0
+	set_velocity(Vector3.ZERO)
+	_emit_movement_end("Unreachable")
+
+
+func _emit_movement_end(reason: String):
+	if _movement_end_emitted:
+		return
+	_movement_end_emitted = true
+	movement_ended.emit(reason)
 	movement_finished.emit()

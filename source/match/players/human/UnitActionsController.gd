@@ -27,6 +27,9 @@ func _ready():
 	MatchSignals.terrain_targeted.connect(_on_terrain_targeted)
 	MatchSignals.unit_targeted.connect(_on_unit_targeted)
 	MatchSignals.unit_spawned.connect(_on_unit_spawned)
+	var command_runtime = find_parent("Match").get_node_or_null("CommandRuntime")
+	if command_runtime != null:
+		command_runtime.connect("OrderStateChanged", _on_order_state_changed)
 
 
 func _try_navigating_selected_units_towards_position(target_point):
@@ -96,6 +99,19 @@ func begin_ground_attack_move_targeting():
 	command_targeting_changed.emit("GroundAttackMove")
 
 
+## 当前尚未确认的显式命令名；没有选目标状态时为空字符串。
+func get_active_command_targeting() -> String:
+	if _is_force_move_targeting:
+		return "ForceMove"
+	if _is_force_attack_targeting:
+		return "ForceAttack"
+	if _is_tactical_withdraw_targeting:
+		return "TacticalWithdraw"
+	if _is_ground_attack_move_targeting:
+		return "GroundAttackMove"
+	return ""
+
+
 ## 取消尚未指定目标的显式命令，不影响单位当前正在执行的命令。
 func cancel_command_targeting():
 	if (
@@ -112,14 +128,26 @@ func cancel_command_targeting():
 	command_targeting_changed.emit("")
 
 
-## 对当前 Selection 中已迁移的单位提交单一统一 Stop，并汇总逐单位即时接收结果。
+## 只停止当前位移并暂停移动类订单，不取消攻击、采集或施工。
 func halt_selected_units():
 	var selected_units = _get_selected_controlled_units()
-	var command_units = selected_units
 	var accepted_count := 0
-	var rejected_count: int = selected_units.size() - command_units.size()
-	if not command_units.is_empty():
-		var result = _get_command_gateway().StopUnits(command_units, get_parent())
+	var rejected_count := 0
+	if not selected_units.is_empty():
+		var result = _get_command_gateway().HaltMovement(selected_units, get_parent())
+		var counts = _count_command_result(result)
+		accepted_count += counts[0]
+		rejected_count += counts[1]
+	_emit_command_feedback("HaltMovement", accepted_count, rejected_count)
+
+
+## 对当前 Selection 提交统一 Stop：移动类暂停，攻击取消，采集/施工暂停。
+func stop_selected_units():
+	var selected_units = _get_selected_controlled_units()
+	var accepted_count := 0
+	var rejected_count := 0
+	if not selected_units.is_empty():
+		var result = _get_command_gateway().StopUnits(selected_units, get_parent())
 		var counts = _count_command_result(result)
 		accepted_count += counts[0]
 		rejected_count += counts[1]
@@ -186,6 +214,11 @@ func _submit_selected_combat_policy(policy_name: String, value: String):
 		accepted_count += counts[0]
 		rejected_count += counts[1]
 	_emit_command_feedback(value, accepted_count, rejected_count)
+
+
+func _reject_ground_only_entity_target(command_name: String):
+	var rejected_count: int = max(_get_selected_controlled_units().size(), 1)
+	_emit_command_feedback(command_name, 0, rejected_count)
 
 
 func _execute_targeted_force_move(target_point: Vector3):
@@ -329,6 +362,29 @@ func _count_command_result(result: Dictionary) -> Array[int]:
 		else:
 			rejected_count += 1
 	return [accepted_count, rejected_count]
+
+
+func _on_order_state_changed(
+	_order_id: String,
+	_command_id: String,
+	unit_id: String,
+	kind: String,
+	_previous_state: String,
+	current_state: String,
+	_replaced_by_command_id: String
+):
+	if current_state != "Unreachable":
+		return
+	if _find_controlled_unit(unit_id) == null:
+		return
+	command_feedback.emit(kind, 0, 1, "Unreachable")
+
+
+func _find_controlled_unit(unit_id: String) -> Node:
+	for unit in get_tree().get_nodes_in_group("controlled_units"):
+		if unit.has_meta("ai_rts_unit_id") and str(unit.get_meta("ai_rts_unit_id")) == unit_id:
+			return unit
+	return null
 
 
 func _emit_command_feedback(command_name: String, accepted_count: int, rejected_count: int):
@@ -482,6 +538,8 @@ func get_selected_rally_producer_count() -> int:
 
 
 func _on_terrain_targeted(position):
+	if position == null or not (position is Vector3):
+		return
 	if _is_ground_attack_move_targeting:
 		_is_ground_attack_move_targeting = false
 		command_targeting_changed.emit("")
@@ -508,12 +566,10 @@ func _on_terrain_targeted(position):
 
 func _on_unit_targeted(unit, target_position: Vector3):
 	if _is_force_move_targeting:
-		_is_force_move_targeting = false
-		command_targeting_changed.emit("")
-		_execute_targeted_force_move(target_position)
-		var force_move_targetability = unit.find_child("Targetability")
-		if force_move_targetability != null:
-			force_move_targetability.animate()
+		_reject_ground_only_entity_target("ForceMove")
+		return
+	if _is_tactical_withdraw_targeting:
+		_reject_ground_only_entity_target("TacticalWithdraw")
 		return
 	if _is_force_attack_targeting:
 		_is_force_attack_targeting = false

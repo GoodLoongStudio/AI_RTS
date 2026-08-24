@@ -14,6 +14,7 @@ public partial class MatchOutcomeRuntime : Node
     public delegate void MatchResolvedEventHandler(Godot.Collections.Dictionary resolution);
 
     private readonly HashSet<PlayerId> _registeredPlayers = [];
+    private readonly HashSet<MatchSideId> _registeredSides = [];
     private readonly HashSet<UnitId> _exitSubscriptions = [];
     private IMatchOutcomeService _service = null!;
     private Node _match = null!;
@@ -70,6 +71,45 @@ public partial class MatchOutcomeRuntime : Node
         }
     }
 
+    /// <summary>战役目标完成时一次性锁定本机阵营胜利，不依赖歼灭规则。</summary>
+    public bool DeclareCampaignVictory()
+    {
+        if (!_configured || _terminalPublished || _localHumanSideId is not { } localSide)
+        {
+            return false;
+        }
+
+        PublishIfTerminal(_service.ResolveExplicit(MatchResolutionKind.Won, [localSide]));
+        return _terminalPublished;
+    }
+
+    /// <summary>战役失败目标完成时一次性锁定非本机阵营胜利，不依赖歼灭规则。</summary>
+    public bool DeclareCampaignDefeat()
+    {
+        if (!_configured || _terminalPublished || _localHumanSideId is not { } localSide)
+        {
+            return false;
+        }
+
+        var winners = _registeredSides
+            .Where(sideId => sideId != localSide)
+            .OrderBy(sideId => sideId.Value)
+            .ToArray();
+        if (winners.Length == 0)
+        {
+            return false;
+        }
+
+        PublishIfTerminal(_service.ResolveExplicit(MatchResolutionKind.Won, winners));
+        return _terminalPublished;
+    }
+
+    /// <summary>战役与 UI 共用的一次锁定查询；未初始化时视为尚未锁定。</summary>
+    public bool IsOutcomeLocked()
+    {
+        return _configured && _service.GetSnapshot().Kind != MatchResolutionKind.InProgress;
+    }
+
     /// <summary>返回供自动测试和诊断界面读取的稳定结果字段。</summary>
     public Godot.Collections.Dictionary InspectOutcome()
     {
@@ -82,6 +122,7 @@ public partial class MatchOutcomeRuntime : Node
                 ["winning_side_ids"] = new Godot.Collections.Array<string>(),
                 ["surviving_side_ids"] = new Godot.Collections.Array<string>(),
                 ["local_human_side_id"] = string.Empty,
+                ["local_result"] = "InProgress",
                 ["version"] = 0L
             };
         }
@@ -138,6 +179,7 @@ public partial class MatchOutcomeRuntime : Node
             return;
         }
         var sideId = new MatchSideId(playerId.Value);
+        _registeredSides.Add(sideId);
         _service.RegisterParticipant(new MatchParticipant(playerId, sideId, isLocalHuman));
         if (isLocalHuman)
         {
@@ -184,8 +226,23 @@ public partial class MatchOutcomeRuntime : Node
         ["winning_side_ids"] = SideIds(resolution.WinningSideIds),
         ["surviving_side_ids"] = SideIds(resolution.SurvivingSideIds),
         ["local_human_side_id"] = _localHumanSideId?.Value.ToString("D") ?? string.Empty,
+        ["local_result"] = MapLocalResult(resolution),
         ["version"] = resolution.Version
     };
+
+    /// <summary>把权威终态映射为本机展示结果，供结算 UI 直接读取。</summary>
+    private string MapLocalResult(MatchResolution resolution)
+    {
+        if (resolution.Kind == MatchResolutionKind.InProgress)
+        {
+            return "InProgress";
+        }
+        if (resolution.Kind == MatchResolutionKind.Draw || _localHumanSideId is not { } localSide)
+        {
+            return "Finish";
+        }
+        return resolution.WinningSideIds.Contains(localSide) ? "Victory" : "Defeat";
+    }
 
     private static Godot.Collections.Array<string> SideIds(
         IReadOnlyList<MatchSideId> sideIds)

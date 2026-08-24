@@ -115,9 +115,14 @@ func _sync_unit(unit):
 	var unit_pos_3d = unit.global_transform.origin
 	var unit_pos_2d = Vector2(unit_pos_3d.x, unit_pos_3d.z) * MINIMAP_PIXELS_PER_WORLD_METER
 	_unit_to_corresponding_node_mapping[unit].position = unit_pos_2d
-	_unit_to_corresponding_node_mapping[unit].color = (
-		unit.player.color if unit is Unit else unit.color
-	)
+	var mapped_color := Color.WHITE
+	if unit is Unit:
+		var owner_player = unit.player
+		if owner_player != null and "color" in owner_player:
+			mapped_color = owner_player.color
+	else:
+		mapped_color = unit.color
+	_unit_to_corresponding_node_mapping[unit].color = mapped_color
 
 
 func _cleanup_mapping(unit):
@@ -215,6 +220,8 @@ func _issue_movement_action(position_2d_within_texture_rect):
 	var target_point_on_colliding_surface = camera.get_ray_intersection(
 		camera.unproject_position(abstract_world_position_3d)
 	)
+	if target_point_on_colliding_surface == null:
+		return
 	MatchSignals.terrain_targeted.emit(target_point_on_colliding_surface)
 
 

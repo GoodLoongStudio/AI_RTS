@@ -39,6 +39,11 @@ public interface IMatchOutcomeService
     /// <summary>在批量事实更新后评估一次；终态不会被后续事实改写。</summary>
     MatchResolution Evaluate();
 
+    /// <summary>由玩法一次性锁定终局；已进入终态后忽略。</summary>
+    MatchResolution ResolveExplicit(
+        MatchResolutionKind kind,
+        IReadOnlyList<MatchSideId> winningSideIds);
+
     /// <summary>返回最近一次权威结果，不触发重新计算。</summary>
     MatchResolution GetSnapshot();
 }

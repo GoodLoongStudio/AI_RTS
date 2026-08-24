@@ -48,6 +48,7 @@ func _ready():
 	_input_runtime.connect("ActionPressed", _on_input_action_pressed)
 	MatchSignals.terrain_targeted.connect(_on_terrain_targeted)
 	MatchSignals.unit_targeted.connect(_on_unit_targeted)
+	MatchSignals.unit_died.connect(_on_unit_died)
 	if _is_hero_mode():
 		_append_ai("先锋链路已上线。你可以直接告诉我想做什么，也可以问我‘下一步做什么’或‘风险怎么样’。")
 	else:
@@ -75,6 +76,11 @@ func _on_input_action_pressed(action_id: String):
 		return
 	if action_id == "text.cancel":
 		_input.release_focus()
+		return
+	if action_id == "global.cancel":
+		if pending_command != "":
+			pending_command = ""
+			_refresh_squad_ui()
 		return
 	if action_id == "legacy.hero_focus" and _is_hero_mode():
 		_handle_hero_focus_hotkey()
@@ -391,6 +397,14 @@ func _submit_public_squad_command(submit: Callable) -> bool:
 		return false
 	var result: Dictionary = submit.call(gateway, player)
 	return result.get("status", "Rejected") in ["Accepted", "PartiallyAccepted"]
+
+
+func _on_unit_died(unit):
+	var camera = find_parent("Match").get_node_or_null("IsometricCamera3D")
+	if camera != null and camera.get_follow_target() == unit:
+		camera.clear_follow_target()
+		_hero_camera_locked = false
+	_refresh_squad_ui()
 
 
 func _on_terrain_targeted(_position):

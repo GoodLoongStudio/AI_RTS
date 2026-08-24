@@ -8,7 +8,7 @@ var _order_events: Array[Dictionary] = []
 var _feedback_events: Array[Dictionary] = []
 
 
-## 验证点击实体时，ForceMove 使用碰撞面的世界坐标，而不会退化为普通攻击或跟随。
+## 验证强制移动只接受地面：点实体应拒绝，随后点地面才提交订单。
 func _ready():
 	var match_instance = MatchScene.instantiate()
 	add_child(match_instance)
@@ -33,16 +33,28 @@ func _ready():
 	controller.begin_force_move_targeting()
 	MatchSignals.unit_targeted.emit(enemy_building, helicopter_click)
 	await get_tree().process_frame
-	_check(_has_force_move_order(helicopter), "Helicopter 点击敌方建筑应提交 ForceMove 订单")
+	_check(
+		controller.get_active_command_targeting() == "ForceMove",
+		"点实体后强制移动应仍处于选目标"
+	)
+	_check(not _has_force_move_order(helicopter), "Helicopter 点实体不得提交 ForceMove")
+	_check(
+		helicopter.action == null or helicopter.action.get_script() != Moving,
+		"Helicopter 点实体不得开始移动"
+	)
+	_check(_last_feedback_status("ForceMove") == "Rejected", "点实体的强制移动应拒绝")
+	_check(enemy_building.hp == enemy_hp_before, "拒绝实体目标时不得伤害建筑")
+
+	var ground_for_helicopter := enemy_building.global_position + Vector3(8.0, 0.0, 0.0)
+	MatchSignals.terrain_targeted.emit(ground_for_helicopter)
+	await get_tree().process_frame
+	_check(controller.get_active_command_targeting() == "", "地面确认后应退出强制移动选目标")
+	_check(_has_force_move_order(helicopter), "随后右键地面应为 Helicopter 提交 ForceMove")
 	_check(
 		helicopter.action != null and helicopter.action.get_script() == Moving,
-		"Helicopter 点击敌方建筑后应执行 Moving，而不是普通实体交互"
+		"地面确认后 Helicopter 应执行 Moving"
 	)
-	_check(
-		_planar_distance(helicopter.find_child("Movement").target_position, helicopter_click) < 0.1,
-		"Helicopter ForceMove 应使用实体表面的实际点击坐标"
-	)
-	_check(_last_feedback_status("ForceMove") == "Accepted", "Helicopter ForceMove 应返回 Accepted")
+	_check(_last_feedback_status("ForceMove") == "Accepted", "地面强制移动应返回 Accepted")
 	gateway.StopUnits([helicopter], human)
 
 	var tank_click: Vector3 = enemy_building.global_position + Vector3(-0.7, 0.3, -0.1)
@@ -51,15 +63,25 @@ func _ready():
 	controller.begin_force_move_targeting()
 	MatchSignals.unit_targeted.emit(enemy_building, tank_click)
 	await get_tree().process_frame
-	_check(_has_force_move_order(tank), "Tank 点击敌方建筑应提交 ForceMove 订单")
+	_check(not _has_force_move_order(tank), "Tank 点实体不得提交 ForceMove")
+	_check(
+		tank.action == null or tank.action.get_script() != Moving,
+		"Tank 点实体不得退化为移动或攻击"
+	)
+	_check(_last_feedback_status("ForceMove") == "Rejected", "Tank 点实体的强制移动应拒绝")
+
+	var ground_for_tank := enemy_building.global_position + Vector3(-8.0, 0.0, 0.0)
+	MatchSignals.terrain_targeted.emit(ground_for_tank)
+	await get_tree().process_frame
+	_check(_has_force_move_order(tank), "随后右键地面应为 Tank 提交 ForceMove")
 	_check(
 		tank.action != null and tank.action.get_script() == Moving,
-		"Tank 点击敌方建筑后应执行 Moving，不应退化为 Attack"
+		"地面确认后 Tank 应执行 Moving，不应退化为 Attack"
 	)
-	_check(_last_feedback_status("ForceMove") == "Accepted", "Tank ForceMove 应返回 Accepted")
+	_check(_last_feedback_status("ForceMove") == "Accepted", "Tank 地面强制移动应返回 Accepted")
 	_check(
 		enemy_building.hp == enemy_hp_before,
-		"HoldFire 下实体 ForceMove 不应直接对目标建筑造成伤害"
+		"HoldFire 下强制移动不得直接对目标建筑造成伤害"
 	)
 
 	print("Entity ForceMove smoke test completed: %d failure(s)" % _failures)
@@ -116,11 +138,6 @@ func _last_feedback_status(command_name: String) -> String:
 		if _feedback_events[index]["command_name"] == command_name:
 			return _feedback_events[index]["status"]
 	return ""
-
-
-## 计算移动目标在水平面的距离，忽略实体表面高度与导航层高度差。
-func _planar_distance(first: Vector3, second: Vector3) -> float:
-	return Vector2(first.x, first.z).distance_to(Vector2(second.x, second.z))
 
 
 ## 累计断言失败并写入 Godot 错误日志。
