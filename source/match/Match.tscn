@@ -1,4 +1,4 @@
-[gd_scene load_steps=55 format=3 uid="uid://camns8fqod8d4"]
+[gd_scene load_steps=56 format=3 uid="uid://camns8fqod8d4"]
 
 [ext_resource type="Script" path="res://source/match/Match.gd" id="1_1555u"]
 [ext_resource type="Script" path="res://source/csharp/GodotAdapter/Composition/CommandRuntime.cs" id="1_command_runtime"]
@@ -41,6 +41,7 @@
 [ext_resource type="Script" path="res://source/csharp/GodotAdapter/Battlefield/BattlefieldEventRuntime.cs" id="29_battlefield_event_runtime"]
 [ext_resource type="Script" path="res://source/match/SimulationClock.gd" id="30_simulation_clock"]
 [ext_resource type="PackedScene" uid="uid://b8p6lcwubx1tp" path="res://source/match/handlers/UnitVisibilityHandler.tscn" id="32_fci1c"]
+[ext_resource type="Script" path="res://source/match/handlers/BuildingOcclusionFade.gd" id="33_building_fade"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_ysb0j"]
 sun_angle_max = 200.0
@@ -484,3 +485,6 @@ script = ExtResource("27_control_group_runtime")
 visible = false
 
 [node name="UnitVisibilityHandler" parent="Handlers" instance=ExtResource("32_fci1c")]
+
+[node name="BuildingOcclusionFade" type="Node" parent="Handlers"]
+script = ExtResource("33_building_fade")
