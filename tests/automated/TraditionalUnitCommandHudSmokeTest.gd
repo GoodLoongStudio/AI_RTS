@@ -61,6 +61,11 @@ func _ready():
 	_check("[X]" in force_attack_button.text, "强制攻击应显示 X 键")
 	_check("[Z]" in tactical_withdraw_button.text, "撤退应显示 Z 键")
 	_check("[G]" in hold_ground_button.text, "固守应显示 G 键")
+	_check("[T]" in aggressive_button.text, "侵略应显示 T 键")
+	_check("[Y]" in guard_button.text, "警戒应显示 Y 键")
+	_check("[H]" in hold_fire_button.text, "停火应显示 H 键")
+	_check("[B]" in hud.get_node("MarginContainer/VBoxContainer/CombatPolicies/ClearRallyPointButton").text,
+		"清除集结应显示 B 键")
 	_check(not "[" in halt_button.text, "停止移动没有独立快捷键，不得误标 F")
 	tactical_withdraw_button.pressed.emit()
 	_check("撤退目的地" in feedback_label.text, "撤退应进入一次性地面目标确认状态")
@@ -77,12 +82,18 @@ func _ready():
 	await get_tree().process_frame
 	_check(guard_button.button_pressed, "警戒按钮应反映权威姿态")
 	_check(human.get_node("UnitCommandGateway").GetEngagementStance(tank) == "Guard", "HUD 应设置警戒姿态")
+	input_runtime.emit_signal("ActionPressed", "unit.stance_aggressive")
+	await get_tree().process_frame
+	_check(aggressive_button.button_pressed, "T 快捷键应把姿态设为侵略")
+	input_runtime.emit_signal("ActionPressed", "unit.stance_guard")
+	await get_tree().process_frame
+	_check(guard_button.button_pressed, "Y 快捷键应把姿态设为警戒")
 	input_runtime.emit_signal("ActionPressed", "unit.stance_hold_ground")
 	await get_tree().process_frame
 	_check(hold_ground_button.button_pressed, "G 快捷键应把姿态设为固守")
-	hold_fire_button.pressed.emit()
+	input_runtime.emit_signal("ActionPressed", "unit.toggle_hold_fire")
 	await get_tree().process_frame
-	_check(hold_fire_button.button_pressed, "停火按钮应反映权威开火策略")
+	_check(hold_fire_button.button_pressed, "H 快捷键应切换为停火")
 	_check(human.get_node("UnitCommandGateway").GetFirePolicy(tank) == "HoldFire", "HUD 应设置停火")
 	hold_fire_button.pressed.emit()
 	await get_tree().process_frame

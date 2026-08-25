@@ -128,6 +128,14 @@ internal sealed class InputBindingServiceTests
             "X 应解析为强制攻击");
         Check(Action(service.Resolve(Parse("Z"), contexts)) == "unit.tactical_withdraw",
             "Z 应解析为战术撤退");
+        Check(Action(service.Resolve(Parse("T"), contexts)) == "unit.stance_aggressive",
+            "T 应解析为侵略");
+        Check(Action(service.Resolve(Parse("Y"), contexts)) == "unit.stance_guard",
+            "Y 应解析为警戒");
+        Check(Action(service.Resolve(Parse("H"), contexts)) == "unit.toggle_hold_fire",
+            "H 应解析为停火切换");
+        Check(Action(service.Resolve(Parse("B"), contexts)) == "unit.clear_rally",
+            "B 应解析为清除集结");
         Check(service.FindChord(Id("legacy.command_move")) is null,
             "旧 AI 移动快捷键不应再占用默认键位");
         Check(service.FindChord(Id("legacy.command_stop")) is null,

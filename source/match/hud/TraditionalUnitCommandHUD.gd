@@ -50,6 +50,14 @@ func _on_input_action_pressed(action_id: String):
 			_on_stop_pressed()
 		"unit.stance_hold_ground":
 			_set_engagement_stance("HoldGround")
+		"unit.stance_aggressive":
+			_set_engagement_stance("Aggressive")
+		"unit.stance_guard":
+			_set_engagement_stance("Guard")
+		"unit.toggle_hold_fire":
+			_toggle_hold_fire()
+		"unit.clear_rally":
+			actions_controller.clear_selected_rally_points()
 		"unit.force_move":
 			_on_force_move_pressed()
 		"unit.force_attack":
@@ -154,10 +162,10 @@ func _refresh_command_captions():
 		"unit.attack_move"
 	)
 	_halt_button.text = "停止移动"
-	_aggressive_button.text = "侵略"
-	_guard_button.text = "警戒"
+	_aggressive_button.text = _caption("侵略", "unit.stance_aggressive")
+	_guard_button.text = _caption("警戒", "unit.stance_guard")
 	_hold_ground_button.text = _caption("固守", "unit.stance_hold_ground")
-	_clear_rally_point_button.text = "清除集结"
+	_clear_rally_point_button.text = _caption("清除集结", "unit.clear_rally")
 
 
 func _on_command_targeting_changed(command_name: String):
@@ -243,4 +251,7 @@ func _refresh_hold_fire_caption():
 	if actions_controller == null:
 		return
 	var fire_policy: String = actions_controller.get_selected_combat_policy("FirePolicy")
-	_hold_fire_button.text = "恢复开火" if fire_policy == "HoldFire" else "停火"
+	_hold_fire_button.text = _caption(
+		"恢复开火" if fire_policy == "HoldFire" else "停火",
+		"unit.toggle_hold_fire"
+	)

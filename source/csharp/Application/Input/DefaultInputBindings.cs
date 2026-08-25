@@ -39,10 +39,11 @@ public static class DefaultInputBindings
             Bind("unit.force_move", InputContextId.UnitCommand, "C"),
             Bind("unit.force_attack", InputContextId.UnitCommand, "X"),
             Bind("unit.tactical_withdraw", InputContextId.UnitCommand, "Z"),
-            ButtonOnly("unit.halt"),
-            ButtonOnly("unit.stance_aggressive"),
-            ButtonOnly("unit.stance_guard"),
-            ButtonOnly("unit.toggle_hold_fire")
+            Bind("unit.stance_aggressive", InputContextId.UnitCommand, "T"),
+            Bind("unit.stance_guard", InputContextId.UnitCommand, "Y"),
+            Bind("unit.toggle_hold_fire", InputContextId.UnitCommand, "H"),
+            Bind("unit.clear_rally", InputContextId.UnitCommand, "B"),
+            ButtonOnly("unit.halt")
         };
         for (var index = 1; index <= 9; index++)
         {
