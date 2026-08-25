@@ -12,7 +12,7 @@
 ## Implementation Steps
 1. ✅ 注册表注销、跟随解除、小队组移除
 2. ✅ 端到端冒烟扩展
-3. ⏳ 待人工验收
+3. ✅ 已验收
 
 ## Timeline
 本轮做引用失效。不重做 AI 副官命令链。
@@ -28,7 +28,7 @@
 ## Progress Tracking
 ✅ 清理入口
 ✅ 测试
-⏳ 人工验收
+✅ 人工验收
 
 ## Related Files
 - `source/match/units/Unit.gd`

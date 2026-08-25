@@ -8,9 +8,9 @@ anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -310.0
+offset_left = -360.0
 offset_top = -164.0
-offset_right = 310.0
+offset_right = 360.0
 offset_bottom = -18.0
 grow_horizontal = 2
 grow_vertical = 0
@@ -33,16 +33,16 @@ alignment = 1
 
 [node name="ForceMoveButton" type="Button" parent="MarginContainer/VBoxContainer/Buttons"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(150, 40)
+custom_minimum_size = Vector2(168, 40)
 layout_mode = 2
-text = "强制移动"
+text = "强制移动 [C]"
 tooltip_text = "下一次右键地面将作为强制移动目标"
 
 [node name="GroundAttackMoveButton" type="Button" parent="MarginContainer/VBoxContainer/Buttons"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(150, 40)
+custom_minimum_size = Vector2(176, 40)
 layout_mode = 2
-text = "移动并攻击"
+text = "移动并攻击 [R]"
 tooltip_text = "下一次右键地面指定推进目标；途中按当前交战姿态清除敌人"
 
 [node name="HaltButton" type="Button" parent="MarginContainer/VBoxContainer/Buttons"]
@@ -54,16 +54,16 @@ tooltip_text = "只停止当前位移并暂停移动类命令，不取消攻击�
 
 [node name="ForceAttackButton" type="Button" parent="MarginContainer/VBoxContainer/Buttons"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(150, 40)
+custom_minimum_size = Vector2(168, 40)
 layout_mode = 2
-text = "强制攻击"
+text = "强制攻击 [X]"
 tooltip_text = "下一次右键单位或地面将作为显式强制攻击目标"
 
 [node name="TacticalWithdrawButton" type="Button" parent="MarginContainer/VBoxContainer/Buttons"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(120, 40)
+custom_minimum_size = Vector2(140, 40)
 layout_mode = 2
-text = "撤退"
+text = "撤退 [Z]"
 tooltip_text = "下一次右键地面指定撤退目的地；有倒车能力的单位令车尾沿导航路径前进"
 
 [node name="CombatPolicies" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
@@ -91,7 +91,7 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(120, 36)
 layout_mode = 2
 toggle_mode = true
-text = "固守"
+text = "固守 [G]"
 tooltip_text = "不主动移动，只攻击进入武器射程的目标"
 
 [node name="HoldFireButton" type="Button" parent="MarginContainer/VBoxContainer/CombatPolicies"]

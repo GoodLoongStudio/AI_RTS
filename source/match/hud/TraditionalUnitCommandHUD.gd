@@ -2,6 +2,7 @@ extends PanelContainer
 
 var actions_controller: Node = null
 var _targeting_command := ""
+var _input_runtime = null
 
 @onready var _force_move_button: Button = %ForceMoveButton
 @onready var _halt_button: Button = %HaltButton
@@ -30,12 +31,13 @@ func _ready():
 	_clear_rally_point_button.pressed.connect(actions_controller.clear_selected_rally_points)
 	actions_controller.command_targeting_changed.connect(_on_command_targeting_changed)
 	actions_controller.command_feedback.connect(_on_command_feedback)
-	var input_runtime = find_parent("Match").get_node_or_null("InputBindingRuntime")
-	if input_runtime != null:
-		input_runtime.connect("ActionPressed", _on_input_action_pressed)
+	_input_runtime = find_parent("Match").get_node_or_null("InputBindingRuntime")
+	if _input_runtime != null:
+		_input_runtime.connect("ActionPressed", _on_input_action_pressed)
 	MatchSignals.unit_selected.connect(func(_unit): _refresh_availability())
 	MatchSignals.unit_deselected.connect(func(_unit): _refresh_availability())
 	MatchSignals.unit_died.connect(func(_unit): _refresh_availability.call_deferred())
+	_refresh_command_captions()
 	_refresh_availability()
 
 
@@ -121,16 +123,47 @@ func _toggle_hold_fire():
 	_refresh_policy_buttons()
 
 
+func _hotkey(action_id: String) -> String:
+	if _input_runtime == null or not _input_runtime.has_method("GetBinding"):
+		return ""
+	return str(_input_runtime.GetBinding(action_id)).strip_edges()
+
+
+func _caption(base_text: String, action_id: String) -> String:
+	var key := _hotkey(action_id)
+	if key.is_empty():
+		return base_text
+	return "%s [%s]" % [base_text, key]
+
+
+func _refresh_command_captions():
+	_force_move_button.text = _caption(
+		"取消强制移动" if _targeting_command == "ForceMove" else "强制移动",
+		"unit.force_move"
+	)
+	_force_attack_button.text = _caption(
+		"取消强制攻击" if _targeting_command == "ForceAttack" else "强制攻击",
+		"unit.force_attack"
+	)
+	_tactical_withdraw_button.text = _caption(
+		"取消撤退" if _targeting_command == "TacticalWithdraw" else "撤退",
+		"unit.tactical_withdraw"
+	)
+	_ground_attack_move_button.text = _caption(
+		"取消移动并攻击" if _targeting_command == "GroundAttackMove" else "移动并攻击",
+		"unit.attack_move"
+	)
+	_halt_button.text = "停止移动"
+	_aggressive_button.text = "侵略"
+	_guard_button.text = "警戒"
+	_hold_ground_button.text = _caption("固守", "unit.stance_hold_ground")
+	_clear_rally_point_button.text = "清除集结"
+
+
 func _on_command_targeting_changed(command_name: String):
 	_targeting_command = command_name
-	_force_move_button.text = "取消强制移动" if command_name == "ForceMove" else "强制移动"
-	_force_attack_button.text = "取消强制攻击" if command_name == "ForceAttack" else "强制攻击"
-	_tactical_withdraw_button.text = (
-		"取消撤退" if command_name == "TacticalWithdraw" else "撤退"
-	)
-	_ground_attack_move_button.text = (
-		"取消移动并攻击" if command_name == "GroundAttackMove" else "移动并攻击"
-	)
+	_refresh_command_captions()
+	_refresh_hold_fire_caption()
 	if command_name == "ForceMove":
 		_feedback_label.text = "请右键地面指定强制移动目标"
 	elif command_name == "ForceAttack":
@@ -203,4 +236,11 @@ func _refresh_policy_buttons():
 	_guard_button.button_pressed = stance == "Guard"
 	_hold_ground_button.button_pressed = stance == "HoldGround"
 	_hold_fire_button.button_pressed = fire_policy == "HoldFire"
+	_refresh_hold_fire_caption()
+
+
+func _refresh_hold_fire_caption():
+	if actions_controller == null:
+		return
+	var fire_policy: String = actions_controller.get_selected_combat_policy("FirePolicy")
 	_hold_fire_button.text = "恢复开火" if fire_policy == "HoldFire" else "停火"

@@ -13,7 +13,7 @@
 1. ✅ 战役计时改模拟时钟
 2. ✅ 任务 timer 吃暂停
 3. ✅ 暂停冒烟覆盖单位与任务时间
-4. ⏳ 待人工验收（87–89）
+4. ✅ 已验收（87–89）
 5. ✓ 游玩反馈：警戒步骤只认 AI HUD、撤离点无标记、简报误导边缘滚屏 — 已修
 
 ## Timeline
@@ -30,7 +30,7 @@
 ## Progress Tracking
 ✅ 战役时间源
 ✅ 暂停审计与测试
-⏳ 人工验收
+✅ 人工验收
 
 ## Related Files
 - `source/campaign/CampaignController.gd`
