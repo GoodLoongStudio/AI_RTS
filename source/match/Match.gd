@@ -106,6 +106,11 @@ func _setup_ai_command_hud_toggle(ai_command_hud: Control):
 	var apply_visibility := func(should_show: bool):
 		ai_command_hud.set_interface_visible(should_show)
 		toggle_button.text = "隐藏 AI 副官" if should_show else "显示 AI 副官"
+		var command_hud = $HUD.get_node_or_null("TraditionalUnitCommandHUD")
+		if command_hud != null:
+			command_hud.visible = not should_show
+			if should_show and command_hud.actions_controller != null:
+				command_hud.actions_controller.cancel_command_targeting()
 	toggle_button.pressed.connect(
 		func(): apply_visibility.call(not ai_command_hud.is_interface_visible())
 	)

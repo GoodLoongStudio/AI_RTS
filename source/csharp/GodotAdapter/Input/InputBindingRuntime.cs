@@ -8,7 +8,7 @@ namespace AI_RTS.GodotAdapter.Input;
 public partial class InputBindingRuntime : Node
 {
     /// <summary>玩家覆盖文件结构版本。</summary>
-    public const int ControlsSchemaVersion = 1;
+    public const int ControlsSchemaVersion = 2;
 
     /// <summary>玩家本地键位覆盖路径；不进入 Git 仓库。</summary>
     [Export(PropertyHint.File, "*.cfg")]
@@ -170,7 +170,8 @@ public partial class InputBindingRuntime : Node
         if (error != Error.Ok ||
             config.GetValue("meta", "schema_version", 0).AsInt32() != ControlsSchemaVersion)
         {
-            GD.PushWarning($"controls.cfg 无法加载或版本不受支持，继续使用默认键位：{error}");
+            GD.PushWarning($"controls.cfg 无法加载或版本不受支持，已重写为当前默认键位：{error}");
+            SaveCurrentBindings();
             return;
         }
         var overrides = new Dictionary<InputActionId, string>();

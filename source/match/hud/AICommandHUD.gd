@@ -26,6 +26,7 @@ var pending_command := ""
 var squad_status := {1: "待命", 2: "待命", 3: "待命"}
 
 var _squad_buttons := {}
+var _command_buttons := []
 var _chat_log: RichTextLabel
 var _input: LineEdit
 var _command_hint: Label
@@ -192,12 +193,21 @@ func _build_ui():
 	cmd_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	cmd_row.add_theme_constant_override("separation", 8)
 	bottom_box.add_child(cmd_row)
-	for item in [["Q", "移动", "MOVE"], ["W", "攻击", "ATTACK"], ["E", "防守", "DEFEND"], ["R", "侦察", "SCOUT"], ["D", "撤退", "RETREAT"], ["F", "停止", "STOP"]]:
+	_command_buttons.clear()
+	for item in [
+		["legacy.command_move", "移动", "MOVE"],
+		["legacy.command_attack", "攻击", "ATTACK"],
+		["legacy.command_defend", "防守", "DEFEND"],
+		["legacy.command_scout", "侦察", "SCOUT"],
+		["legacy.command_retreat", "撤退", "RETREAT"],
+		["legacy.command_stop", "停止", "STOP"]
+	]:
 		var button := Button.new()
 		button.custom_minimum_size = Vector2(105, 62)
-		button.text = "%s\n%s" % [item[0], item[1]]
 		button.pressed.connect(_begin_command.bind(item[2]))
 		cmd_row.add_child(button)
+		_command_buttons.append({"button": button, "action_id": item[0], "label": item[1]})
+	_refresh_command_captions()
 	var input_row := HBoxContainer.new()
 	bottom_box.add_child(input_row)
 	_input = LineEdit.new()
@@ -536,6 +546,14 @@ func _parse_command(text: String) -> String:
 	if text.contains("移动") or text.contains("前进") or text.contains("去") or text.contains("绕"):
 		return "MOVE"
 	return ""
+
+
+func _refresh_command_captions():
+	for item in _command_buttons:
+		var key := ""
+		if _input_runtime != null and _input_runtime.has_method("GetBinding"):
+			key = str(_input_runtime.GetBinding(item.action_id)).strip_edges()
+		item.button.text = "%s\n%s" % [key if not key.is_empty() else "-", item.label]
 
 
 func _refresh_squad_ui():
