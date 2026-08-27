@@ -66,7 +66,10 @@ var player:
 		return get_parent()
 var color:
 	get:
-		return player.color
+		var owner_player = get_parent()
+		if owner_player == null or not "color" in owner_player:
+			return Color.WHITE
+		return owner_player.color
 var action = null:
 	set = _set_action
 var global_position_yless:
@@ -367,8 +370,10 @@ func _get_type():
 
 func _teardown_current_action():
 	if action != null and action.is_inside_tree():
+		if action.tree_exited.is_connected(_on_action_node_tree_exited):
+			action.tree_exited.disconnect(_on_action_node_tree_exited)
 		action.queue_free()
-		remove_child(action)  # triggers _on_action_node_tree_exited immediately
+		remove_child(action)  # triggers descendant tree_exited immediately
 
 
 func _safety_checks():
@@ -395,7 +400,15 @@ func _safety_checks():
 
 
 func _handle_unit_death():
-	tree_exited.connect(func(): MatchSignals.unit_died.emit(self))
+	# 先取消选择再发死亡，保证 HUD / 菜单收到 unit_deselected，且 Space 仍能拿到有效坐标。
+	var selection = find_child("Selection")
+	if selection != null:
+		selection.deselect()
+	for squad_id in range(1, 4):
+		var squad_group := "legacy_ai_squad_%d" % squad_id
+		if is_in_group(squad_group):
+			remove_from_group(squad_group)
+	MatchSignals.unit_died.emit(self)
 	queue_free()
 
 

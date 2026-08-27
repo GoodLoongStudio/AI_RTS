@@ -246,3 +246,7 @@ func _on_structure_placement_request(structure_prototype):
 func _on_input_action_pressed(action_id: String):
 	if action_id == "build.rotate":
 		_try_rotating_blueprint_by(ROTATION_BY_KEY_STEP)
+		return
+	if action_id == "global.cancel" and _structure_placement_started():
+		_finish_blueprint_rotation()
+		_cancel_structure_placement()

@@ -1,0 +1,11 @@
+大功能 | 小功能 | 是否必须 | 当前策划要求 | 当前程序情况 | 一致性 | 建议
+
+胜负与结算 | 普通对局胜负 | ✅ 必须 | 普通 Match 有明确胜负 | 已实现 MatchOutcome + LastSurvivingSideRule | ✅ 一致 | 保留
+
+胜负与结算 | 战役胜利 | ✅ 必须 | 完成战役目标产生 Victory | CampaignController 自己显示“任务完成” | ❌ 冲突 | 统一进入 MatchOutcome
+
+胜负与结算 | 战役失败 | ✅ 必须 | 失败目标产生 Defeat | 当前缺通用链 | ❌ 缺失 | 接统一 MatchOutcome
+
+胜负与结算 | 结果锁定 | ✅ 必须 | 最终结果只能产生一次 | MatchOutcome 已有基础 | ⚠️ 部分一致 | Campaign 共用它
+
+胜负与结算 | 战役结算 | ✅ 必须 | 显示成功/失败和任务结果 | 第一关已有专项 Result UI | ⚠️ 部分一致 | UI 可保留，数据源统一

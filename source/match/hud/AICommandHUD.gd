@@ -26,6 +26,7 @@ var pending_command := ""
 var squad_status := {1: "待命", 2: "待命", 3: "待命"}
 
 var _squad_buttons := {}
+var _command_buttons := []
 var _chat_log: RichTextLabel
 var _input: LineEdit
 var _command_hint: Label
@@ -48,6 +49,7 @@ func _ready():
 	_input_runtime.connect("ActionPressed", _on_input_action_pressed)
 	MatchSignals.terrain_targeted.connect(_on_terrain_targeted)
 	MatchSignals.unit_targeted.connect(_on_unit_targeted)
+	MatchSignals.unit_died.connect(_on_unit_died)
 	if _is_hero_mode():
 		_append_ai("先锋链路已上线。你可以直接告诉我想做什么，也可以问我‘下一步做什么’或‘风险怎么样’。")
 	else:
@@ -75,6 +77,11 @@ func _on_input_action_pressed(action_id: String):
 		return
 	if action_id == "text.cancel":
 		_input.release_focus()
+		return
+	if action_id == "global.cancel":
+		if pending_command != "":
+			pending_command = ""
+			_refresh_squad_ui()
 		return
 	if action_id == "legacy.hero_focus" and _is_hero_mode():
 		_handle_hero_focus_hotkey()
@@ -186,12 +193,21 @@ func _build_ui():
 	cmd_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	cmd_row.add_theme_constant_override("separation", 8)
 	bottom_box.add_child(cmd_row)
-	for item in [["Q", "移动", "MOVE"], ["W", "攻击", "ATTACK"], ["E", "防守", "DEFEND"], ["R", "侦察", "SCOUT"], ["D", "撤退", "RETREAT"], ["F", "停止", "STOP"]]:
+	_command_buttons.clear()
+	for item in [
+		["legacy.command_move", "移动", "MOVE"],
+		["legacy.command_attack", "攻击", "ATTACK"],
+		["legacy.command_defend", "防守", "DEFEND"],
+		["legacy.command_scout", "侦察", "SCOUT"],
+		["legacy.command_retreat", "撤退", "RETREAT"],
+		["legacy.command_stop", "停止", "STOP"]
+	]:
 		var button := Button.new()
 		button.custom_minimum_size = Vector2(105, 62)
-		button.text = "%s\n%s" % [item[0], item[1]]
 		button.pressed.connect(_begin_command.bind(item[2]))
 		cmd_row.add_child(button)
+		_command_buttons.append({"button": button, "action_id": item[0], "label": item[1]})
+	_refresh_command_captions()
 	var input_row := HBoxContainer.new()
 	bottom_box.add_child(input_row)
 	_input = LineEdit.new()
@@ -393,6 +409,14 @@ func _submit_public_squad_command(submit: Callable) -> bool:
 	return result.get("status", "Rejected") in ["Accepted", "PartiallyAccepted"]
 
 
+func _on_unit_died(unit):
+	var camera = find_parent("Match").get_node_or_null("IsometricCamera3D")
+	if camera != null and camera.get_follow_target() == unit:
+		camera.clear_follow_target()
+		_hero_camera_locked = false
+	_refresh_squad_ui()
+
+
 func _on_terrain_targeted(_position):
 	if pending_command not in ["MOVE", "SCOUT", "RETREAT"]:
 		return
@@ -522,6 +546,14 @@ func _parse_command(text: String) -> String:
 	if text.contains("移动") or text.contains("前进") or text.contains("去") or text.contains("绕"):
 		return "MOVE"
 	return ""
+
+
+func _refresh_command_captions():
+	for item in _command_buttons:
+		var key := ""
+		if _input_runtime != null and _input_runtime.has_method("GetBinding"):
+			key = str(_input_runtime.GetBinding(item.action_id)).strip_edges()
+		item.button.text = "%s\n%s" % [key if not key.is_empty() else "-", item.label]
 
 
 func _refresh_squad_ui():

@@ -18,6 +18,11 @@ internal sealed class InputBindingServiceTests
         RunTest(nameof(InvalidOverrideIsAtomic), InvalidOverrideIsAtomic);
         RunTest(nameof(SameContextConflictIsRejected), SameContextConflictIsRejected);
         RunTest(nameof(ButtonOnlyActionCannotBeBound), ButtonOnlyActionCannotBeBound);
+        RunTest(nameof(OfficialUnitHotkeysResolve), OfficialUnitHotkeysResolve);
+        RunTest(nameof(LegacyAgentCommandHotkeysDoNotConflict), LegacyAgentCommandHotkeysDoNotConflict);
+        RunTest(nameof(TabTogglesAiHud), TabTogglesAiHud);
+        RunTest(nameof(F10OpensMenuAndEscapeCancels), F10OpensMenuAndEscapeCancels);
+        RunTest(nameof(SpaceFocusesLatestBattlefieldEvent), SpaceFocusesLatestBattlefieldEvent);
 
         Console.WriteLine($"Input binding tests completed: {_tests} test(s), {_failures} failure(s).");
         return _failures == 0 ? 0 : 1;
@@ -42,12 +47,17 @@ internal sealed class InputBindingServiceTests
 
         Check(Action(service.Resolve(Parse("Q"), Contexts(
                 InputContextId.Camera,
-                InputContextId.LegacyAgent))) == "legacy.command_move",
-            "LegacyAgent 打开时 Q 应屏蔽镜头旋转");
+                InputContextId.LegacyAgent))) == "camera.rotate_clockwise",
+            "旧 AI Q 键取消后，Q 应回到镜头旋转");
         Check(Action(service.Resolve(Parse("R"), Contexts(
                 InputContextId.LegacyAgent,
+                InputContextId.UnitCommand,
                 InputContextId.BuildPlacement))) == "build.rotate",
-            "建造放置时 R 应屏蔽 Legacy 侦察命令");
+            "建造放置时 R 应旋转蓝图，不触发攻击移动");
+        Check(Action(service.Resolve(Parse("R"), Contexts(
+                InputContextId.LegacyAgent,
+                InputContextId.UnitCommand))) == "unit.attack_move",
+            "AI HUD 打开时 R 仍应是正式攻击移动");
     }
 
     /// <summary>验证首版允许 Alt+字母，但拒绝两个以上修饰键。</summary>
@@ -93,12 +103,126 @@ internal sealed class InputBindingServiceTests
         var service = NewService();
         var result = service.ApplyOverrides(new Dictionary<InputActionId, string>
         {
-            [Id("unit.force_move")] = "Alt+M"
+            [Id("unit.halt")] = "Alt+M"
         });
 
         Check(!result.Applied, "按钮专用动作的玩家覆盖应被拒绝");
-        Check(service.FindChord(Id("unit.force_move")) is null,
+        Check(service.FindChord(Id("unit.halt")) is null,
             "按钮专用动作应始终没有玩家键位");
+    }
+
+    /// <summary>验证官方 RTS 单位快捷键已从按钮专用改为默认键位。</summary>
+    private void OfficialUnitHotkeysResolve()
+    {
+        var service = NewService();
+        var contexts = Contexts(InputContextId.UnitCommand);
+
+        Check(Action(service.Resolve(Parse("R"), contexts)) == "unit.attack_move",
+            "R 应解析为攻击移动");
+        Check(Action(service.Resolve(Parse("F"), contexts)) == "unit.stop",
+            "F 应解析为完整停止");
+        Check(Action(service.Resolve(Parse("G"), contexts)) == "unit.stance_hold_ground",
+            "G 应解析为固守");
+        Check(Action(service.Resolve(Parse("C"), contexts)) == "unit.force_move",
+            "C 应解析为强制移动");
+        Check(Action(service.Resolve(Parse("X"), contexts)) == "unit.force_attack",
+            "X 应解析为强制攻击");
+        Check(Action(service.Resolve(Parse("Z"), contexts)) == "unit.tactical_withdraw",
+            "Z 应解析为战术撤退");
+        Check(Action(service.Resolve(Parse("T"), contexts)) == "unit.stance_aggressive",
+            "T 应解析为侵略");
+        Check(Action(service.Resolve(Parse("Y"), contexts)) == "unit.stance_guard",
+            "Y 应解析为警戒");
+        Check(Action(service.Resolve(Parse("H"), contexts)) == "unit.toggle_hold_fire",
+            "H 应解析为停火切换");
+        Check(Action(service.Resolve(Parse("B"), contexts)) == "unit.clear_rally",
+            "B 应解析为清除集结");
+        Check(service.FindChord(Id("legacy.command_move")) == Parse("U"),
+            "AI 副官移动应使用空闲键 U");
+        Check(service.FindChord(Id("legacy.command_stop")) == Parse("K"),
+            "AI 副官停止应使用空闲键 K");
+    }
+
+    /// <summary>验证副官命令键在打开 HUD 时可用，且不抢镜头/单位现有键。</summary>
+    private void LegacyAgentCommandHotkeysDoNotConflict()
+    {
+        var service = NewService();
+        var playContexts = Contexts(
+            InputContextId.Camera,
+            InputContextId.UnitCommand,
+            InputContextId.LegacyAgent);
+
+        Check(Action(service.Resolve(Parse("U"), playContexts)) == "legacy.command_move",
+            "副官打开时 U 应为移动");
+        Check(Action(service.Resolve(Parse("I"), playContexts)) == "legacy.command_attack",
+            "副官打开时 I 应为攻击");
+        Check(Action(service.Resolve(Parse("O"), playContexts)) == "legacy.command_defend",
+            "副官打开时 O 应为防守");
+        Check(Action(service.Resolve(Parse("P"), playContexts)) == "legacy.command_scout",
+            "副官打开时 P 应为侦察");
+        Check(Action(service.Resolve(Parse("J"), playContexts)) == "legacy.command_retreat",
+            "副官打开时 J 应为撤退");
+        Check(Action(service.Resolve(Parse("K"), playContexts)) == "legacy.command_stop",
+            "副官打开时 K 应为停止");
+        Check(Action(service.Resolve(Parse("Q"), playContexts)) == "camera.rotate_clockwise",
+            "副官打开时 Q 仍应旋转镜头");
+        Check(Action(service.Resolve(Parse("W"), playContexts)) == "camera.move_up",
+            "副官打开时 W 仍应上移镜头");
+        Check(Action(service.Resolve(Parse("E"), playContexts)) == "camera.rotate_counterclockwise",
+            "副官打开时 E 仍应反向旋转镜头");
+        Check(Action(service.Resolve(Parse("D"), playContexts)) == "camera.move_right",
+            "副官打开时 D 仍应右移镜头");
+        Check(Action(service.Resolve(Parse("R"), playContexts)) == "unit.attack_move",
+            "副官打开时 R 仍应是攻击移动");
+        Check(Action(service.Resolve(Parse("F"), playContexts)) == "unit.stop",
+            "副官打开时 F 仍应是完整停止");
+        Check(Action(service.Resolve(Parse("U"), Contexts(
+                InputContextId.Camera,
+                InputContextId.UnitCommand))) == null,
+            "副官关闭后 U 不应再触发命令");
+    }
+
+    /// <summary>验证 Tab 在普通对局上下文中切换 AI 副官 HUD，文本输入时不抢键。</summary>
+    private void TabTogglesAiHud()
+    {
+        var service = NewService();
+
+        Check(Action(service.Resolve(Parse("TAB"), Contexts(
+                InputContextId.Global,
+                InputContextId.UnitCommand))) == "global.toggle_ai_hud",
+            "Tab 应解析为切换 AI 副官 HUD");
+        Check(Action(service.Resolve(Parse("TAB"), Contexts(InputContextId.MenuTextInput))) == null,
+            "文字输入焦点下 Tab 不应切换 HUD");
+    }
+
+    /// <summary>验证 F10 打开暂停菜单，Esc 只取消/返回，不再打开菜单。</summary>
+    private void F10OpensMenuAndEscapeCancels()
+    {
+        var service = NewService();
+        var playContexts = Contexts(InputContextId.Global, InputContextId.UnitCommand);
+
+        Check(Action(service.Resolve(Parse("F10"), playContexts)) == "global.toggle_menu",
+            "F10 应解析为打开暂停菜单");
+        Check(Action(service.Resolve(Parse("ESCAPE"), playContexts)) == "global.cancel",
+            "对局中 Esc 应解析为取消/返回");
+        Check(Action(service.Resolve(Parse("ESCAPE"), Contexts(InputContextId.MenuTextInput))) ==
+                "text.cancel",
+            "文字输入焦点下 Esc 应只取消文本焦点");
+        Check(Action(service.Resolve(Parse("ESCAPE"), playContexts)) != "global.toggle_menu",
+            "Esc 不得再打开暂停菜单");
+    }
+
+    /// <summary>验证 Space 在镜头上下文中跳转最近重要战场事件。</summary>
+    private void SpaceFocusesLatestBattlefieldEvent()
+    {
+        var service = NewService();
+        Check(
+            Action(service.Resolve(Parse("SPACE"), Contexts(InputContextId.Camera))) ==
+                "camera.focus_latest_event",
+            "Space 应解析为跳转最近战场事件");
+        Check(
+            Action(service.Resolve(Parse("SPACE"), Contexts(InputContextId.MenuTextInput))) == null,
+            "文字输入焦点下 Space 不应跳转镜头");
     }
 
     private static InputBindingService NewService() =>

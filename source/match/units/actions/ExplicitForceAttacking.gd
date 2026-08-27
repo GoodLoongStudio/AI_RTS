@@ -50,6 +50,14 @@ func _on_target_unit_removed():
 
 
 func _on_sub_action_finished():
-	if not is_inside_tree() or not is_instance_valid(_target_unit) or not _target_unit.is_inside_tree():
+	if (
+		not is_inside_tree()
+		or is_queued_for_deletion()
+		or _unit == null
+		or not is_instance_valid(_unit)
+		or _unit.action != self
+	):
+		return
+	if not is_instance_valid(_target_unit) or not _target_unit.is_inside_tree():
 		return
 	_attack_or_move_closer()

@@ -8,6 +8,8 @@ func _ready():
 
 
 func _on_terrain_targeted(target_position):
+	if target_position == null or not (target_position is Vector3):
+		return
 	if (
 		get_tree()
 		. get_nodes_in_group("selected_units")

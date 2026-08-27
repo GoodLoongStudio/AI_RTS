@@ -18,4 +18,6 @@ func _on_input_event(_camera, event, _click_position, _click_normal, _shape_idx)
 		and event.pressed
 	):
 		var target_point = get_viewport().get_camera_3d().get_ray_intersection(event.position)
+		if target_point == null:
+			return
 		MatchSignals.terrain_targeted.emit(target_point)

@@ -11,24 +11,39 @@ func _ready():
 
 
 func _on_input_action_pressed(action_id: String):
-	if action_id != "global.toggle_menu":
+	if action_id == "global.toggle_menu":
+		_open()
 		return
+	if action_id == "global.cancel":
+		_cancel_or_return()
 
+
+func _open():
+	if visible:
+		return
+	visible = true
+	get_tree().paused = true
+
+
+func _close():
+	if _options_panel != null:
+		_close_options_panel()
+	if not visible:
+		return
+	visible = false
+	get_tree().paused = false
+
+
+func _cancel_or_return():
 	if _options_panel != null:
 		_close_options_panel()
 		return
-
-	if ((not visible and not get_tree().paused) or (visible and get_tree().paused)):
-		_toggle()
-
-
-func _toggle():
-	visible = not visible
-	get_tree().paused = visible
+	if visible:
+		_close()
 
 
 func _on_resume_button_pressed():
-	_toggle()
+	_close()
 
 
 func _on_settings_button_pressed():

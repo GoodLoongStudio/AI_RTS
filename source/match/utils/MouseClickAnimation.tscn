@@ -6,4 +6,5 @@
 [node name="MouseClickAnimation" instance=ExtResource("1_mk7wl")]
 
 [node name="Sprite3D" parent="." index="0"]
+no_depth_test = true
 texture = ExtResource("2_kyj8v")

@@ -65,6 +65,29 @@ func _ready():
 		"Guard anchor should update to actual position after player movement completes"
 	)
 
+	move_result = gateway.MoveUnits([tank], destination + Vector3(0.0, 0.0, 2.0), human)
+	order_id = move_result["unit_results"][0]["order_id"]
+	_check(gateway.GetActiveOrderState(tank) == "InProgress", "second move should be in progress")
+	tank.find_child("Movement").emit_signal("movement_ended", "Unreachable")
+	await get_tree().process_frame
+	_check(gateway.GetOrderState(order_id) == "Unreachable", "unreachable navigation must complete as Unreachable")
+	_check(
+		_states_for_order(order_id) == ["Accepted", "InProgress", "Unreachable"],
+		"unreachable navigation should emit Unreachable exactly once"
+	)
+	var last_terminal: Dictionary = gateway.GetLastTerminalOrder(tank)
+	_check(last_terminal.get("state", "") == "Unreachable", "AI/玩家应能查询到最近一次不可达终态")
+	var hud = match_instance.get_node_or_null("HUD/TraditionalUnitCommandHUD")
+	_check(hud != null, "传统命令栏应存在以显示不可达")
+	if hud != null:
+		var feedback_label = hud.get_node("MarginContainer/VBoxContainer/FeedbackLabel")
+		_check("无法到达目标" in feedback_label.text, "玩家 HUD 必须明确提示无法到达")
+	tank.find_child("Movement").movement_finished.emit()
+	_check(
+		gateway.GetOrderState(order_id) == "Unreachable",
+		"late Arrived fallback must not overwrite Unreachable"
+	)
+
 	move_result = gateway.ForceMoveUnits([tank], destination, human)
 	order_id = move_result["unit_results"][0]["order_id"]
 	_check(gateway.GetActiveOrderState(tank) == "InProgress", "replacement move should be in progress")

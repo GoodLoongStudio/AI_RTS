@@ -184,6 +184,10 @@ public partial class UnitCommandGateway : Node
     public Godot.Collections.Dictionary GetOrderSnapshot(string orderId) =>
         _runtime.GetOrderSnapshot(orderId);
 
+    /// <summary>查询单位最近一次终态订单，供玩家与 AI 读取不可达等明确结果。</summary>
+    public Godot.Collections.Dictionary GetLastTerminalOrder(Node unitNode) =>
+        _runtime.GetLastTerminalOrder(unitNode);
+
     /// <summary>沿父节点查找指定名称的装配根，缺失时立即报告场景契约错误。</summary>
     private Node FindAncestor(string nodeName)
     {

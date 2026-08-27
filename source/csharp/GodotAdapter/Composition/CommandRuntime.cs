@@ -55,6 +55,9 @@ public partial class CommandRuntime : Node
     /// <summary>等待系统驱逐完成后才启动的施工任务；任意新玩家订单都会使其失效。</summary>
     private readonly Dictionary<UnitId, PendingConstruction> _pendingConstruction = new();
 
+    /// <summary>每个单位最近一次终态订单，供玩家 HUD 与 AI 查询不可达等明确结果。</summary>
+    private readonly Dictionary<UnitId, UnitOrderSnapshot> _lastTerminalOrders = new();
+
     /// <summary>所有 Human、规则 AI 和未来外部 Adapter 共享的命令服务。</summary>
     private IUnitCommandService _commands = null!;
 
@@ -80,6 +83,7 @@ public partial class CommandRuntime : Node
             new LegacyConstructionWorkerPort(_units, _constructionSites),
             _constructionSites,
             economy.AccountService);
+        GetNode("/root/MatchSignals").Connect("unit_died", Callable.From<Node>(OnAuthoritativeUnitDied));
         _commands = new UnitCommandService(
             _units,
             new LegacyMovementPort(_units, _resourceNodes),
@@ -628,6 +632,10 @@ public partial class CommandRuntime : Node
     internal bool TryGetRuntimeUnit(UnitId unitId, out Node unit) =>
         _units.TryGetNode(unitId, out unit);
 
+    /// <summary>死亡后查询稳定 ID 是否仍指向活着的运行时单位。</summary>
+    public bool HasLiveRuntimeUnit(string unitId) =>
+        Guid.TryParse(unitId, out var value) && _units.TryGetNode(new UnitId(value), out _);
+
     /// <summary>解析 Rally Adapter 保存的资源节点弱引用。</summary>
     internal bool TryGetRuntimeResource(ResourceNodeId resourceNodeId, out Node resource) =>
         _resourceNodes.TryGetNode(resourceNodeId, out resource);
@@ -680,6 +688,10 @@ public partial class CommandRuntime : Node
         {
             _pendingConstruction.Remove(change.Current.UnitId);
         }
+        if (_IsTerminal(change.Current.State))
+        {
+            _lastTerminalOrders[change.Current.UnitId] = change.Current;
+        }
         EmitSignal(
             SignalName.OrderStateChanged,
             change.Current.OrderId.Value.ToString("D"),
@@ -690,6 +702,18 @@ public partial class CommandRuntime : Node
             change.Current.State.ToString(),
             change.Current.ReplacedByCommandId?.Value.ToString("D") ?? string.Empty);
     }
+
+    /// <summary>查询单位最近一次终态订单；没有终态时返回空字典。</summary>
+    public Godot.Collections.Dictionary GetLastTerminalOrder(Node unitNode)
+    {
+        var unitId = _units.Register(unitNode);
+        return _lastTerminalOrders.TryGetValue(unitId, out var order) ?
+            ToGodot(order) : new Godot.Collections.Dictionary();
+    }
+
+    private static bool _IsTerminal(UnitOrderState state) => state is
+        UnitOrderState.Arrived or UnitOrderState.Completed or UnitOrderState.Unreachable or
+        UnitOrderState.TargetLost or UnitOrderState.Cancelled or UnitOrderState.UnitLost;
 
     /// <summary>仅在驱逐等待仍有效且现场、玩家、Worker 均存活时提交 Construct。</summary>
     private void StartPendingConstruction(UnitId workerId)
@@ -731,8 +755,12 @@ public partial class CommandRuntime : Node
             if (movement is not null)
             {
                 movement.Connect(
+                    "movement_ended",
+                    Callable.From<string>(reason => CompleteIfActive(item.UnitId, orderId, reason)),
+                    (uint)ConnectFlags.OneShot);
+                movement.Connect(
                     "movement_finished",
-                    Callable.From(() => CompleteIfActive(item.UnitId, orderId)),
+                    Callable.From(() => CompleteIfActive(item.UnitId, orderId, "Arrived")),
                     (uint)ConnectFlags.OneShot);
             }
             if (_deathTrackedUnits.Add(item.UnitId))
@@ -826,6 +854,7 @@ public partial class CommandRuntime : Node
         var state = reason switch
         {
             "Arrived" => UnitOrderState.Arrived,
+            "Unreachable" => UnitOrderState.Unreachable,
             "TargetLost" => UnitOrderState.TargetLost,
             _ => UnitOrderState.Cancelled
         };
@@ -896,15 +925,29 @@ public partial class CommandRuntime : Node
         }
     }
 
-    /// <summary>仅在订单仍处于执行中时，将移动完成事件转换为 Arrived。</summary>
-    private void CompleteIfActive(UnitId unitId, UnitOrderId orderId)
+    /// <summary>仅在订单仍处于执行中时，将移动结束原因转换为到达或不可达终态。</summary>
+    private void CompleteIfActive(UnitId unitId, UnitOrderId orderId, string reason = "Arrived")
     {
         var active = _orders.FindActive(unitId);
-        if (active?.OrderId == orderId && active.State == UnitOrderState.InProgress)
+        if (active?.OrderId != orderId || active.State != UnitOrderState.InProgress)
         {
-            _orders.Transition(orderId, UnitOrderState.Arrived);
+            return;
+        }
+
+        var state = reason == "Unreachable" ? UnitOrderState.Unreachable : UnitOrderState.Arrived;
+        _orders.Transition(orderId, state);
+        if (state == UnitOrderState.Arrived)
+        {
             UpdateGuardAnchor(unitId);
         }
+    }
+
+    /// <summary>权威死亡时结束活动订单并注销运行时映射。</summary>
+    private void OnAuthoritativeUnitDied(Node unit)
+    {
+        var unitId = GodotStableIdentity.Unit(unit);
+        LoseActiveOrder(unitId);
+        _units.Unregister(unitId);
     }
 
     /// <summary>在单位退出 SceneTree 时，将其当前活动订单转换为 UnitLost。</summary>

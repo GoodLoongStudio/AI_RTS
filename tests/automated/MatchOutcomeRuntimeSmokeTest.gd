@@ -16,6 +16,9 @@ func _ready():
 	await _test_human_defeat()
 	await _test_draw()
 	await _test_ai_only_finish()
+	await _test_campaign_victory_without_annihilation()
+	await _test_campaign_defeat_without_annihilation()
+	await _test_locked_outcome_cannot_be_resettled()
 	await _test_actual_match_unit_death_path()
 
 	print("Match outcome runtime smoke test completed: %d failure(s)" % _failures)
@@ -40,8 +43,14 @@ func _test_human_victory_and_spawn_bridge():
 
 	_check(runtime.InspectOutcome().get("kind", "") == "Won",
 		"最后一个敌军死亡后应产生 Won")
+	_check(runtime.InspectOutcome().get("local_result", "") == "Victory",
+		"本机歼灭胜利的 local_result 应为 Victory")
 	_check(fixture.handler.find_child("Victory").visible,
 		"本机 Human 获胜应显示 Victory")
+	_check(not fixture.handler.find_child("CampaignSummary").visible,
+		"非战役对局不应显示战役结算摘要")
+	_check(not fixture.handler.find_child("RestartButton").visible,
+		"非战役对局不应显示重开本关")
 	await _dispose_fixture(fixture)
 
 
@@ -52,6 +61,8 @@ func _test_human_defeat():
 	await get_tree().process_frame
 	await get_tree().process_frame
 
+	_check(fixture.runtime.InspectOutcome().get("local_result", "") == "Defeat",
+		"本机淘汰的 local_result 应为 Defeat")
 	_check(fixture.handler.find_child("Defeat").visible,
 		"本机 Human 淘汰后应显示 Defeat")
 	await _dispose_fixture(fixture)
@@ -67,6 +78,7 @@ func _test_draw():
 
 	var snapshot: Dictionary = fixture.runtime.InspectOutcome()
 	_check(snapshot.get("kind", "") == "Draw", "同帧全灭应判为 Draw")
+	_check(snapshot.get("local_result", "") == "Finish", "平局的 local_result 应为 Finish")
 	_check(snapshot.get("winning_side_ids", []).is_empty(), "Draw 不应包含胜方")
 	_check(fixture.handler.find_child("Finish").visible,
 		"当前 Draw 应复用 Finish 面板")
@@ -88,6 +100,62 @@ func _test_ai_only_finish():
 		"无 Human 对局应显式返回空本机阵营")
 	_check(fixture.handler.find_child("Finish").visible,
 		"无 Human 对局应显示 Finish")
+	await _dispose_fixture(fixture)
+
+
+## 验证战役目标完成可在敌军仍存活时锁定 Victory。
+func _test_campaign_victory_without_annihilation():
+	var fixture: Dictionary = await _create_fixture(true)
+	_check(fixture.runtime.DeclareCampaignVictory(), "战役胜利入口应成功锁定终局")
+	await get_tree().process_frame
+
+	var snapshot: Dictionary = fixture.runtime.InspectOutcome()
+	_check(snapshot.get("kind", "") == "Won", "战役胜利应为 Won")
+	_check(snapshot.get("local_result", "") == "Victory", "战役胜利的 local_result 应为 Victory")
+	_check(snapshot.get("surviving_side_ids", []).size() == 2,
+		"战役胜利不得要求先歼灭敌军")
+	_check(fixture.handler.find_child("Victory").visible,
+		"战役胜利应走统一 Victory 面板")
+	_check(not fixture.runtime.DeclareCampaignVictory(),
+		"终态后再次宣告战役胜利应失败")
+	await _dispose_fixture(fixture)
+
+
+## 验证战役失败可在本机单位仍存活时锁定 Defeat。
+func _test_campaign_defeat_without_annihilation():
+	var fixture: Dictionary = await _create_fixture(true)
+	_check(fixture.runtime.DeclareCampaignDefeat(), "战役失败入口应成功锁定终局")
+	await get_tree().process_frame
+
+	var snapshot: Dictionary = fixture.runtime.InspectOutcome()
+	_check(snapshot.get("kind", "") == "Won", "战役失败仍应保留真实胜方")
+	_check(snapshot.get("local_result", "") == "Defeat", "战役失败的 local_result 应为 Defeat")
+	_check(not snapshot.get("local_human_side_id", "") in snapshot.get("winning_side_ids", []),
+		"战役失败时本机阵营不得列为胜方")
+	_check(snapshot.get("surviving_side_ids", []).size() == 2,
+		"战役失败不得要求先歼灭本机单位")
+	_check(fixture.handler.find_child("Defeat").visible,
+		"战役失败应走统一 Defeat 面板")
+	_check(not fixture.runtime.DeclareCampaignDefeat(),
+		"终态后再次宣告战役失败应失败")
+	await _dispose_fixture(fixture)
+
+
+## 验证胜利锁定后失败宣告不得改写结果或切换面板。
+func _test_locked_outcome_cannot_be_resettled():
+	var fixture: Dictionary = await _create_fixture(true)
+	_check(fixture.runtime.DeclareCampaignVictory(), "锁定测试应先宣告胜利")
+	await get_tree().process_frame
+	var locked: Dictionary = fixture.runtime.InspectOutcome()
+	_check(fixture.runtime.IsOutcomeLocked(), "胜利后 IsOutcomeLocked 应为真")
+	_check(not fixture.runtime.DeclareCampaignDefeat(), "锁定后宣告失败应被拒绝")
+	var after: Dictionary = fixture.runtime.InspectOutcome()
+	_check(after.get("kind", "") == locked.get("kind", ""), "锁定后 kind 不得变化")
+	_check(after.get("version", -1) == locked.get("version", -2), "锁定后 version 不得变化")
+	_check(after.get("winning_side_ids", []) == locked.get("winning_side_ids", []),
+		"锁定后胜方不得变化")
+	_check(fixture.handler.find_child("Victory").visible, "二次结算不得撤掉 Victory")
+	_check(not fixture.handler.find_child("Defeat").visible, "二次结算不得改出 Defeat")
 	await _dispose_fixture(fixture)
 
 

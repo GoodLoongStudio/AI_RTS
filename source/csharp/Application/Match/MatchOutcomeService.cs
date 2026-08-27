@@ -98,7 +98,51 @@ public sealed class MatchOutcomeService(IMatchOutcomeRule rule) : IMatchOutcomeS
     }
 
     /// <inheritdoc />
+    public MatchResolution ResolveExplicit(
+        MatchResolutionKind kind,
+        IReadOnlyList<MatchSideId> winningSideIds)
+    {
+        ArgumentNullException.ThrowIfNull(winningSideIds);
+        if (kind == MatchResolutionKind.InProgress)
+        {
+            throw new ArgumentException("显式终局不能写成进行中。", nameof(kind));
+        }
+        if (kind == MatchResolutionKind.Won && winningSideIds.Count == 0)
+        {
+            throw new ArgumentException("Won 必须指定至少一个胜方。", nameof(winningSideIds));
+        }
+        if (kind == MatchResolutionKind.Draw && winningSideIds.Count != 0)
+        {
+            throw new ArgumentException("Draw 不得指定胜方。", nameof(winningSideIds));
+        }
+        if (!_started || _resolution.Kind != MatchResolutionKind.InProgress)
+        {
+            return _resolution;
+        }
+
+        _resolution = new MatchResolution(
+            kind,
+            winningSideIds.ToArray(),
+            CurrentSurvivingSides(),
+            checked(_resolution.Version + 1));
+        _dirty = false;
+        return _resolution;
+    }
+
+    /// <inheritdoc />
     public MatchResolution GetSnapshot() => _resolution;
+
+    /// <summary>按当前计分实体汇总仍存活阵营，不改写显式终局。</summary>
+    private IReadOnlyList<MatchSideId> CurrentSurvivingSides()
+    {
+        var sidesByPlayer = _participants.Values.ToDictionary(item => item.PlayerId, item => item.SideId);
+        return _combatants.Values
+            .Where(item => item.CountsForElimination && sidesByPlayer.ContainsKey(item.OwnerPlayerId))
+            .Select(item => sidesByPlayer[item.OwnerPlayerId])
+            .Distinct()
+            .OrderBy(item => item.Value)
+            .ToArray();
+    }
 
     /// <summary>拒绝无法形成稳定身份或阵营归属的参与者。</summary>
     private static void Validate(MatchParticipant participant)
