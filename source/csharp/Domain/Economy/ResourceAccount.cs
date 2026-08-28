@@ -43,6 +43,12 @@ public enum ResourceChangeReason
     /// <summary>单位进入生产队列时支付成本。</summary>
     ProductionCost,
 
+    /// <summary>主动技能正式生效时支付消耗。</summary>
+    SkillCost,
+
+    /// <summary>中断已生效技能时按配置退还消耗。</summary>
+    SkillRefund,
+
     /// <summary>取消生产时退还资源。</summary>
     ProductionRefund,
 

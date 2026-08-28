@@ -2,12 +2,14 @@ using System.Collections.Frozen;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using AI_RTS.Domain.Battlefield;
 using AI_RTS.Domain.Combat;
 using AI_RTS.Domain.Common;
 using AI_RTS.Domain.Configuration;
 using AI_RTS.Domain.Construction;
 using AI_RTS.Domain.Economy;
 using AI_RTS.Domain.Production;
+using AI_RTS.Domain.Skills;
 
 namespace AI_RTS.Application.Configuration;
 
@@ -107,6 +109,7 @@ public sealed class BalanceConfigLoader
         ValidateRequiredCollection(dto.UnitTypes, "$.unitTypes", errors);
         ValidateRequiredCollection(dto.Productions, "$.productions", errors);
         ValidateRequiredCollection(dto.Constructions, "$.constructions", errors);
+        ValidateRequiredCollection(dto.Skills, "$.skills", errors);
 
         ValidateResources(dto.Resources ?? [], errors);
         var warheadIds = ValidateWarheads(dto.Warheads ?? [], errors);
@@ -114,6 +117,7 @@ public sealed class BalanceConfigLoader
         var unitTypes = ValidateUnitTypes(dto.UnitTypes ?? [], weaponIds, errors);
         var productionIds = ValidateProductions(dto.Productions ?? [], unitTypes, errors);
         var constructionIds = ValidateConstructions(dto.Constructions ?? [], unitTypes, errors);
+        ValidateSkills(dto.Skills ?? [], unitTypes.Keys, errors);
         ValidateRequirements(
             requirements,
             unitTypes.Keys,
@@ -179,6 +183,18 @@ public sealed class BalanceConfigLoader
             AddUnknown(item.UnknownProperties, path, errors);
             ForEachNested(item.Cost, $"{path}.cost", (cost, costPath) =>
                 AddUnknown(cost.UnknownProperties, costPath, errors));
+        });
+        ForEach(dto.Skills, "skills", (item, path) =>
+        {
+            AddUnknown(item.UnknownProperties, path, errors);
+            ForEachNested(item.Effects, $"{path}.effects", (effect, effectPath) =>
+                AddUnknown(effect.UnknownProperties, effectPath, errors));
+            ForEachNested(item.Cost, $"{path}.cost", (cost, costPath) =>
+                AddUnknown(cost.UnknownProperties, costPath, errors));
+            if (item.Interrupt is not null)
+            {
+                AddUnknown(item.Interrupt.UnknownProperties, $"{path}.interrupt", errors);
+            }
         });
     }
 
@@ -487,6 +503,241 @@ public sealed class BalanceConfigLoader
         return ids;
     }
 
+    /// <summary>验证技能 ID、触发、目标、效果种类和冷却，并拒绝重复定义。</summary>
+    private static void ValidateSkills(
+        IReadOnlyList<SkillDefinitionDto> skills,
+        IReadOnlyCollection<string> unitTypeIds,
+        List<BalanceConfigError> errors)
+    {
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        for (var index = 0; index < skills.Count; index++)
+        {
+            var item = skills[index];
+            var path = $"$.skills[{index}]";
+            AddStableId(item.Id, $"{path}.id", ids, errors);
+            var triggerValid = TryParseSkillTrigger(item.Trigger, $"{path}.trigger", errors, out var trigger);
+            var targetValid = TryParseSkillTarget(item.Target, $"{path}.target", errors, out var target);
+            if (triggerValid)
+            {
+                ValidateSkillTriggerShape(item, trigger, targetValid ? target : null, path, unitTypeIds, errors);
+            }
+            RequireNonNegative(item.CooldownMilliseconds, $"{path}.cooldownMilliseconds", errors);
+            if (item.CastDelayMilliseconds is not null)
+            {
+                RequireNonNegative(item.CastDelayMilliseconds, $"{path}.castDelayMilliseconds", errors);
+            }
+            ValidateSkillInterrupt(item.Interrupt, $"{path}.interrupt", errors);
+            if (item.Relation is not null)
+            {
+                TryParseSkillRelation(item.Relation, $"{path}.relation", errors, out _);
+            }
+            if (item.RangeMeters is not null)
+            {
+                RequireFiniteNonNegative(item.RangeMeters, $"{path}.rangeMeters", errors);
+            }
+            if (item.Cost is not null)
+            {
+                ValidateCost(item.Cost, $"{path}.cost", errors);
+            }
+            if (item.Effects is null)
+            {
+                Add(errors, BalanceConfigErrorCode.MissingValue, $"{path}.effects",
+                    "必须声明 effects；至少包含一条基础效果。");
+                continue;
+            }
+            if (item.Effects.Count == 0)
+            {
+                Add(errors, BalanceConfigErrorCode.MissingValue, $"{path}.effects",
+                    "技能必须至少声明一条基础效果。");
+                continue;
+            }
+            for (var effectIndex = 0; effectIndex < item.Effects.Count; effectIndex++)
+            {
+                var effect = item.Effects[effectIndex];
+                var effectPath = $"{path}.effects[{effectIndex}]";
+                var kindValid = TryParseSkillEffectKind(
+                    effect.Kind, $"{effectPath}.kind", errors, out var effectKind);
+                if (effect.Amount is { } amount && !float.IsFinite(amount))
+                {
+                    Add(errors, BalanceConfigErrorCode.InvalidNumber, $"{effectPath}.amount",
+                        "数值必须是有限数。");
+                }
+                if (effect.DelayMilliseconds is not null)
+                {
+                    RequireNonNegative(
+                        effect.DelayMilliseconds, $"{effectPath}.delayMilliseconds", errors);
+                }
+                if (kindValid && effectKind == SkillEffectKind.IssueCommand)
+                {
+                    TryParseIssuedCommand(effect.Command, $"{effectPath}.command", errors, out _);
+                }
+                if (kindValid && effectKind == SkillEffectKind.EmitEvent && effect.EventKind is not null)
+                {
+                    TryParseEmittedEvent(effect.EventKind, $"{effectPath}.eventKind", errors, out _);
+                }
+                if (kindValid && effectKind == SkillEffectKind.CreateObject)
+                {
+                    if (RequireStableId(effect.TemplateId, $"{effectPath}.templateId", errors) &&
+                        !unitTypeIds.Contains(effect.TemplateId!))
+                    {
+                        Add(errors, BalanceConfigErrorCode.MissingReference, $"{effectPath}.templateId",
+                            $"对象模板 {effect.TemplateId} 不存在。");
+                    }
+                }
+                if (kindValid && effectKind == SkillEffectKind.AddStatus)
+                {
+                    RequireStableId(effect.StatusId, $"{effectPath}.statusId", errors);
+                    RequirePositive(effect.DurationMilliseconds, $"{effectPath}.durationMilliseconds", errors);
+                    TryParseSkillAttribute(effect.Attribute, $"{effectPath}.attribute", errors, out _);
+                    RequireFinitePositive(effect.Modifier, $"{effectPath}.modifier", errors);
+                    if (effect.Stack is not null)
+                    {
+                        TryParseSkillStack(effect.Stack, $"{effectPath}.stack", errors, out _);
+                    }
+                }
+                ValidateSkillEffectTiming(effect, effectIndex, effectPath, errors);
+                ValidateSkillEffectPeriod(effect, effectPath, errors);
+                if (effect.Condition is not null)
+                {
+                    TryParseSkillCondition(effect.Condition, $"{effectPath}.condition", errors, out _);
+                }
+            }
+        }
+    }
+
+    /// <summary>校验中断阶段、原因；声明 interrupt 时至少要有一个阶段。</summary>
+    private static void ValidateSkillInterrupt(
+        SkillInterruptDefinitionDto? interrupt,
+        string path,
+        List<BalanceConfigError> errors)
+    {
+        if (interrupt is null)
+        {
+            return;
+        }
+
+        if (interrupt.Phases is null || interrupt.Phases.Count == 0)
+        {
+            Add(errors, BalanceConfigErrorCode.MissingValue, $"{path}.phases",
+                "声明 interrupt 时必须至少有一个阶段。");
+        }
+        else
+        {
+            for (var index = 0; index < interrupt.Phases.Count; index++)
+            {
+                TryParseSkillInterruptPhase(
+                    interrupt.Phases[index], $"{path}.phases[{index}]", errors, out _);
+            }
+        }
+
+        if (interrupt.Causes is not null)
+        {
+            if (interrupt.Causes.Count == 0)
+            {
+                Add(errors, BalanceConfigErrorCode.MissingValue, $"{path}.causes",
+                    "causes 若声明则不能为空。");
+            }
+
+            for (var index = 0; index < interrupt.Causes.Count; index++)
+            {
+                TryParseSkillInterruptCause(
+                    interrupt.Causes[index], $"{path}.causes[{index}]", errors, out _);
+            }
+        }
+    }
+
+    /// <summary>按触发种类校验事件、条件和装配类型，并禁止主动入口字段混用。</summary>
+    private static void ValidateSkillTriggerShape(
+        SkillDefinitionDto item,
+        SkillTriggerKind trigger,
+        SkillTargetKind? target,
+        string path,
+        IReadOnlyCollection<string> unitTypeIds,
+        List<BalanceConfigError> errors)
+    {
+        if (trigger != SkillTriggerKind.Active &&
+            target is not null &&
+            target != SkillTargetKind.Self)
+        {
+            Add(errors, BalanceConfigErrorCode.InvalidEnum, $"{path}.target",
+                "被动、事件和条件触发本步只允许 target 为 self。");
+        }
+
+        if (item.EquippedUnitTypeIds is not null)
+        {
+            for (var index = 0; index < item.EquippedUnitTypeIds.Count; index++)
+            {
+                var typePath = $"{path}.equippedUnitTypeIds[{index}]";
+                var typeId = item.EquippedUnitTypeIds[index];
+                if (!RequireStableId(typeId, typePath, errors))
+                {
+                    continue;
+                }
+
+                if (!unitTypeIds.Contains(typeId))
+                {
+                    Add(errors, BalanceConfigErrorCode.MissingReference, typePath,
+                        $"装备类型 {typeId} 不存在。");
+                }
+            }
+        }
+
+        switch (trigger)
+        {
+            case SkillTriggerKind.Active:
+                if (item.Event is not null)
+                {
+                    Add(errors, BalanceConfigErrorCode.InvalidEnum, $"{path}.event",
+                        "主动技能不得声明 event。");
+                }
+                if (item.ActivationCondition is not null &&
+                    item.ActivationCondition != "always")
+                {
+                    Add(errors, BalanceConfigErrorCode.InvalidEnum, $"{path}.activationCondition",
+                        "主动技能不得声明非 always 的装配条件。");
+                }
+                break;
+            case SkillTriggerKind.Event:
+                TryParseSkillTriggerEvent(item.Event, $"{path}.event", errors, out _);
+                if (item.ActivationCondition is not null)
+                {
+                    TryParseSkillCondition(
+                        item.ActivationCondition, $"{path}.activationCondition", errors, out _);
+                }
+                break;
+            case SkillTriggerKind.Condition:
+                if (item.Event is not null)
+                {
+                    Add(errors, BalanceConfigErrorCode.InvalidEnum, $"{path}.event",
+                        "条件触发不得声明 event。");
+                }
+                if (!TryParseSkillCondition(
+                    item.ActivationCondition, $"{path}.activationCondition", errors, out var condition) ||
+                    condition == SkillEffectCondition.Always)
+                {
+                    if (item.ActivationCondition == "always")
+                    {
+                        Add(errors, BalanceConfigErrorCode.InvalidEnum, $"{path}.activationCondition",
+                            "条件触发不能使用 always，应改用被动触发。");
+                    }
+                }
+                break;
+            case SkillTriggerKind.Passive:
+                if (item.Event is not null)
+                {
+                    Add(errors, BalanceConfigErrorCode.InvalidEnum, $"{path}.event",
+                        "被动技能不得声明 event。");
+                }
+                if (item.ActivationCondition is not null &&
+                    item.ActivationCondition != "always")
+                {
+                    Add(errors, BalanceConfigErrorCode.InvalidEnum, $"{path}.activationCondition",
+                        "被动技能的装配条件只能是 always。");
+                }
+                break;
+        }
+    }
+
     /// <summary>验证成本集合允许为空，但不允许缺失、负数或重复资源。</summary>
     private static void ValidateCost(
         IReadOnlyList<ResourceAmountDto>? cost,
@@ -599,6 +850,31 @@ public sealed class BalanceConfigLoader
                 item.RequiredWork!.Value,
                 placement);
         });
+        var skills = dto.Skills!.Select(item =>
+        {
+            var target = ParseSkillTarget(item.Target!);
+            return new SkillDefinition(
+                new SkillDefinitionId(item.Id!),
+                ParseSkillTrigger(item.Trigger!),
+                target,
+                item.Effects!
+                    .Select(effect => MapSkillEffect(effect))
+                    .ToArray(),
+                item.CooldownMilliseconds!.Value,
+                item.Relation is null ? DefaultSkillRelation(target) : ParseSkillRelation(item.Relation),
+                item.RangeMeters,
+                item.RequireAlive ?? target is SkillTargetKind.Unit or SkillTargetKind.Units,
+                item.AllowSelf ?? target == SkillTargetKind.Self,
+                item.Cost is null ? [] : MapCost(item.Cost),
+                item.Event is null ? SkillTriggerEvent.None : ParseSkillTriggerEvent(item.Event),
+                item.ActivationCondition is null ?
+                    SkillEffectCondition.Always : ParseSkillCondition(item.ActivationCondition),
+                item.EquippedUnitTypeIds is null ?
+                    [] :
+                    item.EquippedUnitTypeIds.Select(value => new UnitTypeId(value)).ToArray(),
+                item.CastDelayMilliseconds ?? 0,
+                item.Interrupt is null ? null : MapSkillInterrupt(item.Interrupt));
+        });
         return new InMemoryGameBalanceCatalog(
             new BalanceConfigVersion(dto.SchemaVersion!.Value, dto.ContentVersion!, hash),
             units,
@@ -606,7 +882,8 @@ public sealed class BalanceConfigLoader
             warheads,
             productions,
             constructions,
-            resources);
+            resources,
+            skills);
     }
 
     private static UnitTypeDefinition MapUnitType(UnitTypeDefinitionDto item) => new(
@@ -920,6 +1197,161 @@ public sealed class BalanceConfigLoader
         return valid.Item1;
     }
 
+    /// <summary>把规范化触发名称转换为强类型技能触发。</summary>
+    private static bool TryParseSkillTrigger(
+        string? value,
+        string path,
+        List<BalanceConfigError> errors,
+        out SkillTriggerKind kind)
+    {
+        var valid = value switch
+        {
+            "active" => (true, SkillTriggerKind.Active),
+            "passive" => (true, SkillTriggerKind.Passive),
+            "event" => (true, SkillTriggerKind.Event),
+            "condition" => (true, SkillTriggerKind.Condition),
+            _ => (false, default(SkillTriggerKind))
+        };
+        kind = valid.Item2;
+        if (!valid.Item1)
+        {
+            Add(errors, string.IsNullOrWhiteSpace(value) ? BalanceConfigErrorCode.MissingValue :
+                BalanceConfigErrorCode.InvalidEnum, path,
+                "trigger 必须是 active、passive、event 或 condition。");
+        }
+        return valid.Item1;
+    }
+
+    /// <summary>把规范化目标名称转换为强类型技能目标形状。</summary>
+    private static bool TryParseSkillTarget(
+        string? value,
+        string path,
+        List<BalanceConfigError> errors,
+        out SkillTargetKind kind)
+    {
+        var valid = value switch
+        {
+            "self" => (true, SkillTargetKind.Self),
+            "unit" => (true, SkillTargetKind.Unit),
+            "units" => (true, SkillTargetKind.Units),
+            "ground" => (true, SkillTargetKind.Ground),
+            "area" => (true, SkillTargetKind.Area),
+            "direction" => (true, SkillTargetKind.Direction),
+            "gameObject" => (true, SkillTargetKind.GameObject),
+            _ => (false, default(SkillTargetKind))
+        };
+        kind = valid.Item2;
+        if (!valid.Item1)
+        {
+            Add(errors, string.IsNullOrWhiteSpace(value) ? BalanceConfigErrorCode.MissingValue :
+                BalanceConfigErrorCode.InvalidEnum, path,
+                "target 必须是 self、unit、units、ground、area、direction 或 gameObject。");
+        }
+        return valid.Item1;
+    }
+
+    /// <summary>把规范化效果种类转换为策划文档固定的基础效果枚举。</summary>
+    private static bool TryParseSkillEffectKind(
+        string? value,
+        string path,
+        List<BalanceConfigError> errors,
+        out SkillEffectKind kind)
+    {
+        var valid = value switch
+        {
+            "dealDamage" => (true, SkillEffectKind.DealDamage),
+            "restoreHealth" => (true, SkillEffectKind.RestoreHealth),
+            "modifyShield" => (true, SkillEffectKind.ModifyShield),
+            "modifyAttribute" => (true, SkillEffectKind.ModifyAttribute),
+            "modifyResource" => (true, SkillEffectKind.ModifyResource),
+            "addStatus" => (true, SkillEffectKind.AddStatus),
+            "removeStatus" => (true, SkillEffectKind.RemoveStatus),
+            "displace" => (true, SkillEffectKind.Displace),
+            "forceMove" => (true, SkillEffectKind.ForceMove),
+            "createObject" => (true, SkillEffectKind.CreateObject),
+            "removeObject" => (true, SkillEffectKind.RemoveObject),
+            "issueCommand" => (true, SkillEffectKind.IssueCommand),
+            "emitEvent" => (true, SkillEffectKind.EmitEvent),
+            _ => (false, default(SkillEffectKind))
+        };
+        kind = valid.Item2;
+        if (!valid.Item1)
+        {
+            Add(errors, string.IsNullOrWhiteSpace(value) ? BalanceConfigErrorCode.MissingValue :
+                BalanceConfigErrorCode.InvalidEnum, path,
+                "effects.kind 必须是策划文档列出的基础效果种类。");
+        }
+        return valid.Item1;
+    }
+
+    /// <summary>把规范化阵营关系转换为技能目标关系。</summary>
+    private static bool TryParseSkillRelation(
+        string? value,
+        string path,
+        List<BalanceConfigError> errors,
+        out SkillTargetRelation relation)
+    {
+        var valid = value switch
+        {
+            "self" => (true, SkillTargetRelation.Self),
+            "ally" => (true, SkillTargetRelation.Ally),
+            "enemy" => (true, SkillTargetRelation.Enemy),
+            "any" => (true, SkillTargetRelation.Any),
+            _ => (false, default(SkillTargetRelation))
+        };
+        relation = valid.Item2;
+        if (!valid.Item1)
+        {
+            Add(errors, string.IsNullOrWhiteSpace(value) ? BalanceConfigErrorCode.MissingValue :
+                BalanceConfigErrorCode.InvalidEnum, path,
+                "relation 必须是 self、ally、enemy 或 any。");
+        }
+        return valid.Item1;
+    }
+
+    /// <summary>把规范化属性名称转换为技能可改属性。</summary>
+    private static bool TryParseSkillAttribute(
+        string? value,
+        string path,
+        List<BalanceConfigError> errors,
+        out SkillAttributeKind attribute)
+    {
+        if (value == "moveSpeed")
+        {
+            attribute = SkillAttributeKind.MoveSpeed;
+            return true;
+        }
+
+        attribute = default;
+        Add(errors, string.IsNullOrWhiteSpace(value) ? BalanceConfigErrorCode.MissingValue :
+            BalanceConfigErrorCode.InvalidEnum, path, "attribute 必须是 moveSpeed。");
+        return false;
+    }
+
+    /// <summary>把规范化叠加规则转换为强类型枚举。</summary>
+    private static bool TryParseSkillStack(
+        string? value,
+        string path,
+        List<BalanceConfigError> errors,
+        out SkillStackRule stack)
+    {
+        var valid = value switch
+        {
+            "refresh" => (true, SkillStackRule.Refresh),
+            "overwrite" => (true, SkillStackRule.Overwrite),
+            "ignore" => (true, SkillStackRule.Ignore),
+            _ => (false, default(SkillStackRule))
+        };
+        stack = valid.Item2;
+        if (!valid.Item1)
+        {
+            Add(errors, string.IsNullOrWhiteSpace(value) ? BalanceConfigErrorCode.MissingValue :
+                BalanceConfigErrorCode.InvalidEnum, path,
+                "stack 必须是 refresh、overwrite 或 ignore。");
+        }
+        return valid.Item1;
+    }
+
     private static HashSet<ResourceKind> ParsedResourceKinds(
         IEnumerable<ResourceDefinitionDto> resources) => resources
         .Where(item => item.Kind is "A" or "B")
@@ -942,6 +1374,348 @@ public sealed class BalanceConfigLoader
 
     private static ImpactSelectionMode ParseImpactSelection(string value) =>
         value == "area" ? ImpactSelectionMode.Area : ImpactSelectionMode.IntendedTargetOnly;
+
+    private static SkillTriggerKind ParseSkillTrigger(string value) => value switch
+    {
+        "passive" => SkillTriggerKind.Passive,
+        "event" => SkillTriggerKind.Event,
+        "condition" => SkillTriggerKind.Condition,
+        _ => SkillTriggerKind.Active
+    };
+
+    private static SkillTargetKind ParseSkillTarget(string value) => value switch
+    {
+        "unit" => SkillTargetKind.Unit,
+        "units" => SkillTargetKind.Units,
+        "ground" => SkillTargetKind.Ground,
+        "area" => SkillTargetKind.Area,
+        "direction" => SkillTargetKind.Direction,
+        "gameObject" => SkillTargetKind.GameObject,
+        _ => SkillTargetKind.Self
+    };
+
+    private static SkillEffectDefinition MapSkillEffect(SkillEffectDefinitionDto effect)
+    {
+        var kind = ParseSkillEffectKind(effect.Kind!);
+        SkillStatusDefinition? status = null;
+        if (kind == SkillEffectKind.AddStatus)
+        {
+            status = new SkillStatusDefinition(
+                effect.StatusId!,
+                effect.DurationMilliseconds!.Value,
+                ParseSkillAttribute(effect.Attribute!),
+                effect.Modifier!.Value,
+                effect.Stack is null ? SkillStackRule.Refresh : ParseSkillStack(effect.Stack));
+        }
+
+        return new SkillEffectDefinition(
+            kind,
+            effect.Amount,
+            effect.DelayMilliseconds ?? 0,
+            status,
+            effect.Timing is null ? SkillEffectTiming.AfterPrevious : ParseSkillTiming(effect.Timing),
+            effect.PeriodMilliseconds ?? 0,
+            effect.RepeatCount ?? 1,
+            effect.Condition is null ? SkillEffectCondition.Always : ParseSkillCondition(effect.Condition),
+            kind == SkillEffectKind.IssueCommand && effect.Command is not null ?
+                ParseIssuedCommand(effect.Command) : null,
+            kind == SkillEffectKind.EmitEvent ?
+                (effect.EventKind is null ?
+                    BattlefieldEventKind.SkillEmitted : ParseEmittedEvent(effect.EventKind)) :
+                null,
+            effect.EventImportant ?? false,
+            kind == SkillEffectKind.CreateObject && effect.TemplateId is not null ?
+                new UnitTypeId(effect.TemplateId) : null);
+    }
+
+    private static SkillEffectKind ParseSkillEffectKind(string value) => value switch
+    {
+        "restoreHealth" => SkillEffectKind.RestoreHealth,
+        "modifyShield" => SkillEffectKind.ModifyShield,
+        "modifyAttribute" => SkillEffectKind.ModifyAttribute,
+        "modifyResource" => SkillEffectKind.ModifyResource,
+        "addStatus" => SkillEffectKind.AddStatus,
+        "removeStatus" => SkillEffectKind.RemoveStatus,
+        "displace" => SkillEffectKind.Displace,
+        "forceMove" => SkillEffectKind.ForceMove,
+        "createObject" => SkillEffectKind.CreateObject,
+        "removeObject" => SkillEffectKind.RemoveObject,
+        "issueCommand" => SkillEffectKind.IssueCommand,
+        "emitEvent" => SkillEffectKind.EmitEvent,
+        _ => SkillEffectKind.DealDamage
+    };
+
+    private static SkillTargetRelation ParseSkillRelation(string value) => value switch
+    {
+        "self" => SkillTargetRelation.Self,
+        "ally" => SkillTargetRelation.Ally,
+        "any" => SkillTargetRelation.Any,
+        _ => SkillTargetRelation.Enemy
+    };
+
+    private static SkillTargetRelation DefaultSkillRelation(SkillTargetKind target) => target switch
+    {
+        SkillTargetKind.Self => SkillTargetRelation.Self,
+        SkillTargetKind.Ground => SkillTargetRelation.Any,
+        _ => SkillTargetRelation.Enemy
+    };
+
+    /// <summary>校验同时与延迟互斥，首条不得声明 simultaneous。</summary>
+    private static void ValidateSkillEffectTiming(
+        SkillEffectDefinitionDto effect,
+        int effectIndex,
+        string effectPath,
+        List<BalanceConfigError> errors)
+    {
+        var timingValid = true;
+        var timing = SkillEffectTiming.AfterPrevious;
+        if (effect.Timing is not null)
+        {
+            timingValid = TryParseSkillTiming(effect.Timing, $"{effectPath}.timing", errors, out timing);
+        }
+
+        if (timingValid && timing == SkillEffectTiming.Simultaneous && effectIndex == 0)
+        {
+            Add(errors, BalanceConfigErrorCode.InvalidEnum, $"{effectPath}.timing",
+                "首条效果不能使用 simultaneous。");
+        }
+
+        if (timingValid && timing == SkillEffectTiming.Simultaneous &&
+            effect.DelayMilliseconds is > 0)
+        {
+            Add(errors, BalanceConfigErrorCode.InvalidNumber, $"{effectPath}.delayMilliseconds",
+                "simultaneous 不得与正延迟同时声明。");
+        }
+    }
+
+    /// <summary>周期间隔与重复次数必须成对，且次数至少为 1。</summary>
+    private static void ValidateSkillEffectPeriod(
+        SkillEffectDefinitionDto effect,
+        string effectPath,
+        List<BalanceConfigError> errors)
+    {
+        var hasPeriod = effect.PeriodMilliseconds is not null;
+        var hasRepeat = effect.RepeatCount is not null;
+        if (hasPeriod)
+        {
+            RequirePositive(effect.PeriodMilliseconds, $"{effectPath}.periodMilliseconds", errors);
+        }
+
+        if (hasRepeat)
+        {
+            RequirePositive(effect.RepeatCount, $"{effectPath}.repeatCount", errors);
+        }
+
+        if (hasPeriod != hasRepeat)
+        {
+            Add(errors, BalanceConfigErrorCode.MissingValue,
+                hasPeriod ? $"{effectPath}.repeatCount" : $"{effectPath}.periodMilliseconds",
+                "periodMilliseconds 与 repeatCount 必须成对声明。");
+        }
+
+        if (hasPeriod && hasRepeat && effect.RepeatCount is 1)
+        {
+            Add(errors, BalanceConfigErrorCode.InvalidNumber, $"{effectPath}.repeatCount",
+                "周期重复次数必须大于 1。");
+        }
+    }
+
+    /// <summary>把规范化时间关系转换为强类型枚举。</summary>
+    private static bool TryParseSkillTiming(
+        string? value,
+        string path,
+        List<BalanceConfigError> errors,
+        out SkillEffectTiming timing)
+    {
+        var valid = value switch
+        {
+            "afterPrevious" => (true, SkillEffectTiming.AfterPrevious),
+            "simultaneous" => (true, SkillEffectTiming.Simultaneous),
+            _ => (false, default(SkillEffectTiming))
+        };
+        timing = valid.Item2;
+        if (!valid.Item1)
+        {
+            Add(errors, string.IsNullOrWhiteSpace(value) ? BalanceConfigErrorCode.MissingValue :
+                BalanceConfigErrorCode.InvalidEnum, path,
+                "timing 必须是 afterPrevious 或 simultaneous。");
+        }
+        return valid.Item1;
+    }
+
+    /// <summary>把规范化条件名称转换为强类型枚举。</summary>
+    private static bool TryParseSkillCondition(
+        string? value,
+        string path,
+        List<BalanceConfigError> errors,
+        out SkillEffectCondition condition)
+    {
+        var valid = value switch
+        {
+            "always" => (true, SkillEffectCondition.Always),
+            "targetAlive" => (true, SkillEffectCondition.TargetAlive),
+            "targetWounded" => (true, SkillEffectCondition.TargetWounded),
+            _ => (false, default(SkillEffectCondition))
+        };
+        condition = valid.Item2;
+        if (!valid.Item1)
+        {
+            Add(errors, string.IsNullOrWhiteSpace(value) ? BalanceConfigErrorCode.MissingValue :
+                BalanceConfigErrorCode.InvalidEnum, path,
+                "condition 必须是 always、targetAlive 或 targetWounded。");
+        }
+        return valid.Item1;
+    }
+
+    private static SkillAttributeKind ParseSkillAttribute(string _) =>
+        SkillAttributeKind.MoveSpeed;
+
+    private static SkillStackRule ParseSkillStack(string value) => value switch
+    {
+        "overwrite" => SkillStackRule.Overwrite,
+        "ignore" => SkillStackRule.Ignore,
+        _ => SkillStackRule.Refresh
+    };
+
+    private static SkillEffectTiming ParseSkillTiming(string value) =>
+        value == "simultaneous" ? SkillEffectTiming.Simultaneous : SkillEffectTiming.AfterPrevious;
+
+    private static SkillEffectCondition ParseSkillCondition(string value) => value switch
+    {
+        "targetAlive" => SkillEffectCondition.TargetAlive,
+        "targetWounded" => SkillEffectCondition.TargetWounded,
+        _ => SkillEffectCondition.Always
+    };
+
+    private static bool TryParseSkillTriggerEvent(
+        string? value,
+        string path,
+        List<BalanceConfigError> errors,
+        out SkillTriggerEvent triggerEvent)
+    {
+        if (value == "unitDamaged")
+        {
+            triggerEvent = SkillTriggerEvent.UnitDamaged;
+            return true;
+        }
+
+        triggerEvent = default;
+        Add(errors, string.IsNullOrWhiteSpace(value) ? BalanceConfigErrorCode.MissingValue :
+            BalanceConfigErrorCode.InvalidEnum, path, "event 必须是 unitDamaged。");
+        return false;
+    }
+
+    private static SkillTriggerEvent ParseSkillTriggerEvent(string value) =>
+        value == "unitDamaged" ? SkillTriggerEvent.UnitDamaged : SkillTriggerEvent.None;
+
+    private static bool TryParseIssuedCommand(
+        string? value,
+        string path,
+        List<BalanceConfigError> errors,
+        out SkillIssuedCommandKind command)
+    {
+        var valid = value switch
+        {
+            "move" => (true, SkillIssuedCommandKind.Move),
+            "attack" => (true, SkillIssuedCommandKind.Attack),
+            _ => (false, default(SkillIssuedCommandKind))
+        };
+        command = valid.Item2;
+        if (!valid.Item1)
+        {
+            Add(errors, string.IsNullOrWhiteSpace(value) ? BalanceConfigErrorCode.MissingValue :
+                BalanceConfigErrorCode.InvalidEnum, path,
+                "command 必须是 move 或 attack。");
+        }
+        return valid.Item1;
+    }
+
+    private static bool TryParseEmittedEvent(
+        string? value,
+        string path,
+        List<BalanceConfigError> errors,
+        out BattlefieldEventKind kind)
+    {
+        if (value == "skillEmitted")
+        {
+            kind = BattlefieldEventKind.SkillEmitted;
+            return true;
+        }
+
+        kind = default;
+        Add(errors, string.IsNullOrWhiteSpace(value) ? BalanceConfigErrorCode.MissingValue :
+            BalanceConfigErrorCode.InvalidEnum, path, "eventKind 必须是 skillEmitted。");
+        return false;
+    }
+
+    private static SkillIssuedCommandKind ParseIssuedCommand(string value) =>
+        value == "attack" ? SkillIssuedCommandKind.Attack : SkillIssuedCommandKind.Move;
+
+    private static BattlefieldEventKind ParseEmittedEvent(string _) =>
+        BattlefieldEventKind.SkillEmitted;
+
+    private static SkillInterruptDefinition MapSkillInterrupt(SkillInterruptDefinitionDto interrupt) =>
+        new(
+            (interrupt.Phases ?? [])
+                .Select(ParseSkillInterruptPhase)
+                .Distinct()
+                .ToArray(),
+            interrupt.Causes is null or { Count: 0 } ?
+                [SkillInterruptCause.Stop] :
+                interrupt.Causes.Select(ParseSkillInterruptCause).Distinct().ToArray(),
+            interrupt.RefundCost ?? false,
+            interrupt.KeepCooldown ?? true);
+
+    private static bool TryParseSkillInterruptPhase(
+        string? value,
+        string path,
+        List<BalanceConfigError> errors,
+        out SkillInterruptPhase phase)
+    {
+        var valid = value switch
+        {
+            "beforeActivation" => (true, SkillInterruptPhase.BeforeActivation),
+            "afterActivation" => (true, SkillInterruptPhase.AfterActivation),
+            _ => (false, default(SkillInterruptPhase))
+        };
+        phase = valid.Item2;
+        if (!valid.Item1)
+        {
+            Add(errors, string.IsNullOrWhiteSpace(value) ? BalanceConfigErrorCode.MissingValue :
+                BalanceConfigErrorCode.InvalidEnum, path,
+                "phases 必须是 beforeActivation 或 afterActivation。");
+        }
+        return valid.Item1;
+    }
+
+    private static bool TryParseSkillInterruptCause(
+        string? value,
+        string path,
+        List<BalanceConfigError> errors,
+        out SkillInterruptCause cause)
+    {
+        var valid = value switch
+        {
+            "stop" => (true, SkillInterruptCause.Stop),
+            "death" => (true, SkillInterruptCause.Death),
+            _ => (false, default(SkillInterruptCause))
+        };
+        cause = valid.Item2;
+        if (!valid.Item1)
+        {
+            Add(errors, string.IsNullOrWhiteSpace(value) ? BalanceConfigErrorCode.MissingValue :
+                BalanceConfigErrorCode.InvalidEnum, path,
+                "causes 必须是 stop 或 death。");
+        }
+        return valid.Item1;
+    }
+
+    private static SkillInterruptPhase ParseSkillInterruptPhase(string value) =>
+        value == "afterActivation" ?
+            SkillInterruptPhase.AfterActivation : SkillInterruptPhase.BeforeActivation;
+
+    private static SkillInterruptCause ParseSkillInterruptCause(string value) =>
+        value == "death" ? SkillInterruptCause.Death : SkillInterruptCause.Stop;
 
     private static void Add(
         ICollection<BalanceConfigError> errors,
@@ -990,6 +1764,7 @@ internal sealed class InMemoryGameBalanceCatalog : IGameBalanceCatalog
     private readonly FrozenDictionary<StructureDefinitionId, StructureConstructionDefinition>
         _constructions;
     private readonly FrozenDictionary<ResourceKind, ResourceDefinition> _resources;
+    private readonly FrozenDictionary<SkillDefinitionId, SkillDefinition> _skills;
 
     /// <inheritdoc />
     public BalanceConfigVersion Version { get; }
@@ -1007,6 +1782,9 @@ internal sealed class InMemoryGameBalanceCatalog : IGameBalanceCatalog
     public IReadOnlyCollection<StructureConstructionDefinition> Constructions =>
         _constructions.Values;
 
+    /// <inheritdoc />
+    public IReadOnlyCollection<SkillDefinition> Skills => _skills.Values;
+
     /// <summary>冻结全部定义索引，之后不再接受注册或覆盖。</summary>
     public InMemoryGameBalanceCatalog(
         BalanceConfigVersion version,
@@ -1015,7 +1793,8 @@ internal sealed class InMemoryGameBalanceCatalog : IGameBalanceCatalog
         IEnumerable<WarheadDefinition> warheads,
         IEnumerable<ProductionDefinition> productions,
         IEnumerable<StructureConstructionDefinition> constructions,
-        IEnumerable<ResourceDefinition> resources)
+        IEnumerable<ResourceDefinition> resources,
+        IEnumerable<SkillDefinition> skills)
     {
         Version = version;
         _unitTypes = unitTypes.ToFrozenDictionary(item => item.Id);
@@ -1024,6 +1803,7 @@ internal sealed class InMemoryGameBalanceCatalog : IGameBalanceCatalog
         _productions = productions.ToFrozenDictionary(item => item.DefinitionId);
         _constructions = constructions.ToFrozenDictionary(item => item.DefinitionId);
         _resources = resources.ToFrozenDictionary(item => item.Kind);
+        _skills = skills.ToFrozenDictionary(item => item.Id);
     }
 
     /// <inheritdoc />
@@ -1049,4 +1829,8 @@ internal sealed class InMemoryGameBalanceCatalog : IGameBalanceCatalog
     /// <inheritdoc />
     public ResourceDefinition? FindResource(ResourceKind kind) =>
         _resources.GetValueOrDefault(kind);
+
+    /// <inheritdoc />
+    public SkillDefinition? FindSkill(SkillDefinitionId skillId) =>
+        _skills.GetValueOrDefault(skillId);
 }

@@ -3,6 +3,12 @@ extends PanelContainer
 var actions_controller: Node = null
 var _targeting_command := ""
 var _input_runtime = null
+var _skill_slot_ids: Array[String] = []
+
+const _SKILL_CAPTIONS := {
+	"demo_self_heal": "治疗",
+	"demo_unit_pulse": "脉冲",
+}
 
 @onready var _force_move_button: Button = %ForceMoveButton
 @onready var _halt_button: Button = %HaltButton
@@ -15,6 +21,7 @@ var _input_runtime = null
 @onready var _hold_fire_button: Button = %HoldFireButton
 @onready var _clear_rally_point_button: Button = %ClearRallyPointButton
 @onready var _feedback_label: Label = %FeedbackLabel
+@onready var _skill_slots: HBoxContainer = %SkillSlots
 
 
 func _ready():
@@ -39,6 +46,7 @@ func _ready():
 	MatchSignals.unit_died.connect(func(_unit): _refresh_availability.call_deferred())
 	_refresh_command_captions()
 	_refresh_availability()
+	_refresh_skill_slots()
 
 
 ## 官方单位快捷键复用同一套 HUD 命令入口，不另建第二套命令语义。
@@ -168,6 +176,10 @@ func _refresh_command_captions():
 	_clear_rally_point_button.text = _caption("清除集结", "unit.clear_rally")
 
 
+func _process(_delta):
+	_refresh_skill_slot_captions()
+
+
 func _on_command_targeting_changed(command_name: String):
 	_targeting_command = command_name
 	_refresh_command_captions()
@@ -180,6 +192,8 @@ func _on_command_targeting_changed(command_name: String):
 		_feedback_label.text = "请右键地面指定撤退目的地"
 	elif command_name == "GroundAttackMove":
 		_feedback_label.text = "请右键地面或敌方单位指定移动并攻击目标"
+	elif command_name.begins_with("Skill:"):
+		_feedback_label.text = "请右键指定技能目标"
 
 
 func _on_command_feedback(
@@ -203,6 +217,8 @@ func _on_command_feedback(
 		"FireAtWill": "自由开火",
 		"SetRallyPoint": "设置集结点",
 		"ClearRallyPoint": "清除集结点",
+		"demo_self_heal": "治疗",
+		"demo_unit_pulse": "脉冲",
 	}
 	var display_name: String = display_names.get(command_name, command_name)
 	if status == "Unreachable":
@@ -233,6 +249,7 @@ func _refresh_availability():
 		actions_controller.cancel_command_targeting()
 		_feedback_label.text = "选择单位或生产建筑后可下达适用的传统 RTS 命令"
 	_refresh_policy_buttons()
+	_refresh_skill_slots()
 
 
 func _refresh_policy_buttons():
@@ -255,3 +272,62 @@ func _refresh_hold_fire_caption():
 		"恢复开火" if fire_policy == "HoldFire" else "停火",
 		"unit.toggle_hold_fire"
 	)
+
+
+func _refresh_skill_slots():
+	if actions_controller == null:
+		return
+	var slots: Array = actions_controller.get_selected_skill_slots()
+	var ids: Array[String] = []
+	for slot in slots:
+		ids.append(str(slot["skill_id"]))
+	if ids != _skill_slot_ids:
+		_rebuild_skill_buttons(slots)
+		_skill_slot_ids = ids
+	_refresh_skill_slot_captions()
+
+
+func _rebuild_skill_buttons(slots: Array):
+	for child in _skill_slots.get_children():
+		child.queue_free()
+	for slot in slots:
+		var skill_id: String = str(slot["skill_id"])
+		var target: String = str(slot["target"])
+		var button := Button.new()
+		button.custom_minimum_size = Vector2(148, 36)
+		button.set_meta("skill_id", skill_id)
+		button.set_meta("target", target)
+		button.pressed.connect(_on_skill_pressed.bind(skill_id, target))
+		_skill_slots.add_child(button)
+
+
+func _refresh_skill_slot_captions():
+	if actions_controller == null:
+		return
+	var slots: Array = actions_controller.get_selected_skill_slots()
+	var by_id := {}
+	for slot in slots:
+		by_id[str(slot["skill_id"])] = slot
+	for child in _skill_slots.get_children():
+		if not child is Button:
+			continue
+		var skill_id: String = str(child.get_meta("skill_id"))
+		var caption: String = _SKILL_CAPTIONS.get(skill_id, skill_id)
+		if _targeting_command == "Skill:%s" % skill_id:
+			caption = "取消" + caption
+		if by_id.has(skill_id):
+			var remaining: int = int(by_id[skill_id]["remaining_milliseconds"])
+			child.disabled = remaining > 0
+			if remaining > 0:
+				caption = "%s %.1fs" % [caption, remaining / 1000.0]
+		child.text = caption
+
+
+func _on_skill_pressed(skill_id: String, target: String):
+	if _targeting_command == "Skill:%s" % skill_id:
+		actions_controller.cancel_command_targeting()
+		return
+	if actions_controller.get_selected_command_unit_count() == 0:
+		_feedback_label.text = "请先选择已支持的单位"
+		return
+	actions_controller.begin_skill_use(skill_id, target)

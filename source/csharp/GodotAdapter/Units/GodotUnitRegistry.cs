@@ -39,6 +39,9 @@ public sealed class GodotUnitRegistry : IUnitCommandUnitRepository
         var movement = unit.FindChild("Movement", false, false);
         var attackDomains = ReadAttackDomains(unit);
         var hp = unit.Get("hp");
+        var position = unit is Node3D spatial ?
+            new WorldPosition(spatial.GlobalPosition.X, spatial.GlobalPosition.Y, spatial.GlobalPosition.Z) :
+            default;
         return new UnitCommandSnapshot(
             unitId,
             ownerId,
@@ -56,7 +59,11 @@ public sealed class GodotUnitRegistry : IUnitCommandUnitRepository
             unit.Get("construction_work_per_tick").AsInt32(),
             unit.HasMethod("is_constructed") ?
                 BattlefieldEntityKind.Structure : BattlefieldEntityKind.Unit,
-            unit.Get("unit_type_id").AsString());
+            unit.Get("unit_type_id").AsString(),
+            position,
+            hp.VariantType == Variant.Type.Nil || hp.AsSingle() > 0.0f,
+            hp.VariantType == Variant.Type.Nil ? 0.0f : hp.AsSingle(),
+            unit.Get("hp_max").VariantType == Variant.Type.Nil ? 0.0f : unit.Get("hp_max").AsSingle());
     }
 
     /// <summary>尝试取得仍有效且位于 SceneTree 中的单位节点。</summary>

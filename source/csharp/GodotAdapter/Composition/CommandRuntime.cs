@@ -3,17 +3,22 @@ using AI_RTS.Application.Commands.Units;
 using AI_RTS.Application.Combat;
 using AI_RTS.Application.Construction;
 using AI_RTS.Application.Orders;
+using AI_RTS.Application.Skills;
 using AI_RTS.Application.Units;
 using AI_RTS.Domain.Combat;
 using AI_RTS.Domain.Common;
 using AI_RTS.Domain.Construction;
 using AI_RTS.Domain.Economy;
+using AI_RTS.Domain.Skills;
+using AI_RTS.GodotAdapter.Battlefield;
 using AI_RTS.GodotAdapter.Navigation;
 using AI_RTS.GodotAdapter.Combat;
 using AI_RTS.GodotAdapter.Common;
 using AI_RTS.GodotAdapter.Configuration;
 using AI_RTS.GodotAdapter.Construction;
 using AI_RTS.GodotAdapter.Economy;
+using AI_RTS.GodotAdapter.Time;
+using AI_RTS.GodotAdapter.Skills;
 using AI_RTS.GodotAdapter.Units;
 using AI_RTS.Domain.Queries;
 using Godot;
@@ -58,6 +63,21 @@ public partial class CommandRuntime : Node
     /// <summary>每个单位最近一次终态订单，供玩家 HUD 与 AI 查询不可达等明确结果。</summary>
     private readonly Dictionary<UnitId, UnitOrderSnapshot> _lastTerminalOrders = new();
 
+    /// <summary>保存本局已接受的技能目标确认，供后续效果读取落点。</summary>
+    private readonly InMemorySkillCastJournal _skillCasts = new();
+
+    /// <summary>按单位与技能保存冷却结束的模拟毫秒。</summary>
+    private readonly InMemorySkillCooldownStore _skillCooldowns = new();
+
+    /// <summary>对局级信号总线，用于装配自动技能和受伤事件。</summary>
+    private Node? _matchSignals;
+
+    private Callable _onUnitSpawned;
+    private Callable _onUnitDamaged;
+
+    /// <summary>读取只在战局未暂停时推进的模拟毫秒。</summary>
+    private GodotSimulationClock _simulationClock = null!;
+
     /// <summary>所有 Human、规则 AI 和未来外部 Adapter 共享的命令服务。</summary>
     private IUnitCommandService _commands = null!;
 
@@ -75,6 +95,7 @@ public partial class CommandRuntime : Node
     {
         var economy = GetParent().GetNode<EconomyRuntime>("EconomyRuntime");
         _balance = GetParent().GetNode<BalanceConfigRuntime>("BalanceConfigRuntime");
+        _simulationClock = new GodotSimulationClock(GetParent().GetNode("SimulationClock"));
         _matchId = economy.MatchId;
         _orders.StateChanged += OnOrderStateChanged;
         _construction = new ConstructionService(
@@ -83,7 +104,12 @@ public partial class CommandRuntime : Node
             new LegacyConstructionWorkerPort(_units, _constructionSites),
             _constructionSites,
             economy.AccountService);
-        GetNode("/root/MatchSignals").Connect("unit_died", Callable.From<Node>(OnAuthoritativeUnitDied));
+        _matchSignals = GetNode("/root/MatchSignals");
+        _onUnitSpawned = Callable.From<Node>(OnUnitSpawned);
+        _onUnitDamaged = Callable.From<Node>(OnUnitDamaged);
+        _matchSignals.Connect("unit_died", Callable.From<Node>(OnAuthoritativeUnitDied));
+        _matchSignals.Connect("unit_spawned", _onUnitSpawned);
+        _matchSignals.Connect("unit_damaged", _onUnitDamaged);
         _commands = new UnitCommandService(
             _units,
             new LegacyMovementPort(_units, _resourceNodes),
@@ -93,13 +119,45 @@ public partial class CommandRuntime : Node
             new LegacyStopPort(_units),
             new LegacyWorkerTaskPort(_units, _resourceNodes),
             _resourceNodes,
-            _construction);
+            _construction,
+            _balance.Catalog,
+            new LegacyDamagePort(_units),
+            new WarheadDamageResolver(),
+            _skillCasts,
+            economy.AccountService,
+            _skillCooldowns,
+            new LegacyMoveSpeedPort(_units),
+            GetParent().GetNodeOrNull<BattlefieldEventRuntime>("BattlefieldEventRuntime")?.Log,
+            new GodotSkillObjectSpawnPort(_units, _balance.Assets, _matchSignals!));
+        CallDeferred(nameof(EquipExistingUnits));
     }
 
     /// <summary>每个物理 Tick 只推进一次权威施工工作量。</summary>
     public override void _PhysicsProcess(double delta)
     {
         _construction.Advance(checked((long)Engine.GetPhysicsFrames()));
+        var now = _simulationClock.GetMilliseconds();
+        _commands.AdvanceSkillEffects(now);
+        _commands.EvaluateAutomaticSkills(_matchId, now);
+    }
+
+    /// <inheritdoc />
+    public override void _ExitTree()
+    {
+        if (_matchSignals is null || !GodotObject.IsInstanceValid(_matchSignals))
+        {
+            return;
+        }
+
+        if (_matchSignals.IsConnected("unit_spawned", _onUnitSpawned))
+        {
+            _matchSignals.Disconnect("unit_spawned", _onUnitSpawned);
+        }
+
+        if (_matchSignals.IsConnected("unit_damaged", _onUnitDamaged))
+        {
+            _matchSignals.Disconnect("unit_damaged", _onUnitDamaged);
+        }
     }
 
     /// <summary>代表指定玩家向一组 Godot 单位节点提交普通移动命令。</summary>
@@ -468,6 +526,63 @@ public partial class CommandRuntime : Node
         return result;
     }
 
+    /// <summary>代表指定玩家施放主动技能；自身技能忽略目标节点，单位技能需要目标。</summary>
+    public CommandResult CastSkill(
+        IEnumerable<Node> unitNodes,
+        string skillId,
+        Node issuerPlayer,
+        Node? targetNode = null)
+    {
+        var context = CreateContext(issuerPlayer);
+        var unitIds = unitNodes.Select(_units.Register).ToArray();
+        UnitId? targetId = targetNode is null ? null : _units.Register(targetNode);
+        return _commands.CastSkill(
+            context,
+            new CastSkillCommand(unitIds, new SkillDefinitionId(skillId), targetId));
+    }
+
+    /// <summary>返回单位已装配主动技能槽，冷却按模拟时钟计算。</summary>
+    public Godot.Collections.Array GetHudSlots(Node unitNode)
+    {
+        var slots = new Godot.Collections.Array();
+        foreach (var slot in _commands.GetHudSlots(
+            _units.Register(unitNode),
+            _simulationClock.GetMilliseconds()))
+        {
+            slots.Add(new Godot.Collections.Dictionary
+            {
+                ["skill_id"] = slot.SkillId.Value,
+                ["target"] = slot.Target switch
+                {
+                    SkillTargetKind.Unit => "unit",
+                    SkillTargetKind.Ground => "ground",
+                    _ => "self"
+                },
+                ["remaining_milliseconds"] = slot.CooldownRemainingMilliseconds,
+                ["ready"] = slot.IsReady
+            });
+        }
+
+        return slots;
+    }
+
+    /// <summary>代表指定玩家对地面坐标施放技能，并记下确认位置。</summary>
+    public CommandResult CastSkillGround(
+        IEnumerable<Node> unitNodes,
+        string skillId,
+        Vector3 position,
+        Node issuerPlayer)
+    {
+        var context = CreateContext(issuerPlayer);
+        var unitIds = unitNodes.Select(_units.Register).ToArray();
+        return _commands.CastSkill(
+            context,
+            new CastSkillCommand(
+                unitIds,
+                new SkillDefinitionId(skillId),
+                TargetPosition: new WorldPosition(position.X, position.Y, position.Z)));
+    }
+
     /// <summary>代表指定玩家向一组单位提交普通敌方实体攻击。</summary>
     public CommandResult AttackUnits(
         IEnumerable<Node> unitNodes,
@@ -679,7 +794,8 @@ public partial class CommandRuntime : Node
         new CommandId(Guid.NewGuid()),
         _matchId,
         _units.RegisterPlayer(issuerPlayer),
-        checked((long)Engine.GetPhysicsFrames()));
+        checked((long)Engine.GetPhysicsFrames()),
+        _simulationClock.GetMilliseconds());
 
     /// <summary>将纯 C# 权威订单事件转换为 Match 唯一的 Godot Signal。</summary>
     private void OnOrderStateChanged(UnitOrderStateChanged change)
@@ -947,7 +1063,44 @@ public partial class CommandRuntime : Node
     {
         var unitId = GodotStableIdentity.Unit(unit);
         LoseActiveOrder(unitId);
+        _commands.InterruptSkills(
+            _matchId, unitId, SkillInterruptCause.Death, _simulationClock.GetMilliseconds());
+        _commands.RevokeAutomaticSkills(unitId);
         _units.Unregister(unitId);
+    }
+
+    /// <summary>新单位进场后按类型装配被动、事件和条件技能。</summary>
+    private void OnUnitSpawned(Node unit) => EquipRuntimeUnit(unit);
+
+    /// <summary>生命因伤害下降时触发已装配的事件技能。</summary>
+    private void OnUnitDamaged(Node unit)
+    {
+        var unitId = EquipRuntimeUnit(unit);
+        _commands.NotifyUnitDamaged(_matchId, unitId, _simulationClock.GetMilliseconds());
+    }
+
+    /// <summary>把已在场上的单位补装到自动技能表。</summary>
+    private void EquipExistingUnits()
+    {
+        if (!IsInsideTree())
+        {
+            return;
+        }
+
+        foreach (var unit in GetTree().GetNodesInGroup("units").OfType<Node>())
+        {
+            if (GetParent().IsAncestorOf(unit))
+            {
+                EquipRuntimeUnit(unit);
+            }
+        }
+    }
+
+    private UnitId EquipRuntimeUnit(Node unit)
+    {
+        var unitId = _units.Register(unit);
+        _commands.EquipAutomaticSkills(unitId);
+        return unitId;
     }
 
     /// <summary>在单位退出 SceneTree 时，将其当前活动订单转换为 UnitLost。</summary>

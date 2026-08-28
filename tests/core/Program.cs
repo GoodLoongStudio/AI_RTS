@@ -1,12 +1,20 @@
+using AI_RTS.Application.Battlefield;
 using AI_RTS.Application.Commands;
 using AI_RTS.Application.Commands.Units;
 using AI_RTS.Application.Combat;
+using AI_RTS.Application.Configuration;
 using AI_RTS.Application.Economy;
 using AI_RTS.Application.Orders;
+using AI_RTS.Application.Skills;
 using AI_RTS.Application.Units;
+using AI_RTS.Domain.Battlefield;
 using AI_RTS.Domain.Combat;
 using AI_RTS.Domain.Common;
+using AI_RTS.Domain.Configuration;
+using AI_RTS.Domain.Construction;
 using AI_RTS.Domain.Economy;
+using AI_RTS.Domain.Production;
+using AI_RTS.Domain.Skills;
 
 namespace AI_RTS.Tests.Core;
 
@@ -69,6 +77,60 @@ internal sealed class UnitCommandServiceTests
         RunTest(nameof(ResourceTransactionRejectsInvalidAndOverflowingAmounts), ResourceTransactionRejectsInvalidAndOverflowingAmounts);
         RunTest(nameof(ResourceAccountSupportsAllIncomeReasons), ResourceAccountSupportsAllIncomeReasons);
         RunTest(nameof(ResourceAccountSnapshotCannotMutateStore), ResourceAccountSnapshotCannotMutateStore);
+        RunTest(nameof(CastSkillAcceptsOwnedUnitOnSelfActiveSkill),
+            CastSkillAcceptsOwnedUnitOnSelfActiveSkill);
+        RunTest(nameof(CastSkillRejectsMissingPassiveAndNonSelfSkills),
+            CastSkillRejectsMissingPassiveAndNonSelfSkills);
+        RunTest(nameof(CastSkillChecksOwnershipWithoutReplacingOrders),
+            CastSkillChecksOwnershipWithoutReplacingOrders);
+        RunTest(nameof(CastSkillDealDamageHitsSelfThroughWarheadResolver),
+            CastSkillDealDamageHitsSelfThroughWarheadResolver);
+        RunTest(nameof(CastSkillDealDamageHitsSpecifiedUnitAndSkipsUndamageable),
+            CastSkillDealDamageHitsSpecifiedUnitAndSkipsUndamageable);
+        RunTest(nameof(CastSkillRejectsFriendOutOfRangeAndDeadTargets),
+            CastSkillRejectsFriendOutOfRangeAndDeadTargets);
+        RunTest(nameof(CastSkillRecordsInRangeGroundTarget),
+            CastSkillRecordsInRangeGroundTarget);
+        RunTest(nameof(CastSkillPaysCostThenStartsCooldownOnSimulationClock),
+            CastSkillPaysCostThenStartsCooldownOnSimulationClock);
+        RunTest(nameof(CastSkillRejectsInsufficientResourcesWithoutStartingCooldown),
+            CastSkillRejectsInsufficientResourcesWithoutStartingCooldown);
+        RunTest(nameof(CastSkillSecondEffectWaitsForSimulationDelay),
+            CastSkillSecondEffectWaitsForSimulationDelay);
+        RunTest(nameof(CastSkillRestoreHealthClampsToMaximum),
+            CastSkillRestoreHealthClampsToMaximum);
+        RunTest(nameof(CastSkillStatusAppliesAndExpiresMoveSpeed),
+            CastSkillStatusAppliesAndExpiresMoveSpeed);
+        RunTest(nameof(CastSkillStatusStackRulesRefreshOverwriteIgnore),
+            CastSkillStatusStackRulesRefreshOverwriteIgnore);
+        RunTest(nameof(CastSkillStatusIgnoresDeadTarget),
+            CastSkillStatusIgnoresDeadTarget);
+        RunTest(nameof(CastSkillSimultaneousDamageAndHeal),
+            CastSkillSimultaneousDamageAndHeal);
+        RunTest(nameof(CastSkillPeriodicTicksUseSimulationClock),
+            CastSkillPeriodicTicksUseSimulationClock);
+        RunTest(nameof(CastSkillConditionSkipsWhenNotWounded),
+            CastSkillConditionSkipsWhenNotWounded);
+        RunTest(nameof(CastSkillSequentialAfterSimultaneousKeepsDelay),
+            CastSkillSequentialAfterSimultaneousKeepsDelay);
+        RunTest(nameof(AutomaticEventSkillHealsOnDamageWithoutPlayerCast),
+            AutomaticEventSkillHealsOnDamageWithoutPlayerCast);
+        RunTest(nameof(AutomaticConditionAndPassiveSkillsEvaluateOnClock),
+            AutomaticConditionAndPassiveSkillsEvaluateOnClock);
+        RunTest(nameof(CastSkillStopDuringWindupCancelsLaterEffects),
+            CastSkillStopDuringWindupCancelsLaterEffects);
+        RunTest(nameof(CastSkillStopAfterActivationKeepsAppliedAndHonorsRefund),
+            CastSkillStopAfterActivationKeepsAppliedAndHonorsRefund);
+        RunTest(nameof(CastSkillWithoutInterruptKeepsDelayedEffectsAfterStop),
+            CastSkillWithoutInterruptKeepsDelayedEffectsAfterStop);
+        RunTest(nameof(CastSkillEmitEventWritesBattlefieldLog),
+            CastSkillEmitEventWritesBattlefieldLog);
+        RunTest(nameof(CastSkillIssueCommandUsesExistingMoveAndAttack),
+            CastSkillIssueCommandUsesExistingMoveAndAttack);
+        RunTest(nameof(CastSkillCreateObjectUsesExistingTemplate),
+            CastSkillCreateObjectUsesExistingTemplate);
+        RunTest(nameof(HudSlotsShowEquippedActiveSkillsAndCooldown),
+            HudSlotsShowEquippedActiveSkillsAndCooldown);
 
         Console.WriteLine($"AI_RTS.Core tests completed: {_tests} test(s), {_failures} failure(s).");
         return _failures == 0 ? 0 : 1;
@@ -909,6 +971,7 @@ internal sealed class UnitCommandServiceTests
             ResourceChangeReason.WorkerDelivery,
             ResourceChangeReason.ConstructionRefund,
             ResourceChangeReason.ProductionRefund,
+            ResourceChangeReason.SkillRefund,
             ResourceChangeReason.MissionReward,
             ResourceChangeReason.PassiveIncome,
             ResourceChangeReason.ScriptedAdjustment
@@ -947,6 +1010,1172 @@ internal sealed class UnitCommandServiceTests
         Check(service.Find(player)?.GetBalance(ResourceKind.A) == 3,
             "修改快照不得影响账户内部余额");
     }
+
+    /// <summary>验证己方单位对自身主动技能返回 Accepted，且不创建订单。</summary>
+    private void CastSkillAcceptsOwnedUnitOnSelfActiveSkill()
+    {
+        var owner = NewPlayerId();
+        var unit = NewUnitId();
+        var orders = new InMemoryUnitOrderStore();
+        var service = NewService(
+            new FakeRepository(new UnitCommandSnapshot(unit, owner, true)),
+            orders: orders,
+            catalog: SkillCatalog(SelfPulse()));
+
+        var result = service.CastSkill(
+            Context(owner),
+            new CastSkillCommand([unit, unit], new SkillDefinitionId("demo_self_pulse")));
+
+        Check(result.Status == CommandStatus.Accepted, "己方单位对自身主动技能应被接受");
+        Check(result.UnitResults.Count == 1, "重复单位只应产生一个施放回执");
+        Check(ResultFor(result, unit).Accepted && ResultFor(result, unit).OrderId is null,
+            "本步施放成功只回执，不创建订单");
+        Check(orders.FindActive(unit) is null, "施放入口不得留下活动技能订单");
+    }
+
+    /// <summary>验证缺失技能、被动技能和非自身目标在命令层整批拒绝。</summary>
+    private void CastSkillRejectsMissingPassiveAndNonSelfSkills()
+    {
+        var owner = NewPlayerId();
+        var unit = NewUnitId();
+        var repository = new FakeRepository(new UnitCommandSnapshot(unit, owner, true));
+        var missing = NewService(repository, catalog: SkillCatalog(SelfPulse()));
+        var passive = NewService(
+            repository,
+            catalog: SkillCatalog(new SkillDefinition(
+                new SkillDefinitionId("demo_passive"),
+                SkillTriggerKind.Passive,
+                SkillTargetKind.Self,
+                [new SkillEffectDefinition(SkillEffectKind.DealDamage, 1.0f)],
+                0)));
+        var aimed = NewService(
+            repository,
+            catalog: SkillCatalog(new SkillDefinition(
+                new SkillDefinitionId("demo_unit_pulse"),
+                SkillTriggerKind.Active,
+                SkillTargetKind.Unit,
+                [new SkillEffectDefinition(SkillEffectKind.DealDamage, 1.0f)],
+                0)));
+
+        Check(ResultFor(missing.CastSkill(
+                Context(owner),
+                new CastSkillCommand([unit], new SkillDefinitionId("missing_skill"))), unit)
+            .ErrorCode == CommandErrorCode.SkillNotFound,
+            "不存在的技能应返回 SkillNotFound");
+        Check(ResultFor(passive.CastSkill(
+                Context(owner),
+                new CastSkillCommand([unit], new SkillDefinitionId("demo_passive"))), unit)
+            .ErrorCode == CommandErrorCode.SkillNotCastable,
+            "被动技能不能从主动入口施放");
+        Check(ResultFor(aimed.CastSkill(
+                Context(owner),
+                new CastSkillCommand([unit], new SkillDefinitionId("demo_unit_pulse"))), unit)
+            .ErrorCode == CommandErrorCode.InvalidSkillTarget,
+            "本步只接受自身目标技能");
+        Check(NewService(repository).CastSkill(
+                Context(owner),
+                new CastSkillCommand([unit], new SkillDefinitionId("demo_self_pulse")))
+            .Status == CommandStatus.Rejected,
+            "没有 Catalog 时不得施放");
+    }
+
+    /// <summary>验证跨所有权部分接受，且成功施放不替换已有移动订单。</summary>
+    private void CastSkillChecksOwnershipWithoutReplacingOrders()
+    {
+        var owner = NewPlayerId();
+        var adversary = NewPlayerId();
+        var owned = NewUnitId();
+        var foreign = NewUnitId();
+        var missing = NewUnitId();
+        var orders = new InMemoryUnitOrderStore();
+        var service = NewService(
+            new FakeRepository(
+                new UnitCommandSnapshot(owned, owner, true),
+                new UnitCommandSnapshot(foreign, adversary, true)),
+            orders: orders,
+            catalog: SkillCatalog(SelfPulse()));
+
+        service.Move(Context(owner), new MoveUnitsCommand([owned], new WorldPosition(1, 0, 1)));
+        var moveOrder = orders.FindActive(owned);
+        var result = service.CastSkill(
+            Context(owner),
+            new CastSkillCommand([owned, foreign, missing], new SkillDefinitionId("demo_self_pulse")));
+
+        Check(result.Status == CommandStatus.PartiallyAccepted, "混选应部分接受技能施放");
+        Check(ResultFor(result, owned).Accepted, "己方单位应接受自身施放");
+        Check(ResultFor(result, foreign).ErrorCode == CommandErrorCode.UnitNotOwned,
+            "他方单位应返回 UnitNotOwned");
+        Check(ResultFor(result, missing).ErrorCode == CommandErrorCode.UnitNotFound,
+            "失效单位应返回 UnitNotFound");
+        Check(orders.FindActive(owned)?.OrderId == moveOrder?.OrderId,
+            "技能入口本步不得替换已有订单");
+    }
+
+    /// <summary>验证自身伤害走弹头解析，并对友伤倍率生效。</summary>
+    private void CastSkillDealDamageHitsSelfThroughWarheadResolver()
+    {
+        var owner = NewPlayerId();
+        var unit = NewUnitId();
+        var damage = new FakeDamagePort();
+        var catalog = new FakeSkillCatalog(
+            [SelfPulse()],
+            new WarheadDefinition(
+                new WarheadDefinitionId("direct_full_damage"),
+                ImpactSelectionMode.IntendedTargetOnly,
+                0.0f,
+                0.5f));
+        var service = NewService(
+            new FakeRepository(new UnitCommandSnapshot(unit, owner, true)),
+            catalog: catalog,
+            damage: damage);
+
+        var result = service.CastSkill(
+            Context(owner),
+            new CastSkillCommand([unit], new SkillDefinitionId("demo_self_pulse")));
+
+        Check(result.Status == CommandStatus.Accepted, "自身伤害技能应被接受");
+        Check(damage.Applications.Count == 1 &&
+            damage.Applications[0].UnitId == unit &&
+            damage.Applications[0].Damage == 0.5f,
+            "自身伤害应等于基础伤害乘以友伤倍率");
+    }
+
+    /// <summary>验证指定单位受伤，不可伤害目标不产生伤害记录。</summary>
+    private void CastSkillDealDamageHitsSpecifiedUnitAndSkipsUndamageable()
+    {
+        var owner = NewPlayerId();
+        var enemyOwner = NewPlayerId();
+        var caster = NewUnitId();
+        var enemy = NewUnitId();
+        var invulnerable = NewUnitId();
+        var missing = NewUnitId();
+        var pulse = new SkillDefinition(
+            new SkillDefinitionId("demo_unit_pulse"),
+            SkillTriggerKind.Active,
+            SkillTargetKind.Unit,
+            [new SkillEffectDefinition(SkillEffectKind.DealDamage, 2.0f)],
+            0);
+        var damage = new FakeDamagePort();
+        var repository = new FakeRepository(
+            new UnitCommandSnapshot(caster, owner, true),
+            new UnitCommandSnapshot(enemy, enemyOwner, true),
+            new UnitCommandSnapshot(invulnerable, enemyOwner, true, IsDamageable: false));
+        var service = NewService(repository, catalog: SkillCatalog(pulse), damage: damage);
+
+        var hit = service.CastSkill(
+            Context(owner),
+            new CastSkillCommand([caster], pulse.Id, enemy));
+        var skipped = service.CastSkill(
+            Context(owner),
+            new CastSkillCommand([caster], pulse.Id, invulnerable));
+        var absent = service.CastSkill(
+            Context(owner),
+            new CastSkillCommand([caster], pulse.Id, missing));
+
+        Check(hit.Status == CommandStatus.Accepted, "指定存活单位应接受即时伤害");
+        Check(skipped.Status == CommandStatus.Accepted, "不可伤害目标仍应接受命令");
+        Check(absent.Status == CommandStatus.Rejected &&
+            ResultFor(absent, caster).ErrorCode == CommandErrorCode.TargetNotFound,
+            "指定目标不存在时应整批拒绝");
+        Check(damage.Applications.Count == 1 &&
+            damage.Applications[0].UnitId == enemy &&
+            damage.Applications[0].Damage == 2.0f,
+            "只有可伤害指定单位应扣 HP");
+    }
+
+    /// <summary>验证友军、超距和死亡目标按技能规则拒绝。</summary>
+    private void CastSkillRejectsFriendOutOfRangeAndDeadTargets()
+    {
+        var owner = NewPlayerId();
+        var enemyOwner = NewPlayerId();
+        var caster = NewUnitId();
+        var ally = NewUnitId();
+        var farEnemy = NewUnitId();
+        var nearEnemy = NewUnitId();
+        var deadEnemy = NewUnitId();
+        var pulse = new SkillDefinition(
+            new SkillDefinitionId("demo_unit_pulse"),
+            SkillTriggerKind.Active,
+            SkillTargetKind.Unit,
+            [new SkillEffectDefinition(SkillEffectKind.DealDamage, 2.0f)],
+            0,
+            SkillTargetRelation.Enemy,
+            5.0f);
+        var damage = new FakeDamagePort();
+        var service = NewService(
+            new FakeRepository(
+                new UnitCommandSnapshot(caster, owner, true, Position: new WorldPosition(0, 0, 0)),
+                new UnitCommandSnapshot(ally, owner, true, Position: new WorldPosition(1, 0, 0)),
+                new UnitCommandSnapshot(
+                    farEnemy, enemyOwner, true, Position: new WorldPosition(10, 0, 0)),
+                new UnitCommandSnapshot(
+                    nearEnemy, enemyOwner, true, Position: new WorldPosition(3, 0, 0)),
+                new UnitCommandSnapshot(
+                    deadEnemy,
+                    enemyOwner,
+                    true,
+                    Position: new WorldPosition(1, 0, 0),
+                    IsAlive: false)),
+            catalog: SkillCatalog(pulse),
+            damage: damage);
+
+        Check(ResultFor(service.CastSkill(
+                Context(owner), new CastSkillCommand([caster], pulse.Id, ally)), caster)
+            .ErrorCode == CommandErrorCode.SkillTargetNotAllowed,
+            "友军单位应被阵营规则拒绝");
+        Check(ResultFor(service.CastSkill(
+                Context(owner), new CastSkillCommand([caster], pulse.Id, farEnemy)), caster)
+            .ErrorCode == CommandErrorCode.SkillOutOfRange,
+            "超距敌军应被拒绝");
+        Check(ResultFor(service.CastSkill(
+                Context(owner), new CastSkillCommand([caster], pulse.Id, deadEnemy)), caster)
+            .ErrorCode == CommandErrorCode.TargetNotFound,
+            "死亡目标应视为不可选");
+        var hit = service.CastSkill(
+            Context(owner), new CastSkillCommand([caster], pulse.Id, nearEnemy));
+        Check(hit.Status == CommandStatus.Accepted, "距离内敌军应接受");
+        Check(damage.Applications.Single().UnitId == nearEnemy, "只有合法敌军应受伤");
+    }
+
+    /// <summary>验证地面技能在距离内记下坐标，超距或非法坐标被拒绝。</summary>
+    private void CastSkillRecordsInRangeGroundTarget()
+    {
+        var owner = NewPlayerId();
+        var caster = NewUnitId();
+        var mark = new SkillDefinition(
+            new SkillDefinitionId("demo_ground_mark"),
+            SkillTriggerKind.Active,
+            SkillTargetKind.Ground,
+            [new SkillEffectDefinition(SkillEffectKind.EmitEvent, null)],
+            0,
+            SkillTargetRelation.Any,
+            8.0f,
+            false);
+        var journal = new InMemorySkillCastJournal();
+        var service = NewService(
+            new FakeRepository(
+                new UnitCommandSnapshot(caster, owner, true, Position: new WorldPosition(0, 0, 0))),
+            catalog: SkillCatalog(mark),
+            skillCasts: journal);
+        var destination = new WorldPosition(4, 0, 2);
+
+        var accepted = service.CastSkill(
+            Context(owner),
+            new CastSkillCommand([caster], mark.Id, TargetPosition: destination));
+        var far = service.CastSkill(
+            Context(owner),
+            new CastSkillCommand([caster], mark.Id, TargetPosition: new WorldPosition(20, 0, 0)));
+        var invalid = service.CastSkill(
+            Context(owner),
+            new CastSkillCommand([caster], mark.Id, TargetPosition: new WorldPosition(float.NaN, 0, 0)));
+
+        Check(accepted.Status == CommandStatus.Accepted, "距离内地面目标应接受");
+        Check(journal.Records.Count == 1 &&
+            journal.Records[0].TargetPosition == destination &&
+            journal.Records[0].TargetUnitId is null,
+            "地面技能应记下确认坐标");
+        Check(ResultFor(far, caster).ErrorCode == CommandErrorCode.SkillOutOfRange,
+            "超距地面目标应被拒绝");
+        Check(invalid.Status == CommandStatus.Rejected &&
+            ResultFor(invalid, caster).ErrorCode == CommandErrorCode.InvalidDestination,
+            "非有限地面坐标应被拒绝");
+    }
+
+    /// <summary>验证正式生效时扣费并按模拟毫秒进入冷却；时刻不前进则冷却不结束。</summary>
+    private void CastSkillPaysCostThenStartsCooldownOnSimulationClock()
+    {
+        var owner = NewPlayerId();
+        var match = new MatchId(Guid.NewGuid());
+        var unit = NewUnitId();
+        var accounts = OpenAccount(owner, match, 2, 0);
+        var cooldowns = new InMemorySkillCooldownStore();
+        var skill = new SkillDefinition(
+            new SkillDefinitionId("paid_pulse"),
+            SkillTriggerKind.Active,
+            SkillTargetKind.Self,
+            [new SkillEffectDefinition(SkillEffectKind.DealDamage, 1.0f)],
+            3000) with
+        {
+            Cost = [new ResourceAmount(ResourceKind.A, 1)]
+        };
+        var service = NewService(
+            new FakeRepository(new UnitCommandSnapshot(unit, owner, true)),
+            catalog: SkillCatalog(skill),
+            accounts: accounts,
+            cooldowns: cooldowns);
+
+        var first = service.CastSkill(Context(owner, match, 0), new CastSkillCommand([unit], skill.Id));
+        Check(first.Status == CommandStatus.Accepted, "首次生效应扣费并开始冷却");
+        Check(accounts.Find(owner)?.GetBalance(ResourceKind.A) == 1,
+            $"首次生效应扣除 1 个 A；实际 {accounts.Find(owner)?.GetBalance(ResourceKind.A)}");
+
+        var paused = service.CastSkill(Context(owner, match, 0), new CastSkillCommand([unit], skill.Id));
+        Check(ResultFor(paused, unit).ErrorCode == CommandErrorCode.SkillOnCooldown,
+            $"模拟时刻不前进时冷却不得结束；实际 {ResultFor(paused, unit).ErrorCode}");
+        var almost = service.CastSkill(
+            Context(owner, match, 2999), new CastSkillCommand([unit], skill.Id));
+        Check(ResultFor(almost, unit).ErrorCode == CommandErrorCode.SkillOnCooldown,
+            "冷却结束前不得再次生效");
+        Check(accounts.Find(owner)?.GetBalance(ResourceKind.A) == 1,
+            "冷却拒绝不得再次扣费");
+
+        var ready = service.CastSkill(
+            Context(owner, match, 3000), new CastSkillCommand([unit], skill.Id));
+        Check(ready.Status == CommandStatus.Accepted, "冷却结束后应再次接受");
+        Check(accounts.Find(owner)?.GetBalance(ResourceKind.A) == 0, "第二次生效应再扣 1 个 A");
+    }
+
+    /// <summary>验证资源不足时整笔拒绝，且不会进入冷却。</summary>
+    private void CastSkillRejectsInsufficientResourcesWithoutStartingCooldown()
+    {
+        var owner = NewPlayerId();
+        var match = new MatchId(Guid.NewGuid());
+        var unit = NewUnitId();
+        var accounts = OpenAccount(owner, match, 0, 0);
+        var cooldowns = new InMemorySkillCooldownStore();
+        var skill = new SkillDefinition(
+            new SkillDefinitionId("paid_pulse"),
+            SkillTriggerKind.Active,
+            SkillTargetKind.Self,
+            [new SkillEffectDefinition(SkillEffectKind.DealDamage, 1.0f)],
+            3000) with
+        {
+            Cost = [new ResourceAmount(ResourceKind.A, 1)]
+        };
+        var service = NewService(
+            new FakeRepository(new UnitCommandSnapshot(unit, owner, true)),
+            catalog: SkillCatalog(skill),
+            accounts: accounts,
+            cooldowns: cooldowns);
+
+        var rejected = service.CastSkill(
+            Context(owner, match, 0), new CastSkillCommand([unit], skill.Id));
+        accounts.Apply(new ApplyResourceTransaction(
+            NewResourceTransactionId(),
+            match,
+            owner,
+            [new ResourceDelta(ResourceKind.A, 1)],
+            ResourceChangeReason.ScriptedAdjustment,
+            null,
+            1));
+        var funded = service.CastSkill(
+            Context(owner, match, 0), new CastSkillCommand([unit], skill.Id));
+
+        Check(ResultFor(rejected, unit).ErrorCode == CommandErrorCode.InsufficientResources,
+            "余额不足应拒绝技能生效");
+        Check(funded.Status == CommandStatus.Accepted,
+            "未成功生效时不得留下冷却");
+        Check(accounts.Find(owner)?.GetBalance(ResourceKind.A) == 0,
+            "补足资源后的首次生效应扣费");
+    }
+
+    /// <summary>验证第二段效果在延迟到达后才发生，模拟时刻不变则不触发。</summary>
+    private void CastSkillSecondEffectWaitsForSimulationDelay()
+    {
+        var owner = NewPlayerId();
+        var unit = NewUnitId();
+        var damage = new FakeDamagePort();
+        var skill = new SkillDefinition(
+            new SkillDefinitionId("demo_delayed_pulse"),
+            SkillTriggerKind.Active,
+            SkillTargetKind.Self,
+            [
+                new SkillEffectDefinition(SkillEffectKind.DealDamage, 1.0f),
+                new SkillEffectDefinition(SkillEffectKind.DealDamage, 1.0f, 1000)
+            ],
+            0);
+        var service = NewService(
+            new FakeRepository(new UnitCommandSnapshot(unit, owner, true)),
+            catalog: SkillCatalog(skill),
+            damage: damage);
+
+        var cast = service.CastSkill(Context(owner, new MatchId(Guid.NewGuid()), 0),
+            new CastSkillCommand([unit], skill.Id));
+        Check(cast.Status == CommandStatus.Accepted, "延迟序列技能应被接受");
+        Check(damage.Applications.Count == 1 && damage.Applications[0].Damage == 1.0f,
+            "第一段应在正式生效时立即结算");
+
+        service.AdvanceSkillEffects(0);
+        service.AdvanceSkillEffects(999);
+        Check(damage.Applications.Count == 1, "模拟时刻未到延迟终点时第二段不得发生");
+
+        service.AdvanceSkillEffects(1000);
+        Check(damage.Applications.Count == 2 && damage.Applications[1].Damage == 1.0f,
+            "延迟到达后应结算第二段");
+    }
+
+    /// <summary>验证治疗只作用于存活受伤单位，且恢复量不超过缺失生命。</summary>
+    private void CastSkillRestoreHealthClampsToMaximum()
+    {
+        var owner = NewPlayerId();
+        var wounded = NewUnitId();
+        var full = NewUnitId();
+        var dead = NewUnitId();
+        var heal = new SkillDefinition(
+            new SkillDefinitionId("demo_self_heal"),
+            SkillTriggerKind.Active,
+            SkillTargetKind.Self,
+            [new SkillEffectDefinition(SkillEffectKind.RestoreHealth, 3.0f)],
+            0);
+        var damage = new FakeDamagePort();
+        var woundedService = NewService(
+            new FakeRepository(new UnitCommandSnapshot(
+                wounded, owner, true, CurrentHealth: 4.0f, MaximumHealth: 10.0f)),
+            catalog: SkillCatalog(heal),
+            damage: damage);
+        var fullService = NewService(
+            new FakeRepository(new UnitCommandSnapshot(
+                full, owner, true, CurrentHealth: 10.0f, MaximumHealth: 10.0f)),
+            catalog: SkillCatalog(heal),
+            damage: damage);
+        var deadService = NewService(
+            new FakeRepository(new UnitCommandSnapshot(
+                dead, owner, true, IsAlive: false, CurrentHealth: 0.0f, MaximumHealth: 10.0f)),
+            catalog: SkillCatalog(heal),
+            damage: damage);
+
+        Check(woundedService.CastSkill(
+                Context(owner), new CastSkillCommand([wounded], heal.Id)).Status ==
+            CommandStatus.Accepted,
+            "受伤单位的治疗应被接受");
+        Check(fullService.CastSkill(
+                Context(owner), new CastSkillCommand([full], heal.Id)).Status ==
+            CommandStatus.Accepted,
+            "满血单位的治疗命令仍应接受");
+        Check(deadService.CastSkill(
+                Context(owner), new CastSkillCommand([dead], heal.Id)).Status ==
+            CommandStatus.Accepted,
+            "死亡单位的治疗命令仍应接受但不应回血");
+        Check(damage.Restores.Count == 1 &&
+            damage.Restores[0].UnitId == wounded &&
+            damage.Restores[0].Amount == 3.0f,
+            "只有受伤存活单位应恢复，且不超过缺失生命");
+
+        var overflow = new FakeDamagePort();
+        var overflowHeal = new SkillDefinition(
+            new SkillDefinitionId("big_heal"),
+            SkillTriggerKind.Active,
+            SkillTargetKind.Self,
+            [new SkillEffectDefinition(SkillEffectKind.RestoreHealth, 20.0f)],
+            0);
+        NewService(
+            new FakeRepository(new UnitCommandSnapshot(
+                wounded, owner, true, CurrentHealth: 8.0f, MaximumHealth: 10.0f)),
+            catalog: SkillCatalog(overflowHeal),
+            damage: overflow).CastSkill(
+            Context(owner), new CastSkillCommand([wounded], overflowHeal.Id));
+        Check(overflow.Restores.Single().Amount == 2.0f, "过量治疗应被钳制到生命上限");
+    }
+
+    /// <summary>验证移速状态立即生效，未到期保持，到期后恢复基线。</summary>
+    private void CastSkillStatusAppliesAndExpiresMoveSpeed()
+    {
+        var owner = NewPlayerId();
+        var unit = NewUnitId();
+        var speed = new FakeMoveSpeedPort();
+        var service = NewService(
+            new FakeRepository(new UnitCommandSnapshot(unit, owner, true, IsAlive: true)),
+            catalog: SkillCatalog(SelfSlow()),
+            moveSpeed: speed);
+
+        Check(service.CastSkill(Context(owner), new CastSkillCommand([unit], SelfSlow().Id)).Status ==
+            CommandStatus.Accepted,
+            "自身减速应被接受");
+        Check(speed.MultiplierOf(unit) == 0.5f, "施加后移速应为基线的一半");
+
+        service.AdvanceSkillEffects(2999);
+        Check(speed.MultiplierOf(unit) == 0.5f && speed.Clears.Count == 0,
+            "未到期前不应恢复移速");
+
+        service.AdvanceSkillEffects(3000);
+        Check(speed.Clears.Contains(unit) && speed.MultiplierOf(unit) == 1.0f,
+            "到期后应清除移速修正");
+    }
+
+    /// <summary>验证 refresh 只延时、overwrite 换修正、ignore 忽略再施加。</summary>
+    private void CastSkillStatusStackRulesRefreshOverwriteIgnore()
+    {
+        var owner = NewPlayerId();
+        var unit = NewUnitId();
+        var refreshSpeed = new FakeMoveSpeedPort();
+        var refresh = SelfSlow(SkillStackRule.Refresh, 0.5f, 1000);
+        var refreshService = NewService(
+            new FakeRepository(new UnitCommandSnapshot(unit, owner, true, IsAlive: true)),
+            catalog: SkillCatalog(refresh),
+            moveSpeed: refreshSpeed);
+        refreshService.CastSkill(Context(owner, new MatchId(Guid.NewGuid()), 0),
+            new CastSkillCommand([unit], refresh.Id));
+        refreshService.CastSkill(Context(owner, new MatchId(Guid.NewGuid()), 500),
+            new CastSkillCommand([unit], refresh.Id));
+        refreshService.AdvanceSkillEffects(1000);
+        Check(refreshSpeed.MultiplierOf(unit) == 0.5f && refreshSpeed.Clears.Count == 0,
+            "refresh 应把到期从 1000 延到 1500");
+        refreshService.AdvanceSkillEffects(1500);
+        Check(refreshSpeed.Clears.Contains(unit), "refresh 后应在新到期时刻清除");
+
+        var overwriteSpeed = new FakeMoveSpeedPort();
+        var first = SelfSlow(SkillStackRule.Overwrite, 0.5f, 1000, "ow_slow");
+        var second = new SkillDefinition(
+            new SkillDefinitionId("demo_self_slow_hard"),
+            SkillTriggerKind.Active,
+            SkillTargetKind.Self,
+            [new SkillEffectDefinition(
+                SkillEffectKind.AddStatus,
+                null,
+                0,
+                new SkillStatusDefinition(
+                    "ow_slow", 1000, SkillAttributeKind.MoveSpeed, 0.25f, SkillStackRule.Overwrite))],
+            0);
+        var overwriteService = NewService(
+            new FakeRepository(new UnitCommandSnapshot(unit, owner, true, IsAlive: true)),
+            catalog: SkillCatalog(first, second),
+            moveSpeed: overwriteSpeed);
+        overwriteService.CastSkill(Context(owner), new CastSkillCommand([unit], first.Id));
+        overwriteService.CastSkill(Context(owner), new CastSkillCommand([unit], second.Id));
+        Check(overwriteSpeed.MultiplierOf(unit) == 0.25f, "overwrite 应用新的移速倍率");
+
+        var ignoreSpeed = new FakeMoveSpeedPort();
+        var ignore = SelfSlow(SkillStackRule.Ignore, 0.5f, 1000, "ig_slow");
+        var ignoreHarder = new SkillDefinition(
+            new SkillDefinitionId("demo_self_slow_ignored"),
+            SkillTriggerKind.Active,
+            SkillTargetKind.Self,
+            [new SkillEffectDefinition(
+                SkillEffectKind.AddStatus,
+                null,
+                0,
+                new SkillStatusDefinition(
+                    "ig_slow", 1000, SkillAttributeKind.MoveSpeed, 0.25f, SkillStackRule.Ignore))],
+            0);
+        var ignoreService = NewService(
+            new FakeRepository(new UnitCommandSnapshot(unit, owner, true, IsAlive: true)),
+            catalog: SkillCatalog(ignore, ignoreHarder),
+            moveSpeed: ignoreSpeed);
+        ignoreService.CastSkill(Context(owner, new MatchId(Guid.NewGuid()), 0),
+            new CastSkillCommand([unit], ignore.Id));
+        ignoreService.CastSkill(Context(owner, new MatchId(Guid.NewGuid()), 500),
+            new CastSkillCommand([unit], ignoreHarder.Id));
+        Check(ignoreSpeed.MultiplierOf(unit) == 0.5f, "ignore 不应改已有修正");
+        ignoreService.AdvanceSkillEffects(1000);
+        Check(ignoreSpeed.Clears.Contains(unit), "ignore 第二次施加后仍按首次到期");
+    }
+
+    /// <summary>验证死亡单位不施加移速状态。</summary>
+    private void CastSkillStatusIgnoresDeadTarget()
+    {
+        var owner = NewPlayerId();
+        var unit = NewUnitId();
+        var speed = new FakeMoveSpeedPort();
+        var service = NewService(
+            new FakeRepository(new UnitCommandSnapshot(
+                unit, owner, true, IsAlive: false)),
+            catalog: SkillCatalog(SelfSlow()),
+            moveSpeed: speed);
+
+        Check(service.CastSkill(Context(owner), new CastSkillCommand([unit], SelfSlow().Id)).Status ==
+            CommandStatus.Accepted,
+            "对死亡单位的自身状态命令仍应接受");
+        Check(speed.Applications.Count == 0, "死亡单位不应施加移速状态");
+    }
+
+    /// <summary>验证同时组合在同一模拟毫秒结算伤害和治疗。</summary>
+    private void CastSkillSimultaneousDamageAndHeal()
+    {
+        var owner = NewPlayerId();
+        var unit = NewUnitId();
+        var damage = new FakeDamagePort();
+        var skill = new SkillDefinition(
+            new SkillDefinitionId("demo_self_burst"),
+            SkillTriggerKind.Active,
+            SkillTargetKind.Self,
+            [
+                new SkillEffectDefinition(SkillEffectKind.DealDamage, 1.0f),
+                new SkillEffectDefinition(
+                    SkillEffectKind.RestoreHealth,
+                    1.0f,
+                    0,
+                    null,
+                    SkillEffectTiming.Simultaneous)
+            ],
+            0);
+        var service = NewService(
+            new FakeRepository(new UnitCommandSnapshot(
+                unit, owner, true, CurrentHealth: 5.0f, MaximumHealth: 10.0f)),
+            catalog: SkillCatalog(skill),
+            damage: damage);
+
+        Check(service.CastSkill(Context(owner), new CastSkillCommand([unit], skill.Id)).Status ==
+            CommandStatus.Accepted,
+            "同时伤害加治疗应被接受");
+        Check(damage.Applications.Count == 1 && damage.Restores.Count == 1,
+            "正式生效时应同时结算一段伤害和一段治疗");
+        service.AdvanceSkillEffects(1000);
+        Check(damage.Applications.Count == 1 && damage.Restores.Count == 1,
+            "同时组合不应再产生后续段");
+    }
+
+    /// <summary>验证周期伤害按模拟毫秒跳字，时刻不变则不再跳。</summary>
+    private void CastSkillPeriodicTicksUseSimulationClock()
+    {
+        var owner = NewPlayerId();
+        var unit = NewUnitId();
+        var damage = new FakeDamagePort();
+        var skill = new SkillDefinition(
+            new SkillDefinitionId("demo_self_ticks"),
+            SkillTriggerKind.Active,
+            SkillTargetKind.Self,
+            [
+                new SkillEffectDefinition(
+                    SkillEffectKind.DealDamage,
+                    1.0f,
+                    0,
+                    null,
+                    SkillEffectTiming.AfterPrevious,
+                    1000,
+                    3)
+            ],
+            0);
+        var service = NewService(
+            new FakeRepository(new UnitCommandSnapshot(unit, owner, true)),
+            catalog: SkillCatalog(skill),
+            damage: damage);
+
+        service.CastSkill(Context(owner, new MatchId(Guid.NewGuid()), 0),
+            new CastSkillCommand([unit], skill.Id));
+        Check(damage.Applications.Count == 1, "周期首次应在正式生效时结算");
+        service.AdvanceSkillEffects(0);
+        service.AdvanceSkillEffects(999);
+        Check(damage.Applications.Count == 1, "周期间隔未到时不得跳第二次");
+        service.AdvanceSkillEffects(1000);
+        Check(damage.Applications.Count == 2, "第一周期到达后应跳第二次");
+        service.AdvanceSkillEffects(2000);
+        Check(damage.Applications.Count == 3 && damage.Applications.TrueForAll(item => item.Damage == 1.0f),
+            "三跳结束后不得继续");
+        service.AdvanceSkillEffects(3000);
+        Check(damage.Applications.Count == 3, "超过重复次数后不得再跳");
+    }
+
+    /// <summary>验证条件不满足时跳过效果，命令仍接受。</summary>
+    private void CastSkillConditionSkipsWhenNotWounded()
+    {
+        var owner = NewPlayerId();
+        var wounded = NewUnitId();
+        var full = NewUnitId();
+        var dead = NewUnitId();
+        var skill = new SkillDefinition(
+            new SkillDefinitionId("demo_self_heal_if_wounded"),
+            SkillTriggerKind.Active,
+            SkillTargetKind.Self,
+            [
+                new SkillEffectDefinition(
+                    SkillEffectKind.RestoreHealth,
+                    3.0f,
+                    Condition: SkillEffectCondition.TargetWounded)
+            ],
+            0);
+        var damage = new FakeDamagePort();
+        var woundedService = NewService(
+            new FakeRepository(new UnitCommandSnapshot(
+                wounded, owner, true, CurrentHealth: 4.0f, MaximumHealth: 10.0f)),
+            catalog: SkillCatalog(skill),
+            damage: damage);
+        var fullService = NewService(
+            new FakeRepository(new UnitCommandSnapshot(
+                full, owner, true, CurrentHealth: 10.0f, MaximumHealth: 10.0f)),
+            catalog: SkillCatalog(skill),
+            damage: damage);
+        var deadService = NewService(
+            new FakeRepository(new UnitCommandSnapshot(
+                dead, owner, true, IsAlive: false, CurrentHealth: 0.0f, MaximumHealth: 10.0f)),
+            catalog: SkillCatalog(skill),
+            damage: damage);
+
+        Check(woundedService.CastSkill(
+                Context(owner), new CastSkillCommand([wounded], skill.Id)).Status ==
+            CommandStatus.Accepted,
+            "受伤单位的条件治疗应被接受");
+        Check(fullService.CastSkill(
+                Context(owner), new CastSkillCommand([full], skill.Id)).Status ==
+            CommandStatus.Accepted,
+            "满血时条件不满足仍应接受命令");
+        Check(deadService.CastSkill(
+                Context(owner), new CastSkillCommand([dead], skill.Id)).Status ==
+            CommandStatus.Accepted,
+            "死亡时条件不满足仍应接受命令");
+        Check(damage.Restores.Count == 1 &&
+            damage.Restores[0].UnitId == wounded &&
+            damage.Restores[0].Amount == 3.0f,
+            "只有受伤存活单位应恢复生命");
+    }
+
+    /// <summary>验证同时段之后的顺序延迟仍从上一条首次时刻起算。</summary>
+    private void CastSkillSequentialAfterSimultaneousKeepsDelay()
+    {
+        var owner = NewPlayerId();
+        var unit = NewUnitId();
+        var damage = new FakeDamagePort();
+        var skill = new SkillDefinition(
+            new SkillDefinitionId("burst_then_pulse"),
+            SkillTriggerKind.Active,
+            SkillTargetKind.Self,
+            [
+                new SkillEffectDefinition(SkillEffectKind.DealDamage, 1.0f),
+                new SkillEffectDefinition(
+                    SkillEffectKind.RestoreHealth,
+                    1.0f,
+                    0,
+                    null,
+                    SkillEffectTiming.Simultaneous),
+                new SkillEffectDefinition(SkillEffectKind.DealDamage, 2.0f, 500)
+            ],
+            0);
+        var service = NewService(
+            new FakeRepository(new UnitCommandSnapshot(
+                unit, owner, true, CurrentHealth: 5.0f, MaximumHealth: 10.0f)),
+            catalog: SkillCatalog(skill),
+            damage: damage);
+
+        service.CastSkill(Context(owner, new MatchId(Guid.NewGuid()), 0),
+            new CastSkillCommand([unit], skill.Id));
+        Check(damage.Applications.Count == 1 && damage.Restores.Count == 1,
+            "同时段应立刻结算");
+        service.AdvanceSkillEffects(499);
+        Check(damage.Applications.Count == 1, "后续顺序段在延迟前不得发生");
+        service.AdvanceSkillEffects(500);
+        Check(damage.Applications.Count == 2 && damage.Applications[1].Damage == 2.0f,
+            "后续顺序段应从同时段的时刻再等延迟");
+    }
+
+    /// <summary>验证事件技能不能主动点放，受伤后自动治疗，冷却按模拟时钟。</summary>
+    private void AutomaticEventSkillHealsOnDamageWithoutPlayerCast()
+    {
+        var owner = NewPlayerId();
+        var match = new MatchId(Guid.NewGuid());
+        var tank = NewUnitId();
+        var other = NewUnitId();
+        var skill = new SkillDefinition(
+            new SkillDefinitionId("demo_on_damage_heal"),
+            SkillTriggerKind.Event,
+            SkillTargetKind.Self,
+            [new SkillEffectDefinition(SkillEffectKind.RestoreHealth, 1.0f)],
+            2000,
+            EquippedUnitTypeIds: [new UnitTypeId("tank")],
+            TriggerEvent: SkillTriggerEvent.UnitDamaged);
+        var damage = new FakeDamagePort();
+        var granted = NewService(
+            new FakeRepository(new UnitCommandSnapshot(
+                tank, owner, true, CurrentHealth: 4.0f, MaximumHealth: 10.0f)),
+            catalog: SkillCatalog(skill),
+            damage: damage,
+            cooldowns: new InMemorySkillCooldownStore());
+        Check(granted.CastSkill(Context(owner, match, 0), new CastSkillCommand([tank], skill.Id))
+            .UnitResults[0].ErrorCode == CommandErrorCode.SkillNotCastable,
+            "事件技能不得从主动入口施放");
+        granted.GrantSkill(tank, skill.Id);
+        granted.NotifyUnitDamaged(match, tank, 0);
+        granted.NotifyUnitDamaged(match, tank, 0);
+        Check(damage.Restores.Count == 1 && damage.Restores[0].Amount == 1.0f,
+            "受伤应自动治疗一次，冷却中不得再触发");
+        granted.NotifyUnitDamaged(match, tank, 2000);
+        Check(damage.Restores.Count == 2, "冷却结束后再次受伤应再治疗");
+
+        var equipped = NewService(
+            new FakeRepository(
+                new UnitCommandSnapshot(
+                    tank, owner, true, TypeId: "tank", CurrentHealth: 4.0f, MaximumHealth: 10.0f),
+                new UnitCommandSnapshot(
+                    other, owner, true, TypeId: "helicopter", CurrentHealth: 4.0f, MaximumHealth: 10.0f)),
+            catalog: SkillCatalog(skill),
+            damage: damage,
+            cooldowns: new InMemorySkillCooldownStore());
+        equipped.EquipAutomaticSkills(tank);
+        equipped.EquipAutomaticSkills(other);
+        equipped.NotifyUnitDamaged(match, tank, 0);
+        equipped.NotifyUnitDamaged(match, other, 0);
+        Check(damage.Restores.Count == 3 && damage.Restores[2].UnitId == tank,
+            "只有装配了该技能的坦克类型应自动治疗");
+    }
+
+    /// <summary>验证条件触发看受伤状态，被动装配后自动上状态。</summary>
+    private void AutomaticConditionAndPassiveSkillsEvaluateOnClock()
+    {
+        var owner = NewPlayerId();
+        var match = new MatchId(Guid.NewGuid());
+        var wounded = NewUnitId();
+        var full = NewUnitId();
+        var regen = new SkillDefinition(
+            new SkillDefinitionId("demo_wounded_regen"),
+            SkillTriggerKind.Condition,
+            SkillTargetKind.Self,
+            [new SkillEffectDefinition(SkillEffectKind.RestoreHealth, 1.0f)],
+            3000,
+            ActivationCondition: SkillEffectCondition.TargetWounded);
+        var healPort = new FakeDamagePort();
+        var woundedService = NewService(
+            new FakeRepository(new UnitCommandSnapshot(
+                wounded, owner, true, CurrentHealth: 5.0f, MaximumHealth: 10.0f)),
+            catalog: SkillCatalog(regen),
+            damage: healPort,
+            cooldowns: new InMemorySkillCooldownStore());
+        var fullService = NewService(
+            new FakeRepository(new UnitCommandSnapshot(
+                full, owner, true, CurrentHealth: 10.0f, MaximumHealth: 10.0f)),
+            catalog: SkillCatalog(regen),
+            damage: healPort,
+            cooldowns: new InMemorySkillCooldownStore());
+        woundedService.GrantSkill(wounded, regen.Id);
+        fullService.GrantSkill(full, regen.Id);
+        woundedService.EvaluateAutomaticSkills(match, 0);
+        woundedService.EvaluateAutomaticSkills(match, 0);
+        fullService.EvaluateAutomaticSkills(match, 0);
+        Check(healPort.Restores.Count == 1 && healPort.Restores[0].UnitId == wounded,
+            "只有受伤且已授予的单位应条件回春");
+        woundedService.EvaluateAutomaticSkills(match, 3000);
+        Check(healPort.Restores.Count == 2, "冷却结束后受伤条件仍成立应再治疗");
+
+        var mover = NewUnitId();
+        var slow = new SkillDefinition(
+            new SkillDefinitionId("demo_passive_slow"),
+            SkillTriggerKind.Passive,
+            SkillTargetKind.Self,
+            [new SkillEffectDefinition(
+                SkillEffectKind.AddStatus,
+                null,
+                0,
+                new SkillStatusDefinition(
+                    "demo_passive_slow",
+                    1500,
+                    SkillAttributeKind.MoveSpeed,
+                    0.75f,
+                    SkillStackRule.Refresh))],
+            1000);
+        var speed = new FakeMoveSpeedPort();
+        var passive = NewService(
+            new FakeRepository(new UnitCommandSnapshot(mover, owner, true, IsAlive: true)),
+            catalog: SkillCatalog(slow),
+            moveSpeed: speed);
+        Check(passive.CastSkill(Context(owner, match, 0), new CastSkillCommand([mover], slow.Id))
+            .UnitResults[0].ErrorCode == CommandErrorCode.SkillNotCastable,
+            "被动技能不得从主动入口施放");
+        passive.GrantSkill(mover, slow.Id);
+        passive.EvaluateAutomaticSkills(match, 0);
+        Check(speed.MultiplierOf(mover) == 0.75f, "被动装配后应立即改移速");
+    }
+
+    /// <summary>验证施放前被停止则不扣费、不进冷却、后续效果不发生。</summary>
+    private void CastSkillStopDuringWindupCancelsLaterEffects()
+    {
+        var owner = NewPlayerId();
+        var match = new MatchId(Guid.NewGuid());
+        var unit = NewUnitId();
+        var damage = new FakeDamagePort();
+        var accounts = OpenAccount(owner, match, 1, 0);
+        var cooldowns = new InMemorySkillCooldownStore();
+        var skill = WindupPulse(refund: false, keepCooldown: true);
+        var service = NewService(
+            new FakeRepository(new UnitCommandSnapshot(unit, owner, true)),
+            catalog: SkillCatalog(skill),
+            damage: damage,
+            accounts: accounts,
+            cooldowns: cooldowns);
+
+        Check(service.CastSkill(Context(owner, match, 0), new CastSkillCommand([unit], skill.Id)).Status ==
+            CommandStatus.Accepted,
+            "引导技能应先被接受");
+        Check(accounts.Find(owner)?.GetBalance(ResourceKind.A) == 1, "施放前等待不得扣费");
+        Check(service.CastSkill(Context(owner, match, 0), new CastSkillCommand([unit], skill.Id))
+            .UnitResults[0].ErrorCode == CommandErrorCode.SkillBusy,
+            "引导中不得再开始一条技能");
+
+        service.Stop(Context(owner, match, 500), new StopUnitsCommand([unit]));
+        service.AdvanceSkillEffects(2000);
+        Check(damage.Applications.Count == 0, "施放前停止后不得结算任何效果");
+        Check(accounts.Find(owner)?.GetBalance(ResourceKind.A) == 1, "施放前停止不得扣费");
+        Check(cooldowns.IsReady(unit, skill.Id, 500), "施放前停止不得进入冷却");
+    }
+
+    /// <summary>验证正式生效后中断不回滚已结算效果，并按配置退费清冷却。</summary>
+    private void CastSkillStopAfterActivationKeepsAppliedAndHonorsRefund()
+    {
+        var owner = NewPlayerId();
+        var match = new MatchId(Guid.NewGuid());
+        var unit = NewUnitId();
+        var damage = new FakeDamagePort();
+        var accounts = OpenAccount(owner, match, 1, 0);
+        var cooldowns = new InMemorySkillCooldownStore();
+        var skill = WindupPulse(refund: true, keepCooldown: false);
+        var service = NewService(
+            new FakeRepository(new UnitCommandSnapshot(unit, owner, true)),
+            catalog: SkillCatalog(skill),
+            damage: damage,
+            accounts: accounts,
+            cooldowns: cooldowns);
+
+        service.CastSkill(Context(owner, match, 0), new CastSkillCommand([unit], skill.Id));
+        service.AdvanceSkillEffects(1000);
+        Check(damage.Applications.Count == 1 && accounts.Find(owner)?.GetBalance(ResourceKind.A) == 0,
+            "正式生效时应扣费并结算第一段");
+        Check(!cooldowns.IsReady(unit, skill.Id, 1000), "正式生效应进入冷却");
+
+        service.Stop(Context(owner, match, 1500), new StopUnitsCommand([unit]));
+        service.AdvanceSkillEffects(2000);
+        Check(damage.Applications.Count == 1, "中断不得回滚已生效伤害，也不得再结算后续段");
+        Check(accounts.Find(owner)?.GetBalance(ResourceKind.A) == 1, "配置退费时应退还消耗");
+        Check(cooldowns.IsReady(unit, skill.Id, 1500), "配置不留冷却时应立即就绪");
+    }
+
+    /// <summary>验证未声明中断的技能在停止后仍会打出延迟段。</summary>
+    private void CastSkillWithoutInterruptKeepsDelayedEffectsAfterStop()
+    {
+        var owner = NewPlayerId();
+        var unit = NewUnitId();
+        var damage = new FakeDamagePort();
+        var skill = new SkillDefinition(
+            new SkillDefinitionId("demo_delayed_pulse"),
+            SkillTriggerKind.Active,
+            SkillTargetKind.Self,
+            [
+                new SkillEffectDefinition(SkillEffectKind.DealDamage, 1.0f),
+                new SkillEffectDefinition(SkillEffectKind.DealDamage, 1.0f, 1000)
+            ],
+            0);
+        var service = NewService(
+            new FakeRepository(new UnitCommandSnapshot(unit, owner, true)),
+            catalog: SkillCatalog(skill),
+            damage: damage);
+
+        service.CastSkill(Context(owner, new MatchId(Guid.NewGuid()), 0),
+            new CastSkillCommand([unit], skill.Id));
+        service.Stop(Context(owner), new StopUnitsCommand([unit]));
+        service.AdvanceSkillEffects(1000);
+        Check(damage.Applications.Count == 2, "未配置中断时停止不得取消延迟段");
+    }
+
+    /// <summary>验证触发事件写入统一战场日志，不另建事件体系。</summary>
+    private void CastSkillEmitEventWritesBattlefieldLog()
+    {
+        var owner = NewPlayerId();
+        var caster = NewUnitId();
+        var events = new BattlefieldEventLog();
+        var mark = new SkillDefinition(
+            new SkillDefinitionId("demo_ground_mark"),
+            SkillTriggerKind.Active,
+            SkillTargetKind.Ground,
+            [new SkillEffectDefinition(
+                SkillEffectKind.EmitEvent,
+                null,
+                EmittedEvent: BattlefieldEventKind.SkillEmitted)],
+            0,
+            SkillTargetRelation.Any,
+            8.0f,
+            false);
+        var service = NewService(
+            new FakeRepository(
+                new UnitCommandSnapshot(caster, owner, true, Position: new WorldPosition(0, 0, 0))),
+            catalog: SkillCatalog(mark),
+            battlefieldEvents: events);
+        var destination = new WorldPosition(4, 0, 2);
+
+        Check(service.CastSkill(
+                Context(owner),
+                new CastSkillCommand([caster], mark.Id, TargetPosition: destination)).Status ==
+            CommandStatus.Accepted,
+            "地面标记应被接受");
+        Check(events.Count == 1 &&
+            events.FindLatestImportant() is null,
+            "技能事件默认不应抢 Space 跳转");
+    }
+
+    /// <summary>验证下达命令走已有 Move/Attack，不新建命令种类。</summary>
+    private void CastSkillIssueCommandUsesExistingMoveAndAttack()
+    {
+        var owner = NewPlayerId();
+        var enemyOwner = NewPlayerId();
+        var caster = NewUnitId();
+        var enemy = NewUnitId();
+        var movement = new FakeMovementPort();
+        var attack = new FakeAttackPort();
+        var dash = new SkillDefinition(
+            new SkillDefinitionId("demo_issue_move"),
+            SkillTriggerKind.Active,
+            SkillTargetKind.Ground,
+            [new SkillEffectDefinition(
+                SkillEffectKind.IssueCommand,
+                null,
+                IssuedCommand: SkillIssuedCommandKind.Move)],
+            0,
+            SkillTargetRelation.Any,
+            8.0f,
+            false);
+        var strike = new SkillDefinition(
+            new SkillDefinitionId("demo_issue_attack"),
+            SkillTriggerKind.Active,
+            SkillTargetKind.Unit,
+            [new SkillEffectDefinition(
+                SkillEffectKind.IssueCommand,
+                null,
+                IssuedCommand: SkillIssuedCommandKind.Attack)],
+            0,
+            SkillTargetRelation.Enemy,
+            5.0f);
+        var moveService = NewService(
+            new FakeRepository(
+                new UnitCommandSnapshot(caster, owner, true, Position: new WorldPosition(0, 0, 0))),
+            movement,
+            catalog: SkillCatalog(dash));
+        var destination = new WorldPosition(3, 0, 1);
+        Check(moveService.CastSkill(
+                Context(owner),
+                new CastSkillCommand([caster], dash.Id, TargetPosition: destination)).Status ==
+            CommandStatus.Accepted,
+            "下达移动应被接受");
+        Check(movement.MoveRequests == 1 && movement.LastDestination == destination,
+            "下达移动应调用已有 Move 入口");
+
+        var domains = new HashSet<CombatDomain> { CombatDomain.Terrain };
+        var attackService = NewService(
+            new FakeRepository(
+                new UnitCommandSnapshot(
+                    caster,
+                    owner,
+                    true,
+                    true,
+                    CombatDomain.Terrain,
+                    domains,
+                    Position: new WorldPosition(0, 0, 0)),
+                new UnitCommandSnapshot(
+                    enemy,
+                    enemyOwner,
+                    true,
+                    true,
+                    Position: new WorldPosition(2, 0, 0))),
+            attack: attack,
+            catalog: SkillCatalog(strike));
+        Check(attackService.CastSkill(
+                Context(owner),
+                new CastSkillCommand([caster], strike.Id, enemy)).Status ==
+            CommandStatus.Accepted,
+            "下达攻击应被接受");
+        Check(attack.OrdinaryRequests == 1, "下达攻击应调用已有 Attack 入口");
+    }
+
+    /// <summary>验证创建对象只提交模板、位置、方向和施法者。</summary>
+    private void CastSkillCreateObjectUsesExistingTemplate()
+    {
+        var owner = NewPlayerId();
+        var caster = NewUnitId();
+        var spawned = new FakeObjectSpawnPort();
+        var summon = new SkillDefinition(
+            new SkillDefinitionId("demo_spawn_drone"),
+            SkillTriggerKind.Active,
+            SkillTargetKind.Ground,
+            [new SkillEffectDefinition(
+                SkillEffectKind.CreateObject,
+                null,
+                ObjectTemplateId: new UnitTypeId("drone"))],
+            0,
+            SkillTargetRelation.Any,
+            8.0f,
+            false);
+        var service = NewService(
+            new FakeRepository(
+                new UnitCommandSnapshot(caster, owner, true, Position: new WorldPosition(0, 0, 0))),
+            catalog: SkillCatalog(summon),
+            objectSpawn: spawned);
+        var destination = new WorldPosition(3, 0, 1);
+
+        Check(service.CastSkill(
+                Context(owner),
+                new CastSkillCommand([caster], summon.Id, TargetPosition: destination)).Status ==
+            CommandStatus.Accepted,
+            "创建对象应被接受");
+        Check(spawned.Requests.Count == 1, "创建对象应调用一次生成入口");
+        Check(spawned.Requests[0].TemplateId == new UnitTypeId("drone") &&
+            spawned.Requests[0].Position == destination &&
+            spawned.Requests[0].CasterId == caster,
+            "技能层只应提交模板、位置和施法者");
+        Check(Math.Abs(spawned.Requests[0].YawRadians - MathF.Atan2(3.0f, 1.0f)) < 0.0001f,
+            "方向应由施法者指向落点");
+    }
+
+    /// <summary>验证坦克装配的主动技能出现在 HUD 槽，冷却按模拟时钟剩余。</summary>
+    private void HudSlotsShowEquippedActiveSkillsAndCooldown()
+    {
+        var owner = NewPlayerId();
+        var tank = NewUnitId();
+        var other = NewUnitId();
+        var heal = new SkillDefinition(
+            new SkillDefinitionId("demo_self_heal"),
+            SkillTriggerKind.Active,
+            SkillTargetKind.Self,
+            [new SkillEffectDefinition(SkillEffectKind.RestoreHealth, 3.0f)],
+            2000,
+            EquippedUnitTypeIds: [new UnitTypeId("tank")]);
+        var pulse = new SkillDefinition(
+            new SkillDefinitionId("demo_unit_pulse"),
+            SkillTriggerKind.Active,
+            SkillTargetKind.Unit,
+            [new SkillEffectDefinition(SkillEffectKind.DealDamage, 2.0f)],
+            3000,
+            SkillTargetRelation.Enemy,
+            5.0f,
+            EquippedUnitTypeIds: [new UnitTypeId("tank")]);
+        var passive = new SkillDefinition(
+            new SkillDefinitionId("demo_on_damage_heal"),
+            SkillTriggerKind.Event,
+            SkillTargetKind.Self,
+            [new SkillEffectDefinition(SkillEffectKind.RestoreHealth, 1.0f)],
+            2000,
+            EquippedUnitTypeIds: [new UnitTypeId("tank")],
+            TriggerEvent: SkillTriggerEvent.UnitDamaged);
+        var service = NewService(
+            new FakeRepository(
+                new UnitCommandSnapshot(
+                    tank,
+                    owner,
+                    true,
+                    TypeId: "tank",
+                    CurrentHealth: 4.0f,
+                    MaximumHealth: 10.0f),
+                new UnitCommandSnapshot(other, owner, true, TypeId: "helicopter")),
+            catalog: SkillCatalog(heal, pulse, passive),
+            damage: new FakeDamagePort(),
+            cooldowns: new InMemorySkillCooldownStore());
+        service.EquipAutomaticSkills(tank);
+        service.EquipAutomaticSkills(other);
+        var empty = service.GetHudSlots(other, 0);
+        Check(empty.Count == 0, "未装配主动技能的单位不应出 HUD 槽");
+        var ready = service.GetHudSlots(tank, 0);
+        Check(ready.Count == 2 &&
+            ready[0].SkillId.Value == "demo_self_heal" &&
+            ready[0].IsReady &&
+            ready[1].SkillId.Value == "demo_unit_pulse",
+            "坦克 HUD 应只列出已装配的主动技能");
+        Check(service.CastSkill(Context(owner, new MatchId(Guid.NewGuid()), 0),
+                new CastSkillCommand([tank], heal.Id)).Status == CommandStatus.Accepted,
+            "治疗应从 HUD 对应技能施放");
+        var cooling = service.GetHudSlots(tank, 500);
+        Check(cooling[0].CooldownRemainingMilliseconds == 1500 && !cooling[0].IsReady,
+            "冷却中槽位应显示剩余模拟毫秒");
+        Check(service.GetHudSlots(tank, 2000)[0].IsReady, "冷却结束后槽位应重新就绪");
+    }
+
+    private static SkillDefinition WindupPulse(bool refund, bool keepCooldown) => new(
+        new SkillDefinitionId("demo_windup_pulse"),
+        SkillTriggerKind.Active,
+        SkillTargetKind.Self,
+        [
+            new SkillEffectDefinition(SkillEffectKind.DealDamage, 1.0f),
+            new SkillEffectDefinition(SkillEffectKind.DealDamage, 1.0f, 1000)
+        ],
+        3000,
+        Cost: [new ResourceAmount(ResourceKind.A, 1)],
+        CastDelayMilliseconds: 1000,
+        Interrupt: new SkillInterruptDefinition(
+            [SkillInterruptPhase.BeforeActivation, SkillInterruptPhase.AfterActivation],
+            [SkillInterruptCause.Stop],
+            refund,
+            keepCooldown));
 
     /// <summary>建立测试账户并确认初始余额导入成功。</summary>
     private static InMemoryResourceAccountService OpenAccount(
@@ -1022,11 +2251,10 @@ internal sealed class UnitCommandServiceTests
     private static UnitCommandResult ResultFor(CommandResult result, UnitId unitId) =>
         result.UnitResults.Single(item => item.UnitId == unitId);
 
-    private static CommandContext Context(PlayerId owner) => new(
-        new CommandId(Guid.NewGuid()),
-        new MatchId(Guid.NewGuid()),
-        owner,
-        1);
+    private static CommandContext Context(PlayerId owner) => Context(owner, new MatchId(Guid.NewGuid()), 0);
+
+    private static CommandContext Context(PlayerId owner, MatchId match, long simulationMilliseconds) =>
+        new(new CommandId(Guid.NewGuid()), match, owner, 1, simulationMilliseconds);
 
     private static PlayerId NewPlayerId() => new(Guid.NewGuid());
 
@@ -1054,6 +2282,36 @@ internal sealed class UnitCommandServiceTests
             new UnitCommandSnapshot(target, targetOwner, true, true));
     }
 
+    private static SkillDefinition SelfSlow(
+        SkillStackRule stack = SkillStackRule.Refresh,
+        float modifier = 0.5f,
+        int durationMilliseconds = 3000,
+        string statusId = "demo_slow") => new(
+        new SkillDefinitionId("demo_self_slow"),
+        SkillTriggerKind.Active,
+        SkillTargetKind.Self,
+        [new SkillEffectDefinition(
+            SkillEffectKind.AddStatus,
+            null,
+            0,
+            new SkillStatusDefinition(
+                statusId,
+                durationMilliseconds,
+                SkillAttributeKind.MoveSpeed,
+                modifier,
+                stack))],
+        0);
+
+    private static SkillDefinition SelfPulse() => new(
+        new SkillDefinitionId("demo_self_pulse"),
+        SkillTriggerKind.Active,
+        SkillTargetKind.Self,
+        [new SkillEffectDefinition(SkillEffectKind.DealDamage, 1.0f)],
+        3000);
+
+    private static IGameBalanceCatalog SkillCatalog(params SkillDefinition[] skills) =>
+        new FakeSkillCatalog(skills);
+
     private static UnitCommandService NewService(
         IUnitCommandUnitRepository repository,
         IUnitMovementPort? movement = null,
@@ -1062,7 +2320,15 @@ internal sealed class UnitCommandServiceTests
         ICombatPolicyStore? policies = null,
         IUnitStopPort? stop = null,
         IWorkerTaskPort? workerTasks = null,
-        IResourceNodeRepository? resources = null) => new(
+        IResourceNodeRepository? resources = null,
+        IGameBalanceCatalog? catalog = null,
+        IUnitDamagePort? damage = null,
+        ISkillCastJournal? skillCasts = null,
+        IResourceAccountService? accounts = null,
+        ISkillCooldownStore? cooldowns = null,
+        IUnitMoveSpeedPort? moveSpeed = null,
+        IBattlefieldEventLog? battlefieldEvents = null,
+        ISkillObjectSpawnPort? objectSpawn = null) => new(
             repository,
             movement ?? new FakeMovementPort(),
             attack ?? new FakeAttackPort(),
@@ -1070,7 +2336,110 @@ internal sealed class UnitCommandServiceTests
             policies ?? new InMemoryCombatPolicyStore(),
             stop ?? new FakeStopPort(),
             workerTasks,
-            resources);
+            resources,
+            catalog: catalog,
+            damage: damage,
+            skillCasts: skillCasts,
+            accounts: accounts,
+            cooldowns: cooldowns,
+            moveSpeed: moveSpeed,
+            battlefieldEvents: battlefieldEvents,
+            objectSpawn: objectSpawn);
+
+    /// <summary>记录技能创建对象时提交的模板、位姿和施法者。</summary>
+    private sealed class FakeObjectSpawnPort : ISkillObjectSpawnPort
+    {
+        public List<SpawnRequest> Requests { get; } = [];
+
+        public void SpawnObject(
+            UnitTypeId templateId,
+            WorldPosition position,
+            float yawRadians,
+            UnitId casterId) =>
+            Requests.Add(new SpawnRequest(templateId, position, yawRadians, casterId));
+
+        public readonly record struct SpawnRequest(
+            UnitTypeId TemplateId,
+            WorldPosition Position,
+            float YawRadians,
+            UnitId CasterId);
+    }
+
+    /// <summary>记录技能伤害端口收到的最终伤害。</summary>
+    private sealed class FakeDamagePort : IUnitDamagePort
+    {
+        public List<DamageApplication> Applications { get; } = [];
+
+        public void ApplyDamage(UnitId unitId, float damage) =>
+            Applications.Add(new DamageApplication(unitId, damage));
+
+        public List<(UnitId UnitId, float Amount)> Restores { get; } = [];
+
+        public void RestoreHealth(UnitId unitId, float amount) => Restores.Add((unitId, amount));
+    }
+
+    /// <summary>记录技能移速端口收到的倍率和清除。</summary>
+    private sealed class FakeMoveSpeedPort : IUnitMoveSpeedPort
+    {
+        public List<(UnitId UnitId, float Multiplier)> Applications { get; } = [];
+
+        public List<UnitId> Clears { get; } = [];
+
+        public Dictionary<UnitId, float> Multipliers { get; } = [];
+
+        public float MultiplierOf(UnitId unitId) =>
+            Multipliers.TryGetValue(unitId, out var value) ? value : 1.0f;
+
+        public void ApplyMoveSpeedMultiplier(UnitId unitId, float multiplier)
+        {
+            Applications.Add((unitId, multiplier));
+            Multipliers[unitId] = multiplier;
+        }
+
+        public void ClearMoveSpeedModifier(UnitId unitId)
+        {
+            Clears.Add(unitId);
+            Multipliers[unitId] = 1.0f;
+        }
+    }
+
+    /// <summary>只提供技能查询的测试 Catalog，其他定义一律视为不存在。</summary>
+    private sealed class FakeSkillCatalog(
+        SkillDefinition[] skills,
+        WarheadDefinition? warhead = null) : IGameBalanceCatalog
+    {
+        private readonly Dictionary<SkillDefinitionId, SkillDefinition> _skills =
+            skills.ToDictionary(item => item.Id);
+
+        public BalanceConfigVersion Version { get; } = new(1, "test-skills", "0");
+
+        public IReadOnlyCollection<UnitTypeDefinition> UnitTypes => [];
+
+        public IReadOnlyCollection<WeaponDefinition> Weapons => [];
+
+        public IReadOnlyCollection<ProductionDefinition> Productions => [];
+
+        public IReadOnlyCollection<StructureConstructionDefinition> Constructions => [];
+
+        public IReadOnlyCollection<SkillDefinition> Skills => _skills.Values;
+
+        public UnitTypeDefinition? FindUnitType(UnitTypeId unitTypeId) => null;
+
+        public WeaponDefinition? FindWeapon(WeaponDefinitionId weaponId) => null;
+
+        public WarheadDefinition? FindWarhead(WarheadDefinitionId warheadId) =>
+            warhead is not null && warhead.Id.Equals(warheadId) ? warhead : null;
+
+        public ProductionDefinition? FindProduction(ProductionDefinitionId definitionId) => null;
+
+        public StructureConstructionDefinition? FindConstruction(StructureDefinitionId definitionId) =>
+            null;
+
+        public ResourceDefinition? FindResource(ResourceKind kind) => null;
+
+        public SkillDefinition? FindSkill(SkillDefinitionId skillId) =>
+            _skills.GetValueOrDefault(skillId);
+    }
 
     /// <summary>提供纯内存单位快照，不依赖 Godot ObjectDB。</summary>
     private sealed class FakeRepository(params UnitCommandSnapshot[] units) : IUnitCommandUnitRepository
@@ -1128,6 +2497,9 @@ internal sealed class UnitCommandServiceTests
         /// <summary>普通移动请求次数。</summary>
         public int MoveRequests { get; private set; }
 
+        /// <summary>最近一次普通移动目标。</summary>
+        public WorldPosition LastDestination { get; private set; }
+
         /// <summary>地面移动攻击请求次数。</summary>
         public int GroundAttackMoveRequests { get; private set; }
 
@@ -1147,6 +2519,7 @@ internal sealed class UnitCommandServiceTests
         public MovementPortResult RequestMove(UnitId unitId, WorldPosition destination)
         {
             MoveRequests++;
+            LastDestination = destination;
             return Result();
         }
 

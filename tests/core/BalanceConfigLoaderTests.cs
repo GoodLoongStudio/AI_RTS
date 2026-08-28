@@ -1,8 +1,10 @@
 using AI_RTS.Application.Configuration;
+using AI_RTS.Domain.Battlefield;
 using AI_RTS.Domain.Combat;
 using AI_RTS.Domain.Common;
 using AI_RTS.Domain.Economy;
 using AI_RTS.Domain.Production;
+using AI_RTS.Domain.Skills;
 
 namespace AI_RTS.Tests.Core;
 
@@ -29,6 +31,17 @@ internal sealed class BalanceConfigLoaderTests
         RunTest(nameof(ProfileRequirementsReportMissingDefinitions),
             ProfileRequirementsReportMissingDefinitions);
         RunTest(nameof(InvalidJsonNeverCreatesCatalog), InvalidJsonNeverCreatesCatalog);
+        RunTest(nameof(DemoSkillIsAvailableFromCatalog), DemoSkillIsAvailableFromCatalog);
+        RunTest(nameof(MissingSkillsCollectionRejectsWholeCatalog),
+            MissingSkillsCollectionRejectsWholeCatalog);
+        RunTest(nameof(SkillInvalidIdRejectsWholeCatalog), SkillInvalidIdRejectsWholeCatalog);
+        RunTest(nameof(SkillUnknownEffectKindRejectsWholeCatalog),
+            SkillUnknownEffectKindRejectsWholeCatalog);
+        RunTest(nameof(SkillUnknownObjectTemplateRejectsWholeCatalog),
+            SkillUnknownObjectTemplateRejectsWholeCatalog);
+        RunTest(nameof(SkillDuplicateIdRejectsWholeCatalog), SkillDuplicateIdRejectsWholeCatalog);
+        RunTest(nameof(SkillInvalidCombinationRejectsWholeCatalog),
+            SkillInvalidCombinationRejectsWholeCatalog);
 
         Console.WriteLine(
             $"Balance config tests completed: {_tests} test(s), {_failures} failure(s).");
@@ -82,6 +95,16 @@ internal sealed class BalanceConfigLoaderTests
             "CommandCenter 施工应保持迁移期 200 工作量");
         Check(catalog.FindResource(ResourceKind.B)?.CollectionDurationMilliseconds == 2000,
             "Resource B 采集时间应映射为 2000 整数毫秒");
+
+        var pulse = catalog.FindSkill(new SkillDefinitionId("demo_self_pulse"));
+        Check(pulse is not null, "Catalog 应包含 demo_self_pulse");
+        Check(pulse?.Trigger == SkillTriggerKind.Active && pulse.Target == SkillTargetKind.Self,
+            "演示技能应为对自身的主动技能");
+        Check(pulse?.Effects.Count == 1 &&
+            pulse.Effects[0].Kind == SkillEffectKind.DealDamage &&
+            pulse.Effects[0].Amount == 1.0f,
+            "演示技能应包含一条即时伤害效果");
+        Check(pulse?.CooldownMilliseconds == 3000, "演示技能冷却应为 3000 毫秒");
     }
 
     /// <summary>验证相同原始内容重复加载得到相同内容指纹。</summary>
@@ -231,6 +254,229 @@ internal sealed class BalanceConfigLoaderTests
 
         CheckError(result, BalanceConfigErrorCode.InvalidJson, null);
         Check(result.Catalog is null, "无效 JSON 不得创建 Catalog");
+    }
+
+    /// <summary>验证基线技能定义能从 Catalog 按稳定 ID 读出。</summary>
+    private void DemoSkillIsAvailableFromCatalog()
+    {
+        var result = _loader.Load(BaselineJson(), DemoBalanceRequirements.Create());
+        Check(result.Succeeded, Errors(result));
+        var skill = result.Catalog!.FindSkill(new SkillDefinitionId("demo_self_pulse"));
+        Check(skill is not null, "FindSkill 应返回演示技能");
+        Check(result.Catalog.Skills.Count == 16, "基线应包含十六条演示技能");
+        Check(result.Catalog.FindSkill(new SkillDefinitionId("demo_self_heal"))?
+            .Effects[0].Kind == SkillEffectKind.RestoreHealth &&
+            result.Catalog.FindSkill(new SkillDefinitionId("demo_self_heal"))?
+                .EquippedUnitTypeIds is [{ Value: "tank" }],
+            "治疗演示技能应配置恢复生命并挂到坦克 HUD");
+        Check(result.Catalog.FindSkill(new SkillDefinitionId("demo_unit_pulse"))?
+            .EquippedUnitTypeIds is [{ Value: "tank" }],
+            "单位脉冲应挂到坦克 HUD");
+        var slow = result.Catalog.FindSkill(new SkillDefinitionId("demo_self_slow"))?.Effects[0];
+        Check(slow?.Kind == SkillEffectKind.AddStatus &&
+            slow.Status?.Id == "demo_slow" &&
+            slow.Status.DurationMilliseconds == 3000 &&
+            slow.Status.Attribute == SkillAttributeKind.MoveSpeed &&
+            slow.Status.Modifier == 0.5f &&
+            slow.Status.Stack == SkillStackRule.Refresh,
+            "减速演示技能应配置移速状态");
+        var burst = result.Catalog.FindSkill(new SkillDefinitionId("demo_self_burst"));
+        Check(burst?.Effects.Count == 2 &&
+            burst.Effects[1].Timing == SkillEffectTiming.Simultaneous &&
+            burst.Effects[1].Kind == SkillEffectKind.RestoreHealth,
+            "同时演示技能第二段应与第一段同时恢复生命");
+        var ticks = result.Catalog.FindSkill(new SkillDefinitionId("demo_self_ticks"))?.Effects[0];
+        Check(ticks?.PeriodMilliseconds == 1000 && ticks.RepeatCount == 3,
+            "周期演示技能应配置三次伤害跳");
+        Check(result.Catalog.FindSkill(new SkillDefinitionId("demo_self_heal_if_wounded"))?
+            .Effects[0].Condition == SkillEffectCondition.TargetWounded,
+            "条件演示技能应仅在受伤时治疗");
+        var onDamage = result.Catalog.FindSkill(new SkillDefinitionId("demo_on_damage_heal"));
+        Check(onDamage?.Trigger == SkillTriggerKind.Event &&
+            onDamage.TriggerEvent == SkillTriggerEvent.UnitDamaged &&
+            onDamage.EquippedUnitTypeIds is [{ Value: "tank" }],
+            "受伤治疗应是装配到坦克的事件技能");
+        Check(result.Catalog.FindSkill(new SkillDefinitionId("demo_wounded_regen"))?
+            .ActivationCondition == SkillEffectCondition.TargetWounded,
+            "条件回春应在受伤时自动评估");
+        Check(result.Catalog.FindSkill(new SkillDefinitionId("demo_passive_slow"))?
+            .Trigger == SkillTriggerKind.Passive,
+            "被动减速应能从 Catalog 读出");
+        var windup = result.Catalog.FindSkill(new SkillDefinitionId("demo_windup_pulse"));
+        Check(windup?.CastDelayMilliseconds == 1000 &&
+            windup.Interrupt?.Phases.Contains(SkillInterruptPhase.BeforeActivation) == true &&
+            windup.Interrupt.Causes.Contains(SkillInterruptCause.Stop),
+            "引导演示技能应配置施放前等待和停止中断");
+        Check(result.Catalog.FindSkill(new SkillDefinitionId("demo_delayed_pulse"))?
+            .Effects[1].DelayMilliseconds == 2000,
+            "延迟演示技能第二段应在 2000 毫秒后触发");
+        var unitPulse = result.Catalog.FindSkill(new SkillDefinitionId("demo_unit_pulse"));
+        Check(unitPulse?.Relation == SkillTargetRelation.Enemy &&
+            unitPulse.RangeMeters == 5.0f &&
+            unitPulse.RequireAlive &&
+            !unitPulse.AllowSelf,
+            "单位演示技能应带敌方、距离和存活约束");
+        Check(unitPulse?.Cost is [{ Kind: ResourceKind.A, Amount: 1 }],
+            "单位演示技能应在生效时消耗 1 个 A");
+        Check(result.Catalog.FindSkill(new SkillDefinitionId("demo_ground_mark"))?.Effects[0]
+            .EmittedEvent == BattlefieldEventKind.SkillEmitted,
+            "地面标记应写入统一技能事件");
+        Check(result.Catalog.FindSkill(new SkillDefinitionId("demo_issue_move"))?.Effects[0]
+            .IssuedCommand == SkillIssuedCommandKind.Move,
+            "下达移动应映射到已有 Move");
+        Check(result.Catalog.FindSkill(new SkillDefinitionId("demo_issue_attack"))?.Effects[0]
+            .IssuedCommand == SkillIssuedCommandKind.Attack,
+            "下达攻击应映射到已有 Attack");
+        Check(result.Catalog.FindSkill(new SkillDefinitionId("demo_spawn_drone"))?.Effects[0]
+            .ObjectTemplateId == new UnitTypeId("drone"),
+            "创建对象应引用已有 drone 模板");
+    }
+
+    /// <summary>验证未知对象模板整表拒绝。</summary>
+    private void SkillUnknownObjectTemplateRejectsWholeCatalog()
+    {
+        var json = BaselineJson().Replace(
+            "\"templateId\": \"drone\"",
+            "\"templateId\": \"ghost_trap\"",
+            StringComparison.Ordinal);
+        var result = _loader.Load(json);
+
+        CheckError(result, BalanceConfigErrorCode.MissingReference,
+            "$.skills[15].effects[0].templateId");
+        Check(result.Catalog is null, "未知对象模板不得创建 Catalog");
+    }
+
+    /// <summary>验证顶层 skills 集合必须显式声明，不允许缺省。</summary>
+    private void MissingSkillsCollectionRejectsWholeCatalog()
+    {
+        var json = BaselineJson();
+        var skillsIndex = json.LastIndexOf("  \"skills\":", StringComparison.Ordinal);
+        json = json[..skillsIndex].TrimEnd().TrimEnd(',') + "\n}\n";
+        var result = _loader.Load(json);
+
+        CheckError(result, BalanceConfigErrorCode.MissingValue, "$.skills");
+        Check(result.Catalog is null, "缺少 skills 集合时不得创建 Catalog");
+    }
+
+    /// <summary>验证非法技能 ID 整表拒绝，不产生部分 Catalog。</summary>
+    private void SkillInvalidIdRejectsWholeCatalog()
+    {
+        var json = BaselineJson().Replace(
+            "\"id\": \"demo_self_pulse\"",
+            "\"id\": \"DemoSelfPulse\"",
+            StringComparison.Ordinal);
+        var result = _loader.Load(json);
+
+        CheckError(result, BalanceConfigErrorCode.InvalidId, "$.skills[0].id");
+        Check(result.Catalog is null, "非法技能 ID 不得创建 Catalog");
+    }
+
+    /// <summary>验证未知效果种类整表拒绝。</summary>
+    private void SkillUnknownEffectKindRejectsWholeCatalog()
+    {
+        var json = BaselineJson().Replace(
+            "\"kind\": \"dealDamage\"",
+            "\"kind\": \"explodeEverything\"",
+            StringComparison.Ordinal);
+        var result = _loader.Load(json);
+
+        CheckError(result, BalanceConfigErrorCode.InvalidEnum, "$.skills[0].effects[0].kind");
+        Check(result.Catalog is null, "未知效果种类不得创建 Catalog");
+    }
+
+    /// <summary>验证重复技能 ID 不能被后一个定义覆盖。</summary>
+    private void SkillDuplicateIdRejectsWholeCatalog()
+    {
+        const string duplicate = """
+            {
+              "id": "demo_self_pulse",
+              "trigger": "active",
+              "target": "self",
+              "effects": [
+                { "kind": "restoreHealth", "amount": 1.0 }
+              ],
+              "cooldownMilliseconds": 1000
+            },
+            """;
+        var json = BaselineJson().Replace(
+            "\"skills\": [",
+            $"\"skills\": [{duplicate}",
+            StringComparison.Ordinal);
+        var result = _loader.Load(json);
+
+        CheckError(result, BalanceConfigErrorCode.DuplicateId, "$.skills[1].id");
+        Check(result.Catalog is null, "重复技能 ID 不得创建 Catalog");
+    }
+
+    /// <summary>验证周期与次数不成对、未知条件会整表拒绝。</summary>
+    private void SkillInvalidCombinationRejectsWholeCatalog()
+    {
+        var periodOnly = BaselineJson().Replace(
+            """{ "kind": "dealDamage", "amount": 1.0 }""",
+            """{ "kind": "dealDamage", "amount": 1.0, "periodMilliseconds": 500 }""",
+            StringComparison.Ordinal);
+        var periodResult = _loader.Load(periodOnly);
+        CheckError(periodResult, BalanceConfigErrorCode.MissingValue,
+            "$.skills[0].effects[0].repeatCount");
+        Check(periodResult.Catalog is null, "缺少 repeatCount 不得创建 Catalog");
+
+        var badCondition = BaselineJson().Replace(
+            """{ "kind": "restoreHealth", "amount": 3.0 }""",
+            """{ "kind": "restoreHealth", "amount": 3.0, "condition": "hpBelowHalf" }""",
+            StringComparison.Ordinal);
+        var conditionResult = _loader.Load(badCondition);
+        CheckError(conditionResult, BalanceConfigErrorCode.InvalidEnum,
+            "$.skills[4].effects[0].condition");
+        Check(conditionResult.Catalog is null, "未知条件不得创建 Catalog");
+
+        var delayedSimultaneous = BaselineJson().Replace(
+            """{ "kind": "restoreHealth", "amount": 1.0, "timing": "simultaneous" }""",
+            """{ "kind": "restoreHealth", "amount": 1.0, "timing": "simultaneous", "delayMilliseconds": 200 }""",
+            StringComparison.Ordinal);
+        var timingResult = _loader.Load(delayedSimultaneous);
+        CheckError(timingResult, BalanceConfigErrorCode.InvalidNumber,
+            "$.skills[6].effects[1].delayMilliseconds");
+        Check(timingResult.Catalog is null, "同时与正延迟混用不得创建 Catalog");
+
+        var eventWithoutKind = BaselineJson().Replace(
+            """
+                  "trigger": "event",
+                  "event": "unitDamaged",
+            """,
+            """
+                  "trigger": "event",
+            """,
+            StringComparison.Ordinal);
+        var eventResult = _loader.Load(eventWithoutKind);
+        CheckError(eventResult, BalanceConfigErrorCode.MissingValue, "$.skills[9].event");
+        Check(eventResult.Catalog is null, "事件技能缺少 event 不得创建 Catalog");
+
+        var emptyInterrupt = BaselineJson().Replace(
+            """
+                  "id": "demo_self_pulse",
+                  "trigger": "active",
+                  "target": "self",
+            """,
+            """
+                  "id": "demo_self_pulse",
+                  "trigger": "active",
+                  "target": "self",
+                  "interrupt": { "phases": [] },
+            """,
+            StringComparison.Ordinal);
+        var interruptResult = _loader.Load(emptyInterrupt);
+        CheckError(interruptResult, BalanceConfigErrorCode.MissingValue,
+            "$.skills[0].interrupt.phases");
+        Check(interruptResult.Catalog is null, "空中断阶段不得创建 Catalog");
+
+        var badCommand = BaselineJson().Replace(
+            """{ "kind": "issueCommand", "command": "move" }""",
+            """{ "kind": "issueCommand", "command": "dance" }""",
+            StringComparison.Ordinal);
+        var commandResult = _loader.Load(badCommand);
+        CheckError(commandResult, BalanceConfigErrorCode.InvalidEnum,
+            "$.skills[13].effects[0].command");
+        Check(commandResult.Catalog is null, "未知下达命令不得创建 Catalog");
     }
 
     /// <summary>从仓库定位并读取本次迁移的 Demo 基线 JSON。</summary>

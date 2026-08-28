@@ -23,7 +23,11 @@ public readonly record struct UnitCommandSnapshot(
     bool CanConstruct = false,
     int ConstructionWorkPerTick = 0,
     BattlefieldEntityKind EntityKind = BattlefieldEntityKind.Unit,
-    string? TypeId = null);
+    string? TypeId = null,
+    WorldPosition Position = default,
+    bool IsAlive = true,
+    float CurrentHealth = 0,
+    float MaximumHealth = 0);
 
 /// <summary>为命令服务提供不依赖 Godot Node 的单位查询。</summary>
 public interface IUnitCommandUnitRepository
@@ -46,6 +50,26 @@ public interface IResourceNodeRepository
 {
     /// <summary>查询资源节点当前种类和可采集状态。</summary>
     ResourceNodeSnapshot? Find(ResourceNodeId resourceNodeId);
+}
+
+/// <summary>把已经解析完成的伤害应用到单位生命值，死亡语义由适配层沿用现有 HP 规则。</summary>
+public interface IUnitDamagePort
+{
+    /// <summary>对指定单位施加一次正数伤害。</summary>
+    void ApplyDamage(UnitId unitId, float damage);
+
+    /// <summary>恢复生命；实现方负责不超过当前最大生命值。</summary>
+    void RestoreHealth(UnitId unitId, float amount);
+}
+
+/// <summary>把技能状态的移速倍率应用到单位，1 表示恢复基线速度。</summary>
+public interface IUnitMoveSpeedPort
+{
+    /// <summary>把当前移动速度设为基线乘以指定正倍率。</summary>
+    void ApplyMoveSpeedMultiplier(UnitId unitId, float multiplier);
+
+    /// <summary>清除移速修正并恢复基线速度。</summary>
+    void ClearMoveSpeedModifier(UnitId unitId);
 }
 
 /// <summary>表示移动端口调用失败的稳定原因。</summary>
