@@ -68,7 +68,7 @@ func _build_camera_settings():
 	box.add_child(title)
 
 	_camera_edge_scroll = CheckBox.new()
-	_camera_edge_scroll.text = "启用屏幕边缘滚屏（当前 Demo 已停用）"
+	_camera_edge_scroll.text = "启用屏幕边缘滚屏"
 	_camera_edge_scroll.disabled = not FeatureFlags.enable_edge_scroll
 	_camera_edge_scroll.button_pressed = (
 		FeatureFlags.enable_edge_scroll

@@ -7,7 +7,7 @@ const EXPECTED_PROJECTION = PROJECTION_ORTHOGONAL
 @export var size_min = 1
 @export var size_max = 20
 @export_group("Movement")
-@export var edge_scroll_enabled = false
+@export var edge_scroll_enabled = true
 @export var screen_margin_for_movement = 48.0  # px
 @export var bottom_screen_margin_for_movement = 72.0  # px; bottom HUD needs a wider reliable edge zone
 @export var movement_speed = 1.1
@@ -62,7 +62,7 @@ func focus_latest_battlefield_event() -> bool:
 
 
 func _apply_user_camera_options():
-	# Demo builds disable edge scrolling even if an older user://camera.cfg enabled it.
+	# Edge scrolling is on by default; the player can still disable it in camera options.
 	# Keyboard camera movement remains available through the same movement path.
 	edge_scroll_enabled = (
 		FeatureFlags.enable_edge_scroll
