@@ -11,6 +11,7 @@ const NetCommandProxyScript := preload("res://source/net/NetCommandProxy.gd")
 var dedicated_server := false
 var local_slot := 0
 var _pending_solo_start := false
+var last_rtt_ms := -1  # 客户端对服务器的最近一次 RPC 往返（毫秒），-1 = 无样本
 var _peer: ENetMultiplayerPeer = null
 var _slots: Dictionary = {}  # peer_id -> slot 0..3
 var _ready_peers: Dictionary = {}  # peer_id -> bool
@@ -144,16 +145,31 @@ func connected_human_count() -> int:
 	return count
 
 
-## 客户端到服务器的 ENet RTT（毫秒）；本机/服务器侧或未就绪返回 -1。
+## 客户端到服务器的往返延迟（毫秒）；无样本返回 -1。走自带 ping RPC（Godot 4.7
+## 的 ENetPacketPeer 没有 get_stat，实测调用报错——不要用引擎 RTT API）。
 func get_ping_ms() -> int:
-	if not is_networked() or multiplayer.is_server():
-		return -1
-	if not multiplayer.get_peers().has(1):
-		return -1
-	var packet_peer := _peer.get_peer(1)
-	if packet_peer == null:
-		return -1
-	return int(packet_peer.get_stat(ENetPacketPeer.PeerStatistic.PEER_ROUND_TRIP_TIME))
+	return last_rtt_ms
+
+
+## 客户端定期调用：向服务器发时间戳，服务器回显后算 RTT。
+func send_ping() -> void:
+	if is_networked() and not multiplayer.is_server():
+		_rpc_ping.rpc_id(1, Time.get_ticks_msec())
+
+
+@rpc("any_peer", "reliable")
+func _rpc_ping(sent_msec: int) -> void:
+	if not is_server():
+		return
+	var sender := multiplayer.get_remote_sender_id()
+	if slot_of(sender) < 0:
+		return
+	_rpc_pong.rpc_id(sender, sent_msec)
+
+
+@rpc("authority", "reliable")
+func _rpc_pong(sent_msec: int) -> void:
+	last_rtt_ms = clampi(Time.get_ticks_msec() - sent_msec, 0, 60000)
 
 
 func human_peer_ids() -> Array:
@@ -204,6 +220,7 @@ func _reset_peer() -> void:
 	_match_ready_peers.clear()
 	_match_started = false
 	_pending_solo_start = false
+	last_rtt_ms = -1
 	local_slot = 0
 	dedicated_server = dedicated_server  # 有意保留专用服标记（self-assign），勿当作冗余代码"修复"
 
