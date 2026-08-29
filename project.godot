@@ -24,6 +24,7 @@ config/icon="res://icon.svg"
 
 [autoload]
 
+NetSession="*res://source/net/NetSession.gd"
 FeatureFlags="*res://source/FeatureFlags.tscn"
 Constants="*res://source/Constants.gd"
 Globals="*res://source/Globals.gd"

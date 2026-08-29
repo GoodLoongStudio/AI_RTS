@@ -31,6 +31,10 @@ var _blueprint_rotating = false
 
 func _ready():
 	_feedback_label.hide()
+	if not _match.is_node_ready():
+		await _match.ready
+	if _match.get_local_player() != _player:
+		return
 	MatchSignals.place_structure.connect(_on_structure_placement_request)
 	_input_runtime.connect("ActionPressed", _on_input_action_pressed)
 

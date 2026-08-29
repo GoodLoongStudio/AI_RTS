@@ -50,6 +50,11 @@ public partial class ProductionRuntime : Node
     /// <summary>每个物理 Tick 只推进一次生产线。</summary>
     public override void _PhysicsProcess(double delta)
     {
+        if (GetTree().GetMultiplayer().MultiplayerPeer is ENetMultiplayerPeer
+            && !GetTree().GetMultiplayer().IsServer())
+        {
+            return;
+        }
         _service.Advance(CurrentTick());
     }
 

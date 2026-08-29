@@ -57,21 +57,33 @@ func _enter_tree():
 
 
 func _ready():
+	if NetSession.is_networked():
+		var net_sync = preload("res://source/net/NetSync.gd").new()
+		net_sync.name = "NetSync"
+		add_child(net_sync)
 	MatchSignals.setup_and_spawn_unit.connect(_setup_and_spawn_unit)
-	_setup_subsystems_dependent_on_map()
+	await _setup_subsystems_dependent_on_map()
 	_setup_players()
 	_setup_player_units()
-	_control_group_runtime.Configure(_get_human_player())
+	_control_group_runtime.Configure(get_local_player())
 	if FeatureFlags.handle_match_end:
-		_match_outcome_runtime.Initialize(_players, _get_human_player())
-	visible_player = get_tree().get_nodes_in_group("players")[settings.visible_player]
-	_query_runtime.Initialize(_players, _get_human_player())
-	_battlefield_event_runtime.Initialize(_get_human_player())
+		_match_outcome_runtime.Initialize(_players, get_local_player())
+	var players_in_group = get_tree().get_nodes_in_group("players")
+	var visible_index = settings.visible_player
+	if settings.local_player_index >= 0:
+		visible_index = settings.local_player_index
+	visible_player = players_in_group[visible_index]
+	_query_runtime.Initialize(_players, get_local_player())
+	_battlefield_event_runtime.Initialize(get_local_player())
 	_move_camera_to_initial_position()
 	if settings.visibility == settings.Visibility.FULL:
 		fog_of_war.reveal()
-	_setup_ai_command_hud()
-	_setup_traditional_unit_command_hud()
+	if not _is_dedicated_or_headless():
+		if not NetSession.is_networked():
+			_setup_ai_command_hud()
+		_setup_traditional_unit_command_hud()
+	else:
+		$HUD.visible = false
 	_setup_campaign()
 	MatchSignals.match_started.emit()
 
@@ -84,7 +96,7 @@ func _unhandled_input(event):
 
 
 func _setup_ai_command_hud():
-	if _get_human_player() == null:
+	if get_local_player() == null:
 		return
 	var ai_command_hud = AICommandHUD.new()
 	ai_command_hud.name = "AICommandHUD"
@@ -125,7 +137,7 @@ func _setup_ai_command_hud_toggle(ai_command_hud: Control):
 
 
 func _setup_traditional_unit_command_hud():
-	var human_player = _get_human_player()
+	var human_player = get_local_player()
 	if human_player == null:
 		return
 	var command_hud = TraditionalUnitCommandHUD.instantiate()
@@ -179,7 +191,7 @@ func _setup_subsystems_dependent_on_map():
 	_terrain.add_to_group("terrain_navigation_input")
 	fog_of_war.resize(map.size)
 	_recalculate_camera_bounding_planes(map.size)
-	navigation.setup(map)
+	await navigation.setup(map)
 
 
 func _recalculate_camera_bounding_planes(map_size: Vector2):
@@ -262,7 +274,7 @@ func _should_spawn_campaign_hero(player) -> bool:
 	return (
 		campaign_data != null
 		and campaign_data.get("initial_control_mode", "squad") == "hero"
-		and player == _get_human_player()
+		and player == get_local_player()
 	)
 
 
@@ -277,7 +289,7 @@ func _setup_and_spawn_unit(unit, a_transform, player, mark_structure_under_const
 
 func _setup_unit_groups(unit, player):
 	unit.add_to_group("units")
-	if player == _get_human_player():
+	if player == get_local_player():
 		unit.add_to_group("controlled_units")
 	else:
 		unit.add_to_group("adversary_units")
@@ -285,18 +297,39 @@ func _setup_unit_groups(unit, player):
 		unit.add_to_group("revealed_units")
 
 
-func _get_human_player():
+func get_local_player():
+	if settings != null and settings.local_player_index >= 0:
+		var grouped = get_tree().get_nodes_in_group("players")
+		if settings.local_player_index < grouped.size():
+			return grouped[settings.local_player_index]
 	var human_players = get_tree().get_nodes_in_group("players").filter(
 		func(player): return player is Human
 	)
-	assert(human_players.size() <= 1, "more than one human player is not allowed")
+	if human_players.size() == 1:
+		return human_players[0]
+	if (
+		settings != null
+		and settings.visible_player >= 0
+		and settings.visible_player < human_players.size()
+	):
+		var grouped = get_tree().get_nodes_in_group("players")
+		if settings.visible_player < grouped.size() and grouped[settings.visible_player] is Human:
+			return grouped[settings.visible_player]
 	if not human_players.is_empty():
 		return human_players[0]
 	return null
 
 
+func _get_human_player():
+	return get_local_player()
+
+
+func _is_dedicated_or_headless() -> bool:
+	return NetSession.is_dedicated_server()
+
+
 func _move_camera_to_initial_position():
-	var human_player = _get_human_player()
+	var human_player = get_local_player()
 	if human_player != null:
 		_move_camera_to_player_units_crowd_pivot(human_player)
 	else:

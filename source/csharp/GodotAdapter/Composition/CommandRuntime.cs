@@ -99,7 +99,17 @@ public partial class CommandRuntime : Node
     /// <summary>每个物理 Tick 只推进一次权威施工工作量。</summary>
     public override void _PhysicsProcess(double delta)
     {
+        if (IsNetworkClientPuppet())
+        {
+            return;
+        }
         _construction.Advance(checked((long)Engine.GetPhysicsFrames()));
+    }
+
+    private bool IsNetworkClientPuppet()
+    {
+        var api = GetTree().GetMultiplayer();
+        return api.MultiplayerPeer is ENetMultiplayerPeer && !api.IsServer();
     }
 
     /// <summary>代表指定玩家向一组 Godot 单位节点提交普通移动命令。</summary>

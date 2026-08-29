@@ -43,6 +43,9 @@ func _ready():
 	# wait for match to be ready
 	if not _match.is_node_ready():
 		await _match.ready
+	if NetSession.is_client_puppet():
+		set_process(false)
+		return
 	# wait additional frame to make sure other players are in place
 	await get_tree().physics_frame
 	assert(_world_query_runtime != null, "rule AI world query must be configured by Match")

@@ -22,9 +22,25 @@ func get_navigation_map_rid_by_domain(domain):
 
 func setup(map):
 	assert(_static_obstacles.is_empty())
-	air.bake(map)
-	terrain.bake(map)
+	await air.bake(map)
+	await terrain.bake(map)
 	_setup_static_obstacles()
+
+
+## 复制烘焙参数到新 NavigationMesh，避免重开对局时改到 PackedScene 里那份已烘焙网格。
+func copy_navmesh_settings(template: NavigationMesh) -> NavigationMesh:
+	var mesh := NavigationMesh.new()
+	mesh.geometry_parsed_geometry_type = template.geometry_parsed_geometry_type
+	mesh.geometry_collision_mask = template.geometry_collision_mask
+	mesh.geometry_source_geometry_mode = template.geometry_source_geometry_mode
+	mesh.geometry_source_group_name = template.geometry_source_group_name
+	mesh.cell_size = template.cell_size
+	mesh.cell_height = template.cell_height
+	mesh.agent_height = template.agent_height
+	mesh.agent_radius = template.agent_radius
+	mesh.agent_max_climb = template.agent_max_climb
+	mesh.edge_max_error = template.edge_max_error
+	return mesh
 
 
 func _exit_tree():

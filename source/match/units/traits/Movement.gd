@@ -54,6 +54,8 @@ var _skip_initial_dispersion := false
 
 
 func _physics_process(delta):
+	if NetSession.is_client_puppet():
+		return
 	var speed_multiplier := reverse_speed_multiplier if _is_tactical_withdrawal else 1.0
 	_interim_speed = speed * speed_multiplier * delta
 	var fake_direction = _get_fake_direction_due_to_stuck_prevention()
@@ -69,7 +71,7 @@ func _physics_process(delta):
 
 
 func _ready():
-	if _match.navigation == null:
+	if _match.navigation == null or not _match.is_node_ready():
 		await _match.ready
 	velocity_computed.connect(_on_velocity_computed)
 	navigation_finished.connect(_on_navigation_finished)

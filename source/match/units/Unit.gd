@@ -346,6 +346,10 @@ func _setup_color():
 
 
 func _set_action(action_node):
+	if NetSession.is_client_puppet():
+		if action_node != null:
+			action_node.queue_free()
+		return
 	if not is_inside_tree() or _action_locked:
 		if action_node != null:
 			action_node.queue_free()

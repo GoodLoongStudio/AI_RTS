@@ -401,7 +401,7 @@ func _submit_public_squad_command(submit: Callable) -> bool:
 	if units.is_empty():
 		return false
 	var player = units[0].player
-	var gateway = player.find_child("UnitCommandGateway")
+	var gateway = NetSession.command_gateway_for(player)
 	if gateway == null:
 		push_error("Legacy AI HUD cannot find UnitCommandGateway")
 		return false

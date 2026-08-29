@@ -87,6 +87,8 @@ func _create_match_settings():
 		var player = match_settings.players[player_id]
 		if player.controller == Constants.PlayerType.HUMAN:
 			match_settings.visible_player = player_id
+	if match_settings.visible_player >= 0:
+		match_settings.local_player_index = match_settings.visible_player
 	if match_settings.visible_player == -1:
 		match_settings.visibility = match_settings.Visibility.ALL_PLAYERS
 

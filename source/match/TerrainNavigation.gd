@@ -2,8 +2,11 @@ extends Node3D
 
 const DOMAIN = Constants.Match.Navigation.Domain.TERRAIN
 
+static var server_busy := false
+
 var _earliest_frame_to_perform_next_rebake = null
 var _is_baking = false
+var _rebake_queued := false
 var _map_geometry = NavigationMeshSourceGeometryData3D.new()
 
 @onready var navigation_map_rid = get_world_3d().navigation_map
@@ -40,9 +43,13 @@ func _process(_delta):
 
 
 func bake(map):
-	assert(
-		_navigation_region.navigation_mesh.get_polygon_count() == 0,
-		"bake() should be called exactly once - during runtime"
+	while server_busy:
+		await get_tree().process_frame
+	_navigation_region.navigation_mesh = get_parent().copy_navmesh_settings(
+		_navigation_region.navigation_mesh
+	)
+	_navigation_region.navigation_mesh.geometry_parsed_geometry_type = (
+		NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
 	)
 	# setting custom AABB for baking so that height of dynamic AABB is always the same
 	# - without such setting, re-baking may yield different results depending on geometry height
@@ -54,13 +61,19 @@ func bake(map):
 	)
 	for node in get_tree().get_nodes_in_group("terrain_navigation_input"):
 		node.remove_from_group("terrain_navigation_input")
+	server_busy = true
 	NavigationServer3D.bake_from_source_geometry_data(
 		_navigation_region.navigation_mesh, _map_geometry
 	)
+	server_busy = false
 	_sync_navmesh_changes()
 
 
 func _rebake():
+	if server_busy:
+		_is_baking = false
+		_rebake_queued = true
+		return
 	# parse geometry other than map itself
 	var full_geometry = NavigationMeshSourceGeometryData3D.new()
 	NavigationServer3D.parse_source_geometry_data(
@@ -69,6 +82,7 @@ func _rebake():
 	# add pre-parsed map geometry
 	full_geometry.merge(_map_geometry)
 
+	server_busy = true
 	NavigationServer3D.bake_from_source_geometry_data_async(
 		_navigation_region.navigation_mesh, full_geometry, _on_bake_finished
 	)
@@ -111,13 +125,30 @@ func _safety_checks():
 	return true
 
 
+func _exit_tree():
+	if MatchSignals.schedule_navigation_rebake.is_connected(_on_schedule_navigation_rebake):
+		MatchSignals.schedule_navigation_rebake.disconnect(_on_schedule_navigation_rebake)
+	if _is_baking:
+		server_busy = false
+		_is_baking = false
+
+
 func _on_schedule_navigation_rebake(domain):
 	if domain != DOMAIN or not is_inside_tree() or not FeatureFlags.allow_navigation_rebaking:
+		return
+	if _is_baking or server_busy:
+		_rebake_queued = true
 		return
 	if _earliest_frame_to_perform_next_rebake == null:
 		_earliest_frame_to_perform_next_rebake = get_tree().get_frame() + 1
 
 
 func _on_bake_finished():
+	server_busy = false
+	if not is_inside_tree():
+		return
 	_sync_navmesh_changes()
 	_is_baking = false
+	if _rebake_queued:
+		_rebake_queued = false
+		_earliest_frame_to_perform_next_rebake = get_tree().get_frame() + 1

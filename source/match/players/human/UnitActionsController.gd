@@ -24,6 +24,11 @@ class Actions:
 
 
 func _ready():
+	var match_node = find_parent("Match")
+	if match_node != null and not match_node.is_node_ready():
+		await match_node.ready
+	if not _is_local_controller():
+		return
 	MatchSignals.terrain_targeted.connect(_on_terrain_targeted)
 	MatchSignals.unit_targeted.connect(_on_unit_targeted)
 	MatchSignals.unit_spawned.connect(_on_unit_spawned)
@@ -57,7 +62,7 @@ func _try_navigating_selected_units_towards_position(target_point):
 	)
 	# Crowd formation still computes a per-unit destination. Submit each destination
 	# through the reviewed command boundary instead of assigning Unit.action here.
-	var command_gateway = get_parent().find_child("UnitCommandGateway")
+	var command_gateway = _get_command_gateway()
 	assert(command_gateway != null)
 	for tuple in new_unit_targets:
 		command_gateway.MoveUnits([tuple[0]], tuple[1], get_parent())
@@ -347,8 +352,16 @@ func _get_selected_controlled_units() -> Array:
 	)
 
 
+func _is_local_controller() -> bool:
+	var match_node = find_parent("Match")
+	if match_node == null or not match_node.has_method("get_local_player"):
+		return true
+	var local_player = match_node.get_local_player()
+	return local_player != null and local_player == get_parent()
+
+
 func _get_command_gateway():
-	var command_gateway = get_parent().find_child("UnitCommandGateway")
+	var command_gateway = NetSession.command_gateway_for(get_parent())
 	assert(command_gateway != null)
 	return command_gateway
 

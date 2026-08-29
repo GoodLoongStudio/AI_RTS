@@ -30,9 +30,11 @@ func release_navigation_map():
 
 ## 调整空中参考碰撞体后等待 PhysicsServer 同步，再据此烘焙运行时 NavMesh。
 func bake(map):
-	assert(
-		_navigation_region.navigation_mesh.get_polygon_count() == 0,
-		"bake() should be called exactly once - during runtime"
+	var terrain_navigation = get_parent().terrain
+	while terrain_navigation.server_busy:
+		await get_tree().process_frame
+	_navigation_region.navigation_mesh = get_parent().copy_navmesh_settings(
+		_navigation_region.navigation_mesh
 	)
 	var shape = BoxShape3D.new()
 	shape.size = Vector3(map.size.x, 0, map.size.y)
@@ -41,7 +43,10 @@ func bake(map):
 	_reference_static_collider_shape.global_transform.origin.z = map.size.y / 2.0
 	await get_tree().physics_frame
 	await get_tree().physics_frame
+	terrain_navigation.server_busy = true
 	_navigation_region.bake_navigation_mesh(false)
+	await get_tree().process_frame
+	terrain_navigation.server_busy = false
 
 
 func _safety_checks():

@@ -45,6 +45,16 @@ func get_elements():
 
 ## 通过统一 C# 服务提交生产；不存在暂停、调序或容量绕过参数。
 func produce(unit_prototype):
+	if NetSession.should_forward_commands():
+		var sync = find_parent("Match").get_node_or_null("NetSync")
+		if sync != null:
+			var scene_path := ""
+			if unit_prototype is PackedScene:
+				scene_path = unit_prototype.resource_path
+			else:
+				scene_path = str(unit_prototype)
+			sync.forward_command("produce", [_unit], Vector3.ZERO, null, _unit.player, scene_path)
+			return null
 	var result = _runtime.Enqueue(
 		_unit,
 		unit_prototype,
