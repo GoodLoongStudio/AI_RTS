@@ -143,6 +143,18 @@ func connected_human_count() -> int:
 	return count
 
 
+## 客户端到服务器的 ENet RTT（毫秒）；本机/服务器侧或未就绪返回 -1。
+func get_ping_ms() -> int:
+	if not is_networked() or multiplayer.is_server():
+		return -1
+	if not multiplayer.get_peers().has(1):
+		return -1
+	var packet_peer := _peer.get_peer(1)
+	if packet_peer == null:
+		return -1
+	return int(packet_peer.get_stat(ENetPacketPeer.PeerStatistic.PEER_ROUND_TRIP_TIME))
+
+
 func human_peer_ids() -> Array:
 	var ids: Array = []
 	for peer_id in _slots.keys():
@@ -212,6 +224,7 @@ func _on_peer_connected(peer_id: int) -> void:
 	_rpc_assign_slot.rpc_id(peer_id, slot)
 	_broadcast_lobby()
 	_set_status("玩家加入槽位 %d（当前 %d 人）" % [slot + 1, connected_human_count()])
+	print("联机: 玩家加入槽位 %d（当前 %d 人）" % [slot + 1, connected_human_count()])
 
 
 func _on_peer_disconnected(peer_id: int) -> void:
@@ -305,6 +318,7 @@ func _launch_match() -> void:
 	for peer_id in _slots.keys():
 		peer_ids.append(int(peer_id))
 		slot_ids.append(int(_slots[peer_id]))
+	print("联机: 开局，人类 %d，槽位 %s" % [humans, str(slot_ids)])
 	_rpc_start_match.rpc(humans, peer_ids, slot_ids)
 
 

@@ -22,6 +22,10 @@ var _interp_target: Dictionary = {}  # Match 相对路径 -> Vector3
 var _last_snap_msec := 0
 var _snap_interval_msec := 100
 
+# 监督 HUD：右上角显示 延迟/FPS（云服显示 RTT，本机房显示"本机"，离线显示"单机"）。
+var _hud_label: Label = null
+var _hud_accum := 0.0
+
 
 func _ready() -> void:
 	_match = get_parent()
@@ -32,6 +36,43 @@ func _ready() -> void:
 	if NetSession.is_server():
 		MatchSignals.unit_spawned.connect(_on_unit_spawned)
 		NetSession.player_dropped.connect(_on_player_dropped)
+	if not NetSession.is_dedicated_server():
+		_ensure_hud()
+
+
+func _ensure_hud() -> void:
+	if _hud_label != null:
+		return
+	var layer := CanvasLayer.new()
+	layer.layer = 60
+	add_child(layer)
+	_hud_label = Label.new()
+	_hud_label.add_theme_font_size_override("font_size", 14)
+	_hud_label.add_theme_color_override("font_color", Color(0.95, 0.93, 0.85))
+	_hud_label.add_theme_color_override("font_outline_color", Color(0.1, 0.08, 0.05, 0.75))
+	_hud_label.add_theme_constant_override("outline_size", 4)
+	layer.add_child(_hud_label)
+	_hud_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	_hud_label.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_hud_label.offset_right = -12.0
+	_hud_label.offset_top = 8.0
+
+
+func _hud_tick(delta: float) -> void:
+	if _hud_label == null:
+		return
+	_hud_accum += delta
+	if _hud_accum < 0.5:
+		return
+	_hud_accum = 0.0
+	var ping_text := "单机"
+	if NetSession.is_networked():
+		if NetSession.is_server():
+			ping_text = "本机房 %d 人" % NetSession.connected_human_count()
+		else:
+			var ping := NetSession.get_ping_ms()
+			ping_text = ("%d ms" % ping) if ping >= 0 else "连接中"
+	_hud_label.text = "%s · %d FPS" % [ping_text, Engine.get_frames_per_second()]
 
 
 func _on_any_match_started() -> void:
@@ -156,9 +197,10 @@ func _on_unit_tree_exited(path: String) -> void:
 	_rpc_despawn.rpc(path)
 
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if not NetSession.is_networked():
 		return
+	_hud_tick(delta)
 	if NetSession.is_server():
 		_server_tick()
 	else:
