@@ -32,6 +32,13 @@ var _follow_target: Node3D = null
 
 
 func _ready():
+	# 无头/专用服上没有玩家输入，_input_runtime 是不带 GetAxis 的裸节点，
+	# 相机纯表现层——直接停掉处理，避免对局期每帧刷 SCRIPT ERROR。
+	if DisplayServer.get_name() == "headless" or NetSession.is_dedicated_server():
+		set_process(false)
+		set_process_input(false)
+		set_process_unhandled_input(false)
+		return
 	assert(projection == EXPECTED_PROJECTION, "unexpected projection")
 	assert(
 		is_equal_approx(rotation_degrees.x, EXPECTED_X_ROTATION_DEGREES), "unexptected X rotation"
