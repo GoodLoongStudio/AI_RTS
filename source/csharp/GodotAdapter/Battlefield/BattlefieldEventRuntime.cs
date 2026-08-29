@@ -86,7 +86,7 @@ public partial class BattlefieldEventRuntime : Node
             return;
         }
 
-        var now = Time.GetTicksMsec();
+        var now = Godot.Time.GetTicksMsec();
         if (_lastUnderAttackMsec != 0 &&
             now - _lastUnderAttackMsec < (ulong)UnderAttackThrottleMsec)
         {
