@@ -17,7 +17,7 @@ using AI_RTS.GodotAdapter.Common;
 using AI_RTS.GodotAdapter.Configuration;
 using AI_RTS.GodotAdapter.Construction;
 using AI_RTS.GodotAdapter.Economy;
-using AI_RTS.GodotAdapter.Time;
+using AI_RTS.GodotAdapter.Simulation;
 using AI_RTS.GodotAdapter.Skills;
 using AI_RTS.GodotAdapter.Units;
 using AI_RTS.Domain.Queries;

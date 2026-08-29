@@ -1,6 +1,6 @@
 using Godot;
 
-namespace AI_RTS.GodotAdapter.Time;
+namespace AI_RTS.GodotAdapter.Simulation;
 
 /// <summary>读取 Match 上只在未暂停时推进的模拟毫秒。</summary>
 public sealed class GodotSimulationClock(Node clock)

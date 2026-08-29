@@ -2,6 +2,7 @@
 * text=auto eol=lf
 
 # Godot text formats and generated import metadata.
+*.cs text eol=lf
 *.gd text eol=lf
 *.gdshader text eol=lf
 *.godot text eol=lf
