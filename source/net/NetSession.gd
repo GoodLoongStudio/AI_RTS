@@ -8,20 +8,29 @@ const MAX_PLAYERS := 4
 const MAP_PATH := "res://source/match/maps/PlainAndSimple.tscn"
 const NetCommandProxyScript := preload("res://source/net/NetCommandProxy.gd")
 
+const SLOT_EMPTY := 0
+const SLOT_HUMAN := 1
+const SLOT_AI := 2
+
 var dedicated_server := false
 var local_slot := 0
 var _pending_solo_start := false
 var last_rtt_ms := -1  # 客户端对服务器的最近一次 RPC 往返（毫秒），-1 = 无样本
+var local_player_name := "指挥官-%03d" % (randi() % 1000)
 var _peer: ENetMultiplayerPeer = null
 var _slots: Dictionary = {}  # peer_id -> slot 0..3
 var _ready_peers: Dictionary = {}  # peer_id -> bool
+var _slot_kinds: Array[int] = [SLOT_EMPTY, SLOT_EMPTY, SLOT_EMPTY, SLOT_EMPTY]
+var _names: Dictionary = {}  # peer_id -> 昵称（服务器权威）
 var _match_started := false
 var _status := "idle"
 var _match_ready_peers: Dictionary = {}
+var last_lobby_slots: Array = []  # 最近一次大厅快照：[{kind, name, ready}, ×4]
 
 signal status_changed(text)
 signal match_starting
 signal player_dropped(slot: int)  # 复核 P1-2：对局中玩家掉线（服务器发出，slot 为其阵营槽位）
+signal lobby_updated(slots: Array)  # RA3 式大厅：4 槽位全量状态广播
 
 
 func is_networked() -> bool:
@@ -106,7 +115,10 @@ func host(port: int = DEFAULT_PORT) -> Error:
 	if not dedicated_server:
 		_slots[1] = 0
 		_ready_peers[1] = false
+		_slot_kinds[0] = SLOT_HUMAN
+		_names[1] = local_player_name
 		local_slot = 0
+	_broadcast_lobby()
 	_set_status("已开房，端口 %d" % port)
 	return OK
 
@@ -218,6 +230,9 @@ func _reset_peer() -> void:
 	_slots.clear()
 	_ready_peers.clear()
 	_match_ready_peers.clear()
+	_slot_kinds = [SLOT_EMPTY, SLOT_EMPTY, SLOT_EMPTY, SLOT_EMPTY]
+	_names.clear()
+	last_lobby_slots = []
 	_match_started = false
 	_pending_solo_start = false
 	last_rtt_ms = -1
@@ -240,6 +255,7 @@ func _on_peer_connected(peer_id: int) -> void:
 		return
 	_slots[peer_id] = slot
 	_ready_peers[peer_id] = false
+	_slot_kinds[slot] = SLOT_HUMAN
 	_rpc_assign_slot.rpc_id(peer_id, slot)
 	_broadcast_lobby()
 	_set_status("玩家加入槽位 %d（当前 %d 人）" % [slot + 1, connected_human_count()])
@@ -250,6 +266,9 @@ func _on_peer_disconnected(peer_id: int) -> void:
 	var slot := slot_of(peer_id)
 	_slots.erase(peer_id)
 	_ready_peers.erase(peer_id)
+	if slot >= 0 and slot < MAX_PLAYERS:
+		_slot_kinds[slot] = SLOT_EMPTY
+	_names.erase(peer_id)
 	if _match_started:
 		# 复核 P1-2：掉线不再整局结束。清掉该玩家单位（见 NetSync._on_player_dropped），
 		# 歼灭规则随之自然结算（掉线算负），其余人继续打完。
@@ -265,6 +284,7 @@ func _on_peer_disconnected(peer_id: int) -> void:
 
 
 func _on_connected_to_server() -> void:
+	_rpc_set_name.rpc_id(1, local_player_name)
 	_set_status("已连接，请点准备")
 	if _pending_solo_start:
 		_pending_solo_start = false
@@ -293,21 +313,83 @@ func _allocate_slot() -> int:
 	for slot in _slots.values():
 		used[int(slot)] = true
 	for i in range(MAX_PLAYERS):
+		if _slot_kinds[i] == SLOT_AI:
+			continue
 		if not used.has(i):
 			return i
 	return -1
 
 
+## RA3 式大厅：服务器把 4 个槽位的完整状态广播给所有端。
 func _broadcast_lobby() -> void:
 	if not is_server():
 		return
+	var peer_by_slot := {}
+	for peer_id in _slots.keys():
+		peer_by_slot[int(_slots[peer_id])] = int(peer_id)
+	var slots: Array = []
 	var ready_count := 0
-	for is_ready in _ready_peers.values():
-		if is_ready:
-			ready_count += 1
-	var humans := connected_human_count()
-	_set_status("房间 %d/%d 人，已准备 %d" % [humans, MAX_PLAYERS, ready_count])
-	_rpc_lobby.rpc(humans, ready_count)
+	for i in range(MAX_PLAYERS):
+		var kind := int(_slot_kinds[i])
+		var entry := {"kind": kind, "name": "", "ready": false}
+		if kind == SLOT_HUMAN and peer_by_slot.has(i):
+			var pid: int = peer_by_slot[i]
+			entry["name"] = str(_names.get(pid, "指挥官"))
+			entry["ready"] = bool(_ready_peers.get(pid, false))
+			if entry["ready"]:
+				ready_count += 1
+		elif kind == SLOT_AI:
+			entry["name"] = "简单 AI"
+		slots.append(entry)
+	_set_status("房间 %d/%d 人，已准备 %d" % [connected_human_count(), MAX_PLAYERS, ready_count])
+	last_lobby_slots = slots
+	lobby_updated.emit(slots)  # 本机（listen 房主）也要刷新自己的大厅视图
+	_rpc_lobby.rpc(slots)
+
+
+func set_local_name(player_name: String) -> void:
+	local_player_name = player_name.strip_edges().substr(0, 16)
+	if is_networked() and not multiplayer.is_server():
+		_rpc_set_name.rpc_id(1, local_player_name)
+
+
+func host_set_slot_kind(slot: int, kind: int) -> void:
+	if not is_networked():
+		return
+	if is_server():
+		_server_set_slot_kind(0, slot, kind)
+		return
+	_rpc_set_slot_kind.rpc_id(1, slot, kind)
+
+
+func _server_set_slot_kind(sender_slot: int, slot: int, kind: int) -> void:
+	if sender_slot != 0 or slot < 0 or slot >= MAX_PLAYERS:
+		return
+	if kind != SLOT_EMPTY and kind != SLOT_AI:
+		return
+	if _slot_kinds[slot] == SLOT_HUMAN:
+		return
+	_slot_kinds[slot] = kind
+	_broadcast_lobby()
+
+
+@rpc("any_peer", "reliable")
+func _rpc_set_name(player_name: String) -> void:
+	if not is_server():
+		return
+	var peer_id := multiplayer.get_remote_sender_id()
+	if slot_of(peer_id) < 0:
+		return
+	_names[peer_id] = player_name.strip_edges().substr(0, 16)
+	_broadcast_lobby()
+
+
+@rpc("any_peer", "reliable")
+func _rpc_set_slot_kind(slot: int, kind: int) -> void:
+	if not is_server():
+		return
+	var sender_slot := slot_of(multiplayer.get_remote_sender_id())
+	_server_set_slot_kind(sender_slot, slot, kind)
 
 
 func _try_start_match() -> void:
@@ -349,11 +431,14 @@ func _launch_match() -> void:
 	var humans := connected_human_count()
 	var peer_ids := PackedInt32Array()
 	var slot_ids := PackedInt32Array()
+	var kinds := PackedInt32Array()
+	for i in range(MAX_PLAYERS):
+		kinds.append(int(_slot_kinds[i]))
 	for peer_id in _slots.keys():
 		peer_ids.append(int(peer_id))
 		slot_ids.append(int(_slots[peer_id]))
-	print("联机: 开局，人类 %d，槽位 %s" % [humans, str(slot_ids)])
-	_rpc_start_match.rpc(humans, peer_ids, slot_ids)
+	print("联机: 开局，人类 %d，槽位 %s，配置 %s" % [humans, str(slot_ids), str(kinds)])
+	_rpc_start_match.rpc(humans, peer_ids, slot_ids, kinds)
 
 
 @rpc("any_peer", "reliable")
@@ -394,8 +479,9 @@ func _rpc_assign_slot(slot: int) -> void:
 
 
 @rpc("authority", "reliable")
-func _rpc_lobby(human_count: int, ready_count: int) -> void:
-	_set_status("房间 %d/%d 人，已准备 %d" % [human_count, MAX_PLAYERS, ready_count])
+func _rpc_lobby(slots: Array) -> void:
+	last_lobby_slots = slots
+	lobby_updated.emit(slots)
 
 
 @rpc("authority", "reliable")
@@ -418,7 +504,7 @@ func _rpc_status(text: String) -> void:
 
 @rpc("authority", "reliable", "call_local")
 func _rpc_start_match(
-	human_count: int, peer_ids: PackedInt32Array, slot_ids: PackedInt32Array
+	human_count: int, peer_ids: PackedInt32Array, slot_ids: PackedInt32Array, kinds: PackedInt32Array
 ) -> void:
 	var my_id := multiplayer.get_unique_id()
 	for i in range(min(peer_ids.size(), slot_ids.size())):
@@ -426,10 +512,10 @@ func _rpc_start_match(
 			local_slot = slot_ids[i]
 			break
 	match_starting.emit()
-	_start_loading(human_count)
+	_start_loading(kinds)
 
 
-func _start_loading(human_count: int) -> void:
+func _start_loading(kinds: PackedInt32Array) -> void:
 	var MatchSettings = load("res://source/data-model/MatchSettings.gd")
 	var PlayerSettings = load("res://source/data-model/PlayerSettings.gd")
 	var LoadingScene = load("res://source/main-menu/Loading.tscn")
@@ -444,7 +530,7 @@ func _start_loading(human_count: int) -> void:
 	for i in range(MAX_PLAYERS):
 		var player_settings = PlayerSettings.new()
 		player_settings.color = Constants.Player.COLORS[i]
-		if i < human_count:
+		if i < kinds.size() and int(kinds[i]) == SLOT_HUMAN:
 			player_settings.controller = Constants.PlayerType.HUMAN
 		else:
 			player_settings.controller = Constants.PlayerType.SIMPLE_CLAIRVOYANT_AI
