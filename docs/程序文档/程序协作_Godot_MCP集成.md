@@ -21,13 +21,19 @@
 
 ## 本地连接
 
-Godot 编辑器启动插件后，MCP HTTP 端点为：
+工作区 `.cursor/mcp.json` 已注册两个端点。必须先打开对应 Godot 编辑器，MCP 才会监听。
+
+| 工程 | 端口 | Cursor 服务器名 | 启动脚本 |
+|---|---|---|---|
+| `AI_RTS` | 9080 | `godot-airts` | `tools/start-godot-airts-mcp.bat` |
+| `godot-rts-terrain` | 9081 | `godot-rts-terrain` | `tools/start-godot-rts-terrain-mcp.bat` |
 
 ```text
-http://localhost:9080/mcp
+http://127.0.0.1:9080/mcp
+http://127.0.0.1:9081/mcp
 ```
 
-连接配置属于本地开发环境。认证令牌、外网地址或其他凭据不得提交到仓库。需要远程访问时，必须单独进行安全评审并启用认证。
+两个工程可以同时开编辑器；不要都占用 9080。本机 `mcp_settings.cfg` 已设 `auto_start=true`。认证令牌、外网地址或其他凭据不得提交到仓库。需要远程访问时，必须单独进行安全评审并启用认证。
 
 ## 验证记录
 
