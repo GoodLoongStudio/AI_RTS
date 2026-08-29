@@ -11,7 +11,7 @@ func _ready():
 	await get_tree().process_frame
 
 	var hud = match_instance.get_node("HUD/AICommandHUD")
-	var toggle = match_instance.get_node("HUD/AICommandHUDToggle")
+	var toggle = match_instance.find_child("AICommandHUDToggle", true, false)
 	var command_hud = match_instance.get_node("HUD/TraditionalUnitCommandHUD")
 	var input_runtime = match_instance.get_node("InputBindingRuntime")
 	_check(not hud.is_interface_visible(), "AI 副官 HUD 应默认隐藏")

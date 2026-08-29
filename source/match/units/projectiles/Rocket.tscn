@@ -7,16 +7,18 @@ resource_local_to_scene = true
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_45jbp"]
 shading_mode = 0
+albedo_color = Color(0.95, 0.92, 0.75, 1)
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_vlm3w"]
-radius = 0.02
-height = 0.2
+radius = 0.08
+height = 0.46
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_xyj84"]
 transparency = 1
 shading_mode = 0
 vertex_color_use_as_albedo = true
 billboard_mode = 1
+albedo_color = Color(1, 0.62, 0.18, 1)
 
 [sub_resource type="Gradient" id="Gradient_b34yk"]
 offsets = PackedFloat32Array(0, 0.675258, 1)
@@ -27,13 +29,13 @@ gradient = SubResource("Gradient_b34yk")
 
 [sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_ymmm3"]
 emission_shape = 1
-emission_sphere_radius = 0.15
-spread = 0.0
-gravity = Vector3(0, 1.5, 0)
+emission_sphere_radius = 0.2
+spread = 8.0
+gravity = Vector3(0, 1.2, 0)
 color_ramp = SubResource("GradientTexture1D_36doo")
 
 [sub_resource type="QuadMesh" id="QuadMesh_gpge5"]
-size = Vector2(0.05, 0.05)
+size = Vector2(0.16, 0.16)
 
 [sub_resource type="Animation" id="Animation_ud13x"]
 length = 0.001
@@ -96,7 +98,7 @@ tracks/0/path = NodePath("DetachTransform/Visuals/Path3D/PathFollow3D:progress_r
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
-"times": PackedFloat32Array(0, 0.5),
+"times": PackedFloat32Array(0, 0.75),
 "transitions": PackedFloat32Array(1.68179, 1),
 "update": 0,
 "values": [0.0, 1.0]
@@ -108,7 +110,7 @@ tracks/1/path = NodePath(".")
 tracks/1/interp = 1
 tracks/1/loop_wrap = true
 tracks/1/keys = {
-"times": PackedFloat32Array(0.5),
+"times": PackedFloat32Array(0.75),
 "transitions": PackedFloat32Array(1),
 "values": [{
 "args": [],
@@ -122,7 +124,7 @@ tracks/2/path = NodePath("DetachTransform/Visuals/Path3D/PathFollow3D/Node3D/Mes
 tracks/2/interp = 1
 tracks/2/loop_wrap = true
 tracks/2/keys = {
-"times": PackedFloat32Array(0, 0.5),
+"times": PackedFloat32Array(0, 0.75),
 "transitions": PackedFloat32Array(1, 1),
 "update": 1,
 "values": [true, false]
@@ -134,7 +136,7 @@ tracks/3/path = NodePath("DetachTransform/Visuals/GPUParticles3D:emitting")
 tracks/3/interp = 1
 tracks/3/loop_wrap = true
 tracks/3/keys = {
-"times": PackedFloat32Array(0, 0.5),
+"times": PackedFloat32Array(0, 0.75),
 "transitions": PackedFloat32Array(1, 1),
 "update": 1,
 "values": [true, false]
@@ -188,7 +190,8 @@ update_scale = false
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.0915859, 0, -0.0915859)
 material_override = SubResource("StandardMaterial3D_xyj84")
 emitting = false
-amount = 32
+amount = 56
+lifetime = 0.45
 process_material = SubResource("ParticleProcessMaterial_ymmm3")
 draw_pass_1 = SubResource("QuadMesh_gpge5")
 

@@ -204,7 +204,17 @@ func _calculate_screen_move_vector() -> Vector2:
 		return keyboard_move_vector
 	if not edge_scroll_enabled:
 		return Vector2.ZERO
+	if _is_pointer_over_hud():
+		return Vector2.ZERO
 	return _calculate_edge_scroll_vector(mouse_pos, viewport_size)
+
+
+## 鼠标停在建造栏、命令栏等会吃点击的 HUD 上时，不贴边移镜头。
+func _is_pointer_over_hud() -> bool:
+	var hovered := get_viewport().gui_get_hovered_control()
+	if hovered == null or not hovered.is_visible_in_tree():
+		return false
+	return hovered.mouse_filter != Control.MOUSE_FILTER_IGNORE
 
 
 func _calculate_edge_scroll_vector(mouse_pos: Vector2, viewport_size: Vector2) -> Vector2:

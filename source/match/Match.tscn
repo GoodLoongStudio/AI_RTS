@@ -400,38 +400,45 @@ layout_mode = 2
 texture = SubResource("ViewportTexture_8q44e")
 stretch_mode = 5
 
-[node name="MarginContainer2" type="MarginContainer" parent="HUD"]
-offset_right = 40.0
-offset_bottom = 11.0
-theme_override_constants/margin_left = 5
-theme_override_constants/margin_top = 5
+[node name="TopLeftColumn" type="VBoxContainer" parent="HUD"]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 240.0
+offset_bottom = 200.0
+mouse_filter = 2
+theme_override_constants/separation = 8
 
-[node name="Resources" type="VBoxContainer" parent="HUD/MarginContainer2"]
+[node name="MarginContainer2" type="MarginContainer" parent="HUD/TopLeftColumn"]
+layout_mode = 2
+theme_override_constants/margin_left = 0
+theme_override_constants/margin_top = 0
+
+[node name="Resources" type="VBoxContainer" parent="HUD/TopLeftColumn/MarginContainer2"]
 layout_mode = 2
 script = ExtResource("16_vjwpn")
 
-[node name="ResourcesBar" parent="HUD/MarginContainer2/Resources" instance=ExtResource("12_r13sk")]
+[node name="ResourcesBar" parent="HUD/TopLeftColumn/MarginContainer2/Resources" instance=ExtResource("12_r13sk")]
 layout_mode = 2
 
-[node name="ResourcesBar2" parent="HUD/MarginContainer2/Resources" instance=ExtResource("12_r13sk")]
+[node name="ResourcesBar2" parent="HUD/TopLeftColumn/MarginContainer2/Resources" instance=ExtResource("12_r13sk")]
 layout_mode = 2
 
-[node name="ResourcesBar3" parent="HUD/MarginContainer2/Resources" instance=ExtResource("12_r13sk")]
+[node name="ResourcesBar3" parent="HUD/TopLeftColumn/MarginContainer2/Resources" instance=ExtResource("12_r13sk")]
 layout_mode = 2
 
-[node name="ResourcesBar4" parent="HUD/MarginContainer2/Resources" instance=ExtResource("12_r13sk")]
+[node name="ResourcesBar4" parent="HUD/TopLeftColumn/MarginContainer2/Resources" instance=ExtResource("12_r13sk")]
 layout_mode = 2
 
-[node name="ResourcesBar5" parent="HUD/MarginContainer2/Resources" instance=ExtResource("12_r13sk")]
+[node name="ResourcesBar5" parent="HUD/TopLeftColumn/MarginContainer2/Resources" instance=ExtResource("12_r13sk")]
 layout_mode = 2
 
-[node name="ResourcesBar6" parent="HUD/MarginContainer2/Resources" instance=ExtResource("12_r13sk")]
+[node name="ResourcesBar6" parent="HUD/TopLeftColumn/MarginContainer2/Resources" instance=ExtResource("12_r13sk")]
 layout_mode = 2
 
-[node name="ResourcesBar7" parent="HUD/MarginContainer2/Resources" instance=ExtResource("12_r13sk")]
+[node name="ResourcesBar7" parent="HUD/TopLeftColumn/MarginContainer2/Resources" instance=ExtResource("12_r13sk")]
 layout_mode = 2
 
-[node name="ResourcesBar8" parent="HUD/MarginContainer2/Resources" instance=ExtResource("12_r13sk")]
+[node name="ResourcesBar8" parent="HUD/TopLeftColumn/MarginContainer2/Resources" instance=ExtResource("12_r13sk")]
 layout_mode = 2
 
 [node name="MarginContainer3" type="MarginContainer" parent="HUD"]
@@ -444,11 +451,13 @@ offset_left = -40.0
 offset_top = -40.0
 grow_horizontal = 0
 grow_vertical = 0
+mouse_filter = 2
 theme_override_constants/margin_right = 5
 theme_override_constants/margin_bottom = 5
 
 [node name="VBoxContainer" type="VBoxContainer" parent="HUD/MarginContainer3"]
 layout_mode = 2
+mouse_filter = 2
 theme_override_constants/separation = 5
 
 [node name="ProductionQueue" parent="HUD/MarginContainer3/VBoxContainer" instance=ExtResource("13_qv3xn")]

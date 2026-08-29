@@ -23,7 +23,8 @@
 对局中鼠标贴边镜头移动；设置可关；WASD 仍可用。
 
 ## Progress Tracking
-✓ 打开边缘滚屏默认（待验收）
+✓ 打开边缘滚屏默认  
+✓ 鼠标在 HUD/建造栏上时不贴边移镜头（待验收）
 
 ## Related Files
 - `source/FeatureFlags.gd`

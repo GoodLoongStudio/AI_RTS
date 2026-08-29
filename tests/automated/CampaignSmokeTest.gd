@@ -65,7 +65,7 @@ func _run_test():
 	var group_2 = get_tree().get_nodes_in_group("legacy_ai_squad_2")
 	var group_3 = get_tree().get_nodes_in_group("legacy_ai_squad_3")
 	var ai_hud = a_match.get_node_or_null("HUD/AICommandHUD")
-	var ai_hud_toggle = a_match.get_node_or_null("HUD/AICommandHUDToggle")
+	var ai_hud_toggle = a_match.find_child("AICommandHUDToggle", true, false)
 	var camera = a_match.get_node_or_null("IsometricCamera3D")
 	var pause_menu = a_match.get_node_or_null("Menu")
 
