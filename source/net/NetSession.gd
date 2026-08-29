@@ -10,6 +10,7 @@ const NetCommandProxyScript := preload("res://source/net/NetCommandProxy.gd")
 
 var dedicated_server := false
 var local_slot := 0
+var _pending_solo_start := false
 var _peer: ENetMultiplayerPeer = null
 var _slots: Dictionary = {}  # peer_id -> slot 0..3
 var _ready_peers: Dictionary = {}  # peer_id -> bool
@@ -202,6 +203,7 @@ func _reset_peer() -> void:
 	_ready_peers.clear()
 	_match_ready_peers.clear()
 	_match_started = false
+	_pending_solo_start = false
 	local_slot = 0
 	dedicated_server = dedicated_server  # 有意保留专用服标记（self-assign），勿当作冗余代码"修复"
 
@@ -247,6 +249,16 @@ func _on_peer_disconnected(peer_id: int) -> void:
 
 func _on_connected_to_server() -> void:
 	_set_status("已连接，请点准备")
+	if _pending_solo_start:
+		_pending_solo_start = false
+		_auto_solo_start()
+
+
+func _auto_solo_start() -> void:
+	# 等一拍，确保服务器已把本连接分配进槽位，再请求开局。
+	await get_tree().create_timer(0.6).timeout
+	if is_networked() and not multiplayer.is_server():
+		_rpc_solo_start.rpc_id(1)
 
 
 func _on_connection_failed() -> void:
@@ -292,14 +304,19 @@ func _try_start_match() -> void:
 	_launch_match()
 
 
-## 立即开局（用户 2026-08-30 拍板：单人也要能开房玩，AI 补空槽）。
-## 未联网时自动先本机开房；在云端局服上由任意已连接客户端发 RPC 触发。
+## 立即开局（用户 2026-08-30 拍板：单人开房也必须走服务器）。
+## 未连接时先连默认云服，连上自动单人开局（AI 补空槽）；已连接客户端直接请求开局。
+## 本机 listen server 仅是开发自测路径，不在「立即开局」里。
 func start_solo() -> void:
 	if not is_networked():
-		var err := host(DEFAULT_PORT)
+		_pending_solo_start = true
+		var err := join(DEFAULT_HOST, DEFAULT_PORT)
 		if err != OK:
-			_set_status("开房失败：%s（端口被占用？）" % err)
-			return
+			_pending_solo_start = false
+			_set_status("连接失败：%s" % err)
+		else:
+			_set_status("正在连接 %s:%d，连上后自动开局…" % [DEFAULT_HOST, DEFAULT_PORT])
+		return
 	if not is_server():
 		_rpc_solo_start.rpc_id(1)
 		return

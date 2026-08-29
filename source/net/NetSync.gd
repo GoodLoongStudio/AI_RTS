@@ -71,7 +71,8 @@ func _hud_tick(delta: float) -> void:
 			ping_text = "本机房 %d 人" % NetSession.connected_human_count()
 		else:
 			var ping := NetSession.get_ping_ms()
-			ping_text = ("%d ms" % ping) if ping >= 0 else "连接中"
+			# 0 = ENet RTT 样本未积累（刚连上），显示 -- 避免误读成"0 延迟"。
+			ping_text = ("%d ms" % ping) if ping > 0 else "-- ms"
 	_hud_label.text = "%s · %d FPS" % [ping_text, Engine.get_frames_per_second()]
 
 

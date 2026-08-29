@@ -53,7 +53,7 @@ horizontal_alignment = 1
 [node name="Hint" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 autowrap_mode = 3
-text = "2–4 人打 Plain & Simple。默认连腾讯云局服。人到齐全员准备自动开局，也可点「立即开局」1 人带 AI 先打。战役仍走单机。"
+text = "对局一律走腾讯云权威服：2–4 人全员准备自动开局；「立即开局」未连接时会先连云服，1 人带 AI 也能打。本机开房仅供开发自测。"
 horizontal_alignment = 1
 
 [node name="HostRow" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
@@ -88,7 +88,7 @@ text = "准备"
 [node name="SoloButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
-text = "立即开局（1 人也行，AI 补位）"
+text = "立即开局（连云服，AI 补位）"
 
 [node name="StatusLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
