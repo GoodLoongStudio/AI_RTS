@@ -271,19 +271,50 @@ func _broadcast_lobby() -> void:
 func _try_start_match() -> void:
 	if not is_server() or _match_started:
 		return
-	var humans := connected_human_count()
-	if humans < 2:
+	if connected_human_count() < 2:
 		return
 	for peer_id in _ready_peers.keys():
 		if not _ready_peers[peer_id]:
 			return
+	_launch_match()
+
+
+## 立即开局（用户 2026-08-30 拍板：单人也要能开房玩，AI 补空槽）。
+## 未联网时自动先本机开房；在云端局服上由任意已连接客户端发 RPC 触发。
+func start_solo() -> void:
+	if not is_networked():
+		var err := host(DEFAULT_PORT)
+		if err != OK:
+			_set_status("开房失败：%s（端口被占用？）" % err)
+			return
+	if not is_server():
+		_rpc_solo_start.rpc_id(1)
+		return
+	_launch_match()
+
+
+func _launch_match() -> void:
+	if not is_server() or _match_started:
+		return
+	if connected_human_count() < 1:
+		return
 	_match_started = true
+	var humans := connected_human_count()
 	var peer_ids := PackedInt32Array()
 	var slot_ids := PackedInt32Array()
 	for peer_id in _slots.keys():
 		peer_ids.append(int(peer_id))
 		slot_ids.append(int(_slots[peer_id]))
 	_rpc_start_match.rpc(humans, peer_ids, slot_ids)
+
+
+@rpc("any_peer", "reliable")
+func _rpc_solo_start() -> void:
+	if not is_server() or _match_started:
+		return
+	if slot_of(multiplayer.get_remote_sender_id()) < 0:
+		return
+	_launch_match()
 
 
 func _set_status(text: String) -> void:

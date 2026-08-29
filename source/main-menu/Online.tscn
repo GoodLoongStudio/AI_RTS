@@ -53,7 +53,7 @@ horizontal_alignment = 1
 [node name="Hint" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 autowrap_mode = 3
-text = "2–4 人打 Plain & Simple。默认连腾讯云局服。人到齐并全部点准备后开局。战役仍走单机。"
+text = "2–4 人打 Plain & Simple。默认连腾讯云局服。人到齐全员准备自动开局，也可点「立即开局」1 人带 AI 先打。战役仍走单机。"
 horizontal_alignment = 1
 
 [node name="HostRow" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
@@ -85,6 +85,11 @@ custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
 text = "准备"
 
+[node name="SoloButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+text = "立即开局（1 人也行，AI 补位）"
+
 [node name="StatusLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 autowrap_mode = 3
@@ -98,4 +103,5 @@ text = "返回"
 [connection signal="pressed" from="PanelContainer/MarginContainer/VBoxContainer/JoinButton" to="." method="_on_join_button_pressed"]
 [connection signal="pressed" from="PanelContainer/MarginContainer/VBoxContainer/ListenButton" to="." method="_on_listen_button_pressed"]
 [connection signal="pressed" from="PanelContainer/MarginContainer/VBoxContainer/ReadyButton" to="." method="_on_ready_button_pressed"]
+[connection signal="pressed" from="PanelContainer/MarginContainer/VBoxContainer/SoloButton" to="." method="_on_solo_button_pressed"]
 [connection signal="pressed" from="PanelContainer/MarginContainer/VBoxContainer/BackButton" to="." method="_on_back_button_pressed"]

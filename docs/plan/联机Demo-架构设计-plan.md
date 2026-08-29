@@ -98,7 +98,7 @@
 
 1. 专用服启动即 `create_server`。最大客户端数 = 4（专用服自己不是玩家）。
 2. 客户端连上后由服务器分配槽位 0..3，RPC 告知 `local_slot`。
-3. 每人点准备；`connected_human_count ∈ [2, 4]` 且槽内全员准备 → 开局。
+3. 每人点准备；`connected_human_count ∈ [2, 4]` 且槽内全员准备 → 开局。**「立即开局」按钮（2026-08-30 用户拍板）**：≥1 人即可跳过等待强制开局，空槽由 AI 补位；未联网时点击会自动先本机开房——单人也要能开房玩。
 4. 开局后不接受新玩家（不重连、不中途加入）。注意代码现状与本条原表述有出入：`_on_peer_connected` 在 `_match_started` 后是**静默忽略**而非显式拒绝（复核 P1-3）；掉线也只是弹文案、对局事实继续（复核 Q9）。
 5. 所有端用同一份 `MatchSettings`：前 N 个槽 Human，其余 SimpleClairvoyantAI；地图固定 `res://source/match/maps/PlainAndSimple.tscn`。
 6. 各端 **各自** 走现有 `Loading.tscn` 实例化 Match（导航要烘焙）。用 Autoload `NetSession` 上的 `notify_match_ready` 握手；**全部 Human 端 Match 就绪后** 服务器才开始快照/出生死亡 RPC。  
@@ -239,7 +239,7 @@ Steam、房间列表、断线重连、中途加入、多房间、HTML5、战役�
 ### P0（公网第一局前必须落地，缺一会挂或挂了没法查）
 
 1. **握手加「初始实体清单 + 版本串」校验**（对应 Q1）。NodePath 方案的失败模式是**静默**：`NetSync.gd:109` 对未知路径 `continue`，表现为"部分单位永远不动/隐形"。修法：客户端 ready 时上报初始单位相对路径清单哈希 + git commit；服务器比对不一致拒绝开局并打差异。约 20 行，把静默分叉变成启动期明示错误。（✅ 已实施并上云 2026-08-29：各端 match_started 时上报排序路径清单，服务器比对，不一致 `_rpc_abort` + 拒绝 go-live）
-2. **安全组放行 UDP 24567**（已在清单，纯人工）。（⏳ 待人工在腾讯云控制台操作）
+2. **安全组放行 UDP 24567**（已在清单，纯人工）。（⏳ 待人工操作；注意：这台是**轻量应用服务器（Lighthouse）**，控制台没有「安全组」，对应功能是实例详情页的**「防火墙」**标签 → 添加规则：UDP:24567，允许，来源 0.0.0.0/0）
 3. **global.json 改 pin 并推送**。rollForward 只向上不向下，服务器 8.0.130 永远满足不了 8.0.423（本地未提交的 `latestFeature` 改动救不了）；且 Godot 编 C# 走 dotnet CLI，绕不开。推荐 pin 降到 `"8.0.100"` + `latestFeature`（两端都过），改完 commit+push，服务器上 `dotnet --list-sdks` + 试跑一次 `dotnet build` 确认。（✅ 已实施并上云：pin 8.0.100+latestFeature，服务器 `dotnet --version` 解析 8.0.130 通过）
 
 ### 逐条回答

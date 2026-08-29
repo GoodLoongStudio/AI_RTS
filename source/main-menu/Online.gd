@@ -43,6 +43,10 @@ func _on_ready_button_pressed() -> void:
 	_ready_button.text = "已准备"
 
 
+func _on_solo_button_pressed() -> void:
+	NetSession.start_solo()
+
+
 func _on_back_button_pressed() -> void:
 	if NetSession.is_networked() and not NetSession.is_dedicated_server():
 		NetSession.disconnect_session()
