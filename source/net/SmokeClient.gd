@@ -91,6 +91,7 @@ func _run() -> void:
 		var units := tree.get_nodes_in_group("units").size()
 		if targets.size() > 0:
 			_log("SMOKE_OK units=%d interp_targets=%d" % [units, targets.size()])
+			await _command_round_trip(sync)
 			tree.quit(0)
 			return
 		if waited % 10 == 0:
@@ -98,3 +99,45 @@ func _run() -> void:
 				waited, units, str(sync.get("_live"))])
 	_log("SMOKE_FAIL timeout")
 	tree.quit(1)
+
+
+## 人类命令回路实测：选己方单位 → 经命令代理下发真实移动 → 看它是否真的动了。
+## 与玩家右键完全同一条代码路径（NetCommandProxy.forward_command → 服务器 _rpc_command）。
+func _command_round_trip(sync: Node) -> void:
+	var tree := get_tree()
+	var match_node := tree.current_scene
+	if match_node == null or not match_node.has_method("get_local_player"):
+		_log("SMOKE_CMD_FAIL no match scene")
+		return
+	var player = match_node.get_local_player()
+	if player == null:
+		_log("SMOKE_CMD_FAIL no local player")
+		return
+	var my_units := tree.get_nodes_in_group("units").filter(
+		func(unit): return unit.get_parent() == player
+	)
+	if my_units.is_empty():
+		_log("SMOKE_CMD_FAIL no own units (total=%d)" % tree.get_nodes_in_group("units").size())
+		return
+	var unit = my_units[0]
+	var before: Vector3 = unit.global_position
+	var gateway = NetSession.command_gateway_for(player)
+	if gateway == null:
+		_log("SMOKE_CMD_FAIL no gateway (puppet without NetSync?)")
+		return
+	var destination := before + Vector3(25.0, 0.0, 0.0)
+	var result: Dictionary = gateway.MoveUnits([unit], destination, player)
+	_log("SMOKE_CMD: MoveUnits submitted -> %s" % str(result.get("status", result)))
+	for i in range(16):
+		await tree.create_timer(0.5).timeout
+		if not is_instance_valid(unit):
+			_log("SMOKE_CMD_FAIL unit freed")
+			return
+		var drift: float = unit.global_position.distance_to(before)
+		if drift > 5.0:
+			_log("SMOKE_CMD_MOVED drift=%.1fm after %ds" % [drift, (i + 1)])
+			return
+		if i % 4 == 3:
+			_log("SMOKE_CMD: waiting %ds, drift=%.2fm" % [(i + 1) * 5, drift])
+	_log("SMOKE_CMD_FAIL unit never moved (8s, drift<5m)")
+
