@@ -73,6 +73,10 @@ func _attack_unit(unit):
 func _on_timer_timeout():
 	if _sub_action != null:
 		return
+	if _command_runtime == null:
+		# 单位创建早于 Match 就绪时 @onready 解析为 Nil（基线既有问题），
+		# 每个计时周期静默跳过，避免对 Nil 调 C# 方法刷屏。
+		return
 	if _try_returning_to_guard_anchor():
 		return
 	var units_to_attack = _get_units_to_attack()
