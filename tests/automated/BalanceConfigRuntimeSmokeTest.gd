@@ -35,7 +35,7 @@ func _ready():
 	)
 	var tank_display = runtime.GetUnitDisplaySnapshot(TankScene)
 	_check(
-		tank_display["hp_max"] == 10.0 and tank_display["attack_range"] == 5.0,
+		tank_display["hp_max"] == 10.0 and tank_display["attack_range"] == 8.0,
 		"HUD 显示快照应读取 Tank Catalog 数值"
 	)
 	var tank_cost = runtime.GetProductionCost(TankScene)
@@ -65,8 +65,8 @@ func _verify_unit_configuration(runtime):
 	_check(tank.sight_range == 8.0, "Tank 视野应来自 Catalog")
 	_check(tank.find_child("Movement").speed == 2.75, "Tank 速度应来自 Catalog")
 	_check(tank.can_reverse and tank.can_fire_while_moving, "Tank 移动能力应来自 Catalog")
-	_check(tank.attack_damage == 2.0 and tank.attack_interval == 0.75, "Tank 主武器应来自 Catalog")
-	_check(tank.attack_range == 5.0 and tank.attack_domains == [1], "Tank 射程和目标域应来自 Catalog")
+	_check(tank.attack_damage == 3.0 and tank.attack_interval == 0.75, "Tank 主武器应来自 Catalog")
+	_check(tank.attack_range == 8.0 and tank.attack_domains == [1], "Tank 射程和目标域应来自 Catalog")
 
 	var worker = WorkerScene.instantiate()
 	runtime.ConfigureUnit(worker)
@@ -75,7 +75,7 @@ func _verify_unit_configuration(runtime):
 
 	var turret = AntiGroundTurretScene.instantiate()
 	runtime.ConfigureUnit(turret)
-	_check(turret.attack_range == 8.0 and turret.attack_damage == 2.0, "炮塔主武器应来自 Catalog")
+	_check(turret.attack_range == 10.0 and turret.attack_damage == 3.0, "炮塔主武器应来自 Catalog")
 
 	tank.free()
 	worker.free()

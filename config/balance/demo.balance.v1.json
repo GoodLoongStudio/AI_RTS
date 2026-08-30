@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "contentVersion": "demo-baseline-2026-08-12",
+  "contentVersion": "demo-combat-feel-2026-08-30",
   "resources": [
     {
       "kind": "A",
@@ -23,36 +23,36 @@
     {
       "id": "helicopter_rocket",
       "deliveryKind": "projectile",
-      "baseDamage": 1.0,
+      "baseDamage": 2.0,
       "cooldownMilliseconds": 1000,
-      "rangeMeters": 5.0,
+      "rangeMeters": 8.0,
       "targetDomains": ["terrain", "air"],
       "warheadId": "direct_full_damage"
     },
     {
       "id": "tank_cannon",
       "deliveryKind": "projectile",
-      "baseDamage": 2.0,
+      "baseDamage": 3.0,
       "cooldownMilliseconds": 750,
-      "rangeMeters": 5.0,
+      "rangeMeters": 8.0,
       "targetDomains": ["terrain"],
       "warheadId": "direct_full_damage"
     },
     {
       "id": "anti_ground_turret_cannon",
       "deliveryKind": "projectile",
-      "baseDamage": 2.0,
+      "baseDamage": 3.0,
       "cooldownMilliseconds": 1000,
-      "rangeMeters": 8.0,
+      "rangeMeters": 10.0,
       "targetDomains": ["terrain"],
       "warheadId": "direct_full_damage"
     },
     {
       "id": "anti_air_turret_rocket",
       "deliveryKind": "projectile",
-      "baseDamage": 2.0,
+      "baseDamage": 3.0,
       "cooldownMilliseconds": 750,
-      "rangeMeters": 8.0,
+      "rangeMeters": 10.0,
       "targetDomains": ["air"],
       "warheadId": "direct_full_damage"
     }
@@ -157,14 +157,14 @@
     {
       "id": "anti_ground_turret",
       "maxHp": 8.0,
-      "sightRangeMeters": 8.0,
+      "sightRangeMeters": 10.0,
       "weaponIds": ["anti_ground_turret_cannon"],
       "canForceFireGround": false
     },
     {
       "id": "anti_air_turret",
       "maxHp": 8.0,
-      "sightRangeMeters": 8.0,
+      "sightRangeMeters": 10.0,
       "weaponIds": ["anti_air_turret_rocket"],
       "canForceFireGround": false
     }
@@ -281,11 +281,11 @@
       "target": "unit",
       "equippedUnitTypeIds": ["tank"],
       "relation": "enemy",
-      "rangeMeters": 5.0,
+      "rangeMeters": 8.0,
       "requireAlive": true,
       "allowSelf": false,
       "effects": [
-        { "kind": "dealDamage", "amount": 2.0 }
+        { "kind": "dealDamage", "amount": 3.0 }
       ],
       "cost": [
         { "kind": "A", "amount": 1 }

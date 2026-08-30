@@ -57,7 +57,7 @@ internal sealed class BalanceConfigLoaderTests
         Check(result.Catalog is not null, "成功结果必须包含 Catalog");
         var catalog = result.Catalog!;
         Check(catalog.Version.SchemaVersion == 1, "基线 schemaVersion 应为 1");
-        Check(catalog.Version.ContentVersion == "demo-baseline-2026-08-12",
+        Check(catalog.Version.ContentVersion == "demo-combat-feel-2026-08-30",
             "基线 contentVersion 应保持快照日期");
         Check(catalog.Version.ContentHash.Length == 64, "SHA-256 内容摘要应为 64 位十六进制");
 
@@ -73,8 +73,8 @@ internal sealed class BalanceConfigLoaderTests
         Check(tank?.CanForceFireGround == true, "Tank 应保留对地强制攻击能力");
 
         var cannon = catalog.FindWeapon(new WeaponDefinitionId("tank_cannon"));
-        Check(cannon?.BaseDamage == 2.0f && cannon.CooldownMilliseconds == 750 &&
-            cannon.RangeMeters == 5.0f,
+        Check(cannon?.BaseDamage == 3.0f && cannon.CooldownMilliseconds == 750 &&
+            cannon.RangeMeters == 8.0f,
             "Tank 主武器应使用整数毫秒并匹配攻击基线");
         Check(cannon?.TargetDomains.SetEquals([CombatDomain.Terrain]) == true,
             "Tank 主武器只应攻击 Terrain");
@@ -312,7 +312,7 @@ internal sealed class BalanceConfigLoaderTests
             "延迟演示技能第二段应在 2000 毫秒后触发");
         var unitPulse = result.Catalog.FindSkill(new SkillDefinitionId("demo_unit_pulse"));
         Check(unitPulse?.Relation == SkillTargetRelation.Enemy &&
-            unitPulse.RangeMeters == 5.0f &&
+            unitPulse.RangeMeters == 8.0f &&
             unitPulse.RequireAlive &&
             !unitPulse.AllowSelf,
             "单位演示技能应带敌方、距离和存活约束");

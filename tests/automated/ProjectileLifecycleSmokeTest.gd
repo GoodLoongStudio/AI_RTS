@@ -38,7 +38,7 @@ func _ready():
 	_check(projectiles.get_child_count() > 0, "发射者阵亡后 CannonShell 视觉应继续存在")
 	await _wait_for_hp_below(cannon_target, cannon_hp_before, 3.0)
 	_check(
-		cannon_target.hp == cannon_hp_before - 2,
+		cannon_target.hp == cannon_hp_before - 3,
 		"发射者阵亡后 CannonShell 应使用发射快照完成一次伤害；实际 HP=%s" % cannon_target.hp
 	)
 
@@ -59,7 +59,7 @@ func _ready():
 	_check(projectiles.get_child_count() > 0, "发射者阵亡后 Rocket 视觉应继续存在")
 	await _wait_for_hp_below(rocket_target, rocket_hp_before, 2.0)
 	_check(
-		rocket_target.hp == rocket_hp_before - 1,
+		rocket_target.hp == rocket_hp_before - 2,
 		"发射者阵亡后 Rocket 应使用发射快照完成一次伤害"
 	)
 

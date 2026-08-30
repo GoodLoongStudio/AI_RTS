@@ -23,6 +23,10 @@ func _ready():
 	_setup_path()
 	await get_tree().physics_frame
 	await get_tree().physics_frame
+	var aim_point: Vector3 = projectile_runtime.GetAimPoint(attack_id)
+	var distance := launch_transform.origin.distance_to(aim_point) if aim_point.is_finite() else 6.0
+	var flight_seconds := clampf(distance / 10.0, 0.22, 1.1)
+	_animation_player.speed_scale = 0.75 / flight_seconds
 	_animation_player.play("animate")
 
 

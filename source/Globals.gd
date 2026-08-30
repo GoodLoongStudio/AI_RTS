@@ -6,7 +6,7 @@ const CAMERA_CONFIG_PATH := "user://camera.cfg"
 const CAMERA_CONFIG_SECTION := "camera"
 const CAMERA_DEFAULTS := {
 	"edge_scroll_enabled": true,
-	"movement_speed": 1.1,
+	"movement_speed": 1.35,
 	"edge_margin": 48.0,
 	"bottom_edge_margin": 72.0,
 	"smoothing": 10.0,
@@ -59,7 +59,7 @@ func _load_camera_options() -> Dictionary:
 func _sanitize_camera_options(values: Dictionary) -> Dictionary:
 	return {
 		"edge_scroll_enabled": bool(values.get("edge_scroll_enabled", true)),
-		"movement_speed": clamp(float(values.get("movement_speed", 1.1)), 0.4, 3.0),
+		"movement_speed": clamp(float(values.get("movement_speed", 1.35)), 0.4, 3.0),
 		"edge_margin": clamp(float(values.get("edge_margin", 48.0)), 16.0, 96.0),
 		"bottom_edge_margin": clamp(float(values.get("bottom_edge_margin", 72.0)), 24.0, 128.0),
 		"smoothing": clamp(float(values.get("smoothing", 10.0)), 3.0, 24.0),
