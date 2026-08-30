@@ -304,8 +304,13 @@ func _on_connection_failed() -> void:
 
 
 func _on_server_disconnected() -> void:
-	_set_status("服务器断开")
+	# 对局中服务器断开：不再黑屏僵死，优雅回主菜单（复核 2026-08-31）。
+	var in_match := _match_started
+	_match_started = false
 	_reset_peer()
+	_set_status("服务器断开" + ("，对局已结束，返回主菜单" if in_match else ""))
+	if in_match:
+		get_tree().change_scene_to_file.call_deferred("res://source/main-menu/Main.tscn")
 
 
 func _allocate_slot() -> int:
@@ -556,6 +561,14 @@ func _start_loading(kinds: PackedInt32Array) -> void:
 	loading.match_settings = match_settings
 	loading.map_path = MAP_PATH
 	var tree := get_tree()
+	# 复核 2026-08-31：重开局时旧 Match 尚未释放完，新 Match 会被改名 @Match@2，
+	# 与服务器约定的 /root/Match/NetSync RPC 路径永久错开——表现为「单位点不动」。
+	# 先给旧 Match/Loading 改名让路（queue_free 延迟销毁，不炸正在派发的 RPC）。
+	for stale_name in ["Match", "Loading"]:
+		var stale := tree.root.get_node_or_null(NodePath(stale_name))
+		if stale != null:
+			stale.name = "%s_old_%d" % [stale_name, Time.get_ticks_msec()]
+			stale.queue_free()
 	var current := tree.current_scene
 	current.get_parent().add_child(loading)
 	tree.current_scene = loading
