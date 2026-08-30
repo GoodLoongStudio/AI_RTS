@@ -11,6 +11,8 @@
 
 ## Current State Analysis
 
+> **术语澄清（2026-08-30）**：本文的「Agent / AI 副官」指 LLM 驱动的 RemoteLLMPolicy 网关，与权威 Match 内的「规则 AI」（`SimpleClairvoyantAI`，纯规则决策、只在服务器进程思考）是**两套系统**。规则 AI 的行为升级已独立立项：`docs/plan/规则AI智能化改造-plan.md`（2026-08-30 过一轮外部评审）——该计划不改变本文的 LLM 网关设计，两者共用 `UnitCommandService` 权威命令入口的结论不变。
+
 ### 策划已冻结的约束（必须遵守）
 
 来源：`策划文档_AI副官系统.md`、`AI副官_下一阶段开发训练与评测规格.md`、`AI副官_权限与情报规则_P0.md`、`程序重构_AI操作点与受限观察方案.md`。
@@ -114,10 +116,10 @@
 
 - ✅ SSH 可达（Ubuntu 22.04.5，4 核 / 7.6G / 178G 盘）
 - ✅ 轻量 Hermes Agent v0.20.6 已装（中国镜像 `res1.hermesagent.org.cn`，无浏览器/无捆绑 skills）；路径 `/home/ubuntu/.local/bin/hermes`
-- ⏳ 远端 `yyp_test` + 服务器只读签出
+- 🔶 远端 `yyp_test` + 服务器只读签出 → 实际以「本地 git bundle 增量 + SFTP 上传 + 服务器 pull」部署（2026-08-30 起运转，脚本在 `临时文件夹/`）；origin 直推 `yyp_test` 仍待凭据打通
 - ⏳ Mock 工具合同 + headless Trace
 - ⏳ RemoteLLMPolicy 单 Provider
-- ⏳ 局服 dedicated + 本机 DTO
+- 🔶 局服 dedicated + 本机 DTO → 局服进程已上云运行（联机 Demo 权威服，UDP 24567，systemd 托管），但 Agent DTO 链路未接，网关未部署
 - ⏳ 2–4 人与每玩家 Agent 会话
 - ❌ 公网 MCP / 本地大模型
 

@@ -53,8 +53,8 @@
 ## Progress Tracking
 
 - ⏳ 安全基线
-- ⏳ Windows 包 + nginx
-- ⏳ Linux dedicated + systemd（代码已写，待导出/安全组 UDP 24567）
+- ⏳ Windows 包 + nginx（nginx 80 反代已在服务器运行，当前托管本机 Web 服务；游戏测试包分发未做）
+- ✅ Linux dedicated + systemd（2026-08-30 已上云运行：无头 Godot 监听 UDP 24567，systemd 托管，专用服不占 Human 槽。部署方式：本地打 git bundle 增量 → paramiko SFTP 上传 → 服务器 `git pull` → `systemctl` 重启，脚本在 `临时文件夹/`。⏳ 剩防火墙放行 UDP 24567，控制台入口在轻量应用服务器实例页「防火墙」标签）
 
 ## Related Files
 
