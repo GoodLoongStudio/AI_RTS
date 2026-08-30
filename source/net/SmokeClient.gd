@@ -119,7 +119,18 @@ func _command_round_trip(sync: Node) -> void:
 	if my_units.is_empty():
 		_log("SMOKE_CMD_FAIL no own units (total=%d)" % tree.get_nodes_in_group("units").size())
 		return
-	var unit = my_units[0]
+	# 与 HUD 同口径：优先 controlled_units 里的可移动单位（基地等建筑不在其中）。
+	var movable := tree.get_nodes_in_group("controlled_units").filter(
+		func(unit): return unit.get_parent() == player
+	)
+	if movable.is_empty():
+		_log("SMOKE_CMD_FAIL no controlled_units (own=%d)" % my_units.size())
+		return
+	var unit = movable[0]
+	for candidate in movable:
+		if str(candidate.get("type_id", "")) == "tank":
+			unit = candidate
+			break
 	var before: Vector3 = unit.global_position
 	var gateway = NetSession.command_gateway_for(player)
 	if gateway == null:
