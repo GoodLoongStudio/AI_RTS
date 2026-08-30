@@ -12,25 +12,28 @@
 3. 信息对等原则：AI 只允许比玩家多知道「开局出生点位置」这类玩家本来就能看到的公共知识，不允许迷雾内实时信息。
 4. 全部行为参数上 `SimpleClairvoyantAI` 的 `@export`，为难度分级与自动化测试留口。
 
-**改动范围：** 主要是 6 个策略层 GDScript 文件 + `WorldQueryRuntime.cs` 一次只读扩展 + 新增 3 个自动化测试。模拟层零改动（唯一例外见 Phase 2 的备选方案 B，单独评审）。
+**改动范围：** 主要是 6 个策略层 GDScript 文件 + `WorldQueryRuntime.cs` 一次只读扩展 + 新增 3 个自动化测试。模拟层零改动（含 Phase 2 备选方案 B：审核核实 attack-move 指令在模拟层已存在，见 Phase 2）。
 
 ## Current State Analysis（读码结论，行号以当前 HEAD 为准）
 
 ### 架构现状
 
 ```
-SimpleClairvoyantAI (Player 子类, 156 行)
- ├─ EconomyController        (249 行)  0.5s 轮询
- ├─ OffenseController        (399 行)  0.5s 轮询
- │   └─ AutoAttackingBattlegroup × N (258 行/个)
- ├─ DefenseController        (143 行)  0.5s 轮询
- ├─ IntelligenceController   (136 行)  0.5s 轮询
- └─ ConstructionWorksController (63 行)
+SimpleClairvoyantAI (Player 子类, 157 行)
+ ├─ EconomyController        (250 行)  0.5s 轮询
+ ├─ OffenseController        (400 行)  0.5s 轮询
+ │   └─ AutoAttackingBattlegroup × N (259 行/个)
+ ├─ DefenseController        (144 行)  0.5s 轮询（代码写作 1/60*30）
+ ├─ IntelligenceController   (137 行)  0.5s 轮询
+ └─ ConstructionWorksController (64 行)  0.5s 轮询，给无人施工的蓝图派工人
 控制器 → resources_required 信号(优先级 HIGH/MEDIUM/LOW) → 主脑仲裁 → provision
 命令出口：每个控制器持 RuleAiCommandGateway（C#, Move/Halt/Attack/Construct/
-          PlaceStructure/EnqueueProduction/Gather —— 注意：没有 AttackMove）
+          PlaceStructure/EnqueueProduction/Gather —— 网关未暴露 AttackMove；
+          但 CommandRuntime 已有 GroundAttackMoveUnits/EntityAttackMoveUnits，
+          人类玩家 HUD「移动并攻击」在用，见 Phase 2 备选方案 B）
 信息入口：WorldQueryRuntime 标准会话（GetOwnForces / ScanCircle /
-          InspectOwnEntity / GetOwnEconomy / GetBattlefieldBounds）
+          GetOwnEconomy / GetBattlefieldBounds；InspectOwnEntity 在运行时存在，
+          但规则 AI 目前未使用，仅查询层自测在用）
 权威守卫：SimpleClairvoyantAI._ready(): is_client_puppet → set_process(false)
 ```
 
@@ -55,11 +58,12 @@ SimpleClairvoyantAI (Player 子类, 156 行)
   - 选址：用 `ScanCircle` 找「距现有 CC 最远且资源簇未饱和」的落点（resource 实体在查询中的 kind/字段名实现时核对 `WorldQueryRuntime.cs` 的 field 映射）。
 - 工人目标数改为按基地数缩放：`worker_target = CC 数 × workers_per_command_center`。
 - 新增 `@export`：`max_command_centers=3`、`workers_per_command_center=6`、`expansion_resource_threshold`（占位值，需实测 `BalanceConfigRuntime` 的产出曲线后定）。
+- **依赖说明**：扩张蓝图的施工由现有 `ConstructionWorksController` 自动派工人完成（本文件不改动）；注意它有「任工地已有建造者即整轮 return」的短路，一次只侍候一个工地，多工地并行时第二个要等前一个完工——扩张场景需验证这点不阻塞分矿建造。
 
 ### Phase 2 — 进攻主动性（AutoAttackingBattlegroup.gd，信息源涉及 1 次查询扩展）
 
 **信息源（评审点 A）：** 敌方出生点作为公共知识注入。两个候选方案：
-- 方案 A1（推荐）：`WorldQueryRuntime` 新增只读查询 `GetSpawnPoints(sessionId)`——出生点本来就是玩家开局可见的公共信息，对 AI 是同等信息，不算迷雾违规；改动小、语义干净。
+- 方案 A1（推荐）：`WorldQueryRuntime` 新增只读查询 `GetSpawnPoints(sessionId)`——出生点本来就是玩家开局可见的公共信息，对 AI 是同等信息，不算迷雾违规；改动小、语义干净。（审核注：当前并无任何向人类玩家展示敌方出生点的 UI，「玩家本来就能看到」是 RTS 惯例意义上的前提，评审时需把这个惯例说定，或顺手在小地图/开局镜头补展示。）
 - 方案 A2：Match 开局时由 IntelligenceController 把敌方出生点写入其内部记忆并当作 LastKnown 使用。零查询层改动，但把「公共知识」伪装成「侦察成果」，语义脏，且侦察被歼会丢失出生点信息（荒谬）。
 - **不采用**：解除迷雾约束让 AI 直接看实时敌军——违反硬约束 2/3。
 
@@ -67,9 +71,9 @@ SimpleClairvoyantAI (Player 子类, 156 行)
 1. 延续当前目标（现状保留）；
 2. `VisibleNow` 敌人按新价值序（Phase 4）选取；
 3. `LastKnown` 敌结构（现状保留）；
-4. **新增兜底：向敌方出生点 `Move`**——用现有 `Move` + 0.5s 刷新重评估模拟 attack-move（行进途中每轮刷新发现 `VisibleNow` 敌人立即转 `Attack`）。任何状态下编组都不允许静止待机。
+4. **新增兜底：向敌方出生点 `Move`**——用现有 `Move` + 0.5s 刷新重评估模拟 attack-move（行进途中每轮刷新发现 `VisibleNow` 敌人立即转 `Attack`）。任何状态下编组都不允许静止待机。（真正的 attack-move 模拟层已实现，见备选方案 B，此处是网关层缺口的权宜实现。）
 
-**备选方案 B（单独评审，本 plan 默认不做）：** 在 `CommandRuntime`/`UnitCommandService` 增加真正的 `AttackMove` 指令（模拟层改动）。收益：移速中遇敌自动交战、对人类玩家快捷键也有用；代价：动权威模拟层。若 Phase 2 上线后观察到「风筝拉扯导致编组来回摆动」，再升级。
+**备选方案 B（单独评审，本 plan 默认不做）：** 在 `RuleAiCommandGateway` 暴露 `AttackMove`。**审核核实：模拟层无需改动**——`UnitCommandService.GroundAttackMove/EntityAttackMove`、`CommandRuntime.GroundAttackMoveUnits/EntityAttackMoveUnits`、联机转发（`NetCommandProxy`/`NetSync`）均已实现并在生产，人类玩家 HUD 已在用「移动并攻击」。因此 B 的真实代价 = 网关加暴露方法 + AI 逻辑切换，不再「动权威模拟层」；收益：移速中遇敌自动交战、免掉 0.5s 重评估延迟。若 Phase 2 上线后观察到「风筝拉扯导致编组来回摆动」再升级；由于代价已降至网关层，评审也可考虑将 B 直接提为首选。
 
 ### Phase 3 — 兵力与波次（SimpleClairvoyantAI.gd + OffenseController.gd + AutoAttackingBattlegroup.gd）
 
@@ -94,7 +98,7 @@ SimpleClairvoyantAI (Player 子类, 156 行)
 
 ### Phase 7 — 难度分级（SimpleClairvoyantAI.gd）
 
-- `@export enum Difficulty {EASY, NORMAL, HARD}` → 参数表覆盖：`workers_per_command_center`、`expected_number_of_battlegroups/units_in_battlegroup`、`retreat_threshold`、开局第一波出击延迟（4/3/2 分钟）。
+- `@export enum Difficulty {EASY, NORMAL, HARD}` → 参数表覆盖：`workers_per_command_center`、`expected_number_of_battlegroups/units_in_battlegroup`、`retreat_threshold`、开局第一波出击延迟（4/3/2 分钟；注意：现有代码没有此参数，需在 Phase 2/3 先新增 `first_wave_delay`，Phase 7 只做按难度覆盖）。
 - **收入倍率（RA3 式资源作弊）明确列为非目标**：需动 `EconomyRuntime`/资源账户，跨入模拟层且不公平感强。若未来要做，单独开 plan 评审。
 
 ## 实现顺序与验证
@@ -103,7 +107,7 @@ SimpleClairvoyantAI (Player 子类, 156 行)
 
 自动化（沿用 `tests/automated/RuleAi*SmokeTest.gd` 既有模式，headless + 世界查询断言）：
 - 新增 `RuleAiExpansionSmokeTest.gd`：模拟 5 分钟后 AI `CC ≥ 2`、`worker ≥ 10`（P1）。
-- 新增 `RuleAiAggressionSmokeTest.gd`：编组满编且无可见敌人时，编组中心到敌方出生点的距离随时间单调递减；任意时刻编组中心速度不得长期为 0（P2/不站桩）。
+- 新增 `RuleAiAggressionSmokeTest.gd`：编组满编且无可见敌人时，编组中心到敌方出生点的距离应满足「终点显著小于起点」（不建议断言逐 tick 单调递减——寻路绕行会引入抖动，易误报）；任意时刻编组中心速度不得长期为 0（P2/不站桩）。
 - 新增 `RuleAiDefenseSmokeTest.gd`：AI 建筑受击后 T+3s 内有编组成员进入威胁半径（P5）。
 - 回归：现有 `RuleAi*SmokeTest` 全绿；联机 Demo 本机双进程验收不回归（AI 命令仍全走网关，对账应无 diff）。
 
@@ -111,10 +115,10 @@ SimpleClairvoyantAI (Player 子类, 156 行)
 
 ## Risks
 
-1. **快照带宽（最大风险）**：AI 作战单位 8 → 18+，10Hz 全量快照体积上升。上线前用 `godot-rts-terrain/tools/bandwidth_budget.py` 复算带宽预算；必要时再评估 AI 单位聚合/降频（不在本 plan 内）。
-2. **服务器 CPU**：查询频率不变（0.5s）、实体数 ×2~3，预计仍在毫秒级以下；部署后观察 headless 帧耗时确认。
+1. **快照带宽（最大风险）**：AI 作战单位 8 → 18+，10Hz 全量快照（`NetSync` 每 6 帧广播）体积上升。注意：`godot-rts-terrain/tools/bandwidth_budget.py` **不在当前仓库**（上游仓路径，工作区内不存在），上线前需先把该工具迁过来或以其他方式复算带宽预算；必要时再评估 AI 单位聚合/降频（不在本 plan 内）。
+2. **服务器 CPU**：轮询频率不变（0.5s）、实体数 ×2~3；但 Phase 5 改为「每个己方建筑一次 `ScanCircle`」，查询次数随建筑数线性增长（每 tick 约 10+ 次），是「频率不变」没覆盖的新负载，部署后观察 headless 帧耗时确认；压力过大时可改为「以主基地为中心一次大半径扫描」。
 3. **会话边界纪律**：新增信息（出生点）必须走 `WorldQueryRuntime` 正规会话。这是评审重点——任何「为了方便直接 get_node 读敌军」的实现都应被拒。
-4. **无 AttackMove 的模拟局限**：Phase 2 的「移动+重评估」在敌人撤退拉扯时可能出现编组来回摆动；观察对局，必要时升级为备选方案 B。
+4. **「移动+重评估」模拟 attack-move 的代价**：Phase 2 的兜底在敌人撤退拉扯时可能出现编组来回摆动；观察对局，必要时升级为备选方案 B（代价已降至网关层暴露，见 Phase 2）。
 5. **数值依赖**：`expansion_resource_threshold`、`defense_radius` 等阈值依赖 `BalanceConfigRuntime` 实测产出/射程曲线，本文占位值均需标定后回填。
 
 ## Non-goals
@@ -127,11 +131,12 @@ SimpleClairvoyantAI (Player 子类, 156 行)
 
 | 文件 | 行数 | 改动类型 |
 |------|------|----------|
-| `source/match/players/simple-clairvoyant-ai/SimpleClairvoyantAI.gd` | 156 | 参数、难度、控制器间消息仲裁 |
-| `source/match/players/simple-clairvoyant-ai/EconomyController.gd` | 249 | P1 扩张与工人缩放 |
-| `source/match/players/simple-clairvoyant-ai/AutoAttackingBattlegroup.gd` | 258 | P2 兜底推进、P3 撤退态、P4 目标价值 |
-| `source/match/players/simple-clairvoyant-ai/OffenseController.gd` | 399 | P3 波次、P5 协同、P6 配比 |
-| `source/match/players/simple-clairvoyant-ai/DefenseController.gd` | 143 | P5 威胁检测 |
-| `source/match/players/simple-clairvoyant-ai/IntelligenceController.gd` | 136 | P2 出生点消费、P6 情报输出（可选） |
+| `source/match/players/simple-clairvoyant-ai/SimpleClairvoyantAI.gd` | 157 | 参数、难度、控制器间消息仲裁 |
+| `source/match/players/simple-clairvoyant-ai/EconomyController.gd` | 250 | P1 扩张与工人缩放 |
+| `source/match/players/simple-clairvoyant-ai/AutoAttackingBattlegroup.gd` | 259 | P2 兜底推进、P3 撤退态、P4 目标价值 |
+| `source/match/players/simple-clairvoyant-ai/OffenseController.gd` | 400 | P3 波次、P5 协同、P6 配比 |
+| `source/match/players/simple-clairvoyant-ai/DefenseController.gd` | 144 | P5 威胁检测 |
+| `source/match/players/simple-clairvoyant-ai/IntelligenceController.gd` | 137 | P2 出生点消费、P6 情报输出（可选） |
+| `source/match/players/simple-clairvoyant-ai/ConstructionWorksController.gd` | 64 | 不改（P1 依赖：扩张蓝图的施工派工，需验证多工地短路逻辑） |
 | `source/csharp/GodotAdapter/Queries/WorldQueryRuntime.cs` | — | P2 只读扩展 `GetSpawnPoints`（方案 A1） |
 | `tests/automated/RuleAi{Expansion,Aggression,Defense}SmokeTest.gd` | 新增 | 阶段断言 |
