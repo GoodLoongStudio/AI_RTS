@@ -19,6 +19,7 @@ func _ready():
 	rule_ai.expected_number_of_aa_turrets = 0
 	rule_ai.expected_number_of_battlegroups = 1
 	rule_ai.expected_number_of_units_in_battlegroup = 1
+	rule_ai.defense_scan_radius = 0.1
 	add_child(match_instance)
 	await get_tree().process_frame
 	await get_tree().physics_frame

@@ -43,6 +43,9 @@ func _ready():
 	rule_ai.max_command_centers = 3
 
 	# 管线：视为资源已获准，provision 后应在限定时间内出现第二座 CC 蓝图。
+	# 走游戏自身资源通道注入（PlaceStructure 有权威余额校验，绕不过它）
+	var granted: bool = rule_ai.add_resources({"resource_a": 100.0, "resource_b": 100.0})
+	_check(granted, "Phase1: 资源通道应能向规则 AI 注入余额")
 	economy.set("_number_of_pending_cc_resource_requests", 1)
 	var balance = match_instance.get_node("BalanceConfigRuntime")
 	var cc_scene = load("res://source/match/units/CommandCenter.tscn")
