@@ -7,6 +7,7 @@ extends Node
 var _log_fa: FileAccess = null
 var _deadline := 0
 var _port := 24599
+var _host := "127.0.0.1"
 
 
 func _log(msg: String) -> void:
@@ -24,14 +25,19 @@ func _ready() -> void:
 	var pi := args.find("--smokeport")
 	if pi >= 0 and pi + 1 < args.size():
 		_port = int(args[pi + 1])
+	var host := "127.0.0.1"
+	pi = args.find("--smokehost")
+	if pi >= 0 and pi + 1 < args.size():
+		host = args[pi + 1]
+	_host = host
 	_deadline = Time.get_ticks_msec() + 420_000
 	_run()
 
 
 func _run() -> void:
 	var tree := get_tree()
-	_log("SMOKE: client start, target 127.0.0.1:%d" % _port)
-	var err := NetSession.join("127.0.0.1", _port)
+	_log("SMOKE: client start, target %s:%d" % [_host, _port])
+	var err := NetSession.join(_host, _port)
 	_log("SMOKE: join err=%d" % err)
 	if err != OK:
 		_log("SMOKE_FAIL join")
