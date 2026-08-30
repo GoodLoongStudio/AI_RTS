@@ -419,7 +419,20 @@ func start_solo() -> void:
 	if not is_server():
 		_rpc_solo_start.rpc_id(1)
 		return
+	_ensure_solo_opponent()
 	_launch_match()
+
+
+## 立即开局保底（2026-08-31 语义修正）：大厅里一个 AI 都没有时自动补 1 个对手（1v1），
+## 房主明确设置的 AI 照样尊重——不再把所有空槽都填成 AI（「设 1 个 AI 出 3 个 AI」的根源）。
+func _ensure_solo_opponent() -> void:
+	for i in range(MAX_PLAYERS):
+		if _slot_kinds[i] == SLOT_AI:
+			return
+	for i in range(MAX_PLAYERS):
+		if _slot_kinds[i] == SLOT_EMPTY:
+			_slot_kinds[i] = SLOT_AI
+			return
 
 
 func _launch_match() -> void:
@@ -447,6 +460,7 @@ func _rpc_solo_start() -> void:
 		return
 	if slot_of(multiplayer.get_remote_sender_id()) < 0:
 		return
+	_ensure_solo_opponent()
 	_launch_match()
 
 
@@ -532,8 +546,11 @@ func _start_loading(kinds: PackedInt32Array) -> void:
 		player_settings.color = Constants.Player.COLORS[i]
 		if i < kinds.size() and int(kinds[i]) == SLOT_HUMAN:
 			player_settings.controller = Constants.PlayerType.HUMAN
-		else:
+		elif i < kinds.size() and int(kinds[i]) == SLOT_AI:
 			player_settings.controller = Constants.PlayerType.SIMPLE_CLAIRVOYANT_AI
+		else:
+			# 大厅里被房主撤掉 AI 的空槽：占位玩家，不再无脑补 AI。
+			player_settings.controller = Constants.PlayerType.NONE
 		match_settings.players.append(player_settings)
 	var loading = LoadingScene.instantiate()
 	loading.match_settings = match_settings

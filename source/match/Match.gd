@@ -217,8 +217,15 @@ func _setup_players():
 func _create_players_from_settings():
 	var player_index := 0
 	for player_settings in settings.players:
-		var player_scene = Constants.Match.Player.CONTROLLER_SCENES[player_settings.controller]
-		var player = player_scene.instantiate()
+		var player
+		if player_settings.controller == Constants.PlayerType.NONE:
+			# 联机空槽：占位玩家，保留槽位索引但不生成任何单位
+			#（修复「大厅设 1 个 AI，开局却出现 3 个 AI」——空槽此前被无脑填成 AI）。
+			player = Player.new()
+			player.set_meta("slot_kind", Constants.PlayerType.NONE)
+		else:
+			var player_scene = Constants.Match.Player.CONTROLLER_SCENES[player_settings.controller]
+			player = player_scene.instantiate()
 		player.color = player_settings.color
 		if player_settings.spawn_index_offset > 0:
 			for _i in range(player_settings.spawn_index_offset):
@@ -233,6 +240,8 @@ func _create_players_from_settings():
 func _setup_player_units():
 	for player in _players.get_children():
 		if not player is Player:
+			continue
+		if player.get_meta("slot_kind", -1) == Constants.PlayerType.NONE:
 			continue
 		var player_index = player.get_index()
 		var predefined_units = player.get_children().filter(func(child): return child is Unit)
