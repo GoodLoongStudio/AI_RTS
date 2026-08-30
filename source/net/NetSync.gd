@@ -362,7 +362,8 @@ func _rpc_command(
 	print("[CMD][服务器] 应用 op=%s units=%d dest=%s" % [op, units.size(), destination])
 	match op:
 		"move":
-			gateway.MoveUnits(units, destination, issuer)
+			var move_result: Dictionary = gateway.MoveUnits(units, destination, issuer)
+			print("[CMD][服务器] MoveUnits 结果: ", move_result)
 		"force_move":
 			gateway.ForceMoveUnits(units, destination, issuer)
 		"halt":
