@@ -363,7 +363,17 @@ func _rpc_command(
 	match op:
 		"move":
 			var move_result: Dictionary = gateway.MoveUnits(units, destination, issuer)
-			print("[CMD][服务器] MoveUnits 结果: ", move_result)
+			var child_names: Array = units[0].get_children().map(
+				func(c): return str(c.name)
+			)
+			print(
+				"[CMD][服务器] MoveUnits 结果: ",
+				move_result,
+				" | unit=", units[0].name,
+				" children=", child_names,
+				" FindChild(Movement)=",
+				units[0].find_child("Movement", false, false) != null
+			)
 		"force_move":
 			gateway.ForceMoveUnits(units, destination, issuer)
 		"halt":
