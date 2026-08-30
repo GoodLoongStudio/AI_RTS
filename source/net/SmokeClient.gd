@@ -119,18 +119,26 @@ func _command_round_trip(sync: Node) -> void:
 	if my_units.is_empty():
 		_log("SMOKE_CMD_FAIL no own units (total=%d)" % tree.get_nodes_in_group("units").size())
 		return
-	# 与 HUD 同口径：优先 controlled_units 里的可移动单位（基地等建筑不在其中）。
+	# 与服务器 C# CanMove 判定完全同口径：存在名为 "Movement" 的子节点。
 	var movable := tree.get_nodes_in_group("controlled_units").filter(
-		func(unit): return unit.get_parent() == player
+		func(unit):
+			return (
+				unit.get_parent() == player
+				and unit.find_child("Movement", false, false) != null
+			)
 	)
 	if movable.is_empty():
 		_log("SMOKE_CMD_FAIL no controlled_units (own=%d)" % my_units.size())
 		return
-	var unit = movable[0]
+	var unit = null
 	for candidate in movable:
-		if str(candidate.get("type_id", "")) == "tank":
+		# 只挑真正可移动的单位（基地等建筑虽有 controlled_units 标记但没有 movement_domain）。
+		if "movement_domain" in candidate:
 			unit = candidate
 			break
+	if unit == null:
+		_log("SMOKE_CMD_FAIL none of %d controlled units is movable" % movable.size())
+		return
 	var before: Vector3 = unit.global_position
 	var gateway = NetSession.command_gateway_for(player)
 	if gateway == null:
