@@ -18,6 +18,7 @@ const Worker = preload("res://source/match/units/Worker.tscn")
 @export var settings: Resource = null
 
 var campaign_data = null
+var _unit_spawn_counter := 0  # P0-1 init unit deterministic naming
 var map:
 	set = _set_map,
 	get = _get_map
@@ -74,6 +75,7 @@ func _ready():
 		visible_index = settings.local_player_index
 	visible_player = players_in_group[visible_index]
 	_query_runtime.Initialize(_players, get_local_player())
+	_register_spawn_points_with_query_runtime()
 	_battlefield_event_runtime.Initialize(get_local_player())
 	_move_camera_to_initial_position()
 	if settings.visibility == settings.Visibility.FULL:
@@ -213,6 +215,7 @@ func _setup_players():
 
 
 func _create_players_from_settings():
+	var player_index := 0
 	for player_settings in settings.players:
 		var player_scene = Constants.Match.Player.CONTROLLER_SCENES[player_settings.controller]
 		var player = player_scene.instantiate()
@@ -221,6 +224,10 @@ func _create_players_from_settings():
 			for _i in range(player_settings.spawn_index_offset):
 				_players.add_child(Node.new())
 		_players.add_child(player)
+		# 联机 P0-1：跨进程确定性节点路径。Godot 自动命名（@Node3D@N）的计数器
+		# 随进程启动路径漂移，两端初始清单必然对不上——玩家与单位必须显式命名。
+		player.name = "Player_%d" % player_index
+		player_index += 1
 
 
 func _setup_player_units():
@@ -235,6 +242,17 @@ func _setup_player_units():
 			_spawn_player_units(
 				player, map.find_child("SpawnPoints").get_child(player_index).global_transform
 			)
+
+
+## 把地图出生点登记进查询运行时（公共知识：双方开局即可见彼此出生位置）。
+func _register_spawn_points_with_query_runtime() -> void:
+	var spawn_points: Node = map.find_child("SpawnPoints", true, false)
+	if spawn_points == null:
+		return
+	var positions := PackedVector3Array()
+	for point in spawn_points.get_children():
+		positions.append(point.global_transform.origin)
+	_query_runtime.RegisterSpawnPoints(positions)
 
 
 func _spawn_player_units(player, spawn_transform):
@@ -283,6 +301,9 @@ func _setup_and_spawn_unit(unit, a_transform, player, mark_structure_under_const
 	if unit is Structure and mark_structure_under_construction:
 		unit.mark_as_under_construction()
 	_setup_unit_groups(unit, player)
+	# 联机 P0-1：显式命名（同玩家节点，自动命名跨进程不稳定）。
+	unit.name = "Unit_%d" % _unit_spawn_counter
+	_unit_spawn_counter += 1
 	player.add_child(unit)
 	MatchSignals.unit_spawned.emit(unit)
 

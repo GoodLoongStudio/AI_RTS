@@ -19,6 +19,8 @@ public partial class WorldQueryRuntime : Node
     private readonly Dictionary<PlayerId, QuerySessionId> _standardSessions = new();
     private readonly Dictionary<PlayerId, QuerySessionId> _debugSessions = new();
     private IWorldQueryService? _queries;
+    private Node? _playersRoot;
+    private readonly List<Vector3> _spawnPoints = new();
 
     /// <summary>由 Match 在玩家与权威经济账户建立后一次性签发标准和调试会话。</summary>
     public void Initialize(Node playersRoot, Node? humanPlayer)
@@ -27,6 +29,7 @@ public partial class WorldQueryRuntime : Node
         {
             throw new InvalidOperationException("WorldQueryRuntime 只能初始化一次。");
         }
+        _playersRoot = playersRoot;
         var grants = new List<QuerySessionGrant>();
         foreach (var player in playersRoot.GetChildren().OfType<Node>())
         {
@@ -161,6 +164,73 @@ public partial class WorldQueryRuntime : Node
     /// <summary>返回公开的轴对齐可玩战场边界，不表示区域内任意点都可导航。</summary>
     public Godot.Collections.Dictionary GetBattlefieldBounds(string sessionId) =>
         ToGodot(Queries().GetBattlefieldBounds(Session(sessionId)));
+
+    /// <summary>由 Match 组合根登记开局出生点（玩家开局即可见的公共知识，不受迷雾约束）。</summary>
+    public void RegisterSpawnPoints(Vector3[] points)
+    {
+        _spawnPoints.Clear();
+        _spawnPoints.AddRange(points);
+    }
+
+    /// <summary>
+    /// 返回公开的开局出生点列表。relation 相对会话观察者标注（Own/Enemy）；
+    /// 这是「双方开局都能看到彼此出生位置」的 RTS 公共知识，不构成迷雾违规。
+    /// </summary>
+    public Godot.Collections.Dictionary GetSpawnPoints(string sessionId)
+    {
+        var session = Session(sessionId);
+        var ownIndex = PlayerIndexForSession(session);
+        if (ownIndex < 0)
+        {
+            return new Godot.Collections.Dictionary
+            {
+                ["status"] = QueryStatus.Rejected.ToString(),
+                ["error"] = QueryErrorCode.InvalidSession.ToString(),
+                ["observation_revision"] = 0L,
+                ["spawn_points"] = new Godot.Collections.Array(),
+            };
+        }
+        var spawnPoints = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        for (var index = 0; index < _spawnPoints.Count; index++)
+        {
+            spawnPoints.Add(new Godot.Collections.Dictionary
+            {
+                ["player_index"] = index,
+                ["position"] = Variant.From(_spawnPoints[index]),
+                ["relation"] = index == ownIndex ? "Own" : "Enemy",
+            });
+        }
+        return Envelope(
+            QueryStatus.Accepted,
+            null,
+            0L,
+            "spawn_points",
+            spawnPoints);
+    }
+
+    private int PlayerIndexForSession(QuerySessionId session)
+    {
+        if (_playersRoot is null)
+        {
+            return -1;
+        }
+        foreach (var pair in _standardSessions)
+        {
+            if (pair.Value != session)
+            {
+                continue;
+            }
+            var children = _playersRoot.GetChildren();
+            for (var index = 0; index < children.Count; index++)
+            {
+                if (GodotStableIdentity.Player(children[index]) == pair.Key)
+                {
+                    return index;
+                }
+            }
+        }
+        return -1;
+    }
 
     private IWorldQueryService Queries() => _queries ??
         throw new InvalidOperationException("WorldQueryRuntime 尚未由 Match 初始化。");

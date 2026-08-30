@@ -34,6 +34,100 @@ func _ready() -> void:
 		_on_listen_button_pressed()
 	if "--autoshot" in OS.get_cmdline_user_args():
 		_auto_screenshot()
+	if "--smokeclient" in OS.get_cmdline_user_args():
+		_run_smoke_client()
+
+
+var _smoke_log_fa: FileAccess = null
+
+
+func _smoke_log(msg: String) -> void:
+	print(msg)
+	if _smoke_log_fa == null:
+		_smoke_log_fa = FileAccess.open("user://smoke_client.log", FileAccess.WRITE)
+	if _smoke_log_fa != null:
+		_smoke_log_fa.store_line("%d %s" % [Time.get_ticks_msec(), msg])
+		_smoke_log_fa.flush()
+
+
+## 双进程联机冒烟验收：headless 客户端连本机专用服 → 自动开局（AI 补位）→
+## 等 go-live 首个快照应用到插值目标 → SMOKE_OK 退出（0），失败 SMOKE_FAIL 退出（1）。
+## 用法：godot --headless --path . res://source/main-menu/Online.tscn -- --smokeclient --smokeport 24599
+## 注意：开局后本节点会随场景切换被释放，协程必须只用局部变量（self 成员访问即崩）。
+func _run_smoke_client() -> void:
+	var tree := get_tree()
+	var args := OS.get_cmdline_user_args()
+	var port := NetSession.DEFAULT_PORT
+	var pi := args.find("--smokeport")
+	if pi >= 0 and pi + 1 < args.size():
+		port = int(args[pi + 1])
+	var deadline := Time.get_ticks_msec() + 300_000
+	var log_fa: FileAccess = FileAccess.open("user://smoke_client.log", FileAccess.WRITE)
+	var logf = func(msg: String) -> void:
+		print(msg)
+		if log_fa != null:
+			log_fa.store_line("%d %s" % [Time.get_ticks_msec(), msg])
+			log_fa.flush()
+	logf.call("SMOKE: client start, target 127.0.0.1:%d" % port)
+	var err := NetSession.join("127.0.0.1", port)
+	logf.call("SMOKE: join err=%d" % err)
+	if err != OK:
+		logf.call("SMOKE_FAIL join")
+		tree.quit(1)
+		return
+	# 等连接+槽位（槽位分配后状态直接跳"已分配阵营槽位"，两种都要认）。
+	var waited := 0
+	while Time.get_ticks_msec() < deadline:
+		await tree.create_timer(0.5).timeout
+		waited += 1
+		var st := NetSession.get_status()
+		if st.begins_with("已连接") or st.begins_with("已分配阵营槽位"):
+			break
+		if waited % 10 == 0:
+			logf.call("SMOKE: 等连接 %ds, status=%s" % [waited, st])
+	if not NetSession.is_networked():
+		logf.call("SMOKE_FAIL connect")
+		tree.quit(1)
+		return
+	logf.call("SMOKE: connected, status=%s" % NetSession.get_status())
+	await tree.create_timer(1.0).timeout
+	NetSession.start_solo()
+	logf.call("SMOKE: solo start requested")
+	# 场景切换后本节点已释放：此后只用局部 tree / logf，绝不碰 self 成员。
+	var sync: Node = null
+	waited = 0
+	while Time.get_ticks_msec() < deadline:
+		await tree.create_timer(1.0).timeout
+		waited += 1
+		sync = tree.root.find_child("NetSync", true, false)
+		if sync != null:
+			logf.call("SMOKE: NetSync 出现于等待 %ds" % waited)
+			break
+		if waited % 10 == 0:
+			logf.call("SMOKE: 等 NetSync %ds, scene=%s" % [
+				waited, tree.current_scene.name if tree.current_scene else "null"])
+	if sync == null:
+		logf.call("SMOKE_FAIL no NetSync (Match 未加载)")
+		tree.quit(1)
+		return
+	waited = 0
+	while Time.get_ticks_msec() < deadline:
+		await tree.create_timer(1.0).timeout
+		waited += 1
+		if not NetSession.is_networked():
+			logf.call("SMOKE_FAIL 会话已断开（等待 %ds）" % waited)
+			tree.quit(1)
+			return
+		var targets: Dictionary = sync.get("_interp_target") if sync.get("_interp_target") is Dictionary else {}
+		var units := tree.get_nodes_in_group("units").size()
+		if targets.size() > 0:
+			logf.call("SMOKE_OK units=%d interp_targets=%d" % [units, targets.size()])
+			tree.quit(0)
+			return
+		if waited % 10 == 0:
+			logf.call("SMOKE: 等快照 %ds, units=%d" % [waited, units])
+	logf.call("SMOKE_FAIL timeout")
+	tree.quit(1)
 
 
 func _auto_screenshot() -> void:

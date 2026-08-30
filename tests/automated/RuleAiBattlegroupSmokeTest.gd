@@ -26,6 +26,11 @@ func _ready():
 
 	var human = match_instance.get_node("Players/Human")
 	var human_tank = human.get_node("Tank")
+	# 断言窗口内保持人类坦克存活，避免「目标速死 → 兜底推进」吞掉 Attack 断言窗口。
+	if "current_health" in human_tank:
+		human_tank.current_health = 99999.0
+	if "maximum_health" in human_tank:
+		human_tank.maximum_health = 99999.0
 	var ai_tank = TankScene.instantiate()
 	MatchSignals.setup_and_spawn_unit.emit(
 		ai_tank,
@@ -33,19 +38,38 @@ func _ready():
 		rule_ai,
 		false
 	)
-	await get_tree().create_timer(1.1).timeout
 
-	var own_tank := _find_own_tank(rule_ai)
-	_check(not own_tank.is_empty(), "规则 AI 公共己方查询应返回新部署 Tank")
-	var order = own_tank.get("order", null)
-	_check(order != null and order.get("kind", "") == "Attack",
-		"满编 Battlegroup 应通过稳定命令提交普通 Attack")
-	var target_id := ""
-	if order != null and order.get("target", null) != null:
-		target_id = order["target"].get("entity_id", "")
-	var visible_targets := _scan_visible_enemies(rule_ai, own_tank.get("position", Vector3.ZERO))
-	_check(visible_targets.any(func(entity): return entity.get("id", "") == target_id),
+	# 新行为（AI-plan Phase 2/4）：AI 会立即攻击可见敌军，目标死亡后转入兜底推进。
+	# 因此用 0.25s 轮询捕捉「发起过 Attack 且目标 ∈ VisibleNow」，而非在固定时刻断言。
+	var saw_attack := false
+	var attack_target_from_visible := false
+	var attack_target_id := ""
+	var poll := 0.0
+	while poll < 1.5 and not saw_attack:
+		await get_tree().create_timer(0.25).timeout
+		poll += 0.25
+		var own_tank := _find_own_tank(rule_ai)
+		if own_tank.is_empty():
+			continue
+		var order = own_tank.get("order", null)
+		var order_kind := "null"
+		if order != null:
+			order_kind = str(order.get("kind", "NIL"))
+		print("[bt-poll] ", poll, " order=", order_kind)
+		if order == null or order.get("kind", "") != "Attack":
+			continue
+		saw_attack = true
+		attack_target_id = order["target"].get("entity_id", "") if order.get("target", null) != null else ""
+		var visible_targets := _scan_visible_enemies(rule_ai, own_tank.get("position", Vector3.ZERO))
+		attack_target_from_visible = visible_targets.any(
+			func(entity): return entity.get("id", "") == attack_target_id
+		)
+	_check(saw_attack, "满编 Battlegroup 应通过稳定命令提交普通 Attack")
+	_check(attack_target_from_visible,
 		"Battlegroup 的 Attack 目标必须来自当前 VisibleNow 敌军观察")
+	var own_tank_id := ""
+	var latest_tank := _find_own_tank(rule_ai)
+	own_tank_id = latest_tank.get("id", "")
 
 	var hidden_structure = human.get_node("AircraftFactory")
 	hidden_structure.global_position = Vector3(500.0, 0.0, 500.0)
@@ -57,7 +81,7 @@ func _ready():
 	)
 	var gateway = rule_ai.get_node("RuleAiCommandGateway")
 	var rejected: Dictionary = gateway.Attack(
-		[own_tank.get("id", "")],
+		[own_tank_id],
 		hidden_reference.get("kind", ""),
 		hidden_reference.get("id", "")
 	)
@@ -68,15 +92,27 @@ func _ready():
 	), "隐藏、失效或猜测目标应统一返回 TargetUnavailable")
 
 	var moved: Dictionary = gateway.Move(
-		[own_tank.get("id", "")],
-		own_tank.get("position", Vector3.ZERO) + Vector3(1.0, 0.0, 0.0)
+		[own_tank_id],
+		human_tank.global_position + Vector3(2.0, 0.0, 0.0)
 	)
 	_check(moved.get("status", "") == "Accepted",
 		"规则 AI 应能按稳定单位 ID 提交普通 Move")
-	await get_tree().create_timer(1.1).timeout
-	var refreshed_tank := _find_own_tank(rule_ai)
-	var refreshed_order = refreshed_tank.get("order", null)
-	_check(refreshed_order != null and refreshed_order.get("kind", "") == "Attack",
+	# 把人类坦克挪回 AI 坦克可视野内，轮询等待编组恢复对可见目标的攻击。
+	var ai_tank_node: Node3D = ai_tank
+	human_tank.global_position = ai_tank_node.global_position + Vector3(4.0, 0.0, 0.0)
+	var recovered_attack := false
+	poll = 0.0
+	while poll < 5.0 and not recovered_attack:
+		await get_tree().create_timer(0.25).timeout
+		poll += 0.25
+		var refreshed_tank := _find_own_tank(rule_ai)
+		if refreshed_tank.is_empty():
+			continue
+		var refreshed_order = refreshed_tank.get("order", null)
+		recovered_attack = (
+			refreshed_order != null and refreshed_order.get("kind", "") == "Attack"
+		)
+	_check(recovered_attack,
 		"外部移动替换后，编组应从己方订单观察恢复可见目标攻击")
 
 	print("Rule AI battlegroup smoke test completed: %d failure(s)" % _failures)

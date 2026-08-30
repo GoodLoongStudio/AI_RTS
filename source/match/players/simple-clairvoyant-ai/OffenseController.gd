@@ -40,6 +40,9 @@ var _number_of_pending_unit_resource_requests := {}
 var _secondary_production_enabled := false
 var _battlegroup_under_forming = null
 var _battlegroups := []
+var _setup_ticks_ms := 0
+var _defense_battlegroup = null
+var _defense_recalled_at_ms := 0
 
 @onready var _ai = get_parent()
 @onready var _balance = find_parent("Match").get_node("BalanceConfigRuntime")
@@ -51,6 +54,7 @@ func setup(player, world_query_runtime, query_session_id: String, command_gatewa
 	_world_query_runtime = world_query_runtime
 	_query_session_id = query_session_id
 	_command_gateway = command_gateway
+	_setup_ticks_ms = Time.get_ticks_msec()
 	_configure_primary_and_secondary_types()
 	_setup_refresh_timer()
 	_try_creating_new_battlegroup()
@@ -145,19 +149,110 @@ func _refresh_logistics():
 			"secondary_structure",
 			own_entities
 		)
-	_enforce_units_production(
-		_primary_structure_type_id,
-		_primary_unit_scene,
-		"primary_unit",
-		own_entities
-	)
-	if _secondary_production_enabled:
+	_enforce_units_production_by_ratio(own_entities)
+	_refresh_defense_response(own_entities)
+
+
+## 出兵入口：按主:副配比（AI-plan Part A Phase 6）决定这一拍生产哪种单位。
+## 副产线未启用时保持旧口径只出主兵种。
+func _enforce_units_production_by_ratio(own_entities: Array):
+	var metadata := _preferred_unit_metadata(own_entities)
+	if metadata == "primary_unit":
+		_enforce_units_production(
+			_primary_structure_type_id,
+			_primary_unit_scene,
+			"primary_unit",
+			own_entities
+		)
+	else:
 		_enforce_units_production(
 			_secondary_structure_type_id,
 			_secondary_unit_scene,
 			"secondary_unit",
 			own_entities
 		)
+
+
+## 以「加入后与配比偏差最小」选择本拍生产的单位类型；生产门口与完工产线校验仍由
+## _enforce_units_production 兜底（无完工产线自动落到另一条线）。
+func _preferred_unit_metadata(own_entities: Array) -> String:
+	if not _secondary_production_enabled:
+		return "primary_unit"
+	var queued := _queued_unit_counts(own_entities)
+	var primary_count: int = queued["primary"] + _number_of_pending_unit_resource_requests.get(
+		"primary_unit", 0
+	)
+	var secondary_count: int = queued["secondary"] + _number_of_pending_unit_resource_requests.get(
+		"secondary_unit", 0
+	)
+	var ratio: int = maxi(1, _ai.primary_to_secondary_unit_ratio)
+	var diff_if_primary := absi(primary_count + 1 - ratio * secondary_count)
+	var diff_if_secondary := absi(primary_count - ratio * (secondary_count + 1))
+	return "primary_unit" if diff_if_primary <= diff_if_secondary else "secondary_unit"
+
+
+## 统计生产队列中的主/副兵种数量（资源请求单列，避免双重计数）。
+func _queued_unit_counts(own_entities: Array) -> Dictionary:
+	var counts := {"primary": 0, "secondary": 0}
+	for entity in own_entities:
+		var production = entity.get("production", null)
+		if production == null:
+			continue
+		for item in production.get("items", []):
+			var product_type_id: String = item.get("product_type_id", "")
+			if product_type_id == _primary_unit_type_id:
+				counts["primary"] += 1
+			elif product_type_id == _secondary_unit_type_id:
+				counts["secondary"] += 1
+	return counts
+
+
+## 防御响应（AI-plan Part A Phase 5）：基地威胁有效时派最近的非撤退编组回防；
+## 威胁解除且满足最短执行时间后停火一拍，交还常规交战逻辑。
+func _refresh_defense_response(own_entities: Array):
+	var threat: Vector3 = _ai.get_base_threat()
+	if threat != Vector3.INF:
+		var assigned_valid: bool = (
+			_defense_battlegroup != null
+			and is_instance_valid(_defense_battlegroup)
+			and not _defense_battlegroup.is_queued_for_deletion()
+		)
+		if not assigned_valid:
+			_defense_battlegroup = _nearest_available_battlegroup(own_entities, threat)
+			if _defense_battlegroup != null:
+				_defense_battlegroup.assume_defense_position(threat)
+				_defense_recalled_at_ms = Time.get_ticks_msec()
+		elif Time.get_ticks_msec() - _defense_recalled_at_ms > 5000:
+			_defense_battlegroup.assume_defense_position(threat)
+			_defense_recalled_at_ms = Time.get_ticks_msec()
+		return
+	if _defense_battlegroup != null and is_instance_valid(_defense_battlegroup):
+		if (
+			Time.get_ticks_msec() - _defense_recalled_at_ms
+			>= int(_ai.defense_recall_min_s * 1000.0)
+		):
+			_defense_battlegroup.resume_offense()
+			_defense_battlegroup = null
+
+
+## 选派距威胁点最近、已出击且未在撤退的编组执行回防。
+func _nearest_available_battlegroup(own_entities: Array, threat: Vector3):
+	var best = null
+	var best_distance := INF
+	for battlegroup in _battlegroups:
+		if (
+			not is_instance_valid(battlegroup)
+			or battlegroup.is_queued_for_deletion()
+			or battlegroup.is_retreating()
+			or battlegroup.size() <= 0
+		):
+			continue
+		var center: Vector3 = battlegroup.center_for(own_entities)
+		var distance: float = center.distance_squared_to(threat)
+		if distance < best_distance:
+			best_distance = distance
+			best = battlegroup
+	return best
 
 
 ## 消耗一项建筑资源请求，并通过稳定类型放置生产建筑。
@@ -264,6 +359,8 @@ func _enforce_units_production(
 	metadata: String,
 	own_entities: Array
 ):
+	if Time.get_ticks_msec() - _setup_ticks_ms < int(_ai.first_wave_delay_s * 1000.0):
+		return
 	if _completed_producers(structure_type_id, own_entities).is_empty():
 		return
 	if _number_of_pending_unit_resource_requests.get(metadata, 0) > 0:
@@ -315,15 +412,16 @@ func _is_units_production_allowed(own_entities: Array) -> bool:
 	return _number_of_additional_units_required() > queued_units + pending_requests
 
 
-## 返回当前 Legacy 成军过程仍需要部署的作战单位数量。
+## 返回当前所有编组（含未创建名额）仍需补充的作战单位总数；
+## 这是「打光→补满→再出击」攻击波的生产依据。
 func _number_of_additional_units_required() -> int:
-	if _battlegroup_under_forming == null:
-		return 0
-	return (
-		_ai.expected_number_of_battlegroups * _ai.expected_number_of_units_in_battlegroup
-		- (_battlegroups.size() - 1) * _ai.expected_number_of_units_in_battlegroup
-		- _battlegroup_under_forming.size()
-	)
+	var total_missing := 0
+	for battlegroup in _battlegroups:
+		if is_instance_valid(battlegroup) and not battlegroup.is_queued_for_deletion():
+			total_missing += maxi(0, battlegroup.capacity() - battlegroup.size())
+	if _battlegroups.size() < _ai.expected_number_of_battlegroups:
+		total_missing += _ai.expected_number_of_units_in_battlegroup
+	return total_missing
 
 
 ## 查询生产后勤所需的准确己方位置、类型、施工状态与生产队列。
@@ -350,7 +448,8 @@ func _try_creating_new_battlegroup() -> bool:
 		_ai.expected_number_of_units_in_battlegroup,
 		_world_query_runtime,
 		_query_session_id,
-		_command_gateway
+		_command_gateway,
+		_ai.retreat_threshold
 	)
 	_battlegroups.append(battlegroup)
 	battlegroup.tree_exited.connect(_on_battlegroup_died.bind(battlegroup))
@@ -359,7 +458,8 @@ func _try_creating_new_battlegroup() -> bool:
 	return true
 
 
-## 用己方公共快照维护编组成员，并把尚未分配的作战单位交给当前成军编组。
+## 用己方公共快照维护编组成员，并把尚未分配的作战单位交给第一个未满编的编组
+## （撤退回满、战损补充都走同一条增援路径）。
 func _refresh_battlegroups(own_entities: Array):
 	for battlegroup in _battlegroups.duplicate():
 		if is_instance_valid(battlegroup) and not battlegroup.is_queued_for_deletion():
@@ -367,7 +467,8 @@ func _refresh_battlegroups(own_entities: Array):
 	_attach_unassigned_battle_units(own_entities)
 
 
-## 按稳定 ID 分配 Tank 与 Helicopter，不再依赖生成信号或读取 Unit Node。
+## 按稳定 ID 分配 Tank 与 Helicopter：优先补最缺员的既有编组，编组全满且
+## 未达编组总数时创建新编组。
 func _attach_unassigned_battle_units(own_entities: Array):
 	var battle_entities: Array = own_entities.filter(
 		func(entity):
@@ -380,19 +481,28 @@ func _attach_unassigned_battle_units(own_entities: Array):
 				return is_instance_valid(battlegroup) and battlegroup.has_member(unit_id)
 		):
 			continue
-		if _battlegroup_under_forming == null:
-			return
-		_battlegroup_under_forming.attach_entity(entity)
-		if _battlegroup_under_forming.size() >= (
-			_ai.expected_number_of_units_in_battlegroup
-		):
-			_try_creating_new_battlegroup()
+		var target_group = null
+		for battlegroup in _battlegroups:
+			if (
+				is_instance_valid(battlegroup)
+				and not battlegroup.is_queued_for_deletion()
+				and battlegroup.size() < battlegroup.capacity()
+			):
+				target_group = battlegroup
+				break
+		if target_group == null:
+			if not _try_creating_new_battlegroup():
+				return
+			target_group = _battlegroup_under_forming
+		target_group.attach_entity(entity)
 
 
 func _on_battlegroup_died(battlegroup):
 	if not is_inside_tree():
 		return
 	_battlegroups.erase(battlegroup)
+	if _defense_battlegroup == battlegroup:
+		_defense_battlegroup = null
 
 
 func _on_refresh_timer_timeout():

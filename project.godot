@@ -22,6 +22,11 @@ boot_splash/stretch_mode=0
 boot_splash/image="res://assets/logos/godot_logo_vertical_monochrome_dark_312x357.png"
 config/icon="res://icon.svg"
 
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+
 [autoload]
 
 NetSession="*res://source/net/NetSession.gd"
@@ -31,7 +36,6 @@ Globals="*res://source/Globals.gd"
 MatchSignals="*res://source/match/MatchSignals.gd"
 Signals="*res://source/Signals.gd"
 Utils="*res://source/Utils.gd"
-HotReload="*res://source/net/HotReload.gd"
 MCPRuntimeProbe="*res://addons/godot_mcp/runtime/mcp_runtime_probe.gd"
 
 [debug]

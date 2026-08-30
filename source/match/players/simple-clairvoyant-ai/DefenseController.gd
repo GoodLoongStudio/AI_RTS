@@ -7,6 +7,7 @@ const AATurretScene = preload("res://source/match/units/AntiAirTurret.tscn")
 
 const FIELD_POSITION := 1 << 0
 const FIELD_TYPE := 1 << 1
+const FIELD_RELATION := 1 << 2
 const REFRESH_INTERVAL_S := 1.0 / 60.0 * 30.0
 const COMMAND_CENTER_TYPE_ID := "command_center"
 const WORKER_TYPE_ID := "worker"
@@ -18,6 +19,7 @@ var _query_session_id := ""
 var _command_gateway = null
 var _number_of_pending_ag_turret_resource_requests := 0
 var _number_of_pending_aa_turret_resource_requests := 0
+var _clear_streak := 0
 
 @onready var _ai = get_parent()
 @onready var _balance = find_parent("Match").get_node("BalanceConfigRuntime")
@@ -141,3 +143,45 @@ func _get_own_entities() -> Array:
 func _on_refresh_timer_timeout():
 	_enforce_number_of_ag_turrets()
 	_enforce_number_of_aa_turrets()
+	_refresh_threat_scan()
+
+
+## 基地威胁扫描（AI-plan Part A Phase 5，降级版）：
+## 以主 CC 为中心一次大半径扫描（而非逐建筑扫描，规避查询量随建筑数线性膨胀）。
+## 发现 VisibleNow 敌人 → 上报主脑（30s 防抖）；连续 3 轮无敌人 → 解除。
+func _refresh_threat_scan():
+	var command_centers: Array = _get_own_entities().filter(
+		func(entity): return entity.get("type_id", "") == COMMAND_CENTER_TYPE_ID
+	)
+	if command_centers.is_empty():
+		return
+	var center: Vector3 = command_centers[0]["position"]
+	var result: Dictionary = _world_query_runtime.ScanCircle(
+		_query_session_id,
+		center,
+		_ai.defense_scan_radius,
+		FIELD_POSITION | FIELD_RELATION
+	)
+	if result.get("status", "") != "Accepted":
+		return
+	var enemies: Array = result.get("entities", []).filter(
+		func(entity):
+			return (
+				entity.get("state", "") == "VisibleNow"
+				and entity.get("relation", "") == "Enemy"
+			)
+	)
+	if enemies.is_empty():
+		_clear_streak += 1
+		if _clear_streak >= 3:
+			_ai.clear_base_threat()
+			_clear_streak = 0
+		return
+	_clear_streak = 0
+	var nearest_position: Vector3 = enemies[0]["position"]
+	for enemy in enemies:
+		if center.distance_squared_to(enemy["position"]) < center.distance_squared_to(
+			nearest_position
+		):
+			nearest_position = enemy["position"]
+	_ai.notify_base_threat(nearest_position)

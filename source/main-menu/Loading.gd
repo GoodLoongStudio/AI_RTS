@@ -11,16 +11,19 @@ var campaign_data = null
 func _ready():
 	_progress_bar.value = 0.0
 
+	print("Loading[%.1fs] 预加载" % (Time.get_ticks_msec() / 1000.0))
 	_label.text = tr("LOADING_STEP_PRELOADING")
 	await get_tree().physics_frame
 	_progress_bar.value = 0.2
 
+	print("Loading[%.1fs] 载入地图 %s" % [Time.get_ticks_msec() / 1000.0, str(map_path)])
 	_label.text = tr("LOADING_STEP_LOADING_MAP")
 	await get_tree().physics_frame
 	var map_scene := _load_packed_scene(map_path, "地图")
 	if map_scene == null:
 		return
 	var map_instance := map_scene.instantiate()
+	print("Loading[%.1fs] 地图实例完成" % (Time.get_ticks_msec() / 1000.0))
 	_progress_bar.value = 0.4
 
 	_label.text = tr("LOADING_STEP_LOADING_MATCH")
@@ -30,6 +33,7 @@ func _ready():
 		return
 	_progress_bar.value = 0.7
 
+	print("Loading[%.1fs] 实例化 Match（导航烘焙阻塞点）" % (Time.get_ticks_msec() / 1000.0))
 	_label.text = tr("LOADING_STEP_INSTANTIATING_MATCH")
 	await get_tree().physics_frame
 	var a_match = match_prototype.instantiate()
@@ -40,8 +44,10 @@ func _ready():
 
 	_label.text = tr("LOADING_STEP_STARTING_MATCH")
 	await get_tree().physics_frame
+	print("Loading[%.1fs] 添加 Match 到场景树" % (Time.get_ticks_msec() / 1000.0))
 	get_parent().add_child(a_match)
 	get_tree().current_scene = a_match
+	print("Loading[%.1fs] Match 就绪" % (Time.get_ticks_msec() / 1000.0))
 	queue_free()
 
 

@@ -1,17 +1,20 @@
 extends Node
 
 const FIELD_TYPE := 1 << 1
+const FIELD_RELATION := 1 << 2
 const FIELD_ORDER := 1 << 6
 const REFRESH_INTERVAL_S := 0.5
 const PATROL_MARGIN_M := 5.0
 const PATROL_SPACING_M := 15.0
 const DRONE_TYPE_ID := "drone"
+const GLOBAL_DEMO_SCAN_RADIUS_M := 100000.0
 
 var _world_query_runtime = null
 var _query_session_id := ""
 var _command_gateway = null
 var _patrol_waypoints: Array[Vector3] = []
 var _next_waypoint_index_by_drone := {}
+var _enemy_type_counts := {}
 
 
 ## 绑定公共查询和固定身份命令，并从公开战场边界建立巡逻网格。
@@ -132,5 +135,39 @@ func _build_patrol_waypoints(bounds: Dictionary) -> Array[Vector3]:
 func _setup_refresh_timer():
 	var timer := Timer.new()
 	add_child(timer)
-	timer.timeout.connect(_refresh_patrols)
+	timer.timeout.connect(_on_refresh_timer_timeout)
 	timer.start(REFRESH_INTERVAL_S)
+
+
+func _on_refresh_timer_timeout():
+	_refresh_patrols()
+	_refresh_enemy_composition()
+
+
+## 敌情汇总（AI-plan Part A Phase 6）：全局扫描 VisibleNow/LastKnown 敌军的
+## type_id 直方图，供 OffenseController 做克制参考；这里首次让侦察产出情报。
+func _refresh_enemy_composition():
+	var result: Dictionary = _world_query_runtime.ScanCircle(
+		_query_session_id,
+		Vector3.ZERO,
+		GLOBAL_DEMO_SCAN_RADIUS_M,
+		FIELD_TYPE | FIELD_RELATION
+	)
+	if result.get("status", "") != "Accepted":
+		return
+	var counts := {}
+	for entity in result.get("entities", []):
+		if entity.get("relation", "") != "Enemy":
+			continue
+		if entity.get("state", "") not in ["VisibleNow", "LastKnown"]:
+			continue
+		var type_id: String = entity.get("type_id", "")
+		if type_id.is_empty() or type_id.begins_with("resource"):
+			continue
+		counts[type_id] = counts.get(type_id, 0) + 1
+	_enemy_type_counts = counts
+
+
+## 返回最近一轮敌情汇总的副本（type_id → 数量）；未扫描时为空字典。
+func get_enemy_composition_summary() -> Dictionary:
+	return _enemy_type_counts.duplicate()

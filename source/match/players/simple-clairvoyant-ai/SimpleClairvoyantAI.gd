@@ -2,15 +2,37 @@ extends "res://source/match/players/Player.gd"
 
 enum ResourceRequestPriority { LOW, MEDIUM, HIGH }
 enum OffensiveStructure { VEHICLE_FACTORY, AIRCRAFT_FACTORY }
+enum Difficulty { EASY, NORMAL, HARD }
 
+## 旧参数（保留兼容既有测试与场景）；实际工人目标由 CC 数 × workers_per_command_center 推导。
 @export var expected_number_of_workers = 3
 @export var expected_number_of_ccs = 1
 @export var expected_number_of_ag_turrets = 1
 @export var expected_number_of_aa_turrets = 1
 @export var primary_offensive_structure = OffensiveStructure.VEHICLE_FACTORY
 @export var secondary_offensive_structure = OffensiveStructure.AIRCRAFT_FACTORY
-@export var expected_number_of_battlegroups = 2
-@export var expected_number_of_units_in_battlegroup = 4
+@export var expected_number_of_battlegroups = 3
+@export var expected_number_of_units_in_battlegroup = 6
+
+## —— 智能化改造新增参数（见 docs/plan/AI-plan.md Part A）——
+## 条件扩张：CC 数上限（0 = 永不扩张，保持旧口径 expected_number_of_ccs）。
+@export var max_command_centers = 3
+## 每座 CommandCenter 的目标工人数（实际目标 = 现有 CC 数 × 该值）。
+@export var workers_per_command_center = 6
+## 扩张门槛：resource_a 与 resource_b 余额都 ≥ 此值才请求开分矿（占位值，按实测标定）。
+@export var expansion_resource_threshold = 10
+## 编组存活低于 满编 × retreat_threshold 时整编撤退回主基地。
+@export var retreat_threshold = 0.5
+## 第一波出击延迟（秒）；0 = 满编即出击（旧口径）。难度分级会覆盖。
+@export var first_wave_delay_s = 0.0
+## 防御威胁扫描半径（以主基地为中心一次大半径扫描，避免逐建筑扫描线性膨胀）。
+@export var defense_scan_radius = 40.0
+## 回防最短执行时间（秒），防止威胁抖动导致编组来回拉扯。
+@export var defense_recall_min_s = 30.0
+## 主工厂:副工厂 出兵配比（primary_to_secondary_unit_ratio:1）。
+@export var primary_to_secondary_unit_ratio = 2
+## 难度档位；EASY/HARD 会覆写上述部分参数，NORMAL 沿用当前 @export 值。
+@export var difficulty: Difficulty = Difficulty.NORMAL
 
 var _provisioning_ongoing = false
 var _resource_requests = {
@@ -21,6 +43,10 @@ var _resource_requests = {
 var _call_to_perform_during_process = null
 var _world_query_runtime = null
 var _query_session_id := ""
+
+# —— 基地威胁中枢（DefenseController 上报 → OffenseController 消费）——
+var _base_threat_position := Vector3.INF
+var _base_threat_until_ms := 0
 
 @onready var _match = find_parent("Match")
 
@@ -40,6 +66,7 @@ func setup_world_query(world_query_runtime, query_session_id: String):
 
 
 func _ready():
+	_apply_difficulty_profile()
 	# wait for match to be ready
 	if not _match.is_node_ready():
 		await _match.ready
@@ -48,7 +75,15 @@ func _ready():
 		return
 	# wait additional frame to make sure other players are in place
 	await get_tree().physics_frame
-	assert(_world_query_runtime != null, "rule AI world query must be configured by Match")
+	# ready 信号可能在 Match._ready 首次挂起（导航烘焙 await）时即已发射，
+	# 早于 BindRuleAiSessions 的会话绑定——轮询等待会话就绪而非依赖 ready 时序。
+	var wait_frames := 0
+	while _world_query_runtime == null:
+		wait_frames += 1
+		if wait_frames > 600:
+			assert(false, "rule AI world query session was never bound by Match")
+			return
+		await get_tree().process_frame
 
 	changed.connect(_on_player_data_changed)
 	_economy_controller.resources_required.connect(
@@ -154,3 +189,42 @@ func _on_resource_request(resources, metadata, controller, priority):
 		{"controller": controller, "resources": resources, "metadata": metadata}
 	)
 	_try_fulfilling_resource_requests_according_to_priorities_next_frame()
+
+
+## 应用难度档位。NORMAL 不覆写任何参数：直接沿用 @export 默认值，
+## 避免破坏测试与场景在实例化后对参数的外部设定（难度表见 AI-plan Part A Phase 7）。
+func _apply_difficulty_profile():
+	match difficulty:
+		Difficulty.EASY:
+			workers_per_command_center = 4
+			expected_number_of_battlegroups = 2
+			expected_number_of_units_in_battlegroup = 4
+			retreat_threshold = 0.35
+			first_wave_delay_s = 240.0
+		Difficulty.HARD:
+			workers_per_command_center = 8
+			expected_number_of_battlegroups = 3
+			expected_number_of_units_in_battlegroup = 6
+			retreat_threshold = 0.6
+			first_wave_delay_s = 120.0
+		_:
+			pass
+
+
+## DefenseController 上报基地威胁；30s 内视为持续有效（防抖动）。
+func notify_base_threat(position: Vector3):
+	_base_threat_position = position
+	_base_threat_until_ms = Time.get_ticks_msec() + int(defense_recall_min_s * 1000.0)
+
+
+## DefenseController 连续多轮未发现敌人后解除威胁。
+func clear_base_threat():
+	_base_threat_position = Vector3.INF
+	_base_threat_until_ms = 0
+
+
+## 当前有效威胁位置；无威胁返回 Vector3.INF。
+func get_base_threat() -> Vector3:
+	if _base_threat_position != Vector3.INF and Time.get_ticks_msec() < _base_threat_until_ms:
+		return _base_threat_position
+	return Vector3.INF
