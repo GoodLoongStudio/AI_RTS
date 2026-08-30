@@ -252,6 +252,7 @@ func forward_command(
 	var target_path := ""
 	if target != null and is_instance_valid(target):
 		target_path = str(_match.get_path_to(target))
+	print("[CMD] 客户端提交 op=%s units=%s dest=%s" % [op, paths, destination])
 	_rpc_command.rpc_id(1, op, paths, destination, target_path, extra)
 	return {"status": "Accepted", "unit_results": []}
 
@@ -332,9 +333,11 @@ func _rpc_command(
 	var slot := NetSession.slot_of(multiplayer.get_remote_sender_id())
 	var players := get_tree().get_nodes_in_group("players")
 	if slot < 0 or slot >= players.size():
+		print("[CMD][服务器] 拒绝: 槽位无效 slot=%d" % slot)
 		return
 	var issuer = players[slot]
 	if issuer == null or issuer.get_script() != HumanScript:
+		print("[CMD][服务器] 拒绝: issuer 非人类玩家 slot=%d" % slot)
 		return
 	var units: Array = []
 	for path in paths:
@@ -349,11 +352,14 @@ func _rpc_command(
 			queue.produce(load(extra))
 		return
 	if units.is_empty():
+		print("[CMD][服务器] 拒绝: 单位解析为空 op=%s paths=%s" % [op, paths])
 		return
 	var gateway = issuer.find_child("UnitCommandGateway")
 	if gateway == null:
+		print("[CMD][服务器] 拒绝: 人类玩家无 UnitCommandGateway")
 		return
 	var target = _match.get_node_or_null(NodePath(target_path)) if target_path != "" else null
+	print("[CMD][服务器] 应用 op=%s units=%d dest=%s" % [op, units.size(), destination])
 	match op:
 		"move":
 			gateway.MoveUnits(units, destination, issuer)
