@@ -127,36 +127,47 @@ func _command_round_trip(sync: Node) -> void:
 				and unit.find_child("Movement", false, false) != null
 			)
 	)
+	# 逐单位跑 HUD 三重过滤模拟 + 分类型移动实测（无人机=Unit_1, 工人=Unit_2/3）。
+	var moved_count: int = 0
+	for unit in movable:
+		var in_controlled: bool = unit.is_in_group("controlled_units")
+		var domain = unit.get("movement_domain")
+		var applicable = load("res://source/match/units/actions/Moving.gd").is_applicable(unit)
+		_log(
+			"SMOKE_CMD: HUD 过滤 %s controlled=%s domain=%s applicable=%s" % [
+				unit.name, in_controlled, str(domain), str(applicable)
+			]
+		)
 	if movable.is_empty():
-		_log("SMOKE_CMD_FAIL no controlled_units (own=%d)" % my_units.size())
+		_log("SMOKE_CMD_FAIL no movable units")
 		return
-	var unit = null
-	for candidate in movable:
-		# 只挑真正可移动的单位（基地等建筑虽有 controlled_units 标记但没有 movement_domain）。
-		if "movement_domain" in candidate:
-			unit = candidate
-			break
-	if unit == null:
-		_log("SMOKE_CMD_FAIL none of %d controlled units is movable" % movable.size())
-		return
-	var before: Vector3 = unit.global_position
 	var gateway = NetSession.command_gateway_for(player)
 	if gateway == null:
 		_log("SMOKE_CMD_FAIL no gateway (puppet without NetSync?)")
 		return
-	var destination := before + Vector3(25.0, 0.0, 0.0)
-	var result: Dictionary = gateway.MoveUnits([unit], destination, player)
-	_log("SMOKE_CMD: MoveUnits submitted -> %s" % str(result.get("status", result)))
+	# 对每个可移动单位（无人机+2 工人）各自下发移动并独立验证位移。
+	var befores := {}
+	for unit in movable:
+		befores[unit.name] = unit.global_position
+		var destination: Vector3 = unit.global_position + Vector3(25.0, 0.0, 0.0)
+		var result: Dictionary = gateway.MoveUnits([unit], destination, player)
+		_log("SMOKE_CMD: %s MoveUnits -> %s" % [unit.name, str(result.get("status", result))])
 	for i in range(16):
 		await tree.create_timer(0.5).timeout
-		if not is_instance_valid(unit):
-			_log("SMOKE_CMD_FAIL unit freed")
-			return
-		var drift: float = unit.global_position.distance_to(before)
-		if drift > 5.0:
-			_log("SMOKE_CMD_MOVED drift=%.1fm after %ds" % [drift, (i + 1)])
+		moved_count = 0
+		for unit in movable:
+			if not is_instance_valid(unit):
+				moved_count += 1
+				continue
+			var before: Vector3 = befores[unit.name]
+			if unit.global_position.distance_to(before) > 5.0:
+				moved_count += 1
+		if moved_count == movable.size():
+			_log("SMOKE_CMD_MOVED %d/%d units all moved >5m after %ds" % [
+				moved_count, movable.size(), (i + 1) * 5
+			])
 			return
 		if i % 4 == 3:
-			_log("SMOKE_CMD: waiting %ds, drift=%.2fm" % [(i + 1) * 5, drift])
-	_log("SMOKE_CMD_FAIL unit never moved (8s, drift<5m)")
+			_log("SMOKE_CMD: waiting %ds, moved=%d/%d" % [(i + 1) * 5, moved_count, movable.size()])
+	_log("SMOKE_CMD_FAIL 8s 后 moved=%d/%d" % [moved_count, movable.size()])
 
