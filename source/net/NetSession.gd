@@ -15,6 +15,8 @@ const SLOT_AI := 2
 var dedicated_server := false
 ## E2E 测试开关: --e2e-peaceful 时专用服的 AI 首波延迟 600s, 供机器人先验证经济链。
 var e2e_peaceful := false
+## 服务器侧: 客户端立即开局时经 RPC 传来的和平模式标记(AI 首波延迟 600s)。
+var e2e_peaceful_server := false
 var local_slot := 0
 var _pending_solo_start := false
 var last_rtt_ms := -1  # 客户端对服务器的最近一次 RPC 往返（毫秒），-1 = 无样本
@@ -426,8 +428,9 @@ func start_solo() -> void:
 			_set_status("正在连接 %s:%d，连上后自动开局…" % [DEFAULT_HOST, DEFAULT_PORT])
 		return
 	if not is_server():
-		_rpc_solo_start.rpc_id(1)
+		_rpc_solo_start.rpc_id(1, e2e_peaceful)
 		return
+	e2e_peaceful_server = e2e_peaceful
 	_ensure_solo_opponent()
 	_launch_match()
 
@@ -464,11 +467,12 @@ func _launch_match() -> void:
 
 
 @rpc("any_peer", "reliable")
-func _rpc_solo_start() -> void:
+func _rpc_solo_start(peaceful: bool = false) -> void:
 	if not is_server() or _match_started:
 		return
 	if slot_of(multiplayer.get_remote_sender_id()) < 0:
 		return
+	e2e_peaceful_server = peaceful
 	_ensure_solo_opponent()
 	_launch_match()
 

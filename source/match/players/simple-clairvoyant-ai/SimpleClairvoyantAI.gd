@@ -67,7 +67,7 @@ func setup_world_query(world_query_runtime, query_session_id: String):
 
 func _ready():
 	_apply_difficulty_profile()
-	if NetSession.e2e_peaceful:
+	if NetSession.e2e_peaceful_server:
 		first_wave_delay_s = 600.0
 	# wait for match to be ready
 	if not _match.is_node_ready():
