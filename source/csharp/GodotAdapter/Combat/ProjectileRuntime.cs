@@ -139,6 +139,8 @@ public partial class ProjectileRuntime : Node
                 continue;
             }
 
+            var targetOwner = target.GetParent()?.Name.ToString() ?? "<none>";
+            GD.Print($"[DAMAGE] source={state.Snapshot.SourcePlayerId.Value:D} target={target.Name} owner={targetOwner} amount={application.Damage:0.###} mode={state.Snapshot.ImpactSelectionMode}");
             target.Set("hp", target.Get("hp").AsSingle() - application.Damage);
         }
 

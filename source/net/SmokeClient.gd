@@ -59,7 +59,9 @@ func _run() -> void:
 		return
 	_log("SMOKE: connected, status=%s" % NetSession.get_status())
 	await tree.create_timer(1.0).timeout
-	NetSession.start_solo()
+	# Smoke suite intentionally exercises combat, so request the explicit
+	# single-player-vs-AI variant. The normal Solo button remains peaceful.
+	NetSession.start_solo(true)
 	_log("SMOKE: solo start requested")
 	# 等客户端 Match 场景加载出 NetSync。
 	var sync: Node = null

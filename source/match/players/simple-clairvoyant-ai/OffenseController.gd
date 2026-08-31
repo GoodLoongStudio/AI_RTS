@@ -37,6 +37,8 @@ var _secondary_unit_scene: PackedScene = null
 var _primary_unit_type_id := ""
 var _secondary_unit_type_id := ""
 var _number_of_pending_unit_resource_requests := {}
+## QueueFull 等拒绝后的退避截止时刻(ms)——按 metadata 键控。
+var _queue_full_backoff := {}
 var _secondary_production_enabled := false
 var _battlegroup_under_forming = null
 var _battlegroups := []
@@ -299,7 +301,9 @@ func _provision_unit(
 		unit_type_id
 	)
 	if not result.get("accepted", false):
-		push_warning("规则 AI 生产作战单位被拒绝：%s" % result)
+		# QueueFull 等拒绝: 5 秒退避后再试(否则每个刷新周期重试, 每秒上百次日志+事务风暴)。
+		_queue_full_backoff[metadata] = Time.get_ticks_msec() + 5000
+		push_warning("规则 AI 生产作战单位被拒绝(5s 退避)：%s" % result)
 
 
 ## 围绕己方 CommandCenter（失去基地时改用 Worker）尝试放置生产建筑。
@@ -360,6 +364,8 @@ func _enforce_units_production(
 	own_entities: Array
 ):
 	if Time.get_ticks_msec() - _setup_ticks_ms < int(_ai.first_wave_delay_s * 1000.0):
+		return
+	if Time.get_ticks_msec() < int(_queue_full_backoff.get(metadata, 0)):
 		return
 	if _completed_producers(structure_type_id, own_entities).is_empty():
 		return

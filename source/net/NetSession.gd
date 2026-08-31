@@ -19,6 +19,7 @@ var e2e_peaceful := false
 var e2e_peaceful_server := false
 var local_slot := 0
 var _pending_solo_start := false
+var _pending_solo_with_ai := false
 var last_rtt_ms := -1  # 客户端对服务器的最近一次 RPC 往返（毫秒），-1 = 无样本
 var local_player_name := "指挥官-%03d" % (randi() % 1000)
 var _peer: ENetMultiplayerPeer = null
@@ -241,6 +242,7 @@ func _reset_peer() -> void:
 	last_lobby_slots = []
 	_match_started = false
 	_pending_solo_start = false
+	_pending_solo_with_ai = false
 	last_rtt_ms = -1
 	local_slot = 0
 	dedicated_server = dedicated_server  # 有意保留专用服标记（self-assign），勿当作冗余代码"修复"
@@ -294,14 +296,15 @@ func _on_connected_to_server() -> void:
 	_set_status("已连接，请点准备")
 	if _pending_solo_start:
 		_pending_solo_start = false
-		_auto_solo_start()
+		_auto_solo_start(_pending_solo_with_ai)
+		_pending_solo_with_ai = false
 
 
-func _auto_solo_start() -> void:
+func _auto_solo_start(with_ai: bool = false) -> void:
 	# 等一拍，确保服务器已把本连接分配进槽位，再请求开局。
 	await get_tree().create_timer(0.6).timeout
 	if is_networked() and not multiplayer.is_server():
-		_rpc_solo_start.rpc_id(1)
+		_rpc_solo_start.rpc_id(1, e2e_peaceful, with_ai)
 
 
 func _on_connection_failed() -> void:
@@ -414,12 +417,13 @@ func _try_start_match() -> void:
 	_launch_match()
 
 
-## 立即开局（用户 2026-08-30 拍板：单人开房也必须走服务器）。
-## 未连接时先连默认云服，连上自动单人开局（AI 补空槽）；已连接客户端直接请求开局。
+## 立即开局（单人开房仍走服务器）。
+## 未连接时先连默认云服，连上自动单人开局；空槽保持空，不自动生成敌人。
 ## 本机 listen server 仅是开发自测路径，不在「立即开局」里。
-func start_solo() -> void:
+func start_solo(with_ai: bool = false) -> void:
 	if not is_networked():
 		_pending_solo_start = true
+		_pending_solo_with_ai = with_ai
 		var err := join(DEFAULT_HOST, DEFAULT_PORT)
 		if err != OK:
 			_pending_solo_start = false
@@ -427,16 +431,23 @@ func start_solo() -> void:
 		else:
 			_set_status("正在连接 %s:%d，连上后自动开局…" % [DEFAULT_HOST, DEFAULT_PORT])
 		return
+	# create_client() returns before ENet finishes the handshake.  Do not send
+	# an RPC until connected_to_server has fired; callers such as --autojoin can
+	# legitimately reach this path during that short window.
+	if not is_server() and multiplayer.multiplayer_peer.get_connection_status() != MultiplayerPeer.CONNECTION_CONNECTED:
+		_pending_solo_start = true
+		_set_status("等待服务器连接，连上后自动开局…")
+		return
 	if not is_server():
-		_rpc_solo_start.rpc_id(1, e2e_peaceful)
+		_rpc_solo_start.rpc_id(1, e2e_peaceful, with_ai)
 		return
 	e2e_peaceful_server = e2e_peaceful
-	_ensure_solo_opponent()
+	if with_ai:
+		_ensure_solo_opponent()
 	_launch_match()
 
 
-## 立即开局保底（2026-08-31 语义修正）：大厅里一个 AI 都没有时自动补 1 个对手（1v1），
-## 房主明确设置的 AI 照样尊重——不再把所有空槽都填成 AI（「设 1 个 AI 出 3 个 AI」的根源）。
+## 仅供冒烟/演示脚本显式请求「单人对 AI」；普通立即开局不调用。
 func _ensure_solo_opponent() -> void:
 	for i in range(MAX_PLAYERS):
 		if _slot_kinds[i] == SLOT_AI:
@@ -467,13 +478,14 @@ func _launch_match() -> void:
 
 
 @rpc("any_peer", "reliable")
-func _rpc_solo_start(peaceful: bool = false) -> void:
+func _rpc_solo_start(peaceful: bool = false, with_ai: bool = false) -> void:
 	if not is_server() or _match_started:
 		return
 	if slot_of(multiplayer.get_remote_sender_id()) < 0:
 		return
 	e2e_peaceful_server = peaceful
-	_ensure_solo_opponent()
+	if with_ai:
+		_ensure_solo_opponent()
 	_launch_match()
 
 

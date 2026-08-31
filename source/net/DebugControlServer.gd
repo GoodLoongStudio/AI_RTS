@@ -279,6 +279,10 @@ func _collect_status(match_node) -> Dictionary:
 			carried = [int(unit.resource_a), int(unit.resource_b)]
 		var entry := {
 			"name": unit.name,
+			"owner": unit.get_parent().name if unit.get_parent() != null else "",
+			"unit_type": str(unit.get("unit_type_id")) if "unit_type_id" in unit else "",
+			"hp": float(unit.hp) if "hp" in unit and unit.hp != null else null,
+			"hp_max": float(unit.hp_max) if "hp_max" in unit and unit.hp_max != null else null,
 			"pos": [
 				unit.global_position.x, unit.global_position.y, unit.global_position.z
 			],
@@ -288,6 +292,8 @@ func _collect_status(match_node) -> Dictionary:
 			"attack": "attack_range" in unit,
 			"carried": carried,
 		}
+		if "action" in unit and unit.action != null and is_instance_valid(unit.action):
+			entry["action"] = str(unit.action.get_script().resource_path) if unit.action.get_script() != null else str(unit.action)
 		if "is_constructed" in unit:
 			entry["constructed"] = bool(unit.is_constructed())
 		if camera != null:

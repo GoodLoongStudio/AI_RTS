@@ -66,7 +66,7 @@ public sealed record UnitTypeDefinition(
 /// <param name="Id">稳定弹头定义 ID。</param>
 /// <param name="ImpactSelectionMode">只命中指定目标或按实际爆点查询范围。</param>
 /// <param name="RadiusMeters">范围结算半径，单位为米；直接命中允许为零。</param>
-/// <param name="FriendlyFireDamageMultiplier">对友军应用的伤害倍率，当前 Demo 默认为 1。</param>
+/// <param name="FriendlyFireDamageMultiplier">对友军应用的伤害倍率，当前 Demo 默认为 0（关闭友伤）。</param>
 public sealed record WarheadDefinition(
     WarheadDefinitionId Id,
     ImpactSelectionMode ImpactSelectionMode,
