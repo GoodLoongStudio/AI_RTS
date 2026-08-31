@@ -32,6 +32,10 @@ func _ready() -> void:
 	# 调试钩子：-- --autolobby 直接本机开房，供自动化截图与自测。
 	if "--autolobby" in OS.get_cmdline_user_args():
 		_on_listen_button_pressed()
+	# 调试钩子：-- --autojoin（或 res://autojoin.txt 存在）直接加入默认服务器并立即开局，
+	# 供 Godot MCP 一键开出「已在对局中」的游戏窗口。
+	if "--autojoin" in OS.get_cmdline_user_args() or FileAccess.file_exists("res://autojoin.txt"):
+		_auto_join_solo()
 	if "--autoshot" in OS.get_cmdline_user_args():
 		_auto_screenshot()
 	if "--smokeclient" in OS.get_cmdline_user_args():
@@ -171,6 +175,23 @@ func _on_ready_button_pressed() -> void:
 
 func _on_solo_button_pressed() -> void:
 	NetSession.start_solo()
+
+
+## 调试钩子：--autojoin 或 res://autojoin.txt 存在时，直接加入默认服务器并立即开局，
+## 供 Godot MCP 一键开出「已在对局中」的游戏窗口（免去人工点菜单）。
+func _auto_join_solo() -> void:
+	_on_join_button_pressed()
+	var waited := 0
+	while waited < 60:
+		await get_tree().create_timer(1.0).timeout
+		waited += 1
+		if not NetSession.is_networked():
+			continue
+		if NetSession.local_slot >= 0:
+			_status_label.text = "自动开局中…"
+			NetSession.start_solo()
+			return
+	_status_label.text = "自动加入超时"
 
 
 func _on_back_button_pressed() -> void:
