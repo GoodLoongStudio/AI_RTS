@@ -238,9 +238,13 @@ func _rts_chain_test() -> void:
 				int(player.resource_a), (i + 1) * 5 / 2
 			])
 			break
-		if i % 8 == 7:
-			_log("SMOKE_SUITE GATHER=采矿中 %ds, resource_a=%s" % [
-				(i + 1) * 5 / 2, str(player.get("resource_a"))
+		if i % 4 == 3:
+			var positions := []
+			for w in workers:
+				if is_instance_valid(w):
+					positions.append(str(w.global_position))
+			_log("SMOKE_SUITE GATHER=采矿中 %ds, resource_a=%s 工人位置=%s" % [
+				int((i + 1) * 2.5), str(player.get("resource_a")), str(positions)
 			])
 	if not affordable:
 		_log("SMOKE_SUITE GATHER=FAIL (300s 未攒够 %s)" % str(factory_cost))
