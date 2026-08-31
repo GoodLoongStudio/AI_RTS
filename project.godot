@@ -22,11 +22,6 @@ boot_splash/stretch_mode=0
 boot_splash/image="res://assets/logos/godot_logo_vertical_monochrome_dark_312x357.png"
 config/icon="res://icon.svg"
 
-[rendering]
-
-renderer/rendering_method="gl_compatibility"
-renderer/rendering_method.mobile="gl_compatibility"
-
 [autoload]
 
 NetSession="*res://source/net/NetSession.gd"
@@ -58,7 +53,7 @@ project/assembly_name="OpenRTS"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/godot_mcp/plugin.cfg")
+enabled=PackedStringArray("res://addons/godot_mcp/plugin.cfg", "res://addons/godot_ai/plugin.cfg")
 
 [gui]
 
@@ -242,3 +237,8 @@ locale/translations=PackedStringArray("res://assets/translations/match.en.transl
 
 3d/merge_rasterizer_cell_scale=0.001
 3d/use_edge_connections=false
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
