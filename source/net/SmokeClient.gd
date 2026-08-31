@@ -228,33 +228,52 @@ func _rts_chain_test() -> void:
 					worker.name, str(gather_result.get("status", gather_result))
 				])
 	# 等待余额够工厂造价（6A）。工人采集由快照同步的余额反映。
+	# 资源点采空会导致工人闲置——停滞 20s 就换下一个资源点重新派采（AI 同款策略）。
 	var factory_cost := 6.0
 	var affordable := false
-	for i in range(120):
+	var resource_candidates := tree.get_nodes_in_group("resource_units")
+	var resource_index := 0
+	var last_balance := -1
+	var stall_ticks := 0
+	for i in range(240):
 		await tree.create_timer(2.5).timeout
 		if player.get("resource_a") != null and float(player.resource_a) >= factory_cost:
 			affordable = true
 			_log("SMOKE_SUITE GATHER=PASS (resource_a=%d, %ds)" % [
-				int(player.resource_a), (i + 1) * 5 / 2
+				int(player.resource_a), int((i + 1) * 2.5)
 			])
 			break
+		var balance := int(player.resource_a)
 		if i % 4 == 3:
 			var positions := []
 			for w in workers:
 				if is_instance_valid(w):
 					positions.append(str(w.global_position))
 			_log("SMOKE_SUITE GATHER=采矿中 %ds, resource_a=%s 工人位置=%s" % [
-				int((i + 1) * 2.5), str(player.get("resource_a")), str(positions)
+				int((i + 1) * 2.5), str(balance), str(positions)
 			])
+		if balance == last_balance:
+			stall_ticks += 1
+			if stall_ticks >= 8 and not resource_candidates.is_empty():
+				stall_ticks = 0
+				resource_index += 1
+				var pick = resource_candidates[resource_index % resource_candidates.size()]
+				for worker in workers:
+					if is_instance_valid(worker) and "resources_max" in worker and int(worker.get("resources_max")) > 0:
+						gateway.GatherResources([worker], pick, player)
+				_log("SMOKE_SUITE GATHER=换矿 %s" % pick.name)
+		else:
+			stall_ticks = 0
+		last_balance = balance
 	if not affordable:
-		_log("SMOKE_SUITE GATHER=FAIL (300s 未攒够 %s)" % str(factory_cost))
+		_log("SMOKE_SUITE GATHER=FAIL (600s 未攒够 %s)" % str(factory_cost))
 		return
 
 	# BUILD：工人放置兵工厂（与玩家放建筑完全同一条转发路径）。
 	var factory_position: Vector3 = own_cc.global_position + Vector3(5.0, 0.0, 5.0)
 	sync.forward_command(
 		"place_structure",
-		[own_worker],
+		workers,
 		factory_position,
 		null,
 		player,
