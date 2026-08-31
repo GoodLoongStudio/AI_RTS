@@ -191,6 +191,27 @@ func _cancel_structure_placement():
 
 
 func _finish_structure_placement():
+	if NetSession.should_forward_commands():
+		# 联机傀儡端：放置必须转发到权威服务器（此前只在本地产出建筑, 服务器毫不知情）。
+		var match_node := find_parent("Match")
+		var sync := match_node.get_node_or_null("NetSync") if match_node != null else null
+		if sync != null:
+			var transform: Transform3D = _active_blueprint_node.global_transform
+			sync.forward_command(
+				"place_structure",
+				_pending_construction_workers,
+				transform.origin,
+				null,
+				_player,
+				_pending_structure_prototype.resource_path
+				+ "|"
+				+ str(transform.basis.get_euler().y)
+			)
+			_pending_construction_workers = []
+			_input_runtime.SetContextActive("BuildPlacement", false)
+			_active_blueprint_node.queue_free()
+			_active_blueprint_node = null
+			return
 	var result = _placement_runtime.Place(
 		_player,
 		_pending_structure_prototype,

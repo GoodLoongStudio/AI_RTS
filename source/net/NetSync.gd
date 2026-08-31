@@ -351,6 +351,31 @@ func _rpc_command(
 		if queue != null:
 			queue.produce(load(extra))
 		return
+	if op == "place_structure":
+		# 人类玩家放置建筑（复核 2026-08-31：此前傀儡端 Place 只在本地生成, 服务器毫不知情）。
+		var placement_runtime = _match.get_node_or_null("StructurePlacementRuntime")
+		if placement_runtime == null or units.is_empty() or extra.is_empty():
+			print("[CMD][服务器] place_structure 拒绝: runtime/参数缺失")
+			return
+		var parts: PackedStringArray = extra.split("|")
+		var yaw: float = float(parts[1]) if parts.size() > 1 else 0.0
+		var structure_transform := Transform3D(
+			Basis.IDENTITY.rotated(Vector3.UP, yaw), destination
+		)
+		var place_result: Dictionary = placement_runtime.Place(
+			issuer, load(parts[0]), structure_transform, {}
+		)
+		print(
+			"[CMD][服务器] place_structure accepted=",
+			bool(place_result.get("accepted", false)),
+			" issue=",
+			str(place_result.get("primary_issue", ""))
+		)
+		if bool(place_result.get("accepted", false)):
+			placement_runtime.AssignBuilders(
+				units, place_result["structure"], issuer, place_result["displaced_unit_ids"]
+			)
+		return
 	if units.is_empty():
 		print("[CMD][服务器] 拒绝: 单位解析为空 op=%s paths=%s" % [op, paths])
 		return

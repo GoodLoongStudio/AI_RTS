@@ -92,8 +92,7 @@ func _run() -> void:
 		if targets.size() > 0:
 			_log("SMOKE_OK units=%d interp_targets=%d" % [units, targets.size()])
 			await _command_round_trip(sync)
-			await _produce_test()
-			await _attack_test()
+			await _rts_chain_test()
 			tree.quit(0)
 			return
 		if waited % 10 == 0:
@@ -174,80 +173,152 @@ func _command_round_trip(sync: Node) -> void:
 	_log("SMOKE_CMD_FAIL 8s 后 moved=%d/%d" % [moved_count, movable.size()])
 
 
-
-## 阶段 PRODUCE：指挥中心生产 1 个工人，验证生产命令→服务器队列→新单位出现。
-func _produce_test() -> void:
+## 阶段链 BUILD→PRODUCE_WORKER→PRODUCE_TANK→ATTACK：完整 RTS 循环端到端实测。
+func _rts_chain_test() -> void:
 	var tree := get_tree()
 	var match_node := tree.current_scene
 	var player = match_node.get_local_player()
-	var cc = null
-	for unit in tree.get_nodes_in_group("units"):
-		if unit.get_parent() == player and unit.find_child("ProductionQueue", false, false) != null:
-			cc = unit
-			break
-	if cc == null:
-		_log("SMOKE_SUITE PRODUCE=FAIL (无生产建筑)")
+	var sync = match_node.get_node_or_null("NetSync")
+	var gateway = NetSession.command_gateway_for(player)
+	if gateway == null:
+		_log("SMOKE_SUITE CHAIN=FAIL (无命令代理)")
 		return
-	var before: int = tree.get_nodes_in_group("units").size()
-	var queue = cc.find_child("ProductionQueue", false, false)
-	queue.produce(load("res://source/match/units/Worker.tscn"))
-	_log("SMOKE_SUITE PRODUCE=SUBMITTED (units before=%d)" % before)
+
+	var own_cc = null
+	var own_worker = null
+	for unit in tree.get_nodes_in_group("units"):
+		if unit.get_parent() != player:
+			continue
+		if unit.find_child("ProductionQueue", false, false) != null and own_cc == null:
+			own_cc = unit
+		elif (
+			unit.find_child("Movement", false, false) != null
+			and unit.has_method("request_legacy_construct")
+			and own_worker == null
+		):
+			own_worker = unit
+	if own_cc == null or own_worker == null:
+		_log("SMOKE_SUITE CHAIN=FAIL (基地=%s 工人=%s)" % [str(own_cc != null), str(own_worker != null)])
+		return
+
+	# BUILD：工人放置兵工厂（与玩家放建筑完全同一条转发路径）。
+	var factory_position: Vector3 = own_cc.global_position + Vector3(12.0, 0.0, 8.0)
+	sync.forward_command(
+		"place_structure",
+		[own_worker],
+		factory_position,
+		null,
+		player,
+		"res://source/match/units/VehicleFactory.tscn"
+	)
+	_log("SMOKE_SUITE BUILD=SUBMITTED")
+	var factory = null
+	for i in range(12):
+		await tree.create_timer(2.5).timeout
+		for unit in tree.get_nodes_in_group("units"):
+			if (
+				unit.get_parent() == player
+				and unit.find_child("ProductionQueue", false, false) != null
+				and unit != own_cc
+			):
+				factory = unit
+				break
+		if factory != null:
+			break
+	if factory == null:
+		_log("SMOKE_SUITE BUILD=FAIL (30s 内未出现工厂蓝图——余额不足或被拒)")
+		return
+	_log("SMOKE_SUITE BUILD=SPAWNED (等待竣工)")
+	for i in range(120):
+		await tree.create_timer(2.5).timeout
+		if not is_instance_valid(factory):
+			_log("SMOKE_SUITE BUILD=FAIL (工厂消失)")
+			return
+		if "is_constructed" in factory and bool(factory.is_constructed()):
+			_log("SMOKE_SUITE BUILD=PASS (%ds 竣工)" % int((i + 1) * 2.5))
+			break
+		if i % 8 == 7:
+			_log("SMOKE_SUITE BUILD=施工中 %ds" % int((i + 1) * 2.5))
+	if not ("is_constructed" in factory and bool(factory.is_constructed())):
+		_log("SMOKE_SUITE BUILD=FAIL (300s 未竣工)")
+		return
+
+	# PRODUCE_WORKER：指挥中心生产 1 个工人。
+	var units_before: int = tree.get_nodes_in_group("units").size()
+	own_cc.find_child("ProductionQueue", false, false).produce(
+		load("res://source/match/units/Worker.tscn")
+	)
+	_log("SMOKE_SUITE PRODUCE_WORKER=SUBMITTED")
+	var worker_ok := false
 	for i in range(36):
 		await tree.create_timer(2.5).timeout
-		if not NetSession.is_networked():
-			_log("SMOKE_SUITE PRODUCE=FAIL (会话断开)")
-			return
-		var now: int = tree.get_nodes_in_group("units").size()
-		if now > before:
-			_log("SMOKE_SUITE PRODUCE=PASS (units %d→%d, %ds)" % [before, now, (i + 1) * 25 / 10])
-			return
-		if i % 4 == 3:
-			_log("SMOKE_SUITE PRODUCE=等待 %ds units=%d" % [(i + 1) * 25 / 10, now])
-	_log("SMOKE_SUITE PRODUCE=FAIL (90s 未出现新单位)")
+		if tree.get_nodes_in_group("units").size() > units_before:
+			_log("SMOKE_SUITE PRODUCE_WORKER=PASS (%ds)" % int((i + 1) * 2.5))
+			worker_ok = true
+			break
+	if not worker_ok:
+		_log("SMOKE_SUITE PRODUCE_WORKER=FAIL (90s 未出货)")
+		return
 
+	# PRODUCE_TANK：兵工厂生产 1 辆坦克。
+	units_before = tree.get_nodes_in_group("units").size()
+	factory.find_child("ProductionQueue", false, false).produce(
+		load("res://source/match/units/Tank.tscn")
+	)
+	_log("SMOKE_SUITE PRODUCE_TANK=SUBMITTED")
+	var tank = null
+	for i in range(72):
+		await tree.create_timer(2.5).timeout
+		for unit in tree.get_nodes_in_group("units"):
+			if (
+				unit.get_parent() == player
+				and unit.find_child("Movement", false, false) != null
+				and str(unit.get_script().resource_path).contains("Tank")
+			):
+				tank = unit
+				break
+		if tank != null:
+			_log("SMOKE_SUITE PRODUCE_TANK=PASS (%ds)" % int((i + 1) * 2.5))
+			break
+		if i % 8 == 7:
+			_log("SMOKE_SUITE PRODUCE_TANK=等待 %ds units=%d" % [int((i + 1) * 2.5), tree.get_nodes_in_group("units").size()])
+	if tank == null:
+		_log("SMOKE_SUITE PRODUCE_TANK=FAIL (180s 未出货)")
+		return
 
-## 阶段 ATTACK：无人机攻击敌方指挥中心，验证攻击命令接受并朝目标推进。
-func _attack_test() -> void:
-	var tree := get_tree()
-	var match_node := tree.current_scene
-	var player = match_node.get_local_player()
-	var drone = null
+	# ATTACK：坦克攻击敌方基地（移动+交战）。
+	var enemy_cc = null
 	for unit in tree.get_nodes_in_group("units"):
 		if (
-			unit.get_parent() == player
-			and unit.find_child("Movement", false, false) != null
-			and "movement_domain" in unit
-			and int(unit.get("movement_domain")) == 0
+			unit.get_parent() != player
+			and unit.get_parent().get_parent() == match_node.get_node("Players")
+			and unit.find_child("ProductionQueue", false, false) != null
+			and unit.find_child("Movement", false, false) == null
 		):
-			drone = unit
+			enemy_cc = unit
 			break
-	if drone == null:
-		_log("SMOKE_SUITE ATTACK=FAIL (无无人机)")
-		return
-	var enemy_cc = tree.root.get_node_or_null(NodePath("Match/Players/Player_1/Unit_0"))
 	if enemy_cc == null:
-		_log("SMOKE_SUITE ATTACK=FAIL (找不到敌方基地节点)")
+		_log("SMOKE_SUITE ATTACK=FAIL (找不到敌方基地)")
 		return
-	var gateway = NetSession.command_gateway_for(player)
-	var before: Vector3 = drone.global_position
-	var result: Dictionary = gateway.AttackUnits([drone], enemy_cc, player)
-	var status := str(result.get("status", result))
-	var accepted: bool = (
-		status == "Accepted"
-		and result.get("unit_results", []).any(
-			func(item): return bool(item.get("accepted", false))
-		)
-	)
-	_log("SMOKE_SUITE ATTACK=SUBMITTED (%s)" % status)
-	for i in range(16):
-		await tree.create_timer(0.5).timeout
-		if not is_instance_valid(drone):
-			_log("SMOKE_SUITE ATTACK=PASS (无人机阵亡=已在交战)")
+	var before: Vector3 = tank.global_position
+	var result: Dictionary = gateway.AttackUnits([tank], enemy_cc, player)
+	var accepted := false
+	if result.get("unit_results", []) is Array:
+		for item in result.get("unit_results", []):
+			if bool(item.get("accepted", false)):
+				accepted = true
+	_log("SMOKE_SUITE ATTACK=SUBMITTED accepted=%s" % str(accepted))
+	for i in range(24):
+		await tree.create_timer(2.5).timeout
+		if not is_instance_valid(tank):
+			_log("SMOKE_SUITE ATTACK=PASS (坦克阵亡=已交战至死)")
 			return
-		var drift: float = drone.global_position.distance_to(before)
-		if drift > 5.0:
-			_log("SMOKE_SUITE ATTACK=PASS (drift=%.1fm, %ds)" % [drift, (i + 1) * 5])
+		var drift: float = tank.global_position.distance_to(before)
+		if drift > 10.0:
+			_log("SMOKE_SUITE ATTACK=PASS (drift=%.0fm, %ds)" % [drift, int((i + 1) * 2.5)])
 			return
-	_log("SMOKE_SUITE ATTACK=%s (8s 未位移——可能目标超出攻击响应或被拒绝)" % (
-		"PASS?" if accepted else "FAIL"
-	))
+		if i % 4 == 3:
+			_log("SMOKE_SUITE ATTACK=推进中 %ds drift=%.0fm" % [int((i + 1) * 2.5), drift])
+	_log("SMOKE_SUITE ATTACK=FAIL (60s 未推进)")
+
+	_log("SMOKE_SUITE 全链路完成")
