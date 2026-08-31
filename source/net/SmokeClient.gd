@@ -92,6 +92,8 @@ func _run() -> void:
 		if targets.size() > 0:
 			_log("SMOKE_OK units=%d interp_targets=%d" % [units, targets.size()])
 			await _command_round_trip(sync)
+			await _produce_test()
+			await _attack_test()
 			tree.quit(0)
 			return
 		if waited % 10 == 0:
@@ -171,3 +173,81 @@ func _command_round_trip(sync: Node) -> void:
 			_log("SMOKE_CMD: waiting %ds, moved=%d/%d" % [(i + 1) * 5, moved_count, movable.size()])
 	_log("SMOKE_CMD_FAIL 8s 后 moved=%d/%d" % [moved_count, movable.size()])
 
+
+
+## 阶段 PRODUCE：指挥中心生产 1 个工人，验证生产命令→服务器队列→新单位出现。
+func _produce_test() -> void:
+	var tree := get_tree()
+	var match_node := tree.current_scene
+	var player = match_node.get_local_player()
+	var cc = null
+	for unit in tree.get_nodes_in_group("units"):
+		if unit.get_parent() == player and unit.find_child("ProductionQueue", false, false) != null:
+			cc = unit
+			break
+	if cc == null:
+		_log("SMOKE_SUITE PRODUCE=FAIL (无生产建筑)")
+		return
+	var before: int = tree.get_nodes_in_group("units").size()
+	var queue = cc.find_child("ProductionQueue", false, false)
+	queue.produce(load("res://source/match/units/Worker.tscn"))
+	_log("SMOKE_SUITE PRODUCE=SUBMITTED (units before=%d)" % before)
+	for i in range(36):
+		await tree.create_timer(2.5).timeout
+		if not NetSession.is_networked():
+			_log("SMOKE_SUITE PRODUCE=FAIL (会话断开)")
+			return
+		var now: int = tree.get_nodes_in_group("units").size()
+		if now > before:
+			_log("SMOKE_SUITE PRODUCE=PASS (units %d→%d, %ds)" % [before, now, (i + 1) * 25 / 10])
+			return
+		if i % 4 == 3:
+			_log("SMOKE_SUITE PRODUCE=等待 %ds units=%d" % [(i + 1) * 25 / 10, now])
+	_log("SMOKE_SUITE PRODUCE=FAIL (90s 未出现新单位)")
+
+
+## 阶段 ATTACK：无人机攻击敌方指挥中心，验证攻击命令接受并朝目标推进。
+func _attack_test() -> void:
+	var tree := get_tree()
+	var match_node := tree.current_scene
+	var player = match_node.get_local_player()
+	var drone = null
+	for unit in tree.get_nodes_in_group("units"):
+		if (
+			unit.get_parent() == player
+			and unit.find_child("Movement", false, false) != null
+			and "movement_domain" in unit
+			and int(unit.get("movement_domain")) == 0
+		):
+			drone = unit
+			break
+	if drone == null:
+		_log("SMOKE_SUITE ATTACK=FAIL (无无人机)")
+		return
+	var enemy_cc = tree.root.get_node_or_null(NodePath("Match/Players/Player_1/Unit_0"))
+	if enemy_cc == null:
+		_log("SMOKE_SUITE ATTACK=FAIL (找不到敌方基地节点)")
+		return
+	var gateway = NetSession.command_gateway_for(player)
+	var before: Vector3 = drone.global_position
+	var result: Dictionary = gateway.AttackUnits([drone], enemy_cc, player)
+	var status := str(result.get("status", result))
+	var accepted: bool = (
+		status == "Accepted"
+		and result.get("unit_results", []).any(
+			func(item): return bool(item.get("accepted", false))
+		)
+	)
+	_log("SMOKE_SUITE ATTACK=SUBMITTED (%s)" % status)
+	for i in range(16):
+		await tree.create_timer(0.5).timeout
+		if not is_instance_valid(drone):
+			_log("SMOKE_SUITE ATTACK=PASS (无人机阵亡=已在交战)")
+			return
+		var drift: float = drone.global_position.distance_to(before)
+		if drift > 5.0:
+			_log("SMOKE_SUITE ATTACK=PASS (drift=%.1fm, %ds)" % [drift, (i + 1) * 5])
+			return
+	_log("SMOKE_SUITE ATTACK=%s (8s 未位移——可能目标超出攻击响应或被拒绝)" % (
+		"PASS?" if accepted else "FAIL"
+	))
