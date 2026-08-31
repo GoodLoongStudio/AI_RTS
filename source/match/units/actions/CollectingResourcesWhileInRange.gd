@@ -50,6 +50,8 @@ func _setup_timer():
 
 
 func _transfer_single_resource_unit_from_resource_to_worker():
+	if _unit.name in ["Unit_2", "Unit_3"]:
+		print("[COLLECT] ", _unit.name, " tick adhere=", Utils.Match.Unit.Movement.units_adhere(_unit, _resource_unit), " carried=", _unit.resource_a, "/", _unit.resource_b)
 	if not Utils.Match.Unit.Movement.units_adhere(_unit, _resource_unit):
 		queue_free()
 		return

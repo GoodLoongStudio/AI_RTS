@@ -91,6 +91,7 @@ func _enter_state(state):
 			add_child(_sub_action)
 			_unit.action_updated.emit()
 		State.MOVING_TO_CC:
+			print("[GATHER] ", _unit.name, " 满载回城")
 			if not _set_cc_unit(_find_cc_closest_to_unit(_unit)):
 				return
 			_sub_action = MovingToUnit.new(_cc_unit)
