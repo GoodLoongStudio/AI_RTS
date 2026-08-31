@@ -66,6 +66,9 @@ func setup_world_query(world_query_runtime, query_session_id: String):
 
 
 func _ready():
+	# 专用服默认 EASY: NORMAL 档首波太凶且经济碾压, 新手对局必输(2026-08-31 实测)。
+	if NetSession.dedicated_server and difficulty == Difficulty.NORMAL:
+		difficulty = Difficulty.EASY
 	_apply_difficulty_profile()
 	if NetSession.e2e_peaceful_server:
 		first_wave_delay_s = 600.0
