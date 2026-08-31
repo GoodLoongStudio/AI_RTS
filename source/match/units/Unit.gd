@@ -346,6 +346,14 @@ func _setup_color():
 
 
 func _set_action(action_node):
+	if action_node != null and name in ["Unit_2", "Unit_3"]:
+		print(
+			"[ACT] ", name,
+			" puppet=", NetSession.is_client_puppet(),
+			" in_tree=", is_inside_tree(),
+			" locked=", _action_locked,
+			" script=", action_node.get_script().resource_path if action_node.get_script() != null else "null"
+		)
 	if NetSession.is_client_puppet():
 		if action_node != null:
 			action_node.queue_free()
@@ -357,6 +365,8 @@ func _set_action(action_node):
 	_action_locked = true
 	_teardown_current_action()
 	action = action_node
+	if action_node != null and name in ["Unit_2", "Unit_3"]:
+		print("[ACT] ", name, " attached child=", action_node.get_parent() == self)
 	if action != null:
 		var action_copy = action  # bind() performs copy itself, but lets force copy just in case
 		action.tree_exited.connect(_on_action_node_tree_exited.bind(action_copy))
