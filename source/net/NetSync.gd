@@ -428,7 +428,8 @@ func _rpc_command(
 				gateway.ApproachEntityUnits(units, target, issuer)
 		"gather":
 			if target != null:
-				gateway.GatherResources(units, target, issuer)
+				var gather_result: Dictionary = gateway.GatherResources(units, target, issuer)
+				print("[CMD][服务器] GatherResources 结果: ", gather_result)
 		"construct":
 			if target != null:
 				gateway.ConstructUnits(units, target, issuer)

@@ -201,8 +201,53 @@ func _rts_chain_test() -> void:
 		_log("SMOKE_SUITE CHAIN=FAIL (基地=%s 工人=%s)" % [str(own_cc != null), str(own_worker != null)])
 		return
 
+	# GATHER：先派全部工人去最近资源点采矿，攒够兵工厂造价（6A）再放置。
+	var workers: Array = []
+	for unit in tree.get_nodes_in_group("controlled_units"):
+		if (
+			unit.get_parent() == player
+			and unit.find_child("Movement", false, false) != null
+			and unit.has_method("request_legacy_construct")
+		):
+			workers.append(unit)
+	var nearest_resource = null
+	var nearest_distance := 1e12
+	for resource in tree.get_nodes_in_group("resource_units"):
+		var distance: float = resource.global_position.distance_to(own_cc.global_position)
+		if distance < nearest_distance:
+			nearest_distance = distance
+			nearest_resource = resource
+	if nearest_resource != null and not workers.is_empty():
+		# 只派真正能采集的工人（resources_max>0），逐个下发——无人机等混入会整批被拒。
+		for worker in workers:
+			if "resources_max" in worker and int(worker.get("resources_max")) > 0:
+				var gather_result: Dictionary = gateway.GatherResources(
+					[worker], nearest_resource, player
+				)
+				_log("SMOKE_SUITE GATHER=SUBMITTED %s -> %s" % [
+					worker.name, str(gather_result.get("status", gather_result))
+				])
+	# 等待余额够工厂造价（6A）。工人采集由快照同步的余额反映。
+	var factory_cost := 6.0
+	var affordable := false
+	for i in range(120):
+		await tree.create_timer(2.5).timeout
+		if player.get("resource_a") != null and float(player.resource_a) >= factory_cost:
+			affordable = true
+			_log("SMOKE_SUITE GATHER=PASS (resource_a=%d, %ds)" % [
+				int(player.resource_a), (i + 1) * 5 / 2
+			])
+			break
+		if i % 8 == 7:
+			_log("SMOKE_SUITE GATHER=采矿中 %ds, resource_a=%s" % [
+				(i + 1) * 5 / 2, str(player.get("resource_a"))
+			])
+	if not affordable:
+		_log("SMOKE_SUITE GATHER=FAIL (300s 未攒够 %s)" % str(factory_cost))
+		return
+
 	# BUILD：工人放置兵工厂（与玩家放建筑完全同一条转发路径）。
-	var factory_position: Vector3 = own_cc.global_position + Vector3(12.0, 0.0, 8.0)
+	var factory_position: Vector3 = own_cc.global_position + Vector3(5.0, 0.0, 5.0)
 	sync.forward_command(
 		"place_structure",
 		[own_worker],
