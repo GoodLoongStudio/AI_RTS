@@ -59,7 +59,9 @@ class Resources:
 
 
 class Units:
-	const ADHERENCE_MARGIN_M = 0.3  # TODO: try lowering while fixing a 'push' problem
+	# 0.5: 建筑 Movement 半径(1.8)与 MovementObstacle 半径(2.0)错位 0.2m + 导航停驻抖动,
+	# 0.3 时贴合判定在厘米级临界上随机失败——工人采不到矿/交付不了(2026-08-31 E2E 实测)。
+	const ADHERENCE_MARGIN_M = 0.5
 	const NEW_RESOURCE_SEARCH_RADIUS_M = 30
 	const MOVING_UNIT_RADIUS_MAX_M = 1.0
 	const EMPTY_SPACE_RADIUS_SURROUNDING_STRUCTURE_M = MOVING_UNIT_RADIUS_MAX_M * 2.5
