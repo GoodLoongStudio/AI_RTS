@@ -122,6 +122,7 @@ func _transfer_collected_resources_to_player():
 		"resource_a": _unit.resource_a,
 		"resource_b": _unit.resource_b,
 	}
+	print("[GATHER] 交付 resource_a=%s resource_b=%s player=%s" % [str(_unit.resource_a), str(_unit.resource_b), _unit.player.name])
 	var accepted = _unit.player.add_resources(delivery, "WorkerDelivery", _unit)
 	assert(accepted, "a valid Worker delivery must reach its authoritative resource account")
 	if not accepted:
@@ -166,6 +167,7 @@ func _handle_sub_action_finished_while_moving_to_resource():
 		return
 	# resource reached
 	if not _unit.is_full():
+		print("[GATHER] 到达资源点, 开始采集 unit=", _unit.name)
 		_change_state_to(State.COLLECTING)
 	else:
 		_change_state_to(State.MOVING_TO_CC)
