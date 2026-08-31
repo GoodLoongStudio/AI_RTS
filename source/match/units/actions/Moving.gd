@@ -41,9 +41,13 @@ func _exit_tree():
 func _physics_process(_delta):
 	# 自愈(2026-08-31): 旧动作退出时的 stop() 竞态会清除本动作刚下发的移动目标
 	# (target_position=INF), 造成「命令 Accepted 但单位站桩」。检测到即重发。
-	if _target_position != null and _movement_trait != null:
-		if _movement_trait.target_position == Vector3.INF:
-			_movement_trait.move(_target_position)
+	# 守卫: 单位死亡拆树时 _movement_trait 可能已释放, 悬空访问会崩游戏。
+	if _target_position == null or _movement_trait == null:
+		return
+	if not is_instance_valid(_movement_trait) or not is_inside_tree():
+		return
+	if _movement_trait.target_position == Vector3.INF:
+		_movement_trait.move(_target_position)
 
 
 func _on_movement_finished():

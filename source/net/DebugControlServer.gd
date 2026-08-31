@@ -156,6 +156,8 @@ func _resolve_own_units(match_node, wanted: Array) -> Array:
 	var player = match_node.get_local_player()
 	var nodes: Array = []
 	for unit in get_tree().get_nodes_in_group("units"):
+		if unit == null or not is_instance_valid(unit):
+			continue
 		if unit.get_parent() == player and unit.name in wanted:
 			nodes.append(unit)
 	return nodes
@@ -188,6 +190,8 @@ func _op_gather(match_node, parsed) -> String:
 	var target = null
 	var best_distance := 1e12
 	for resource in get_tree().get_nodes_in_group("resource_units"):
+		if resource == null or not is_instance_valid(resource):
+			continue
 		var matches_kind := (kind == "a" and "resource_a" in resource) or (
 			kind == "b" and "resource_b" in resource
 		)
@@ -243,6 +247,8 @@ func _op_attack(match_node, parsed) -> String:
 	var target_name := str(parsed.get("target", ""))
 	var target = null
 	for unit in get_tree().get_nodes_in_group("units"):
+		if unit == null or not is_instance_valid(unit):
+			continue
 		if unit.name == target_name and unit.get_parent() != player:
 			target = unit
 			break
@@ -264,6 +270,10 @@ func _collect_status(match_node) -> Dictionary:
 	out["balance"] = {"a": int(player.resource_a), "b": int(player.resource_b)}
 	var camera := tree.current_scene.get_viewport().get_camera_3d()
 	for unit in tree.get_nodes_in_group("units"):
+		if unit == null or not is_instance_valid(unit):
+			continue
+		if unit == null or not is_instance_valid(unit):
+			continue
 		var carried := [0, 0]
 		if "resource_a" in unit and "resource_b" in unit:
 			carried = [int(unit.resource_a), int(unit.resource_b)]
@@ -285,6 +295,8 @@ func _collect_status(match_node) -> Dictionary:
 			entry["screen"] = [screen.x, screen.y]
 		out["units"].append(entry)
 	for resource in tree.get_nodes_in_group("resource_units"):
+		if resource == null or not is_instance_valid(resource):
+			continue
 		var resource_entry := {"name": resource.name}
 		if "resource_a" in resource:
 			resource_entry["kind"] = "a"

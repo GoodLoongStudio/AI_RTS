@@ -43,6 +43,9 @@ var _heal_ticks := 0
 func _physics_process(_delta):
 	# 自愈(2026-08-31): 子动作因回调竞态丢失时, 重建当前状态的子动作,
 	# 消除「采集订单 Accepted 但工人站桩不采矿」的时序竞态。
+	# 守卫: 单位死亡拆树时引用可能悬空。
+	if not is_inside_tree() or not is_instance_valid(_unit):
+		return
 	if _is_suspended or _state == State.NULL or _state_locked:
 		return
 	if _sub_action != null:
@@ -54,14 +57,18 @@ func _physics_process(_delta):
 	_heal_ticks = 0
 	match _state:
 		State.MOVING_TO_RESOURCE:
-			if _resource_unit != null:
+			if _resource_unit != null and is_instance_valid(_resource_unit):
 				print("[GATHER] 自愈: 重建前往资源点 unit=", _unit.name)
 				_change_state_to(State.MOVING_TO_RESOURCE)
 		State.COLLECTING:
-			if CollectingResourcesWhileInRange.is_applicable(_unit, _resource_unit):
+			if (
+				_resource_unit != null
+				and is_instance_valid(_resource_unit)
+				and CollectingResourcesWhileInRange.is_applicable(_unit, _resource_unit)
+			):
 				print("[GATHER] 自愈: 重建采集 unit=", _unit.name)
 				_change_state_to(State.COLLECTING)
-			elif _resource_unit != null:
+			elif _resource_unit != null and is_instance_valid(_resource_unit):
 				_change_state_to(State.MOVING_TO_RESOURCE)
 		State.MOVING_TO_CC:
 			print("[GATHER] 自愈: 重建回城 unit=", _unit.name)
