@@ -36,7 +36,11 @@ func setup_resource_account(economy_runtime):
 
 ## 接收 C# 权威账户快照并更新 Legacy 只读字段，供现有 HUD 与测试读取。
 func apply_authoritative_resource_snapshot(a: int, b: int, version: int):
+	if name in ["Player_0", "Player_1"]:
+		print("[ECO-GD] ", name, " apply a=", a, " version=", version, " 存量version=", _resource_account_version)
 	if version < _resource_account_version:
+		if name in ["Player_0", "Player_1"]:
+			print("[ECO-GD] ", name, " 版本回退拒绝!")
 		return
 	_resource_account_version = version
 	_applying_authoritative_snapshot = true
