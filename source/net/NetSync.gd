@@ -33,6 +33,10 @@ func _ready() -> void:
 	if not NetSession.is_networked():
 		return
 	MatchSignals.match_started.connect(_on_any_match_started)
+	# 对局结束广播(2026-08-31): 服务器结算后通知所有客户端回主菜单,
+	# 否则客户端滞留死亡对局——视野归零全黑+HUD(黑屏假象), 且专用服不回收。
+	MatchSignals.match_finished_with_defeat.connect(_on_match_finished.bind("失败"))
+	MatchSignals.match_finished_with_victory.connect(_on_match_finished.bind("胜利"))
 	if NetSession.is_server():
 		MatchSignals.unit_spawned.connect(_on_unit_spawned)
 		NetSession.player_dropped.connect(_on_player_dropped)
@@ -517,3 +521,26 @@ func _rpc_despawn(path: String) -> void:
 	var unit := _match.get_node_or_null(NodePath(path))
 	if unit != null and is_instance_valid(unit):
 		unit.queue_free()
+
+
+## 对局结束: 服务器广播结果并回收, 客户端回主菜单(2026-08-31 黑屏修复)。
+func _on_match_finished(result: String) -> void:
+	if not NetSession.is_networked():
+		return
+	if NetSession.is_server():
+		_rpc_match_over.rpc(result)
+		print("[对局] 已广播结果: ", result, ", 5 秒后回收专用服")
+		await get_tree().create_timer(5.0).timeout
+		get_tree().quit(0)
+	else:
+		_rpc_match_over(result)
+
+
+@rpc("authority", "reliable")
+func _rpc_match_over(result: String) -> void:
+	NetSession._match_started = false
+	get_tree().paused = false
+	NetSession._set_status("对局结束: " + result + "，即将返回主菜单")
+	print("[对局] 客户端收到结算: ", result, "，3 秒后返回主菜单")
+	await get_tree().create_timer(3.0).timeout
+	get_tree().change_scene_to_file.call_deferred("res://source/main-menu/Main.tscn")
