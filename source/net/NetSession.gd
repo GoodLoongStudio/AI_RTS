@@ -13,6 +13,8 @@ const SLOT_HUMAN := 1
 const SLOT_AI := 2
 
 var dedicated_server := false
+## E2E 测试开关: --e2e-peaceful 时专用服的 AI 首波延迟 600s, 供机器人先验证经济链。
+var e2e_peaceful := false
 var local_slot := 0
 var _pending_solo_start := false
 var last_rtt_ms := -1  # 客户端对服务器的最近一次 RPC 往返（毫秒），-1 = 无样本
@@ -88,6 +90,8 @@ func try_start_from_cmdline() -> bool:
 	if not args.has("--server") and not engine_args.has("--server"):
 		return false
 	dedicated_server = true
+	if args.has("--e2e-peaceful"):
+		e2e_peaceful = true
 	var port := DEFAULT_PORT
 	for i in range(args.size()):
 		if args[i] == "--port" and i + 1 < args.size():
