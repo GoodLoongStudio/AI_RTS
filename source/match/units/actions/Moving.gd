@@ -22,6 +22,10 @@ func _init(target_position, enable_opportunistic_fire := false):
 
 
 func _ready():
+	if _movement_trait == null:
+		push_error("[MOVE] _movement_trait 为 null! unit=%s" % str(_unit))
+	else:
+		print("[MOVE] ", _unit.name, " move-> ", _target_position)
 	_movement_trait.move(_target_position)
 	_movement_trait.movement_finished.connect(_on_movement_finished)
 	if _enable_opportunistic_fire:

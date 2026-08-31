@@ -371,6 +371,8 @@ func _set_action(action_node):
 		var action_copy = action  # bind() performs copy itself, but lets force copy just in case
 		action.tree_exited.connect(_on_action_node_tree_exited.bind(action_copy))
 		add_child(action_node)
+		if action_node.name in ["Unit_2", "Unit_3"] or name in ["Unit_2", "Unit_3"]:
+			print("[ACT] ", name, " 已 add_child: in_tree=", action_node.is_inside_tree())
 	_action_locked = false
 	action_changed.emit(action)
 

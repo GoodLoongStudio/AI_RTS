@@ -38,6 +38,7 @@ func _init(unit):
 
 
 func _ready():
+	print("[GATHER] action _ready unit=", _unit.name, " resource=", _resource_unit != null)
 	if _resource_unit != null:
 		_change_state_to(State.MOVING_TO_RESOURCE)
 	elif _cc_unit != null:
@@ -68,6 +69,7 @@ func _exit_state(_a_state):
 func _enter_state(state):
 	match state:
 		State.MOVING_TO_RESOURCE:
+			print("[GATHER] 进入 MOVING_TO_RESOURCE, resource=", _resource_unit)
 			if _resource_unit == null:
 				_finish_task(
 					_terminal_reason_after_delivery
