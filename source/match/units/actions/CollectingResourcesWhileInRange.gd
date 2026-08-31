@@ -53,8 +53,13 @@ func _transfer_single_resource_unit_from_resource_to_worker():
 	if _unit.name in ["Unit_2", "Unit_3"]:
 		print("[COLLECT] ", _unit.name, " tick adhere=", Utils.Match.Unit.Movement.units_adhere(_unit, _resource_unit), " carried=", _unit.resource_a, "/", _unit.resource_b)
 	if not Utils.Match.Unit.Movement.units_adhere(_unit, _resource_unit):
-		queue_free()
-		return
+		# 2026-08-31: 导航停点与贴合阈值(0.3m)相差厘米级, 严格判死会造成
+		# 「到达→采不到→重走」死循环(采集时灵时不灵的根因)。2 倍距离内宽限采集。
+		if not Utils.Match.Unit.Movement._unit_in_range_of_other(
+			_unit, _resource_unit, Constants.Match.Units.ADHERENCE_MARGIN_M * 2.0
+		):
+			queue_free()
+			return
 	if "resource_a" in _resource_unit:
 		_resource_unit.resource_a -= 1
 		_unit.resource_a += 1
