@@ -64,6 +64,8 @@ func _dispatch(line: String) -> String:
 			return _op_drag(parsed)
 		"key":
 			return _op_key(parsed)
+		"screenshot":
+			return _op_screenshot(parsed)
 		"move":
 			return _op_move(match_node, parsed)
 		"gather":
@@ -136,6 +138,16 @@ func _op_key(parsed) -> String:
 	release.pressed = false
 	Input.parse_input_event(release)
 	return JSON.stringify({"ok": true, "key": int(parsed.get("keycode", 0))})
+
+
+func _op_screenshot(parsed) -> String:
+	var image := get_viewport().get_texture().get_image()
+	var path := str(parsed.get("path", "user://debug_screenshot.png"))
+	var absolute := path if path.is_absolute_path() else ProjectSettings.globalize_path(path)
+	var error := image.save_png(absolute)
+	return JSON.stringify({"ok": error == OK, "path": absolute, "size": [
+		image.get_width(), image.get_height()
+	]})
 
 
 # ---------- 结构化命令 ----------
