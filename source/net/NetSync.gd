@@ -316,6 +316,8 @@ func _broadcast_snapshot() -> void:
 		resources_payload.append(
 			{"slot": i, "a": int(player.resource_a), "b": int(player.resource_b)}
 		)
+	if _frame % 100 == 0:
+		print("[SNAP] 服务器镜像余额: ", resources_payload)
 	# 复核 P2：快照携带服务器帧号，客户端用它做资源版本去重（原来传客户端本地 _frame 恒为 0）。
 	_rpc_snapshot.rpc(units_payload, resources_payload, _frame)
 
