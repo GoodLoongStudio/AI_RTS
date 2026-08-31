@@ -264,6 +264,9 @@ func _collect_status(match_node) -> Dictionary:
 	out["balance"] = {"a": int(player.resource_a), "b": int(player.resource_b)}
 	var camera := tree.current_scene.get_viewport().get_camera_3d()
 	for unit in tree.get_nodes_in_group("units"):
+		var carried := [0, 0]
+		if "resource_a" in unit and "resource_b" in unit:
+			carried = [int(unit.resource_a), int(unit.resource_b)]
 		var entry := {
 			"name": unit.name,
 			"pos": [
@@ -273,7 +276,7 @@ func _collect_status(match_node) -> Dictionary:
 			"movement": unit.find_child("Movement", false, false) != null,
 			"queue": unit.find_child("ProductionQueue", false, false) != null,
 			"attack": "attack_range" in unit,
-			"carried": [int(unit.resource_a), int(unit.resource_b)],
+			"carried": carried,
 		}
 		if "is_constructed" in unit:
 			entry["constructed"] = bool(unit.is_constructed())
