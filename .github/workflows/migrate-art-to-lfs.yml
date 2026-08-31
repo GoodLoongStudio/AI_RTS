@@ -1,0 +1,57 @@
+name: Migrate current art assets to Git LFS
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .gitattributes
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  migrate-current-art:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: false
+
+      - name: Configure Git LFS
+        shell: bash
+        run: |
+          git lfs install --local
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Re-stage tracked art through Git LFS
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          converted=0
+          while IFS= read -r file; do
+            attr="$(git check-attr filter -- "$file")"
+            if [[ "$attr" == "$file: filter: lfs" ]]; then
+              git add --renormalize -- "$file"
+              converted=1
+            fi
+          done < <(git ls-files)
+
+          if git diff --cached --quiet; then
+            echo "All currently tracked art assets are already represented correctly for Git LFS."
+            exit 0
+          fi
+
+          echo "Files being converted to LFS pointers:"
+          git diff --cached --name-only
+          git commit -m "chore: migrate current art assets to Git LFS"
+          git push origin HEAD:main
+
+      - name: List Git LFS tracked files
+        shell: bash
+        run: git lfs ls-files
