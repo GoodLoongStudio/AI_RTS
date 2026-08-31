@@ -1,11 +1,6 @@
 name: Migrate current art assets to Git LFS
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - .gitattributes
   workflow_dispatch:
 
 permissions:
@@ -33,12 +28,10 @@ jobs:
         run: |
           set -euo pipefail
 
-          converted=0
           while IFS= read -r file; do
             attr="$(git check-attr filter -- "$file")"
             if [[ "$attr" == "$file: filter: lfs" ]]; then
               git add --renormalize -- "$file"
-              converted=1
             fi
           done < <(git ls-files)
 
