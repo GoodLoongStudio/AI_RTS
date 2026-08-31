@@ -132,6 +132,7 @@ public partial class EconomyRuntime : Node
             reason,
             sourceId,
             CurrentTick()));
+        GD.Print($"[ECO] ApplyLegacy reason={reasonName} player={playerId.Value.ToString("D")[..8]} status={result.Status} a={result.Snapshot?.GetBalance(ResourceKind.A) ?? -1}");
         return ToGodot(result);
     }
 
@@ -181,8 +182,10 @@ public partial class EconomyRuntime : Node
         if (!_players.TryGetValue(playerId, out var reference) ||
             !reference.TryGetTarget(out var player) || !GodotObject.IsInstanceValid(player))
         {
+            GD.Print($"[ECO] PublishSnapshot player={playerId.Value.ToString("D")[..8]} MISSING(未注册或已失效)");
             return;
         }
+        GD.Print($"[ECO] PublishSnapshot player={playerId.Value.ToString("D")[..8]} a={snapshot.GetBalance(ResourceKind.A)}");
         player.Call(
             "apply_authoritative_resource_snapshot",
             snapshot.GetBalance(ResourceKind.A),
