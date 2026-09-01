@@ -2,12 +2,13 @@ using AI_RTS.Domain.Common;
 
 namespace AI_RTS.Application.Commands;
 
-/// <summary>提供一次命令执行所需的对局、发出者与模拟时刻信息。</summary>
+    /// <summary>提供一次命令执行所需的对局、发出者与模拟时刻信息。</summary>
 public sealed record CommandContext(
     CommandId CommandId,
     MatchId MatchId,
     PlayerId IssuerPlayerId,
-    long SimulationTick);
+    long SimulationTick,
+    long SimulationMilliseconds = 0);
 
 /// <summary>表示批量命令在下达时的汇总接收状态。</summary>
 public enum CommandStatus
@@ -90,7 +91,31 @@ public enum CommandErrorCode
     /// <summary>集结目标对命令发出者不可观察。</summary>
     RallyTargetNotObservable,
     /// <summary>集结点服务或表现适配器当前不可用。</summary>
-    RallyPointUnavailable
+    RallyPointUnavailable,
+
+    /// <summary>技能定义不存在或当前 Catalog 不可用。</summary>
+    SkillNotFound,
+
+    /// <summary>技能存在，但当前不允许由玩家主动施放。</summary>
+    SkillNotCastable,
+
+    /// <summary>技能目标形状超出当前命令入口支持的范围。</summary>
+    InvalidSkillTarget,
+
+    /// <summary>目标阵营、自身限制或存活要求不满足技能配置。</summary>
+    SkillTargetNotAllowed,
+
+    /// <summary>目标超出技能配置的最大距离。</summary>
+    SkillOutOfRange,
+
+    /// <summary>技能仍在冷却中，不能再次正式生效。</summary>
+    SkillOnCooldown,
+
+    /// <summary>单位正在施放前等待，不能再开始一条技能。</summary>
+    SkillBusy,
+
+    /// <summary>玩家资源不足以支付技能消耗。</summary>
+    InsufficientResources
 }
 
 /// <summary>记录批量命令中单个单位的接收结果和订单标识。</summary>

@@ -11,6 +11,8 @@ var _is_force_attack_targeting := false
 var _is_tactical_withdraw_targeting := false
 var _is_ground_attack_move_targeting := false
 var _local_input_bound := false
+var _skill_targeting_id := ""
+var _skill_targeting_kind := ""
 
 
 class Actions:
@@ -88,6 +90,7 @@ func _try_navigating_selected_units_towards_position(target_point):
 
 ## 进入一次性的强制移动目标选择状态；下一次地面目标将消费此状态。
 func begin_force_move_targeting():
+	_clear_skill_targeting()
 	_is_force_attack_targeting = false
 	_is_tactical_withdraw_targeting = false
 	_is_ground_attack_move_targeting = false
@@ -97,6 +100,7 @@ func begin_force_move_targeting():
 
 ## 进入一次性的强制攻击目标选择状态；右键实体或地面将消费此状态。
 func begin_force_attack_targeting():
+	_clear_skill_targeting()
 	_is_force_move_targeting = false
 	_is_tactical_withdraw_targeting = false
 	_is_ground_attack_move_targeting = false
@@ -106,6 +110,7 @@ func begin_force_attack_targeting():
 
 ## 进入一次性的战术撤退目标选择状态；单位将令车尾沿局部路径方向移动。
 func begin_tactical_withdraw_targeting():
+	_clear_skill_targeting()
 	_is_force_move_targeting = false
 	_is_force_attack_targeting = false
 	_is_ground_attack_move_targeting = false
@@ -115,6 +120,7 @@ func begin_tactical_withdraw_targeting():
 
 ## 进入一次性的地面移动攻击目标选择状态。
 func begin_ground_attack_move_targeting():
+	_clear_skill_targeting()
 	_is_force_move_targeting = false
 	_is_force_attack_targeting = false
 	_is_tactical_withdraw_targeting = false
@@ -132,6 +138,8 @@ func get_active_command_targeting() -> String:
 		return "TacticalWithdraw"
 	if _is_ground_attack_move_targeting:
 		return "GroundAttackMove"
+	if not _skill_targeting_id.is_empty():
+		return "Skill:%s" % _skill_targeting_id
 	return ""
 
 
@@ -142,12 +150,14 @@ func cancel_command_targeting():
 		and not _is_force_attack_targeting
 		and not _is_tactical_withdraw_targeting
 		and not _is_ground_attack_move_targeting
+		and _skill_targeting_id.is_empty()
 	):
 		return
 	_is_force_move_targeting = false
 	_is_force_attack_targeting = false
 	_is_tactical_withdraw_targeting = false
 	_is_ground_attack_move_targeting = false
+	_clear_skill_targeting()
 	command_targeting_changed.emit("")
 
 
@@ -568,10 +578,62 @@ func get_selected_rally_producer_count() -> int:
 	).size()
 
 
+func _clear_skill_targeting():
+	_skill_targeting_id = ""
+	_skill_targeting_kind = ""
+
+
+## 只选中一个己方单位时返回其 HUD 技能槽。
+func get_selected_skill_slots() -> Array:
+	var units = _get_selected_controlled_units()
+	if units.size() != 1:
+		return []
+	return _get_command_gateway().GetHudSlots(units[0])
+
+
+## 自身技能立即施放；单位/地面技能进入一次点选。
+func begin_skill_use(skill_id: String, target_kind: String):
+	_is_force_move_targeting = false
+	_is_force_attack_targeting = false
+	_is_tactical_withdraw_targeting = false
+	_is_ground_attack_move_targeting = false
+	if target_kind == "self":
+		_clear_skill_targeting()
+		command_targeting_changed.emit("")
+		_cast_selected_skill(skill_id, null, null)
+		return
+	_skill_targeting_id = skill_id
+	_skill_targeting_kind = target_kind
+	command_targeting_changed.emit("Skill:%s" % skill_id)
+
+
+func _cast_selected_skill(skill_id: String, target_unit, target_position):
+	var selected_units = _get_selected_controlled_units()
+	if selected_units.is_empty():
+		_emit_command_feedback(skill_id, 0, 1)
+		return
+	var gateway = _get_command_gateway()
+	var result
+	if target_position != null:
+		result = gateway.CastSkillGround(selected_units, skill_id, target_position, get_parent())
+	else:
+		result = gateway.CastSkill(selected_units, skill_id, get_parent(), target_unit)
+	var counts = _count_command_result(result)
+	_emit_command_feedback(skill_id, counts[0], counts[1])
+
+
 func _on_terrain_targeted(position):
 	if position == null or not (position is Vector3):
 		return
 	print("[INPUT] terrain_targeted player=", get_parent().name, " selected=", _get_selected_controlled_units().map(func(unit): return unit.name))
+	if not _skill_targeting_id.is_empty():
+		if _skill_targeting_kind != "ground":
+			_reject_ground_only_entity_target(_skill_targeting_id)
+			return
+		var skill_id: String = _skill_targeting_id
+		cancel_command_targeting()
+		_cast_selected_skill(skill_id, null, position)
+		return
 	if _is_ground_attack_move_targeting:
 		_is_ground_attack_move_targeting = false
 		command_targeting_changed.emit("")
@@ -597,6 +659,17 @@ func _on_terrain_targeted(position):
 
 
 func _on_unit_targeted(unit, target_position: Vector3):
+	if not _skill_targeting_id.is_empty():
+		if _skill_targeting_kind != "unit":
+			_reject_ground_only_entity_target(_skill_targeting_id)
+			return
+		var skill_id: String = _skill_targeting_id
+		cancel_command_targeting()
+		_cast_selected_skill(skill_id, unit, null)
+		var skill_targetability = unit.find_child("Targetability")
+		if skill_targetability != null:
+			skill_targetability.animate()
+		return
 	if _is_force_move_targeting:
 		_reject_ground_only_entity_target("ForceMove")
 		return

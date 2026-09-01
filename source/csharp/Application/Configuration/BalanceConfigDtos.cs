@@ -30,6 +30,9 @@ internal sealed class BalanceConfigDto
     /// <summary>建筑成本、工作量、环境和圆形占地。</summary>
     public List<ConstructionDefinitionDto>? Constructions { get; set; }
 
+    /// <summary>技能定义；允许空数组。</summary>
+    public List<SkillDefinitionDto>? Skills { get; set; }
+
     /// <summary>捕获当前 schema 未声明的根字段。</summary>
     [JsonExtensionData]
     public Dictionary<string, JsonElement>? UnknownProperties { get; set; }
@@ -251,6 +254,135 @@ internal sealed class ConstructionDefinitionDto
     public float? FootprintRadiusMeters { get; set; }
 
     /// <summary>捕获当前 schema 未声明的建筑字段。</summary>
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? UnknownProperties { get; set; }
+}
+
+/// <summary>保存尚未校验的技能定义。</summary>
+internal sealed class SkillDefinitionDto
+{
+    /// <summary>稳定 snake_case 技能 ID。</summary>
+    public string? Id { get; set; }
+
+    /// <summary>触发规则名称。</summary>
+    public string? Trigger { get; set; }
+
+    /// <summary>目标规则基础形状名称。</summary>
+    public string? Target { get; set; }
+
+    /// <summary>基础效果序列。</summary>
+    public List<SkillEffectDefinitionDto>? Effects { get; set; }
+
+    /// <summary>再次使用前的整数毫秒数。</summary>
+    public int? CooldownMilliseconds { get; set; }
+
+    /// <summary>单位目标允许的阵营关系名称。</summary>
+    public string? Relation { get; set; }
+
+    /// <summary>最大作用距离；缺省表示不限制。</summary>
+    public float? RangeMeters { get; set; }
+
+    /// <summary>单位目标是否必须存活；缺省对单位目标为 true。</summary>
+    public bool? RequireAlive { get; set; }
+
+    /// <summary>是否允许选中施法者自己；缺省对自身技能为 true。</summary>
+    public bool? AllowSelf { get; set; }
+
+    /// <summary>正式生效时支付的资源；缺省或空数组表示无消耗。</summary>
+    public List<ResourceAmountDto>? Cost { get; set; }
+
+    /// <summary>事件触发时监听的战场事件名称。</summary>
+    public string? Event { get; set; }
+
+    /// <summary>条件触发时必须成立的条件名称。</summary>
+    public string? ActivationCondition { get; set; }
+
+    /// <summary>自动装配到这些稳定单位类型 ID。</summary>
+    public List<string>? EquippedUnitTypeIds { get; set; }
+
+    /// <summary>正式生效前的等待毫秒。</summary>
+    public int? CastDelayMilliseconds { get; set; }
+
+    /// <summary>中断规则；缺省表示停止或死亡不取消后续效果。</summary>
+    public SkillInterruptDefinitionDto? Interrupt { get; set; }
+
+    /// <summary>捕获当前 schema 未声明的技能字段。</summary>
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? UnknownProperties { get; set; }
+}
+
+/// <summary>保存尚未校验的技能中断规则。</summary>
+internal sealed class SkillInterruptDefinitionDto
+{
+    /// <summary>允许中断的阶段名称。</summary>
+    public List<string>? Phases { get; set; }
+
+    /// <summary>会触发中断的情况名称。</summary>
+    public List<string>? Causes { get; set; }
+
+    /// <summary>正式生效后中断是否退还消耗。</summary>
+    public bool? RefundCost { get; set; }
+
+    /// <summary>正式生效后中断是否保留冷却。</summary>
+    public bool? KeepCooldown { get; set; }
+
+    /// <summary>捕获当前 schema 未声明的中断字段。</summary>
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? UnknownProperties { get; set; }
+}
+
+/// <summary>保存尚未校验的技能效果项。</summary>
+internal sealed class SkillEffectDefinitionDto
+{
+    /// <summary>基础效果种类名称。</summary>
+    public string? Kind { get; set; }
+
+    /// <summary>可选数值；本步不解释语义。</summary>
+    public float? Amount { get; set; }
+
+    /// <summary>相对上一条效果的等待毫秒。</summary>
+    public int? DelayMilliseconds { get; set; }
+
+    /// <summary>添加状态时的稳定状态 ID。</summary>
+    public string? StatusId { get; set; }
+
+    /// <summary>状态持续时间。</summary>
+    public int? DurationMilliseconds { get; set; }
+
+    /// <summary>被修改的属性名称。</summary>
+    public string? Attribute { get; set; }
+
+    /// <summary>属性修正；移速为相对基线的正倍率。</summary>
+    public float? Modifier { get; set; }
+
+    /// <summary>再次施加时的叠加规则名称。</summary>
+    public string? Stack { get; set; }
+
+    /// <summary>与上一条效果的时间关系名称。</summary>
+    public string? Timing { get; set; }
+
+    /// <summary>周期间隔毫秒；与 repeatCount 成对出现。</summary>
+    public int? PeriodMilliseconds { get; set; }
+
+    /// <summary>包含首次在内的重复次数。</summary>
+    public int? RepeatCount { get; set; }
+
+    /// <summary>不满足则跳过该次执行的条件名称。</summary>
+    public string? Condition { get; set; }
+
+    /// <summary>下达命令时映射的已有命令名称。</summary>
+    public string? Command { get; set; }
+
+    /// <summary>触发事件时的战场事件种类名称。</summary>
+    public string? EventKind { get; set; }
+
+    /// <summary>该事件是否可作为 Space 跳转目标。</summary>
+    public bool? EventImportant { get; set; }
+
+    /// <summary>创建对象时使用的已有单位类型模板 ID。</summary>
+    public string? TemplateId { get; set; }
+
+    /// <summary>捕获当前 schema 未声明的效果字段。</summary>
     [JsonExtensionData]
     public Dictionary<string, JsonElement>? UnknownProperties { get; set; }
 }

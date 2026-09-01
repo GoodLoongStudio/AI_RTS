@@ -7,7 +7,7 @@ const EXPECTED_PROJECTION = PROJECTION_ORTHOGONAL
 @export var size_min = 1
 @export var size_max = 20
 @export_group("Movement")
-@export var edge_scroll_enabled = false
+@export var edge_scroll_enabled = true
 @export var screen_margin_for_movement = 48.0  # px
 @export var bottom_screen_margin_for_movement = 72.0  # px; bottom HUD needs a wider reliable edge zone
 @export var movement_speed = 1.1
@@ -69,7 +69,7 @@ func focus_latest_battlefield_event() -> bool:
 
 
 func _apply_user_camera_options():
-	# Demo builds disable edge scrolling even if an older user://camera.cfg enabled it.
+	# Edge scrolling is on by default; the player can still disable it in camera options.
 	# Keyboard camera movement remains available through the same movement path.
 	edge_scroll_enabled = (
 		FeatureFlags.enable_edge_scroll
@@ -211,7 +211,17 @@ func _calculate_screen_move_vector() -> Vector2:
 		return keyboard_move_vector
 	if not edge_scroll_enabled:
 		return Vector2.ZERO
+	if _is_pointer_over_hud():
+		return Vector2.ZERO
 	return _calculate_edge_scroll_vector(mouse_pos, viewport_size)
+
+
+## 鼠标停在建造栏、命令栏等会吃点击的 HUD 上时，不贴边移镜头。
+func _is_pointer_over_hud() -> bool:
+	var hovered := get_viewport().gui_get_hovered_control()
+	if hovered == null or not hovered.is_visible_in_tree():
+		return false
+	return hovered.mouse_filter != Control.MOUSE_FILTER_IGNORE
 
 
 func _calculate_edge_scroll_vector(mouse_pos: Vector2, viewport_size: Vector2) -> Vector2:

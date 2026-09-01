@@ -264,5 +264,199 @@
       "environmentId": "terrain.surface",
       "footprintRadiusMeters": 0.6
     }
+  ],
+  "skills": [
+    {
+      "id": "demo_self_pulse",
+      "trigger": "active",
+      "target": "self",
+      "effects": [
+        { "kind": "dealDamage", "amount": 1.0 }
+      ],
+      "cooldownMilliseconds": 3000
+    },
+    {
+      "id": "demo_unit_pulse",
+      "trigger": "active",
+      "target": "unit",
+      "equippedUnitTypeIds": ["tank"],
+      "relation": "enemy",
+      "rangeMeters": 5.0,
+      "requireAlive": true,
+      "allowSelf": false,
+      "effects": [
+        { "kind": "dealDamage", "amount": 2.0 }
+      ],
+      "cost": [
+        { "kind": "A", "amount": 1 }
+      ],
+      "cooldownMilliseconds": 3000
+    },
+    {
+      "id": "demo_ground_mark",
+      "trigger": "active",
+      "target": "ground",
+      "rangeMeters": 8.0,
+      "effects": [
+        { "kind": "emitEvent", "eventKind": "skillEmitted" }
+      ],
+      "cooldownMilliseconds": 1000
+    },
+    {
+      "id": "demo_delayed_pulse",
+      "trigger": "active",
+      "target": "self",
+      "effects": [
+        { "kind": "dealDamage", "amount": 1.0 },
+        { "kind": "dealDamage", "amount": 1.0, "delayMilliseconds": 2000 }
+      ],
+      "cooldownMilliseconds": 4000
+    },
+    {
+      "id": "demo_self_heal",
+      "trigger": "active",
+      "target": "self",
+      "equippedUnitTypeIds": ["tank"],
+      "effects": [
+        { "kind": "restoreHealth", "amount": 3.0 }
+      ],
+      "cooldownMilliseconds": 2000
+    },
+    {
+      "id": "demo_self_slow",
+      "trigger": "active",
+      "target": "self",
+      "effects": [
+        {
+          "kind": "addStatus",
+          "statusId": "demo_slow",
+          "durationMilliseconds": 3000,
+          "attribute": "moveSpeed",
+          "modifier": 0.5,
+          "stack": "refresh"
+        }
+      ],
+      "cooldownMilliseconds": 3000
+    },
+    {
+      "id": "demo_self_burst",
+      "trigger": "active",
+      "target": "self",
+      "effects": [
+        { "kind": "dealDamage", "amount": 1.0 },
+        { "kind": "restoreHealth", "amount": 1.0, "timing": "simultaneous" }
+      ],
+      "cooldownMilliseconds": 3000
+    },
+    {
+      "id": "demo_self_ticks",
+      "trigger": "active",
+      "target": "self",
+      "effects": [
+        {
+          "kind": "dealDamage",
+          "amount": 1.0,
+          "periodMilliseconds": 1000,
+          "repeatCount": 3
+        }
+      ],
+      "cooldownMilliseconds": 4000
+    },
+    {
+      "id": "demo_self_heal_if_wounded",
+      "trigger": "active",
+      "target": "self",
+      "effects": [
+        { "kind": "restoreHealth", "amount": 3.0, "condition": "targetWounded" }
+      ],
+      "cooldownMilliseconds": 2000
+    },
+    {
+      "id": "demo_on_damage_heal",
+      "trigger": "event",
+      "event": "unitDamaged",
+      "target": "self",
+      "equippedUnitTypeIds": ["tank"],
+      "effects": [
+        { "kind": "restoreHealth", "amount": 1.0 }
+      ],
+      "cooldownMilliseconds": 2000
+    },
+    {
+      "id": "demo_wounded_regen",
+      "trigger": "condition",
+      "activationCondition": "targetWounded",
+      "target": "self",
+      "effects": [
+        { "kind": "restoreHealth", "amount": 1.0 }
+      ],
+      "cooldownMilliseconds": 3000
+    },
+    {
+      "id": "demo_passive_slow",
+      "trigger": "passive",
+      "target": "self",
+      "effects": [
+        {
+          "kind": "addStatus",
+          "statusId": "demo_passive_slow",
+          "durationMilliseconds": 1500,
+          "attribute": "moveSpeed",
+          "modifier": 0.75,
+          "stack": "refresh"
+        }
+      ],
+      "cooldownMilliseconds": 1000
+    },
+    {
+      "id": "demo_windup_pulse",
+      "trigger": "active",
+      "target": "self",
+      "castDelayMilliseconds": 1000,
+      "effects": [
+        { "kind": "dealDamage", "amount": 1.0 },
+        { "kind": "dealDamage", "amount": 1.0, "delayMilliseconds": 1000 }
+      ],
+      "interrupt": {
+        "phases": ["beforeActivation", "afterActivation"],
+        "causes": ["stop", "death"],
+        "refundCost": false,
+        "keepCooldown": true
+      },
+      "cooldownMilliseconds": 3000
+    },
+    {
+      "id": "demo_issue_move",
+      "trigger": "active",
+      "target": "ground",
+      "rangeMeters": 8.0,
+      "effects": [
+        { "kind": "issueCommand", "command": "move" }
+      ],
+      "cooldownMilliseconds": 1000
+    },
+    {
+      "id": "demo_issue_attack",
+      "trigger": "active",
+      "target": "unit",
+      "relation": "enemy",
+      "rangeMeters": 5.0,
+      "requireAlive": true,
+      "allowSelf": false,
+      "effects": [
+        { "kind": "issueCommand", "command": "attack" }
+      ],
+      "cooldownMilliseconds": 2000
+    },
+    {
+      "id": "demo_spawn_drone",
+      "trigger": "active",
+      "target": "ground",
+      "rangeMeters": 8.0,
+      "effects": [
+        { "kind": "createObject", "templateId": "drone" }
+      ],
+      "cooldownMilliseconds": 4000
+    }
   ]
 }

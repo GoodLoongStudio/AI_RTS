@@ -1,5 +1,6 @@
 using AI_RTS.Domain.Common;
 using AI_RTS.Domain.Combat;
+using AI_RTS.Domain.Skills;
 
 namespace AI_RTS.Application.Commands.Units;
 
@@ -82,3 +83,10 @@ public sealed record ForceAttackCommand(
 
 /// <summary>取消一组单位当前显式 ForceAttack，不影响普通自动攻击。</summary>
 public sealed record CancelForceAttackCommand(IReadOnlyList<UnitId> UnitIds);
+
+/// <summary>请求一组单位主动施放指定技能；自身技能不需要额外目标。</summary>
+public sealed record CastSkillCommand(
+    IReadOnlyList<UnitId> UnitIds,
+    SkillDefinitionId SkillId,
+    UnitId? TargetUnitId = null,
+    WorldPosition? TargetPosition = null);

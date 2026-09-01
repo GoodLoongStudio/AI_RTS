@@ -65,7 +65,7 @@ func _run_test():
 	var group_2 = get_tree().get_nodes_in_group("legacy_ai_squad_2")
 	var group_3 = get_tree().get_nodes_in_group("legacy_ai_squad_3")
 	var ai_hud = a_match.get_node_or_null("HUD/AICommandHUD")
-	var ai_hud_toggle = a_match.get_node_or_null("HUD/AICommandHUDToggle")
+	var ai_hud_toggle = a_match.find_child("AICommandHUDToggle", true, false)
 	var camera = a_match.get_node_or_null("IsometricCamera3D")
 	var pause_menu = a_match.get_node_or_null("Menu")
 
@@ -73,7 +73,7 @@ func _run_test():
 	_check(ai_hud != null, "AICommandHUD 未加载")
 	_check(ai_hud_toggle != null, "AICommandHUD 显示切换按钮未加载")
 	_check(not ai_hud.visible, "AICommandHUD 应默认隐藏")
-	_check(not camera.edge_scroll_enabled, "Demo 应禁用鼠标边缘滚屏")
+	_check(camera.edge_scroll_enabled, "应对局启用鼠标边缘滚屏")
 	_check(ai_hud.control_mode == "hero", "AICommandHUD 未进入单英雄模式")
 	_check(controlled_units.size() == 1, "序章开局应且仅应生成一个玩家可控英雄")
 	_check(not get_tree().get_nodes_in_group("adversary_units").is_empty(), "未生成敌方单位")
@@ -93,7 +93,7 @@ func _run_test():
 	_check(tunnel_extraction.position.z > 400.0, "地下撤离点未使用超大地图纵深")
 
 	_check(camera != null, "RTS 镜头未加载")
-	_check(not camera.edge_scroll_enabled, "Demo Feature Flag 未覆盖旧的边缘滚屏设置")
+	_check(camera.edge_scroll_enabled, "功能开关打开后应对局启用边缘滚屏")
 	_check(is_equal_approx(camera.movement_speed, 1.7), "镜头移动速度设置未应用")
 	_check(is_equal_approx(camera.screen_margin_for_movement, 60.0), "边缘触发范围设置未应用")
 	_check(is_equal_approx(camera.bottom_screen_margin_for_movement, 90.0), "底边触发范围设置未应用")

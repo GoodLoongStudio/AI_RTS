@@ -176,8 +176,11 @@ public sealed class InMemoryResourceAccountService : IResourceAccountService
         IReadOnlyList<ResourceDelta> deltas,
         ResourceChangeReason reason) => reason switch
         {
-            ResourceChangeReason.ConstructionCost or ResourceChangeReason.ProductionCost =>
+            ResourceChangeReason.ConstructionCost or ResourceChangeReason.ProductionCost
+                or ResourceChangeReason.SkillCost =>
                 deltas.All(delta => delta.Amount < 0),
+            ResourceChangeReason.SkillRefund =>
+                deltas.All(delta => delta.Amount > 0),
             ResourceChangeReason.ScriptedAdjustment => true,
             _ => deltas.All(delta => delta.Amount > 0)
         };

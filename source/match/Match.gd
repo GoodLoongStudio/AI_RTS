@@ -124,8 +124,7 @@ func _setup_ai_command_hud_toggle(ai_command_hud: Control):
 	toggle_button.name = "AICommandHUDToggle"
 	toggle_button.text = "显示 AI 副官"
 	toggle_button.tooltip_text = "Tab：普通 RTS HUD ↔ AI 副官 HUD"
-	toggle_button.position = Vector2(18, 18)
-	toggle_button.custom_minimum_size = Vector2(150, 40)
+	toggle_button.custom_minimum_size = Vector2(168, 40)
 	toggle_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	var apply_visibility := func(should_show: bool):
 		ai_command_hud.set_interface_visible(should_show)
@@ -145,7 +144,7 @@ func _setup_ai_command_hud_toggle(ai_command_hud: Control):
 				return
 			apply_visibility.call(not ai_command_hud.is_interface_visible())
 	)
-	$HUD.add_child(toggle_button)
+	$HUD/TopLeftColumn.add_child(toggle_button)
 
 
 func _setup_traditional_unit_command_hud():

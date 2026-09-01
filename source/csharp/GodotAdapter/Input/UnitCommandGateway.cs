@@ -134,6 +134,29 @@ public partial class UnitCommandGateway : Node
         return ToGodot(_runtime.SetFirePolicy(unitNodes, parsed, issuerPlayer));
     }
 
+    /// <summary>提交主动技能施放；单位目标技能可传入 targetNode。</summary>
+    public Godot.Collections.Dictionary CastSkill(
+        Godot.Collections.Array<Node> unitNodes,
+        string skillId,
+        Node issuerPlayer,
+        Node? targetNode = null)
+    {
+        return ToGodot(_runtime.CastSkill(unitNodes, skillId, issuerPlayer, targetNode));
+    }
+
+    /// <summary>查询单位 HUD 技能槽及冷却剩余。</summary>
+    public Godot.Collections.Array GetHudSlots(Node unitNode) => _runtime.GetHudSlots(unitNode);
+
+    /// <summary>提交对地面坐标的主动技能施放。</summary>
+    public Godot.Collections.Dictionary CastSkillGround(
+        Godot.Collections.Array<Node> unitNodes,
+        string skillId,
+        Vector3 position,
+        Node issuerPlayer)
+    {
+        return ToGodot(_runtime.CastSkillGround(unitNodes, skillId, position, issuerPlayer));
+    }
+
     /// <summary>提交批量普通实体攻击；只接受敌方目标且不覆盖停火。</summary>
     public Godot.Collections.Dictionary AttackUnits(
         Godot.Collections.Array<Node> unitNodes, Node targetNode, Node issuerPlayer)

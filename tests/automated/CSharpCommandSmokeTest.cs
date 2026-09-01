@@ -1,10 +1,16 @@
 using AI_RTS.Application.Commands;
 using AI_RTS.Application.Commands.Units;
 using AI_RTS.Application.Combat;
+using AI_RTS.Application.Configuration;
 using AI_RTS.Application.Orders;
 using AI_RTS.Application.Units;
 using AI_RTS.Domain.Combat;
 using AI_RTS.Domain.Common;
+using AI_RTS.Domain.Configuration;
+using AI_RTS.Domain.Construction;
+using AI_RTS.Domain.Economy;
+using AI_RTS.Domain.Production;
+using AI_RTS.Domain.Skills;
 using Godot;
 
 namespace AI_RTS.Tests.Automated;
@@ -28,6 +34,7 @@ public partial class CSharpCommandSmokeTest : Node
         TestForceAttackAndSelectiveCancellation();
         TestOrdinaryAttackAuthorization();
         TestTacticalWithdrawCapabilityFallback();
+        TestCastSkillSelfActiveReceipt();
 
         GD.Print($"C# command smoke test completed: {_failures} failure(s)");
         GetTree().Quit(_failures == 0 ? 0 : 1);
@@ -348,6 +355,57 @@ public partial class CSharpCommandSmokeTest : Node
             "fallback unit should retain player tactical intent in order kind");
     }
 
+    /// <summary>验证自身主动技能走命令入口回执，且不替换现有订单。</summary>
+    private void TestCastSkillSelfActiveReceipt()
+    {
+        var owner = NewPlayerId();
+        var unit = NewUnitId();
+        var foreign = NewUnitId();
+        var adversary = NewPlayerId();
+        var orders = new InMemoryUnitOrderStore();
+        var catalog = new FakeSkillCatalog(new SkillDefinition(
+            new SkillDefinitionId("demo_self_pulse"),
+            SkillTriggerKind.Active,
+            SkillTargetKind.Self,
+            [new SkillEffectDefinition(SkillEffectKind.DealDamage, 1.0f)],
+            3000));
+        var damage = new FakeDamagePort();
+        var service = new UnitCommandService(
+            new FakeRepository(
+                new UnitCommandSnapshot(unit, owner, true),
+                new UnitCommandSnapshot(foreign, adversary, true)),
+            new FakeMovementPort(),
+            new FakeAttackPort(),
+            orders,
+            new InMemoryCombatPolicyStore(),
+            new FakeStopPort(),
+            catalog: catalog,
+            damage: damage);
+
+        service.Move(Context(owner), new MoveUnitsCommand([unit], new WorldPosition(1, 0, 1)));
+        var moveOrder = orders.FindActive(unit);
+        var accepted = service.CastSkill(
+            Context(owner),
+            new CastSkillCommand([unit], new SkillDefinitionId("demo_self_pulse")));
+        var rejected = service.CastSkill(
+            Context(owner),
+            new CastSkillCommand([foreign], new SkillDefinitionId("demo_self_pulse")));
+        var missing = service.CastSkill(
+            Context(owner),
+            new CastSkillCommand([unit], new SkillDefinitionId("missing_skill")));
+
+        Check(accepted.Status == CommandStatus.Accepted, "owned self-cast should be accepted");
+        Check(rejected.UnitResults.Single().ErrorCode == CommandErrorCode.UnitNotOwned,
+            "foreign unit should be rejected");
+        Check(missing.Status == CommandStatus.Rejected &&
+            missing.UnitResults.Single().ErrorCode == CommandErrorCode.SkillNotFound,
+            "unknown skill should reject the batch");
+        Check(orders.FindActive(unit)?.OrderId == moveOrder?.OrderId,
+            "skill command entry must not replace the active move order");
+        Check(damage.Applications.Count == 1 && damage.Applications[0].Damage == 1.0f,
+            "accepted self-cast should apply resolved damage once");
+    }
+
     /// <summary>累计失败断言并向 Godot 错误日志报告原因。</summary>
     private void Check(bool condition, string message)
     {
@@ -491,5 +549,50 @@ public partial class CSharpCommandSmokeTest : Node
     {
         /// <inheritdoc />
         public StopPortResult RequestStop(UnitId unitId) => StopPortResult.Success();
+    }
+
+    /// <summary>记录冒烟测试中的最终伤害。</summary>
+    private sealed class FakeDamagePort : IUnitDamagePort
+    {
+        public List<DamageApplication> Applications { get; } = [];
+
+        public void ApplyDamage(UnitId unitId, float damage) =>
+            Applications.Add(new DamageApplication(unitId, damage));
+
+        public void RestoreHealth(UnitId unitId, float amount)
+        {
+        }
+    }
+
+    /// <summary>只提供技能查询的测试 Catalog。</summary>
+    private sealed class FakeSkillCatalog(SkillDefinition skill) : IGameBalanceCatalog
+    {
+        public BalanceConfigVersion Version { get; } = new(1, "smoke-skills", "0");
+
+        public IReadOnlyCollection<UnitTypeDefinition> UnitTypes => [];
+
+        public IReadOnlyCollection<WeaponDefinition> Weapons => [];
+
+        public IReadOnlyCollection<ProductionDefinition> Productions => [];
+
+        public IReadOnlyCollection<StructureConstructionDefinition> Constructions => [];
+
+        public IReadOnlyCollection<SkillDefinition> Skills => [skill];
+
+        public UnitTypeDefinition? FindUnitType(UnitTypeId unitTypeId) => null;
+
+        public WeaponDefinition? FindWeapon(WeaponDefinitionId weaponId) => null;
+
+        public WarheadDefinition? FindWarhead(WarheadDefinitionId warheadId) => null;
+
+        public ProductionDefinition? FindProduction(ProductionDefinitionId definitionId) => null;
+
+        public StructureConstructionDefinition? FindConstruction(StructureDefinitionId definitionId) =>
+            null;
+
+        public ResourceDefinition? FindResource(ResourceKind kind) => null;
+
+        public SkillDefinition? FindSkill(SkillDefinitionId skillId) =>
+            skill.Id.Equals(skillId) ? skill : null;
     }
 }

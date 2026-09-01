@@ -71,3 +71,7 @@ public readonly record struct WeaponDefinitionId(string Value);
 /// <summary>标识一个决定命中范围与友伤倍率的稳定弹头定义。</summary>
 /// <param name="Value">项目配置内唯一的 snake_case 弹头键。</param>
 public readonly record struct WarheadDefinitionId(string Value);
+
+/// <summary>标识一个可被施放或被动触发的稳定技能定义。</summary>
+/// <param name="Value">项目配置内唯一的 snake_case 技能键。</param>
+public readonly record struct SkillDefinitionId(string Value);

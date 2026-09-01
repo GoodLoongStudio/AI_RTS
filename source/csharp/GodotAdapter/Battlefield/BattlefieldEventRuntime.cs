@@ -12,6 +12,9 @@ public partial class BattlefieldEventRuntime : Node
     public const int UnderAttackThrottleMsec = 10_000;
 
     private IBattlefieldEventLog _log = new BattlefieldEventLog();
+
+    /// <summary>当前对局的权威战场事件日志，供技能效果写入统一事件。</summary>
+    public IBattlefieldEventLog Log => _log;
     private Node? _humanPlayer;
     private Node? _signals;
     private Callable _onDamaged;

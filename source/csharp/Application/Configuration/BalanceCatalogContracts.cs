@@ -4,6 +4,7 @@ using AI_RTS.Domain.Configuration;
 using AI_RTS.Domain.Construction;
 using AI_RTS.Domain.Economy;
 using AI_RTS.Domain.Production;
+using AI_RTS.Domain.Skills;
 
 namespace AI_RTS.Application.Configuration;
 
@@ -25,6 +26,9 @@ public interface IGameBalanceCatalog
     /// <summary>枚举当前配置中的全部建筑施工定义。</summary>
     IReadOnlyCollection<StructureConstructionDefinition> Constructions { get; }
 
+    /// <summary>枚举当前配置中的全部技能定义。</summary>
+    IReadOnlyCollection<SkillDefinition> Skills { get; }
+
     /// <summary>按稳定类型 ID 查询单位或建筑定义。</summary>
     UnitTypeDefinition? FindUnitType(UnitTypeId unitTypeId);
 
@@ -42,6 +46,9 @@ public interface IGameBalanceCatalog
 
     /// <summary>按强类型资源种类查询采集定义。</summary>
     ResourceDefinition? FindResource(ResourceKind kind);
+
+    /// <summary>按稳定 ID 查询技能定义。</summary>
+    SkillDefinition? FindSkill(SkillDefinitionId skillId);
 }
 
 /// <summary>表示配置加载或校验失败的稳定类别。</summary>

@@ -15,7 +15,10 @@ public enum BattlefieldEventKind
     VisibleHostileLost,
 
     /// <summary>己方建筑完成施工。</summary>
-    OwnConstructionFinished
+    OwnConstructionFinished,
+
+    /// <summary>技能效果产生的统一战场信号。</summary>
+    SkillEmitted
 }
 
 /// <summary>一条已过滤情报边界的战场事件快照。</summary>
