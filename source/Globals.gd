@@ -1,7 +1,7 @@
 extends Node
 
 const Options = preload("res://source/data-model/Options.gd")
-const OPTION_PROPERTIES := ["screen", "mouse_restricted"]
+const OPTION_PROPERTIES := ["screen", "resolution", "mouse_restricted"]
 const CAMERA_CONFIG_PATH := "user://camera.cfg"
 const CAMERA_CONFIG_SECTION := "camera"
 const CAMERA_DEFAULTS := {

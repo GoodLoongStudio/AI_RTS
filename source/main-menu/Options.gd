@@ -2,9 +2,12 @@ extends Control
 
 signal close_requested
 
+const Options = preload("res://source/data-model/Options.gd")
+
 @export var embedded_mode = false
 
 @onready var _screen = find_child("Screen")
+@onready var _resolution = find_child("Resolution")
 @onready var _mouse_movement_restricted = find_child("MouseMovementRestricted")
 @onready var _settings_box = $PanelContainer/MarginContainer/VBoxContainer
 
@@ -20,6 +23,7 @@ func _ready():
 	_setup_save_timer()
 	_mouse_movement_restricted.button_pressed = Globals.options.mouse_restricted
 	_screen.selected = Globals.options.screen
+	_setup_resolution_options()
 	_build_camera_settings()
 
 
@@ -42,6 +46,17 @@ func _setup_save_timer():
 	_save_timer.wait_time = 0.25
 	_save_timer.timeout.connect(_save_options)
 	add_child(_save_timer)
+
+
+func _setup_resolution_options():
+	_resolution.clear()
+	for size in Options.RESOLUTION_OPTIONS:
+		_resolution.add_item("%d x %d" % [size.x, size.y])
+		_resolution.set_item_tooltip(
+			_resolution.item_count - 1, "窗口大小 %d x %d" % [size.x, size.y]
+		)
+	var selected_index := Options.RESOLUTION_OPTIONS.find(Globals.options.resolution)
+	_resolution.select(maxi(selected_index, 0))
 
 
 func _build_camera_settings():
@@ -202,6 +217,13 @@ func _on_screen_item_selected(index):
 		0: Globals.options.Screen.FULL,
 		1: Globals.options.Screen.WINDOW,
 	}[index]
+	_queue_save()
+
+
+func _on_resolution_item_selected(index):
+	if index < 0 or index >= Options.RESOLUTION_OPTIONS.size():
+		return
+	Globals.options.resolution = Options.RESOLUTION_OPTIONS[index]
 	_queue_save()
 
 
