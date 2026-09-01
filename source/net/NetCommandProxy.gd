@@ -5,6 +5,8 @@ class_name NetCommandProxy
 
 var _sync: Node
 var _player: Node
+var _engagement_stance_by_unit := {}
+var _fire_policy_by_unit := {}
 
 
 func _init(sync: Node, player: Node) -> void:
@@ -70,3 +72,23 @@ func ConstructUnits(units, target, issuer):
 
 func CancelConstruction(site, issuer):
 	return _sync.forward_command("cancel_construct", [site], Vector3.ZERO, site, issuer)
+
+
+func SetEngagementStance(units, stance, issuer):
+	for unit in units:
+		_engagement_stance_by_unit[str(unit.get_path())] = str(stance)
+	return _sync.forward_command("set_engagement_stance", units, Vector3.ZERO, null, issuer, str(stance))
+
+
+func SetFirePolicy(units, policy, issuer):
+	for unit in units:
+		_fire_policy_by_unit[str(unit.get_path())] = str(policy)
+	return _sync.forward_command("set_fire_policy", units, Vector3.ZERO, null, issuer, str(policy))
+
+
+func GetEngagementStance(unit):
+	return str(_engagement_stance_by_unit.get(str(unit.get_path()), "Aggressive"))
+
+
+func GetFirePolicy(unit):
+	return str(_fire_policy_by_unit.get(str(unit.get_path()), "FireAtWill"))

@@ -36,7 +36,9 @@ func _ready() -> void:
 	# 供 Godot MCP 一键开出「已在对局中」的游戏窗口。
 	if "--autojoin" in OS.get_cmdline_user_args() or FileAccess.file_exists("res://autojoin.txt"):
 		_auto_join_solo()
-		# 调试控制端点挂 root（跨场景存活），外部驱动可远程操控对局。
+	# 调试控制端点挂 root（跨场景存活），外部驱动可远程操控对局。
+	# 独立开关：带 --debugport 即挂载，不依赖 --autojoin，正常主菜单/大厅流程同样可用。
+	if "--debugport" in OS.get_cmdline_user_args():
 		var debug_control := Node.new()
 		debug_control.name = "DebugControlServer"
 		debug_control.set_script(load("res://source/net/DebugControlServer.gd"))
@@ -179,12 +181,26 @@ func _on_ready_button_pressed() -> void:
 
 
 func _on_solo_button_pressed() -> void:
-	NetSession.start_solo()
+	# “立即开局（单人测试）”明确进入被动 AI 测试局：AI 可发展，但不主动攻击。
+	NetSession.start_solo(true, true)
 
 
 ## 调试钩子：--autojoin 或 res://autojoin.txt 存在时，直接加入默认服务器并立即开局，
 ## 供 Godot MCP 一键开出「已在对局中」的游戏窗口（免去人工点菜单）。
 func _auto_join_solo() -> void:
+	# 冒烟测试可通过 --smokehost/--smokeport 指向本机专用服；普通
+	# --autojoin 仍使用大厅默认的云端地址。
+	var args := OS.get_cmdline_user_args()
+	var host := NetSession.DEFAULT_HOST
+	var port := NetSession.DEFAULT_PORT
+	var host_index := args.find("--smokehost")
+	if host_index >= 0 and host_index + 1 < args.size():
+		host = str(args[host_index + 1])
+	var port_index := args.find("--smokeport")
+	if port_index >= 0 and port_index + 1 < args.size():
+		port = int(args[port_index + 1])
+	_host_edit.text = host
+	_port_edit.text = str(port)
 	_on_join_button_pressed()
 	var waited := 0
 	while waited < 60:
@@ -193,6 +209,9 @@ func _auto_join_solo() -> void:
 		if not NetSession.is_networked():
 			continue
 		if NetSession.local_slot >= 0:
+			if args.has("--autojoin-lobby"):
+				_status_label.text = "已连接，等待调试开局…"
+				return
 			_status_label.text = "自动开局中…"
 			NetSession.start_solo()
 			return

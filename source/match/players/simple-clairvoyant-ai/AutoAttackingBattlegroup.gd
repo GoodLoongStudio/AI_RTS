@@ -19,6 +19,7 @@ var _attached_unit_ids: Array[String] = []
 var _current_target_id := ""
 var _fallback_target_by_member := {}
 var _defense_position := Vector3.INF
+var _passive_test_mode := false
 
 
 ## 绑定编组容量以及公共查询、固定身份命令边界。
@@ -27,13 +28,15 @@ func setup(
 	world_query_runtime,
 	query_session_id: String,
 	command_gateway,
-	retreat_threshold: float = 0.5
+	retreat_threshold: float = 0.5,
+	passive_test_mode: bool = false
 ):
 	_expected_number_of_units = expected_number_of_units
 	_world_query_runtime = world_query_runtime
 	_query_session_id = query_session_id
 	_command_gateway = command_gateway
 	_retreat_threshold = retreat_threshold
+	_passive_test_mode = passive_test_mode
 
 
 ## 返回仍登记在编组中的稳定单位数量。
@@ -80,6 +83,9 @@ func refresh(own_entities: Array):
 		queue_free()
 		return
 	if _state == State.FORMING or members.is_empty():
+		return
+	if _passive_test_mode:
+		# 保留成员登记和生产缺口统计，但不向 AI 编组下达移动/攻击命令。
 		return
 	_refresh_combat(members)
 

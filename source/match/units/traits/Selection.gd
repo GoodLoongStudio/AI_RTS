@@ -25,7 +25,14 @@ func _ready():
 func select():
 	if _selected:
 		return
+	# Selection is a control affordance. Enemy units remain visible in shared
+	# views, but must be targeted through right-click rather than selected as if
+	# they were owned units.
+	if not _unit.is_in_group("controlled_units"):
+		print("[INPUT] selection rejected unit=", _unit.name, " controlled=false")
+		return
 	_selected = true
+	print("[INPUT] selected unit=", _unit.name, " player=", _unit.player.name)
 	if not _unit.is_in_group("selected_units"):
 		_unit.add_to_group("selected_units")
 	_update_circle_color()
@@ -78,6 +85,7 @@ func _update_circle_params():
 
 func _on_input_event(_camera, event, _click_position, _click_normal, _shape_idx):
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		print("[INPUT] unit click unit=", _unit.name, " pos=", event.position)
 		if _selected and _input_runtime.IsModifierPressed("Shift"):
 			deselect()
 			return

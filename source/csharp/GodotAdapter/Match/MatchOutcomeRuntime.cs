@@ -38,7 +38,10 @@ public partial class MatchOutcomeRuntime : Node
 
         foreach (var player in playersContainer.GetChildren().OfType<Node>())
         {
-            if (player.IsInGroup("players"))
+            // 联机大厅的空槽保留一个 NONE 占位 Player 以维持槽位索引，
+            // 但它不是参战方；否则单人测试局会被错误判定为仅剩一方获胜。
+            if (player.IsInGroup("players")
+                && (!player.HasMeta("slot_kind") || player.GetMeta("slot_kind").AsInt32() != 0))
             {
                 RegisterParticipant(player, player == localHumanPlayer);
             }

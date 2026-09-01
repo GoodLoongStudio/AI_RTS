@@ -233,3 +233,8 @@ func get_base_threat() -> Vector3:
 	if _base_threat_position != Vector3.INF and Time.get_ticks_msec() < _base_threat_until_ms:
 		return _base_threat_position
 	return Vector3.INF
+
+
+## 单人测试局中，AI 只执行经济/建造/生产，不主动发动攻击。
+func is_passive_test_ai() -> bool:
+	return NetSession.passive_ai_test_server or NetSession.passive_ai_test

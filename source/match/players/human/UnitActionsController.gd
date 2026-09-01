@@ -10,6 +10,7 @@ var _is_force_move_targeting := false
 var _is_force_attack_targeting := false
 var _is_tactical_withdraw_targeting := false
 var _is_ground_attack_move_targeting := false
+var _local_input_bound := false
 
 
 class Actions:
@@ -27,8 +28,25 @@ func _ready():
 	var match_node = find_parent("Match")
 	if match_node != null and not match_node.is_node_ready():
 		await match_node.ready
-	if not _is_local_controller():
+	if not MatchSignals.match_started.is_connected(_on_match_started_for_input):
+		MatchSignals.match_started.connect(_on_match_started_for_input, CONNECT_ONE_SHOT)
+	call_deferred("_bind_local_input")
+
+
+func _on_match_started_for_input():
+	call_deferred("_bind_local_input")
+
+
+func _bind_local_input():
+	if _local_input_bound or not is_inside_tree():
 		return
+	if not _is_local_controller():
+		print("[INPUT] UnitActionsController waiting for local player player=", get_parent().name)
+		return
+	_local_input_bound = true
+	if MatchSignals.match_started.is_connected(_on_match_started_for_input):
+		MatchSignals.match_started.disconnect(_on_match_started_for_input)
+	print("[INPUT] UnitActionsController enabled player=", get_parent().name)
 	MatchSignals.terrain_targeted.connect(_on_terrain_targeted)
 	MatchSignals.unit_targeted.connect(_on_unit_targeted)
 	MatchSignals.unit_spawned.connect(_on_unit_spawned)
@@ -553,6 +571,7 @@ func get_selected_rally_producer_count() -> int:
 func _on_terrain_targeted(position):
 	if position == null or not (position is Vector3):
 		return
+	print("[INPUT] terrain_targeted player=", get_parent().name, " selected=", _get_selected_controlled_units().map(func(unit): return unit.name))
 	if _is_ground_attack_move_targeting:
 		_is_ground_attack_move_targeting = false
 		command_targeting_changed.emit("")

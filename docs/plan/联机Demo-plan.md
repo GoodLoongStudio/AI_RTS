@@ -106,7 +106,7 @@
 
 1. 专用服启动即 `create_server`。最大客户端数 = 4（专用服自己不是玩家）。
 2. 客户端连上后由服务器分配槽位 0..3，RPC 告知 `local_slot`。
-3. 每人点准备；`connected_human_count ∈ [2, 4]` 且槽内全员准备 → 开局。**「立即开局」按钮（2026-08-30 用户拍板）**：≥1 人即可跳过等待强制开局，空槽由 AI 补位；未联网时点击会**自动先连云服（`start_solo` → `join(DEFAULT_HOST)`），连上后自动开局**——同时拍板：单人开房也必须走服务器，本机 listen server 仅是开发自测路径（审核更正：原表述「自动先本机开房」与代码不符）。
+3. 每人点准备；`connected_human_count ∈ [2, 4]` 且槽内全员准备 → 开局。**「立即开局」按钮**：≥1 人即可跳过等待强制开局，空槽默认保持空；需要 AI 时由房主在大厅显式点击「＋AI」（冒烟脚本可显式请求单人对 AI）。未联网时点击会**自动先连云服（`start_solo` → `join(DEFAULT_HOST)`），连上后自动开局**，单人开房仍走服务器。
 4. 开局后不接受新玩家（不重连、不中途加入）。注意代码现状与本条原表述有出入：`_on_peer_connected` 在 `_match_started` 后是**静默忽略**而非显式拒绝（复核 P1-3，已补显式拒绝）；掉线处理见复核 Q9（已扶正为「掉线算负、对局继续」）。
 5. 所有端用同一份 `MatchSettings`：前 N 个槽 Human，其余 SimpleClairvoyantAI；地图固定 `res://source/match/maps/PlainAndSimple.tscn`。
 6. 各端 **各自** 走现有 `Loading.tscn` 实例化 Match（导航要烘焙）。用 Autoload `NetSession` 上的 `notify_match_ready` 握手；**全部 Human 端 Match 就绪后** 服务器才开始快照/出生死亡 RPC。  

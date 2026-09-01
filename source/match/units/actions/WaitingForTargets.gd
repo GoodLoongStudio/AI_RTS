@@ -40,6 +40,11 @@ func refresh_combat_policy():
 
 
 func _get_units_to_attack():
+	# 单人测试局：AI 单位保持待机，不因视野内目标自动开火；
+	# 人类单位及明确下达的攻击命令仍走正常路径。
+	if _unit.player != null and _unit.player.has_method("is_passive_test_ai"):
+		if _unit.player.is_passive_test_ai():
+			return []
 	if _command_runtime.GetFirePolicy(_unit) == "HoldFire":
 		return []
 	var stance: String = _command_runtime.GetEngagementStance(_unit)

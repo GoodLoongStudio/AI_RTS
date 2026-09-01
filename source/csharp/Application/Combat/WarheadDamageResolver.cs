@@ -34,6 +34,15 @@ public sealed class WarheadDamageResolver : IWarheadDamageResolver
             .Select(group => group.First())
             .OrderBy(item => item.UnitId.Value))
         {
+            // Direct entity attacks must never damage the attacker's own side.
+            // ForceAttack may still be accepted as an order, but a stale or
+            // misrouted target reference must not turn it into self-damage.
+            if (launch.ImpactSelectionMode == ImpactSelectionMode.IntendedTargetOnly &&
+                candidate.OwnerId == launch.SourcePlayerId)
+            {
+                continue;
+            }
+
             if (!CanHit(launch, impactPoint, candidate))
             {
                 continue;

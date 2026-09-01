@@ -34,7 +34,7 @@ func _ready():
 	var friendly_order_id: String = friendly_result["unit_results"][0]["order_id"]
 	_check(friendly_result["status"] == "Accepted", "HoldFire 下显式攻击己方目标应被接受")
 	await get_tree().create_timer(2.0).timeout
-	_check(friendly_target.hp < friendly_hp_before, "显式攻击己方目标应造成完整基础伤害")
+	_check(friendly_target.hp == friendly_hp_before, "演示模式显式攻击己方目标不应造成友伤")
 	_check(gateway.GetFirePolicy(attacker) == "HoldFire", "临时授权不得修改持久停火策略")
 
 	controller.halt_selected_units()  # 未选择单位时不应影响当前 ForceAttack。
@@ -71,11 +71,11 @@ func _ready():
 	)
 
 	var ground_target = _add_tank(
-		friendly_target.get_parent(),
+		enemy_player,
 		"GroundPointTarget",
 		attacker.position + Vector3(2, 0, 0)
 	)
-	ground_target.add_to_group("controlled_units")
+	ground_target.add_to_group("adversary_units")
 	await get_tree().process_frame
 	ground_target.find_child("Movement").suspend_motion()
 	var ground_hp_before: float = ground_target.hp

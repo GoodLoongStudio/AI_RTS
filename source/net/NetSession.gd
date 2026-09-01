@@ -17,9 +17,13 @@ var dedicated_server := false
 var e2e_peaceful := false
 ## 服务器侧: 客户端立即开局时经 RPC 传来的和平模式标记(AI 首波延迟 600s)。
 var e2e_peaceful_server := false
+## 单人测试局的 AI 被动模式：AI 仍可采集、建造、生产，但不会主动攻击。
+var passive_ai_test := false
+var passive_ai_test_server := false
 var local_slot := 0
 var _pending_solo_start := false
 var _pending_solo_with_ai := false
+var _pending_solo_passive_ai_test := false
 var last_rtt_ms := -1  # 客户端对服务器的最近一次 RPC 往返（毫秒），-1 = 无样本
 var local_player_name := "指挥官-%03d" % (randi() % 1000)
 var _peer: ENetMultiplayerPeer = null
@@ -243,6 +247,9 @@ func _reset_peer() -> void:
 	_match_started = false
 	_pending_solo_start = false
 	_pending_solo_with_ai = false
+	_pending_solo_passive_ai_test = false
+	passive_ai_test = false
+	passive_ai_test_server = false
 	last_rtt_ms = -1
 	local_slot = 0
 	dedicated_server = dedicated_server  # 有意保留专用服标记（self-assign），勿当作冗余代码"修复"
@@ -296,15 +303,16 @@ func _on_connected_to_server() -> void:
 	_set_status("已连接，请点准备")
 	if _pending_solo_start:
 		_pending_solo_start = false
-		_auto_solo_start(_pending_solo_with_ai)
+		_auto_solo_start(_pending_solo_with_ai, _pending_solo_passive_ai_test)
 		_pending_solo_with_ai = false
+		_pending_solo_passive_ai_test = false
 
 
-func _auto_solo_start(with_ai: bool = false) -> void:
+func _auto_solo_start(with_ai: bool = false, passive_ai_test: bool = false) -> void:
 	# 等一拍，确保服务器已把本连接分配进槽位，再请求开局。
 	await get_tree().create_timer(0.6).timeout
 	if is_networked() and not multiplayer.is_server():
-		_rpc_solo_start.rpc_id(1, e2e_peaceful, with_ai)
+		_rpc_solo_start.rpc_id(1, e2e_peaceful, with_ai, passive_ai_test)
 
 
 func _on_connection_failed() -> void:
@@ -420,10 +428,11 @@ func _try_start_match() -> void:
 ## 立即开局（单人开房仍走服务器）。
 ## 未连接时先连默认云服，连上自动单人开局；空槽保持空，不自动生成敌人。
 ## 本机 listen server 仅是开发自测路径，不在「立即开局」里。
-func start_solo(with_ai: bool = false) -> void:
+func start_solo(with_ai: bool = false, passive_ai_test: bool = false) -> void:
 	if not is_networked():
 		_pending_solo_start = true
 		_pending_solo_with_ai = with_ai
+		_pending_solo_passive_ai_test = passive_ai_test
 		var err := join(DEFAULT_HOST, DEFAULT_PORT)
 		if err != OK:
 			_pending_solo_start = false
@@ -436,12 +445,15 @@ func start_solo(with_ai: bool = false) -> void:
 	# legitimately reach this path during that short window.
 	if not is_server() and multiplayer.multiplayer_peer.get_connection_status() != MultiplayerPeer.CONNECTION_CONNECTED:
 		_pending_solo_start = true
+		_pending_solo_with_ai = with_ai
+		_pending_solo_passive_ai_test = passive_ai_test
 		_set_status("等待服务器连接，连上后自动开局…")
 		return
 	if not is_server():
-		_rpc_solo_start.rpc_id(1, e2e_peaceful, with_ai)
+		_rpc_solo_start.rpc_id(1, e2e_peaceful, with_ai, passive_ai_test)
 		return
 	e2e_peaceful_server = e2e_peaceful
+	passive_ai_test_server = passive_ai_test
 	if with_ai:
 		_ensure_solo_opponent()
 	_launch_match()
@@ -474,16 +486,19 @@ func _launch_match() -> void:
 		peer_ids.append(int(peer_id))
 		slot_ids.append(int(_slots[peer_id]))
 	print("联机: 开局，人类 %d，槽位 %s，配置 %s" % [humans, str(slot_ids), str(kinds)])
-	_rpc_start_match.rpc(humans, peer_ids, slot_ids, kinds)
+	_rpc_start_match.rpc(humans, peer_ids, slot_ids, kinds, passive_ai_test_server)
 
 
 @rpc("any_peer", "reliable")
-func _rpc_solo_start(peaceful: bool = false, with_ai: bool = false) -> void:
+func _rpc_solo_start(
+	peaceful: bool = false, with_ai: bool = false, passive_ai_test: bool = false
+) -> void:
 	if not is_server() or _match_started:
 		return
 	if slot_of(multiplayer.get_remote_sender_id()) < 0:
 		return
 	e2e_peaceful_server = peaceful
+	passive_ai_test_server = passive_ai_test
 	if with_ai:
 		_ensure_solo_opponent()
 	_launch_match()
@@ -543,8 +558,13 @@ func _rpc_status(text: String) -> void:
 
 @rpc("authority", "reliable", "call_local")
 func _rpc_start_match(
-	human_count: int, peer_ids: PackedInt32Array, slot_ids: PackedInt32Array, kinds: PackedInt32Array
+	human_count: int,
+	peer_ids: PackedInt32Array,
+	slot_ids: PackedInt32Array,
+	kinds: PackedInt32Array,
+	passive_ai_test: bool = false
 ) -> void:
+	self.passive_ai_test = passive_ai_test
 	var my_id := multiplayer.get_unique_id()
 	for i in range(min(peer_ids.size(), slot_ids.size())):
 		if peer_ids[i] == my_id:
@@ -559,7 +579,10 @@ func _start_loading(kinds: PackedInt32Array) -> void:
 	var PlayerSettings = load("res://source/data-model/PlayerSettings.gd")
 	var LoadingScene = load("res://source/main-menu/Loading.tscn")
 	var match_settings = MatchSettings.new()
-	match_settings.visibility = match_settings.Visibility.PER_PLAYER
+	# 联机 Demo 当前使用全可见视图。PER_PLAYER 的 FogOfWar 合成依赖客户端
+	# SubViewport 深度纹理，在 ENet 快照场景下会把整张战场误盖成黑屏；
+	# 全可见仍保留真实单位/战斗同步，确保 Demo 可以实际游玩。
+	match_settings.visibility = match_settings.Visibility.FULL
 	if dedicated_server:
 		match_settings.local_player_index = -1
 		match_settings.visible_player = 0

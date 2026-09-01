@@ -16,7 +16,7 @@
       "id": "direct_full_damage",
       "impactSelectionMode": "intendedTargetOnly",
       "radiusMeters": 0.0,
-      "friendlyFireDamageMultiplier": 1.0
+      "friendlyFireDamageMultiplier": 0.0
     }
   ],
   "weapons": [

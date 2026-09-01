@@ -1,0 +1,35 @@
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+   at: call (modules/gdscript/gdscript_lambda_callable.cpp:110)
+   GDScript backtrace (most recent call first):
+       [0] _set_status (res://source/net/NetSession.gd:494)
+       [1] _on_peer_disconnected (res://source/net/NetSession.gd:284)
+SCRIPT ERROR: Invalid assignment of property or key 'text' with value of type 'String' on a base object of type 'Nil'.
+   at: <anonymous lambda> (res://source/Main.gd:15)
+   GDScript backtrace (most recent call first):
+       [0] <anonymous lambda> (res://source/Main.gd:15)
+       [1] _set_status (res://source/net/NetSession.gd:494)
+       [2] _on_peer_disconnected (res://source/net/NetSession.gd:284)
+SCRIPT ERROR: Cannot call method 'is_server' on a null value.
+   at: is_server (res://source/net/NetSession.gd:46)
+   GDScript backtrace (most recent call first):
+       [0] is_server (res://source/net/NetSession.gd:46)
+       [1] _on_unit_tree_exited (res://source/net/NetSync.gd:201)
+SCRIPT ERROR: Cannot call method 'is_server' on a null value.
+   at: is_server (res://source/net/NetSession.gd:46)
+   GDScript backtrace (most recent call first):
+       [0] is_server (res://source/net/NetSession.gd:46)
+       [1] _on_unit_tree_exited (res://source/net/NetSync.gd:201)
+SCRIPT ERROR: Cannot call method 'is_server' on a null value.
+   at: is_server (res://source/net/NetSession.gd:46)
+   GDScript backtrace (most recent call first):
+       [0] is_server (res://source/net/NetSession.gd:46)
+       [1] _on_unit_tree_exited (res://source/net/NetSync.gd:201)
+SCRIPT ERROR: Cannot call method 'is_server' on a null value.
+   at: is_server (res://source/net/NetSession.gd:46)
+   GDScript backtrace (most recent call first):
+       [0] is_server (res://source/net/NetSession.gd:46)
+       [1] _on_unit_tree_exited (res://source/net/NetSync.gd:201)
+WARNING: 43 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2536)
+ERROR: 9 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

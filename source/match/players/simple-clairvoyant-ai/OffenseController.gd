@@ -455,7 +455,8 @@ func _try_creating_new_battlegroup() -> bool:
 		_world_query_runtime,
 		_query_session_id,
 		_command_gateway,
-		_ai.retreat_threshold
+		_ai.retreat_threshold,
+		_ai.is_passive_test_ai()
 	)
 	_battlegroups.append(battlegroup)
 	battlegroup.tree_exited.connect(_on_battlegroup_died.bind(battlegroup))

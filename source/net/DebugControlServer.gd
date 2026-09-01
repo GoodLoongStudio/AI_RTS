@@ -7,19 +7,24 @@ extends Node
 ##   2) 结构化命令：move/gather/build/produce/attack/status/screenshot。
 ## 挂 root 跨场景存活，仅在 autojoin 调试模式下由 Online.gd 挂载。
 
-const PORT := 24568
+const DEFAULT_PORT := 24568
 
 var _server := TCPServer.new()
 var _clients: Array = []
 var _buffers := {}
+var _port := DEFAULT_PORT
 
 
 func _ready() -> void:
-	if _server.listen(PORT, "127.0.0.1") != OK:
-		print("[DBGCTL] 端口 %d 被占用, 调试控制端点未启动" % PORT)
+	var args := OS.get_cmdline_user_args()
+	var port_index := args.find("--debugport")
+	if port_index >= 0 and port_index + 1 < args.size():
+		_port = int(args[port_index + 1])
+	if _server.listen(_port, "127.0.0.1") != OK:
+		print("[DBGCTL] 端口 %d 被占用, 调试控制端点未启动" % _port)
 		set_process(false)
 		return
-	print("[DBGCTL] 调试控制端点已启动 127.0.0.1:%d" % PORT)
+	print("[DBGCTL] 调试控制端点已启动 127.0.0.1:%d" % _port)
 
 
 func _process(_delta: float) -> void:
@@ -51,13 +56,15 @@ func _dispatch(line: String) -> String:
 		return JSON.stringify({"error": "bad json"})
 	var tree := get_tree()
 	var match_node = tree.current_scene
-	if parsed.get("op", "") != "status" and (
+	if parsed.get("op", "") not in ["status", "start"] and (
 		match_node == null or not match_node.has_method("get_local_player")
 	):
 		return JSON.stringify({"error": "no match scene"})
 	match str(parsed.get("op", "")):
 		"status":
 			return JSON.stringify(_collect_status(match_node))
+		"start":
+			return _op_start(parsed)
 		"click":
 			return _op_click(parsed)
 		"drag":
@@ -66,6 +73,10 @@ func _dispatch(line: String) -> String:
 			return _op_key(parsed)
 		"screenshot":
 			return _op_screenshot(parsed)
+		"fog":
+			return _op_fog(match_node, parsed)
+		"fog_status":
+			return _op_fog_status(match_node)
 		"move":
 			return _op_move(match_node, parsed)
 		"gather":
@@ -150,7 +161,52 @@ func _op_screenshot(parsed) -> String:
 	]})
 
 
+func _op_fog(match_node, parsed) -> String:
+	if match_node == null:
+		return JSON.stringify({"error": "no match scene"})
+	var fog = match_node.get_node_or_null("FogOfWar")
+	var visibility = match_node.get_node_or_null("UnitVisibilityHandler")
+	if fog == null:
+		return JSON.stringify({"error": "no fog of war"})
+	var enabled := bool(parsed.get("enabled", not fog.visible))
+	fog.visible = enabled
+	if visibility != null:
+		visibility.visible = enabled
+	return JSON.stringify({"ok": true, "enabled": enabled})
+
+
+func _op_fog_status(match_node) -> String:
+	if match_node == null:
+		return JSON.stringify({"error": "no match scene"})
+	var fog = match_node.get_node_or_null("FogOfWar")
+	var fog_viewport = fog.get_node_or_null("CombinedViewport/FogViewportContainer/FogViewport") if fog != null else null
+	var revealed := 0
+	for unit in get_tree().get_nodes_in_group("units"):
+		if unit.is_in_group("revealed_units"):
+			revealed += 1
+	return JSON.stringify({
+		"ok": true,
+		"fog_visible": fog.visible if fog != null else false,
+		"revealed_units": revealed,
+		"mapped_units": int(fog.get("_unit_to_circles_mapping").size()) if fog != null else -1,
+		"fog_circle_count": fog_viewport.get_child_count() if fog_viewport != null else -1,
+		"viewport_size": [fog_viewport.size.x, fog_viewport.size.y] if fog_viewport != null else null,
+	})
+
+
 # ---------- 结构化命令 ----------
+
+func _op_start(parsed) -> String:
+	if not NetSession.is_networked():
+		return JSON.stringify({"error": "not networked"})
+	var with_ai := bool(parsed.get("with_ai", false))
+	var passive_ai_test := bool(parsed.get("passive_ai_test", false))
+	NetSession.start_solo(with_ai, passive_ai_test)
+	return JSON.stringify({
+		"ok": true,
+		"with_ai": with_ai,
+		"passive_ai_test": passive_ai_test,
+	})
 
 func _resolve_own_units(match_node, wanted: Array) -> Array:
 	var player = match_node.get_local_player()
@@ -218,10 +274,34 @@ func _op_build(match_node, parsed) -> String:
 	var pos_raw: Array = parsed.get("pos", [0.0, 0.0])
 	var position := Vector3(float(pos_raw[0]), 0.0, float(pos_raw[1]))
 	var scene_path := str(parsed.get("scene", "res://source/match/units/VehicleFactory.tscn"))
+	# The debug endpoint runs inside the authority process for local listen-server
+	# tests. Calling forward_command there sends an RPC to peer 1 but does not
+	# reliably execute the command locally, so apply placement directly on server.
+	if NetSession.is_server():
+		var placement_runtime = match_node.get_node_or_null("StructurePlacementRuntime")
+		if placement_runtime == null:
+			return JSON.stringify({"error": "no placement runtime"})
+		var structure_transform := Transform3D(Basis.IDENTITY, position)
+		var place_result: Dictionary = placement_runtime.Place(
+			player, load(scene_path), structure_transform, {}
+		)
+		if bool(place_result.get("accepted", false)):
+			placement_runtime.AssignBuilders(
+				builders,
+				place_result["structure"],
+				player,
+				place_result.get("displaced_unit_ids", [])
+			)
+		return JSON.stringify({
+			"ok": bool(place_result.get("accepted", false)),
+			"accepted": bool(place_result.get("accepted", false)),
+			"issue": str(place_result.get("primary_issue", "")),
+			"builders": builders.map(func(n): return n.name),
+		})
 	sync.forward_command(
 		"place_structure", builders, position, null, player, scene_path + "|0"
 	)
-	return JSON.stringify({"ok": true, "builders": builders.map(
+	return JSON.stringify({"ok": true, "accepted": true, "builders": builders.map(
 		func(n): return n.name
 	)})
 
@@ -260,15 +340,50 @@ func _op_attack(match_node, parsed) -> String:
 
 func _collect_status(match_node) -> Dictionary:
 	var tree := get_tree()
-	var out := {"match": false, "units": [], "resources": [], "balance": null}
+	var out := {
+		"match": false,
+		"local_slot": NetSession.local_slot,
+		"units": [],
+		"resources": [],
+		"balance": null,
+		"passive_ai_test": NetSession.passive_ai_test,
+		"passive_ai_test_server": NetSession.passive_ai_test_server,
+	}
 	if match_node == null or not match_node.has_method("get_local_player"):
 		return out
 	var player = match_node.get_local_player()
 	if player == null:
 		return out
 	out["match"] = true
+	out["local_player_name"] = str(player.name)
+	out["player_nodes"] = get_tree().get_nodes_in_group("players").map(func(p): return str(p.name))
 	out["balance"] = {"a": int(player.resource_a), "b": int(player.resource_b)}
+	out["all_balances"] = get_tree().get_nodes_in_group("players").map(
+		func(p): return {"player": str(p.name), "a": int(p.resource_a), "b": int(p.resource_b)}
+	)
+	var outcome_runtime = match_node.get_node_or_null("MatchOutcomeRuntime")
+	if outcome_runtime != null and outcome_runtime.has_method("InspectOutcome"):
+		out["outcome"] = outcome_runtime.InspectOutcome()
 	var camera := tree.current_scene.get_viewport().get_camera_3d()
+	if camera != null:
+		out["camera"] = {
+			"pos": [camera.global_position.x, camera.global_position.y, camera.global_position.z],
+			"rotation": [camera.rotation.x, camera.rotation.y, camera.rotation.z],
+			"projection": camera.projection,
+			"size": camera.size,
+			"near": camera.near,
+			"far": camera.far,
+			"frustum_visible": camera.is_position_in_frustum(player.global_position),
+		}
+	var fog = match_node.get_node_or_null("FogOfWar")
+	if fog != null:
+		out["fog_visible"] = fog.visible
+		var fog_viewport = fog.get_node_or_null("CombinedViewport/FogViewportContainer/FogViewport")
+		out["fog_debug"] = {
+			"viewport_size": [fog_viewport.size.x, fog_viewport.size.y] if fog_viewport != null else null,
+			"fog_circle_count": fog_viewport.get_child_count() if fog_viewport != null else -1,
+			"combined_child_count": fog.get_node("CombinedViewport").get_child_count(),
+		}
 	for unit in tree.get_nodes_in_group("units"):
 		if unit == null or not is_instance_valid(unit):
 			continue
@@ -287,6 +402,9 @@ func _collect_status(match_node) -> Dictionary:
 				unit.global_position.x, unit.global_position.y, unit.global_position.z
 			],
 			"mine": unit.get_parent() == player,
+			"selected": unit.is_in_group("selected_units"),
+			"visible": unit.visible,
+			"revealed": unit.is_in_group("revealed_units"),
 			"movement": unit.find_child("Movement", false, false) != null,
 			"queue": unit.find_child("ProductionQueue", false, false) != null,
 			"attack": "attack_range" in unit,

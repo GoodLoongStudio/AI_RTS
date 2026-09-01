@@ -20,6 +20,7 @@ var _active_blueprint_node = null
 var _pending_structure_prototype = null
 var _pending_construction_workers := []
 var _blueprint_rotating = false
+var _local_input_bound := false
 
 @onready var _player = get_parent()
 @onready var _match = find_parent("Match")
@@ -33,8 +34,23 @@ func _ready():
 	_feedback_label.hide()
 	if not _match.is_node_ready():
 		await _match.ready
+	if not MatchSignals.match_started.is_connected(_on_match_started_for_input):
+		MatchSignals.match_started.connect(_on_match_started_for_input, CONNECT_ONE_SHOT)
+	call_deferred("_bind_local_input")
+
+
+func _on_match_started_for_input():
+	call_deferred("_bind_local_input")
+
+
+func _bind_local_input():
+	if _local_input_bound or not is_inside_tree():
+		return
 	if _match.get_local_player() != _player:
 		return
+	_local_input_bound = true
+	if MatchSignals.match_started.is_connected(_on_match_started_for_input):
+		MatchSignals.match_started.disconnect(_on_match_started_for_input)
 	MatchSignals.place_structure.connect(_on_structure_placement_request)
 	_input_runtime.connect("ActionPressed", _on_input_action_pressed)
 

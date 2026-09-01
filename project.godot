@@ -32,6 +32,7 @@ MatchSignals="*res://source/match/MatchSignals.gd"
 Signals="*res://source/Signals.gd"
 Utils="*res://source/Utils.gd"
 MCPRuntimeProbe="*res://addons/godot_mcp/runtime/mcp_runtime_probe.gd"
+_mcp_game_helper="*res://addons/godot_ai/runtime/game_helper.gd"
 
 [debug]
 

@@ -348,6 +348,15 @@ func _rpc_command(
 	var units: Array = []
 	for path in paths:
 		var unit = _match.get_node_or_null(NodePath(path))
+		# 客户端和服务器的根节点路径可能不同（例如 /root/Online/Match
+		# 与 /root/Match）。命令协议以全局 Unit 名称兜底解析，归属仍由
+		# issuer 严格校验，避免跨玩家操控。
+		if unit == null:
+			var wanted_name := String(path).get_file()
+			for candidate in get_tree().get_nodes_in_group("units"):
+				if candidate.name == wanted_name and candidate.get_parent() == issuer:
+					unit = candidate
+					break
 		if unit != null and is_instance_valid(unit) and unit.get_parent() == issuer:
 			units.append(unit)
 	if op == "produce":
@@ -390,6 +399,27 @@ func _rpc_command(
 		print("[CMD][服务器] 拒绝: 人类玩家无 UnitCommandGateway")
 		return
 	var target = _match.get_node_or_null(NodePath(target_path)) if target_path != "" else null
+	if target == null and target_path != "":
+		var wanted_target_name := String(target_path).get_file()
+		for candidate in get_tree().get_nodes_in_group("units"):
+			if candidate.name == wanted_target_name:
+				target = candidate
+				break
+		if target == null:
+			for candidate in get_tree().get_nodes_in_group("resource_units"):
+				if candidate.name == wanted_target_name:
+					target = candidate
+					break
+	if target == null and op == "gather" and not units.is_empty():
+		# 最后一道兼容兜底：不同端地图节点路径可能不同，按发起者
+		# 单位最近的同类资源选择目标，避免客户端命令静默丢失。
+		var origin: Vector3 = units[0].global_position
+		var nearest := INF
+		for candidate in get_tree().get_nodes_in_group("resource_units"):
+			var d := candidate.global_position.distance_to(origin)
+			if d < nearest:
+				nearest = d
+				target = candidate
 	print("[CMD][服务器] 应用 op=%s units=%d dest=%s" % [op, units.size(), destination])
 	match op:
 		"move":
@@ -442,6 +472,12 @@ func _rpc_command(
 		"cancel_construct":
 			if target != null:
 				gateway.CancelConstruction(target, issuer)
+		"set_engagement_stance":
+			var stance_result: Dictionary = gateway.SetEngagementStance(units, extra, issuer)
+			print("[CMD][服务器] SetEngagementStance 结果: ", stance_result)
+		"set_fire_policy":
+			var policy_result: Dictionary = gateway.SetFirePolicy(units, extra, issuer)
+			print("[CMD][服务器] SetFirePolicy 结果: ", policy_result)
 
 
 @rpc("authority", "unreliable")

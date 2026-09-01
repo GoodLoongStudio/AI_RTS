@@ -14,6 +14,7 @@ const CampaignHeroIdentity = preload("res://source/campaign/CampaignHeroIdentity
 const CommandCenter = preload("res://source/match/units/CommandCenter.tscn")
 const Drone = preload("res://source/match/units/Drone.tscn")
 const Worker = preload("res://source/match/units/Worker.tscn")
+const VehicleFactory = preload("res://source/match/units/VehicleFactory.tscn")
 
 @export var settings: Resource = null
 
@@ -79,7 +80,16 @@ func _ready():
 	_battlefield_event_runtime.Initialize(get_local_player())
 	_move_camera_to_initial_position()
 	if settings.visibility == settings.Visibility.FULL:
-		fog_of_war.reveal()
+		# FULL is used by the online Demo: every player may inspect the shared
+		# battlefield. Disable both the screen shader and unit filter; merely
+		# revealing the viewport leaves the overlay black outside its texture.
+		fog_of_war.visible = false
+		var unit_visibility_handler = find_child("UnitVisibilityHandler", true, false)
+		if unit_visibility_handler != null:
+			unit_visibility_handler.visible = false
+		var minimap_fog_mask = find_child("FogOfWarMask", true, false)
+		if minimap_fog_mask != null:
+			minimap_fog_mask.visible = false
 	if not _is_dedicated_or_headless():
 		if not NetSession.is_networked():
 			_setup_ai_command_hud()
@@ -227,6 +237,10 @@ func _create_players_from_settings():
 			var player_scene = Constants.Match.Player.CONTROLLER_SCENES[player_settings.controller]
 			player = player_scene.instantiate()
 		player.color = player_settings.color
+		# 单人被动 AI 测试局需要能完整演示建造与生产，不应被初始资源门槛阻断。
+		if NetSession.passive_ai_test_server or NetSession.passive_ai_test:
+			player.resource_a = 50
+			player.resource_b = 50
 		if player_settings.spawn_index_offset > 0:
 			for _i in range(player_settings.spawn_index_offset):
 				_players.add_child(Node.new())
@@ -285,6 +299,11 @@ func _spawn_player_units(player, spawn_transform):
 	_setup_and_spawn_unit(
 		Worker.instantiate(), spawn_transform.translated(Vector3(3, 0, 3)), player
 	)
+	if NetSession.passive_ai_test_server or NetSession.passive_ai_test:
+		# 测试局预置已完成车辆工厂，确保生产流程可以直接通过 UI 验证。
+		_setup_and_spawn_unit(
+			VehicleFactory.instantiate(), spawn_transform.translated(Vector3(0, 0, 6)), player, false
+		)
 
 
 func _register_campaign_hero(unit: Node3D):

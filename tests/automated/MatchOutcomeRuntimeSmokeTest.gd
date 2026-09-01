@@ -16,6 +16,7 @@ func _ready():
 	await _test_human_defeat()
 	await _test_draw()
 	await _test_ai_only_finish()
+	await _test_single_online_slot_stays_in_progress()
 	await _test_campaign_victory_without_annihilation()
 	await _test_campaign_defeat_without_annihilation()
 	await _test_locked_outcome_cannot_be_resettled()
@@ -101,6 +102,33 @@ func _test_ai_only_finish():
 	_check(fixture.handler.find_child("Finish").visible,
 		"无 Human 对局应显示 Finish")
 	await _dispose_fixture(fixture)
+
+
+## 验证单人联机的空槽占位玩家不会被登记为参战方并触发立即胜利。
+func _test_single_online_slot_stays_in_progress():
+	get_tree().paused = false
+	var match_root := Node.new()
+	match_root.name = "Match"
+	var players := Node.new()
+	players.name = "Players"
+	match_root.add_child(players)
+	var human := _add_player(players, "Player_0")
+	var empty_slot := _add_player(players, "Player_1")
+	empty_slot.set_meta("slot_kind", Constants.PlayerType.NONE)
+	_add_unit(human, "CommandCenter")
+	var runtime = MatchOutcomeRuntimeScript.new()
+	runtime.name = "MatchOutcomeRuntime"
+	match_root.add_child(runtime)
+	add_child(match_root)
+	await get_tree().process_frame
+
+	runtime.Initialize(players, human)
+	var snapshot: Dictionary = runtime.InspectOutcome()
+	_check(snapshot.get("kind", "") == "InProgress",
+		"单人联机含 NONE 空槽时必须保持 InProgress")
+	_check(snapshot.get("winning_side_ids", []).is_empty(),
+		"单人联机测试局不得发布伪胜方")
+	await _dispose_fixture({"match_root": match_root})
 
 
 ## 验证战役目标完成可在敌军仍存活时锁定 Victory。

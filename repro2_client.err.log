@@ -1,0 +1,175 @@
+SCRIPT ERROR: Invalid call. Nonexistent function 'GetEngagementStance' in base 'RefCounted (NetCommandProxy)'.
+   at: get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+   GDScript backtrace (most recent call first):
+       [0] get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+       [1] _refresh_policy_buttons (res://source/match/hud/TraditionalUnitCommandHUD.gd:241)
+       [2] _refresh_availability (res://source/match/hud/TraditionalUnitCommandHUD.gd:235)
+       [3] <anonymous lambda> (res://source/match/hud/TraditionalUnitCommandHUD.gd:37)
+       [4] select (res://source/match/units/traits/Selection.gd:40)
+       [5] _on_input_event (res://source/match/units/traits/Selection.gd:89)
+SCRIPT ERROR: Invalid call. Nonexistent function 'GetFirePolicy' in base 'RefCounted (NetCommandProxy)'.
+   at: get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+   GDScript backtrace (most recent call first):
+       [0] get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+       [1] _refresh_policy_buttons (res://source/match/hud/TraditionalUnitCommandHUD.gd:242)
+       [2] _refresh_availability (res://source/match/hud/TraditionalUnitCommandHUD.gd:235)
+       [3] <anonymous lambda> (res://source/match/hud/TraditionalUnitCommandHUD.gd:37)
+       [4] select (res://source/match/units/traits/Selection.gd:40)
+       [5] _on_input_event (res://source/match/units/traits/Selection.gd:89)
+SCRIPT ERROR: Invalid call. Nonexistent function 'GetFirePolicy' in base 'RefCounted (NetCommandProxy)'.
+   at: get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+   GDScript backtrace (most recent call first):
+       [0] get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+       [1] _refresh_hold_fire_caption (res://source/match/hud/TraditionalUnitCommandHUD.gd:253)
+       [2] _refresh_policy_buttons (res://source/match/hud/TraditionalUnitCommandHUD.gd:247)
+       [3] _refresh_availability (res://source/match/hud/TraditionalUnitCommandHUD.gd:235)
+       [4] <anonymous lambda> (res://source/match/hud/TraditionalUnitCommandHUD.gd:37)
+       [5] select (res://source/match/units/traits/Selection.gd:40)
+       [6] _on_input_event (res://source/match/units/traits/Selection.gd:89)
+SCRIPT ERROR: Invalid call. Nonexistent function 'GetFirePolicy' in base 'RefCounted (NetCommandProxy)'.
+   at: get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+   GDScript backtrace (most recent call first):
+       [0] get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+       [1] _toggle_hold_fire (res://source/match/hud/TraditionalUnitCommandHUD.gd:128)
+SCRIPT ERROR: Invalid call. Nonexistent function 'SetFirePolicy' in base 'RefCounted (NetCommandProxy)'.
+   at: _submit_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:213)
+   GDScript backtrace (most recent call first):
+       [0] _submit_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:213)
+       [1] set_selected_fire_policy (res://source/match/players/human/UnitActionsController.gd:181)
+       [2] _toggle_hold_fire (res://source/match/hud/TraditionalUnitCommandHUD.gd:130)
+SCRIPT ERROR: Invalid call. Nonexistent function 'GetEngagementStance' in base 'RefCounted (NetCommandProxy)'.
+   at: get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+   GDScript backtrace (most recent call first):
+       [0] get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+       [1] _refresh_policy_buttons (res://source/match/hud/TraditionalUnitCommandHUD.gd:241)
+       [2] _toggle_hold_fire (res://source/match/hud/TraditionalUnitCommandHUD.gd:131)
+SCRIPT ERROR: Invalid call. Nonexistent function 'GetFirePolicy' in base 'RefCounted (NetCommandProxy)'.
+   at: get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+   GDScript backtrace (most recent call first):
+       [0] get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+       [1] _refresh_policy_buttons (res://source/match/hud/TraditionalUnitCommandHUD.gd:242)
+       [2] _toggle_hold_fire (res://source/match/hud/TraditionalUnitCommandHUD.gd:131)
+SCRIPT ERROR: Invalid call. Nonexistent function 'GetFirePolicy' in base 'RefCounted (NetCommandProxy)'.
+   at: get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+   GDScript backtrace (most recent call first):
+       [0] get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+       [1] _refresh_hold_fire_caption (res://source/match/hud/TraditionalUnitCommandHUD.gd:253)
+       [2] _refresh_policy_buttons (res://source/match/hud/TraditionalUnitCommandHUD.gd:247)
+       [3] _toggle_hold_fire (res://source/match/hud/TraditionalUnitCommandHUD.gd:131)
+SCRIPT ERROR: Invalid call. Nonexistent function 'GetFirePolicy' in base 'RefCounted (NetCommandProxy)'.
+   at: get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+   GDScript backtrace (most recent call first):
+       [0] get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+       [1] _toggle_hold_fire (res://source/match/hud/TraditionalUnitCommandHUD.gd:128)
+SCRIPT ERROR: Invalid call. Nonexistent function 'SetFirePolicy' in base 'RefCounted (NetCommandProxy)'.
+   at: _submit_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:213)
+   GDScript backtrace (most recent call first):
+       [0] _submit_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:213)
+       [1] set_selected_fire_policy (res://source/match/players/human/UnitActionsController.gd:181)
+       [2] _toggle_hold_fire (res://source/match/hud/TraditionalUnitCommandHUD.gd:130)
+SCRIPT ERROR: Invalid call. Nonexistent function 'GetEngagementStance' in base 'RefCounted (NetCommandProxy)'.
+   at: get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+   GDScript backtrace (most recent call first):
+       [0] get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+       [1] _refresh_policy_buttons (res://source/match/hud/TraditionalUnitCommandHUD.gd:241)
+       [2] _toggle_hold_fire (res://source/match/hud/TraditionalUnitCommandHUD.gd:131)
+SCRIPT ERROR: Invalid call. Nonexistent function 'GetFirePolicy' in base 'RefCounted (NetCommandProxy)'.
+   at: get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+   GDScript backtrace (most recent call first):
+       [0] get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+       [1] _refresh_policy_buttons (res://source/match/hud/TraditionalUnitCommandHUD.gd:242)
+       [2] _toggle_hold_fire (res://source/match/hud/TraditionalUnitCommandHUD.gd:131)
+SCRIPT ERROR: Invalid call. Nonexistent function 'GetFirePolicy' in base 'RefCounted (NetCommandProxy)'.
+   at: get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+   GDScript backtrace (most recent call first):
+       [0] get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+       [1] _refresh_hold_fire_caption (res://source/match/hud/TraditionalUnitCommandHUD.gd:253)
+       [2] _refresh_policy_buttons (res://source/match/hud/TraditionalUnitCommandHUD.gd:247)
+       [3] _toggle_hold_fire (res://source/match/hud/TraditionalUnitCommandHUD.gd:131)
+SCRIPT ERROR: Invalid call. Nonexistent function 'SetEngagementStance' in base 'RefCounted (NetCommandProxy)'.
+   at: _submit_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:213)
+   GDScript backtrace (most recent call first):
+       [0] _submit_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:213)
+       [1] set_selected_engagement_stance (res://source/match/players/human/UnitActionsController.gd:176)
+       [2] _set_engagement_stance (res://source/match/hud/TraditionalUnitCommandHUD.gd:123)
+       [3] <anonymous lambda> (res://source/match/hud/TraditionalUnitCommandHUD.gd:29)
+SCRIPT ERROR: Invalid call. Nonexistent function 'GetEngagementStance' in base 'RefCounted (NetCommandProxy)'.
+   at: get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+   GDScript backtrace (most recent call first):
+       [0] get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+       [1] _refresh_policy_buttons (res://source/match/hud/TraditionalUnitCommandHUD.gd:241)
+       [2] _set_engagement_stance (res://source/match/hud/TraditionalUnitCommandHUD.gd:124)
+       [3] <anonymous lambda> (res://source/match/hud/TraditionalUnitCommandHUD.gd:29)
+SCRIPT ERROR: Invalid call. Nonexistent function 'GetFirePolicy' in base 'RefCounted (NetCommandProxy)'.
+   at: get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+   GDScript backtrace (most recent call first):
+       [0] get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+       [1] _refresh_policy_buttons (res://source/match/hud/TraditionalUnitCommandHUD.gd:242)
+       [2] _set_engagement_stance (res://source/match/hud/TraditionalUnitCommandHUD.gd:124)
+       [3] <anonymous lambda> (res://source/match/hud/TraditionalUnitCommandHUD.gd:29)
+SCRIPT ERROR: Invalid call. Nonexistent function 'GetFirePolicy' in base 'RefCounted (NetCommandProxy)'.
+   at: get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+   GDScript backtrace (most recent call first):
+       [0] get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+       [1] _refresh_hold_fire_caption (res://source/match/hud/TraditionalUnitCommandHUD.gd:253)
+       [2] _refresh_policy_buttons (res://source/match/hud/TraditionalUnitCommandHUD.gd:247)
+       [3] _set_engagement_stance (res://source/match/hud/TraditionalUnitCommandHUD.gd:124)
+       [4] <anonymous lambda> (res://source/match/hud/TraditionalUnitCommandHUD.gd:29)
+SCRIPT ERROR: Invalid call. Nonexistent function 'SetEngagementStance' in base 'RefCounted (NetCommandProxy)'.
+   at: _submit_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:213)
+   GDScript backtrace (most recent call first):
+       [0] _submit_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:213)
+       [1] set_selected_engagement_stance (res://source/match/players/human/UnitActionsController.gd:176)
+       [2] _set_engagement_stance (res://source/match/hud/TraditionalUnitCommandHUD.gd:123)
+       [3] <anonymous lambda> (res://source/match/hud/TraditionalUnitCommandHUD.gd:28)
+SCRIPT ERROR: Invalid call. Nonexistent function 'GetEngagementStance' in base 'RefCounted (NetCommandProxy)'.
+   at: get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+   GDScript backtrace (most recent call first):
+       [0] get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+       [1] _refresh_policy_buttons (res://source/match/hud/TraditionalUnitCommandHUD.gd:241)
+       [2] _set_engagement_stance (res://source/match/hud/TraditionalUnitCommandHUD.gd:124)
+       [3] <anonymous lambda> (res://source/match/hud/TraditionalUnitCommandHUD.gd:28)
+SCRIPT ERROR: Invalid call. Nonexistent function 'GetFirePolicy' in base 'RefCounted (NetCommandProxy)'.
+   at: get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+   GDScript backtrace (most recent call first):
+       [0] get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+       [1] _refresh_policy_buttons (res://source/match/hud/TraditionalUnitCommandHUD.gd:242)
+       [2] _set_engagement_stance (res://source/match/hud/TraditionalUnitCommandHUD.gd:124)
+       [3] <anonymous lambda> (res://source/match/hud/TraditionalUnitCommandHUD.gd:28)
+SCRIPT ERROR: Invalid call. Nonexistent function 'GetFirePolicy' in base 'RefCounted (NetCommandProxy)'.
+   at: get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+   GDScript backtrace (most recent call first):
+       [0] get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+       [1] _refresh_hold_fire_caption (res://source/match/hud/TraditionalUnitCommandHUD.gd:253)
+       [2] _refresh_policy_buttons (res://source/match/hud/TraditionalUnitCommandHUD.gd:247)
+       [3] _set_engagement_stance (res://source/match/hud/TraditionalUnitCommandHUD.gd:124)
+       [4] <anonymous lambda> (res://source/match/hud/TraditionalUnitCommandHUD.gd:28)
+SCRIPT ERROR: Invalid call. Nonexistent function 'SetEngagementStance' in base 'RefCounted (NetCommandProxy)'.
+   at: _submit_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:213)
+   GDScript backtrace (most recent call first):
+       [0] _submit_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:213)
+       [1] set_selected_engagement_stance (res://source/match/players/human/UnitActionsController.gd:176)
+       [2] _set_engagement_stance (res://source/match/hud/TraditionalUnitCommandHUD.gd:123)
+       [3] <anonymous lambda> (res://source/match/hud/TraditionalUnitCommandHUD.gd:27)
+SCRIPT ERROR: Invalid call. Nonexistent function 'GetEngagementStance' in base 'RefCounted (NetCommandProxy)'.
+   at: get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+   GDScript backtrace (most recent call first):
+       [0] get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+       [1] _refresh_policy_buttons (res://source/match/hud/TraditionalUnitCommandHUD.gd:241)
+       [2] _set_engagement_stance (res://source/match/hud/TraditionalUnitCommandHUD.gd:124)
+       [3] <anonymous lambda> (res://source/match/hud/TraditionalUnitCommandHUD.gd:27)
+SCRIPT ERROR: Invalid call. Nonexistent function 'GetFirePolicy' in base 'RefCounted (NetCommandProxy)'.
+   at: get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+   GDScript backtrace (most recent call first):
+       [0] get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+       [1] _refresh_policy_buttons (res://source/match/hud/TraditionalUnitCommandHUD.gd:242)
+       [2] _set_engagement_stance (res://source/match/hud/TraditionalUnitCommandHUD.gd:124)
+       [3] <anonymous lambda> (res://source/match/hud/TraditionalUnitCommandHUD.gd:27)
+SCRIPT ERROR: Invalid call. Nonexistent function 'GetFirePolicy' in base 'RefCounted (NetCommandProxy)'.
+   at: get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+   GDScript backtrace (most recent call first):
+       [0] get_selected_combat_policy (res://source/match/players/human/UnitActionsController.gd:190)
+       [1] _refresh_hold_fire_caption (res://source/match/hud/TraditionalUnitCommandHUD.gd:253)
+       [2] _refresh_policy_buttons (res://source/match/hud/TraditionalUnitCommandHUD.gd:247)
+       [3] _set_engagement_stance (res://source/match/hud/TraditionalUnitCommandHUD.gd:124)
+       [4] <anonymous lambda> (res://source/match/hud/TraditionalUnitCommandHUD.gd:27)
