@@ -1,0 +1,1 @@
+这些 WAV 由仓库 tools/generate_demo_sfx.py 用正弦波与伪随机噪声合成，不含其他游戏或第三方采样，可按本项目用途使用。重新生成：python tools/generate_demo_sfx.py

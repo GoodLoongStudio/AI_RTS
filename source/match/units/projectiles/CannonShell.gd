@@ -25,6 +25,7 @@ func _ready():
 	_flight_seconds = _duration_to(projectile_runtime.GetAimPoint(attack_id))
 	if _trail != null:
 		_trail.emitting = true
+	AudioDirector.play("cannon_fire")
 
 
 func _process(delta: float):
@@ -57,6 +58,7 @@ func _perform_impact():
 	var impact_point: Vector3 = projectile_runtime.GetAimPoint(attack_id)
 	if impact_point.is_finite():
 		projectile_runtime.ResolveImpact(attack_id, impact_point)
+	AudioDirector.play("impact")
 	queue_free()
 
 

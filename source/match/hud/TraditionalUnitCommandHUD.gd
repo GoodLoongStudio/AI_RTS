@@ -26,16 +26,16 @@ const _SKILL_CAPTIONS := {
 
 func _ready():
 	assert(actions_controller != null, "TraditionalUnitCommandHUD requires UnitActionsController")
-	_force_move_button.pressed.connect(_on_force_move_pressed)
-	_force_attack_button.pressed.connect(_on_force_attack_pressed)
-	_tactical_withdraw_button.pressed.connect(_on_tactical_withdraw_pressed)
-	_ground_attack_move_button.pressed.connect(_on_ground_attack_move_pressed)
-	_halt_button.pressed.connect(_on_halt_pressed)
-	_aggressive_button.pressed.connect(func(): _set_engagement_stance("Aggressive"))
-	_guard_button.pressed.connect(func(): _set_engagement_stance("Guard"))
-	_hold_ground_button.pressed.connect(func(): _set_engagement_stance("HoldGround"))
-	_hold_fire_button.pressed.connect(_toggle_hold_fire)
-	_clear_rally_point_button.pressed.connect(actions_controller.clear_selected_rally_points)
+	_bind_command_click(_force_move_button, _on_force_move_pressed)
+	_bind_command_click(_force_attack_button, _on_force_attack_pressed)
+	_bind_command_click(_tactical_withdraw_button, _on_tactical_withdraw_pressed)
+	_bind_command_click(_ground_attack_move_button, _on_ground_attack_move_pressed)
+	_bind_command_click(_halt_button, _on_halt_pressed)
+	_bind_command_click(_aggressive_button, func(): _set_engagement_stance("Aggressive"))
+	_bind_command_click(_guard_button, func(): _set_engagement_stance("Guard"))
+	_bind_command_click(_hold_ground_button, func(): _set_engagement_stance("HoldGround"))
+	_bind_command_click(_hold_fire_button, _toggle_hold_fire)
+	_bind_command_click(_clear_rally_point_button, actions_controller.clear_selected_rally_points)
 	actions_controller.command_targeting_changed.connect(_on_command_targeting_changed)
 	actions_controller.command_feedback.connect(_on_command_feedback)
 	_input_runtime = find_parent("Match").get_node_or_null("InputBindingRuntime")
@@ -47,6 +47,13 @@ func _ready():
 	_refresh_command_captions()
 	_refresh_availability()
 	_refresh_skill_slots()
+
+
+func _bind_command_click(button: BaseButton, callback: Callable):
+	button.pressed.connect(func():
+		AudioDirector.play("ui_click")
+		callback.call()
+	)
 
 
 ## 官方单位快捷键复用同一套 HUD 命令入口，不另建第二套命令语义。
@@ -297,7 +304,7 @@ func _rebuild_skill_buttons(slots: Array):
 		button.custom_minimum_size = Vector2(148, 36)
 		button.set_meta("skill_id", skill_id)
 		button.set_meta("target", target)
-		button.pressed.connect(_on_skill_pressed.bind(skill_id, target))
+		_bind_command_click(button, _on_skill_pressed.bind(skill_id, target))
 		_skill_slots.add_child(button)
 
 

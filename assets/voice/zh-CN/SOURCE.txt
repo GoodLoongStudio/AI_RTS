@@ -1,0 +1,4 @@
+中文旁白与单位应答由 tools/generate_zh_voice.py 调用 Edge TTS 生成，文案为项目自写。
+旁白：zh-CN-XiaoyiNeural；单位：zh-CN-YunjianNeural。
+正式上线若需商用分发，应改用已授权录音或 Azure Speech 正式授权，不能把其他游戏语音换皮使用。
+重新生成：python tools/generate_zh_voice.py

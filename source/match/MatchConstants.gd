@@ -86,33 +86,31 @@ class VoiceNarrator:
 
 	const EVENT_TO_ASSET_MAPPING = {
 		Events.MATCH_STARTED:
-		preload("res://assets/voice/english/ttsmaker-com-148-alayna-us/battle_control_online.ogg"),
+		preload("res://assets/voice/zh-CN/narrator/battle_control_online.mp3"),
 		Events.MATCH_ABORTED:
-		preload("res://assets/voice/english/ttsmaker-com-148-alayna-us/battle_control_offline.ogg"),
+		preload("res://assets/voice/zh-CN/narrator/battle_control_offline.mp3"),
 		Events.MATCH_FINISHED_WITH_VICTORY:
-		preload("res://assets/voice/english/ttsmaker-com-148-alayna-us/you_are_victorious.ogg"),
+		preload("res://assets/voice/zh-CN/narrator/you_are_victorious.mp3"),
 		Events.MATCH_FINISHED_WITH_DEFEAT:
-		preload("res://assets/voice/english/ttsmaker-com-148-alayna-us/you_have_lost.ogg"),
+		preload("res://assets/voice/zh-CN/narrator/you_have_lost.mp3"),
 		Events.BASE_UNDER_ATTACK:
-		preload(
-			"res://assets/voice/english/ttsmaker-com-148-alayna-us/your_base_is_under_attack.ogg"
-		),
+		preload("res://assets/voice/zh-CN/narrator/your_base_is_under_attack.mp3"),
 		Events.UNIT_UNDER_ATTACK:
-		preload("res://assets/voice/english/ttsmaker-com-148-alayna-us/unit_under_attack.ogg"),
+		preload("res://assets/voice/zh-CN/narrator/unit_under_attack.mp3"),
 		Events.UNIT_LOST:
-		preload("res://assets/voice/english/ttsmaker-com-148-alayna-us/unit_lost.ogg"),
+		preload("res://assets/voice/zh-CN/narrator/unit_lost.mp3"),
 		Events.UNIT_PRODUCTION_STARTED:
-		preload("res://assets/voice/english/ttsmaker-com-148-alayna-us/training.ogg"),
+		preload("res://assets/voice/zh-CN/narrator/training.mp3"),
 		Events.UNIT_PRODUCTION_FINISHED:
-		preload("res://assets/voice/english/ttsmaker-com-148-alayna-us/unit_ready.ogg"),
+		preload("res://assets/voice/zh-CN/narrator/unit_ready.mp3"),
 		Events.UNIT_CONSTRUCTION_FINISHED:
-		preload("res://assets/voice/english/ttsmaker-com-148-alayna-us/construction_complete.ogg"),
+		preload("res://assets/voice/zh-CN/narrator/construction_complete.mp3"),
 		Events.UNIT_HELLO:
-		preload("res://assets/voice/english/ttsmaker-com-2704-jackson-us/sir.ogg"),
+		preload("res://assets/voice/zh-CN/unit/sir.mp3"),
 		Events.UNIT_ACK_1:
-		preload("res://assets/voice/english/ttsmaker-com-2704-jackson-us/yes_sir.ogg"),
+		preload("res://assets/voice/zh-CN/unit/yes_sir.mp3"),
 		Events.UNIT_ACK_2:
-		preload("res://assets/voice/english/ttsmaker-com-2704-jackson-us/acknowledged.ogg"),
+		preload("res://assets/voice/zh-CN/unit/acknowledged.mp3"),
 		Events.NOT_ENOUGH_RESOURCES:
-		preload("res://assets/voice/english/ttsmaker-com-148-alayna-us/not_enough_resources.ogg"),
+		preload("res://assets/voice/zh-CN/narrator/not_enough_resources.mp3"),
 	}

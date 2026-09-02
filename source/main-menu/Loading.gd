@@ -9,6 +9,7 @@ var campaign_data = null
 
 
 func _ready():
+	AudioDirector.set_music_context("menu")
 	_progress_bar.value = 0.0
 
 	_label.text = tr("LOADING_STEP_PRELOADING")

@@ -1,0 +1,3 @@
+menu_theme.wav 与 match_theme.wav 由 tools/generate_demo_bgm.py 合成，无外部采样。
+对局曲按工业管弦编写，已去掉军鼓/踩镲脉冲；不使用红色警戒 3 或其他游戏原曲。
+重新生成：python tools/generate_demo_bgm.py

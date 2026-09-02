@@ -73,6 +73,7 @@ func _ready():
 	_setup_ai_command_hud()
 	_setup_traditional_unit_command_hud()
 	_setup_campaign()
+	AudioDirector.set_music_context("match")
 	MatchSignals.match_started.emit()
 
 

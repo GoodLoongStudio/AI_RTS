@@ -4,6 +4,8 @@ const Options = preload("res://source/data-model/Options.gd")
 const OPTION_PROPERTIES := ["screen", "mouse_restricted"]
 const CAMERA_CONFIG_PATH := "user://camera.cfg"
 const CAMERA_CONFIG_SECTION := "camera"
+const AUDIO_CONFIG_PATH := "user://audio.cfg"
+const AUDIO_CONFIG_SECTION := "audio"
 const CAMERA_DEFAULTS := {
 	"edge_scroll_enabled": true,
 	"movement_speed": 1.35,
@@ -12,9 +14,16 @@ const CAMERA_DEFAULTS := {
 	"smoothing": 10.0,
 	"zoom_step": 1.0,
 }
+const AUDIO_DEFAULTS := {
+	"master": 1.0,
+	"music": 0.8,
+	"sfx": 0.8,
+	"voice": 0.85,
+}
 
 var options = _load_and_migrate_options()
 var camera_options: Dictionary = _load_camera_options()
+var audio_options: Dictionary = _load_audio_options()
 var god_mode = false
 var cache = {}
 
@@ -91,6 +100,74 @@ func save_camera_options():
 func reset_camera_options():
 	camera_options = CAMERA_DEFAULTS.duplicate(true)
 	save_camera_options()
+
+
+func _ready():
+	apply_audio_buses()
+
+
+func _load_audio_options() -> Dictionary:
+	var loaded := AUDIO_DEFAULTS.duplicate(true)
+	var config := ConfigFile.new()
+	if config.load(AUDIO_CONFIG_PATH) != OK:
+		return loaded
+	for key in AUDIO_DEFAULTS.keys():
+		loaded[key] = config.get_value(AUDIO_CONFIG_SECTION, key, AUDIO_DEFAULTS[key])
+	return _sanitize_audio_options(loaded)
+
+
+func _sanitize_audio_options(values: Dictionary) -> Dictionary:
+	return {
+		"master": clampf(float(values.get("master", 1.0)), 0.0, 1.0),
+		"music": clampf(float(values.get("music", 0.5)), 0.0, 1.0),
+		"sfx": clampf(float(values.get("sfx", 0.8)), 0.0, 1.0),
+		"voice": clampf(float(values.get("voice", 0.85)), 0.0, 1.0),
+	}
+
+
+func get_audio_option(key: String) -> float:
+	return float(audio_options.get(key, AUDIO_DEFAULTS.get(key, 1.0)))
+
+
+func set_audio_option(key: String, value: float):
+	if not AUDIO_DEFAULTS.has(key):
+		push_warning("未知音频设置：%s" % key)
+		return
+	audio_options[key] = value
+	audio_options = _sanitize_audio_options(audio_options)
+	apply_audio_buses()
+
+
+func save_audio_options():
+	var config := ConfigFile.new()
+	for key in AUDIO_DEFAULTS.keys():
+		config.set_value(AUDIO_CONFIG_SECTION, key, audio_options[key])
+	var save_error := config.save(AUDIO_CONFIG_PATH)
+	if save_error != OK:
+		push_warning("无法保存音频设置：%s" % error_string(save_error))
+
+
+func reset_audio_options():
+	audio_options = AUDIO_DEFAULTS.duplicate(true)
+	apply_audio_buses()
+	save_audio_options()
+
+
+## 把线性音量写到 Master/Music/Sfx/Voice 总线。
+func apply_audio_buses():
+	_apply_bus_linear("Master", get_audio_option("master"))
+	_apply_bus_linear("Music", get_audio_option("music"))
+	_apply_bus_linear("Sfx", get_audio_option("sfx"))
+	_apply_bus_linear("Voice", get_audio_option("voice"))
+
+
+func _apply_bus_linear(bus_name: String, linear: float):
+	var bus_index := AudioServer.get_bus_index(bus_name)
+	if bus_index < 0:
+		return
+	var volume := clampf(linear, 0.0, 1.0)
+	AudioServer.set_bus_mute(bus_index, volume <= 0.0001)
+	AudioServer.set_bus_volume_db(bus_index, linear_to_db(maxf(volume, 0.0001)))
 
 
 func _unhandled_input(event):

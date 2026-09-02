@@ -4,6 +4,7 @@ extends Control
 
 
 func _ready():
+	AudioDirector.set_music_context("menu")
 	_rich_text_label.text = (
 		_rich_text_label
 		. text

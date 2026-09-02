@@ -28,6 +28,7 @@ func _ready():
 	var flight_seconds := clampf(distance / 10.0, 0.22, 1.1)
 	_animation_player.speed_scale = 0.75 / flight_seconds
 	_animation_player.play("animate")
+	AudioDirector.play("rocket_fire")
 
 
 ## 在目标有效时刷新瞄准点；目标失效后运行时返回最后已知位置。
@@ -49,3 +50,4 @@ func _perform_hit():
 	if _path.curve.point_count < 2:
 		return
 	projectile_runtime.ResolveImpact(attack_id, _path.curve.get_point_position(1))
+	AudioDirector.play("impact")

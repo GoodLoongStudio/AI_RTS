@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": "demo-bgm-zh-voice-2026-09-02",
+  "source": "tools/generate_demo_sfx.py",
+  "music": {
+    "menu": "res://assets/audio/music/menu_theme.wav",
+    "match": "res://assets/audio/music/match_theme.wav"
+  },
+  "voice": {
+    "locale": "zh-CN",
+    "generator": "tools/generate_zh_voice.py"
+  },
+  "cues": {
+    "ui_click": {
+      "path": "res://assets/audio/sfx/ui_click.wav",
+      "bus": "Sfx",
+      "maxVoices": 4,
+      "minIntervalMs": 40,
+      "volumeDb": -8.0
+    },
+    "unit_select": {
+      "path": "res://assets/audio/sfx/unit_select.wav",
+      "bus": "Sfx",
+      "maxVoices": 2,
+      "minIntervalMs": 120,
+      "volumeDb": -10.0
+    },
+    "cannon_fire": {
+      "path": "res://assets/audio/sfx/cannon_fire.wav",
+      "bus": "Sfx",
+      "maxVoices": 3,
+      "minIntervalMs": 70,
+      "volumeDb": -4.0
+    },
+    "rocket_fire": {
+      "path": "res://assets/audio/sfx/rocket_fire.wav",
+      "bus": "Sfx",
+      "maxVoices": 3,
+      "minIntervalMs": 80,
+      "volumeDb": -5.0
+    },
+    "impact": {
+      "path": "res://assets/audio/sfx/impact.wav",
+      "bus": "Sfx",
+      "maxVoices": 4,
+      "minIntervalMs": 50,
+      "volumeDb": -3.0
+    },
+    "unit_death": {
+      "path": "res://assets/audio/sfx/unit_death.wav",
+      "bus": "Sfx",
+      "maxVoices": 2,
+      "minIntervalMs": 160,
+      "volumeDb": -2.0
+    },
+    "construction_complete": {
+      "path": "res://assets/audio/sfx/construction_complete.wav",
+      "bus": "Sfx",
+      "maxVoices": 1,
+      "minIntervalMs": 400,
+      "volumeDb": -9.0
+    }
+  }
+}

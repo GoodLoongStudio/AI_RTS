@@ -9,6 +9,7 @@ var _options_panel: Control = null
 
 
 func _ready():
+	AudioDirector.set_music_context("menu")
 	_mission = CampaignMission.echo_extraction()
 	_build_ui()
 

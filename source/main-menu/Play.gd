@@ -14,6 +14,7 @@ var _options_panel: Control = null
 
 
 func _ready():
+	AudioDirector.set_music_context("menu")
 	_setup_map_list()
 	_on_map_list_item_selected(0)
 	_setup_settings_button()
