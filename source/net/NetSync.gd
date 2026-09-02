@@ -19,6 +19,8 @@ var _go_live_blocked := false
 # 复核 P1-1：客户端两快照线性插值（渲染落后一个快照周期，消除 10Hz 瞬移感）。
 var _interp_prev: Dictionary = {}  # Match 相对路径 -> Vector3
 var _interp_target: Dictionary = {}  # Match 相对路径 -> Vector3
+var _interp_prev_yaw: Dictionary = {}  # Match 相对路径 -> float（平面朝向，弧度）
+var _interp_target_yaw: Dictionary = {}  # Match 相对路径 -> float
 var _last_snap_msec := 0
 var _snap_interval_msec := 100
 
@@ -259,6 +261,10 @@ func _client_interp_tick() -> void:
 		var prev: Vector3 = _interp_prev.get(path, _interp_target[path])
 		var target: Vector3 = _interp_target[path]
 		unit.global_position = prev.lerp(target, t)
+		if _interp_target_yaw.has(path):
+			var prev_yaw: float = float(_interp_prev_yaw.get(path, _interp_target_yaw[path]))
+			var target_yaw: float = float(_interp_target_yaw[path])
+			unit.rotation.y = lerp_angle(prev_yaw, target_yaw, t)
 
 
 func forward_command(
@@ -318,13 +324,18 @@ func apply_client_snapshot(
 		_interp_prev[path] = _interp_target.get(path, item["pos"])
 		_interp_target[path] = item["pos"]
 		if item.has("yaw"):
-			unit.rotation.y = item["yaw"]
+			# 朝向与位置同走插值：直接赋值会让客户端朝向按快照频率(≈10Hz)阶跃跳变，
+			# 视觉表现为单位原地高频抖动/瞬转（2026-09-02 移动故障视频定位）。
+			_interp_prev_yaw[path] = _interp_target_yaw.get(path, float(item["yaw"]))
+			_interp_target_yaw[path] = float(item["yaw"])
 		if item.has("hp") and "hp" in unit:
 			unit.hp = item["hp"]
 	for path in _interp_target.keys():
 		if not seen.has(path):
 			_interp_prev.erase(path)
 			_interp_target.erase(path)
+			_interp_prev_yaw.erase(path)
+			_interp_target_yaw.erase(path)
 	var players := get_tree().get_nodes_in_group("players")
 	for item in resources_payload:
 		var slot := int(item["slot"])
