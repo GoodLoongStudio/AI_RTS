@@ -8,6 +8,7 @@ const AICommandHUD = preload("res://source/match/hud/AICommandHUD.gd")
 const TraditionalUnitCommandHUD = preload(
 	"res://source/match/hud/TraditionalUnitCommandHUD.tscn"
 )
+const Ra3Sidebar = preload("res://source/match/hud/ra3/Ra3Sidebar.gd")
 const CampaignController = preload("res://source/campaign/CampaignController.gd")
 const CampaignHeroIdentity = preload("res://source/campaign/CampaignHeroIdentity.gd")
 
@@ -19,6 +20,7 @@ const VehicleFactory = preload("res://source/match/units/VehicleFactory.tscn")
 @export var settings: Resource = null
 
 var campaign_data = null
+var _ra3_sidebar = null  # 红警3 风格右侧指挥侧栏（非 headless 对局内挂载）
 var _unit_spawn_counter := 0  # P0-1 init unit deterministic naming
 var map:
 	set = _set_map,
@@ -60,9 +62,17 @@ func _enter_tree():
 
 func _ready():
 	if NetSession.is_networked():
-		var net_sync = preload("res://source/net/NetSync.gd").new()
-		net_sync.name = "NetSync"
-		add_child(net_sync)
+		# 防御：联机模式下加载 NetSync。在 C# 项目编译后环境下
+		# preload(...).new() 会触发 “Nonexistent function 'new' in base 'GDScript'”，
+		# 让 _ready 在第 63 行就崩断后续迷雾/相机/HUD 初始化，表现为联机黑屏。
+		# 用 load() 取脚本再用 Callable 安全构造，且不抛错中断 _ready。
+		var net_sync_script: Script = load("res://source/net/NetSync.gd") as Script
+		if net_sync_script != null:
+			var net_sync: Node = net_sync_script.new()
+			net_sync.name = "NetSync"
+			add_child(net_sync)
+		else:
+			push_warning("联机对局 NetSync 脚本加载失败，联机同步链路不可用")
 	MatchSignals.setup_and_spawn_unit.connect(_setup_and_spawn_unit)
 	await _setup_subsystems_dependent_on_map()
 	_setup_players()
@@ -91,6 +101,7 @@ func _ready():
 		if minimap_fog_mask != null:
 			minimap_fog_mask.visible = false
 	if not _is_dedicated_or_headless():
+		_setup_ra3_sidebar()
 		if not NetSession.is_networked():
 			_setup_ai_command_hud()
 		_setup_traditional_unit_command_hud()
@@ -134,6 +145,9 @@ func _setup_ai_command_hud_toggle(ai_command_hud: Control):
 			command_hud.visible = not should_show
 			if should_show and command_hud.actions_controller != null:
 				command_hud.actions_controller.cancel_command_targeting()
+		# AI 副官面板占据屏幕右侧，与 RA3 侧栏互斥显示。
+		if _ra3_sidebar != null:
+			_ra3_sidebar.visible = not should_show
 	toggle_button.pressed.connect(
 		func(): apply_visibility.call(not ai_command_hud.is_interface_visible())
 	)
@@ -144,7 +158,32 @@ func _setup_ai_command_hud_toggle(ai_command_hud: Control):
 				return
 			apply_visibility.call(not ai_command_hud.is_interface_visible())
 	)
-	$HUD/TopLeftColumn.add_child(toggle_button)
+	# 挂载位：优先 RA3 侧栏功能行；侧栏缺席时退回左上列（兼容旧布局）。
+	if _ra3_sidebar != null:
+		_ra3_sidebar.add_function_button(toggle_button)
+	else:
+		$HUD/TopLeftColumn.add_child(toggle_button)
+
+
+## 红警3 风格右侧指挥侧栏：收编小地图与资金显示；原左上资源列、右下生产格退场。
+func _setup_ra3_sidebar():
+	var sidebar = Ra3Sidebar.new()
+	sidebar.name = "Ra3Sidebar"
+	$HUD.add_child(sidebar)
+	_ra3_sidebar = sidebar
+	var minimap_wrapper = $HUD.get_node_or_null("MarginContainer")
+	if minimap_wrapper != null:
+		var minimap = minimap_wrapper.get_node_or_null("Minimap")
+		if minimap != null:
+			minimap_wrapper.remove_child(minimap)
+			sidebar.absorb_minimap(minimap)
+		minimap_wrapper.visible = false
+	var legacy_corner = $HUD.get_node_or_null("MarginContainer3")
+	if legacy_corner != null:
+		legacy_corner.visible = false
+	var top_left_column = $HUD.get_node_or_null("TopLeftColumn")
+	if top_left_column != null:
+		top_left_column.visible = false
 
 
 func _setup_traditional_unit_command_hud():
@@ -153,7 +192,11 @@ func _setup_traditional_unit_command_hud():
 		return
 	var command_hud = TraditionalUnitCommandHUD.instantiate()
 	command_hud.actions_controller = human_player.get_node("UnitActionsController")
-	$HUD.add_child(command_hud)
+	# RA3 布局：命令面板收编进右侧指挥侧栏的下部命令区（无侧栏时退回自由挂载）。
+	if _ra3_sidebar != null:
+		_ra3_sidebar.absorb_command_panel(command_hud)
+	else:
+		$HUD.add_child(command_hud)
 
 
 func _setup_campaign():
@@ -380,15 +423,32 @@ func _move_camera_to_initial_position():
 	var human_player = get_local_player()
 	if human_player != null:
 		_move_camera_to_player_units_crowd_pivot(human_player)
-	else:
-		_move_camera_to_player_units_crowd_pivot(get_tree().get_nodes_in_group("players")[0])
+		return
+	var players = get_tree().get_nodes_in_group("players")
+	if players.is_empty():
+		# 防御：对局无任何玩家（数据异常）时不再让数组越界炸断 _ready，
+		# 相机回退地图中心，保证迷雾/HUD 等子系统继续初始化（修复联机/观战黑屏）。
+		push_warning("开局对局无任何玩家，相机回退地图中心（请排查玩家生成链路）")
+		_move_camera_to_map_center()
+		return
+	_move_camera_to_player_units_crowd_pivot(players[0])
+
+
+func _move_camera_to_map_center():
+	var map_size: Vector2 = map.size
+	_camera.set_position_safely(Vector3(map_size.x / 2.0, 0.0, map_size.y / 2.0))
 
 
 func _move_camera_to_player_units_crowd_pivot(player):
 	var player_units = get_tree().get_nodes_in_group("units").filter(
 		func(unit): return unit.player == player
 	)
-	assert(not player_units.is_empty(), "player must have at least one initial unit")
+	if player_units.is_empty():
+		# 防御：玩家无初始单位（空槽局/单位生成失败）时不再 assert 炸断 _ready，
+		# 相机回退地图中心，保证迷雾/HUD 等子系统继续初始化（修复进局黑屏）。
+		push_warning("开局玩家无初始单位，相机回退地图中心（请排查单位生成链路）")
+		_move_camera_to_map_center()
+		return
 	var crowd_pivot = Utils.Match.Unit.Movement.calculate_aabb_crowd_pivot_yless(player_units)
 	_camera.set_position_safely(crowd_pivot)
 

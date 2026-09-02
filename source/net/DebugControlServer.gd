@@ -338,8 +338,44 @@ func _op_attack(match_node, parsed) -> String:
 	return JSON.stringify({"result": result})
 
 
+## RA3 侧栏 UI 元素实时坐标（供外部驱动自适应窗口尺寸点击）。
+func _collect_sidebar_ui() -> Dictionary:
+	var result := {"tabs": [], "cells": []}
+	var sidebars := get_tree().get_nodes_in_group("ra3_sidebar")
+	if sidebars.is_empty():
+		return result
+	var sidebar: Control = sidebars[0]
+	if not is_instance_valid(sidebar) or not sidebar.is_visible_in_tree():
+		result["visible"] = false
+		return result
+	for tab_button in sidebar.find_children("*", "Button", true, false):
+		if not is_instance_valid(tab_button):
+			continue
+		if tab_button.has_meta("tab_id"):
+			result["tabs"].append({
+				"id": str(tab_button.get_meta("tab_id")),
+				"text": str(tab_button.text),
+				"center": _control_center(tab_button),
+				"disabled": tab_button.disabled,
+			})
+		elif tab_button.has_meta("cell_caption"):
+			result["cells"].append({
+				"caption": str(tab_button.get_meta("cell_caption")),
+				"center": _control_center(tab_button),
+				"disabled": tab_button.disabled,
+			})
+	return result
+
+
+func _control_center(control: Control) -> Array:
+	var center := control.get_global_rect().get_center()
+	return [center.x, center.y]
+
+
 func _collect_status(match_node) -> Dictionary:
 	var tree := get_tree()
+	var viewport := get_viewport()
+	var window := get_window()
 	var out := {
 		"match": false,
 		"local_slot": NetSession.local_slot,
@@ -348,6 +384,8 @@ func _collect_status(match_node) -> Dictionary:
 		"balance": null,
 		"passive_ai_test": NetSession.passive_ai_test,
 		"passive_ai_test_server": NetSession.passive_ai_test_server,
+		"viewport_size": [viewport.size.x, viewport.size.y],
+		"window_size": [window.size.x, window.size.y],
 	}
 	if match_node == null or not match_node.has_method("get_local_player"):
 		return out
@@ -358,6 +396,7 @@ func _collect_status(match_node) -> Dictionary:
 	out["local_player_name"] = str(player.name)
 	out["player_nodes"] = get_tree().get_nodes_in_group("players").map(func(p): return str(p.name))
 	out["balance"] = {"a": int(player.resource_a), "b": int(player.resource_b)}
+	out["ra3_sidebar_ui"] = _collect_sidebar_ui()
 	out["all_balances"] = get_tree().get_nodes_in_group("players").map(
 		func(p): return {"player": str(p.name), "a": int(p.resource_a), "b": int(p.resource_b)}
 	)

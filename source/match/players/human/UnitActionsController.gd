@@ -588,7 +588,11 @@ func get_selected_skill_slots() -> Array:
 	var units = _get_selected_controlled_units()
 	if units.size() != 1:
 		return []
-	return _get_command_gateway().GetHudSlots(units[0])
+	var gateway = _get_command_gateway()
+	# 联机傀儡端的 NetCommandProxy 不承载本地技能槽查询（技能为单机特性），返回空槽。
+	if not gateway.has_method("GetHudSlots"):
+		return []
+	return gateway.GetHudSlots(units[0])
 
 
 ## 自身技能立即施放；单位/地面技能进入一次点选。

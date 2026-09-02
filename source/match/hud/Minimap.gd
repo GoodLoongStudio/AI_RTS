@@ -38,6 +38,8 @@ func _configure_fixed_minimap_layout():
 	# A ViewportTexture reports its native render size as TextureRect minimum size by default.
 	# Large world maps therefore used to expand the HUD minimap itself. Ignore texture size and
 	# keep the HUD footprint fixed; STRETCH_KEEP_ASPECT_CENTERED handles visual scaling.
+	# RA3 侧栏改版后：小地图由侧栏的槽容器（PanelContainer）决定尺寸，这里不再
+	# 强制父容器的左下角锚点/偏移，只保留固定最小尺寸防溢出。
 	_texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_texture_rect.custom_minimum_size = Vector2.ZERO
 	custom_minimum_size = Vector2.ZERO
@@ -45,10 +47,6 @@ func _configure_fixed_minimap_layout():
 	var outer_container := get_parent() as Control
 	if outer_container != null:
 		outer_container.custom_minimum_size = MINIMAP_UI_SIZE
-		outer_container.offset_left = 0.0
-		outer_container.offset_top = -MINIMAP_UI_SIZE.y
-		outer_container.offset_right = MINIMAP_UI_SIZE.x
-		outer_container.offset_bottom = 0.0
 
 
 func _configure_camera_indicator():

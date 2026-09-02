@@ -18,6 +18,7 @@ const _SKILL_CAPTIONS := {
 @onready var _aggressive_button: Button = %AggressiveButton
 @onready var _guard_button: Button = %GuardButton
 @onready var _hold_ground_button: Button = %HoldGroundButton
+@onready var _return_to_base_button: Button = %ReturnToBaseButton
 @onready var _hold_fire_button: Button = %HoldFireButton
 @onready var _clear_rally_point_button: Button = %ClearRallyPointButton
 @onready var _feedback_label: Label = %FeedbackLabel
@@ -34,6 +35,7 @@ func _ready():
 	_aggressive_button.pressed.connect(func(): _set_engagement_stance("Aggressive"))
 	_guard_button.pressed.connect(func(): _set_engagement_stance("Guard"))
 	_hold_ground_button.pressed.connect(func(): _set_engagement_stance("HoldGround"))
+	_return_to_base_button.pressed.connect(func(): _set_engagement_stance("ReturnToBase"))
 	_hold_fire_button.pressed.connect(_toggle_hold_fire)
 	_clear_rally_point_button.pressed.connect(actions_controller.clear_selected_rally_points)
 	actions_controller.command_targeting_changed.connect(_on_command_targeting_changed)
@@ -47,6 +49,49 @@ func _ready():
 	_refresh_command_captions()
 	_refresh_availability()
 	_refresh_skill_slots()
+	_apply_ra3_skin()
+
+
+## RA3 风格皮肤：深色金属面板 + 紧凑按钮（配合右侧指挥侧栏的视觉语言）。
+func _apply_ra3_skin():
+	var panel = StyleBoxFlat.new()
+	panel.bg_color = Color(0.09, 0.10, 0.12, 0.96)
+	panel.border_color = Color(0.45, 0.50, 0.55)
+	panel.set_border_width_all(1)
+	panel.set_corner_radius_all(4)
+	add_theme_stylebox_override("panel", panel)
+	for button in find_children("", "Button", true, false):
+		_style_ra3_button(button)
+	_feedback_label.add_theme_font_size_override("font_size", 11)
+	_feedback_label.add_theme_color_override("font_color", Color(0.62, 0.53, 0.28))
+
+
+func _style_ra3_button(button: Button):
+	var normal = StyleBoxFlat.new()
+	normal.bg_color = Color(0.05, 0.06, 0.08)
+	normal.border_color = Color(0.30, 0.33, 0.36)
+	normal.set_border_width_all(1)
+	normal.set_corner_radius_all(3)
+	var hover = StyleBoxFlat.new()
+	hover.bg_color = Color(0.10, 0.13, 0.17)
+	hover.border_color = Color(0.40, 0.62, 0.95)
+	hover.set_border_width_all(1)
+	hover.set_corner_radius_all(3)
+	var pressed = StyleBoxFlat.new()
+	pressed.bg_color = Color(0.13, 0.17, 0.22)
+	pressed.border_color = Color(0.95, 0.83, 0.42)
+	pressed.set_border_width_all(1)
+	pressed.set_corner_radius_all(3)
+	var disabled = StyleBoxFlat.new()
+	disabled.bg_color = Color(0.05, 0.055, 0.065)
+	disabled.border_color = Color(0.18, 0.19, 0.21)
+	disabled.set_border_width_all(1)
+	disabled.set_corner_radius_all(3)
+	button.add_theme_stylebox_override("normal", normal)
+	button.add_theme_stylebox_override("hover", hover)
+	button.add_theme_stylebox_override("pressed", pressed)
+	button.add_theme_stylebox_override("disabled", disabled)
+	button.add_theme_font_size_override("font_size", 12)
 
 
 ## 官方单位快捷键复用同一套 HUD 命令入口，不另建第二套命令语义。
@@ -62,6 +107,8 @@ func _on_input_action_pressed(action_id: String):
 			_set_engagement_stance("Aggressive")
 		"unit.stance_guard":
 			_set_engagement_stance("Guard")
+		"unit.stance_return_to_base":
+			_set_engagement_stance("ReturnToBase")
 		"unit.toggle_hold_fire":
 			_toggle_hold_fire()
 		"unit.clear_rally":
@@ -162,7 +209,7 @@ func _refresh_command_captions():
 		"unit.force_attack"
 	)
 	_tactical_withdraw_button.text = _caption(
-		"取消撤退" if _targeting_command == "TacticalWithdraw" else "撤退",
+		"取消战术后退" if _targeting_command == "TacticalWithdraw" else "战术后退",
 		"unit.tactical_withdraw"
 	)
 	_ground_attack_move_button.text = _caption(
@@ -173,6 +220,7 @@ func _refresh_command_captions():
 	_aggressive_button.text = _caption("侵略", "unit.stance_aggressive")
 	_guard_button.text = _caption("警戒", "unit.stance_guard")
 	_hold_ground_button.text = _caption("固守", "unit.stance_hold_ground")
+	_return_to_base_button.text = _caption("撤回基地", "unit.stance_return_to_base")
 	_clear_rally_point_button.text = _caption("清除集结", "unit.clear_rally")
 
 
@@ -189,7 +237,7 @@ func _on_command_targeting_changed(command_name: String):
 	elif command_name == "ForceAttack":
 		_feedback_label.text = "请右键单位或地面指定强制攻击目标"
 	elif command_name == "TacticalWithdraw":
-		_feedback_label.text = "请右键地面指定撤退目的地"
+		_feedback_label.text = "请右键地面指定战术后退目的地"
 	elif command_name == "GroundAttackMove":
 		_feedback_label.text = "请右键地面或敌方单位指定移动并攻击目标"
 	elif command_name.begins_with("Skill:"):
@@ -207,12 +255,13 @@ func _on_command_feedback(
 		"Stop": "停止",
 		"ForceAttack": "强制攻击",
 		"ForceAttackGround": "地面强制攻击",
-		"TacticalWithdraw": "撤退",
+		"TacticalWithdraw": "战术后退",
 		"GroundAttackMove": "移动并攻击",
 		"EntityAttackMove": "移动并攻击",
 		"Aggressive": "侵略姿态",
 		"Guard": "警戒姿态",
 		"HoldGround": "固守姿态",
+		"ReturnToBase": "撤回基地姿态",
 		"HoldFire": "停火",
 		"FireAtWill": "自由开火",
 		"SetRallyPoint": "设置集结点",
@@ -243,6 +292,7 @@ func _refresh_availability():
 	_aggressive_button.disabled = not has_policy_units
 	_guard_button.disabled = not has_policy_units
 	_hold_ground_button.disabled = not has_policy_units
+	_return_to_base_button.disabled = not has_policy_units
 	_hold_fire_button.disabled = not has_policy_units
 	_clear_rally_point_button.disabled = not has_rally_producers
 	if not has_supported_units:
@@ -260,6 +310,7 @@ func _refresh_policy_buttons():
 	_aggressive_button.button_pressed = stance == "Aggressive"
 	_guard_button.button_pressed = stance == "Guard"
 	_hold_ground_button.button_pressed = stance == "HoldGround"
+	_return_to_base_button.button_pressed = stance == "ReturnToBase"
 	_hold_fire_button.button_pressed = fire_policy == "HoldFire"
 	_refresh_hold_fire_caption()
 
@@ -294,10 +345,11 @@ func _rebuild_skill_buttons(slots: Array):
 		var skill_id: String = str(slot["skill_id"])
 		var target: String = str(slot["target"])
 		var button := Button.new()
-		button.custom_minimum_size = Vector2(148, 36)
+		button.custom_minimum_size = Vector2(122, 28)
 		button.set_meta("skill_id", skill_id)
 		button.set_meta("target", target)
 		button.pressed.connect(_on_skill_pressed.bind(skill_id, target))
+		_style_ra3_button(button)
 		_skill_slots.add_child(button)
 
 
