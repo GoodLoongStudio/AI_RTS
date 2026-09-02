@@ -27,6 +27,12 @@ theme_override_constants/margin_bottom = 6
 [node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
 layout_mode = 2
 
+[node name="SelectedInfoLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "未选中单位"
+horizontal_alignment = 1
+
 [node name="Buttons" type="GridContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 columns = 2

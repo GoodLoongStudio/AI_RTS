@@ -23,6 +23,20 @@ const _SKILL_CAPTIONS := {
 @onready var _clear_rally_point_button: Button = %ClearRallyPointButton
 @onready var _feedback_label: Label = %FeedbackLabel
 @onready var _skill_slots: HBoxContainer = %SkillSlots
+@onready var _selected_info_label: Label = %SelectedInfoLabel
+
+## 选中摘要的单位类型显示名（RA3 情境窗口的单位名栏等价物）。
+const _UNIT_DISPLAY_NAMES := {
+	"worker": "工人",
+	"tank": "坦克",
+	"command_center": "指挥中心",
+	"vehicle_factory": "车辆工厂",
+	"aircraft_factory": "航空工厂",
+	"helicopter": "直升机",
+	"drone": "无人机",
+	"anti_ground_turret": "对地炮",
+	"anti_air_turret": "对空炮",
+}
 
 
 func _ready():
@@ -64,6 +78,8 @@ func _apply_ra3_skin():
 		_style_ra3_button(button)
 	_feedback_label.add_theme_font_size_override("font_size", 11)
 	_feedback_label.add_theme_color_override("font_color", Color(0.62, 0.53, 0.28))
+	_selected_info_label.add_theme_font_size_override("font_size", 12)
+	_selected_info_label.add_theme_color_override("font_color", Color(0.95, 0.83, 0.42))
 
 
 func _style_ra3_button(button: Button):
@@ -300,6 +316,32 @@ func _refresh_availability():
 		_feedback_label.text = "选择单位或生产建筑后可下达适用的传统 RTS 命令"
 	_refresh_policy_buttons()
 	_refresh_skill_slots()
+	_refresh_selected_info()
+
+
+## RA3 情境窗口的单位摘要：选中集按类型聚合计数。
+func _refresh_selected_info():
+	var units = get_tree().get_nodes_in_group("selected_units").filter(
+		func(unit):
+			return is_instance_valid(unit) and unit.is_in_group("controlled_units")
+	)
+	if units.is_empty():
+		_selected_info_label.text = "未选中单位"
+		return
+	var count_by_type := {}
+	for unit in units:
+		var type_key := ""
+		var scene_path = unit.get("scene_file_path")
+		if scene_path != null and str(scene_path) != "":
+			type_key = str(scene_path).get_file().trim_suffix(".tscn")
+		else:
+			type_key = unit.name
+		count_by_type[type_key] = int(count_by_type.get(type_key, 0)) + 1
+	var parts := []
+	for type_key in count_by_type:
+		var display: String = _UNIT_DISPLAY_NAMES.get(type_key, type_key)
+		parts.append("%s ×%d" % [display, count_by_type[type_key]])
+	_selected_info_label.text = "选中: " + "  ".join(parts)
 
 
 func _refresh_policy_buttons():
