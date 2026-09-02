@@ -34,6 +34,7 @@ var _names: Dictionary = {}  # peer_id -> 昵称（服务器权威）
 var _match_started := false
 var _status := "idle"
 var _match_ready_peers: Dictionary = {}
+var _connect_deadline_msec := 0  # 客户端 join 超时保险（10s），防 ENet 32s 死等
 var last_lobby_slots: Array = []  # 最近一次大厅快照：[{kind, name, ready}, ×4]
 
 signal status_changed(text)
@@ -146,7 +147,18 @@ func join(address: String, port: int = DEFAULT_PORT) -> Error:
 	multiplayer.connection_failed.connect(_on_connection_failed)
 	multiplayer.server_disconnected.connect(_on_server_disconnected)
 	_set_status("正在连接 %s:%d …" % [address, port])
+	_connect_deadline_msec = Time.get_ticks_msec() + 10_000
 	return OK
+
+
+func _process(_delta: float) -> void:
+	# 复核 2026-09-02：ENet 对无响应地址默认约 32 秒才触发 connection_failed，
+	# 大厅会一直卡在「正在连接」。10 秒仍停在 CONNECTING 就主动取消并复位。
+	if _connect_deadline_msec > 0 and Time.get_ticks_msec() >= _connect_deadline_msec:
+		_connect_deadline_msec = 0
+		if is_networked() and multiplayer.multiplayer_peer.get_connection_status() == MultiplayerPeer.CONNECTION_CONNECTING:
+			_set_status("连接超时（10 秒无响应）。请检查 IP 与端口；云服默认 101.43.121.102:24567")
+			_reset_peer()
 
 
 func set_ready(is_ready: bool) -> void:
@@ -245,6 +257,7 @@ func _reset_peer() -> void:
 	_names.clear()
 	last_lobby_slots = []
 	_match_started = false
+	_connect_deadline_msec = 0
 	_pending_solo_start = false
 	_pending_solo_with_ai = false
 	_pending_solo_passive_ai_test = false
@@ -299,6 +312,7 @@ func _on_peer_disconnected(peer_id: int) -> void:
 
 
 func _on_connected_to_server() -> void:
+	_connect_deadline_msec = 0
 	_rpc_set_name.rpc_id(1, local_player_name)
 	_set_status("已连接，请点准备")
 	if _pending_solo_start:

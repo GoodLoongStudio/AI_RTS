@@ -214,6 +214,8 @@ func _auto_join_solo() -> void:
 
 
 func _on_back_button_pressed() -> void:
+	# 复核 2026-09-02：返回在任何连接状态下都必须生效。先断会话（幂等安全），
+	# 切场景用 call_deferred 排到帧末——断连过程中的信号重入不再可能打断导航。
 	if NetSession.is_networked() and not NetSession.is_dedicated_server():
 		NetSession.disconnect_session()
-	get_tree().change_scene_to_file("res://source/main-menu/Main.tscn")
+	get_tree().change_scene_to_file.call_deferred("res://source/main-menu/Main.tscn")
