@@ -25,9 +25,13 @@ const NAVIGATION_ALIGNMENT_MAX_FRAMES = 180
 
 @export var domain = Constants.Match.Navigation.Domain.TERRAIN
 @export var speed: float = 4.0
+## 平滑转向的最大角速度（度/秒）；0 以下视为无效并回退默认。由平衡配置按单位类型注入。
+@export var max_turn_speed_deg_per_sec: float = 360.0
 @export_range(0.05, 1.0) var reverse_speed_multiplier: float = 0.65
 
 var _interim_speed: float = 0.0
+var _last_physics_delta: float = 1.0 / 60.0
+var _face_target := Vector3.INF
 var _is_tactical_withdrawal := false
 
 var _stuck_prevention_window = []
@@ -54,6 +58,7 @@ var _skip_initial_dispersion := false
 
 
 func _physics_process(delta):
+	_last_physics_delta = delta
 	if NetSession.is_client_puppet():
 		return
 	var speed_multiplier := reverse_speed_multiplier if _is_tactical_withdrawal else 1.0
@@ -125,15 +130,15 @@ func resume_motion():
 	set_physics_process(true)
 
 
-## 默认可考虑足够多的邻居，避免拥挤时只躲一个单位而互相穿透。
+## 温柔避障：只躲近处邻居并提前让行，避免大部队互相顶牛打转（2026-09-02 调参）。
 func _apply_crowd_avoidance_defaults():
 	avoidance_enabled = true
 	if neighbor_distance < 1.0:
-		neighbor_distance = 8.0
+		neighbor_distance = 3.0
 	if max_neighbors < 8:
-		max_neighbors = 40
+		max_neighbors = 16
 	if time_horizon_agents < 1.0:
-		time_horizon_agents = 3.0
+		time_horizon_agents = 4.5
 
 
 ## 等待运行时 NavMesh 出现可用 Region 后再对齐单位，避免空中地图异步烘焙竞态。
@@ -254,12 +259,22 @@ func _get_filtered_rotation_direction(safe_velocity: Vector3):
 func _rotate_in_direction(direction: Vector3):
 	if ROTATION_LOW_PASS_FILTER_ENABLED:
 		direction = _get_filtered_rotation_direction(direction)
-	var rotation_target = _unit.global_transform.origin + direction
-	if (
-		not is_zero_approx(direction.length())
-		and not rotation_target.is_equal_approx(_unit.global_transform.origin)
-	):
-		_unit.global_transform = _unit.global_transform.looking_at(rotation_target)
+	if is_zero_approx(direction.length()):
+		return
+	# 平滑转向：按单位类型注入的最大角速度逐步逼近目标朝向，
+	# 消除 looking_at 瞬时掉头（含 180° 调头/倒车切换）造成的视觉跳变。
+	# 显式 float：经未类型化节点链取值在此上下文返回 Variant，:= 无法推断类型。
+	var turn_speed: float = maxf(max_turn_speed_deg_per_sec, 1.0)
+	var target_yaw: float = atan2(-direction.x, -direction.z)
+	var current_yaw: float = _unit.global_transform.basis.get_euler().y
+	var yaw_diff: float = angle_difference(current_yaw, target_yaw)
+	if absf(yaw_diff) < 0.01:
+		return
+	var max_step: float = deg_to_rad(turn_speed) * _last_physics_delta
+	var new_yaw: float = current_yaw + clampf(yaw_diff, -max_step, max_step)
+	_unit.global_transform = Transform3D(
+		Basis(Vector3.UP, new_yaw), _unit.global_transform.origin
+	)
 
 
 func _update_passive_movement_tracking(safe_velocity):
@@ -279,12 +294,33 @@ func _on_velocity_computed(safe_velocity: Vector3):
 	_update_stuck_prevention(safe_velocity)
 	_update_progress_and_oscillation(safe_velocity)
 	var chassis_direction := -safe_velocity if _is_tactical_withdrawal else safe_velocity
-	_rotate_in_direction(chassis_direction * Vector3(1, 0, 1))
+	var planar_direction := chassis_direction * Vector3(1, 0, 1)
+	if not planar_direction.is_zero_approx():
+		_face_target = Vector3.INF
+		_rotate_in_direction(planar_direction)
+	elif _face_target != Vector3.INF:
+		_apply_pending_face_rotation()
 	_unit.global_transform.origin = _unit.global_transform.origin.move_toward(
 		_unit.global_transform.origin + safe_velocity, _interim_speed
 	)
 	_previously_set_global_transform_of_unit = _unit.global_transform
 	_update_passive_movement_tracking(safe_velocity)
+
+
+## 请求单位平滑转向面向指定位置（采集/交战对齐用）；移动开始后自动失效。
+func face_towards(target_position: Vector3) -> void:
+	_face_target = target_position
+
+
+## 站定（速度为零）时按转速上限平滑逼近 face_towards 目标朝向。
+func _apply_pending_face_rotation():
+	var face_direction: Vector3 = (
+		_face_target - _unit.global_transform.origin
+	) * Vector3(1, 0, 1)
+	if face_direction.length() < 0.2:
+		_face_target = Vector3.INF
+		return
+	_rotate_in_direction(face_direction)
 
 
 func _on_navigation_finished():

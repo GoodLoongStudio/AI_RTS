@@ -10,10 +10,19 @@ var _timer = null
 var _sub_action = null
 
 @onready var _unit = Utils.NodeEx.find_parent_with_group(self, "units")
-@onready var _command_runtime = _unit.find_parent("Match").get_node("CommandRuntime")
+@onready var _command_runtime = null
 
 
 func _ready():
+	# Initial scene units are added to the `units` group by Match after their
+	# child _ready callbacks. Fall back to the direct Unit parent, then resolve
+	# CommandRuntime once the Match tree is available.
+	if _unit == null and get_parent() != null:
+		_unit = get_parent()
+	if _unit != null:
+		var match_node = _unit.find_parent("Match")
+		if match_node != null:
+			_command_runtime = match_node.get_node_or_null("CommandRuntime")
 	_timer = Timer.new()
 	_timer.timeout.connect(_on_timer_timeout)
 	add_child(_timer)
@@ -30,6 +39,8 @@ func is_idle():
 
 ## 在权威战斗策略变化时立即撤销旧自主行为，避免轮询间隔内继续追击或开火。
 func refresh_combat_policy():
+	if _unit == null:
+		return
 	var movement = _unit.find_child("Movement")
 	if movement != null:
 		movement.stop()
@@ -40,6 +51,8 @@ func refresh_combat_policy():
 
 
 func _get_units_to_attack():
+	if _unit == null or _command_runtime == null:
+		return []
 	# 单人测试局：AI 单位保持待机，不因视野内目标自动开火；
 	# 人类单位及明确下达的攻击命令仍走正常路径。
 	if _unit.player != null and _unit.player.has_method("is_passive_test_ai"):
@@ -48,6 +61,9 @@ func _get_units_to_attack():
 	if _command_runtime.GetFirePolicy(_unit) == "HoldFire":
 		return []
 	var stance: String = _command_runtime.GetEngagementStance(_unit)
+	# 回基地期间完全停止自主索敌，避免追击逻辑抢回移动控制权。
+	if stance == "ReturnToBase":
+		return []
 	var guard_anchor: Vector3 = _command_runtime.GetGuardAnchor(_unit)
 	return get_tree().get_nodes_in_group("units").filter(
 		func(unit):
@@ -98,6 +114,8 @@ func _on_attack_finished():
 
 
 func _try_returning_to_guard_anchor() -> bool:
+	if _unit == null or _command_runtime == null:
+		return false
 	if _command_runtime.GetEngagementStance(_unit) != "Guard":
 		return false
 	var guard_anchor: Vector3 = _command_runtime.GetGuardAnchor(_unit)

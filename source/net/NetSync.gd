@@ -25,6 +25,8 @@ var _snap_interval_msec := 100
 # 监督 HUD：右上角显示 延迟/FPS（云服显示 RTT，本机房显示"本机"，离线显示"单机"）。
 var _hud_label: Label = null
 var _hud_accum := 0.0
+var _authoritative_stance_by_path := {}
+var _authoritative_fire_policy_by_path := {}
 
 
 func _ready() -> void:
@@ -155,9 +157,27 @@ func _collect_reconcile_entries() -> Array:
 				"scene": scene_path,
 				"xf": unit.global_transform,
 				"hp": unit.hp if "hp" in unit else 0.0,
+				"stance": _authoritative_stance(unit),
+				"fire_policy": _authoritative_fire_policy(unit),
 			}
 		)
 	return entries
+
+
+func _authoritative_stance(unit: Node, runtime: Node = null) -> String:
+	if runtime == null:
+		runtime = _match.get_node_or_null("CommandRuntime")
+	if runtime != null and runtime.has_method("GetEngagementStance"):
+		return str(runtime.GetEngagementStance(unit))
+	return "Aggressive"
+
+
+func _authoritative_fire_policy(unit: Node, runtime: Node = null) -> String:
+	if runtime == null:
+		runtime = _match.get_node_or_null("CommandRuntime")
+	if runtime != null and runtime.has_method("GetFirePolicy"):
+		return str(runtime.GetFirePolicy(unit))
+	return "FireAtWill"
 
 
 ## 复核 P1-2：玩家掉线 → 服务器清掉其全部单位（歼灭规则随之自然结算，掉线算负）。
@@ -261,6 +281,19 @@ func forward_command(
 	return {"status": "Accepted", "unit_results": []}
 
 
+## 客户端 HUD 只读取最近一次服务器快照确认的策略。
+func get_authoritative_engagement_stance(unit) -> String:
+	if unit == null or not is_instance_valid(unit):
+		return "Aggressive"
+	return str(_authoritative_stance_by_path.get(str(_match.get_path_to(unit)), "Aggressive"))
+
+
+func get_authoritative_fire_policy(unit) -> String:
+	if unit == null or not is_instance_valid(unit):
+		return "FireAtWill"
+	return str(_authoritative_fire_policy_by_path.get(str(_match.get_path_to(unit)), "FireAtWill"))
+
+
 func apply_client_snapshot(
 	units_payload: Array, resources_payload: Array, server_frame: int
 ) -> void:
@@ -275,6 +308,10 @@ func apply_client_snapshot(
 	for item in units_payload:
 		var path: String = item["path"]
 		seen[path] = true
+		if item.has("stance"):
+			_authoritative_stance_by_path[path] = str(item["stance"])
+		if item.has("fire_policy"):
+			_authoritative_fire_policy_by_path[path] = str(item["fire_policy"])
 		var unit := _match.get_node_or_null(NodePath(path))
 		if unit == null or not is_instance_valid(unit):
 			continue
@@ -301,6 +338,7 @@ func apply_client_snapshot(
 
 
 func _broadcast_snapshot() -> void:
+	var command_runtime = _match.get_node_or_null("CommandRuntime")
 	var units_payload: Array = []
 	for unit in get_tree().get_nodes_in_group("units"):
 		if unit == null or not is_instance_valid(unit):
@@ -311,6 +349,8 @@ func _broadcast_snapshot() -> void:
 				"pos": unit.global_position,
 				"yaw": unit.rotation.y,
 				"hp": unit.hp if "hp" in unit else 0,
+				"stance": _authoritative_stance(unit, command_runtime),
+				"fire_policy": _authoritative_fire_policy(unit, command_runtime),
 			}
 		)
 	var resources_payload: Array = []
@@ -416,7 +456,9 @@ func _rpc_command(
 		var origin: Vector3 = units[0].global_position
 		var nearest := INF
 		for candidate in get_tree().get_nodes_in_group("resource_units"):
-			var d := candidate.global_position.distance_to(origin)
+			# 显式 float：distance_to 在此上下文返回 Variant，:= 无法推断类型，
+			# 会让整个 NetSync.gd 解析失败（表现为联机黑屏且 NetSync 缺失）。
+			var d: float = candidate.global_position.distance_to(origin)
 			if d < nearest:
 				nearest = d
 				target = candidate

@@ -36,13 +36,8 @@ func _ready() -> void:
 	# 供 Godot MCP 一键开出「已在对局中」的游戏窗口。
 	if "--autojoin" in OS.get_cmdline_user_args() or FileAccess.file_exists("res://autojoin.txt"):
 		_auto_join_solo()
-	# 调试控制端点挂 root（跨场景存活），外部驱动可远程操控对局。
-	# 独立开关：带 --debugport 即挂载，不依赖 --autojoin，正常主菜单/大厅流程同样可用。
-	if "--debugport" in OS.get_cmdline_user_args():
-		var debug_control := Node.new()
-		debug_control.name = "DebugControlServer"
-		debug_control.set_script(load("res://source/net/DebugControlServer.gd"))
-		get_tree().root.add_child.call_deferred(debug_control)
+	# 调试控制端点已改为 autoload 自挂载（project.godot 注册，带 --debugport 才启用），
+	# 客户端与专用服进程均可使用，此处不再手动挂载。
 	if "--autoshot" in OS.get_cmdline_user_args():
 		_auto_screenshot()
 	if "--smokeclient" in OS.get_cmdline_user_args():

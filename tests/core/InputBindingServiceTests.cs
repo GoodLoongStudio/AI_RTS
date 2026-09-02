@@ -133,6 +133,8 @@ internal sealed class InputBindingServiceTests
             "T 应解析为侵略");
         Check(Action(service.Resolve(Parse("Y"), contexts)) == "unit.stance_guard",
             "Y 应解析为警戒");
+        Check(Action(service.Resolve(Parse("V"), contexts)) == "unit.stance_return_to_base",
+            "V 应解析为撤回基地姿态");
         Check(Action(service.Resolve(Parse("H"), contexts)) == "unit.toggle_hold_fire",
             "H 应解析为停火切换");
         Check(Action(service.Resolve(Parse("B"), contexts)) == "unit.clear_rally",

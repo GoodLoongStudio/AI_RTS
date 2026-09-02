@@ -9,7 +9,7 @@ namespace AI_RTS.GodotAdapter.Navigation;
 /// <summary>把 C# 移动端口临时适配到现有 GDScript Moving Action。</summary>
 public sealed class LegacyMovementPort(
     GodotUnitRegistry units,
-    GodotResourceNodeRegistry resources) : IUnitMovementPort
+    GodotResourceNodeRegistry resources) : IUnitMovementPort, IReturnToBaseMovementPort
 {
     /// <inheritdoc />
     public MovementPortResult RequestMove(UnitId unitId, WorldPosition destination)
@@ -118,6 +118,24 @@ public sealed class LegacyMovementPort(
         var accepted = unit.Call(
             "request_legacy_tactical_withdraw",
             new Vector3(destination.X, destination.Y, destination.Z)).AsBool();
+        return accepted ? MovementPortResult.Success() :
+            MovementPortResult.Failure(MovementPortError.NavigationUnavailable);
+    }
+
+    /// <inheritdoc />
+    public MovementPortResult RequestReturnToBase(UnitId unitId, UnitId commandCenterId)
+    {
+        if (!units.TryGetNode(unitId, out var unit) ||
+            !units.TryGetNode(commandCenterId, out var commandCenter))
+        {
+            return MovementPortResult.Failure(MovementPortError.UnitUnavailable);
+        }
+        if (!unit.HasMethod("request_legacy_return_to_base"))
+        {
+            return MovementPortResult.Failure(MovementPortError.NavigationUnavailable);
+        }
+
+        var accepted = unit.Call("request_legacy_return_to_base", commandCenter).AsBool();
         return accepted ? MovementPortResult.Success() :
             MovementPortResult.Failure(MovementPortError.NavigationUnavailable);
     }

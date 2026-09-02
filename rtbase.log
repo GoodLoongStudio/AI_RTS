@@ -1,0 +1,559 @@
+WorkerThreadPool: 24 threads, 7 max low-priority.
+Godot Engine v4.7.1.stable.mono.official.a13da4feb - https://godotengine.org
+TextServer: Added interface "Dummy"
+TextServer: Added interface "ICU / HarfBuzz / Graphite (Built-in)"
+Using "default" pen tablet driver...
+
+Loading resource: res://assets/translations/match.en.translation remapped: res://assets/translations/match.en.translation
+Completed load for: 'res://assets/translations/match.en.translation' remapped 'res://assets/translations/match.en.translation' at thread -1
+Loading resource: res://assets/translations/match.pl.translation remapped: res://assets/translations/match.pl.translation
+Completed load for: 'res://assets/translations/match.pl.translation' remapped 'res://assets/translations/match.pl.translation' at thread -1
+Loading resource: res://assets/translations/main_menu.en.translation remapped: res://assets/translations/main_menu.en.translation
+Completed load for: 'res://assets/translations/main_menu.en.translation' remapped 'res://assets/translations/main_menu.en.translation' at thread -1
+Loading resource: res://assets/translations/main_menu.pl.translation remapped: res://assets/translations/main_menu.pl.translation
+Completed load for: 'res://assets/translations/main_menu.pl.translation' remapped 'res://assets/translations/main_menu.pl.translation' at thread -1
+TextServer: Primary interface set to: "ICU / HarfBuzz / Graphite (Built-in)".
+.NET: Initializing module...
+Found hostfxr: C:/Program Files/dotnet/host/fxr/8.0.30/hostfxr.dll
+.NET: hostfxr initialized
+.NET: GodotPlugins initialized
+CORE API HASH: 2244263461
+EDITOR API HASH: 3539082181
+SceneTreeFTI: traversal method DEFAULT
+Loading resource: res://source/net/NetSession.gd remapped: res://source/net/NetSession.gd
+Loading resource: res://source/match/players/human/Human.tscn remapped: res://source/match/players/human/Human.tscn
+Loading resource: res://source/match/players/human/Human.gd remapped: res://source/match/players/human/Human.gd
+Completed load for: 'res://source/match/players/human/Human.gd' remapped 'res://source/match/players/human/Human.gd' at thread -1
+Loading resource: res://source/match/players/human/UnitActionsController.gd remapped: res://source/match/players/human/UnitActionsController.gd
+Loading resource: res://source/match/resources/materials/structure_under_construction.material.tres remapped: res://source/match/resources/materials/structure_under_construction.material.tres
+Completed load for: 'res://source/match/resources/materials/structure_under_construction.material.tres' remapped 'res://source/match/resources/materials/structure_under_construction.material.tres' at thread -1
+Loading resource: res://assets/voice/english/ttsmaker-com-148-alayna-us/battle_control_online.ogg remapped: res://assets/voice/english/ttsmaker-com-148-alayna-us/battle_control_online.ogg
+Loading resource: res://.godot/imported/battle_control_online.ogg-602a25967ba7c9b410570d5e4d82a8c9.oggvorbisstr remapped: res://.godot/imported/battle_control_online.ogg-602a25967ba7c9b410570d5e4d82a8c9.oggvorbisstr
+Completed load for: 'res://assets/voice/english/ttsmaker-com-148-alayna-us/battle_control_online.ogg' remapped 'res://assets/voice/english/ttsmaker-com-148-alayna-us/battle_control_online.ogg' at thread -1
+Loading resource: res://assets/voice/english/ttsmaker-com-148-alayna-us/battle_control_offline.ogg remapped: res://assets/voice/english/ttsmaker-com-148-alayna-us/battle_control_offline.ogg
+Loading resource: res://.godot/imported/battle_control_offline.ogg-d7de703e8fffb69f247a00f69de5066f.oggvorbisstr remapped: res://.godot/imported/battle_control_offline.ogg-d7de703e8fffb69f247a00f69de5066f.oggvorbisstr
+Completed load for: 'res://assets/voice/english/ttsmaker-com-148-alayna-us/battle_control_offline.ogg' remapped 'res://assets/voice/english/ttsmaker-com-148-alayna-us/battle_control_offline.ogg' at thread -1
+Loading resource: res://assets/voice/english/ttsmaker-com-148-alayna-us/you_are_victorious.ogg remapped: res://assets/voice/english/ttsmaker-com-148-alayna-us/you_are_victorious.ogg
+Loading resource: res://.godot/imported/you_are_victorious.ogg-1a67406aabf02a3d3abcc5890564f60d.oggvorbisstr remapped: res://.godot/imported/you_are_victorious.ogg-1a67406aabf02a3d3abcc5890564f60d.oggvorbisstr
+Completed load for: 'res://assets/voice/english/ttsmaker-com-148-alayna-us/you_are_victorious.ogg' remapped 'res://assets/voice/english/ttsmaker-com-148-alayna-us/you_are_victorious.ogg' at thread -1
+Loading resource: res://assets/voice/english/ttsmaker-com-148-alayna-us/you_have_lost.ogg remapped: res://assets/voice/english/ttsmaker-com-148-alayna-us/you_have_lost.ogg
+Loading resource: res://.godot/imported/you_have_lost.ogg-729a92ae345e33080bc21458886d291c.oggvorbisstr remapped: res://.godot/imported/you_have_lost.ogg-729a92ae345e33080bc21458886d291c.oggvorbisstr
+Completed load for: 'res://assets/voice/english/ttsmaker-com-148-alayna-us/you_have_lost.ogg' remapped 'res://assets/voice/english/ttsmaker-com-148-alayna-us/you_have_lost.ogg' at thread -1
+Loading resource: res://assets/voice/english/ttsmaker-com-148-alayna-us/your_base_is_under_attack.ogg remapped: res://assets/voice/english/ttsmaker-com-148-alayna-us/your_base_is_under_attack.ogg
+Loading resource: res://.godot/imported/your_base_is_under_attack.ogg-51d7f2f7b2136d4c832e9d75c51baf0c.oggvorbisstr remapped: res://.godot/imported/your_base_is_under_attack.ogg-51d7f2f7b2136d4c832e9d75c51baf0c.oggvorbisstr
+Completed load for: 'res://assets/voice/english/ttsmaker-com-148-alayna-us/your_base_is_under_attack.ogg' remapped 'res://assets/voice/english/ttsmaker-com-148-alayna-us/your_base_is_under_attack.ogg' at thread -1
+Loading resource: res://assets/voice/english/ttsmaker-com-148-alayna-us/unit_under_attack.ogg remapped: res://assets/voice/english/ttsmaker-com-148-alayna-us/unit_under_attack.ogg
+Loading resource: res://.godot/imported/unit_under_attack.ogg-b306abe04d46c472a0aa94a433d1bedf.oggvorbisstr remapped: res://.godot/imported/unit_under_attack.ogg-b306abe04d46c472a0aa94a433d1bedf.oggvorbisstr
+Completed load for: 'res://assets/voice/english/ttsmaker-com-148-alayna-us/unit_under_attack.ogg' remapped 'res://assets/voice/english/ttsmaker-com-148-alayna-us/unit_under_attack.ogg' at thread -1
+Loading resource: res://assets/voice/english/ttsmaker-com-148-alayna-us/unit_lost.ogg remapped: res://assets/voice/english/ttsmaker-com-148-alayna-us/unit_lost.ogg
+Loading resource: res://.godot/imported/unit_lost.ogg-cc49266157839013cfd9afb802677b41.oggvorbisstr remapped: res://.godot/imported/unit_lost.ogg-cc49266157839013cfd9afb802677b41.oggvorbisstr
+Completed load for: 'res://assets/voice/english/ttsmaker-com-148-alayna-us/unit_lost.ogg' remapped 'res://assets/voice/english/ttsmaker-com-148-alayna-us/unit_lost.ogg' at thread -1
+Loading resource: res://assets/voice/english/ttsmaker-com-148-alayna-us/training.ogg remapped: res://assets/voice/english/ttsmaker-com-148-alayna-us/training.ogg
+Loading resource: res://.godot/imported/training.ogg-0eae0da7bdce4e46fb3eaf9d198c9c4a.oggvorbisstr remapped: res://.godot/imported/training.ogg-0eae0da7bdce4e46fb3eaf9d198c9c4a.oggvorbisstr
+Completed load for: 'res://assets/voice/english/ttsmaker-com-148-alayna-us/training.ogg' remapped 'res://assets/voice/english/ttsmaker-com-148-alayna-us/training.ogg' at thread -1
+Loading resource: res://assets/voice/english/ttsmaker-com-148-alayna-us/unit_ready.ogg remapped: res://assets/voice/english/ttsmaker-com-148-alayna-us/unit_ready.ogg
+Loading resource: res://.godot/imported/unit_ready.ogg-ad7e6272c6a82a1ec443672fc70b6282.oggvorbisstr remapped: res://.godot/imported/unit_ready.ogg-ad7e6272c6a82a1ec443672fc70b6282.oggvorbisstr
+Completed load for: 'res://assets/voice/english/ttsmaker-com-148-alayna-us/unit_ready.ogg' remapped 'res://assets/voice/english/ttsmaker-com-148-alayna-us/unit_ready.ogg' at thread -1
+Loading resource: res://assets/voice/english/ttsmaker-com-148-alayna-us/construction_complete.ogg remapped: res://assets/voice/english/ttsmaker-com-148-alayna-us/construction_complete.ogg
+Loading resource: res://.godot/imported/construction_complete.ogg-30ee79637c6aa815479b4a38d6f0fbce.oggvorbisstr remapped: res://.godot/imported/construction_complete.ogg-30ee79637c6aa815479b4a38d6f0fbce.oggvorbisstr
+Completed load for: 'res://assets/voice/english/ttsmaker-com-148-alayna-us/construction_complete.ogg' remapped 'res://assets/voice/english/ttsmaker-com-148-alayna-us/construction_complete.ogg' at thread -1
+Loading resource: res://assets/voice/english/ttsmaker-com-2704-jackson-us/sir.ogg remapped: res://assets/voice/english/ttsmaker-com-2704-jackson-us/sir.ogg
+Loading resource: res://.godot/imported/sir.ogg-25b8e23def37081469f292ded525c22b.oggvorbisstr remapped: res://.godot/imported/sir.ogg-25b8e23def37081469f292ded525c22b.oggvorbisstr
+Completed load for: 'res://assets/voice/english/ttsmaker-com-2704-jackson-us/sir.ogg' remapped 'res://assets/voice/english/ttsmaker-com-2704-jackson-us/sir.ogg' at thread -1
+Loading resource: res://assets/voice/english/ttsmaker-com-2704-jackson-us/yes_sir.ogg remapped: res://assets/voice/english/ttsmaker-com-2704-jackson-us/yes_sir.ogg
+Loading resource: res://.godot/imported/yes_sir.ogg-c697b7c95dbb546e1e62b85bc05a1e56.oggvorbisstr remapped: res://.godot/imported/yes_sir.ogg-c697b7c95dbb546e1e62b85bc05a1e56.oggvorbisstr
+Completed load for: 'res://assets/voice/english/ttsmaker-com-2704-jackson-us/yes_sir.ogg' remapped 'res://assets/voice/english/ttsmaker-com-2704-jackson-us/yes_sir.ogg' at thread -1
+Loading resource: res://assets/voice/english/ttsmaker-com-2704-jackson-us/acknowledged.ogg remapped: res://assets/voice/english/ttsmaker-com-2704-jackson-us/acknowledged.ogg
+Loading resource: res://.godot/imported/acknowledged.ogg-5fff374e5512672b9d5f5c693ed13004.oggvorbisstr remapped: res://.godot/imported/acknowledged.ogg-5fff374e5512672b9d5f5c693ed13004.oggvorbisstr
+Completed load for: 'res://assets/voice/english/ttsmaker-com-2704-jackson-us/acknowledged.ogg' remapped 'res://assets/voice/english/ttsmaker-com-2704-jackson-us/acknowledged.ogg' at thread -1
+Loading resource: res://assets/voice/english/ttsmaker-com-148-alayna-us/not_enough_resources.ogg remapped: res://assets/voice/english/ttsmaker-com-148-alayna-us/not_enough_resources.ogg
+Loading resource: res://.godot/imported/not_enough_resources.ogg-29c4927b8b6d3809455d69df22b7c86a.oggvorbisstr remapped: res://.godot/imported/not_enough_resources.ogg-29c4927b8b6d3809455d69df22b7c86a.oggvorbisstr
+Completed load for: 'res://assets/voice/english/ttsmaker-com-148-alayna-us/not_enough_resources.ogg' remapped 'res://assets/voice/english/ttsmaker-com-148-alayna-us/not_enough_resources.ogg' at thread -1
+Loading resource: res://source/match/utils/ResourceDecayAnimation.tscn remapped: res://source/match/utils/ResourceDecayAnimation.tscn
+Loading resource: res://assets/models/primitives/icosphere.obj remapped: res://assets/models/primitives/icosphere.obj
+Loading resource: res://.godot/imported/icosphere.obj-e49a82048b23f2140e3aa30c9b8b65ca.mesh remapped: res://.godot/imported/icosphere.obj-e49a82048b23f2140e3aa30c9b8b65ca.mesh
+Completed load for: 'res://assets/models/primitives/icosphere.obj' remapped 'res://assets/models/primitives/icosphere.obj' at thread -1
+Loading resource: res://source/match/utils/ResourceDecayAnimation.gd remapped: res://source/match/utils/ResourceDecayAnimation.gd
+Completed load for: 'res://source/match/utils/ResourceDecayAnimation.gd' remapped 'res://source/match/utils/ResourceDecayAnimation.gd' at thread -1
+Completed load for: 'res://source/match/utils/ResourceDecayAnimation.tscn' remapped 'res://source/match/utils/ResourceDecayAnimation.tscn' at thread -1
+Completed load for: 'res://source/match/players/human/UnitActionsController.gd' remapped 'res://source/match/players/human/UnitActionsController.gd' at thread -1
+Loading resource: res://source/match/players/human/StructurePlacementHandler.tscn remapped: res://source/match/players/human/StructurePlacementHandler.tscn
+Loading resource: res://source/match/players/human/StructurePlacementHandler.gd remapped: res://source/match/players/human/StructurePlacementHandler.gd
+Loading resource: res://source/match/resources/materials/blueprint_valid.material.tres remapped: res://source/match/resources/materials/blueprint_valid.material.tres
+Completed load for: 'res://source/match/resources/materials/blueprint_valid.material.tres' remapped 'res://source/match/resources/materials/blueprint_valid.material.tres' at thread -1
+Loading resource: res://source/match/resources/materials/blueprint_invalid.material.tres remapped: res://source/match/resources/materials/blueprint_invalid.material.tres
+Completed load for: 'res://source/match/resources/materials/blueprint_invalid.material.tres' remapped 'res://source/match/resources/materials/blueprint_invalid.material.tres' at thread -1
+Completed load for: 'res://source/match/players/human/StructurePlacementHandler.gd' remapped 'res://source/match/players/human/StructurePlacementHandler.gd' at thread -1
+Completed load for: 'res://source/match/players/human/StructurePlacementHandler.tscn' remapped 'res://source/match/players/human/StructurePlacementHandler.tscn' at thread -1
+Loading resource: res://source/match/players/human/VoiceNarratorController.gd remapped: res://source/match/players/human/VoiceNarratorController.gd
+Completed load for: 'res://source/match/players/human/VoiceNarratorController.gd' remapped 'res://source/match/players/human/VoiceNarratorController.gd' at thread -1
+Loading resource: res://source/match/players/human/UnitVoicesController.gd remapped: res://source/match/players/human/UnitVoicesController.gd
+Completed load for: 'res://source/match/players/human/UnitVoicesController.gd' remapped 'res://source/match/players/human/UnitVoicesController.gd' at thread -1
+Loading resource: res://source/csharp/GodotAdapter/Input/UnitCommandGateway.cs remapped: res://source/csharp/GodotAdapter/Input/UnitCommandGateway.cs
+Completed load for: 'res://source/csharp/GodotAdapter/Input/UnitCommandGateway.cs' remapped 'res://source/csharp/GodotAdapter/Input/UnitCommandGateway.cs' at thread -1
+Completed load for: 'res://source/match/players/human/Human.tscn' remapped 'res://source/match/players/human/Human.tscn' at thread -1
+Loading resource: res://source/match/players/simple-clairvoyant-ai/SimpleClairvoyantAI.tscn remapped: res://source/match/players/simple-clairvoyant-ai/SimpleClairvoyantAI.tscn
+Loading resource: res://source/match/players/simple-clairvoyant-ai/SimpleClairvoyantAI.gd remapped: res://source/match/players/simple-clairvoyant-ai/SimpleClairvoyantAI.gd
+Completed load for: 'res://source/match/players/simple-clairvoyant-ai/SimpleClairvoyantAI.gd' remapped 'res://source/match/players/simple-clairvoyant-ai/SimpleClairvoyantAI.gd' at thread -1
+Loading resource: res://source/match/players/simple-clairvoyant-ai/EconomyController.gd remapped: res://source/match/players/simple-clairvoyant-ai/EconomyController.gd
+Loading resource: res://source/match/units/CommandCenter.tscn remapped: res://source/match/units/CommandCenter.tscn
+Loading resource: res://source/match/units/traits/Highlight.tscn remapped: res://source/match/units/traits/Highlight.tscn
+Loading resource: res://source/match/units/traits/Highlight.gd remapped: res://source/match/units/traits/Highlight.gd
+Completed load for: 'res://source/match/units/traits/Highlight.gd' remapped 'res://source/match/units/traits/Highlight.gd' at thread -1
+Loading resource: res://source/generic-scenes-and-nodes/3d/Circle3D.tscn remapped: res://source/generic-scenes-and-nodes/3d/Circle3D.tscn
+Loading resource: res://source/generic-scenes-and-nodes/3d/Circle3D.gd remapped: res://source/generic-scenes-and-nodes/3d/Circle3D.gd
+Loading resource: res://source/shaders/3d/circle.gdshader remapped: res://source/shaders/3d/circle.gdshader
+Completed load for: 'res://source/shaders/3d/circle.gdshader' remapped 'res://source/shaders/3d/circle.gdshader' at thread -1
+Completed load for: 'res://source/generic-scenes-and-nodes/3d/Circle3D.gd' remapped 'res://source/generic-scenes-and-nodes/3d/Circle3D.gd' at thread -1
+Completed load for: 'res://source/generic-scenes-and-nodes/3d/Circle3D.tscn' remapped 'res://source/generic-scenes-and-nodes/3d/Circle3D.tscn' at thread -1
+Completed load for: 'res://source/match/units/traits/Highlight.tscn' remapped 'res://source/match/units/traits/Highlight.tscn' at thread -1
+Loading resource: res://source/match/units/structure-geometries/CommandCenter.tscn remapped: res://source/match/units/structure-geometries/CommandCenter.tscn
+Loading resource: res://assets/models/kenney-spacekit/corridor_cross.glb remapped: res://assets/models/kenney-spacekit/corridor_cross.glb
+Loading resource: res://.godot/imported/corridor_cross.glb-1f68343dd54c25ed04acf831339f3dfb.scn remapped: res://.godot/imported/corridor_cross.glb-1f68343dd54c25ed04acf831339f3dfb.scn
+Completed load for: 'res://assets/models/kenney-spacekit/corridor_cross.glb' remapped 'res://assets/models/kenney-spacekit/corridor_cross.glb' at thread -1
+Loading resource: res://assets/models/kenney-spacekit/corridor_corner.glb remapped: res://assets/models/kenney-spacekit/corridor_corner.glb
+Loading resource: res://.godot/imported/corridor_corner.glb-c4fda755036ab27f7078a7e1a0524798.scn remapped: res://.godot/imported/corridor_corner.glb-c4fda755036ab27f7078a7e1a0524798.scn
+Completed load for: 'res://assets/models/kenney-spacekit/corridor_corner.glb' remapped 'res://assets/models/kenney-spacekit/corridor_corner.glb' at thread -1
+Loading resource: res://assets/models/kenney-spacekit/corridor_detailed.glb remapped: res://assets/models/kenney-spacekit/corridor_detailed.glb
+Loading resource: res://.godot/imported/corridor_detailed.glb-cbc9782adfa8decebfccac20f1d5156d.scn remapped: res://.godot/imported/corridor_detailed.glb-cbc9782adfa8decebfccac20f1d5156d.scn
+Completed load for: 'res://assets/models/kenney-spacekit/corridor_detailed.glb' remapped 'res://assets/models/kenney-spacekit/corridor_detailed.glb' at thread -1
+Loading resource: res://assets/models/kenney-spacekit/corridor_open.glb remapped: res://assets/models/kenney-spacekit/corridor_open.glb
+Loading resource: res://.godot/imported/corridor_open.glb-fcc3ba740f456a66aae0dc1c01dc5174.scn remapped: res://.godot/imported/corridor_open.glb-fcc3ba740f456a66aae0dc1c01dc5174.scn
+Completed load for: 'res://assets/models/kenney-spacekit/corridor_open.glb' remapped 'res://assets/models/kenney-spacekit/corridor_open.glb' at thread -1
+Loading resource: res://assets/models/kenney-spacekit/corridor_windowClosed.glb remapped: res://assets/models/kenney-spacekit/corridor_windowClosed.glb
+Loading resource: res://.godot/imported/corridor_windowClosed.glb-3fa28eace12f859f4716f284261bced5.scn remapped: res://.godot/imported/corridor_windowClosed.glb-3fa28eace12f859f4716f284261bced5.scn
+Completed load for: 'res://assets/models/kenney-spacekit/corridor_windowClosed.glb' remapped 'res://assets/models/kenney-spacekit/corridor_windowClosed.glb' at thread -1
+Loading resource: res://assets/models/kenney-spacekit/corridor.glb remapped: res://assets/models/kenney-spacekit/corridor.glb
+Loading resource: res://.godot/imported/corridor.glb-84a9fafeefe2497733d311d744eea968.scn remapped: res://.godot/imported/corridor.glb-84a9fafeefe2497733d311d744eea968.scn
+Completed load for: 'res://assets/models/kenney-spacekit/corridor.glb' remapped 'res://assets/models/kenney-spacekit/corridor.glb' at thread -1
+Loading resource: res://assets/models/kenney-spacekit/corridor_end.glb remapped: res://assets/models/kenney-spacekit/corridor_end.glb
+Loading resource: res://.godot/imported/corridor_end.glb-4fd4cb2ed35cdc8ba3f7e6c7b2bb0b7b.scn remapped: res://.godot/imported/corridor_end.glb-4fd4cb2ed35cdc8ba3f7e6c7b2bb0b7b.scn
+Completed load for: 'res://assets/models/kenney-spacekit/corridor_end.glb' remapped 'res://assets/models/kenney-spacekit/corridor_end.glb' at thread -1
+Loading resource: res://assets/models/kenney-spacekit/machine_generator.glb remapped: res://assets/models/kenney-spacekit/machine_generator.glb
+Loading resource: res://.godot/imported/machine_generator.glb-9cfeec38816afb4dfca8de25070fa645.scn remapped: res://.godot/imported/machine_generator.glb-9cfeec38816afb4dfca8de25070fa645.scn
+Completed load for: 'res://assets/models/kenney-spacekit/machine_generator.glb' remapped 'res://assets/models/kenney-spacekit/machine_generator.glb' at thread -1
+Loading resource: res://assets/models/kenney-spacekit/machine_wireless.glb remapped: res://assets/models/kenney-spacekit/machine_wireless.glb
+Loading resource: res://.godot/imported/machine_wireless.glb-6bbae058c400a92ed9dfc32707eacd26.scn remapped: res://.godot/imported/machine_wireless.glb-6bbae058c400a92ed9dfc32707eacd26.scn
+Completed load for: 'res://assets/models/kenney-spacekit/machine_wireless.glb' remapped 'res://assets/models/kenney-spacekit/machine_wireless.glb' at thread -1
+Loading resource: res://assets/models/kenney-spacekit/barrels.glb remapped: res://assets/models/kenney-spacekit/barrels.glb
+Loading resource: res://.godot/imported/barrels.glb-ae37b7c6c981c6a5364cc1b573ced249.scn remapped: res://.godot/imported/barrels.glb-ae37b7c6c981c6a5364cc1b573ced249.scn
+Completed load for: 'res://assets/models/kenney-spacekit/barrels.glb' remapped 'res://assets/models/kenney-spacekit/barrels.glb' at thread -1
+Loading resource: res://assets/models/kenney-spacekit/corridor_cornerRoundWindow.glb remapped: res://assets/models/kenney-spacekit/corridor_cornerRoundWindow.glb
+Loading resource: res://.godot/imported/corridor_cornerRoundWindow.glb-c2442a8d8e56b584ef75547b93555dc4.scn remapped: res://.godot/imported/corridor_cornerRoundWindow.glb-c2442a8d8e56b584ef75547b93555dc4.scn
+Completed load for: 'res://assets/models/kenney-spacekit/corridor_cornerRoundWindow.glb' remapped 'res://assets/models/kenney-spacekit/corridor_cornerRoundWindow.glb' at thread -1
+Completed load for: 'res://source/match/units/structure-geometries/CommandCenter.tscn' remapped 'res://source/match/units/structure-geometries/CommandCenter.tscn' at thread -1
+Loading resource: res://source/match/units/traits/Selection.tscn remapped: res://source/match/units/traits/Selection.tscn
+Loading resource: res://source/match/units/traits/Selection.gd remapped: res://source/match/units/traits/Selection.gd
+Completed load for: 'res://source/match/units/traits/Selection.gd' remapped 'res://source/match/units/traits/Selection.gd' at thread -1
+Loading resource: res://source/generic-scenes-and-nodes/3d/FadedCircle3D.tscn remapped: res://source/generic-scenes-and-nodes/3d/FadedCircle3D.tscn
+Loading resource: res://source/generic-scenes-and-nodes/3d/FadedCircle3D.gd remapped: res://source/generic-scenes-and-nodes/3d/FadedCircle3D.gd
+Loading resource: res://source/shaders/3d/faded_circle.gdshader remapped: res://source/shaders/3d/faded_circle.gdshader
+Completed load for: 'res://source/shaders/3d/faded_circle.gdshader' remapped 'res://source/shaders/3d/faded_circle.gdshader' at thread -1
+Completed load for: 'res://source/generic-scenes-and-nodes/3d/FadedCircle3D.gd' remapped 'res://source/generic-scenes-and-nodes/3d/FadedCircle3D.gd' at thread -1
+Completed load for: 'res://source/generic-scenes-and-nodes/3d/FadedCircle3D.tscn' remapped 'res://source/generic-scenes-and-nodes/3d/FadedCircle3D.tscn' at thread -1
+Completed load for: 'res://source/match/units/traits/Selection.tscn' remapped 'res://source/match/units/traits/Selection.tscn' at thread -1
+Loading resource: res://source/match/units/traits/MovementObstacle.tscn remapped: res://source/match/units/traits/MovementObstacle.tscn
+Loading resource: res://source/match/units/traits/MovementObstacle.gd remapped: res://source/match/units/traits/MovementObstacle.gd
+Completed load for: 'res://source/match/units/traits/MovementObstacle.gd' remapped 'res://source/match/units/traits/MovementObstacle.gd' at thread -1
+Completed load for: 'res://source/match/units/traits/MovementObstacle.tscn' remapped 'res://source/match/units/traits/MovementObstacle.tscn' at thread -1
+Loading resource: res://source/match/units/traits/HealthBar.tscn remapped: res://source/match/units/traits/HealthBar.tscn
+Loading resource: res://source/match/units/traits/HealthBar.gd remapped: res://source/match/units/traits/HealthBar.gd
+Completed load for: 'res://source/match/units/traits/HealthBar.gd' remapped 'res://source/match/units/traits/HealthBar.gd' at thread -1
+Completed load for: 'res://source/match/units/traits/HealthBar.tscn' remapped 'res://source/match/units/traits/HealthBar.tscn' at thread -1
+Loading resource: res://source/match/units/traits/RallyPoint.tscn remapped: res://source/match/units/traits/RallyPoint.tscn
+Loading resource: res://source/match/units/traits/RallyPoint.gd remapped: res://source/match/units/traits/RallyPoint.gd
+Completed load for: 'res://source/match/units/traits/RallyPoint.gd' remapped 'res://source/match/units/traits/RallyPoint.gd' at thread -1
+Completed load for: 'res://source/match/units/traits/RallyPoint.tscn' remapped 'res://source/match/units/traits/RallyPoint.tscn' at thread -1
+Loading resource: res://source/match/units/traits/ProductionQueue.tscn remapped: res://source/match/units/traits/ProductionQueue.tscn
+Loading resource: res://source/match/units/traits/ProductionQueue.gd remapped: res://source/match/units/traits/ProductionQueue.gd
+Completed load for: 'res://source/match/units/traits/ProductionQueue.gd' remapped 'res://source/match/units/traits/ProductionQueue.gd' at thread -1
+Completed load for: 'res://source/match/units/traits/ProductionQueue.tscn' remapped 'res://source/match/units/traits/ProductionQueue.tscn' at thread -1
+Loading resource: res://source/match/units/traits/Targetability.tscn remapped: res://source/match/units/traits/Targetability.tscn
+Loading resource: res://source/match/units/traits/Targetability.gd remapped: res://source/match/units/traits/Targetability.gd
+Completed load for: 'res://source/match/units/traits/Targetability.gd' remapped 'res://source/match/units/traits/Targetability.gd' at thread -1
+Completed load for: 'res://source/match/units/traits/Targetability.tscn' remapped 'res://source/match/units/traits/Targetability.tscn' at thread -1
+Completed load for: 'res://source/match/units/CommandCenter.tscn' remapped 'res://source/match/units/CommandCenter.tscn' at thread -1
+Loading resource: res://source/match/units/Worker.tscn remapped: res://source/match/units/Worker.tscn
+Loading resource: res://assets/models/kenney-spacekit/rover.glb remapped: res://assets/models/kenney-spacekit/rover.glb
+Loading resource: res://.godot/imported/rover.glb-f1783b1d9d67aafb57fe622dbff1612b.scn remapped: res://.godot/imported/rover.glb-f1783b1d9d67aafb57fe622dbff1612b.scn
+Completed load for: 'res://assets/models/kenney-spacekit/rover.glb' remapped 'res://assets/models/kenney-spacekit/rover.glb' at thread -1
+Loading resource: res://source/match/units/traits/Movement.tscn remapped: res://source/match/units/traits/Movement.tscn
+Loading resource: res://source/match/units/traits/Movement.gd remapped: res://source/match/units/traits/Movement.gd
+Completed load for: 'res://source/match/units/traits/Movement.gd' remapped 'res://source/match/units/traits/Movement.gd' at thread -1
+Completed load for: 'res://source/match/units/traits/Movement.tscn' remapped 'res://source/match/units/traits/Movement.tscn' at thread -1
+Loading resource: res://source/match/units/traits/Sparkling.tscn remapped: res://source/match/units/traits/Sparkling.tscn
+Loading resource: res://source/match/units/traits/Sparkling.gd remapped: res://source/match/units/traits/Sparkling.gd
+Loading resource: res://source/match/utils/SparklingAnimation.tscn remapped: res://source/match/utils/SparklingAnimation.tscn
+Loading resource: res://source/match/utils/SparklingAnimation.gd remapped: res://source/match/utils/SparklingAnimation.gd
+Completed load for: 'res://source/match/utils/SparklingAnimation.gd' remapped 'res://source/match/utils/SparklingAnimation.gd' at thread -1
+Completed load for: 'res://source/match/utils/SparklingAnimation.tscn' remapped 'res://source/match/utils/SparklingAnimation.tscn' at thread -1
+Completed load for: 'res://source/match/units/traits/Sparkling.gd' remapped 'res://source/match/units/traits/Sparkling.gd' at thread -1
+Completed load for: 'res://source/match/units/traits/Sparkling.tscn' remapped 'res://source/match/units/traits/Sparkling.tscn' at thread -1
+Completed load for: 'res://source/match/units/Worker.tscn' remapped 'res://source/match/units/Worker.tscn' at thread -1
+Completed load for: 'res://source/match/players/simple-clairvoyant-ai/EconomyController.gd' remapped 'res://source/match/players/simple-clairvoyant-ai/EconomyController.gd' at thread -1
+Loading resource: res://source/match/players/simple-clairvoyant-ai/DefenseController.gd remapped: res://source/match/players/simple-clairvoyant-ai/DefenseController.gd
+Loading resource: res://source/match/units/AntiGroundTurret.tscn remapped: res://source/match/units/AntiGroundTurret.tscn
+Loading resource: res://source/match/units/AntiGroundTurret.gd remapped: res://source/match/units/AntiGroundTurret.gd
+Completed load for: 'res://source/match/units/AntiGroundTurret.gd' remapped 'res://source/match/units/AntiGroundTurret.gd' at thread -1
+Loading resource: res://source/match/units/structure-geometries/AntiGroundTurret.tscn remapped: res://source/match/units/structure-geometries/AntiGroundTurret.tscn
+Loading resource: res://assets/models/kenney-spacekit/turret_single.glb remapped: res://assets/models/kenney-spacekit/turret_single.glb
+Loading resource: res://.godot/imported/turret_single.glb-d4e76b7ed62d967e1626fabb7c9a8dc5.scn remapped: res://.godot/imported/turret_single.glb-d4e76b7ed62d967e1626fabb7c9a8dc5.scn
+Completed load for: 'res://assets/models/kenney-spacekit/turret_single.glb' remapped 'res://assets/models/kenney-spacekit/turret_single.glb' at thread -1
+Completed load for: 'res://source/match/units/structure-geometries/AntiGroundTurret.tscn' remapped 'res://source/match/units/structure-geometries/AntiGroundTurret.tscn' at thread -1
+Loading resource: res://source/match/units/traits/RotateRandomlyWhenLookingForTargetsIdle.tscn remapped: res://source/match/units/traits/RotateRandomlyWhenLookingForTargetsIdle.tscn
+Loading resource: res://source/match/units/traits/RotateRandomlyWhenLookingForTargetsIdle.gd remapped: res://source/match/units/traits/RotateRandomlyWhenLookingForTargetsIdle.gd
+Completed load for: 'res://source/match/units/traits/RotateRandomlyWhenLookingForTargetsIdle.gd' remapped 'res://source/match/units/traits/RotateRandomlyWhenLookingForTargetsIdle.gd' at thread -1
+Completed load for: 'res://source/match/units/traits/RotateRandomlyWhenLookingForTargetsIdle.tscn' remapped 'res://source/match/units/traits/RotateRandomlyWhenLookingForTargetsIdle.tscn' at thread -1
+Completed load for: 'res://source/match/units/AntiGroundTurret.tscn' remapped 'res://source/match/units/AntiGroundTurret.tscn' at thread -1
+Loading resource: res://source/match/units/AntiAirTurret.tscn remapped: res://source/match/units/AntiAirTurret.tscn
+Loading resource: res://source/match/units/AntiAirTurret.gd remapped: res://source/match/units/AntiAirTurret.gd
+Completed load for: 'res://source/match/units/AntiAirTurret.gd' remapped 'res://source/match/units/AntiAirTurret.gd' at thread -1
+Loading resource: res://source/match/units/structure-geometries/AntiAirTurret.tscn remapped: res://source/match/units/structure-geometries/AntiAirTurret.tscn
+Loading resource: res://assets/models/kenney-spacekit/turret_double.glb remapped: res://assets/models/kenney-spacekit/turret_double.glb
+Loading resource: res://.godot/imported/turret_double.glb-a366c87f76bc43dd1fccfa3be64d1f48.scn remapped: res://.godot/imported/turret_double.glb-a366c87f76bc43dd1fccfa3be64d1f48.scn
+Completed load for: 'res://assets/models/kenney-spacekit/turret_double.glb' remapped 'res://assets/models/kenney-spacekit/turret_double.glb' at thread -1
+Completed load for: 'res://source/match/units/structure-geometries/AntiAirTurret.tscn' remapped 'res://source/match/units/structure-geometries/AntiAirTurret.tscn' at thread -1
+Completed load for: 'res://source/match/units/AntiAirTurret.tscn' remapped 'res://source/match/units/AntiAirTurret.tscn' at thread -1
+Completed load for: 'res://source/match/players/simple-clairvoyant-ai/DefenseController.gd' remapped 'res://source/match/players/simple-clairvoyant-ai/DefenseController.gd' at thread -1
+Loading resource: res://source/match/players/simple-clairvoyant-ai/OffenseController.gd remapped: res://source/match/players/simple-clairvoyant-ai/OffenseController.gd
+Loading resource: res://source/match/units/VehicleFactory.tscn remapped: res://source/match/units/VehicleFactory.tscn
+Loading resource: res://source/match/units/VehicleFactory.gd remapped: res://source/match/units/VehicleFactory.gd
+Completed load for: 'res://source/match/units/VehicleFactory.gd' remapped 'res://source/match/units/VehicleFactory.gd' at thread -1
+Loading resource: res://source/match/units/structure-geometries/VehicleFactory.tscn remapped: res://source/match/units/structure-geometries/VehicleFactory.tscn
+Loading resource: res://assets/models/kenney-spacekit/hangar_smallA.glb remapped: res://assets/models/kenney-spacekit/hangar_smallA.glb
+Loading resource: res://.godot/imported/hangar_smallA.glb-6561f844b80d4f6d8189cd12c721a364.scn remapped: res://.godot/imported/hangar_smallA.glb-6561f844b80d4f6d8189cd12c721a364.scn
+Completed load for: 'res://assets/models/kenney-spacekit/hangar_smallA.glb' remapped 'res://assets/models/kenney-spacekit/hangar_smallA.glb' at thread -1
+Completed load for: 'res://source/match/units/structure-geometries/VehicleFactory.tscn' remapped 'res://source/match/units/structure-geometries/VehicleFactory.tscn' at thread -1
+Completed load for: 'res://source/match/units/VehicleFactory.tscn' remapped 'res://source/match/units/VehicleFactory.tscn' at thread -1
+Loading resource: res://source/match/units/Tank.tscn remapped: res://source/match/units/Tank.tscn
+Loading resource: res://source/match/units/Tank.gd remapped: res://source/match/units/Tank.gd
+Completed load for: 'res://source/match/units/Tank.gd' remapped 'res://source/match/units/Tank.gd' at thread -1
+Loading resource: res://assets/models/kenney-spacekit/craft_cargoB.glb remapped: res://assets/models/kenney-spacekit/craft_cargoB.glb
+Loading resource: res://.godot/imported/craft_cargoB.glb-e82e3832d469ec435e5b8bff636f3748.scn remapped: res://.godot/imported/craft_cargoB.glb-e82e3832d469ec435e5b8bff636f3748.scn
+Completed load for: 'res://assets/models/kenney-spacekit/craft_cargoB.glb' remapped 'res://assets/models/kenney-spacekit/craft_cargoB.glb' at thread -1
+Loading resource: res://assets/models/kenney-spacekit/craft_miner.glb remapped: res://assets/models/kenney-spacekit/craft_miner.glb
+Loading resource: res://.godot/imported/craft_miner.glb-38dc39f966081c0e268d72d9fa367252.scn remapped: res://.godot/imported/craft_miner.glb-38dc39f966081c0e268d72d9fa367252.scn
+Completed load for: 'res://assets/models/kenney-spacekit/craft_miner.glb' remapped 'res://assets/models/kenney-spacekit/craft_miner.glb' at thread -1
+Loading resource: res://source/csharp/GodotAdapter/Units/Visuals/UnitVisualBindings.cs remapped: res://source/csharp/GodotAdapter/Units/Visuals/UnitVisualBindings.cs
+Completed load for: 'res://source/csharp/GodotAdapter/Units/Visuals/UnitVisualBindings.cs' remapped 'res://source/csharp/GodotAdapter/Units/Visuals/UnitVisualBindings.cs' at thread -1
+Completed load for: 'res://source/match/units/Tank.tscn' remapped 'res://source/match/units/Tank.tscn' at thread -1
+Loading resource: res://source/match/units/AircraftFactory.tscn remapped: res://source/match/units/AircraftFactory.tscn
+Loading resource: res://source/match/units/AircraftFactory.gd remapped: res://source/match/units/AircraftFactory.gd
+Completed load for: 'res://source/match/units/AircraftFactory.gd' remapped 'res://source/match/units/AircraftFactory.gd' at thread -1
+Loading resource: res://source/match/units/structure-geometries/AircraftFactory.tscn remapped: res://source/match/units/structure-geometries/AircraftFactory.tscn
+Loading resource: res://assets/models/kenney-spacekit/supports_low.glb remapped: res://assets/models/kenney-spacekit/supports_low.glb
+Loading resource: res://.godot/imported/supports_low.glb-f3519008473acf0543817853ace2d18e.scn remapped: res://.godot/imported/supports_low.glb-f3519008473acf0543817853ace2d18e.scn
+Completed load for: 'res://assets/models/kenney-spacekit/supports_low.glb' remapped 'res://assets/models/kenney-spacekit/supports_low.glb' at thread -1
+Loading resource: res://assets/models/kenney-spacekit/platform_small.glb remapped: res://assets/models/kenney-spacekit/platform_small.glb
+Loading resource: res://.godot/imported/platform_small.glb-9cabc0ba700f9fd57a3dcc05e22d2c4f.scn remapped: res://.godot/imported/platform_small.glb-9cabc0ba700f9fd57a3dcc05e22d2c4f.scn
+Completed load for: 'res://assets/models/kenney-spacekit/platform_small.glb' remapped 'res://assets/models/kenney-spacekit/platform_small.glb' at thread -1
+Completed load for: 'res://source/match/units/structure-geometries/AircraftFactory.tscn' remapped 'res://source/match/units/structure-geometries/AircraftFactory.tscn' at thread -1
+Completed load for: 'res://source/match/units/AircraftFactory.tscn' remapped 'res://source/match/units/AircraftFactory.tscn' at thread -1
+Loading resource: res://source/match/units/Helicopter.tscn remapped: res://source/match/units/Helicopter.tscn
+Loading resource: res://source/match/units/Helicopter.gd remapped: res://source/match/units/Helicopter.gd
+Completed load for: 'res://source/match/units/Helicopter.gd' remapped 'res://source/match/units/Helicopter.gd' at thread -1
+Loading resource: res://assets/models/kenney-spacekit/craft_racer.glb remapped: res://assets/models/kenney-spacekit/craft_racer.glb
+Loading resource: res://.godot/imported/craft_racer.glb-c2810c82a7ed3d2ef9859837733a7500.scn remapped: res://.godot/imported/craft_racer.glb-c2810c82a7ed3d2ef9859837733a7500.scn
+Completed load for: 'res://assets/models/kenney-spacekit/craft_racer.glb' remapped 'res://assets/models/kenney-spacekit/craft_racer.glb' at thread -1
+Loading resource: res://source/match/units/traits/AirToTerrainMarker.tscn remapped: res://source/match/units/traits/AirToTerrainMarker.tscn
+Loading resource: res://source/match/units/traits/AirToTerrainMarker.gd remapped: res://source/match/units/traits/AirToTerrainMarker.gd
+Loading resource: res://source/match/resources/materials/controlled_unit_air_to_terrain_marker.material.tres remapped: res://source/match/resources/materials/controlled_unit_air_to_terrain_marker.material.tres
+Loading resource: res://source/shaders/3d/air_to_terrain_marker.gdshader remapped: res://source/shaders/3d/air_to_terrain_marker.gdshader
+Completed load for: 'res://source/shaders/3d/air_to_terrain_marker.gdshader' remapped 'res://source/shaders/3d/air_to_terrain_marker.gdshader' at thread -1
+Completed load for: 'res://source/match/resources/materials/controlled_unit_air_to_terrain_marker.material.tres' remapped 'res://source/match/resources/materials/controlled_unit_air_to_terrain_marker.material.tres' at thread -1
+Loading resource: res://source/match/resources/materials/adversary_unit_air_to_terrain_marker.material.tres remapped: res://source/match/resources/materials/adversary_unit_air_to_terrain_marker.material.tres
+Completed load for: 'res://source/match/resources/materials/adversary_unit_air_to_terrain_marker.material.tres' remapped 'res://source/match/resources/materials/adversary_unit_air_to_terrain_marker.material.tres' at thread -1
+Completed load for: 'res://source/match/units/traits/AirToTerrainMarker.gd' remapped 'res://source/match/units/traits/AirToTerrainMarker.gd' at thread -1
+Completed load for: 'res://source/match/units/traits/AirToTerrainMarker.tscn' remapped 'res://source/match/units/traits/AirToTerrainMarker.tscn' at thread -1
+Completed load for: 'res://source/match/units/Helicopter.tscn' remapped 'res://source/match/units/Helicopter.tscn' at thread -1
+Completed load for: 'res://source/match/players/simple-clairvoyant-ai/OffenseController.gd' remapped 'res://source/match/players/simple-clairvoyant-ai/OffenseController.gd' at thread -1
+Loading resource: res://source/match/players/simple-clairvoyant-ai/IntelligenceController.gd remapped: res://source/match/players/simple-clairvoyant-ai/IntelligenceController.gd
+Completed load for: 'res://source/match/players/simple-clairvoyant-ai/IntelligenceController.gd' remapped 'res://source/match/players/simple-clairvoyant-ai/IntelligenceController.gd' at thread -1
+Loading resource: res://source/match/players/simple-clairvoyant-ai/ConstructionWorksController.gd remapped: res://source/match/players/simple-clairvoyant-ai/ConstructionWorksController.gd
+Completed load for: 'res://source/match/players/simple-clairvoyant-ai/ConstructionWorksController.gd' remapped 'res://source/match/players/simple-clairvoyant-ai/ConstructionWorksController.gd' at thread -1
+Completed load for: 'res://source/match/players/simple-clairvoyant-ai/SimpleClairvoyantAI.tscn' remapped 'res://source/match/players/simple-clairvoyant-ai/SimpleClairvoyantAI.tscn' at thread -1
+Completed load for: 'res://source/net/NetSession.gd' remapped 'res://source/net/NetSession.gd' at thread -1
+Loading resource: res://source/FeatureFlags.tscn remapped: res://source/FeatureFlags.tscn
+Loading resource: res://source/FeatureFlags.gd remapped: res://source/FeatureFlags.gd
+Completed load for: 'res://source/FeatureFlags.gd' remapped 'res://source/FeatureFlags.gd' at thread -1
+Completed load for: 'res://source/FeatureFlags.tscn' remapped 'res://source/FeatureFlags.tscn' at thread -1
+Loading resource: res://source/Globals.gd remapped: res://source/Globals.gd
+Completed load for: 'res://source/Globals.gd' remapped 'res://source/Globals.gd' at thread -1
+Loading resource: user://options.tres remapped: user://options.tres
+Completed load for: 'user://options.tres' remapped 'user://options.tres' at thread -1
+Loading resource: res://addons/godot_mcp/runtime/mcp_runtime_probe.gd remapped: res://addons/godot_mcp/runtime/mcp_runtime_probe.gd
+Completed load for: 'res://addons/godot_mcp/runtime/mcp_runtime_probe.gd' remapped 'res://addons/godot_mcp/runtime/mcp_runtime_probe.gd' at thread -1
+Loading resource: res://addons/godot_ai/runtime/game_helper.gd remapped: res://addons/godot_ai/runtime/game_helper.gd
+Completed load for: 'res://addons/godot_ai/runtime/game_helper.gd' remapped 'res://addons/godot_ai/runtime/game_helper.gd' at thread -1
+Loaded system CA certificates
+Loading resource: res://tests/automated/TankReturnToBaseSmokeTest.tscn remapped: res://tests/automated/TankReturnToBaseSmokeTest.tscn
+Loading resource: res://tests/automated/TankReturnToBaseSmokeTest.gd remapped: res://tests/automated/TankReturnToBaseSmokeTest.gd
+Loading resource: res://tests/manual/TestOneUnit.tscn remapped: res://tests/manual/TestOneUnit.tscn
+Loading resource: res://source/match/Match.tscn remapped: res://source/match/Match.tscn
+Loading resource: res://source/match/Match.gd remapped: res://source/match/Match.gd
+Loading resource: res://source/match/hud/TraditionalUnitCommandHUD.tscn remapped: res://source/match/hud/TraditionalUnitCommandHUD.tscn
+Loading resource: res://source/match/hud/TraditionalUnitCommandHUD.gd remapped: res://source/match/hud/TraditionalUnitCommandHUD.gd
+Completed load for: 'res://source/match/hud/TraditionalUnitCommandHUD.gd' remapped 'res://source/match/hud/TraditionalUnitCommandHUD.gd' at thread -1
+Completed load for: 'res://source/match/hud/TraditionalUnitCommandHUD.tscn' remapped 'res://source/match/hud/TraditionalUnitCommandHUD.tscn' at thread -1
+Loading resource: res://source/match/units/Drone.tscn remapped: res://source/match/units/Drone.tscn
+Loading resource: res://source/match/units/Drone.gd remapped: res://source/match/units/Drone.gd
+Completed load for: 'res://source/match/units/Drone.gd' remapped 'res://source/match/units/Drone.gd' at thread -1
+Loading resource: res://assets/models/kenney-spacekit/craft_speederA.glb remapped: res://assets/models/kenney-spacekit/craft_speederA.glb
+Loading resource: res://.godot/imported/craft_speederA.glb-5e82cf798df9680d1224e34d42e57590.scn remapped: res://.godot/imported/craft_speederA.glb-5e82cf798df9680d1224e34d42e57590.scn
+Completed load for: 'res://assets/models/kenney-spacekit/craft_speederA.glb' remapped 'res://assets/models/kenney-spacekit/craft_speederA.glb' at thread -1
+Completed load for: 'res://source/match/units/Drone.tscn' remapped 'res://source/match/units/Drone.tscn' at thread -1
+Loading resource: res://source/main-menu/Loading.tscn remapped: res://source/main-menu/Loading.tscn
+Loading resource: res://source/main-menu/Loading.gd remapped: res://source/main-menu/Loading.gd
+Completed load for: 'res://source/main-menu/Loading.gd' remapped 'res://source/main-menu/Loading.gd' at thread -1
+Loading resource: res://source/main-menu/Background.tscn remapped: res://source/main-menu/Background.tscn
+Loading resource: res://assets/ui/background.png remapped: res://assets/ui/background.png
+Loading resource: res://.godot/imported/background.png-be0254f702cf55c19c4800582a88ad15.ctex remapped: res://.godot/imported/background.png-be0254f702cf55c19c4800582a88ad15.ctex
+Completed load for: 'res://assets/ui/background.png' remapped 'res://assets/ui/background.png' at thread -1
+Completed load for: 'res://source/main-menu/Background.tscn' remapped 'res://source/main-menu/Background.tscn' at thread -1
+Completed load for: 'res://source/main-menu/Loading.tscn' remapped 'res://source/main-menu/Loading.tscn' at thread -1
+Completed load for: 'res://source/match/Match.gd' remapped 'res://source/match/Match.gd' at thread -1
+Loading resource: res://source/csharp/GodotAdapter/Composition/CommandRuntime.cs remapped: res://source/csharp/GodotAdapter/Composition/CommandRuntime.cs
+Completed load for: 'res://source/csharp/GodotAdapter/Composition/CommandRuntime.cs' remapped 'res://source/csharp/GodotAdapter/Composition/CommandRuntime.cs' at thread -1
+Loading resource: res://source/csharp/GodotAdapter/Combat/ProjectileRuntime.cs remapped: res://source/csharp/GodotAdapter/Combat/ProjectileRuntime.cs
+Completed load for: 'res://source/csharp/GodotAdapter/Combat/ProjectileRuntime.cs' remapped 'res://source/csharp/GodotAdapter/Combat/ProjectileRuntime.cs' at thread -1
+Loading resource: res://source/csharp/GodotAdapter/Economy/EconomyRuntime.cs remapped: res://source/csharp/GodotAdapter/Economy/EconomyRuntime.cs
+Completed load for: 'res://source/csharp/GodotAdapter/Economy/EconomyRuntime.cs' remapped 'res://source/csharp/GodotAdapter/Economy/EconomyRuntime.cs' at thread -1
+Loading resource: res://source/csharp/GodotAdapter/Construction/StructurePlacementRuntime.cs remapped: res://source/csharp/GodotAdapter/Construction/StructurePlacementRuntime.cs
+Completed load for: 'res://source/csharp/GodotAdapter/Construction/StructurePlacementRuntime.cs' remapped 'res://source/csharp/GodotAdapter/Construction/StructurePlacementRuntime.cs' at thread -1
+Loading resource: res://source/csharp/GodotAdapter/Production/ProductionRuntime.cs remapped: res://source/csharp/GodotAdapter/Production/ProductionRuntime.cs
+Completed load for: 'res://source/csharp/GodotAdapter/Production/ProductionRuntime.cs' remapped 'res://source/csharp/GodotAdapter/Production/ProductionRuntime.cs' at thread -1
+Loading resource: res://source/csharp/GodotAdapter/Rally/RallyPointRuntime.cs remapped: res://source/csharp/GodotAdapter/Rally/RallyPointRuntime.cs
+Completed load for: 'res://source/csharp/GodotAdapter/Rally/RallyPointRuntime.cs' remapped 'res://source/csharp/GodotAdapter/Rally/RallyPointRuntime.cs' at thread -1
+Loading resource: res://source/csharp/GodotAdapter/Configuration/BalanceConfigRuntime.cs remapped: res://source/csharp/GodotAdapter/Configuration/BalanceConfigRuntime.cs
+Completed load for: 'res://source/csharp/GodotAdapter/Configuration/BalanceConfigRuntime.cs' remapped 'res://source/csharp/GodotAdapter/Configuration/BalanceConfigRuntime.cs' at thread -1
+Loading resource: res://source/csharp/GodotAdapter/Input/InputBindingRuntime.cs remapped: res://source/csharp/GodotAdapter/Input/InputBindingRuntime.cs
+Completed load for: 'res://source/csharp/GodotAdapter/Input/InputBindingRuntime.cs' remapped 'res://source/csharp/GodotAdapter/Input/InputBindingRuntime.cs' at thread -1
+Loading resource: res://source/csharp/GodotAdapter/Queries/WorldQueryRuntime.cs remapped: res://source/csharp/GodotAdapter/Queries/WorldQueryRuntime.cs
+Completed load for: 'res://source/csharp/GodotAdapter/Queries/WorldQueryRuntime.cs' remapped 'res://source/csharp/GodotAdapter/Queries/WorldQueryRuntime.cs' at thread -1
+Loading resource: res://source/match/IsometricCamera3D.gd remapped: res://source/match/IsometricCamera3D.gd
+Completed load for: 'res://source/match/IsometricCamera3D.gd' remapped 'res://source/match/IsometricCamera3D.gd' at thread -1
+Loading resource: res://source/match/FogOfWar.gd remapped: res://source/match/FogOfWar.gd
+Loading resource: res://source/generic-scenes-and-nodes/2d/DynamicCircle2D.tscn remapped: res://source/generic-scenes-and-nodes/2d/DynamicCircle2D.tscn
+Loading resource: res://source/generic-scenes-and-nodes/2d/DynamicCircle2D.gd remapped: res://source/generic-scenes-and-nodes/2d/DynamicCircle2D.gd
+Completed load for: 'res://source/generic-scenes-and-nodes/2d/DynamicCircle2D.gd' remapped 'res://source/generic-scenes-and-nodes/2d/DynamicCircle2D.gd' at thread -1
+Completed load for: 'res://source/generic-scenes-and-nodes/2d/DynamicCircle2D.tscn' remapped 'res://source/generic-scenes-and-nodes/2d/DynamicCircle2D.tscn' at thread -1
+Completed load for: 'res://source/match/FogOfWar.gd' remapped 'res://source/match/FogOfWar.gd' at thread -1
+Loading resource: res://source/generic-scenes-and-nodes/3d/RectangularSelection3D.tscn remapped: res://source/generic-scenes-and-nodes/3d/RectangularSelection3D.tscn
+Loading resource: res://source/generic-scenes-and-nodes/3d/RectangularSelection3D.gd remapped: res://source/generic-scenes-and-nodes/3d/RectangularSelection3D.gd
+Completed load for: 'res://source/generic-scenes-and-nodes/3d/RectangularSelection3D.gd' remapped 'res://source/generic-scenes-and-nodes/3d/RectangularSelection3D.gd' at thread -1
+Completed load for: 'res://source/generic-scenes-and-nodes/3d/RectangularSelection3D.tscn' remapped 'res://source/generic-scenes-and-nodes/3d/RectangularSelection3D.tscn' at thread -1
+Loading resource: res://source/match/Terrain.gd remapped: res://source/match/Terrain.gd
+Completed load for: 'res://source/match/Terrain.gd' remapped 'res://source/match/Terrain.gd' at thread -1
+Loading resource: res://source/match/Navigation.gd remapped: res://source/match/Navigation.gd
+Completed load for: 'res://source/match/Navigation.gd' remapped 'res://source/match/Navigation.gd' at thread -1
+Loading resource: res://source/match/debug/GodModeHud.tscn remapped: res://source/match/debug/GodModeHud.tscn
+Loading resource: res://source/match/debug/GodModeHud.gd remapped: res://source/match/debug/GodModeHud.gd
+Completed load for: 'res://source/match/debug/GodModeHud.gd' remapped 'res://source/match/debug/GodModeHud.gd' at thread -1
+Loading resource: res://source/match/debug/UnitsManager.gd remapped: res://source/match/debug/UnitsManager.gd
+Loading resource: res://source/match/units/traits/debug/ActionCaption.tscn remapped: res://source/match/units/traits/debug/ActionCaption.tscn
+Loading resource: res://source/match/units/traits/debug/ActionCaption.gd remapped: res://source/match/units/traits/debug/ActionCaption.gd
+Completed load for: 'res://source/match/units/traits/debug/ActionCaption.gd' remapped 'res://source/match/units/traits/debug/ActionCaption.gd' at thread -1
+Completed load for: 'res://source/match/units/traits/debug/ActionCaption.tscn' remapped 'res://source/match/units/traits/debug/ActionCaption.tscn' at thread -1
+Completed load for: 'res://source/match/debug/UnitsManager.gd' remapped 'res://source/match/debug/UnitsManager.gd' at thread -1
+Loading resource: res://source/match/debug/TimeManager.gd remapped: res://source/match/debug/TimeManager.gd
+Completed load for: 'res://source/match/debug/TimeManager.gd' remapped 'res://source/match/debug/TimeManager.gd' at thread -1
+Loading resource: res://source/match/debug/FogOfWarManager.gd remapped: res://source/match/debug/FogOfWarManager.gd
+Completed load for: 'res://source/match/debug/FogOfWarManager.gd' remapped 'res://source/match/debug/FogOfWarManager.gd' at thread -1
+Loading resource: res://source/match/debug/VisiblePlayerManager.gd remapped: res://source/match/debug/VisiblePlayerManager.gd
+Completed load for: 'res://source/match/debug/VisiblePlayerManager.gd' remapped 'res://source/match/debug/VisiblePlayerManager.gd' at thread -1
+Completed load for: 'res://source/match/debug/GodModeHud.tscn' remapped 'res://source/match/debug/GodModeHud.tscn' at thread -1
+Loading resource: res://source/shaders/3d/fog.gdshader remapped: res://source/shaders/3d/fog.gdshader
+Completed load for: 'res://source/shaders/3d/fog.gdshader' remapped 'res://source/shaders/3d/fog.gdshader' at thread -1
+Loading resource: res://source/shaders/2d/blurr.gdshader remapped: res://source/shaders/2d/blurr.gdshader
+Completed load for: 'res://source/shaders/2d/blurr.gdshader' remapped 'res://source/shaders/2d/blurr.gdshader' at thread -1
+Loading resource: res://source/match/hud/ResourcesBar.tscn remapped: res://source/match/hud/ResourcesBar.tscn
+Loading resource: res://source/match/hud/ResourcesBar.gd remapped: res://source/match/hud/ResourcesBar.gd
+Completed load for: 'res://source/match/hud/ResourcesBar.gd' remapped 'res://source/match/hud/ResourcesBar.gd' at thread -1
+Completed load for: 'res://source/match/hud/ResourcesBar.tscn' remapped 'res://source/match/hud/ResourcesBar.tscn' at thread -1
+Loading resource: res://source/match/hud/UnitMenus.tscn remapped: res://source/match/hud/UnitMenus.tscn
+Loading resource: res://source/match/hud/unit-menus/GenericMenu.tscn remapped: res://source/match/hud/unit-menus/GenericMenu.tscn
+Loading resource: res://source/match/hud/unit-menus/GenericMenu.gd remapped: res://source/match/hud/unit-menus/GenericMenu.gd
+Completed load for: 'res://source/match/hud/unit-menus/GenericMenu.gd' remapped 'res://source/match/hud/unit-menus/GenericMenu.gd' at thread -1
+Completed load for: 'res://source/match/hud/unit-menus/GenericMenu.tscn' remapped 'res://source/match/hud/unit-menus/GenericMenu.tscn' at thread -1
+Loading resource: res://source/match/hud/UnitMenus.gd remapped: res://source/match/hud/UnitMenus.gd
+Completed load for: 'res://source/match/hud/UnitMenus.gd' remapped 'res://source/match/hud/UnitMenus.gd' at thread -1
+Loading resource: res://source/match/hud/unit-menus/CommandCenterMenu.tscn remapped: res://source/match/hud/unit-menus/CommandCenterMenu.tscn
+Loading resource: res://source/match/hud/unit-menus/CommandCenterMenu.gd remapped: res://source/match/hud/unit-menus/CommandCenterMenu.gd
+Completed load for: 'res://source/match/hud/unit-menus/CommandCenterMenu.gd' remapped 'res://source/match/hud/unit-menus/CommandCenterMenu.gd' at thread -1
+Loading resource: res://assets/ui/icons/Worker.png remapped: res://assets/ui/icons/Worker.png
+Loading resource: res://.godot/imported/Worker.png-38aca11f7d5892d31a69c7bb2820746e.ctex remapped: res://.godot/imported/Worker.png-38aca11f7d5892d31a69c7bb2820746e.ctex
+Completed load for: 'res://assets/ui/icons/Worker.png' remapped 'res://assets/ui/icons/Worker.png' at thread -1
+Completed load for: 'res://source/match/hud/unit-menus/CommandCenterMenu.tscn' remapped 'res://source/match/hud/unit-menus/CommandCenterMenu.tscn' at thread -1
+Loading resource: res://source/match/hud/unit-menus/WorkerMenu.tscn remapped: res://source/match/hud/unit-menus/WorkerMenu.tscn
+Loading resource: res://source/match/hud/unit-menus/WorkerMenu.gd remapped: res://source/match/hud/unit-menus/WorkerMenu.gd
+Completed load for: 'res://source/match/hud/unit-menus/WorkerMenu.gd' remapped 'res://source/match/hud/unit-menus/WorkerMenu.gd' at thread -1
+Loading resource: res://assets/ui/icons/CommandCenter.png remapped: res://assets/ui/icons/CommandCenter.png
+Loading resource: res://.godot/imported/CommandCenter.png-e6f81ab5de6912e42ef7ef945a5ea719.ctex remapped: res://.godot/imported/CommandCenter.png-e6f81ab5de6912e42ef7ef945a5ea719.ctex
+Completed load for: 'res://assets/ui/icons/CommandCenter.png' remapped 'res://assets/ui/icons/CommandCenter.png' at thread -1
+Loading resource: res://assets/ui/icons/AntiGroundTurret.png remapped: res://assets/ui/icons/AntiGroundTurret.png
+Loading resource: res://.godot/imported/AntiGroundTurret.png-1cc448dec2d0c40ed706837b720b6010.ctex remapped: res://.godot/imported/AntiGroundTurret.png-1cc448dec2d0c40ed706837b720b6010.ctex
+Completed load for: 'res://assets/ui/icons/AntiGroundTurret.png' remapped 'res://assets/ui/icons/AntiGroundTurret.png' at thread -1
+Loading resource: res://assets/ui/icons/AntiAirTurret.png remapped: res://assets/ui/icons/AntiAirTurret.png
+Loading resource: res://.godot/imported/AntiAirTurret.png-e6079064ea2c9ac3ce52f55ef7c59708.ctex remapped: res://.godot/imported/AntiAirTurret.png-e6079064ea2c9ac3ce52f55ef7c59708.ctex
+Completed load for: 'res://assets/ui/icons/AntiAirTurret.png' remapped 'res://assets/ui/icons/AntiAirTurret.png' at thread -1
+Loading resource: res://assets/ui/icons/AircraftFactory.png remapped: res://assets/ui/icons/AircraftFactory.png
+Loading resource: res://.godot/imported/AircraftFactory.png-c963897a451fdd16f7addff17a4af7d1.ctex remapped: res://.godot/imported/AircraftFactory.png-c963897a451fdd16f7addff17a4af7d1.ctex
+Completed load for: 'res://assets/ui/icons/AircraftFactory.png' remapped 'res://assets/ui/icons/AircraftFactory.png' at thread -1
+Loading resource: res://assets/ui/icons/VehicleFactory.png remapped: res://assets/ui/icons/VehicleFactory.png
+Loading resource: res://.godot/imported/VehicleFactory.png-447d306f8b2e75b8874df08a2ea6d5e4.ctex remapped: res://.godot/imported/VehicleFactory.png-447d306f8b2e75b8874df08a2ea6d5e4.ctex
+Completed load for: 'res://assets/ui/icons/VehicleFactory.png' remapped 'res://assets/ui/icons/VehicleFactory.png' at thread -1
+Completed load for: 'res://source/match/hud/unit-menus/WorkerMenu.tscn' remapped 'res://source/match/hud/unit-menus/WorkerMenu.tscn' at thread -1
+Loading resource: res://source/match/hud/unit-menus/VehicleFactoryMenu.tscn remapped: res://source/match/hud/unit-menus/VehicleFactoryMenu.tscn
+Loading resource: res://source/match/hud/unit-menus/VehicleFactoryMenu.gd remapped: res://source/match/hud/unit-menus/VehicleFactoryMenu.gd
+Completed load for: 'res://source/match/hud/unit-menus/VehicleFactoryMenu.gd' remapped 'res://source/match/hud/unit-menus/VehicleFactoryMenu.gd' at thread -1
+Loading resource: res://assets/ui/icons/Tank.png remapped: res://assets/ui/icons/Tank.png
+Loading resource: res://.godot/imported/Tank.png-9796638681386060597c250c1fd26685.ctex remapped: res://.godot/imported/Tank.png-9796638681386060597c250c1fd26685.ctex
+Completed load for: 'res://assets/ui/icons/Tank.png' remapped 'res://assets/ui/icons/Tank.png' at thread -1
+Completed load for: 'res://source/match/hud/unit-menus/VehicleFactoryMenu.tscn' remapped 'res://source/match/hud/unit-menus/VehicleFactoryMenu.tscn' at thread -1
+Loading resource: res://source/match/hud/unit-menus/AircraftFactoryMenu.tscn remapped: res://source/match/hud/unit-menus/AircraftFactoryMenu.tscn
+Loading resource: res://source/match/hud/unit-menus/AircraftFactoryMenu.gd remapped: res://source/match/hud/unit-menus/AircraftFactoryMenu.gd
+Completed load for: 'res://source/match/hud/unit-menus/AircraftFactoryMenu.gd' remapped 'res://source/match/hud/unit-menus/AircraftFactoryMenu.gd' at thread -1
+Loading resource: res://assets/ui/icons/Helicopter.png remapped: res://assets/ui/icons/Helicopter.png
+Loading resource: res://.godot/imported/Helicopter.png-7a514117ef6cfccd4e608cec21ef8304.ctex remapped: res://.godot/imported/Helicopter.png-7a514117ef6cfccd4e608cec21ef8304.ctex
+Completed load for: 'res://assets/ui/icons/Helicopter.png' remapped 'res://assets/ui/icons/Helicopter.png' at thread -1
+Loading resource: res://assets/ui/icons/Drone.png remapped: res://assets/ui/icons/Drone.png
+Loading resource: res://.godot/imported/Drone.png-5796fa5d9c0206fd2d9055b0b0d05342.ctex remapped: res://.godot/imported/Drone.png-5796fa5d9c0206fd2d9055b0b0d05342.ctex
+Completed load for: 'res://assets/ui/icons/Drone.png' remapped 'res://assets/ui/icons/Drone.png' at thread -1
+Completed load for: 'res://source/match/hud/unit-menus/AircraftFactoryMenu.tscn' remapped 'res://source/match/hud/unit-menus/AircraftFactoryMenu.tscn' at thread -1
+Completed load for: 'res://source/match/hud/UnitMenus.tscn' remapped 'res://source/match/hud/UnitMenus.tscn' at thread -1
+Loading resource: res://source/shaders/3d/simple_fog_of_war.gdshader remapped: res://source/shaders/3d/simple_fog_of_war.gdshader
+Completed load for: 'res://source/shaders/3d/simple_fog_of_war.gdshader' remapped 'res://source/shaders/3d/simple_fog_of_war.gdshader' at thread -1
+Loading resource: res://source/match/hud/ProductionQueue.tscn remapped: res://source/match/hud/ProductionQueue.tscn
+Loading resource: res://source/match/hud/ProductionQueue.gd remapped: res://source/match/hud/ProductionQueue.gd
+Loading resource: res://source/match/hud/ProductionQueueElement.tscn remapped: res://source/match/hud/ProductionQueueElement.tscn
+Loading resource: res://source/match/hud/ProductionQueueElement.gd remapped: res://source/match/hud/ProductionQueueElement.gd
+Completed load for: 'res://source/match/hud/ProductionQueueElement.gd' remapped 'res://source/match/hud/ProductionQueueElement.gd' at thread -1
+Completed load for: 'res://source/match/hud/ProductionQueueElement.tscn' remapped 'res://source/match/hud/ProductionQueueElement.tscn' at thread -1
+Completed load for: 'res://source/match/hud/ProductionQueue.gd' remapped 'res://source/match/hud/ProductionQueue.gd' at thread -1
+Completed load for: 'res://source/match/hud/ProductionQueue.tscn' remapped 'res://source/match/hud/ProductionQueue.tscn' at thread -1
+Loading resource: res://source/generic-scenes-and-nodes/control/RectangularSelection2D.tscn remapped: res://source/generic-scenes-and-nodes/control/RectangularSelection2D.tscn
+Loading resource: res://source/generic-scenes-and-nodes/control/RectangularSelection2D.gd remapped: res://source/generic-scenes-and-nodes/control/RectangularSelection2D.gd
+Completed load for: 'res://source/generic-scenes-and-nodes/control/RectangularSelection2D.gd' remapped 'res://source/generic-scenes-and-nodes/control/RectangularSelection2D.gd' at thread -1
+Completed load for: 'res://source/generic-scenes-and-nodes/control/RectangularSelection2D.tscn' remapped 'res://source/generic-scenes-and-nodes/control/RectangularSelection2D.tscn' at thread -1
+Loading resource: res://source/match/AirNavigation.gd remapped: res://source/match/AirNavigation.gd
+Completed load for: 'res://source/match/AirNavigation.gd' remapped 'res://source/match/AirNavigation.gd' at thread -1
+Loading resource: res://source/match/hud/Resources.gd remapped: res://source/match/hud/Resources.gd
+Completed load for: 'res://source/match/hud/Resources.gd' remapped 'res://source/match/hud/Resources.gd' at thread -1
+Loading resource: res://source/match/hud/Minimap.gd remapped: res://source/match/hud/Minimap.gd
+Completed load for: 'res://source/match/hud/Minimap.gd' remapped 'res://source/match/hud/Minimap.gd' at thread -1
+Loading resource: res://source/match/TerrainNavigation.gd remapped: res://source/match/TerrainNavigation.gd
+Completed load for: 'res://source/match/TerrainNavigation.gd' remapped 'res://source/match/TerrainNavigation.gd' at thread -1
+Loading resource: res://source/shaders/2d/white_transparent.gdshader remapped: res://source/shaders/2d/white_transparent.gdshader
+Completed load for: 'res://source/shaders/2d/white_transparent.gdshader' remapped 'res://source/shaders/2d/white_transparent.gdshader' at thread -1
+Loading resource: res://source/match/handlers/MouseClickAnimationsHandler.tscn remapped: res://source/match/handlers/MouseClickAnimationsHandler.tscn
+Loading resource: res://source/match/handlers/MouseClickAnimationsHandler.gd remapped: res://source/match/handlers/MouseClickAnimationsHandler.gd
+Loading resource: res://source/match/utils/MouseClickAnimation.tscn remapped: res://source/match/utils/MouseClickAnimation.tscn
+Loading resource: res://source/generic-scenes-and-nodes/3d/MouseClickAnimation3D.tscn remapped: res://source/generic-scenes-and-nodes/3d/MouseClickAnimation3D.tscn
+Loading resource: res://source/generic-scenes-and-nodes/3d/MouseClickAnimation3D.gd remapped: res://source/generic-scenes-and-nodes/3d/MouseClickAnimation3D.gd
+Completed load for: 'res://source/generic-scenes-and-nodes/3d/MouseClickAnimation3D.gd' remapped 'res://source/generic-scenes-and-nodes/3d/MouseClickAnimation3D.gd' at thread -1
+Completed load for: 'res://source/generic-scenes-and-nodes/3d/MouseClickAnimation3D.tscn' remapped 'res://source/generic-scenes-and-nodes/3d/MouseClickAnimation3D.tscn' at thread -1
+Loading resource: res://assets/ui/kenney-crosshairs/crosshair062.png remapped: res://assets/ui/kenney-crosshairs/crosshair062.png
+Loading resource: res://.godot/imported/crosshair062.png-caae9d809966a062dc8a0397fdd4b227.s3tc.ctex remapped: res://.godot/imported/crosshair062.png-caae9d809966a062dc8a0397fdd4b227.s3tc.ctex
+Completed load for: 'res://assets/ui/kenney-crosshairs/crosshair062.png' remapped 'res://assets/ui/kenney-crosshairs/crosshair062.png' at thread -1
+Completed load for: 'res://source/match/utils/MouseClickAnimation.tscn' remapped 'res://source/match/utils/MouseClickAnimation.tscn' at thread -1
+Completed load for: 'res://source/match/handlers/MouseClickAnimationsHandler.gd' remapped 'res://source/match/handlers/MouseClickAnimationsHandler.gd' at thread -1
+Completed load for: 'res://source/match/handlers/MouseClickAnimationsHandler.tscn' remapped 'res://source/match/handlers/MouseClickAnimationsHandler.tscn' at thread -1
+Loading resource: res://source/match/Menu.tscn remapped: res://source/match/Menu.tscn
+Loading resource: res://source/match/Menu.gd remapped: res://source/match/Menu.gd
+Loading resource: res://source/main-menu/Options.tscn remapped: res://source/main-menu/Options.tscn
+Loading resource: res://source/resources/main_menu.theme remapped: res://source/resources/main_menu.theme
+Completed load for: 'res://source/resources/main_menu.theme' remapped 'res://source/resources/main_menu.theme' at thread -1
+Loading resource: res://source/main-menu/Options.gd remapped: res://source/main-menu/Options.gd
+Completed load for: 'res://source/main-menu/Options.gd' remapped 'res://source/main-menu/Options.gd' at thread -1
+Completed load for: 'res://source/main-menu/Options.tscn' remapped 'res://source/main-menu/Options.tscn' at thread -1
+Completed load for: 'res://source/match/Menu.gd' remapped 'res://source/match/Menu.gd' at thread -1
+Completed load for: 'res://source/match/Menu.tscn' remapped 'res://source/match/Menu.tscn' at thread -1
+Loading resource: res://source/match/debug/FrameIncrementer.tscn remapped: res://source/match/debug/FrameIncrementer.tscn
+Loading resource: res://source/match/debug/FrameIncrementer.gd remapped: res://source/match/debug/FrameIncrementer.gd
+Completed load for: 'res://source/match/debug/FrameIncrementer.gd' remapped 'res://source/match/debug/FrameIncrementer.gd' at thread -1
+Completed load for: 'res://source/match/debug/FrameIncrementer.tscn' remapped 'res://source/match/debug/FrameIncrementer.tscn' at thread -1
+Loading resource: res://source/match/debug/DiagnosticHud.tscn remapped: res://source/match/debug/DiagnosticHud.tscn
+Loading resource: res://source/match/debug/DiagnosticHud.gd remapped: res://source/match/debug/DiagnosticHud.gd
+Completed load for: 'res://source/match/debug/DiagnosticHud.gd' remapped 'res://source/match/debug/DiagnosticHud.gd' at thread -1
+Completed load for: 'res://source/match/debug/DiagnosticHud.tscn' remapped 'res://source/match/debug/DiagnosticHud.tscn' at thread -1
+Loading resource: res://source/match/handlers/ArealUnitSelectionHandler.tscn remapped: res://source/match/handlers/ArealUnitSelectionHandler.tscn
+Loading resource: res://source/match/handlers/ArealUnitSelectionHandler.gd remapped: res://source/match/handlers/ArealUnitSelectionHandler.gd
+Completed load for: 'res://source/match/handlers/ArealUnitSelectionHandler.gd' remapped 'res://source/match/handlers/ArealUnitSelectionHandler.gd' at thread -1
+Completed load for: 'res://source/match/handlers/ArealUnitSelectionHandler.tscn' remapped 'res://source/match/handlers/ArealUnitSelectionHandler.tscn' at thread -1
+Loading resource: res://source/match/handlers/DoubleClickUnitSelectionHandler.tscn remapped: res://source/match/handlers/DoubleClickUnitSelectionHandler.tscn
+Loading resource: res://source/match/handlers/DoubleClickUnitSelectionHandler.gd remapped: res://source/match/handlers/DoubleClickUnitSelectionHandler.gd
+Completed load for: 'res://source/match/handlers/DoubleClickUnitSelectionHandler.gd' remapped 'res://source/match/handlers/DoubleClickUnitSelectionHandler.gd' at thread -1
+Completed load for: 'res://source/match/handlers/DoubleClickUnitSelectionHandler.tscn' remapped 'res://source/match/handlers/DoubleClickUnitSelectionHandler.tscn' at thread -1
+Loading resource: res://source/match/handlers/MatchEndHandler.tscn remapped: res://source/match/handlers/MatchEndHandler.tscn
+Loading resource: res://source/match/handlers/MatchEndHandler.gd remapped: res://source/match/handlers/MatchEndHandler.gd
+Completed load for: 'res://source/match/handlers/MatchEndHandler.gd' remapped 'res://source/match/handlers/MatchEndHandler.gd' at thread -1
+Completed load for: 'res://source/match/handlers/MatchEndHandler.tscn' remapped 'res://source/match/handlers/MatchEndHandler.tscn' at thread -1
+Loading resource: res://source/csharp/GodotAdapter/Selection/ControlGroupRuntime.cs remapped: res://source/csharp/GodotAdapter/Selection/ControlGroupRuntime.cs
+Completed load for: 'res://source/csharp/GodotAdapter/Selection/ControlGroupRuntime.cs' remapped 'res://source/csharp/GodotAdapter/Selection/ControlGroupRuntime.cs' at thread -1
+Loading resource: res://source/csharp/GodotAdapter/Match/MatchOutcomeRuntime.cs remapped: res://source/csharp/GodotAdapter/Match/MatchOutcomeRuntime.cs
+Completed load for: 'res://source/csharp/GodotAdapter/Match/MatchOutcomeRuntime.cs' remapped 'res://source/csharp/GodotAdapter/Match/MatchOutcomeRuntime.cs' at thread -1
+Loading resource: res://source/csharp/GodotAdapter/Battlefield/BattlefieldEventRuntime.cs remapped: res://source/csharp/GodotAdapter/Battlefield/BattlefieldEventRuntime.cs
+Completed load for: 'res://source/csharp/GodotAdapter/Battlefield/BattlefieldEventRuntime.cs' remapped 'res://source/csharp/GodotAdapter/Battlefield/BattlefieldEventRuntime.cs' at thread -1
+Loading resource: res://source/match/SimulationClock.gd remapped: res://source/match/SimulationClock.gd
+Completed load for: 'res://source/match/SimulationClock.gd' remapped 'res://source/match/SimulationClock.gd' at thread -1
+Loading resource: res://source/match/handlers/UnitVisibilityHandler.tscn remapped: res://source/match/handlers/UnitVisibilityHandler.tscn
+Loading resource: res://source/match/handlers/UnitVisibilityHandler.gd remapped: res://source/match/handlers/UnitVisibilityHandler.gd
+Completed load for: 'res://source/match/handlers/UnitVisibilityHandler.gd' remapped 'res://source/match/handlers/UnitVisibilityHandler.gd' at thread -1
+Completed load for: 'res://source/match/handlers/UnitVisibilityHandler.tscn' remapped 'res://source/match/handlers/UnitVisibilityHandler.tscn' at thread -1
+Loading resource: res://source/match/handlers/BuildingOcclusionFade.gd remapped: res://source/match/handlers/BuildingOcclusionFade.gd
+Completed load for: 'res://source/match/handlers/BuildingOcclusionFade.gd' remapped 'res://source/match/handlers/BuildingOcclusionFade.gd' at thread -1
+Completed load for: 'res://source/match/Match.tscn' remapped 'res://source/match/Match.tscn' at thread -1
+Loading resource: res://tests/manual/Match.gd remapped: res://tests/manual/Match.gd
+Completed load for: 'res://tests/manual/Match.gd' remapped 'res://tests/manual/Match.gd' at thread -1
+Loading resource: res://source/match/maps/PlainAndSimple.tscn remapped: res://source/match/maps/PlainAndSimple.tscn
+Loading resource: res://source/match/Map.tscn remapped: res://source/match/Map.tscn
+Loading resource: res://source/match/Map.gd remapped: res://source/match/Map.gd
+Completed load for: 'res://source/match/Map.gd' remapped 'res://source/match/Map.gd' at thread -1
+Loading resource: res://source/match/resources/materials/terrain.material.tres remapped: res://source/match/resources/materials/terrain.material.tres
+Completed load for: 'res://source/match/resources/materials/terrain.material.tres' remapped 'res://source/match/resources/materials/terrain.material.tres' at thread -1
+Completed load for: 'res://source/match/Map.tscn' remapped 'res://source/match/Map.tscn' at thread -1
+Loading resource: res://source/match/units/non-player/ResourceA.tscn remapped: res://source/match/units/non-player/ResourceA.tscn
+Loading resource: res://source/match/units/non-player/ResourceA.gd remapped: res://source/match/units/non-player/ResourceA.gd
+Loading resource: res://source/match/resources/materials/resource_a.material.tres remapped: res://source/match/resources/materials/resource_a.material.tres
+Completed load for: 'res://source/match/resources/materials/resource_a.material.tres' remapped 'res://source/match/resources/materials/resource_a.material.tres' at thread -1
+Completed load for: 'res://source/match/units/non-player/ResourceA.gd' remapped 'res://source/match/units/non-player/ResourceA.gd' at thread -1
+Loading resource: res://assets/models/kenney-spacekit/rock_crystalsLargeA.glb remapped: res://assets/models/kenney-spacekit/rock_crystalsLargeA.glb
+Loading resource: res://.godot/imported/rock_crystalsLargeA.glb-4d7d954337781218d2334bbf2fbe94b3.scn remapped: res://.godot/imported/rock_crystalsLargeA.glb-4d7d954337781218d2334bbf2fbe94b3.scn
+Completed load for: 'res://assets/models/kenney-spacekit/rock_crystalsLargeA.glb' remapped 'res://assets/models/kenney-spacekit/rock_crystalsLargeA.glb' at thread -1
+Completed load for: 'res://source/match/units/non-player/ResourceA.tscn' remapped 'res://source/match/units/non-player/ResourceA.tscn' at thread -1
+Loading resource: res://source/match/units/non-player/ResourceB.tscn remapped: res://source/match/units/non-player/ResourceB.tscn
+Loading resource: res://source/match/units/non-player/ResourceB.gd remapped: res://source/match/units/non-player/ResourceB.gd
+Loading resource: res://source/match/resources/materials/resource_b.material.tres remapped: res://source/match/resources/materials/resource_b.material.tres
+Completed load for: 'res://source/match/resources/materials/resource_b.material.tres' remapped 'res://source/match/resources/materials/resource_b.material.tres' at thread -1
+Completed load for: 'res://source/match/units/non-player/ResourceB.gd' remapped 'res://source/match/units/non-player/ResourceB.gd' at thread -1
+Loading resource: res://assets/models/kenney-spacekit/rock_crystalsLargeB.glb remapped: res://assets/models/kenney-spacekit/rock_crystalsLargeB.glb
+Loading resource: res://.godot/imported/rock_crystalsLargeB.glb-81b0a9df59ba2d1c87dcc56a49ccb985.scn remapped: res://.godot/imported/rock_crystalsLargeB.glb-81b0a9df59ba2d1c87dcc56a49ccb985.scn
+Completed load for: 'res://assets/models/kenney-spacekit/rock_crystalsLargeB.glb' remapped 'res://assets/models/kenney-spacekit/rock_crystalsLargeB.glb' at thread -1
+Completed load for: 'res://source/match/units/non-player/ResourceB.tscn' remapped 'res://source/match/units/non-player/ResourceB.tscn' at thread -1
+Completed load for: 'res://source/match/maps/PlainAndSimple.tscn' remapped 'res://source/match/maps/PlainAndSimple.tscn' at thread -1
+Completed load for: 'res://tests/manual/TestOneUnit.tscn' remapped 'res://tests/manual/TestOneUnit.tscn' at thread -1
+Completed load for: 'res://tests/automated/TankReturnToBaseSmokeTest.gd' remapped 'res://tests/automated/TankReturnToBaseSmokeTest.gd' at thread -1
+Completed load for: 'res://tests/automated/TankReturnToBaseSmokeTest.tscn' remapped 'res://tests/automated/TankReturnToBaseSmokeTest.tscn' at thread -1
+[godot_ai game_helper] registered mcp capture (debugger active=false, logger=true)
+Loading resource: res://source/match/units/projectiles/Rocket.tscn remapped: res://source/match/units/projectiles/Rocket.tscn
+Loading resource: res://source/match/units/projectiles/Rocket.gd remapped: res://source/match/units/projectiles/Rocket.gd
+Completed load for: 'res://source/match/units/projectiles/Rocket.gd' remapped 'res://source/match/units/projectiles/Rocket.gd' at thread -1
+Completed load for: 'res://source/match/units/projectiles/Rocket.tscn' remapped 'res://source/match/units/projectiles/Rocket.tscn' at thread -1
+Loading resource: res://source/match/units/projectiles/CannonShell.tscn remapped: res://source/match/units/projectiles/CannonShell.tscn
+Loading resource: res://source/match/units/projectiles/CannonShell.gd remapped: res://source/match/units/projectiles/CannonShell.gd
+Completed load for: 'res://source/match/units/projectiles/CannonShell.gd' remapped 'res://source/match/units/projectiles/CannonShell.gd' at thread -1
+Completed load for: 'res://source/match/units/projectiles/CannonShell.tscn' remapped 'res://source/match/units/projectiles/CannonShell.tscn' at thread -1
+[INPUT] UnitActionsController waiting for local player player=Human
+[ECO] PublishSnapshot player=7da106de a=0
+[INPUT] UnitActionsController enabled player=Human
+ERROR: Tank return to base assertion failed: 停止应暂停回基地订单
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check (res://tests/automated/TankReturnToBaseSmokeTest.gd:91)
+       [1] _ready (res://tests/automated/TankReturnToBaseSmokeTest.gd:70)
+Tank return to base smoke test completed: 1 failure(s)
+Unloading: Disposing tracked instances...
+Unloading: Finished disposing tracked instances.
+XR: Clearing primary interface
+XR: Removed interface "Native mobile"
+XR: Removed interface "OpenXR"

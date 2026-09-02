@@ -353,6 +353,7 @@ public sealed class BalanceConfigLoader
         var path = $"{unitPath}.movement";
         TryParseCombatDomain(movement.Domain, $"{path}.domain", errors, out _);
         RequireFinitePositive(movement.SpeedMetersPerSecond, $"{path}.speedMetersPerSecond", errors);
+        RequireFinitePositive(movement.MaxTurnDegreesPerSecond, $"{path}.maxTurnDegreesPerSecond", errors);
         RequireBoolean(movement.CanReverse, $"{path}.canReverse", errors);
         RequireFiniteInRange(
             movement.ReverseSpeedMultiplier, 0.0f, 1.0f, false,
@@ -893,6 +894,7 @@ public sealed class BalanceConfigLoader
         item.Movement is null ? null : new UnitMovementDefinition(
             ParseCombatDomain(item.Movement.Domain!),
             item.Movement.SpeedMetersPerSecond!.Value,
+            item.Movement.MaxTurnDegreesPerSecond!.Value,
             item.Movement.CanReverse!.Value,
             item.Movement.ReverseSpeedMultiplier!.Value,
             item.Movement.CanFireWhileMoving!.Value,

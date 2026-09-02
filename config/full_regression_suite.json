@@ -50,8 +50,10 @@
     { "id": "tank-move-fire", "category": "combat", "scene": "res://tests/automated/TankMoveFireSmokeTest.tscn", "expected_marker": "Tank move fire smoke test completed: 0 failure(s)", "timeout_seconds": 90 },
     { "id": "tank-ordinary-attack", "category": "combat", "scene": "res://tests/automated/TankOrdinaryAttackSmokeTest.tscn", "expected_marker": "Tank ordinary attack smoke test completed: 0 failure(s)", "timeout_seconds": 120 },
     { "id": "tank-tactical-withdraw", "category": "commands", "scene": "res://tests/automated/TankTacticalWithdrawSmokeTest.tscn", "expected_marker": "Tank tactical withdraw smoke test completed: 0 failure(s)", "timeout_seconds": 90 },
+    { "id": "tank-return-to-base", "category": "commands", "scene": "res://tests/automated/TankReturnToBaseSmokeTest.tscn", "expected_marker": "Tank return to base smoke test completed: 0 failure(s)", "timeout_seconds": 90 },
     { "id": "traditional-command-hud", "category": "input-ui", "scene": "res://tests/automated/TraditionalUnitCommandHudSmokeTest.tscn", "expected_marker": "Traditional unit command HUD smoke test completed: 0 failure(s)", "timeout_seconds": 90 },
     { "id": "worker-gather", "category": "economy", "scene": "res://tests/automated/WorkerGatherSmokeTest.tscn", "expected_marker": "Worker Gather smoke test completed: 0 failure(s)", "timeout_seconds": 150 },
+    { "id": "worker-engagement-policy", "category": "economy", "scene": "res://tests/automated/WorkerEngagementPolicySmokeTest.tscn", "expected_marker": "Worker engagement policy smoke test completed: 0 failure(s)", "timeout_seconds": 90 },
     { "id": "world-query-runtime", "category": "queries", "scene": "res://tests/automated/WorldQueryRuntimeSmokeTest.tscn", "expected_marker": "World query runtime smoke test completed: 0 failure(s)", "timeout_seconds": 120 }
   ]
 }

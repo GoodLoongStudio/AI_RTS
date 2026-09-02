@@ -42,6 +42,8 @@ public enum CommandErrorCode
     InvalidMovementTarget,
     /// <summary>当前无法向导航系统提交请求。</summary>
     NavigationUnavailable,
+    /// <summary>单位所属玩家当前没有已完成的 CommandCenter 可供回防。</summary>
+    CommandCenterNotFound,
     /// <summary>对局尚未开始或已经结束。</summary>
     MatchNotRunning,
     /// <summary>交战姿态值不属于当前版本支持的枚举项。</summary>

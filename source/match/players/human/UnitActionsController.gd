@@ -194,24 +194,35 @@ func get_selected_command_unit_count() -> int:
 	).size()
 
 
-## 返回可保存自身或出厂默认战斗策略的选中实体数量。
+## 返回可保存交战姿态的选中实体数量；Worker 也支持侵略/撤回基地。
+func get_selected_engagement_policy_unit_count() -> int:
+	return _get_selected_controlled_units().filter(_is_engagement_policy_unit).size()
+
+
+## 返回可保存开火策略的选中实体数量；Worker 没有武器策略。
+func get_selected_fire_policy_unit_count() -> int:
+	return _get_selected_controlled_units().filter(_is_fire_policy_unit).size()
+
+
+## 兼容旧 HUD/测试调用名：默认返回可设置交战姿态的单位数量。
 func get_selected_combat_policy_unit_count() -> int:
-	return _get_selected_controlled_units().filter(_is_migrated_combat_unit).size()
+	return get_selected_engagement_policy_unit_count()
 
 
 ## 为当前 Selection 中已迁移的战斗单位设置持续交战姿态，并汇总即时接收结果。
 func set_selected_engagement_stance(stance: String):
-	_submit_selected_combat_policy("EngagementStance", stance)
+	_submit_selected_combat_policy("EngagementStance", stance, _is_engagement_policy_unit)
 
 
 ## 为当前 Selection 中已迁移的战斗单位设置持续开火策略，并汇总即时接收结果。
 func set_selected_fire_policy(policy: String):
-	_submit_selected_combat_policy("FirePolicy", policy)
+	_submit_selected_combat_policy("FirePolicy", policy, _is_fire_policy_unit)
 
 
 ## 返回当前选中已迁移战斗单位的统一战斗策略；混合值或无选中时返回空字符串。
 func get_selected_combat_policy(policy_name: String) -> String:
-	var command_units = _get_selected_controlled_units().filter(_is_migrated_combat_unit)
+	var predicate = _is_engagement_policy_unit if policy_name == "EngagementStance" else _is_fire_policy_unit
+	var command_units = _get_selected_controlled_units().filter(predicate)
 	if command_units.is_empty():
 		return ""
 	var gateway = _get_command_gateway()
@@ -231,9 +242,9 @@ func get_selected_combat_policy(policy_name: String) -> String:
 	return first_value
 
 
-func _submit_selected_combat_policy(policy_name: String, value: String):
+func _submit_selected_combat_policy(policy_name: String, value: String, predicate: Callable):
 	var selected_units = _get_selected_controlled_units()
-	var command_units = selected_units.filter(_is_migrated_combat_unit)
+	var command_units = selected_units.filter(predicate)
 	var accepted_count := 0
 	var rejected_count: int = selected_units.size() - command_units.size()
 	if not command_units.is_empty():
@@ -534,8 +545,15 @@ func _navigate_unit_towards_unit(unit, target_unit):
 	return false  # gdlint: ignore = max-returns
 
 
-## 按已有战斗或生产能力过滤策略设置，不依赖具体单位类名。
-func _is_migrated_combat_unit(unit) -> bool:
+## 按已有战斗或生产能力过滤交战姿态，不依赖具体单位类名。
+func _is_engagement_policy_unit(unit) -> bool:
+	return _is_fire_policy_unit(unit) or (
+		unit.resources_max > 0 and unit.has_method("request_legacy_start_auto_gather")
+	)
+
+
+## 按武器或生产能力过滤真正的战斗/开火策略。
+func _is_fire_policy_unit(unit) -> bool:
 	return unit.attack_range != null or unit.find_child("RallyPoint") != null
 
 

@@ -5,10 +5,6 @@ class_name NetCommandProxy
 
 var _sync: Node
 var _player: Node
-var _engagement_stance_by_unit := {}
-var _fire_policy_by_unit := {}
-
-
 func _init(sync: Node, player: Node) -> void:
 	_sync = sync
 	_player = player
@@ -75,20 +71,22 @@ func CancelConstruction(site, issuer):
 
 
 func SetEngagementStance(units, stance, issuer):
-	for unit in units:
-		_engagement_stance_by_unit[str(unit.get_path())] = str(stance)
+	# 客户端不再乐观写入姿态：回基地可能因没有己方基地或导航不可用被
+	# 服务器拒绝，HUD 必须等权威快照确认，避免显示假状态。
 	return _sync.forward_command("set_engagement_stance", units, Vector3.ZERO, null, issuer, str(stance))
 
 
 func SetFirePolicy(units, policy, issuer):
-	for unit in units:
-		_fire_policy_by_unit[str(unit.get_path())] = str(policy)
 	return _sync.forward_command("set_fire_policy", units, Vector3.ZERO, null, issuer, str(policy))
 
 
 func GetEngagementStance(unit):
-	return str(_engagement_stance_by_unit.get(str(unit.get_path()), "Aggressive"))
+	if _sync != null and _sync.has_method("get_authoritative_engagement_stance"):
+		return _sync.get_authoritative_engagement_stance(unit)
+	return "Aggressive"
 
 
 func GetFirePolicy(unit):
-	return str(_fire_policy_by_unit.get(str(unit.get_path()), "FireAtWill"))
+	if _sync != null and _sync.has_method("get_authoritative_fire_policy"):
+		return _sync.get_authoritative_fire_policy(unit)
+	return "FireAtWill"

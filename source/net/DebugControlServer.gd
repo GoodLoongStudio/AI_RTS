@@ -5,7 +5,8 @@ extends Node
 ##   1) 输入模拟：click/drag/key —— 合成真实 InputEvent 走引擎输入管线，
 ##      与玩家鼠标完全同路径(HUD/框选/相机拾取全部真实反应)。
 ##   2) 结构化命令：move/gather/build/produce/attack/status/screenshot。
-## 挂 root 跨场景存活，仅在 autojoin 调试模式下由 Online.gd 挂载。
+## autoload 自挂载：带 --debugport 参数的进程（客户端/专用服均可）启用，
+## 未带参数的进程（正常玩家/编辑器）在 _ready 自毁不监听；跨场景存活。
 
 const DEFAULT_PORT := 24568
 
@@ -18,7 +19,11 @@ var _port := DEFAULT_PORT
 func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
 	var port_index := args.find("--debugport")
-	if port_index >= 0 and port_index + 1 < args.size():
+	if port_index < 0:
+		# autoload 模式下未请求调试的进程直接退出，不占资源。
+		queue_free()
+		return
+	if port_index + 1 < args.size():
 		_port = int(args[port_index + 1])
 	if _server.listen(_port, "127.0.0.1") != OK:
 		print("[DBGCTL] 端口 %d 被占用, 调试控制端点未启动" % _port)
@@ -390,9 +395,12 @@ func _collect_status(match_node) -> Dictionary:
 	if match_node == null or not match_node.has_method("get_local_player"):
 		return out
 	var player = match_node.get_local_player()
-	if player == null:
-		return out
+	# 服务器侧没有本地玩家：跳过玩家专属字段，但继续输出单位清单，
+	# 供移动监控从权威模拟进程读取位置/朝向。
 	out["match"] = true
+	if player == null:
+		_append_unit_entries(out, match_node, null)
+		return out
 	out["local_player_name"] = str(player.name)
 	out["player_nodes"] = get_tree().get_nodes_in_group("players").map(func(p): return str(p.name))
 	out["balance"] = {"a": int(player.resource_a), "b": int(player.resource_b)}
@@ -423,9 +431,14 @@ func _collect_status(match_node) -> Dictionary:
 			"fog_circle_count": fog_viewport.get_child_count() if fog_viewport != null else -1,
 			"combined_child_count": fog.get_node("CombinedViewport").get_child_count(),
 		}
+	_append_unit_entries(out, match_node, player)
+	return out
+
+
+func _append_unit_entries(out: Dictionary, _match_node, player) -> void:
+	var tree := get_tree()
+	var camera := tree.current_scene.get_viewport().get_camera_3d() if tree.current_scene != null else null
 	for unit in tree.get_nodes_in_group("units"):
-		if unit == null or not is_instance_valid(unit):
-			continue
 		if unit == null or not is_instance_valid(unit):
 			continue
 		var carried := [0, 0]
@@ -440,6 +453,8 @@ func _collect_status(match_node) -> Dictionary:
 			"pos": [
 				unit.global_position.x, unit.global_position.y, unit.global_position.z
 			],
+			# 平面朝向角（弧度，绕 Y）；供移动监控脚本计算角速度、判定瞬转残留。
+			"yaw": unit.global_transform.basis.get_euler().y,
 			"mine": unit.get_parent() == player,
 			"selected": unit.is_in_group("selected_units"),
 			"visible": unit.visible,
@@ -471,4 +486,3 @@ func _collect_status(match_node) -> Dictionary:
 			)
 			resource_entry["screen"] = [resource_screen.x, resource_screen.y]
 		out["resources"].append(resource_entry)
-	return out

@@ -3,14 +3,17 @@ namespace AI_RTS.Domain.Combat;
 /// <summary>定义单位自主发现目标后允许采取的移动与追击策略。</summary>
 public enum EngagementStance
 {
-    /// <summary>主动搜索并追击感知范围内的敌方目标，但仍受最大追击范围约束。</summary>
+    /// <summary>战斗单位主动搜索敌人；Worker 则主动寻找可用资源并循环采集。</summary>
     Aggressive,
 
     /// <summary>在岗位范围内迎击目标，并在脱离后返回 GuardAnchor。</summary>
     Guard,
 
     /// <summary>不主动移动或追击，只攻击已经进入武器射程的目标。</summary>
-    HoldGround
+    HoldGround,
+
+    /// <summary>停止主动追击并以最高速度前往最近的己方已完成 CommandCenter。</summary>
+    ReturnToBase
 }
 
 /// <summary>定义单位是否允许自主开火；显式 ForceAttack 可获得订单级临时授权。</summary>

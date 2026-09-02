@@ -65,6 +65,7 @@
       "movement": {
         "domain": "air",
         "speedMetersPerSecond": 4.0,
+        "maxTurnDegreesPerSecond": 480.0,
         "canReverse": false,
         "reverseSpeedMultiplier": 0.65,
         "canFireWhileMoving": false,
@@ -80,6 +81,7 @@
       "movement": {
         "domain": "terrain",
         "speedMetersPerSecond": 2.5,
+        "maxTurnDegreesPerSecond": 360.0,
         "canReverse": false,
         "reverseSpeedMultiplier": 0.65,
         "canFireWhileMoving": false,
@@ -101,6 +103,7 @@
       "movement": {
         "domain": "air",
         "speedMetersPerSecond": 4.0,
+        "maxTurnDegreesPerSecond": 300.0,
         "canReverse": false,
         "reverseSpeedMultiplier": 0.65,
         "canFireWhileMoving": false,
@@ -116,6 +119,7 @@
       "movement": {
         "domain": "terrain",
         "speedMetersPerSecond": 2.75,
+        "maxTurnDegreesPerSecond": 240.0,
         "canReverse": true,
         "reverseSpeedMultiplier": 0.65,
         "canFireWhileMoving": true,

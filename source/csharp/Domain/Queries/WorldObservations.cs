@@ -98,6 +98,8 @@ public enum OrderObservationKind
     EntityAttackMove,
     /// <summary>优先撤离的战术撤退。</summary>
     TacticalWithdraw,
+    /// <summary>前往最近己方已完成 CommandCenter 的基地回防。</summary>
+    ReturnToBase,
     /// <summary>普通实体攻击。</summary>
     Attack,
     /// <summary>显式强制攻击。</summary>

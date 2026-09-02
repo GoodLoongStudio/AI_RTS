@@ -4,6 +4,9 @@ const LegacyMovingAction = preload("res://source/match/units/actions/Moving.gd")
 const LegacyTacticalWithdrawingAction = preload(
 	"res://source/match/units/actions/TacticalWithdrawing.gd"
 )
+const LegacyReturningToBaseAction = preload(
+	"res://source/match/units/actions/ReturningToBase.gd"
+)
 const LegacyGroundAttackMovingAction = preload(
 	"res://source/match/units/actions/GroundAttackMoving.gd"
 )
@@ -18,6 +21,9 @@ const LegacyOrdinaryAttackAction = preload(
 )
 const LegacyGatherAction = preload(
 	"res://source/match/units/actions/CollectingResourcesSequentially.gd"
+)
+const LegacyAutoGatherAction = preload(
+	"res://source/match/units/actions/AutoGatheringResources.gd"
 )
 const LegacyConstructingAction = preload("res://source/match/units/actions/Constructing.gd")
 const LegacyMovingToUnitAction = preload("res://source/match/units/actions/MovingToUnit.gd")
@@ -34,6 +40,8 @@ signal entity_attack_move_ended(reason)
 signal gather_task_ended(reason)
 signal approach_ended(reason)
 signal follow_ended(reason)
+## 持续回基地 Action 的权威终态：Arrived、TargetLost 或 Unreachable。
+signal return_to_base_ended(reason)
 
 const MATERIAL_ALBEDO_TO_REPLACE = Color(0.99, 0.81, 0.48)
 const MATERIAL_ALBEDO_TO_REPLACE_EPSILON = 0.05
@@ -158,6 +166,48 @@ func request_legacy_tactical_withdraw(target_position: Vector3) -> bool:
 	return true
 
 
+## 临时 C# 迁移桥：以最高速度前往已由权威层选定的己方 CommandCenter。
+## 与 TacticalWithdraw 分开，绝不启用倒车速度或后退朝向。
+func request_legacy_return_to_base(command_center) -> bool:
+	if (
+		find_child("Movement") == null
+		or command_center == null
+		or not is_instance_valid(command_center)
+		or not command_center.is_inside_tree()
+		or not command_center.has_method("is_constructed")
+		or not command_center.is_constructed()
+	):
+		return false
+	var return_action = LegacyReturningToBaseAction.new(command_center)
+	if return_action.has_signal("ended"):
+		return_action.ended.connect(return_to_base_ended.emit)
+	elif return_action.has_signal("return_to_base_ended"):
+		return_action.return_to_base_ended.connect(return_to_base_ended.emit)
+	else:
+		return false
+	action = return_action
+	return true
+
+
+## 在一次性移动命令结束后由 WaitingForTargets 请求新的基地目标。
+## 目标仍由 CommandRuntime 按己方已完成基地权威筛选。
+func request_legacy_start_return_to_base() -> bool:
+	var runtime = _match.get_node_or_null("CommandRuntime") if _match != null else null
+	if runtime == null or not runtime.has_method("FindNearestCompletedCommandCenter"):
+		return false
+	return request_legacy_return_to_base(runtime.FindNearestCompletedCommandCenter(self))
+
+
+## 临时 C# 迁移桥：Worker 在侵略姿态下自动寻找最近资源并循环采集。
+func request_legacy_start_auto_gather() -> bool:
+	if resources_max <= 0 or not has_method("request_legacy_gather"):
+		return false
+	if action != null and action.get_script() == LegacyAutoGatherAction:
+		return true
+	action = LegacyAutoGatherAction.new()
+	return true
+
+
 func request_legacy_halt_movement() -> bool:
 	if find_child("Movement") == null:
 		return false
@@ -167,6 +217,8 @@ func request_legacy_halt_movement() -> bool:
 		LegacyFollowingAction,
 		LegacyGroundAttackMovingAction,
 		LegacyTacticalWithdrawingAction,
+		LegacyReturningToBaseAction,
+		LegacyAutoGatherAction,
 	]:
 		action = null
 	return true
@@ -186,9 +238,11 @@ func request_legacy_stop() -> bool:
 		LegacyFollowingAction,
 		LegacyGroundAttackMovingAction,
 		LegacyTacticalWithdrawingAction,
+		LegacyReturningToBaseAction,
 		LegacyOrdinaryAttackAction,
 		LegacyForceAttackAction,
 		LegacyGroundForceAttackAction,
+		LegacyAutoGatherAction,
 	]:
 		action = null
 	return true
@@ -251,8 +305,48 @@ func set_hp_without_damage(value):
 # Temporary C# migration bridge. It only asks the current autonomous combat
 # action to re-read authoritative policy; it does not choose a stance itself.
 func request_legacy_refresh_combat_policy():
+	var runtime = _match.get_node_or_null("CommandRuntime") if _match != null else null
+	var stance := ""
+	if runtime != null and runtime.has_method("GetEngagementStance"):
+		stance = runtime.GetEngagementStance(self)
+	if stance == "ReturnToBase":
+		if action != null and action.get_script() == LegacyReturningToBaseAction:
+			if action.has_method("refresh_combat_policy"):
+				action.refresh_combat_policy()
+			return
+		request_legacy_start_return_to_base()
+		return
+	if resources_max > 0:
+		if stance == "Aggressive":
+			request_legacy_start_auto_gather()
+		elif action != null and action.get_script() == LegacyAutoGatherAction:
+			action = null
+		return
+	if action != null and action.get_script() == LegacyReturningToBaseAction:
+		action = null
+		return
 	if action != null and action.has_method("refresh_combat_policy"):
 		action.refresh_combat_policy()
+
+
+## 回基地命令到达时交付 Worker 当前携带资源；无货物时保持幂等成功。
+func request_legacy_deliver_resources_to_base() -> bool:
+	if resources_max <= 0 or player == null:
+		return false
+	var resource_a_amount: int = int(get("resource_a"))
+	var resource_b_amount: int = int(get("resource_b"))
+	if resource_a_amount <= 0 and resource_b_amount <= 0:
+		return true
+	var accepted = player.add_resources(
+		{"resource_a": resource_a_amount, "resource_b": resource_b_amount},
+		"WorkerDelivery",
+		self
+	)
+	if not accepted:
+		return false
+	set("resource_a", 0)
+	set("resource_b", 0)
+	return true
 
 
 # Temporary C# migration bridge. Ordinary Attack only accepts authorization

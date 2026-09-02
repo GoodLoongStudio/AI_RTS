@@ -1,6 +1,7 @@
 extends Node
 
 const MatchScene = preload("res://tests/manual/TestOneUnit.tscn")
+const CommandCenterScene = preload("res://source/match/units/CommandCenter.tscn")
 const Moving = preload("res://source/match/units/actions/Moving.gd")
 
 var _failures := 0
@@ -14,6 +15,14 @@ func _ready():
 
 	var human = match_instance.get_node("Players/Human")
 	var tank = human.get_node("Tank")
+	# ReturnToBase requires a completed friendly CommandCenter; add one only to this
+	# HUD fixture so the command can be verified without changing the shared manual scene.
+	var command_center = CommandCenterScene.instantiate()
+	var command_center_transform := Transform3D(
+		Basis.IDENTITY, tank.global_position + Vector3(-4.0, 0.0, 0.0)
+	)
+	match_instance._setup_and_spawn_unit(command_center, command_center_transform, human, false)
+	await get_tree().process_frame
 	var hud = match_instance.get_node_or_null("HUD/TraditionalUnitCommandHUD")
 	_check(hud != null, "传统单位命令栏应随 Human 创建")
 
@@ -39,6 +48,9 @@ func _ready():
 	var hold_ground_button = hud.get_node(
 		"MarginContainer/VBoxContainer/CombatPolicies/HoldGroundButton"
 	)
+	var return_to_base_button = hud.get_node(
+		"MarginContainer/VBoxContainer/CombatPolicies/ReturnToBaseButton"
+	)
 	var hold_fire_button = hud.get_node(
 		"MarginContainer/VBoxContainer/CombatPolicies/HoldFireButton"
 	)
@@ -47,8 +59,9 @@ func _ready():
 	_check(not force_move_button.disabled, "选中 Tank 后强制移动按钮应可用")
 	_check(not halt_button.disabled, "选中 Tank 后停止按钮应可用")
 	_check(not force_attack_button.disabled, "选中 Tank 后强制攻击按钮应可用")
-	_check(not tactical_withdraw_button.disabled, "选中 Tank 后撤退按钮应可用")
+	_check(not tactical_withdraw_button.disabled, "选中 Tank 后战术后退按钮应可用")
 	_check(not ground_attack_move_button.disabled, "选中 Tank 后移动并攻击按钮应可用")
+	_check(not return_to_base_button.disabled, "选中 Tank 后撤回基地姿态按钮应可用")
 	input_runtime.emit_signal("ActionPressed", "unit.attack_move")
 	_check(
 		"地面或敌方单位" in feedback_label.text,
@@ -59,24 +72,37 @@ func _ready():
 	_check("[R]" in ground_attack_move_button.text, "移动并攻击应显示 R 键")
 	_check("[C]" in force_move_button.text, "强制移动应显示 C 键")
 	_check("[X]" in force_attack_button.text, "强制攻击应显示 X 键")
-	_check("[Z]" in tactical_withdraw_button.text, "撤退应显示 Z 键")
+	_check("战术后退" in tactical_withdraw_button.text, "Z 应显示为战术后退")
+	_check("[Z]" in tactical_withdraw_button.text, "战术后退应显示 Z 键")
 	_check("[G]" in hold_ground_button.text, "固守应显示 G 键")
 	_check("[T]" in aggressive_button.text, "侵略应显示 T 键")
 	_check("[Y]" in guard_button.text, "警戒应显示 Y 键")
+	_check("撤回基地" in return_to_base_button.text, "撤回基地姿态应显示中文名称")
+	_check("[V]" in return_to_base_button.text, "撤回基地姿态应显示 V 键")
 	_check("[H]" in hold_fire_button.text, "停火应显示 H 键")
 	_check("[B]" in hud.get_node("MarginContainer/VBoxContainer/CombatPolicies/ClearRallyPointButton").text,
 		"清除集结应显示 B 键")
 	_check(not "[" in halt_button.text, "停止移动没有独立快捷键，不得误标 F")
 	tactical_withdraw_button.pressed.emit()
-	_check("撤退目的地" in feedback_label.text, "撤退应进入一次性地面目标确认状态")
+	_check("战术后退目的地" in feedback_label.text, "Z 应进入一次性战术后退目标确认状态")
 	tactical_withdraw_button.pressed.emit()
-	_check(tactical_withdraw_button.text.begins_with("撤退"), "再次点击撤退应取消目标确认")
+	_check(tactical_withdraw_button.text.begins_with("战术后退"), "再次点击战术后退应取消目标确认")
 	force_attack_button.pressed.emit()
 	_check("单位或地面" in feedback_label.text, "强制攻击应进入一次性目标确认状态")
 	force_attack_button.pressed.emit()
 	_check(force_attack_button.text.begins_with("强制攻击"), "再次点击强制攻击应取消目标确认")
 	_check(aggressive_button.button_pressed, "Tank 默认应显示侵略姿态")
 	_check(not hold_fire_button.button_pressed, "Tank 默认应显示自由开火")
+	return_to_base_button.pressed.emit()
+	await get_tree().process_frame
+	_check(return_to_base_button.button_pressed, "点击撤回基地姿态应选中该姿态")
+	_check(
+		human.get_node("UnitCommandGateway").GetEngagementStance(tank) == "ReturnToBase",
+		"HUD 应设置撤回基地姿态"
+	)
+	input_runtime.emit_signal("ActionPressed", "unit.stance_return_to_base")
+	await get_tree().process_frame
+	_check(return_to_base_button.button_pressed, "V 快捷键应保持撤回基地姿态")
 
 	guard_button.pressed.emit()
 	await get_tree().process_frame
@@ -134,20 +160,20 @@ func _ready():
 
 	var controller = human.get_node("UnitActionsController")
 	input_runtime.emit_signal("ActionPressed", "unit.tactical_withdraw")
-	_check(controller.get_active_command_targeting() == "TacticalWithdraw", "Z 应进入撤退选目标")
+	_check(controller.get_active_command_targeting() == "TacticalWithdraw", "Z 应进入战术后退选目标")
 	var action_before_invalid_withdraw = tank.action
 	MatchSignals.unit_targeted.emit(tank, tank.global_position)
 	await get_tree().process_frame
 	_check(
 		controller.get_active_command_targeting() == "TacticalWithdraw",
-		"撤退点单位应拒绝并保持选目标"
+		"战术后退点单位应拒绝并保持选目标"
 	)
-	_check(tank.action == action_before_invalid_withdraw, "撤退点单位不得偷偷改成跟随或移动")
-	_check("拒绝" in feedback_label.text, "非法撤退目标应明确拒绝")
+	_check(tank.action == action_before_invalid_withdraw, "战术后退点单位不得偷偷改成跟随或移动")
+	_check("拒绝" in feedback_label.text, "非法战术后退目标应明确拒绝")
 	MatchSignals.terrain_targeted.emit(tank.global_position + Vector3(0.0, 0.0, 4.0))
 	await get_tree().process_frame
-	_check(controller.get_active_command_targeting() == "", "右键地面后应退出撤退选目标")
-	_check("接受 1" in feedback_label.text, "地面撤退应被接受")
+	_check(controller.get_active_command_targeting() == "", "右键地面后应退出战术后退选目标")
+	_check("接受 1" in feedback_label.text, "地面战术后退应被接受")
 
 	print("Traditional unit command HUD smoke test completed: %d failure(s)" % _failures)
 	match_instance.queue_free()

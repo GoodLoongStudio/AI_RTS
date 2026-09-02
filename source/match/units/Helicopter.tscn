@@ -83,9 +83,9 @@ path_desired_distance = 0.1
 target_desired_distance = 0.1
 path_height_offset = 0.8
 radius = 0.8
-neighbor_distance = 8.0
-max_neighbors = 40
-time_horizon_agents = 3.0
+neighbor_distance = 3.0
+max_neighbors = 16
+time_horizon_agents = 4.5
 domain = 0
 
 [node name="HealthBar" parent="." instance=ExtResource("4_fmrjm")]

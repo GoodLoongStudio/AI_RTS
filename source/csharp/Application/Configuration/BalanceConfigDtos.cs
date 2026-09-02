@@ -145,6 +145,9 @@ internal sealed class UnitMovementDefinitionDto
     /// <summary>正常移动速度，单位为米/秒。</summary>
     public float? SpeedMetersPerSecond { get; set; }
 
+    /// <summary>朝向平滑转向的最大角速度，单位为度/秒。</summary>
+    public float? MaxTurnDegreesPerSecond { get; set; }
+
     /// <summary>是否支持沿实时路径倒车。</summary>
     public bool? CanReverse { get; set; }
 

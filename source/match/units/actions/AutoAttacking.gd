@@ -84,6 +84,11 @@ func _enforce_combat_policy():
 		queue_free()
 		return
 	var stance: String = _command_runtime.GetEngagementStance(_unit)
+	# 回基地姿态不允许自主追击；权威姿态切换时立即释放旧追击，
+	# 由命令桥接创建的 ReturningToBase 动作接管移动。
+	if stance == "ReturnToBase":
+		queue_free()
+		return
 	if stance == "HoldGround" and not _target_in_range():
 		queue_free()
 		return

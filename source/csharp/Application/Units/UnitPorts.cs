@@ -120,6 +120,22 @@ public interface IUnitMovementPort
     MovementPortResult RequestHalt(UnitId unitId);
 }
 
+/// <summary>查询单位所属玩家最近的已完成 CommandCenter。</summary>
+public interface ICommandCenterRepository
+{
+    /// <summary>只返回已完成、仍存活且属于 owner 的基地；没有时返回空。</summary>
+    UnitCommandSnapshot? FindNearestCompletedCommandCenter(
+        PlayerId owner,
+        WorldPosition origin);
+}
+
+/// <summary>把“回基地”语义转发给表现层，保留基地实体身份以便动态失效处理。</summary>
+public interface IReturnToBaseMovementPort
+{
+    /// <summary>请求单位以普通最高速度前往指定 CommandCenter 并在其附近停下。</summary>
+    MovementPortResult RequestReturnToBase(UnitId unitId, UnitId commandCenterId);
+}
+
 /// <summary>表示统一停止执行端拒绝请求的稳定原因。</summary>
 public enum StopPortError
 {

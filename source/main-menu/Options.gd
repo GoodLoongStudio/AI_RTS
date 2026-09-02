@@ -227,6 +227,21 @@ func _on_resolution_item_selected(index):
 	_queue_save()
 
 
+func _on_save_button_pressed():
+	# 显式保存入口：显示/鼠标/镜头设置本已随改动自动落盘（options.tres + camera.cfg），
+	# 此按钮提供确定感，并把当前 UI 状态完整写入存档（下次启动沿用）。
+	_save_options()
+	var save_button := find_child("SaveButton") as Button
+	if save_button == null:
+		return
+	save_button.text = "已保存 ✓"
+	save_button.disabled = true
+	await get_tree().create_timer(1.2).timeout
+	if is_instance_valid(save_button):
+		save_button.text = "保存设置"
+		save_button.disabled = false
+
+
 func _on_back_button_pressed():
 	_save_options()
 	if embedded_mode:

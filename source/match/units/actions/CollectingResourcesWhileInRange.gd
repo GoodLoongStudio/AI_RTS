@@ -70,21 +70,12 @@ func _transfer_single_resource_unit_from_resource_to_worker():
 		queue_free()
 
 
-func _rotate_unit_towards_resource_unit():
-	_unit.global_transform = _unit.global_transform.looking_at(
-		Vector3(
-			_resource_unit.global_position.x,
-			_unit.global_position.y,
-			_resource_unit.global_position.z
-		),
-		Vector3(0, 1, 0)
-	)
-
-
 func _on_passive_movement_started():
 	_timer.paused = true
 
 
 func _on_passive_movement_finished():
 	_timer.paused = false
-	_rotate_unit_towards_resource_unit()
+	# 平滑转向面向矿点（2026-09-02）：原 looking_at 瞬时转向在 RVO 反复推挤时
+	# 造成矿工持续抖动；改走 Movement 的限速平滑面朝接口。
+	_unit_movement_trait.face_towards(_resource_unit.global_position)

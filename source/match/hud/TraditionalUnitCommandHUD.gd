@@ -298,18 +298,19 @@ func _on_command_feedback(
 
 func _refresh_availability():
 	var has_supported_units: bool = actions_controller.get_selected_command_unit_count() > 0
-	var has_policy_units: bool = actions_controller.get_selected_combat_policy_unit_count() > 0
+	var has_engagement_units: bool = actions_controller.get_selected_engagement_policy_unit_count() > 0
+	var has_fire_policy_units: bool = actions_controller.get_selected_fire_policy_unit_count() > 0
 	var has_rally_producers: bool = actions_controller.get_selected_rally_producer_count() > 0
 	_force_move_button.disabled = not has_supported_units
 	_force_attack_button.disabled = not has_supported_units
 	_tactical_withdraw_button.disabled = not has_supported_units
 	_ground_attack_move_button.disabled = not has_supported_units
 	_halt_button.disabled = not has_supported_units
-	_aggressive_button.disabled = not has_policy_units
-	_guard_button.disabled = not has_policy_units
-	_hold_ground_button.disabled = not has_policy_units
-	_return_to_base_button.disabled = not has_policy_units
-	_hold_fire_button.disabled = not has_policy_units
+	_aggressive_button.disabled = not has_engagement_units
+	_guard_button.disabled = not has_fire_policy_units
+	_hold_ground_button.disabled = not has_fire_policy_units
+	_return_to_base_button.disabled = not has_engagement_units
+	_hold_fire_button.disabled = not has_fire_policy_units
 	_clear_rally_point_button.disabled = not has_rally_producers
 	if not has_supported_units:
 		actions_controller.cancel_command_targeting()

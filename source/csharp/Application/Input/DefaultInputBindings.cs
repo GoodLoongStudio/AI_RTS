@@ -41,6 +41,7 @@ public static class DefaultInputBindings
             Bind("unit.tactical_withdraw", InputContextId.UnitCommand, "Z"),
             Bind("unit.stance_aggressive", InputContextId.UnitCommand, "T"),
             Bind("unit.stance_guard", InputContextId.UnitCommand, "Y"),
+            Bind("unit.stance_return_to_base", InputContextId.UnitCommand, "V"),
             Bind("unit.toggle_hold_fire", InputContextId.UnitCommand, "H"),
             Bind("unit.clear_rally", InputContextId.UnitCommand, "B"),
             ButtonOnly("unit.halt")

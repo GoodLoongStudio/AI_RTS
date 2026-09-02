@@ -66,6 +66,11 @@ internal sealed class UnitCommandServiceTests
         RunTest(nameof(EntityMovementRejectsSelfAndMissingTargets), EntityMovementRejectsSelfAndMissingTargets);
         RunTest(nameof(StopSuspendsEntityMovementOrders), StopSuspendsEntityMovementOrders);
         RunTest(nameof(PortFailuresMapToStableErrors), PortFailuresMapToStableErrors);
+        RunTest(nameof(ReturnToBaseSelectsNearestCompletedCommandCenter),
+            ReturnToBaseSelectsNearestCompletedCommandCenter);
+        RunTest(nameof(ReturnToBaseRejectsWithoutCommandCenter),
+            ReturnToBaseRejectsWithoutCommandCenter);
+        RunTest(nameof(StopSuspendsReturnToBaseOrder), StopSuspendsReturnToBaseOrder);
         RunTest(nameof(OrderStorePublishesAuthoritativeStateChanges), OrderStorePublishesAuthoritativeStateChanges);
         RunTest(nameof(AcceptedOrdersPreserveOriginalTargets), AcceptedOrdersPreserveOriginalTargets);
         RunTest(nameof(AreaWarheadUsesImpactPointAndFootprints), AreaWarheadUsesImpactPointAndFootprints);
@@ -250,6 +255,120 @@ internal sealed class UnitCommandServiceTests
         Check(ResultFor(result, unit).OrderId == original.OrderId, "停止移动应保留原订单 ID");
         Check(orders.Find(original.OrderId)?.State == UnitOrderState.Suspended,
             "停止移动应把订单转换为 Suspended");
+    }
+
+    /// <summary>验证回基地姿态由权威仓储选择平面距离最近的己方已完成基地。</summary>
+    private void ReturnToBaseSelectsNearestCompletedCommandCenter()
+    {
+        var owner = NewPlayerId();
+        var unit = NewUnitId();
+        var nearBase = NewUnitId();
+        var farBase = NewUnitId();
+        var movement = new FakeMovementPort();
+        var orders = new InMemoryUnitOrderStore();
+        var policies = new InMemoryCombatPolicyStore();
+        var centers = new FakeCommandCenterRepository(
+            new UnitCommandSnapshot(
+                farBase,
+                owner,
+                false,
+                EntityKind: BattlefieldEntityKind.Structure,
+                TypeId: "command_center",
+                Position: new WorldPosition(12, 0, 0)),
+            new UnitCommandSnapshot(
+                nearBase,
+                owner,
+                false,
+                EntityKind: BattlefieldEntityKind.Structure,
+                TypeId: "command_center",
+                Position: new WorldPosition(3, 0, 4)));
+        var service = NewService(
+            new FakeRepository(new UnitCommandSnapshot(
+                unit,
+                owner,
+                true,
+                Position: new WorldPosition(0, 0, 0))),
+            movement,
+            orders: orders,
+            policies: policies,
+            commandCenters: centers);
+
+        var result = service.SetEngagementStance(
+            Context(owner),
+            new SetEngagementStanceCommand([unit], EngagementStance.ReturnToBase));
+
+        Check(result.Status == CommandStatus.Accepted, "有己方已完成基地时回基地姿态应被接受");
+        Check(ResultFor(result, unit).Accepted, "可移动单位应接受回基地命令");
+        Check(movement.ReturnToBaseRequests == 1, "回基地只应提交一次语义移动请求");
+        Check(movement.LastCommandCenterId == nearBase, "回基地应选择平面距离最近的基地");
+        Check(policies.Get(unit).EngagementStance == EngagementStance.ReturnToBase,
+            "接受回基地后应保存 ReturnToBase 姿态");
+        var order = orders.FindActive(unit);
+        Check(order?.Kind == UnitOrderKind.ReturnToBase,
+            "接受回基地后应创建 ReturnToBase 活动订单");
+        Check(order?.Target is UnitOrderEntityTarget target &&
+            target.EntityId.Kind == BattlefieldEntityKind.Structure &&
+            target.EntityId.Value == nearBase.Value,
+            "回基地订单应保留最近 CommandCenter 的稳定实体身份");
+    }
+
+    /// <summary>验证没有己方已完成基地时回基地命令拒绝且不替换现有订单。</summary>
+    private void ReturnToBaseRejectsWithoutCommandCenter()
+    {
+        var owner = NewPlayerId();
+        var unit = NewUnitId();
+        var movement = new FakeMovementPort();
+        var orders = new InMemoryUnitOrderStore();
+        var policies = new InMemoryCombatPolicyStore();
+        var service = NewService(
+            new FakeRepository(new UnitCommandSnapshot(unit, owner, true)),
+            movement,
+            orders: orders,
+            policies: policies,
+            commandCenters: new FakeCommandCenterRepository());
+
+        var result = service.SetEngagementStance(
+            Context(owner),
+            new SetEngagementStanceCommand([unit], EngagementStance.ReturnToBase));
+
+        Check(result.Status == CommandStatus.Rejected, "没有己方基地时回基地姿态应拒绝");
+        Check(ResultFor(result, unit).ErrorCode == CommandErrorCode.CommandCenterNotFound,
+            "没有己方基地时应返回 CommandCenterNotFound");
+        Check(movement.ReturnToBaseRequests == 0, "没有基地时不得调用回基地移动端口");
+        Check(policies.Get(unit).EngagementStance == EngagementStance.Aggressive,
+            "回基地拒绝不得篡改原有交战姿态");
+        Check(orders.FindActive(unit) is null, "回基地拒绝不得创建活动订单");
+    }
+
+    /// <summary>验证统一 Stop 会暂停回基地订单，而不是把停止当作普通取消。</summary>
+    private void StopSuspendsReturnToBaseOrder()
+    {
+        var owner = NewPlayerId();
+        var unit = NewUnitId();
+        var baseId = NewUnitId();
+        var orders = new InMemoryUnitOrderStore();
+        var service = NewService(
+            new FakeRepository(new UnitCommandSnapshot(unit, owner, true)),
+            new FakeMovementPort(),
+            orders: orders,
+            commandCenters: new FakeCommandCenterRepository(
+                new UnitCommandSnapshot(
+                    baseId,
+                    owner,
+                    false,
+                    EntityKind: BattlefieldEntityKind.Structure,
+                    TypeId: "command_center",
+                    Position: new WorldPosition(5, 0, 0))));
+
+        var returnResult = service.SetEngagementStance(
+            Context(owner),
+            new SetEngagementStanceCommand([unit], EngagementStance.ReturnToBase));
+        var orderId = ResultFor(returnResult, unit).OrderId!.Value;
+        var stopResult = service.Stop(Context(owner), new StopUnitsCommand([unit]));
+
+        Check(stopResult.Status == CommandStatus.Accepted, "停止回基地单位应被接受");
+        Check(orders.Find(orderId)?.State == UnitOrderState.Suspended,
+            "统一 Stop 应暂停 ReturnToBase 订单并保留身份");
     }
 
     /// <summary>验证统一 Stop 暂停移动、取消普通/强制攻击，但不会修改持续战斗策略。</summary>
@@ -2328,7 +2447,8 @@ internal sealed class UnitCommandServiceTests
         ISkillCooldownStore? cooldowns = null,
         IUnitMoveSpeedPort? moveSpeed = null,
         IBattlefieldEventLog? battlefieldEvents = null,
-        ISkillObjectSpawnPort? objectSpawn = null) => new(
+        ISkillObjectSpawnPort? objectSpawn = null,
+        ICommandCenterRepository? commandCenters = null) => new(
             repository,
             movement ?? new FakeMovementPort(),
             attack ?? new FakeAttackPort(),
@@ -2344,7 +2464,8 @@ internal sealed class UnitCommandServiceTests
             cooldowns: cooldowns,
             moveSpeed: moveSpeed,
             battlefieldEvents: battlefieldEvents,
-            objectSpawn: objectSpawn);
+            objectSpawn: objectSpawn,
+            commandCenters: commandCenters);
 
     /// <summary>记录技能创建对象时提交的模板、位姿和施法者。</summary>
     private sealed class FakeObjectSpawnPort : ISkillObjectSpawnPort
@@ -2452,6 +2573,41 @@ internal sealed class UnitCommandServiceTests
             _units.TryGetValue(unitId, out var unit) ? unit : null;
     }
 
+    /// <summary>提供最近己方已完成 CommandCenter 的纯内存查询。</summary>
+    private sealed class FakeCommandCenterRepository(params UnitCommandSnapshot[] commandCenters) :
+        ICommandCenterRepository
+    {
+        private readonly UnitCommandSnapshot[] _commandCenters = commandCenters;
+
+        public UnitCommandSnapshot? FindNearestCompletedCommandCenter(
+            PlayerId owner,
+            WorldPosition origin)
+        {
+            UnitCommandSnapshot? nearest = null;
+            var nearestDistanceSquared = float.PositiveInfinity;
+            foreach (var commandCenter in _commandCenters)
+            {
+                if (commandCenter.OwnerId != owner || !commandCenter.IsAlive ||
+                    commandCenter.TypeId != "command_center")
+                {
+                    continue;
+                }
+
+                var dx = commandCenter.Position.X - origin.X;
+                var dz = commandCenter.Position.Z - origin.Z;
+                var distanceSquared = dx * dx + dz * dz;
+                if (distanceSquared >= nearestDistanceSquared)
+                {
+                    continue;
+                }
+
+                nearestDistanceSquared = distanceSquared;
+                nearest = commandCenter;
+            }
+            return nearest;
+        }
+    }
+
     /// <summary>提供纯内存资源节点快照。</summary>
     private sealed class FakeResourceRepository(params ResourceNodeSnapshot[] resources) :
         IResourceNodeRepository
@@ -2489,7 +2645,7 @@ internal sealed class UnitCommandServiceTests
     }
 
     /// <summary>记录纯 C# 测试中的移动意图，并允许注入失败。</summary>
-    private sealed class FakeMovementPort : IUnitMovementPort
+    private sealed class FakeMovementPort : IUnitMovementPort, IReturnToBaseMovementPort
     {
         /// <summary>非 None 时，所有移动请求返回该错误。</summary>
         public MovementPortError MovementError { get; set; }
@@ -2514,6 +2670,12 @@ internal sealed class UnitCommandServiceTests
 
         /// <summary>倒车撤退请求次数。</summary>
         public int WithdrawRequests { get; private set; }
+
+        /// <summary>回基地请求次数。</summary>
+        public int ReturnToBaseRequests { get; private set; }
+
+        /// <summary>最近一次回基地请求的基地稳定 ID。</summary>
+        public UnitId LastCommandCenterId { get; private set; }
 
         /// <inheritdoc />
         public MovementPortResult RequestMove(UnitId unitId, WorldPosition destination)
@@ -2557,6 +2719,14 @@ internal sealed class UnitCommandServiceTests
         public MovementPortResult RequestTacticalWithdraw(UnitId unitId, WorldPosition destination)
         {
             WithdrawRequests++;
+            return Result();
+        }
+
+        /// <inheritdoc />
+        public MovementPortResult RequestReturnToBase(UnitId unitId, UnitId commandCenterId)
+        {
+            ReturnToBaseRequests++;
+            LastCommandCenterId = commandCenterId;
             return Result();
         }
 

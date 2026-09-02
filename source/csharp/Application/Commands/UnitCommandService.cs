@@ -114,13 +114,15 @@ public sealed class UnitCommandService(
     ISkillCooldownStore? cooldowns = null,
     IUnitMoveSpeedPort? moveSpeed = null,
     IBattlefieldEventLog? battlefieldEvents = null,
-    ISkillObjectSpawnPort? objectSpawn = null) : IUnitCommandService, ISkillWorldActionPort
+    ISkillObjectSpawnPort? objectSpawn = null,
+    ICommandCenterRepository? commandCenters = null) : IUnitCommandService, ISkillWorldActionPort
 {
     private readonly IGameBalanceCatalog? _catalog = catalog;
     private readonly IResourceAccountService? _accounts = accounts;
     private readonly ISkillCooldownStore? _cooldowns = cooldowns;
     private readonly IBattlefieldEventLog? _battlefieldEvents = battlefieldEvents;
     private readonly ISkillObjectSpawnPort? _objectSpawn = objectSpawn;
+    private readonly ICommandCenterRepository? _commandCenters = commandCenters;
     private readonly ISkillLoadoutStore _loadout = new InMemorySkillLoadoutStore();
     private readonly List<PendingSkillActivation> _pendingActivations = [];
     private MatchId _lastMatchId;
@@ -134,12 +136,13 @@ public sealed class UnitCommandService(
                 command.UnitIds.Count == 0 ? CommandErrorCode.EmptyUnitSet : CommandErrorCode.InvalidDestination);
         }
 
+        var formation = ComputeFormationDestinations(command.UnitIds, command.Destination);
         return ExecuteMove(
             context,
             command.UnitIds,
             UnitOrderKind.Move,
-            new UnitOrderPositionTarget(command.Destination),
-            unitId => movement.RequestMove(unitId, command.Destination));
+            unitId => new UnitOrderPositionTarget(formation[unitId]),
+            unitId => movement.RequestMove(unitId, formation[unitId]));
     }
 
     /// <inheritdoc />
@@ -316,7 +319,7 @@ public sealed class UnitCommandService(
             if (active?.Kind is UnitOrderKind.Move or UnitOrderKind.ApproachEntity or
                 UnitOrderKind.FollowEntity or UnitOrderKind.ForceMove or
                 UnitOrderKind.GroundAttackMove or UnitOrderKind.EntityAttackMove or
-                UnitOrderKind.TacticalWithdraw)
+                UnitOrderKind.TacticalWithdraw or UnitOrderKind.ReturnToBase)
             {
                 orders.Transition(active.OrderId, UnitOrderState.Suspended);
             }
@@ -327,7 +330,7 @@ public sealed class UnitCommandService(
                 active?.Kind is UnitOrderKind.Move or UnitOrderKind.ApproachEntity or
                     UnitOrderKind.FollowEntity or UnitOrderKind.ForceMove or
                     UnitOrderKind.GroundAttackMove or UnitOrderKind.EntityAttackMove or
-                    UnitOrderKind.TacticalWithdraw ?
+                    UnitOrderKind.TacticalWithdraw or UnitOrderKind.ReturnToBase ?
                     active.OrderId : null));
         }
         return Summarize(context.CommandId, results);
@@ -940,7 +943,7 @@ public sealed class UnitCommandService(
         if (active?.Kind is UnitOrderKind.Move or UnitOrderKind.ApproachEntity or
             UnitOrderKind.FollowEntity or UnitOrderKind.ForceMove or
             UnitOrderKind.GroundAttackMove or UnitOrderKind.EntityAttackMove or
-            UnitOrderKind.TacticalWithdraw or UnitOrderKind.Gather or
+            UnitOrderKind.TacticalWithdraw or UnitOrderKind.ReturnToBase or UnitOrderKind.Gather or
             UnitOrderKind.Construct)
         {
             orders.Transition(active.OrderId, UnitOrderState.Suspended);
@@ -970,10 +973,101 @@ public sealed class UnitCommandService(
                     CommandErrorCode.EmptyUnitSet : CommandErrorCode.InvalidEngagementStance);
         }
 
-        return SetCombatPolicy(
-            context,
-            command.UnitIds,
-            unitId => combatPolicies.SetEngagementStance(unitId, command.Stance));
+        return command.Stance == EngagementStance.ReturnToBase ?
+            SetReturnToBaseStance(context, command) :
+            SetRegularEngagementStance(context, command);
+    }
+
+    /// <summary>设置普通战斗姿态，并在离开基地回防姿态时取消其活动回防订单。</summary>
+    private CommandResult SetRegularEngagementStance(
+        CommandContext context,
+        SetEngagementStanceCommand command)
+    {
+        var results = new List<UnitCommandResult>();
+        foreach (var unitId in StableDistinct(command.UnitIds))
+        {
+            var validation = ValidateOwnership(context, unitId);
+            if (validation != CommandErrorCode.None)
+            {
+                results.Add(new UnitCommandResult(unitId, false, validation));
+                continue;
+            }
+
+            if (orders.FindActive(unitId) is { Kind: UnitOrderKind.ReturnToBase } active)
+            {
+                // Transition first so a synchronous legacy movement callback cannot
+                // incorrectly report the superseded ReturnToBase order as Arrived.
+                orders.Transition(active.OrderId, UnitOrderState.Cancelled, context.CommandId);
+                movement.RequestHalt(unitId);
+            }
+
+            combatPolicies.SetEngagementStance(unitId, command.Stance);
+            results.Add(new UnitCommandResult(unitId, true, CommandErrorCode.None));
+        }
+        return Summarize(context.CommandId, results);
+    }
+
+    /// <summary>
+    /// 设置基地回防姿态：权威选择最近己方已完成 CommandCenter，
+    /// 再提交全速回防请求并建立可观察的持续订单。
+    /// </summary>
+    private CommandResult SetReturnToBaseStance(
+        CommandContext context,
+        SetEngagementStanceCommand command)
+    {
+        var results = new List<UnitCommandResult>();
+        foreach (var unitId in StableDistinct(command.UnitIds))
+        {
+            var validation = Validate(context, unitId);
+            if (validation != CommandErrorCode.None)
+            {
+                results.Add(new UnitCommandResult(unitId, false, validation));
+                continue;
+            }
+
+            var unit = units.Find(unitId)!.Value;
+            var commandCenter = _commandCenters?.FindNearestCompletedCommandCenter(
+                unit.OwnerId,
+                unit.Position);
+            if (commandCenter is not { } baseSnapshot)
+            {
+                results.Add(new UnitCommandResult(
+                    unitId,
+                    false,
+                    CommandErrorCode.CommandCenterNotFound));
+                continue;
+            }
+
+            var portResult = movement is IReturnToBaseMovementPort returnPort ?
+                returnPort.RequestReturnToBase(unitId, baseSnapshot.UnitId) :
+                // Keep old test/adapters source-compatible during the migration;
+                // the concrete Godot adapter implements the semantic port above.
+                movement.RequestMove(unitId, baseSnapshot.Position);
+            if (!portResult.Accepted)
+            {
+                results.Add(new UnitCommandResult(unitId, false, Map(portResult.Error)));
+                continue;
+            }
+
+            combatPolicies.SetEngagementStance(unitId, EngagementStance.ReturnToBase);
+            var target = new UnitOrderEntityTarget(
+                new BattlefieldEntityId(
+                    baseSnapshot.EntityKind,
+                    baseSnapshot.UnitId.Value),
+                baseSnapshot.TypeId);
+            var order = orders.Create(
+                context.CommandId,
+                unitId,
+                UnitOrderKind.ReturnToBase,
+                target);
+            orders.Transition(order.OrderId, UnitOrderState.InProgress);
+            results.Add(new UnitCommandResult(
+                unitId,
+                true,
+                CommandErrorCode.None,
+                order.OrderId));
+        }
+        return Summarize(context.CommandId, results);
     }
 
     /// <inheritdoc />
@@ -1229,6 +1323,14 @@ public sealed class UnitCommandService(
         IReadOnlyList<UnitId> unitIds,
         UnitOrderKind orderKind,
         UnitOrderTarget target,
+        Func<UnitId, MovementPortResult> execute) =>
+        ExecuteMove(context, unitIds, orderKind, _ => target, execute);
+
+    private CommandResult ExecuteMove(
+        CommandContext context,
+        IReadOnlyList<UnitId> unitIds,
+        UnitOrderKind orderKind,
+        Func<UnitId, UnitOrderTarget> targetFactory,
         Func<UnitId, MovementPortResult> execute)
     {
         var results = new List<UnitCommandResult>();
@@ -1247,11 +1349,96 @@ public sealed class UnitCommandService(
                 results.Add(new UnitCommandResult(unitId, false, Map(portResult.Error)));
                 continue;
             }
-            var order = orders.Create(context.CommandId, unitId, orderKind, target);
+            var order = orders.Create(context.CommandId, unitId, orderKind, targetFactory(unitId));
             orders.Transition(order.OrderId, UnitOrderState.InProgress);
             results.Add(new UnitCommandResult(unitId, true, CommandErrorCode.None, order.OrderId));
         }
         return Summarize(context.CommandId, results);
+    }
+
+    /// <summary>同一批移动命令共用一个目标点时的阵位间距（米）；大于最大单位直径，保证环间可通行。</summary>
+    private const float FormationSpacingMeters = 2.0f;
+
+    /// <summary>
+    /// 把一批单位共用的移动目标点散布成同心六边形环形阵位，避免大部队（人类或 AI 波次）挤向同一点。
+    /// 首单位占据目标点本身，其余按环展开；基准角取编队质心指向目标的方向，让阵列迎着前进方向展开。
+    /// </summary>
+    private Dictionary<UnitId, WorldPosition> ComputeFormationDestinations(
+        IReadOnlyList<UnitId> unitIds, WorldPosition destination)
+    {
+        var destinations = new Dictionary<UnitId, WorldPosition>();
+        var distinctUnits = StableDistinct(unitIds).ToList();
+        if (distinctUnits.Count <= 1)
+        {
+            foreach (var unitId in distinctUnits)
+            {
+                destinations[unitId] = destination;
+            }
+            return destinations;
+        }
+
+        var baseAngle = ComputeFormationBaseAngle(distinctUnits, destination);
+        for (var index = 0; index < distinctUnits.Count; index++)
+        {
+            destinations[distinctUnits[index]] = GetFormationSlotPosition(destination, index, baseAngle);
+        }
+        return destinations;
+    }
+
+    /// <summary>编队质心指向目标点的平面角；单位查询失败或距离过近则退回 0。</summary>
+    private float ComputeFormationBaseAngle(IReadOnlyList<UnitId> unitIds, WorldPosition destination)
+    {
+        var sumX = 0.0f;
+        var sumZ = 0.0f;
+        var count = 0;
+        foreach (var unitId in unitIds)
+        {
+            if (units.Find(unitId) is not { } snapshot)
+            {
+                continue;
+            }
+            sumX += snapshot.Position.X;
+            sumZ += snapshot.Position.Z;
+            count++;
+        }
+        if (count == 0)
+        {
+            return 0.0f;
+        }
+
+        var dx = destination.X - sumX / count;
+        var dz = destination.Z - sumZ / count;
+        if (dx * dx + dz * dz < 1e-4f)
+        {
+            return 0.0f;
+        }
+        return MathF.Atan2(dz, dx);
+    }
+
+    /// <summary>第 slotIndex 个阵位：0 号在目标点，之后按 1环6席、2环12席……展开，隔环错开半格。</summary>
+    private static WorldPosition GetFormationSlotPosition(WorldPosition destination, int slotIndex, float baseAngle)
+    {
+        if (slotIndex == 0)
+        {
+            return destination;
+        }
+
+        var remaining = slotIndex - 1;
+        var ring = 1;
+        while (remaining >= ring * 6)
+        {
+            remaining -= ring * 6;
+            ring++;
+        }
+        var slotsInRing = ring * 6;
+        var radius = ring * FormationSpacingMeters;
+        var slotAngle = baseAngle
+            + remaining * (MathF.PI * 2f / slotsInRing)
+            + (ring - 1) * (MathF.PI / 6f);
+        return new WorldPosition(
+            destination.X + MathF.Cos(slotAngle) * radius,
+            destination.Y,
+            destination.Z + MathF.Sin(slotAngle) * radius);
     }
 
     /// <summary>逐单位校验实体移动能力与自目标，并创建保留实体身份的订单。</summary>

@@ -44,6 +44,10 @@
 [ext_resource type="Script" path="res://source/match/handlers/BuildingOcclusionFade.gd" id="33_building_fade"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_ysb0j"]
+sky_top_color = Color(0.317647, 0.270588, 0.211765, 1)
+sky_horizon_color = Color(0.611765, 0.490196, 0.337255, 1)
+ground_bottom_color = Color(0.180392, 0.152941, 0.113725, 1)
+ground_horizon_color = Color(0.568627, 0.454902, 0.317647, 1)
 sun_angle_max = 200.0
 
 [sub_resource type="Sky" id="Sky_kunr4"]
@@ -51,15 +55,25 @@ sky_material = SubResource("ProceduralSkyMaterial_ysb0j")
 
 [sub_resource type="Environment" id="Environment_qxcnu"]
 background_mode = 2
-background_energy_multiplier = 1.2
+background_energy_multiplier = 1.25
 sky = SubResource("Sky_kunr4")
-ambient_light_color = Color(1, 1, 1, 1)
+ambient_light_color = Color(0.709804, 0.615686, 0.454902, 1)
+ambient_light_energy = 1.15
 tonemap_mode = 3
-tonemap_exposure = 0.9
-fog_light_color = Color(0.960784, 0.745098, 0.654902, 1)
-fog_density = 0.0016
-fog_height = 0.25
-fog_height_density = 1.2
+tonemap_exposure = 1.1
+fog_light_color = Color(0.647059, 0.560784, 0.419608, 1)
+fog_density = 0.004
+fog_height = 0.2
+fog_height_density = 0.5
+fog_sky_affect = 0.4
+fog_sun_scatter = 0.15
+volumetric_fog_enabled = true
+volumetric_fog_density = 0.014
+volumetric_fog_albedo = Color(0.878431, 0.74902, 0.54902, 1)
+volumetric_fog_length = 72.0
+volumetric_fog_ambient_inject = 0.85
+adjustment_enabled = true
+adjustment_saturation = 0.75
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_qw0ps"]
 render_priority = 0
@@ -188,6 +202,8 @@ bounding_planes = Array[Plane]([Plane(1, 0, 0, 0), Plane(-1, 0, 0, -50), Plane(0
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.512043, 0.673162, -0.533541, 0, 0.621148, 0.783694, 0.85896, -0.401285, 0.318054, 0, 38.7614, 0)
+light_color = Color(1, 0.839216, 0.647059, 1)
+light_energy = 1.05
 shadow_enabled = true
 shadow_bias = 0.3
 shadow_blur = 0.05

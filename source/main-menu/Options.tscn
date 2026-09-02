@@ -120,6 +120,12 @@ layout_mode = 2
 focus_mode = 0
 text = "将鼠标限制在游戏窗口内"
 
+[node name="SaveButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 52)
+theme = ExtResource("1_a5uwh")
+text = "保存设置"
+
 [node name="Button" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 52)
@@ -129,4 +135,5 @@ text = "返回"
 [connection signal="item_selected" from="PanelContainer/MarginContainer/VBoxContainer/DisplayPanel/MarginContainer/VBoxContainer/Screen" to="." method="_on_screen_item_selected"]
 [connection signal="item_selected" from="PanelContainer/MarginContainer/VBoxContainer/DisplayPanel/MarginContainer/VBoxContainer/ResolutionRow/Resolution" to="." method="_on_resolution_item_selected"]
 [connection signal="pressed" from="PanelContainer/MarginContainer/VBoxContainer/MousePanel/MarginContainer/VBoxContainer/MouseMovementRestricted" to="." method="_on_mouse_movement_restricted_pressed"]
+[connection signal="pressed" from="PanelContainer/MarginContainer/VBoxContainer/SaveButton" to="." method="_on_save_button_pressed"]
 [connection signal="pressed" from="PanelContainer/MarginContainer/VBoxContainer/Button" to="." method="_on_back_button_pressed"]

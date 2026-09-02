@@ -1,0 +1,13 @@
+Godot Engine v4.7.1.stable.mono.official.a13da4feb - https://godotengine.org
+
+[godot_ai game_helper] registered mcp capture (debugger active=false, logger=true)
+[INPUT] UnitActionsController waiting for local player player=Human
+[ECO] PublishSnapshot player=a0284941 a=0
+[INPUT] UnitActionsController enabled player=Human
+[RETURN_TEST] halt={ "command_id": "a4083f0e-7be7-4947-a17d-863d61c40b18", "status": "Accepted", "unit_results": [{ "unit_id": "28e71984-07b5-4c42-a14d-753b2e643ead", "accepted": true, "error_code": "None", "order_id": "" }] } order=Arrived active=
+ERROR: Tank return to base assertion failed: 停止应暂停回基地订单
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check (res://tests/automated/TankReturnToBaseSmokeTest.gd:92)
+       [1] _ready (res://tests/automated/TankReturnToBaseSmokeTest.gd:71)
+Tank return to base smoke test completed: 1 failure(s)

@@ -25,6 +25,7 @@ config/icon="res://icon.svg"
 [autoload]
 
 NetSession="*res://source/net/NetSession.gd"
+DebugControlServer="*res://source/net/DebugControlServer.gd"
 FeatureFlags="*res://source/FeatureFlags.tscn"
 Constants="*res://source/Constants.gd"
 Globals="*res://source/Globals.gd"
@@ -241,5 +242,5 @@ locale/translations=PackedStringArray("res://assets/translations/match.en.transl
 
 [rendering]
 
-renderer/rendering_method="gl_compatibility"
+renderer/rendering_method="forward_plus"
 renderer/rendering_method.mobile="gl_compatibility"

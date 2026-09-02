@@ -31,25 +31,40 @@ public partial class BalanceConfigRuntime : Node
     /// <summary>在其他 Match 子节点初始化前完成配置加载；错误配置直接阻止对局启动。</summary>
     public override void _EnterTree()
     {
-        var balance = new BalanceConfigLoader().Load(
-            ReadText(BalanceConfigPath),
-            DemoBalanceRequirements.Create());
-        if (!balance.Succeeded)
+        // 修复联机/进局黑屏：C# 异常从 _EnterTree 抛到 Godot 会中断节点初始化，
+        // 导致 Assets/Catalog 永远保持 null，随后每个 C# 调用都在 GDScript 侧
+        // 触发 NullReferenceException 级联（WorkerMenu._ready → Loading 卡死 → 黑屏）。
+        // 这里吞掉异常并降级：打印完整堆栈后让对局以「配置降级」方式继续启动，
+        // 各查询方法的 null 防御会返回空结果而不是再次级联崩溃。
+        try
         {
-            Fail("平衡配置加载失败", balance.Errors.Select(item =>
-                $"{item.Code} {item.Path}: {item.Message}"));
-        }
-        Catalog = balance.Catalog!;
+            var balance = new BalanceConfigLoader().Load(
+                ReadText(BalanceConfigPath),
+                DemoBalanceRequirements.Create());
+            if (!balance.Succeeded)
+            {
+                Fail("平衡配置加载失败", balance.Errors.Select(item =>
+                    $"{item.Code} {item.Path}: {item.Message}"));
+                return;
+            }
+            Catalog = balance.Catalog!;
 
-        var assets = new GodotAssetManifestLoader().Load(
-            ReadText(AssetManifestPath),
-            Catalog);
-        if (!assets.Succeeded)
-        {
-            Fail("Godot asset manifest 加载失败", assets.Errors.Select(item =>
-                $"{item.Code} {item.Path}: {item.Message}"));
+            var assets = new GodotAssetManifestLoader().Load(
+                ReadText(AssetManifestPath),
+                Catalog);
+            if (!assets.Succeeded)
+            {
+                Fail("Godot asset manifest 加载失败", assets.Errors.Select(item =>
+                    $"{item.Code} {item.Path}: {item.Message}"));
+                return;
+            }
+            Assets = assets.Manifest!;
         }
-        Assets = assets.Manifest!;
+        catch (System.Exception ex)
+        {
+            GD.PrintErr($"[BalanceConfigRuntime] 初始化异常，配置降级继续启动：{ex}");
+            GD.PushError($"[BalanceConfigRuntime] 初始化异常，配置降级继续启动：{ex.Message}");
+        }
     }
 
     /// <summary>按单位或建筑场景查询稳定 UnitTypeId；未知场景返回空字符串。</summary>
@@ -84,10 +99,30 @@ public partial class BalanceConfigRuntime : Node
     /// <summary>返回 HUD 可消费的单位只读显示快照；数值仍以 Catalog 为权威来源。</summary>
     public Godot.Collections.Dictionary GetUnitDisplaySnapshot(PackedScene scene)
     {
-        var unitTypeId = Assets.FindUnitType(scene) ??
-            throw new InvalidOperationException($"场景 {scene.ResourcePath} 没有单位映射。");
-        var unit = Catalog.FindUnitType(unitTypeId) ??
-            throw new InvalidOperationException($"单位类型 {unitTypeId.Value} 不存在。");
+        // 防御：配置降级时返回最小快照（含 GDScript 会读取的键），避免 throw 中断
+        // GDScript 调用栈造成 HUD 初始化级联失败（修复进局黑屏）。
+        if (Catalog is null || Assets is null || scene is null)
+        {
+            return new Godot.Collections.Dictionary
+            {
+                ["unit_type_id"] = string.Empty,
+                ["hp_max"] = 0.0f,
+                ["sight_range"] = 0.0f
+            };
+        }
+        var unitTypeId = Assets.FindUnitType(scene);
+        var unit = unitTypeId is null ? null : Catalog.FindUnitType(unitTypeId.Value);
+        if (unit is null)
+        {
+            GD.PushWarning(
+                $"[BalanceConfigRuntime] 场景缺少单位映射（配置降级）：{scene.ResourcePath}");
+            return new Godot.Collections.Dictionary
+            {
+                ["unit_type_id"] = string.Empty,
+                ["hp_max"] = 0.0f,
+                ["sight_range"] = 0.0f
+            };
+        }
         var result = new Godot.Collections.Dictionary
         {
             ["unit_type_id"] = unit.Id.Value,
@@ -121,9 +156,15 @@ public partial class BalanceConfigRuntime : Node
     /// <summary>按建筑场景返回包含 resource_a/resource_b 的施工成本副本。</summary>
     public Godot.Collections.Dictionary GetConstructionCost(PackedScene scene)
     {
-        var definition = FindConstruction(scene) ??
-            throw new InvalidOperationException($"场景 {scene.ResourcePath} 没有施工定义。");
-        return ToLegacyCosts(definition.Placement.ConstructionCost);
+        // 防御：配置降级时返回空成本，而不是抛异常中断 GDScript 调用栈（修复黑屏级联）。
+        if (Catalog is null || Assets is null || scene is null)
+        {
+            return new Godot.Collections.Dictionary();
+        }
+        var definition = FindConstruction(scene);
+        return definition is null ?
+            new Godot.Collections.Dictionary() :
+            ToLegacyCosts(definition.Placement.ConstructionCost);
     }
 
     /// <summary>把不可变单位类型和主武器快照写入 Legacy Unit 表现节点。</summary>
@@ -150,6 +191,11 @@ public partial class BalanceConfigRuntime : Node
     /// <summary>按 PackedScene 查询已经验证的建筑施工定义。</summary>
     internal StructureConstructionDefinition? FindConstruction(PackedScene scene)
     {
+        // 防御：配置降级或场景缺失时返回空，避免 NullReferenceException 级联（修复黑屏）。
+        if (Catalog is null || Assets is null || scene is null)
+        {
+            return null;
+        }
         var unitTypeId = Assets.FindUnitType(scene);
         return unitTypeId is null ? null :
             Catalog.FindConstruction(new StructureDefinitionId(unitTypeId.Value.Value));
@@ -198,6 +244,7 @@ public partial class BalanceConfigRuntime : Node
         }
         movement.Set("domain", definition.Movement.Domain == CombatDomain.Air ? 0 : 1);
         movement.Set("speed", definition.Movement.SpeedMetersPerSecond);
+        movement.Set("max_turn_speed_deg_per_sec", definition.Movement.MaxTurnDegreesPerSecond);
         movement.Set("reverse_speed_multiplier", definition.Movement.ReverseSpeedMultiplier);
     }
 
@@ -266,6 +313,7 @@ public partial class BalanceConfigRuntime : Node
         var message = $"{title}：{System.Environment.NewLine}" +
             string.Join(System.Environment.NewLine, errors);
         GD.PushError(message);
+        GD.PrintErr(message);  // 同时写 stderr：Godot logger 未必转发到进程 stderr，便于离线诊断
         throw new InvalidOperationException(message);
     }
 }

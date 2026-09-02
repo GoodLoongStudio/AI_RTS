@@ -54,8 +54,19 @@ public partial class CommandRuntime : Node
     /// <summary>保存本 Match 中所有控制器共享的单位交战姿态与开火策略。</summary>
     private readonly InMemoryCombatPolicyStore _combatPolicies = new();
 
+    /// <summary>按权威 SceneTree 查询己方已完成 CommandCenter。</summary>
+    private GodotCommandCenterRepository _commandCenters = null!;
+
     /// <summary>记录已订阅单位退出事件的 ID，避免多个控制器重复连接。</summary>
     private readonly HashSet<UnitId> _deathTrackedUnits = new();
+
+    /// <summary>
+    /// 保存每个单位当前回基地订单的持续终态监听。
+    /// ReturningToBase 到达基地后仍会保留 Action，因此该监听不能使用 OneShot；
+    /// 订单被替换或进入真正终态时再主动断开。
+    /// </summary>
+    private readonly Dictionary<UnitId, ReturnToBaseSignalSubscription>
+        _returnToBaseSubscriptions = new();
 
     /// <summary>等待系统驱逐完成后才启动的施工任务；任意新玩家订单都会使其失效。</summary>
     private readonly Dictionary<UnitId, PendingConstruction> _pendingConstruction = new();
@@ -104,6 +115,7 @@ public partial class CommandRuntime : Node
             new LegacyConstructionWorkerPort(_units, _constructionSites),
             _constructionSites,
             economy.AccountService);
+        _commandCenters = new GodotCommandCenterRepository(GetParent(), _units);
         _matchSignals = GetNode("/root/MatchSignals");
         _onUnitSpawned = Callable.From<Node>(OnUnitSpawned);
         _onUnitDamaged = Callable.From<Node>(OnUnitDamaged);
@@ -128,7 +140,8 @@ public partial class CommandRuntime : Node
             _skillCooldowns,
             new LegacyMoveSpeedPort(_units),
             GetParent().GetNodeOrNull<BattlefieldEventRuntime>("BattlefieldEventRuntime")?.Log,
-            new GodotSkillObjectSpawnPort(_units, _balance.Assets, _matchSignals!));
+            new GodotSkillObjectSpawnPort(_units, _balance.Assets, _matchSignals!),
+            _commandCenters);
         CallDeferred(nameof(EquipExistingUnits));
     }
 
@@ -148,6 +161,11 @@ public partial class CommandRuntime : Node
     /// <inheritdoc />
     public override void _ExitTree()
     {
+        foreach (var unitId in _returnToBaseSubscriptions.Keys.ToArray())
+        {
+            RemoveReturnToBaseSubscription(unitId);
+        }
+
         if (_matchSignals is null || !GodotObject.IsInstanceValid(_matchSignals))
         {
             return;
@@ -462,6 +480,12 @@ public partial class CommandRuntime : Node
         var nodes = unitNodes.ToArray();
         var unitIds = nodes.Select(_units.Register).ToArray();
         var result = _commands.HaltMovement(context, new HaltMovementCommand(unitIds));
+        // Halt tears down the legacy ReturningToBase Action even when its
+        // order has already reported Arrived (and is no longer active).
+        foreach (var item in result.UnitResults.Where(item => item.Accepted))
+        {
+            RemoveReturnToBaseSubscription(item.UnitId);
+        }
         UpdateGuardAnchorsForAccepted(result);
         return result;
     }
@@ -474,6 +498,10 @@ public partial class CommandRuntime : Node
         var result = _commands.HaltMovement(
             CreateContext(issuerPlayer),
             new HaltMovementCommand(unitIds));
+        foreach (var item in result.UnitResults.Where(item => item.Accepted))
+        {
+            RemoveReturnToBaseSubscription(item.UnitId);
+        }
         UpdateGuardAnchorsForAccepted(result);
         return result;
     }
@@ -487,7 +515,13 @@ public partial class CommandRuntime : Node
         {
             _pendingConstruction.Remove(unitId);
         }
-        return _commands.Stop(context, new StopUnitsCommand(unitIds));
+        var result = _commands.Stop(context, new StopUnitsCommand(unitIds));
+        // Stop has the same Arrived-with-persistent-Action edge case as Halt.
+        foreach (var item in result.UnitResults.Where(item => item.Accepted))
+        {
+            RemoveReturnToBaseSubscription(item.UnitId);
+        }
+        return result;
     }
 
     /// <summary>代表指定玩家设置一组 Godot 单位的持续交战姿态。</summary>
@@ -501,6 +535,19 @@ public partial class CommandRuntime : Node
         var result = _commands.SetEngagementStance(
             context,
             new SetEngagementStanceCommand(nodes.Select(_units.Register).ToArray(), stance));
+        if (stance == EngagementStance.ReturnToBase)
+        {
+            TrackAcceptedReturnToBaseOrders(result);
+        }
+        else
+        {
+            // Leaving ReturnToBase must release its persistent signal even
+            // after the historical order has reached Arrived.
+            foreach (var item in result.UnitResults.Where(item => item.Accepted))
+            {
+                RemoveReturnToBaseSubscription(item.UnitId);
+            }
+        }
         foreach (var item in result.UnitResults.Where(item => item.Accepted))
         {
             if (stance != EngagementStance.Guard)
@@ -776,6 +823,13 @@ public partial class CommandRuntime : Node
             new Vector3(value.X, value.Y, value.Z) : Vector3.Inf;
     }
 
+    /// <summary>
+    /// 返回单位所属玩家最近的已完成 CommandCenter，供回基地 Action 动态重选目标。
+    /// 找不到基地时返回 null；该查询只在权威 Match 进程执行。
+    /// </summary>
+    public Node? FindNearestCompletedCommandCenter(Node unitNode) =>
+        _commandCenters.FindNearestCompletedCommandCenterNode(unitNode);
+
     /// <summary>查询指定单位当前活动订单的状态名称，主要用于桥接期诊断。</summary>
     public string GetActiveOrderState(Node unitNode)
     {
@@ -813,6 +867,23 @@ public partial class CommandRuntime : Node
         if (change.Previous is null && change.Current.Kind != UnitOrderKind.Construct)
         {
             _pendingConstruction.Remove(change.Current.UnitId);
+        }
+        // A new non-ReturnToBase order can replace a historical Arrived
+        // ReturnToBase order, which is no longer present in the active index.
+        // Remove its lingering signal listener when that creation event lands.
+        if (change.Previous is null && change.Current.Kind != UnitOrderKind.ReturnToBase)
+        {
+            RemoveReturnToBaseSubscription(change.Current.UnitId);
+        }
+        // ReturnToBase emits Arrived as a persistent waypoint. Every other
+        // state transition means the old signal subscription is no longer
+        // useful (including cancellation caused by a replacement order).
+        if (change.Previous?.Kind == UnitOrderKind.ReturnToBase &&
+            change.Current.State != UnitOrderState.Arrived)
+        {
+            RemoveReturnToBaseSubscription(
+                change.Current.UnitId,
+                change.Current.OrderId);
         }
         if (_IsTerminal(change.Current.State))
         {
@@ -893,6 +964,107 @@ public partial class CommandRuntime : Node
             {
                 unit.TreeExiting += () => LoseActiveOrder(item.UnitId);
             }
+        }
+    }
+
+    /// <summary>跟踪回基地 Action 的真实贴近/目标失效终态，不把中间导航完成误判为到达。</summary>
+    private void TrackAcceptedReturnToBaseOrders(CommandResult result)
+    {
+        foreach (var item in result.UnitResults)
+        {
+            if (!item.Accepted || item.OrderId is not { } orderId ||
+                !_units.TryGetNode(item.UnitId, out var unit))
+            {
+                continue;
+            }
+
+            // A new ReturnToBase command supersedes any previous listener for
+            // this unit. The order store emits the cancellation event too, but
+            // removing here makes the adapter robust to alternate stores.
+            RemoveReturnToBaseSubscription(item.UnitId);
+            if (unit.HasSignal("return_to_base_ended"))
+            {
+                var unitId = item.UnitId;
+                var callback = Callable.From<string>(reason => EndReturnToBaseIfActive(
+                    unitId, orderId, reason));
+                unit.Connect("return_to_base_ended", callback);
+                _returnToBaseSubscriptions[unitId] =
+                    new ReturnToBaseSignalSubscription(unit, orderId, callback);
+            }
+            if (_deathTrackedUnits.Add(item.UnitId))
+            {
+                unit.TreeExiting += () => LoseActiveOrder(item.UnitId);
+            }
+        }
+    }
+
+    /// <summary>仅在回调仍属于指定 ReturnToBase 订单时记录明确终态。</summary>
+    private void EndReturnToBaseIfActive(
+        UnitId unitId,
+        UnitOrderId orderId,
+        string reason)
+    {
+        if (!_returnToBaseSubscriptions.TryGetValue(unitId, out var subscription) ||
+            subscription.OrderId != orderId)
+        {
+            return;
+        }
+
+        // Arrived is a waypoint for a persistent stance. The order store keeps
+        // its historical Arrived snapshot, so later TargetLost can still be
+        // reported against the same order after the base is destroyed.
+        var order = _orders.Find(orderId);
+        if (order is null || order.Kind != UnitOrderKind.ReturnToBase)
+        {
+            RemoveReturnToBaseSubscription(unitId, orderId);
+            return;
+        }
+
+        var state = reason switch
+        {
+            "Arrived" => UnitOrderState.Arrived,
+            "TargetLost" => UnitOrderState.TargetLost,
+            "Unreachable" => UnitOrderState.Unreachable,
+            _ => UnitOrderState.Cancelled
+        };
+        if (state == UnitOrderState.Arrived)
+        {
+            // Ignore a stale movement callback after an explicit Stop or a
+            // replacement command. Only an executing/previously-arrived order
+            // may report this waypoint.
+            if (order.State is UnitOrderState.Accepted or UnitOrderState.InProgress or
+                UnitOrderState.Arrived)
+            {
+                _orders.Transition(orderId, state);
+            }
+            return;
+        }
+
+        if (order.State is UnitOrderState.Cancelled or UnitOrderState.TargetLost or
+            UnitOrderState.Unreachable or UnitOrderState.UnitLost)
+        {
+            RemoveReturnToBaseSubscription(unitId, orderId);
+            return;
+        }
+
+        _orders.Transition(orderId, state);
+        RemoveReturnToBaseSubscription(unitId, orderId);
+    }
+
+    /// <summary>断开指定单位的回基地持续监听；可选订单 ID 防止误删新订单。</summary>
+    private void RemoveReturnToBaseSubscription(UnitId unitId, UnitOrderId? expectedOrderId = null)
+    {
+        if (!_returnToBaseSubscriptions.TryGetValue(unitId, out var subscription) ||
+            expectedOrderId is { } expected && subscription.OrderId != expected)
+        {
+            return;
+        }
+
+        _returnToBaseSubscriptions.Remove(unitId);
+        if (GodotObject.IsInstanceValid(subscription.Unit) &&
+            subscription.Unit.IsConnected("return_to_base_ended", subscription.Callback))
+        {
+            subscription.Unit.Disconnect("return_to_base_ended", subscription.Callback);
         }
     }
 
@@ -1116,6 +1288,7 @@ public partial class CommandRuntime : Node
     /// <summary>在单位退出 SceneTree 时，将其当前活动订单转换为 UnitLost。</summary>
     private void LoseActiveOrder(UnitId unitId)
     {
+        RemoveReturnToBaseSubscription(unitId);
         if (_orders.FindActive(unitId) is { } active)
         {
             _orders.Transition(active.OrderId, UnitOrderState.UnitLost);
@@ -1133,6 +1306,7 @@ public partial class CommandRuntime : Node
         UnitOrderKind.GroundAttackMove => OrderObservationKind.GroundAttackMove,
         UnitOrderKind.EntityAttackMove => OrderObservationKind.EntityAttackMove,
         UnitOrderKind.TacticalWithdraw => OrderObservationKind.TacticalWithdraw,
+        UnitOrderKind.ReturnToBase => OrderObservationKind.ReturnToBase,
         UnitOrderKind.Attack => OrderObservationKind.Attack,
         UnitOrderKind.ForceAttack => OrderObservationKind.ForceAttack,
         UnitOrderKind.GroundForceAttack => OrderObservationKind.GroundForceAttack,
@@ -1192,6 +1366,12 @@ public partial class CommandRuntime : Node
     /// <summary>验证 Godot 世界坐标不含 NaN 或 Infinity。</summary>
     private static bool Finite(Vector3 value) =>
         float.IsFinite(value.X) && float.IsFinite(value.Y) && float.IsFinite(value.Z);
+
+    /// <summary>保存回基地信号的拥有者、订单身份与可断开的回调。</summary>
+    private sealed record ReturnToBaseSignalSubscription(
+        Node Unit,
+        UnitOrderId OrderId,
+        Callable Callback);
 
     /// <summary>弱引用保存一次驱逐后的待施工意图，避免延长 Node 生命周期。</summary>
     private sealed record PendingConstruction(

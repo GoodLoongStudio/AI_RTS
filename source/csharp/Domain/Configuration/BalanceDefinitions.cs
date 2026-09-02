@@ -17,6 +17,7 @@ public sealed record BalanceConfigVersion(
 /// <summary>描述移动能力的领域无关数值。</summary>
 /// <param name="Domain">单位使用的移动空间。</param>
 /// <param name="SpeedMetersPerSecond">正常移动速度，单位为米/秒。</param>
+/// <param name="MaxTurnDegreesPerSecond">朝向平滑转向的最大角速度，单位为度/秒。</param>
 /// <param name="CanReverse">是否支持沿实时路径倒车。</param>
 /// <param name="ReverseSpeedMultiplier">倒车速度相对正常速度的倍率。</param>
 /// <param name="CanFireWhileMoving">是否允许普通移动期间开火。</param>
@@ -24,6 +25,7 @@ public sealed record BalanceConfigVersion(
 public sealed record UnitMovementDefinition(
     CombatDomain Domain,
     float SpeedMetersPerSecond,
+    float MaxTurnDegreesPerSecond,
     bool CanReverse,
     float ReverseSpeedMultiplier,
     bool CanFireWhileMoving,
