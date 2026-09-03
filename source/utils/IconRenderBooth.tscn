@@ -1,4 +1,4 @@
-[gd_scene load_steps=35 format=4 uid="uid://c8mbc86v208ov"]
+[gd_scene load_steps=36 format=4 uid="uid://c8mbc86v208ov"]
 
 [ext_resource type="Script" path="res://source/utils/IconRenderBooth.gd" id="1_r5pdx"]
 [ext_resource type="Material" uid="uid://822ai1mlwg5d" path="res://source/match/resources/materials/resource_a.material.tres" id="2_67sfm"]
@@ -8,11 +8,12 @@
 [ext_resource type="PackedScene" uid="uid://cm3iqdsdeo625" path="res://source/match/units/structure-geometries/AntiAirTurret.tscn" id="6_a5m0n"]
 [ext_resource type="PackedScene" uid="uid://bklfapayb1ryk" path="res://source/match/units/structure-geometries/AircraftFactory.tscn" id="7_l62dt"]
 [ext_resource type="PackedScene" uid="uid://inepf56pyube" path="res://source/match/units/structure-geometries/VehicleFactory.tscn" id="8_j4wnw"]
-[ext_resource type="PackedScene" uid="uid://bm8n8g2h8yi1p" path="res://assets/models/kenney-spacekit/craft_cargoB.glb" id="9_l3ayu"]
-[ext_resource type="PackedScene" uid="uid://chmayxp3itowx" path="res://assets/models/kenney-spacekit/craft_miner.glb" id="10_unqbo"]
-[ext_resource type="PackedScene" uid="uid://d1ekv61cse3bl" path="res://assets/models/kenney-spacekit/craft_racer.glb" id="11_ssv8t"]
-[ext_resource type="PackedScene" uid="uid://cmvtt1w71wso2" path="res://assets/models/kenney-spacekit/craft_speederA.glb" id="12_crnju"]
-[ext_resource type="PackedScene" uid="uid://j5umsiiyb8a7" path="res://assets/models/kenney-spacekit/rover.glb" id="13_p31ce"]
+[ext_resource type="PackedScene" uid="uid://1k80404fjx2f" path="res://assets/models/polygon-scifi/SM_Veh_HoverTank_01.fbx" id="9_hovertank"]
+[ext_resource type="PackedScene" uid="uid://y282bf7k53b5" path="res://assets/models/polygon-scifi/SM_Veh_HoverCraft_01.fbx" id="11_hovercraft"]
+[ext_resource type="PackedScene" uid="uid://y282bexu5ab5" path="res://assets/models/polygon-scifi/SM_Veh_Hover_Bike_01.fbx" id="12_hoverbike"]
+[ext_resource type="PackedScene" uid="uid://bbpu21fbq68b5" path="res://assets/models/polygon-scifi/SM_Veh_Buggy_01.fbx" id="13_buggy"]
+[ext_resource type="Texture2D" uid="uid://n5jvo5mqogyr" path="res://assets/models/polygon-scifi/PolygonScifiWorlds_Texture_01_A.png" id="13_scifi_atlas"]
+[ext_resource type="Script" path="res://source/match/units/SyntyMaterialBinder.gd" id="13_synty_binder"]
 [ext_resource type="Texture2D" uid="uid://dvbs0b0b4cnew" path="res://assets/ui/icons/texture_01.png" id="14_1issp"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_edvyk"]
@@ -356,11 +357,12 @@ fov = 20.0
 [node name="Geometry" type="Node3D" parent="RenderBooth/Tank"]
 transform = Transform3D(0.6, 0, 0, 0, 0.6, 0, 0, 0, 0.6, 0, 0, 0)
 
-[node name="craft_cargoB" parent="RenderBooth/Tank/Geometry" instance=ExtResource("9_l3ayu")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, -0.107278, -1.5)
+[node name="SM_Veh_HoverTank_01" parent="RenderBooth/Tank/Geometry" instance=ExtResource("9_hovertank")]
+transform = Transform3D(-0.35, 0, 0, 0, 0.35, 0, 0, 0, -0.35, 0, 0.25, 0)
 
-[node name="craft_miner" parent="RenderBooth/Tank/Geometry" instance=ExtResource("10_unqbo")]
-transform = Transform3D(0.7, 0, 0, 0, 0.7, 0, 0, 0, 0.7, -1.4, 0.586939, -1.66923)
+[node name="SyntyMaterialBinder" type="Node" parent="RenderBooth/Tank/Geometry"]
+script = ExtResource("13_synty_binder")
+albedo_texture = ExtResource("13_scifi_atlas")
 
 [node name="ProjectileOrigin" type="Marker3D" parent="RenderBooth/Tank/Geometry"]
 transform = Transform3D(1.66667, 0, 0, 0, 1.66667, 0, 0, 0, 1.66667, 0, 0.757843, -1.59549)
@@ -375,30 +377,15 @@ fov = 20.0
 [node name="Geometry" type="Node3D" parent="RenderBooth/Helicopter"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.54, 0)
 
-[node name="craft_racer" parent="RenderBooth/Helicopter/Geometry" instance=ExtResource("11_ssv8t")]
-transform = Transform3D(0.7, 0, 0, 0, 0.7, 0, 0, 0, 0.7, -1.4, 0, -1.05)
+[node name="SM_Veh_HoverCraft_01" parent="RenderBooth/Helicopter/Geometry" instance=ExtResource("11_hovercraft")]
+transform = Transform3D(-0.28, 0, 0, 0, 0.28, 0, 0, 0, -0.28, 0, 0.05, 0)
+
+[node name="SyntyMaterialBinder" type="Node" parent="RenderBooth/Helicopter/Geometry"]
+script = ExtResource("13_synty_binder")
+albedo_texture = ExtResource("13_scifi_atlas")
 
 [node name="ProjectileOrigin" type="Marker3D" parent="RenderBooth/Helicopter/Geometry"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.734451)
-
-[node name="Rotor" type="Node3D" parent="RenderBooth/Helicopter/Geometry"]
-
-[node name="Blade" type="MeshInstance3D" parent="RenderBooth/Helicopter/Geometry/Rotor"]
-transform = Transform3D(0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, 0.707107, 0, 0.531828, 0)
-material_override = SubResource("StandardMaterial3D_io5xm")
-mesh = SubResource("BoxMesh_plna1")
-skeleton = NodePath("")
-
-[node name="Blade2" type="MeshInstance3D" parent="RenderBooth/Helicopter/Geometry/Rotor"]
-transform = Transform3D(0.707107, 0, -0.707107, 0, 1, 0, 0.707107, 0, 0.707107, 0, 0.531828, 0)
-material_override = SubResource("StandardMaterial3D_27534")
-mesh = SubResource("BoxMesh_2bkqi")
-skeleton = NodePath("")
-
-[node name="Base" type="MeshInstance3D" parent="RenderBooth/Helicopter/Geometry/Rotor"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.476592, 0)
-material_override = SubResource("StandardMaterial3D_27534")
-mesh = SubResource("CylinderMesh_cr7co")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, -1.1)
 
 [node name="Drone" type="Node3D" parent="RenderBooth"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21, 0, 0)
@@ -410,8 +397,12 @@ fov = 20.0
 [node name="Geometry2" type="Node3D" parent="RenderBooth/Drone"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.505, 0)
 
-[node name="craft_speederA" parent="RenderBooth/Drone/Geometry2" instance=ExtResource("12_crnju")]
-transform = Transform3D(0.3, 0, 0, 0, 0.3, 0, 0, 0, 0.3, -0.6, 0, -0.45)
+[node name="SM_Veh_Hover_Bike_01" parent="RenderBooth/Drone/Geometry2" instance=ExtResource("12_hoverbike")]
+transform = Transform3D(-0.22, 0, 0, 0, 0.22, 0, 0, 0, -0.22, 0, 0.08, 0)
+
+[node name="SyntyMaterialBinder" type="Node" parent="RenderBooth/Drone/Geometry2"]
+script = ExtResource("13_synty_binder")
+albedo_texture = ExtResource("13_scifi_atlas")
 
 [node name="Worker" type="Node3D" parent="RenderBooth"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22, 0, 0)
@@ -423,8 +414,12 @@ fov = 20.0
 [node name="Geometry" type="Node3D" parent="RenderBooth/Worker"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.02, 0)
 
-[node name="rover" parent="RenderBooth/Worker/Geometry" instance=ExtResource("13_p31ce")]
-transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, -4, 0, -3)
+[node name="SM_Veh_Buggy_01" parent="RenderBooth/Worker/Geometry" instance=ExtResource("13_buggy")]
+transform = Transform3D(-0.22, 0, 0, 0, 0.22, 0, 0, 0, -0.22, 0, 0.05, 0)
+
+[node name="SyntyMaterialBinder" type="Node" parent="RenderBooth/Worker/Geometry"]
+script = ExtResource("13_synty_binder")
+albedo_texture = ExtResource("13_scifi_atlas")
 
 [editable path="RenderBooth/CommandCenter/Geometry"]
 [editable path="RenderBooth/AntiGroundTurret/Geometry"]
@@ -433,4 +428,3 @@ transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, -4, 0, -3)
 [editable path="RenderBooth/AntiAirTurret/Geometry/turret_double"]
 [editable path="RenderBooth/AircraftFactory/Geometry"]
 [editable path="RenderBooth/VehicleFactory/Geometry"]
-[editable path="RenderBooth/Worker/Geometry/rover"]

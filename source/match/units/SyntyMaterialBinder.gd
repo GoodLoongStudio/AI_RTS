@@ -10,14 +10,20 @@ extends Node
 @export var albedo_texture: Texture2D
 @export var albedo_color: Color = Color.WHITE
 
+static var _shared_materials := {}
+
 
 func _ready() -> void:
 	if albedo_texture == null:
 		push_warning("SyntyMaterialBinder 未配置图集，保持白模")
 		return
-	var material := StandardMaterial3D.new()
-	material.albedo_texture = albedo_texture
-	material.albedo_color = albedo_color
+	var cache_key := "%s|%s" % [albedo_texture.resource_path, albedo_color.to_html()]
+	var material: StandardMaterial3D = _shared_materials.get(cache_key)
+	if material == null:
+		material = StandardMaterial3D.new()
+		material.albedo_texture = albedo_texture
+		material.albedo_color = albedo_color
+		_shared_materials[cache_key] = material
 	var target := get_parent()
 	if target == null:
 		return

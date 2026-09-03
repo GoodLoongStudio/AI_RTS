@@ -12,7 +12,10 @@ func _ready():
 
 
 func _physics_process(delta):
-	find_child("Rotor").rotation_degrees.y += ROTOR_SPEED * delta
+	var rotor := find_child("Rotor")
+	if rotor == null:
+		return
+	rotor.rotation_degrees.y += ROTOR_SPEED * delta
 
 
 func _on_action_changed(new_action):

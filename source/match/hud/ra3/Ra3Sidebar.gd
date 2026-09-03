@@ -5,15 +5,15 @@ extends PanelContainer
 ## 建筑页签点击后自动挑选空闲工人进入蓝图放置流程。
 ## 图标约定：res://source/match/hud/ra3/icons/<icon>.png 存在则用图，否则退化为文字格子。
 
-const CommandCenterUnit = preload("res://source/match/units/CommandCenter.tscn")
-const VehicleFactoryUnit = preload("res://source/match/units/VehicleFactory.tscn")
-const AircraftFactoryUnit = preload("res://source/match/units/AircraftFactory.tscn")
-const AntiGroundTurretUnit = preload("res://source/match/units/AntiGroundTurret.tscn")
-const AntiAirTurretUnit = preload("res://source/match/units/AntiAirTurret.tscn")
-const WorkerUnit = preload("res://source/match/units/Worker.tscn")
-const TankUnit = preload("res://source/match/units/Tank.tscn")
-const HelicopterUnit = preload("res://source/match/units/Helicopter.tscn")
-const DroneUnit = preload("res://source/match/units/Drone.tscn")
+const CommandCenterUnit := "res://source/match/units/CommandCenter.tscn"
+const VehicleFactoryUnit := "res://source/match/units/VehicleFactory.tscn"
+const AircraftFactoryUnit := "res://source/match/units/AircraftFactory.tscn"
+const AntiGroundTurretUnit := "res://source/match/units/AntiGroundTurret.tscn"
+const AntiAirTurretUnit := "res://source/match/units/AntiAirTurret.tscn"
+const WorkerUnit := "res://source/match/units/Worker.tscn"
+const TankUnit := "res://source/match/units/Tank.tscn"
+const HelicopterUnit := "res://source/match/units/Helicopter.tscn"
+const DroneUnit := "res://source/match/units/Drone.tscn"
 
 ## RA3 式生产分类。place=true 走蓝图放置（工人建造）；否则 producer 建筑排队生产。
 const TABS = [
@@ -441,6 +441,18 @@ func _make_cell(item: Dictionary) -> Dictionary:
 	}
 
 
+func _scene_path(value) -> String:
+	if value is PackedScene:
+		return value.resource_path
+	return str(value)
+
+
+func _packed_scene(value) -> PackedScene:
+	if value is PackedScene:
+		return value
+	return load(str(value)) as PackedScene
+
+
 func _load_icon(icon_key: String) -> Texture2D:
 	if icon_key == null or icon_key.is_empty():
 		return null
@@ -459,9 +471,9 @@ func _cost_caption(item: Dictionary) -> String:
 	if item.get("place", false):
 		if not _balance.has_method("GetConstructionCost"):
 			return ""
-		cost = _balance.GetConstructionCost(item.scene)
+		cost = _balance.GetConstructionCost(_packed_scene(item.scene))
 	else:
-		cost = _balance.GetProductionCost(item.scene)
+		cost = _balance.GetProductionCost(_packed_scene(item.scene))
 	if cost == null:
 		return ""
 	var a := int(cost.get("resource_a", 0))
@@ -477,8 +489,8 @@ func _item_tooltip(item: Dictionary) -> String:
 		lines.append("由%s生产（右键取消排队）" % str(item.get("producer_caption", "")))
 	var cost_text := _cost_caption(item)
 	if not cost_text.is_empty():
-		var costs = cost_text.split("/")
-		lines.append("资源 A: %s  资源 B: %s" % [costs[0], costs[1]])
+		# _cost_caption 现在只返回折算后的单一 A 资源数字（如 "2400"），不再含 "/"。
+		lines.append("资源: %s" % cost_text)
 	return "\n".join(lines)
 
 
@@ -486,7 +498,7 @@ func _item_tooltip(item: Dictionary) -> String:
 
 func _on_cell_pressed(item: Dictionary):
 	if item.get("place", false):
-		_begin_structure_placement(item.scene)
+		_begin_structure_placement(_packed_scene(item.scene))
 	else:
 		_produce_unit(item)
 
@@ -537,7 +549,7 @@ func _select_builder_if_needed() -> bool:
 
 
 func _is_worker(unit) -> bool:
-	return unit.scene_file_path == WorkerUnit.resource_path
+	return unit.scene_file_path == WorkerUnit
 
 
 func _produce_unit(item: Dictionary):
@@ -545,7 +557,7 @@ func _produce_unit(item: Dictionary):
 	if producer == null:
 		_set_status("没有可用的%s" % str(item.get("producer_caption", "生产建筑")))
 		return
-	producer.production_queue.produce(item.scene)
+	producer.production_queue.produce(_packed_scene(item.scene))
 
 
 func _pick_producer(producer_scene):
@@ -556,7 +568,7 @@ func _pick_producer(producer_scene):
 			continue
 		if not unit.is_in_group("controlled_units"):
 			continue
-		if unit.scene_file_path != producer_scene.resource_path:
+		if unit.scene_file_path != _scene_path(producer_scene):
 			continue
 		if not ("production_queue" in unit):
 			continue
@@ -582,7 +594,7 @@ func _own_units_by_scene(producer_scene) -> Array:
 			return (
 				is_instance_valid(unit)
 				and unit.is_in_group("controlled_units")
-				and unit.scene_file_path == producer_scene.resource_path
+				and unit.scene_file_path == _scene_path(producer_scene)
 			)
 	)
 
@@ -597,7 +609,7 @@ func _queue_stats(item: Dictionary) -> Dictionary:
 		if not ("production_queue" in unit):
 			continue
 		for element in unit.production_queue.get_elements():
-			if _prototype_path(element.unit_prototype) != item.scene.resource_path:
+			if _prototype_path(element.unit_prototype) != _scene_path(item.scene):
 				continue
 			queued_count += 1
 			best_progress = max(best_progress, element.progress())
