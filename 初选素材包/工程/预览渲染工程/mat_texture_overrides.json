@@ -1,0 +1,109 @@
+{
+ "mat::463_末日废墟": {
+  "PolygonApocalypse_Material_Road_01_Triplanar": {
+   "tex_file": "PolygonApocalyse_Road_01.png",
+   "res": "res://assets/PolygonApocalypse/Textures/Misc/PolygonApocalyse_Road_01.png"
+  },
+  "PolygonApocalypse_Billboard_01": {
+   "tex_file": "Billboard.png",
+   "res": "res://assets/PolygonApocalypse/Textures/Misc/Billboard.png"
+  },
+  "PolygonApocalypse_Material_Burnt_01": {
+   "tex_file": "PolygonApocalypse_Texture_01_Burnt.png",
+   "res": "res://assets/PolygonApocalypse/Textures/Misc/PolygonApocalypse_Texture_01_Burnt.png"
+  },
+  "PolygonApocalypse_Material_Road_Standard_01": {
+   "tex_file": "PolygonApocalyse_Road_01.png",
+   "res": "res://assets/PolygonApocalypse/Textures/Misc/PolygonApocalyse_Road_01.png"
+  },
+  "PolygonApocalypse_Material_Overgrowth_01": {
+   "tex_file": "Overgrowth.png",
+   "res": "res://assets/PolygonApocalypse/Textures/Misc/Overgrowth.png"
+  },
+  "PolygonApocalyse_Road_01": {
+   "tex_file": "PolygonApocalyse_Road_01.png",
+   "res": "res://assets/PolygonApocalypse/Textures/Misc/PolygonApocalyse_Road_01.png"
+  },
+  "PolygonApocalypse_Material_04_A": {
+   "tex_file": "PolygonApocalypse_Texture_04_A.png",
+   "res": "res://assets/PolygonApocalypse/Textures/PolygonApocalypse_Texture_04_A.png"
+  },
+  "PolygonApocalypse_Material_02_C": {
+   "tex_file": "PolygonApocalypse_Texture_02_C.png",
+   "res": "res://assets/PolygonApocalypse/Textures/Alts/PolygonApocalypse_Texture_02_C.png"
+  },
+  "PolygonApocalypse_Material_03_B": {
+   "tex_file": "PolygonApocalypse_Texture_03_B.png",
+   "res": "res://assets/PolygonApocalypse/Textures/Alts/PolygonApocalypse_Texture_03_B.png"
+  },
+  "PolygonApocalypse_Material_01_C": {
+   "tex_file": "PolygonApocalypse_Texture_01_C.png",
+   "res": "res://assets/PolygonApocalypse/Textures/Alts/PolygonApocalypse_Texture_01_C.png"
+  },
+  "PolygonApocalypse_Veh_Glass": {
+   "tex_file": "PolygonApocalypse_Vehicle_Texture_01.png",
+   "res": "res://assets/PolygonApocalypse/Textures/Veh/PolygonApocalypse_Vehicle_Texture_01.png"
+  },
+  "PolygonApocalypse_Material_01_A": {
+   "tex_file": "PolygonApocalypse_Texture_01_A.png",
+   "res": "res://assets/PolygonApocalypse/Textures/PolygonApocalypse_Texture_01_A.png"
+  },
+  "PolygonApocalypse_Material_03_A": {
+   "tex_file": "PolygonApocalypse_Texture_03_A.png",
+   "res": "res://assets/PolygonApocalypse/Textures/PolygonApocalypse_Texture_03_A.png"
+  },
+  "PolygonApocalypse_Material_Vehicle_Standard_01": {
+   "tex_file": "PolygonApocalypse_Veh_Texture_01_Mud.png",
+   "res": "res://assets/PolygonApocalypse/Textures/Veh/PolygonApocalypse_Veh_Texture_01_Mud.png"
+  },
+  "PolygonApocalypse_Material_03_C": {
+   "tex_file": "PolygonApocalypse_Texture_03_C.png",
+   "res": "res://assets/PolygonApocalypse/Textures/Alts/PolygonApocalypse_Texture_03_C.png"
+  },
+  "PolygonApocalypse_Material_04_B": {
+   "tex_file": "PolygonApocalypse_Texture_04_B.png",
+   "res": "res://assets/PolygonApocalypse/Textures/Alts/PolygonApocalypse_Texture_04_B.png"
+  },
+  "PolygonApocalypse_Rubble_01": {
+   "tex_file": "PolygonApocalypse_Rubble_01.png",
+   "res": "res://assets/PolygonApocalypse/Textures/Misc/PolygonApocalypse_Rubble_01.png"
+  },
+  "PolygonApocalypse_Material_02_B": {
+   "tex_file": "PolygonApocalypse_Texture_02_B.png",
+   "res": "res://assets/PolygonApocalypse/Textures/Alts/PolygonApocalypse_Texture_02_B.png"
+  },
+  "PolygonApocalypse_Material_Glass_01": {
+   "tex_file": "PolygonApocalypse_Texture_01_A.png",
+   "res": "res://assets/PolygonApocalypse/Textures/PolygonApocalypse_Texture_01_A.png"
+  },
+  "PolygonApocalypse_Material_04_C": {
+   "tex_file": "PolygonApocalypse_Texture_04_C.png",
+   "res": "res://assets/PolygonApocalypse/Textures/Alts/PolygonApocalypse_Texture_04_C.png"
+  },
+  "PolygonApocalypse_Material_Fence_01": {
+   "tex_file": "Wire_Alpha.tga",
+   "res": "res://assets/PolygonApocalypse/Textures/Misc/Wire_Alpha.tga"
+  },
+  "Overgrowth": {
+   "tex_file": "Overgrowth.png",
+   "res": "res://assets/PolygonApocalypse/Textures/Misc/Overgrowth.png"
+  },
+  "PolygonApocalypse_Material_02_A": {
+   "tex_file": "PolygonApocalypse_Texture_02_A.png",
+   "res": "res://assets/PolygonApocalypse/Textures/PolygonApocalypse_Texture_02_A.png"
+  },
+  "PolygonApocalypse_Material_Dirty_01": {
+   "tex_file": "PolygonApocalyse_Road_01.png",
+   "res": "res://assets/PolygonApocalypse/Textures/Misc/PolygonApocalyse_Road_01.png"
+  },
+  "Circle_Particle": {
+   "tex_file": "Circle_Texture.png",
+   "res": "res://assets/PolygonApocalypse/Prefabs/FX/Misc/Circle_Texture.png"
+  },
+  "PolygonApocalypse_Material_01_B": {
+   "tex_file": "PolygonApocalypse_Texture_01_B.png",
+   "res": "res://assets/PolygonApocalypse/Textures/Alts/PolygonApocalypse_Texture_01_B.png"
+  }
+ },
+ "mat::4019_战争地图": {}
+}

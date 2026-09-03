@@ -1580,371 +1580,6 @@
 "pack": "4006_科幻世界"
 },
 {
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Alien_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Alien_01.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Alien_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Alien_02.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Alien_03.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Alien_03.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Alien_04.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Alien_04.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Assault_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Assault_01.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Assault_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Assault_02.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Assault_03.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Assault_03.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_BigAxe_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_BigAxe_01.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_BigAxe_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_BigAxe_02.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_BigAxe_03.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_BigAxe_03.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_BigAxe_04.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_BigAxe_04.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_BigAxe_05.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_BigAxe_05.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_BigAxe_06.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_BigAxe_06.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_BigAxe_07.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_BigAxe_07.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Dagger_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Dagger_01.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Dagger_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Dagger_02.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Dagger_03.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Dagger_03.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Dagger_04.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Dagger_04.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Dagger_05.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Dagger_05.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Dagger_06.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Dagger_06.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Dagger_07.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Dagger_07.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Hammer_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Hammer_01.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Hammer_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Hammer_02.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Hammer_03.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Hammer_03.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Heavy_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Heavy_01.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Heavy_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Heavy_02.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Heavy_03.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Heavy_03.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Launcher_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Launcher_01.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Launcher_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Launcher_02.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Launcher_03.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Launcher_03.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Missile_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Missile_01.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Pistol_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Pistol_01.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Pistol_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Pistol_02.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Pistol_03.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Pistol_03.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Pistol_04.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Pistol_04.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Pistol_05.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Pistol_05.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Pistol_06.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Pistol_06.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Scope_Alien_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Scope_Alien_01.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Scope_Small_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Scope_Small_01.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Scope_Small_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Scope_Small_02.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Scope_Small_03.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Scope_Small_03.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Scope_Sniper_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Scope_Sniper_01.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Scope_Sniper_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Scope_Sniper_02.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Scope_Sniper_03.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Scope_Sniper_03.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Scope_Unique_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Scope_Unique_01.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Shield_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Shield_01.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Shield_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Shield_02.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Shield_03.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Shield_03.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Shield_04.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Shield_04.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Shield_05.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Shield_05.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Shotgun_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Shotgun_01.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Shotgun_01_Shell_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Shotgun_01_Shell_01.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Shotgun_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Shotgun_02.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Shotgun_03.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Shotgun_03.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_SmallAxe_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_SmallAxe_01.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_SmallAxe_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_SmallAxe_02.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_SmallAxe_03.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_SmallAxe_03.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_SmallAxe_04.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_SmallAxe_04.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_SmallAxe_05.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_SmallAxe_05.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_SMG_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_SMG_01.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_SMG_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_SMG_02.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_SMG_03.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_SMG_03.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Sniper_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Sniper_01.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Sniper_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Sniper_02.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Sniper_03.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Sniper_03.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Sword_01a.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Sword_01a.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Sword_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Sword_02.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Sword_03.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Sword_03.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Sword_04.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Sword_04.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Sword_05.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Sword_05.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Sword_06.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Sword_06.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Sword_07.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Sword_07.png",
-"pack": "4006_科幻世界"
-},
-{
-"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Sword_08.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Sword_08.png",
-"pack": "4006_科幻世界"
-},
-{
 "res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/FX_Cube_Spawn.fbx",
 "out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/01_科幻战争_4006/特效与贴花/FX_Cube_Spawn.png",
 "pack": "4006_科幻世界"
@@ -5735,41 +5370,6 @@
 "pack": "4006_科幻世界"
 },
 {
-"res": "res://assets/4019_战争地图/PolygonWarMap/Models/SM_Wep_AAGun_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4019_一战军人/手持武器/SM_Wep_AAGun_01.png",
-"pack": "4019_战争地图"
-},
-{
-"res": "res://assets/4019_战争地图/PolygonWarMap/Models/SM_Wep_British_HeavyMachineGun_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4019_一战军人/手持武器/SM_Wep_British_HeavyMachineGun_01.png",
-"pack": "4019_战争地图"
-},
-{
-"res": "res://assets/4019_战争地图/PolygonWarMap/Models/SM_Wep_British_HeavyMachineGun_Tripod_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4019_一战军人/手持武器/SM_Wep_British_HeavyMachineGun_Tripod_01.png",
-"pack": "4019_战争地图"
-},
-{
-"res": "res://assets/4019_战争地图/PolygonWarMap/Models/SM_Wep_British_Rifle_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4019_一战军人/手持武器/SM_Wep_British_Rifle_01.png",
-"pack": "4019_战争地图"
-},
-{
-"res": "res://assets/4019_战争地图/PolygonWarMap/Models/SM_Wep_German_HeavyMachineGun_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4019_一战军人/手持武器/SM_Wep_German_HeavyMachineGun_01.png",
-"pack": "4019_战争地图"
-},
-{
-"res": "res://assets/4019_战争地图/PolygonWarMap/Models/SM_Wep_German_HeavyMachineGun_Tripod_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4019_一战军人/手持武器/SM_Wep_German_HeavyMachineGun_Tripod_01.png",
-"pack": "4019_战争地图"
-},
-{
-"res": "res://assets/4019_战争地图/PolygonWarMap/Models/SM_Wep_German_Rifle_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4019_一战军人/手持武器/SM_Wep_German_Rifle_01.png",
-"pack": "4019_战争地图"
-},
-{
 "res": "res://assets/4019_战争地图/PolygonWarMap/Models/FX_Bullet_Trail 1.fbx",
 "out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/02_一战战争_4019/特效与贴花/FX_Bullet_Trail 1.png",
 "pack": "4019_战争地图"
@@ -7247,1351 +6847,6 @@
 {
 "res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Bld_WaterTower_01.fbx",
 "out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/03_末日战争_463/建筑/SM_Bld_WaterTower_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_AAGun_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_AAGun_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_AssaultRifle_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_AssaultRifle_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_AssaultRifle_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_AssaultRifle_02.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_AssaultRifle_03.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_AssaultRifle_03.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Bat_Metal_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Bat_Metal_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Bat_Wood_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Bat_Wood_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Bat_Wood_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Bat_Wood_02.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Baton_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Baton_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Baton_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Baton_02.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Bomb_GasCan_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Bomb_GasCan_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Bomb_Propane_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Bomb_Propane_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Butcher_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Butcher_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_ChainSaw_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_ChainSaw_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Cross_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Cross_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_CrossBow_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_CrossBow_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_CrossBow_Clean_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_CrossBow_Clean_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Crowbar_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Crowbar_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Crutch_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Crutch_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_FireAxe_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_FireAxe_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_FlameThrower_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_FlameThrower_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_FlareGun_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_FlareGun_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Flashbang_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Flashbang_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Grenade_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Grenade_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Hammer_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Hammer_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_HuntingRifle_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_HuntingRifle_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_HuntingRifle_Clean_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_HuntingRifle_Clean_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Hybrid_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Hybrid_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Hybrid_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Hybrid_02.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Hybrid_03.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Hybrid_03.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Katana_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Katana_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_MachineGun_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_MachineGun_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_MachineGun_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_MachineGun_02.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Melee_GolfClub_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Melee_GolfClub_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Melee_HuntingKnife_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Melee_HuntingKnife_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Melee_Machete_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Melee_Machete_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Melee_Spear_Wood_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Melee_Spear_Wood_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Minigun_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Minigun_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Minigun_Clean_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Minigun_Clean_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Ammo_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Ammo_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Ammo_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Ammo_02.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Bayonet_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Bayonet_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Bayonet_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Bayonet_02.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Bayonet_03.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Bayonet_03.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Bayonet_04.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Bayonet_04.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Bayonet_05.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Bayonet_05.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Bayonet_06.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Bayonet_06.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Handle_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Handle_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Handle_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Handle_02.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Handle_03.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Handle_03.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Handle_04.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Handle_04.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Handle_05.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Handle_05.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Handle_06.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Handle_06.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Handle_07.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Handle_07.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Handle_08.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Handle_08.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Handle_09.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Handle_09.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Handle_10.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Handle_10.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_IronSight_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_IronSight_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_IronSight_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_IronSight_02.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_IronSight_03.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_IronSight_03.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_IronSight_04.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_IronSight_04.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_IronSight_05.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_IronSight_05.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_IronSight_06.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_IronSight_06.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_IronSight_07.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_IronSight_07.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_IronSight_08.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_IronSight_08.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_IronSight_09.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_IronSight_09.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_IronSight_10.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_IronSight_10.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Misc_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Misc_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Misc_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Misc_02.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Misc_03.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Misc_03.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Misc_04.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Misc_04.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Scope_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Scope_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Scope_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Scope_02.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Scope_03.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Scope_03.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Scope_04.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Scope_04.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Scope_05.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Scope_05.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Scope_06.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Scope_06.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Scope_07.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Scope_07.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Scope_08.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Scope_08.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Scope_09.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Scope_09.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Scope_10.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Scope_10.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Silencer_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Silencer_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Silencer_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Silencer_02.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Silencer_03.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Silencer_03.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Silencer_04.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Silencer_04.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Trigger_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Trigger_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Trigger_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Trigger_02.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Trigger_03.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Trigger_03.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Trigger_04.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Trigger_04.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_02.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_03.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_03.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_04.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_04.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_05.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_05.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_06.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_06.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_07.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_07.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_08.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_08.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_09.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_09.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_10.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_10.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_11.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_11.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_12.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_12.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_13.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_13.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_14.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_14.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_15.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_15.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_16.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_16.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_17.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_17.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_18.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_18.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_19.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_19.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_20.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_20.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_21.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_21.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_22.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_22.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_23.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_23.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_24.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_24.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_25.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_25.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_26.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_26.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_27.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_27.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_28.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_28.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_29.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_29.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_30.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_30.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_31.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_31.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_32.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_32.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_33.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_33.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_02.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_03.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_03.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_04.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_04.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_05.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_05.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_06.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_06.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_07.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_07.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_08.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_08.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_09.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_09.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_10.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_10.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_11.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_11.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_12.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_12.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_13.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_13.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_14.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_14.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_15.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_15.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_16.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_16.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_17.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_17.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_18.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_18.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_19.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_19.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_20.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_20.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_21.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_21.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_22.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_22.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_23.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_23.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_24.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_24.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_25.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_25.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_26.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_26.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_27.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_27.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_28.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_28.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_29.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_29.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_30.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_30.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_31.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_31.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_32.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_32.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_33.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_33.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_34.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_34.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_35.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_35.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_36.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_36.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_37.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_37.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_02.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_03.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_03.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_04.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_04.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_05.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_05.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_06.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_06.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_07.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_07.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_08.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_08.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_09.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_09.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_10.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_10.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_11.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_11.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_12.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_12.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_13.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_13.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_14.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_14.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_15.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_15.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_16.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_16.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_17.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_17.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_18.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_18.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_19.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_19.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_20.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_20.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_21.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_21.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_22.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_22.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_23.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_23.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Loader_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Loader_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Loader_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Loader_02.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Loader_03.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Loader_03.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Loader_04.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Loader_04.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Loader_05.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Loader_05.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Loader_06.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Loader_06.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Loader_07.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Loader_07.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Loader_08.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Loader_08.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Loader_09.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Loader_09.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Loader_10.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Loader_10.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Loader_11.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Loader_11.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Loader_12.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Loader_12.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Loader_13.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Loader_13.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Loader_14.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Loader_14.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Loader_15.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Loader_15.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Loader_16.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Loader_16.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_02.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_03.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_03.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_04.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_04.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_05.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_05.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_06.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_06.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_07.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_07.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_08.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_08.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_09.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_09.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_10.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_10.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_11.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_11.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_12.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_12.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_13.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_13.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_14.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_14.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_15.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_15.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_16.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_16.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_17.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_17.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_18.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_18.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_19.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_19.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_20.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_20.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_21.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_21.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_22.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_22.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_23.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_23.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_24.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_24.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_25.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_25.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Molotov_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Molotov_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_NailBomb_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_NailBomb_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Nailgun_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Nailgun_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Nailgun_Clean_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Nailgun_Clean_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Pipe_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Pipe_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_PipeBomb_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_PipeBomb_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_PipeWrench_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_PipeWrench_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Pistol_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Pistol_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Plank_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Plank_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_RebarClub_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_RebarClub_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Revolver_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Revolver_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Revolver_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Revolver_02.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Rifle_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Rifle_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Rifle_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Rifle_02.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Rifle_03.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Rifle_03.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Rocket_Fireworks_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Rocket_Fireworks_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Rocket_IED_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Rocket_IED_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_RocketLauncher_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_RocketLauncher_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Shotgun_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Shotgun_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Sign_Shield_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Sign_Shield_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_SniperRifle_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_SniperRifle_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_SniperRifle_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_SniperRifle_02.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_SniperRifle_Pneumatic_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_SniperRifle_Pneumatic_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Spade_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Spade_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_SpearGun_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_SpearGun_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_SpearGun_Spear_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_SpearGun_Spear_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_SubMGun_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_SubMGun_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_SubMGun_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_SubMGun_02.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_SubMGun_03.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_SubMGun_03.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_SubMGun_Clean_03.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_SubMGun_Clean_03.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Trimmer_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Trimmer_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Trimmer_Clean_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Trimmer_Clean_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Veh_AA_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Veh_AA_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Veh_Harpoon_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Veh_Harpoon_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Veh_Harpoon_Ammo_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Veh_Harpoon_Ammo_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Veh_Harpoon_Ammo_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Veh_Harpoon_Ammo_02.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Veh_Harpoon_Ammo_03.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Veh_Harpoon_Ammo_03.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Veh_Harpoon_Ammo_04.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Veh_Harpoon_Ammo_04.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Veh_MachineGun_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Veh_MachineGun_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Veh_MiniGun_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Veh_MiniGun_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Veh_Rocket_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Veh_Rocket_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Veh_Rocket_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Veh_Rocket_02.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Veh_Rocket_Launcher_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Veh_Rocket_Launcher_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Veh_Saw_Launcher_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Veh_Saw_Launcher_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Veh_Saw_Launcher_Ammo_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Veh_Saw_Launcher_Ammo_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_WoodAxe_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_WoodAxe_01.png",
-"pack": "463_末日废墟"
-},
-{
-"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Wrench_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Wrench_01.png",
 "pack": "463_末日废墟"
 },
 {
@@ -14610,6 +12865,371 @@
 "pack": "4006_科幻世界"
 },
 {
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Alien_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Alien_01.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Alien_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Alien_02.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Alien_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Alien_03.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Alien_04.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Alien_04.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Assault_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Assault_01.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Assault_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Assault_02.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Assault_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Assault_03.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_BigAxe_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_BigAxe_01.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_BigAxe_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_BigAxe_02.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_BigAxe_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_BigAxe_03.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_BigAxe_04.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_BigAxe_04.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_BigAxe_05.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_BigAxe_05.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_BigAxe_06.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_BigAxe_06.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_BigAxe_07.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_BigAxe_07.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Dagger_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Dagger_01.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Dagger_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Dagger_02.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Dagger_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Dagger_03.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Dagger_04.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Dagger_04.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Dagger_05.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Dagger_05.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Dagger_06.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Dagger_06.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Dagger_07.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Dagger_07.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Hammer_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Hammer_01.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Hammer_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Hammer_02.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Hammer_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Hammer_03.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Heavy_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Heavy_01.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Heavy_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Heavy_02.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Heavy_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Heavy_03.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Launcher_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Launcher_01.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Launcher_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Launcher_02.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Launcher_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Launcher_03.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Missile_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Missile_01.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Pistol_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Pistol_01.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Pistol_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Pistol_02.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Pistol_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Pistol_03.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Pistol_04.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Pistol_04.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Pistol_05.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Pistol_05.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Pistol_06.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Pistol_06.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Scope_Alien_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Scope_Alien_01.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Scope_Small_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Scope_Small_01.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Scope_Small_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Scope_Small_02.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Scope_Small_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Scope_Small_03.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Scope_Sniper_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Scope_Sniper_01.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Scope_Sniper_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Scope_Sniper_02.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Scope_Sniper_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Scope_Sniper_03.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Scope_Unique_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Scope_Unique_01.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Shield_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Shield_01.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Shield_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Shield_02.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Shield_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Shield_03.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Shield_04.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Shield_04.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Shield_05.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Shield_05.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Shotgun_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Shotgun_01.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Shotgun_01_Shell_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Shotgun_01_Shell_01.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Shotgun_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Shotgun_02.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Shotgun_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Shotgun_03.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_SmallAxe_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_SmallAxe_01.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_SmallAxe_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_SmallAxe_02.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_SmallAxe_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_SmallAxe_03.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_SmallAxe_04.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_SmallAxe_04.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_SmallAxe_05.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_SmallAxe_05.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_SMG_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_SMG_01.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_SMG_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_SMG_02.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_SMG_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_SMG_03.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Sniper_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Sniper_01.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Sniper_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Sniper_02.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Sniper_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Sniper_03.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Sword_01a.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Sword_01a.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Sword_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Sword_02.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Sword_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Sword_03.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Sword_04.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Sword_04.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Sword_05.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Sword_05.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Sword_06.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Sword_06.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Sword_07.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Sword_07.png",
+"pack": "4006_科幻世界"
+},
+{
+"res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Wep_Sword_08.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Sword_08.png",
+"pack": "4006_科幻世界"
+},
+{
 "res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Chr_Attach_Backpack_Cage_01.fbx",
 "out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/角色附件/SM_Chr_Attach_Backpack_Cage_01.png",
 "pack": "4006_科幻世界"
@@ -15010,6 +13630,41 @@
 "pack": "4019_战争地图"
 },
 {
+"res": "res://assets/4019_战争地图/PolygonWarMap/Models/SM_Wep_AAGun_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4019_一战军人/手持武器/SM_Wep_AAGun_01.png",
+"pack": "4019_战争地图"
+},
+{
+"res": "res://assets/4019_战争地图/PolygonWarMap/Models/SM_Wep_British_HeavyMachineGun_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4019_一战军人/手持武器/SM_Wep_British_HeavyMachineGun_01.png",
+"pack": "4019_战争地图"
+},
+{
+"res": "res://assets/4019_战争地图/PolygonWarMap/Models/SM_Wep_British_HeavyMachineGun_Tripod_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4019_一战军人/手持武器/SM_Wep_British_HeavyMachineGun_Tripod_01.png",
+"pack": "4019_战争地图"
+},
+{
+"res": "res://assets/4019_战争地图/PolygonWarMap/Models/SM_Wep_British_Rifle_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4019_一战军人/手持武器/SM_Wep_British_Rifle_01.png",
+"pack": "4019_战争地图"
+},
+{
+"res": "res://assets/4019_战争地图/PolygonWarMap/Models/SM_Wep_German_HeavyMachineGun_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4019_一战军人/手持武器/SM_Wep_German_HeavyMachineGun_01.png",
+"pack": "4019_战争地图"
+},
+{
+"res": "res://assets/4019_战争地图/PolygonWarMap/Models/SM_Wep_German_HeavyMachineGun_Tripod_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4019_一战军人/手持武器/SM_Wep_German_HeavyMachineGun_Tripod_01.png",
+"pack": "4019_战争地图"
+},
+{
+"res": "res://assets/4019_战争地图/PolygonWarMap/Models/SM_Wep_German_Rifle_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4019_一战军人/手持武器/SM_Wep_German_Rifle_01.png",
+"pack": "4019_战争地图"
+},
+{
 "res": "res://assets/4019_战争地图/PolygonWarMap/Models/SM_Chr_Attach_British_Hat_01.fbx",
 "out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4019_一战军人/角色附件/SM_Chr_Attach_British_Hat_01.png",
 "pack": "4019_战争地图"
@@ -15087,6 +13742,81 @@
 {
 "res": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/Characters.fbx",
 "out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4041_西部人物/Characters.png",
+"pack": "4041_西部土著"
+},
+{
+"res": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Wep_Axe_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4041_西部人物/手持武器/SM_Wep_Axe_01.png",
+"pack": "4041_西部土著"
+},
+{
+"res": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Wep_ChainGun_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4041_西部人物/手持武器/SM_Wep_ChainGun_01.png",
+"pack": "4041_西部土著"
+},
+{
+"res": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Wep_Gunstock_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4041_西部人物/手持武器/SM_Wep_Gunstock_01.png",
+"pack": "4041_西部土著"
+},
+{
+"res": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Wep_Hammer_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4041_西部人物/手持武器/SM_Wep_Hammer_01.png",
+"pack": "4041_西部土著"
+},
+{
+"res": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Wep_Knife_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4041_西部人物/手持武器/SM_Wep_Knife_01.png",
+"pack": "4041_西部土著"
+},
+{
+"res": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Wep_Pickacxe_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4041_西部人物/手持武器/SM_Wep_Pickacxe_01.png",
+"pack": "4041_西部土著"
+},
+{
+"res": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Wep_Revolver_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4041_西部人物/手持武器/SM_Wep_Revolver_01.png",
+"pack": "4041_西部土著"
+},
+{
+"res": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Wep_Rifle_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4041_西部人物/手持武器/SM_Wep_Rifle_01.png",
+"pack": "4041_西部土著"
+},
+{
+"res": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Wep_Rifle_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4041_西部人物/手持武器/SM_Wep_Rifle_02.png",
+"pack": "4041_西部土著"
+},
+{
+"res": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Wep_Rifle_Bayonet_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4041_西部人物/手持武器/SM_Wep_Rifle_Bayonet_01.png",
+"pack": "4041_西部土著"
+},
+{
+"res": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Wep_Rifle_Stack_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4041_西部人物/手持武器/SM_Wep_Rifle_Stack_01.png",
+"pack": "4041_西部土著"
+},
+{
+"res": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Wep_Shotgun_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4041_西部人物/手持武器/SM_Wep_Shotgun_01.png",
+"pack": "4041_西部土著"
+},
+{
+"res": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Wep_Spade_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4041_西部人物/手持武器/SM_Wep_Spade_01.png",
+"pack": "4041_西部土著"
+},
+{
+"res": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Wep_Spear_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4041_西部人物/手持武器/SM_Wep_Spear_01.png",
+"pack": "4041_西部土著"
+},
+{
+"res": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Wep_Sword_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4041_西部人物/手持武器/SM_Wep_Sword_01.png",
 "pack": "4041_西部土著"
 },
 {
@@ -15282,6 +14012,1351 @@
 {
 "res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_DeadBody_Pile_02.fbx",
 "out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/尸体/SM_DeadBody_Pile_02.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_AAGun_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_AAGun_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_AssaultRifle_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_AssaultRifle_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_AssaultRifle_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_AssaultRifle_02.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_AssaultRifle_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_AssaultRifle_03.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Bat_Metal_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Bat_Metal_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Bat_Wood_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Bat_Wood_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Bat_Wood_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Bat_Wood_02.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Baton_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Baton_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Baton_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Baton_02.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Bomb_GasCan_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Bomb_GasCan_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Bomb_Propane_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Bomb_Propane_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Butcher_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Butcher_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_ChainSaw_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_ChainSaw_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Cross_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Cross_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_CrossBow_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_CrossBow_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_CrossBow_Clean_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_CrossBow_Clean_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Crowbar_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Crowbar_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Crutch_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Crutch_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_FireAxe_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_FireAxe_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_FlameThrower_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_FlameThrower_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_FlareGun_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_FlareGun_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Flashbang_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Flashbang_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Grenade_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Grenade_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Hammer_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Hammer_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_HuntingRifle_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_HuntingRifle_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_HuntingRifle_Clean_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_HuntingRifle_Clean_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Hybrid_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Hybrid_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Hybrid_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Hybrid_02.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Hybrid_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Hybrid_03.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Katana_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Katana_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_MachineGun_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_MachineGun_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_MachineGun_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_MachineGun_02.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Melee_GolfClub_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Melee_GolfClub_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Melee_HuntingKnife_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Melee_HuntingKnife_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Melee_Machete_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Melee_Machete_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Melee_Spear_Wood_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Melee_Spear_Wood_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Minigun_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Minigun_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Minigun_Clean_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Minigun_Clean_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Ammo_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Ammo_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Ammo_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Ammo_02.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Bayonet_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Bayonet_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Bayonet_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Bayonet_02.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Bayonet_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Bayonet_03.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Bayonet_04.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Bayonet_04.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Bayonet_05.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Bayonet_05.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Bayonet_06.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Bayonet_06.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Handle_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Handle_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Handle_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Handle_02.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Handle_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Handle_03.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Handle_04.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Handle_04.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Handle_05.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Handle_05.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Handle_06.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Handle_06.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Handle_07.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Handle_07.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Handle_08.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Handle_08.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Handle_09.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Handle_09.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Handle_10.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Handle_10.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_IronSight_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_IronSight_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_IronSight_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_IronSight_02.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_IronSight_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_IronSight_03.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_IronSight_04.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_IronSight_04.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_IronSight_05.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_IronSight_05.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_IronSight_06.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_IronSight_06.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_IronSight_07.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_IronSight_07.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_IronSight_08.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_IronSight_08.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_IronSight_09.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_IronSight_09.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_IronSight_10.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_IronSight_10.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Misc_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Misc_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Misc_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Misc_02.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Misc_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Misc_03.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Misc_04.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Misc_04.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Scope_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Scope_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Scope_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Scope_02.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Scope_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Scope_03.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Scope_04.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Scope_04.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Scope_05.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Scope_05.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Scope_06.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Scope_06.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Scope_07.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Scope_07.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Scope_08.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Scope_08.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Scope_09.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Scope_09.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Scope_10.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Scope_10.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Silencer_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Silencer_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Silencer_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Silencer_02.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Silencer_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Silencer_03.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Silencer_04.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Silencer_04.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Trigger_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Trigger_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Trigger_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Trigger_02.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Trigger_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Trigger_03.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Attach_Trigger_04.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Trigger_04.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_02.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_03.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_04.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_04.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_05.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_05.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_06.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_06.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_07.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_07.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_08.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_08.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_09.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_09.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_10.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_10.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_11.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_11.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_12.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_12.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_13.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_13.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_14.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_14.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_15.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_15.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_16.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_16.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_17.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_17.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_18.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_18.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_19.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_19.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_20.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_20.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_21.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_21.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_22.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_22.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_23.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_23.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_24.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_24.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_25.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_25.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_26.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_26.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_27.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_27.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_28.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_28.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_29.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_29.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_30.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_30.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_31.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_31.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_32.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_32.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Barrel_33.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Barrel_33.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_02.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_03.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_04.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_04.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_05.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_05.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_06.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_06.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_07.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_07.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_08.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_08.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_09.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_09.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_10.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_10.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_11.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_11.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_12.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_12.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_13.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_13.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_14.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_14.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_15.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_15.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_16.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_16.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_17.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_17.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_18.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_18.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_19.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_19.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_20.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_20.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_21.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_21.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_22.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_22.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_23.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_23.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_24.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_24.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_25.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_25.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_26.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_26.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_27.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_27.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_28.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_28.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_29.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_29.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_30.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_30.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_31.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_31.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_32.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_32.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_33.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_33.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_34.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_34.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_35.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_35.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_36.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_36.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Body_37.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Body_37.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_02.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_03.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_04.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_04.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_05.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_05.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_06.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_06.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_07.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_07.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_08.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_08.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_09.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_09.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_10.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_10.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_11.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_11.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_12.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_12.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_13.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_13.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_14.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_14.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_15.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_15.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_16.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_16.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_17.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_17.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_18.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_18.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_19.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_19.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_20.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_20.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_21.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_21.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_22.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_22.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Handle_23.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Handle_23.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Loader_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Loader_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Loader_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Loader_02.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Loader_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Loader_03.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Loader_04.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Loader_04.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Loader_05.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Loader_05.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Loader_06.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Loader_06.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Loader_07.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Loader_07.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Loader_08.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Loader_08.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Loader_09.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Loader_09.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Loader_10.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Loader_10.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Loader_11.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Loader_11.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Loader_12.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Loader_12.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Loader_13.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Loader_13.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Loader_14.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Loader_14.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Loader_15.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Loader_15.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Loader_16.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Loader_16.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_02.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_03.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_04.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_04.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_05.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_05.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_06.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_06.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_07.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_07.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_08.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_08.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_09.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_09.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_10.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_10.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_11.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_11.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_12.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_12.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_13.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_13.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_14.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_14.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_15.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_15.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_16.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_16.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_17.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_17.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_18.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_18.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_19.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_19.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_20.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_20.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_21.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_21.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_22.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_22.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_23.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_23.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_24.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_24.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Mod_Stock_25.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Stock_25.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Molotov_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Molotov_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_NailBomb_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_NailBomb_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Nailgun_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Nailgun_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Nailgun_Clean_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Nailgun_Clean_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Pipe_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Pipe_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_PipeBomb_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_PipeBomb_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_PipeWrench_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_PipeWrench_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Pistol_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Pistol_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Plank_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Plank_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_RebarClub_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_RebarClub_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Revolver_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Revolver_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Revolver_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Revolver_02.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Rifle_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Rifle_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Rifle_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Rifle_02.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Rifle_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Rifle_03.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Rocket_Fireworks_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Rocket_Fireworks_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Rocket_IED_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Rocket_IED_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_RocketLauncher_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_RocketLauncher_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Shotgun_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Shotgun_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Sign_Shield_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Sign_Shield_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_SniperRifle_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_SniperRifle_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_SniperRifle_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_SniperRifle_02.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_SniperRifle_Pneumatic_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_SniperRifle_Pneumatic_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Spade_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Spade_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_SpearGun_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_SpearGun_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_SpearGun_Spear_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_SpearGun_Spear_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_SubMGun_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_SubMGun_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_SubMGun_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_SubMGun_02.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_SubMGun_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_SubMGun_03.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_SubMGun_Clean_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_SubMGun_Clean_03.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Trimmer_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Trimmer_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Trimmer_Clean_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Trimmer_Clean_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Veh_AA_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Veh_AA_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Veh_Harpoon_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Veh_Harpoon_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Veh_Harpoon_Ammo_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Veh_Harpoon_Ammo_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Veh_Harpoon_Ammo_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Veh_Harpoon_Ammo_02.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Veh_Harpoon_Ammo_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Veh_Harpoon_Ammo_03.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Veh_Harpoon_Ammo_04.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Veh_Harpoon_Ammo_04.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Veh_MachineGun_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Veh_MachineGun_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Veh_MiniGun_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Veh_MiniGun_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Veh_Rocket_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Veh_Rocket_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Veh_Rocket_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Veh_Rocket_02.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Veh_Rocket_Launcher_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Veh_Rocket_Launcher_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Veh_Saw_Launcher_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Veh_Saw_Launcher_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Veh_Saw_Launcher_Ammo_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Veh_Saw_Launcher_Ammo_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_WoodAxe_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_WoodAxe_01.png",
+"pack": "463_末日废墟"
+},
+{
+"res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Wep_Wrench_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Wrench_01.png",
 "pack": "463_末日废墟"
 },
 {
@@ -15713,80 +15788,5 @@
 "res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Chr_Attach_Zombie_Male_Hair_02.fbx",
 "out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/角色附件/SM_Chr_Attach_Zombie_Male_Hair_02.png",
 "pack": "463_末日废墟"
-},
-{
-"res": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Wep_Axe_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4041_西部人物/手持武器/SM_Wep_Axe_01.png",
-"pack": "4041_西部土著"
-},
-{
-"res": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Wep_ChainGun_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4041_西部人物/手持武器/SM_Wep_ChainGun_01.png",
-"pack": "4041_西部土著"
-},
-{
-"res": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Wep_Gunstock_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4041_西部人物/手持武器/SM_Wep_Gunstock_01.png",
-"pack": "4041_西部土著"
-},
-{
-"res": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Wep_Hammer_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4041_西部人物/手持武器/SM_Wep_Hammer_01.png",
-"pack": "4041_西部土著"
-},
-{
-"res": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Wep_Knife_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4041_西部人物/手持武器/SM_Wep_Knife_01.png",
-"pack": "4041_西部土著"
-},
-{
-"res": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Wep_Pickacxe_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4041_西部人物/手持武器/SM_Wep_Pickacxe_01.png",
-"pack": "4041_西部土著"
-},
-{
-"res": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Wep_Revolver_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4041_西部人物/手持武器/SM_Wep_Revolver_01.png",
-"pack": "4041_西部土著"
-},
-{
-"res": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Wep_Rifle_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4041_西部人物/手持武器/SM_Wep_Rifle_01.png",
-"pack": "4041_西部土著"
-},
-{
-"res": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Wep_Rifle_02.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4041_西部人物/手持武器/SM_Wep_Rifle_02.png",
-"pack": "4041_西部土著"
-},
-{
-"res": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Wep_Rifle_Bayonet_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4041_西部人物/手持武器/SM_Wep_Rifle_Bayonet_01.png",
-"pack": "4041_西部土著"
-},
-{
-"res": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Wep_Rifle_Stack_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4041_西部人物/手持武器/SM_Wep_Rifle_Stack_01.png",
-"pack": "4041_西部土著"
-},
-{
-"res": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Wep_Shotgun_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4041_西部人物/手持武器/SM_Wep_Shotgun_01.png",
-"pack": "4041_西部土著"
-},
-{
-"res": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Wep_Spade_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4041_西部人物/手持武器/SM_Wep_Spade_01.png",
-"pack": "4041_西部土著"
-},
-{
-"res": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Wep_Spear_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4041_西部人物/手持武器/SM_Wep_Spear_01.png",
-"pack": "4041_西部土著"
-},
-{
-"res": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Wep_Sword_01.fbx",
-"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4041_西部人物/手持武器/SM_Wep_Sword_01.png",
-"pack": "4041_西部土著"
 }
 ]
