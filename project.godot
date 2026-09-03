@@ -26,6 +26,7 @@ config/icon="res://icon.svg"
 
 NetSession="*res://source/net/NetSession.gd"
 DebugControlServer="*res://source/net/DebugControlServer.gd"
+AdjutantButton="*res://source/ui/AdjutantButton.gd"
 FeatureFlags="*res://source/FeatureFlags.tscn"
 Constants="*res://source/Constants.gd"
 Globals="*res://source/Globals.gd"

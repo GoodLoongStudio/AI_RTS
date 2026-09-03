@@ -1,0 +1,25 @@
+{
+  "mesh::4017_幻想怪物": {
+    "Character_AncientQueen_01": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_01_A.png",
+    "Character_Ancient_Warrior_01": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_01_A.png",
+    "Character_BarbarianGiant_01": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_01_A.png",
+    "Character_Big_Ork_01": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_01_A.png",
+    "Character_DarkElf_01": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_01_A.png",
+    "Character_Dwarf_01": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_01_A.png",
+    "Character_ElementalGolem_01": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_01_A.png",
+    "Character_EvilGod_01": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_01_A.png",
+    "Character_ForestGuardian_01": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_01_A.png",
+    "Character_ForestWitch_01": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_01_A.png",
+    "Character_FortGolem_01": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_01_A.png",
+    "Character_MechanicalGolem_01": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_01_A.png",
+    "Character_Medusa_01": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_01_A.png",
+    "Character_MutantGuy_01": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_01_A.png",
+    "Character_Mystic_01": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_01_A.png",
+    "Character_Pig_Butcher_01": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_01_A.png",
+    "Character_RedDemon_01": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_01_A.png",
+    "Character_Slayer_01": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_01_A.png",
+    "Character_SpiritDemon": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_01_A.png",
+    "Character_SpiritDemon_Glow": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_01_A.png",
+    "Character_Troll_01": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_01_A.png"
+  }
+}

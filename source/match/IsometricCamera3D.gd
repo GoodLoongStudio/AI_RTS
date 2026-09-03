@@ -48,8 +48,12 @@ func _ready():
 	_align_camera_properties_to_current_size()
 	_input_runtime.connect("ActionPressed", _on_input_action_pressed)
 	MatchSignals.unit_died.connect(_on_followed_unit_died)
-	# 窗口大小变化会改变宽高比，拉远上限需随之重算。
-	get_viewport().size_changed.connect(func(): set_size_safely(size))
+	# 窗口大小变化会改变宽高比，拉远上限与视野夹紧需随之重算。
+	get_viewport().size_changed.connect(
+		func():
+			set_size_safely(size)
+			_align_position_to_bounding_planes()
+	)
 
 
 func _on_input_action_pressed(action_id: String):
@@ -145,6 +149,7 @@ func set_size_safely(a_size: float):
 		return
 	size = clamped_size
 	_align_camera_properties_to_current_size()
+	_align_position_to_bounding_planes()
 	if is_following_target():
 		set_position_safely(_follow_target.global_position)
 
@@ -156,8 +161,9 @@ func set_map_extents(extents: Vector2):
 
 
 ## 拉远上限：正交 size 是垂直视线平面的高度，30° 俯角下地面可见纵深约
-## 2×size、宽度约 size×宽高比。二者都不应明显超出地图边界，否则会看到
-## 地图外的虚空（"透视"穿帮）。预留 15% 余量避免单位贴满屏幕边缘。
+## 2×size、宽度约 size×宽高比。除轴对齐约束外，还按当前 Y 轴旋转角计算
+## 视野矩形的地面投影 AABB——旋转到对角方向时上限自动收紧，保证任何
+## 旋转角度下视野都完整落在地图内，看不到地图外的黑色背景。
 func _effective_size_max() -> float:
 	var cap := float(size_max)
 	if _map_extents != Vector2.ZERO:
@@ -169,7 +175,55 @@ func _effective_size_max() -> float:
 			)
 			var horizontal_cap := _map_extents.x / maxf(aspect, 0.01)
 			cap = minf(cap, minf(vertical_cap, horizontal_cap) * 0.85)
+			# 按当前旋转角的视野投影半尺寸反推上限（half 随 size 线性增长）。
+			var half := _view_half_extents_on_ground()
+			if half.x > 0.001 and half.y > 0.001 and size > 0.0:
+				var yaw_cap_x := (_map_extents.x * 0.5) / (half.x / size)
+				var yaw_cap_y := (_map_extents.y * 0.5) / (half.y / size)
+				cap = minf(cap, minf(yaw_cap_x, yaw_cap_y))
 	return maxf(cap, size_min)
+
+
+## 视野矩形在地面上投影的半尺寸（考虑 Y 轴旋转；正交投影下严格成立）。
+## 水平半宽 = size×宽高比/2（沿相机右方向），半纵深 = size/(2×sin俯角)
+## （沿相机前方向，俯角越低纵深越大）。
+func _view_half_extents_on_ground() -> Vector2:
+	var viewport_size := get_viewport().get_visible_rect().size
+	var aspect := viewport_size.x / maxf(viewport_size.y, 1.0)
+	var right2 := Vector2(global_transform.basis.x.x, global_transform.basis.x.z)
+	var forward2 := Vector2(-global_transform.basis.z.x, -global_transform.basis.z.z)
+	if right2.length() < 0.001 or forward2.length() < 0.001:
+		return Vector2.ZERO
+	var ground_depth_per_size := 0.5 / maxf(
+		sin(deg_to_rad(absf(EXPECTED_X_ROTATION_DEGREES))), 0.01
+	)
+	right2 = right2.normalized() * size * aspect * 0.5
+	forward2 = forward2.normalized() * size * ground_depth_per_size
+	return Vector2(abs(right2.x) + abs(forward2.x), abs(right2.y) + abs(forward2.y))
+
+
+## 视野必须完整落在地图内：屏幕中心点的活动范围 = 地图范围减去视野
+## 半尺寸。贴边滚动、小地图跳转、跟随单位时都走这条路径，任何时刻
+## 都看不到地图外的黑色背景。
+func _clamp_pivot_to_keep_view_inside(pivot: Vector3) -> Vector3:
+	if _map_extents == Vector2.ZERO:
+		return pivot
+	var half := _view_half_extents_on_ground()
+	if half.x <= 0.0 or half.y <= 0.0:
+		return pivot
+	var upper := _map_extents - half
+	if upper.x < half.x or upper.y < half.y:
+		# 地图比视野还小（理论上 zoom 上限已杜绝），钉在地图中心对称越界。
+		return Vector3(_map_extents.x * 0.5, pivot.y, _map_extents.y * 0.5)
+	return Vector3(
+		clampf(pivot.x, half.x, upper.x), pivot.y, clampf(pivot.z, half.y, upper.y)
+	)
+
+
+## 旋转/缩放后确保视野完整在地图内：必要时按新角度收紧 zoom 并重夹中心。
+func _enforce_view_inside_map():
+	set_size_safely(size)
+	_align_position_to_bounding_planes()
 
 
 func set_position_safely(target_position: Vector3):
@@ -306,6 +360,7 @@ func _try_handling_arrowkey_rotation(delta: float):
 	)
 	if not is_zero_approx(angle_radians):
 		_rotate_from_reference_position_by(global_position, angle_radians)
+		_enforce_view_inside_map()
 		if is_following_target():
 			set_position_safely(_follow_target.global_position)
 
@@ -324,6 +379,7 @@ func _try_handling_mouse_rotation(event: InputEvent):
 			(mouse_pos.x - _mouse_pos_when_rotation_started.x) * mouse_rotation_speed
 		)
 		_rotate_from_reference_position_by(_camera_global_pos_when_rotation_started, angle_radians)
+		_enforce_view_inside_map()
 		if is_following_target():
 			set_position_safely(_follow_target.global_position)
 
@@ -431,7 +487,7 @@ func _clamp_position_to_bounding_planes(a_position: Vector3) -> Vector3:
 	for bounding_plane in bounding_planes:
 		if not bounding_plane.is_point_over(a_position):
 			a_position = a_position - bounding_plane.normal * bounding_plane.distance_to(a_position)
-	return a_position
+	return _clamp_pivot_to_keep_view_inside(a_position)
 
 
 func _target_position_to_camera_position(target_position: Vector3) -> Vector3:

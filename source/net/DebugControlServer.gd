@@ -67,7 +67,7 @@ func _dispatch(line: String) -> String:
 		return JSON.stringify({"error": "no match scene"})
 	match str(parsed.get("op", "")):
 		"status":
-			return JSON.stringify(_collect_status(match_node))
+			return JSON.stringify(_collect_status(match_node, parsed))
 		"start":
 			return _op_start(parsed)
 		"click":
@@ -201,6 +201,35 @@ func _op_fog_status(match_node) -> String:
 
 # ---------- 结构化命令 ----------
 
+## 副官模式：以指定玩家身份执行命令。as_player 按玩家节点名（Player_N）
+## 精确匹配；找不到或未指定时回退本地玩家。服务器权威进程没有本地玩家，
+## 外部副官（如 Hermes Agent）全靠 as_player 指挥真人玩家的部队。
+func _resolve_player(match_node, parsed):
+	var player = match_node.get_local_player()
+	var wanted := str(parsed.get("as_player", ""))
+	if wanted.is_empty():
+		return player
+	for p in get_tree().get_nodes_in_group("players"):
+		if str(p.name) == wanted:
+			return p
+	return player
+
+
+func _is_human_player(p) -> bool:
+	var script_path := str(p.get_script().resource_path) if p.get_script() != null else ""
+	return "players/human/" in script_path
+
+
+func _resolve_own_units(player, wanted: Array) -> Array:
+	var nodes: Array = []
+	for unit in get_tree().get_nodes_in_group("units"):
+		if unit == null or not is_instance_valid(unit):
+			continue
+		if unit.get_parent() == player and unit.name in wanted:
+			nodes.append(unit)
+	return nodes
+
+
 func _op_start(parsed) -> String:
 	if not NetSession.is_networked():
 		return JSON.stringify({"error": "not networked"})
@@ -213,23 +242,12 @@ func _op_start(parsed) -> String:
 		"passive_ai_test": passive_ai_test,
 	})
 
-func _resolve_own_units(match_node, wanted: Array) -> Array:
-	var player = match_node.get_local_player()
-	var nodes: Array = []
-	for unit in get_tree().get_nodes_in_group("units"):
-		if unit == null or not is_instance_valid(unit):
-			continue
-		if unit.get_parent() == player and unit.name in wanted:
-			nodes.append(unit)
-	return nodes
-
-
 func _op_move(match_node, parsed) -> String:
-	var player = match_node.get_local_player()
+	var player = _resolve_player(match_node, parsed)
 	var gateway = NetSession.command_gateway_for(player)
 	if gateway == null:
 		return JSON.stringify({"error": "no gateway"})
-	var nodes := _resolve_own_units(match_node, parsed.get("units", []))
+	var nodes := _resolve_own_units(player, parsed.get("units", []))
 	var dest_raw: Array = parsed.get("dest", [0.0, 0.0])
 	var destination := Vector3(float(dest_raw[0]), 0.0, float(dest_raw[1]))
 	var result: Dictionary = gateway.MoveUnits(nodes, destination, player)
@@ -239,11 +257,11 @@ func _op_move(match_node, parsed) -> String:
 
 
 func _op_gather(match_node, parsed) -> String:
-	var player = match_node.get_local_player()
+	var player = _resolve_player(match_node, parsed)
 	var gateway = NetSession.command_gateway_for(player)
 	if gateway == null:
 		return JSON.stringify({"error": "no gateway"})
-	var nodes := _resolve_own_units(match_node, parsed.get("units", []))
+	var nodes := _resolve_own_units(player, parsed.get("units", []))
 	if nodes.is_empty():
 		return JSON.stringify({"error": "no units"})
 	var kind := str(parsed.get("kind", "a"))
@@ -267,11 +285,11 @@ func _op_gather(match_node, parsed) -> String:
 
 
 func _op_build(match_node, parsed) -> String:
-	var player = match_node.get_local_player()
+	var player = _resolve_player(match_node, parsed)
 	var sync = match_node.get_node_or_null("NetSync")
 	if sync == null:
 		return JSON.stringify({"error": "no netsync"})
-	var builders := _resolve_own_units(match_node, parsed.get("units", []))
+	var builders := _resolve_own_units(player, parsed.get("units", []))
 	if builders.is_empty():
 		return JSON.stringify({"error": "no builders"})
 	var pos_raw: Array = parsed.get("pos", [0.0, 0.0])
@@ -310,8 +328,8 @@ func _op_build(match_node, parsed) -> String:
 
 
 func _op_produce(match_node, parsed) -> String:
-	var player = match_node.get_local_player()
-	var nodes := _resolve_own_units(match_node, [str(parsed.get("unit", ""))])
+	var player = _resolve_player(match_node, parsed)
+	var nodes := _resolve_own_units(player, [str(parsed.get("unit", ""))])
 	if nodes.is_empty():
 		return JSON.stringify({"error": "building not found"})
 	var queue = nodes[0].find_child("ProductionQueue", false, false)
@@ -322,11 +340,11 @@ func _op_produce(match_node, parsed) -> String:
 
 
 func _op_attack(match_node, parsed) -> String:
-	var player = match_node.get_local_player()
+	var player = _resolve_player(match_node, parsed)
 	var gateway = NetSession.command_gateway_for(player)
 	if gateway == null:
 		return JSON.stringify({"error": "no gateway"})
-	var attackers := _resolve_own_units(match_node, parsed.get("units", []))
+	var attackers := _resolve_own_units(player, parsed.get("units", []))
 	var target_name := str(parsed.get("target", ""))
 	var target = null
 	for unit in get_tree().get_nodes_in_group("units"):
@@ -375,7 +393,7 @@ func _control_center(control: Control) -> Array:
 	return [center.x, center.y]
 
 
-func _collect_status(match_node) -> Dictionary:
+func _collect_status(match_node, parsed = null) -> Dictionary:
 	var tree := get_tree()
 	var viewport := get_viewport()
 	var window := get_window()
@@ -392,10 +410,16 @@ func _collect_status(match_node) -> Dictionary:
 	}
 	if match_node == null or not match_node.has_method("get_local_player"):
 		return out
-	var player = match_node.get_local_player()
-	# 服务器侧没有本地玩家：跳过玩家专属字段，但继续输出单位清单，
-	# 供移动监控从权威模拟进程读取位置/朝向。
+	var player = _resolve_player(match_node, parsed if parsed != null else {})
 	out["match"] = true
+	# 玩家明细总是输出：副官（外部 AI）靠它选定 as_player 指挥对象（human 标记真人）。
+	out["players"] = get_tree().get_nodes_in_group("players").map(
+		func(p): return {
+			"name": str(p.name),
+			"human": _is_human_player(p),
+			"a": int(p.resource_a),
+			"b": int(p.resource_b),
+		})
 	if player == null:
 		_append_unit_entries(out, match_node, null)
 		return out
