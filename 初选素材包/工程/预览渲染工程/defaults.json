@@ -1,0 +1,43 @@
+{
+ "4006_科幻世界": [
+  "res://assets/4006_科幻世界/PolygonSciFiWorlds/Textures/Alts/PolygonScifiWorlds_Texture_01_A.png",
+  "res://assets/4006_科幻世界/PolygonSciFiWorlds/Textures/Alts/PolygonScifiWorlds_Texture_02_A.png",
+  "res://assets/4006_科幻世界/PolygonSciFiWorlds/Textures/Alts/PolygonScifiWorlds_Texture_03_A.png",
+  "res://assets/4006_科幻世界/PolygonSciFiWorlds/Textures/Alts/PolygonScifiWorlds_Texture_04_A.png",
+  "res://assets/4006_科幻世界/PolygonSciFiWorlds/Textures/Misc/Junk_Texture_01.png",
+  "res://assets/4006_科幻世界/PolygonSciFiWorlds/Textures/Misc/SciFiGraffiti.png",
+  "res://assets/4006_科幻世界/PolygonSciFiWorlds/Textures/Alts/PolygonScifiWorlds_Texture_03_C.png",
+  "res://assets/4006_科幻世界/PolygonSciFiWorlds/Textures/Alts/PolygonScifiWorlds_Texture_02_C.png",
+  "res://assets/4006_科幻世界/PolygonSciFiWorlds/Textures/Signs/Mech_Repair.png",
+  "res://assets/4006_科幻世界/PolygonSciFiWorlds/Textures/Misc/Rust.png",
+  "res://assets/4006_科幻世界/PolygonSciFiWorlds/Textures/Alts/PolygonScifiWorlds_Texture_01_B.png",
+  "res://assets/4006_科幻世界/PolygonSciFiWorlds/Textures/Signs/Drone.png"
+ ],
+ "4041_西部土著": [
+  "res://assets/4041_西部土著/PolygonWesternFrontier/Textures/PolygonWesternFrontier_Texture_01_A.png",
+  "res://assets/4041_西部土著/PolygonWesternFrontier/Textures/PolygonWesternFrontier_Texture_Broken_Windows.tga"
+ ],
+ "4050_微缩城市": [
+  "res://assets/4050_微缩城市/PolygonMini_City/Models/PolygonMinis_Texture_01.png",
+  "res://assets/4050_微缩城市/PolygonMini_City/Models/PolygonMinis_Texture_01_Concrete_Alt.png",
+  "res://assets/4050_微缩城市/PolygonMini_City/Textures/PolygonMinis_Texture_01.png",
+  "res://assets/4050_微缩城市/PolygonMini_City/Textures/PolygonMinis_Texture_01_Concrete_Alt.png",
+  "res://assets/4050_微缩城市/PolygonMini_City/Models/PolygonMinis_Texture_01_Blue.png",
+  "res://assets/4050_微缩城市/PolygonMini_City/Models/PolygonMinis_Texture_01_Green.png"
+ ],
+ "4019_战争地图": [],
+ "463_末日废墟": [
+  "res://assets/463_末日废墟/PolygonApocalypse/Textures/PolygonApocalypse_Texture_01_A.png",
+  "res://assets/463_末日废墟/PolygonApocalypse/Textures/Veh/PolygonApocalypse_Veh_Texture_01_Mud.png",
+  "res://assets/463_末日废墟/PolygonApocalypse/Textures/Misc/PolygonApocalyse_Road_01.png",
+  "res://assets/463_末日废墟/PolygonApocalypse/Textures/Misc/Overgrowth.png",
+  "res://assets/463_末日废墟/PolygonApocalypse/Textures/Misc/Wire_Alpha.tga",
+  "res://assets/463_末日废墟/PolygonApocalypse/Textures/Misc/PolygonApocalypse_Rubble_01.png",
+  "res://assets/463_末日废墟/PolygonApocalypse/Textures/Veh/PolygonApocalypse_Vehicle_Texture_01.png",
+  "res://assets/463_末日废墟/PolygonApocalypse/Textures/Misc/Billboard.png",
+  "res://assets/463_末日废墟/PolygonApocalypse/Textures/Alts/PolygonApocalypse_Texture_01_C.png",
+  "res://assets/463_末日废墟/PolygonApocalypse/Textures/Alts/PolygonApocalypse_Texture_01_B.png",
+  "res://assets/463_末日废墟/PolygonApocalypse/Textures/Alts/PolygonApocalypse_Texture_03_C.png",
+  "res://assets/463_末日废墟/PolygonApocalypse/Textures/PolygonApocalypse_Texture_02_A.png"
+ ]
+}

@@ -1,0 +1,18 @@
+; Engine configuration file.
+config_version=5
+
+[application]
+
+run/main_scene="res://main.tscn"
+
+config/name="pack_preview"
+config/features=PackedStringArray("4.7")
+
+[display]
+
+window/size/viewport_width=1600
+window/size/viewport_height=1000
+
+[rendering]
+
+renderer/rendering_method="forward_plus"
