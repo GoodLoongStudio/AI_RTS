@@ -15788,5 +15788,230 @@
 "res": "res://assets/463_末日废墟/PolygonApocalypse/Models/SM_Chr_Attach_Zombie_Male_Hair_02.fbx",
 "out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/角色附件/SM_Chr_Attach_Zombie_Male_Hair_02.png",
 "pack": "463_末日废墟"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/Characters.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/Characters.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/Characters_BR.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/Characters_BR.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Base_Dirt_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/地台/SM_Base_Dirt_01.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Base_Dungeon_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/地台/SM_Base_Dungeon_01.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Base_Grass_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/地台/SM_Base_Grass_01.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Base_Mechanical_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/地台/SM_Base_Mechanical_01.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Base_Rock_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/地台/SM_Base_Rock_01.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Prop_Bones_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/场景道具/SM_Prop_Bones_01.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Prop_Mushroom_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/场景道具/SM_Prop_Mushroom_01.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Prop_Mushroom_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/场景道具/SM_Prop_Mushroom_02.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Prop_Skull_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/场景道具/SM_Prop_Skull_01.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Prop_Tree_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/场景道具/SM_Prop_Tree_01.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Prop_Tree_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/场景道具/SM_Prop_Tree_02.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Wep_AncientQueen_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/手持武器/SM_Wep_AncientQueen_01.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Wep_AncientWarrior_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/手持武器/SM_Wep_AncientWarrior_01.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Wep_BarbarianGiant_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/手持武器/SM_Wep_BarbarianGiant_01.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Wep_BigOrk_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/手持武器/SM_Wep_BigOrk_01.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Wep_DarkElf_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/手持武器/SM_Wep_DarkElf_01.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Wep_Dwarf_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/手持武器/SM_Wep_Dwarf_01.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Wep_ElementalGolem_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/手持武器/SM_Wep_ElementalGolem_01.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Wep_EvilGod_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/手持武器/SM_Wep_EvilGod_01.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Wep_ForestGuardian_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/手持武器/SM_Wep_ForestGuardian_01.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Wep_ForestWitch_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/手持武器/SM_Wep_ForestWitch_01.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Wep_FortGolem_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/手持武器/SM_Wep_FortGolem_01.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Wep_MechanicalGolem_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/手持武器/SM_Wep_MechanicalGolem_01.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Wep_MechanicalGolem_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/手持武器/SM_Wep_MechanicalGolem_02.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Wep_Medusa_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/手持武器/SM_Wep_Medusa_01.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Wep_MutantGuy_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/手持武器/SM_Wep_MutantGuy_01.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Wep_Mystic_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/手持武器/SM_Wep_Mystic_01.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Wep_PigButcher_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/手持武器/SM_Wep_PigButcher_01.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Wep_RedDemon_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/手持武器/SM_Wep_RedDemon_01.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Wep_Slayer_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/手持武器/SM_Wep_Slayer_01.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Wep_SpiritDemon_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/手持武器/SM_Wep_SpiritDemon_01.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Wep_Troll_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/手持武器/SM_Wep_Troll_01.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Prop_Backharness_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/角色背饰/SM_Prop_Backharness_01.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Prop_Backharness_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/角色背饰/SM_Prop_Backharness_02.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Prop_Backharness_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/角色背饰/SM_Prop_Backharness_03.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Prop_Pouch_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/角色背饰/SM_Prop_Pouch_01.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Prop_Pouch_02.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/角色背饰/SM_Prop_Pouch_02.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Prop_Pouch_03.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/角色背饰/SM_Prop_Pouch_03.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Prop_Pouch_Bag_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/角色背饰/SM_Prop_Pouch_Bag_01.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/SM_Prop_TrollHelmet_01.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/角色背饰/SM_Prop_TrollHelmet_01.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/FX_Runes.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/角色部件/FX_Runes.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/Medusa_Snakes.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/角色部件/Medusa_Snakes.png",
+"pack": "4017_幻想怪物"
+},
+{
+"res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Models/Mystic_Arms.fbx",
+"out": "G:/AIRTS/AI_RTS/初选素材包/提炼_科幻战争与角色/人物角色/4017_幻想怪物/角色部件/Mystic_Arms.png",
+"pack": "4017_幻想怪物"
 }
 ]

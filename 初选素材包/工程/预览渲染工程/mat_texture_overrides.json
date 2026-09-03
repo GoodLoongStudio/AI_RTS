@@ -105,5 +105,110 @@
    "res": "res://assets/PolygonApocalypse/Textures/Alts/PolygonApocalypse_Texture_01_B.png"
   }
  },
- "mat::4019_战争地图": {}
+ "mat::4019_战争地图": {},
+ "mat::4006_科幻世界": {
+  "Scifi_1a9": {
+   "tex_file": "PolygonScifiWorlds_Texture_01_A.png",
+   "res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Textures/PolygonScifiWorlds_Texture_01_A.png"
+  },
+  "ScifiWorlds_MAT": {
+   "tex_file": "PolygonScifiWorlds_Texture_03_C.png",
+   "res": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Textures/PolygonScifiWorlds_Texture_03_C.png"
+  }
+ },
+ "mesh::4006_科幻世界": {
+  "SpaceSuit_Alien": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Textures/PolygonScifiWorlds_Texture_02_C.png",
+  "Scavenger_02": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Textures/PolygonScifiWorlds_Texture_03_C.png",
+  "Scavenger_03": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Textures/PolygonScifiWorlds_Texture_03_C.png"
+ },
+ "mat::4017_幻想怪物": {
+  "FX_Lighting": {
+   "tex_file": "Transparent_Line.png",
+   "res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Materials/Misc/Transparent_Line.png"
+  },
+  "FantasyRivals_04_D": {
+   "tex_file": "FantasyRivals_Texture_04_D.png",
+   "res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_04_D.png"
+  },
+  "FantasyRivals_01_D": {
+   "tex_file": "FantasyRivals_Texture_01_D.png",
+   "res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_01_D.png"
+  },
+  "FantasyRivals_SpiritDemon": {
+   "tex_file": "Mystic_Arms.tga",
+   "res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/Mystic_Arms.tga"
+  },
+  "FantasyRivals_MysticArms": {
+   "tex_file": "Mystic_Arms.tga",
+   "res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/Mystic_Arms.tga"
+  },
+  "FantasyRivals_04_C": {
+   "tex_file": "FantasyRivals_Texture_04_C.png",
+   "res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_04_C.png"
+  },
+  "FantasyRivals_04_B": {
+   "tex_file": "FantasyRivals_Texture_04_B.png",
+   "res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_04_B.png"
+  },
+  "FantasyRivals_02_A": {
+   "tex_file": "FantasyRivals_Texture_02_A.png",
+   "res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_02_A.png"
+  },
+  "FantasyRivals_03_C": {
+   "tex_file": "FantasyRivals_Texture_03_C.png",
+   "res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_03_C.png"
+  },
+  "FantasyRivals_03_A": {
+   "tex_file": "FantasyRivals_Texture_03_A.png",
+   "res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_03_A.png"
+  },
+  "FX_SphereGlow": {
+   "tex_file": "SphereGlow.png",
+   "res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Materials/Misc/SphereGlow.png"
+  },
+  "FantasyRivals_03_B": {
+   "tex_file": "FantasyRivals_Texture_03_B.png",
+   "res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_03_B.png"
+  },
+  "FantasyRivals_03_D": {
+   "tex_file": "FantasyRivals_Texture_03_D.png",
+   "res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_03_D.png"
+  },
+  "FantasyRivals_01_B": {
+   "tex_file": "FantasyRivals_Texture_01_B.png",
+   "res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_01_B.png"
+  },
+  "FantasyRivals_02_B": {
+   "tex_file": "FantasyRivals_Texture_02_B.png",
+   "res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_02_B.png"
+  },
+  "FantasyRivals_Runes": {
+   "tex_file": "Runes.tga",
+   "res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/Runes.tga"
+  },
+  "FantasyRivals_01_A": {
+   "tex_file": "FantasyRivals_Texture_01_A.png",
+   "res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_01_A.png"
+  },
+  "FantasyRivals_01_C": {
+   "tex_file": "FantasyRivals_Texture_01_C.png",
+   "res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_01_C.png"
+  },
+  "Polygon_FX 1": {
+   "tex_file": "Runes.tga",
+   "res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/Runes.tga"
+  },
+  "FantasyRivals_02_C": {
+   "tex_file": "FantasyRivals_Texture_02_C.png",
+   "res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_02_C.png"
+  },
+  "FantasyRivals_04_A": {
+   "tex_file": "FantasyRivals_Texture_04_A.png",
+   "res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_04_A.png"
+  },
+  "FantasyRivals_02_D": {
+   "tex_file": "FantasyRivals_Texture_02_D.png",
+   "res": "res://assets/4017_幻想怪物/PolygonFantasyRivals/Textures/FantasyRivals_Texture_02_D.png"
+  }
+ }
 }

@@ -20,6 +20,7 @@ var scenes: Dictionary = {}
 var tex_map: Dictionary = {}
 var defaults: Dictionary = {}
 var tex_bank: Dictionary = {}
+var mat_overrides: Dictionary = {}
 
 
 func _ready() -> void:
@@ -27,6 +28,7 @@ func _ready() -> void:
 	scenes = _load_json("res://scenes.json")
 	tex_map = _load_json("res://texture_map.json")
 	defaults = _load_json("res://defaults.json")
+	mat_overrides = _load_json("res://mat_texture_overrides.json")
 	_run()
 
 
@@ -92,6 +94,14 @@ func _pick_for(fbx_res: String, mat_name: String, default_texs: Array) -> Textur
 func _bind_mesh(mi: MeshInstance3D, fbx_res: String, default_texs: Array) -> void:
 	if mi.mesh == null:
 		return
+	# 精确映射（来自 unitypackage 解析 + 实验）：多图集模型（角色合集）不同
+	# mesh/surface 引用不同图集。优先级：mesh 名匹配 > 材质名匹配 > FBX 候选第一张。
+	var pack := ""
+	var pack_parts := fbx_res.split("/")
+	if pack_parts.size() > 3:
+		pack = pack_parts[3]
+	var mesh_map: Dictionary = mat_overrides.get("mesh::" + pack, {})
+	var mat_map: Dictionary = mat_overrides.get("mat::" + pack, {})
 	for i in mi.mesh.get_surface_count():
 		var mat := mi.get_active_material(i)
 		if mat == null or not (mat is BaseMaterial3D):
@@ -99,10 +109,29 @@ func _bind_mesh(mi: MeshInstance3D, fbx_res: String, default_texs: Array) -> voi
 		var bm := mat as BaseMaterial3D
 		if bm.albedo_texture != null:
 			continue
-		var tex := _pick_for(fbx_res, bm.resource_name, default_texs)
+		var tex: Texture2D = null
+		var use_fresh_material := false
+		for key: String in mesh_map.keys():
+			if str(mi.name).contains(key):
+				tex = load(str(mesh_map[key]))
+				use_fresh_material = true
+				break
+		if tex == null:
+			var entry: Variant = mat_map.get(str(bm.resource_name), null)
+			if entry is Dictionary and entry.has("res"):
+				tex = load(str(entry["res"]))
+				use_fresh_material = true
+		if tex == null:
+			tex = _pick_for(fbx_res, bm.resource_name, default_texs)
 		if tex == null:
 			continue
-		var dup := bm.duplicate() as BaseMaterial3D
+		var dup: BaseMaterial3D
+		if use_fresh_material:
+			# 命中精确映射：全新材质，避免 FBX 材质异常 UV 变换/tint 造成黑剪影。
+			dup = StandardMaterial3D.new()
+		else:
+			dup = bm.duplicate() as BaseMaterial3D
+			dup.albedo_color = Color.WHITE
 		dup.albedo_texture = tex
 		dup.metallic = 0.0
 		dup.roughness = 0.9
@@ -465,7 +494,8 @@ func _run_singles(scene_root: Node3D) -> void:
 		if res_path == "" or out_path == "":
 			continue
 		# 快速路径：成品已存在直接跳过（避免为判断而完整加载 3000+ FBX）。
-		if FileAccess.file_exists(out_path):
+		# SINGLES_FORCE=1 时强制重渲（修复贴图绑定后刷新旧图用）。
+		if OS.get_environment("SINGLES_FORCE") != "1" and FileAccess.file_exists(out_path):
 			continue
 		var ps: PackedScene = load(res_path)
 		if ps == null:
