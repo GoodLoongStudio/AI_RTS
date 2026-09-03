@@ -90,7 +90,7 @@
       "weaponIds": [],
       "canForceFireGround": false,
       "gatherer": {
-        "carryCapacity": 2
+        "carryCapacity": 200
       },
       "constructor": {
         "workPerTick": 1
@@ -179,7 +179,7 @@
       "productUnitTypeId": "worker",
       "requiredWork": 180,
       "cost": [
-        { "kind": "A", "amount": 2 }
+        { "kind": "A", "amount": 200 }
       ],
       "allowedProducerUnitTypeIds": ["command_center"]
     },
@@ -188,7 +188,7 @@
       "productUnitTypeId": "drone",
       "requiredWork": 180,
       "cost": [
-        { "kind": "A", "amount": 2 }
+        { "kind": "A", "amount": 200 }
       ],
       "allowedProducerUnitTypeIds": ["aircraft_factory"]
     },
@@ -197,8 +197,7 @@
       "productUnitTypeId": "tank",
       "requiredWork": 360,
       "cost": [
-        { "kind": "A", "amount": 3 },
-        { "kind": "B", "amount": 1 }
+        { "kind": "A", "amount": 500 }
       ],
       "allowedProducerUnitTypeIds": ["vehicle_factory"]
     },
@@ -207,8 +206,7 @@
       "productUnitTypeId": "helicopter",
       "requiredWork": 360,
       "cost": [
-        { "kind": "A", "amount": 1 },
-        { "kind": "B", "amount": 3 }
+        { "kind": "A", "amount": 700 }
       ],
       "allowedProducerUnitTypeIds": ["aircraft_factory"]
     }
@@ -219,8 +217,7 @@
       "unitTypeId": "command_center",
       "requiredWork": 200,
       "cost": [
-        { "kind": "A", "amount": 8 },
-        { "kind": "B", "amount": 8 }
+        { "kind": "A", "amount": 2400 }
       ],
       "environmentId": "terrain.surface",
       "footprintRadiusMeters": 2.0
@@ -230,7 +227,7 @@
       "unitTypeId": "vehicle_factory",
       "requiredWork": 200,
       "cost": [
-        { "kind": "A", "amount": 6 }
+        { "kind": "A", "amount": 600 }
       ],
       "environmentId": "terrain.surface",
       "footprintRadiusMeters": 1.5
@@ -240,8 +237,7 @@
       "unitTypeId": "aircraft_factory",
       "requiredWork": 200,
       "cost": [
-        { "kind": "A", "amount": 4 },
-        { "kind": "B", "amount": 4 }
+        { "kind": "A", "amount": 1200 }
       ],
       "environmentId": "terrain.surface",
       "footprintRadiusMeters": 1.5
@@ -251,8 +247,7 @@
       "unitTypeId": "anti_ground_turret",
       "requiredWork": 200,
       "cost": [
-        { "kind": "A", "amount": 2 },
-        { "kind": "B", "amount": 2 }
+        { "kind": "A", "amount": 600 }
       ],
       "environmentId": "terrain.surface",
       "footprintRadiusMeters": 0.6
@@ -262,8 +257,7 @@
       "unitTypeId": "anti_air_turret",
       "requiredWork": 200,
       "cost": [
-        { "kind": "A", "amount": 2 },
-        { "kind": "B", "amount": 2 }
+        { "kind": "A", "amount": 600 }
       ],
       "environmentId": "terrain.surface",
       "footprintRadiusMeters": 0.6

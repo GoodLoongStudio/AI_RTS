@@ -26,20 +26,20 @@ func _ready():
 
 	_check(
 		human.add_resources(
-			{"resource_a": 20, "resource_b": 20},
+			{"resource_a": 600, "resource_b": 600},
 			"ScriptedAdjustment"
 		),
 		"显式调试交易应成功注入测试资源"
 	)
-	_check(human.resource_a == 20 and human.resource_b == 20, "成功交易应同步 Legacy 镜像")
+	_check(human.resource_a == 600 and human.resource_b == 600, "成功交易应同步 Legacy 镜像")
 
 	var events_before_rejection := _balance_events.size()
 	var rejected = human.subtract_resources(
-		{"resource_a": 4, "resource_b": 21},
+		{"resource_a": 99999, "resource_b": 21},
 		"ConstructionCost"
 	)
 	_check(not rejected, "任一资源不足时多资源扣款应整体拒绝")
-	_check(human.resource_a == 20 and human.resource_b == 20, "拒绝交易不得部分扣除 A")
+	_check(human.resource_a == 600 and human.resource_b == 600, "拒绝交易不得部分扣除 A")
 	_check(
 		_balance_events.size() == events_before_rejection,
 		"拒绝交易不得发布权威余额变化事件"

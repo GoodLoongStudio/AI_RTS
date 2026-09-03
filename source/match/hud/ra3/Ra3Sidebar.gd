@@ -83,7 +83,6 @@ var _grid: GridContainer = null
 var _function_row: HBoxContainer = null
 var _command_slot: VBoxContainer = null
 var _funds_label_a: Label = null
-var _funds_label_b: Label = null
 var _status_label: Label = null
 
 
@@ -193,10 +192,8 @@ func _build_ui():
 	var spacer = Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	funds_row.add_child(spacer)
-	funds_row.add_child(_make_funds_chip("A", Color(0.55, 0.75, 1.0)))
+	funds_row.add_child(_make_funds_chip("钱", Color(0.55, 0.75, 1.0)))
 	_funds_label_a = _make_funds_value(funds_row)
-	funds_row.add_child(_make_funds_chip("B", Color(0.45, 0.90, 0.75)))
-	_funds_label_b = _make_funds_value(funds_row)
 
 	vbox.add_child(HSeparator.new())
 
@@ -468,8 +465,8 @@ func _cost_caption(item: Dictionary) -> String:
 	if cost == null:
 		return ""
 	var a := int(cost.get("resource_a", 0))
-	var b := int(cost.get("resource_b", 0))
-	return "%d/%d" % [a, b]
+	# 单资源（钱）后成本只展示 A；历史 B 成本已折算并入。
+	return "%d" % a
 
 
 func _item_tooltip(item: Dictionary) -> String:
@@ -655,7 +652,6 @@ func _refresh_funds():
 	if _local_player == null:
 		return
 	_funds_label_a.text = str(int(_local_player.resource_a))
-	_funds_label_b.text = str(int(_local_player.resource_b))
 
 
 func _set_status(text: String):

@@ -28,6 +28,7 @@ var _mouse_pos_when_rotation_started = null
 var _camera_global_pos_when_rotation_started = null
 var _smoothed_screen_move_vector := Vector2.ZERO
 var _follow_target: Node3D = null
+var _map_extents := Vector2.ZERO
 @onready var _input_runtime = get_parent().get_node("InputBindingRuntime")
 
 
@@ -47,6 +48,8 @@ func _ready():
 	_align_camera_properties_to_current_size()
 	_input_runtime.connect("ActionPressed", _on_input_action_pressed)
 	MatchSignals.unit_died.connect(_on_followed_unit_died)
+	# 窗口大小变化会改变宽高比，拉远上限需随之重算。
+	get_viewport().size_changed.connect(func(): set_size_safely(size))
 
 
 func _on_input_action_pressed(action_id: String):
@@ -137,12 +140,36 @@ func _on_followed_unit_died(unit):
 
 
 func set_size_safely(a_size: float):
-	if a_size == size:
+	var clamped_size = clampf(a_size, size_min, _effective_size_max())
+	if clamped_size == size:
 		return
-	size = clamp(a_size, size_min, size_max)
+	size = clamped_size
 	_align_camera_properties_to_current_size()
 	if is_following_target():
 		set_position_safely(_follow_target.global_position)
+
+
+## 由 Match 按地图尺寸调用；之后拉远上限随地图与窗口宽高比动态收紧。
+func set_map_extents(extents: Vector2):
+	_map_extents = extents
+	set_size_safely(size)
+
+
+## 拉远上限：正交 size 是垂直视线平面的高度，30° 俯角下地面可见纵深约
+## 2×size、宽度约 size×宽高比。二者都不应明显超出地图边界，否则会看到
+## 地图外的虚空（"透视"穿帮）。预留 15% 余量避免单位贴满屏幕边缘。
+func _effective_size_max() -> float:
+	var cap := float(size_max)
+	if _map_extents != Vector2.ZERO:
+		var viewport_size := get_viewport().get_visible_rect().size
+		if viewport_size.x > 0.0 and viewport_size.y > 0.0:
+			var aspect := viewport_size.x / viewport_size.y
+			var vertical_cap := (
+				_map_extents.y * sin(deg_to_rad(absf(EXPECTED_X_ROTATION_DEGREES)))
+			)
+			var horizontal_cap := _map_extents.x / maxf(aspect, 0.01)
+			cap = minf(cap, minf(vertical_cap, horizontal_cap) * 0.85)
+	return maxf(cap, size_min)
 
 
 func set_position_safely(target_position: Vector3):

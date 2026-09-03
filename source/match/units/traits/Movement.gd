@@ -88,6 +88,7 @@ func _ready():
 
 
 func move(movement_target: Vector3):
+	movement_target = _clamp_to_reachable(movement_target)
 	_is_tactical_withdrawal = false
 	_reset_stability_state()
 	if not _navigation_initialized:
@@ -98,12 +99,27 @@ func move(movement_target: Vector3):
 
 ## 沿导航路径倒车；车尾对齐每一帧的安全速度方向，因此路径转弯会更新朝向。
 func tactical_withdraw(movement_target: Vector3):
+	movement_target = _clamp_to_reachable(movement_target)
 	_is_tactical_withdrawal = true
 	_reset_stability_state()
 	if not _navigation_initialized:
 		_pending_target = movement_target
 		_skip_initial_dispersion = true
 	target_position = movement_target
+
+
+## 把目标点限制到导航网格最近可达点（2026-09-02）：
+## 点击建筑/障碍内部时，阵位散布或手点目标可能落在占位内，导航查询会判
+## Unreachable 让单位半路停（"点中间不贴近就停了"）。clamp 后单位走到
+## 障碍边缘贴住，等价于从自己一侧贴近点击点。
+func _clamp_to_reachable(target: Vector3) -> Vector3:
+	var nav_map := get_navigation_map()
+	if not nav_map.is_valid():
+		return target
+	var closest := NavigationServer3D.map_get_closest_point(nav_map, target)
+	if not closest.is_finite():
+		return target
+	return closest
 
 
 func stop():

@@ -251,6 +251,8 @@ func _setup_subsystems_dependent_on_map():
 func _recalculate_camera_bounding_planes(map_size: Vector2):
 	_camera.bounding_planes[1] = Plane(-1, 0, 0, -map_size.x)
 	_camera.bounding_planes[3] = Plane(0, 0, -1, -map_size.y)
+	# 同步拉远上限：防止缩放超出地图边界看到地图外虚空。
+	_camera.set_map_extents(map_size)
 
 
 func _setup_players():
@@ -281,8 +283,8 @@ func _create_players_from_settings():
 		player.color = player_settings.color
 		# 单人被动 AI 测试局需要能完整演示建造与生产，不应被初始资源门槛阻断。
 		if NetSession.passive_ai_test_server or NetSession.passive_ai_test:
-			player.resource_a = 50
-			player.resource_b = 50
+			player.resource_a = 5000
+			player.resource_b = 5000
 		if player_settings.spawn_index_offset > 0:
 			for _i in range(player_settings.spawn_index_offset):
 				_players.add_child(Node.new())
