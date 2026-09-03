@@ -6,6 +6,8 @@ extends Node
 ##   overview one representative sheet per package (round-robin categories)
 ## Texture binding: GUID-chain map (texture_map.json) -> material name
 ## match -> per-pack default atlas (defaults.json).
+##
+##   singles  one PNG per FBX listed in singles.json (same-name preview images)
 
 const CELL := 1.7
 const COLS := 10
@@ -215,10 +217,10 @@ func _grid_camera(idx: int) -> Camera3D:
 func _shoot_sheet(scene_root: Node3D, paths: Array, default_texs: Array,
 		out_path: String) -> void:
 	var holder := Node3D.new()
-	scene_get_tree().root.add_child(holder)
+	get_tree().root.add_child(holder)
 	var loaded := _place_grid(paths, holder, default_texs)
 	var cam := _grid_camera(paths.size())
-	scene_get_tree().root.add_child(cam)
+	get_tree().root.add_child(cam)
 	cam.current = true
 	await get_tree().process_frame
 	cam.look_at(cam.get_meta("target"))
@@ -340,7 +342,7 @@ func _run_scenes(scene_root: Node3D, out_dir: String) -> void:
 			if scene_name.contains("Universal_RenderPipeline"):
 				continue  # duplicate of City_Standard
 			var holder := Node3D.new()
-			scene_get_tree().root.add_child(holder)
+			get_tree().root.add_child(holder)
 			var n := 0
 			for inst: Dictionary in scenes[short][scene_name]:
 				var container := Node3D.new()
@@ -390,7 +392,7 @@ func _run_scenes(scene_root: Node3D, out_dir: String) -> void:
 			cam.fov = 55.0
 			var dist := radius * 2.1 + 6.0
 			var dir := Vector3(0.62, 0.72, 0.85).normalized()
-			scene_get_tree().root.add_child(cam)
+			get_tree().root.add_child(cam)
 			cam.position = center + dir * dist
 			cam.current = true
 			await get_tree().process_frame
@@ -407,15 +409,128 @@ func _run_scenes(scene_root: Node3D, out_dir: String) -> void:
 			await get_tree().process_frame
 
 
+func _write_progress(text: String) -> void:
+	var pf := FileAccess.open("res://singles_progress.log", FileAccess.WRITE)
+	if pf != null:
+		pf.store_line(text)
+
+
+func _collect_mesh_instances(node: Node, out: Array) -> void:
+	if node is MeshInstance3D and (node as MeshInstance3D).mesh != null:
+		out.append(node as MeshInstance3D)
+	for c in node.get_children():
+		_collect_mesh_instances(c, out)
+
+
+func _render_aabb_to(aabb: AABB, out_path: String) -> void:
+	var cam := Camera3D.new()
+	cam.fov = 50.0
+	var radius := aabb.size.length() * 0.5
+	var dist := radius * 2.0 + 0.8
+	get_tree().root.add_child(cam)
+	cam.position = aabb.get_center() + Vector3(0.62, 0.5, 0.85).normalized() * dist
+	cam.current = true
+	await get_tree().process_frame
+	cam.look_at(aabb.get_center())
+	await get_tree().process_frame
+	RenderingServer.force_draw(true)
+	DirAccess.make_dir_recursive_absolute(out_path.get_base_dir())
+	var img := get_tree().root.get_viewport().get_texture().get_image()
+	img.save_png(out_path)
+	cam.queue_free()
+	await get_tree().process_frame
+
+
+func _run_singles(scene_root: Node3D) -> void:
+	var singles: Array = []
+	var f := FileAccess.open("res://singles.json", FileAccess.READ)
+	if f != null:
+		var parsed: Variant = JSON.parse_string(f.get_as_text())
+		if parsed is Array:
+			singles = parsed
+	if singles.is_empty():
+		print("SINGLES_EMPTY_LIST")
+		return
+	var done := 0
+	var failed := 0
+	var current_pack := ""
+	_write_progress("start total=%d" % singles.size())
+	for item: Dictionary in singles:
+		var pack := str(item.get("pack", ""))
+		if pack != current_pack:
+			_scan_textures(pack, _pack_root(pack))
+			current_pack = pack
+		var res_path := str(item.get("res", ""))
+		var out_path := str(item.get("out", ""))
+		if res_path == "" or out_path == "":
+			continue
+		# 快速路径：成品已存在直接跳过（避免为判断而完整加载 3000+ FBX）。
+		if FileAccess.file_exists(out_path):
+			continue
+		var ps: PackedScene = load(res_path)
+		if ps == null:
+			failed += 1
+			print("SINGLE_FAIL ", res_path)
+			continue
+		var inst := ps.instantiate()
+		scene_root.add_child(inst)
+		var inst3d := inst as Node3D
+		_bind_tree(inst, res_path, defaults.get(pack, []))
+		var boxes: Array = []
+		_combined_aabb(inst3d, inst3d.transform, boxes)
+		var aabb := AABB()
+		for b: AABB in boxes:
+			aabb = b if aabb.size == Vector3.ZERO else aabb.merge(b)
+		var meshes: Array = []
+		_collect_mesh_instances(inst, meshes)
+		var stem := out_path.get_basename()
+		if aabb.size.length() < 0.0001:
+			failed += 1
+			print("SINGLE_EMPTY ", res_path)
+		elif meshes.size() > 3:
+			# 合集文件（如 Characters.fbx）：全景 1 张 + 逐网格拆分，每个角色单独一张。
+			if not FileAccess.file_exists(out_path):
+				await _render_aabb_to(aabb, out_path)
+				done += 1
+			for i in meshes.size():
+				var mi := meshes[i] as MeshInstance3D
+				var mb: AABB = mi.get_global_transform() * mi.get_aabb()
+				if mb.size.length() < 0.0001:
+					continue
+				var split_path := "%s__%02d.png" % [stem, i + 1]
+				if FileAccess.file_exists(split_path):
+					continue
+				for other: MeshInstance3D in meshes:
+					other.visible = other == mi
+				await _render_aabb_to(mb, split_path)
+				done += 1
+			for other2: MeshInstance3D in meshes:
+				other2.visible = true
+		elif not FileAccess.file_exists(out_path):
+			await _render_aabb_to(aabb, out_path)
+			done += 1
+		inst.queue_free()
+		await get_tree().process_frame
+		if done % 25 == 0:
+			_write_progress("running done=%d failed=%d" % [done, failed])
+	print("SINGLES_DONE done=", done, " failed=", failed)
+	_write_progress("done done=%d failed=%d" % [done, failed])
+
+
 func _run() -> void:
 	var mode := OS.get_environment("CAPTURE_MODE")
 	if mode.is_empty():
 		mode = "all"
 	var scene_root := Node3D.new()
+	# 等 root 完成子节点 setup 再挂载，否则 add_child 会被拒绝（渲染全空）。
+	await get_tree().process_frame
+	await get_tree().process_frame
 	get_tree().root.add_child(scene_root)
 	_add_env(scene_root)
 	await get_tree().process_frame
 	var out_dir := ProjectSettings.globalize_path(OUT_ROOT)
+	if mode == "singles":
+		await _run_singles(scene_root)
 	if mode == "cats" or mode == "all":
 		await _run_cats(scene_root, out_dir)
 	if mode == "terrain":
