@@ -148,15 +148,18 @@ func _enforce_number_of_workers(own_entities: Array):
 
 
 ## 为没有活动订单的 Worker 选择视野内资源；暂停或施工订单不会被自动覆盖。
+## 2026-09-03：按资源节点(而非仅资源类型)统计已分配人数，优先选择"人少且近"的
+## 节点，避免多个工人挤同一矿点造成寻路拥塞和原地转圈。
 func _assign_idle_workers_to_resources(own_entities: Array):
 	var workers: Array = own_entities.filter(
 		func(entity): return entity.get("type_id", "") == WORKER_TYPE_ID
 	)
 	workers.sort_custom(func(left, right): return left["id"] < right["id"])
-	var assigned_counts := {
+	var assigned_counts_by_type := {
 		RESOURCE_A_TYPE_ID: 0,
 		RESOURCE_B_TYPE_ID: 0,
 	}
+	var assigned_counts_by_node := {}
 	for worker in workers:
 		var order = worker.get("order", null)
 		if order == null or order.get("kind", "") != "Gather":
@@ -165,17 +168,20 @@ func _assign_idle_workers_to_resources(own_entities: Array):
 		if target == null:
 			continue
 		var target_type: String = target.get("type_id", "")
-		if assigned_counts.has(target_type):
-			assigned_counts[target_type] += 1
+		if assigned_counts_by_type.has(target_type):
+			assigned_counts_by_type[target_type] += 1
+		var node_id: String = target.get("entity_id", "")
+		if not node_id.is_empty():
+			assigned_counts_by_node[node_id] = assigned_counts_by_node.get(node_id, 0) + 1
 	for worker in workers:
 		if worker.get("order", null) != null:
 			continue
 		var preferred_type := (
 			RESOURCE_A_TYPE_ID
-			if assigned_counts[RESOURCE_A_TYPE_ID] <= assigned_counts[RESOURCE_B_TYPE_ID]
+			if assigned_counts_by_type[RESOURCE_A_TYPE_ID] <= assigned_counts_by_type[RESOURCE_B_TYPE_ID]
 			else RESOURCE_B_TYPE_ID
 		)
-		var resource := _find_visible_resource(worker["position"], preferred_type)
+		var resource := _find_visible_resource(worker["position"], preferred_type, assigned_counts_by_node)
 		if resource.is_empty():
 			continue
 		var result: Dictionary = _command_gateway.Gather(
@@ -183,13 +189,17 @@ func _assign_idle_workers_to_resources(own_entities: Array):
 			resource["id"]
 		)
 		if result.get("status", "") in ["Accepted", "PartiallyAccepted"]:
-			assigned_counts[resource["type_id"]] += 1
+			assigned_counts_by_type[resource["type_id"]] += 1
+			assigned_counts_by_node[resource["id"]] = assigned_counts_by_node.get(resource["id"], 0) + 1
 		else:
 			push_warning("规则 AI Gather 被拒绝：%s" % result)
 
 
-## 在 Worker 当前视野与搜索半径交集中选择最近资源，优先保持两种资源分工平衡。
-func _find_visible_resource(worker_position: Vector3, preferred_type: String) -> Dictionary:
+## 在 Worker 当前视野与搜索半径交集中选择资源；先选当前分配人数最少的节点，
+## 同等拥挤度时取最近，尽量把工人摊开到不同矿点。
+func _find_visible_resource(
+	worker_position: Vector3, preferred_type: String, assigned_counts_by_node: Dictionary = {}
+) -> Dictionary:
 	var result: Dictionary = _world_query_runtime.ScanCircle(
 		_query_session_id,
 		worker_position,
@@ -211,6 +221,10 @@ func _find_visible_resource(worker_position: Vector3, preferred_type: String) ->
 	var candidates: Array = preferred if not preferred.is_empty() else resources
 	candidates.sort_custom(
 		func(left, right):
+			var left_count: int = assigned_counts_by_node.get(left["id"], 0)
+			var right_count: int = assigned_counts_by_node.get(right["id"], 0)
+			if left_count != right_count:
+				return left_count < right_count
 			return worker_position.distance_squared_to(left["position"]) < (
 				worker_position.distance_squared_to(right["position"])
 			)

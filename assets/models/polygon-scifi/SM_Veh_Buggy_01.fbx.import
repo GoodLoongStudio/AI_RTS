@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://1k80404fjx2f"
-path="res://.godot/imported/SM_Veh_HoverTank_01.fbx-2202795d0c322b4410b3e7f1f65be88d.scn"
+uid="uid://bbpu21fbq68b5"
+path="res://.godot/imported/SM_Veh_Buggy_01.fbx-1567abef63b4fb2de46598978f3096e8.scn"
 
 [deps]
 
-source_file="res://assets/models/polygon-scifi/SM_Veh_HoverTank_01.fbx"
-dest_files=["res://.godot/imported/SM_Veh_HoverTank_01.fbx-2202795d0c322b4410b3e7f1f65be88d.scn"]
+source_file="res://assets/models/polygon-scifi/SM_Veh_Buggy_01.fbx"
+dest_files=["res://.godot/imported/SM_Veh_Buggy_01.fbx-1567abef63b4fb2de46598978f3096e8.scn"]
 
 [params]
 

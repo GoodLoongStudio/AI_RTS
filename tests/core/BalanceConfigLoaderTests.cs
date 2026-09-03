@@ -87,14 +87,14 @@ internal sealed class BalanceConfigLoaderTests
             tankProduction.RequiredWork == 360,
             "Tank 生产定义应显式引用产品类型并保持 360 工作量");
         Check(tankProduction?.Cost.OrderBy(item => item.Kind).SequenceEqual(
-            [new ResourceAmount(ResourceKind.A, 3), new ResourceAmount(ResourceKind.B, 1)]) == true,
-            "Tank 生产成本应匹配迁移基线");
+                [new ResourceAmount(ResourceKind.A, 500)]) == true,
+            "Tank 生产成本应匹配单币种基线（A×500，2026-09-03 同步）");
 
         var commandCenter = catalog.FindConstruction(new StructureDefinitionId("command_center"));
         Check(commandCenter?.RequiredWork == 200,
             "CommandCenter 施工应保持迁移期 200 工作量");
-        Check(catalog.FindResource(ResourceKind.B)?.CollectionDurationMilliseconds == 2000,
-            "Resource B 采集时间应映射为 2000 整数毫秒");
+        Check(catalog.FindResource(ResourceKind.B)?.CollectionDurationMilliseconds == 200,
+            "Resource B 采集时间应映射为 200 整数毫秒（2026-09-03 采集节奏调整为 20 秒/趟）");
 
         var pulse = catalog.FindSkill(new SkillDefinitionId("demo_self_pulse"));
         Check(pulse is not null, "Catalog 应包含 demo_self_pulse");
@@ -197,9 +197,9 @@ internal sealed class BalanceConfigLoaderTests
                 "\"warheadId\": \"missing_warhead\"",
                 StringComparison.Ordinal)
             .Replace(
-                "{ \"kind\": \"A\", \"amount\": 3 },",
-                "{ \"kind\": \"A\", \"amount\": 3 },\n        " +
-                "{ \"kind\": \"A\", \"amount\": 1 },",
+                "{ \"kind\": \"A\", \"amount\": 500 }",
+                "{ \"kind\": \"A\", \"amount\": 500 },\n        " +
+                "{ \"kind\": \"A\", \"amount\": 1 }",
                 StringComparison.Ordinal);
         var result = _loader.Load(json);
 

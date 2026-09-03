@@ -31,6 +31,15 @@ func _ready():
 	var match_prototype := _load_packed_scene("res://source/match/Match.tscn", "战斗场景")
 	if match_prototype == null:
 		return
+	# 科幻载具/飞机 FBX 很大，必须在加载页读完，不能等进局后再被侧栏 preload 卡住。
+	for unit_path in [
+		"res://source/match/units/Worker.tscn",
+		"res://source/match/units/Drone.tscn",
+		"res://source/match/units/Tank.tscn",
+		"res://source/match/units/Helicopter.tscn",
+	]:
+		_load_packed_scene(unit_path, "单位模型")
+		await get_tree().physics_frame
 	_progress_bar.value = 0.7
 
 	print("Loading[%.1fs] 实例化 Match（导航烘焙阻塞点）" % (Time.get_ticks_msec() / 1000.0))

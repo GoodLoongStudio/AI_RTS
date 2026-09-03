@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://1k80404fjx2f"
-path="res://.godot/imported/SM_Veh_HoverTank_01.fbx-2202795d0c322b4410b3e7f1f65be88d.scn"
+uid="uid://y282bf7k53b5"
+path="res://.godot/imported/SM_Veh_HoverCraft_01.fbx-0e988ef538be1500729d34bad24e1f3a.scn"
 
 [deps]
 
-source_file="res://assets/models/polygon-scifi/SM_Veh_HoverTank_01.fbx"
-dest_files=["res://.godot/imported/SM_Veh_HoverTank_01.fbx-2202795d0c322b4410b3e7f1f65be88d.scn"]
+source_file="res://assets/models/polygon-scifi/SM_Veh_HoverCraft_01.fbx"
+dest_files=["res://.godot/imported/SM_Veh_HoverCraft_01.fbx-0e988ef538be1500729d34bad24e1f3a.scn"]
 
 [params]
 

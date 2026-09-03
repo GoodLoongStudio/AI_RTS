@@ -243,5 +243,4 @@ locale/translations=PackedStringArray("res://assets/translations/match.en.transl
 
 [rendering]
 
-renderer/rendering_method="forward_plus"
 renderer/rendering_method.mobile="gl_compatibility"

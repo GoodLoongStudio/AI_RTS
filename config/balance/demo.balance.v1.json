@@ -4,11 +4,11 @@
   "resources": [
     {
       "kind": "A",
-      "collectionDurationMilliseconds": 1000
+      "collectionDurationMilliseconds": 200
     },
     {
       "kind": "B",
-      "collectionDurationMilliseconds": 2000
+      "collectionDurationMilliseconds": 200
     }
   ],
   "warheads": [
@@ -90,7 +90,7 @@
       "weaponIds": [],
       "canForceFireGround": false,
       "gatherer": {
-        "carryCapacity": 200
+        "carryCapacity": 100
       },
       "constructor": {
         "workPerTick": 1

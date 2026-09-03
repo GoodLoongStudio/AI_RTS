@@ -22,6 +22,8 @@ const ROTATION_LOW_PASS_FILTER_VELOCITY_THRESHOLD = 0.01  # velocities below wil
 
 const PASSIVE_MOVEMENT_TRACKING_ENABLED = true
 const NAVIGATION_ALIGNMENT_MAX_FRAMES = 180
+## clamp 允许的最大吸附距离：只用于"把障碍内目标贴到边缘"级别的小修正。
+const CLAMP_MAX_SNAP_DISTANCE_M = 5.0
 
 @export var domain = Constants.Match.Navigation.Domain.TERRAIN
 @export var speed: float = 4.0
@@ -116,8 +118,18 @@ func _clamp_to_reachable(target: Vector3) -> Vector3:
 	var nav_map := get_navigation_map()
 	if not nav_map.is_valid():
 		return target
+	var closest_owner := NavigationServer3D.map_get_closest_point_owner(nav_map, target)
+	if not closest_owner.is_valid():
+		# 开局竞态防护(2026-09-03): 导航网格尚未烘焙同步时 closest 点可能退化为
+		# 原点附近, 把目标钳到 (0,0) 会让 AI 工人开局横穿地图绕到地图角。
+		# 网格为空时保持原目标, 导航代理会直线走向目标(平坦地图等价正确)。
+		return target
 	var closest := NavigationServer3D.map_get_closest_point(nav_map, target)
 	if not closest.is_finite():
+		return target
+	# clamp 的语义是"把目标从障碍内贴到边缘"，只应产生小距离修正；
+	# 部分烘焙网格会给出远距离的错误吸附点，此时保持原目标更安全。
+	if closest.distance_to(target) > CLAMP_MAX_SNAP_DISTANCE_M:
 		return target
 	return closest
 
