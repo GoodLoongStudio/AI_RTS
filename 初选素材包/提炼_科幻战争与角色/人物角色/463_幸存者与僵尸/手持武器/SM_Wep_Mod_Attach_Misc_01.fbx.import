@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://drq2oxx1lrvxn"
-path="res://.godot/imported/SM_Wep_Mod_Attach_Misc_01.fbx-cd3b54af54791dddfef6274c11e4ae6a.scn"
+path="res://.godot/imported/SM_Wep_Mod_Attach_Misc_01.fbx-1648d8762a320f178c4827e9032f484a.scn"
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/03_末日战争_463/武器/SM_Wep_Mod_Attach_Misc_01.fbx"
-dest_files=["res://.godot/imported/SM_Wep_Mod_Attach_Misc_01.fbx-cd3b54af54791dddfef6274c11e4ae6a.scn"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Misc_01.fbx"
+dest_files=["res://.godot/imported/SM_Wep_Mod_Attach_Misc_01.fbx-1648d8762a320f178c4827e9032f484a.scn"]
 
 [params]
 

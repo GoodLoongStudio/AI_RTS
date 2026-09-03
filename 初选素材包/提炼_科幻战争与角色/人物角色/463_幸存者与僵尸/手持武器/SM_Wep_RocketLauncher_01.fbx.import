@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://3bcl6hlrfkxp"
-path="res://.godot/imported/SM_Wep_RocketLauncher_01.fbx-e3281a14e86a996da4467112c7e40b63.scn"
+path="res://.godot/imported/SM_Wep_RocketLauncher_01.fbx-bd961c2d4a85da878452ef51e90d6157.scn"
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/03_末日战争_463/武器/SM_Wep_RocketLauncher_01.fbx"
-dest_files=["res://.godot/imported/SM_Wep_RocketLauncher_01.fbx-e3281a14e86a996da4467112c7e40b63.scn"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_RocketLauncher_01.fbx"
+dest_files=["res://.godot/imported/SM_Wep_RocketLauncher_01.fbx-bd961c2d4a85da878452ef51e90d6157.scn"]
 
 [params]
 

@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://bbry4oyh3hsws"
-path="res://.godot/imported/SM_Wep_British_HeavyMachineGun_Tripod_01.fbx-593c3dd698342aa22504d297ba722c03.scn"
+path="res://.godot/imported/SM_Wep_British_HeavyMachineGun_Tripod_01.fbx-34cb48bb80fa053f344acc64d40c5e5f.scn"
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/02_一战战争_4019/武器/SM_Wep_British_HeavyMachineGun_Tripod_01.fbx"
-dest_files=["res://.godot/imported/SM_Wep_British_HeavyMachineGun_Tripod_01.fbx-593c3dd698342aa22504d297ba722c03.scn"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/4019_一战军人/手持武器/SM_Wep_British_HeavyMachineGun_Tripod_01.fbx"
+dest_files=["res://.godot/imported/SM_Wep_British_HeavyMachineGun_Tripod_01.fbx-34cb48bb80fa053f344acc64d40c5e5f.scn"]
 
 [params]
 

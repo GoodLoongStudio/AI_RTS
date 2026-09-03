@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cp37obfc138s1"
-path="res://.godot/imported/SM_Wep_RocketLauncher_01__03.png-676fe604cda8b51b61d2054a9e4a23bc.ctex"
+path="res://.godot/imported/SM_Wep_RocketLauncher_01__03.png-34a407628df956c5a2c6eeb960a13cd2.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/03_末日战争_463/武器/SM_Wep_RocketLauncher_01__03.png"
-dest_files=["res://.godot/imported/SM_Wep_RocketLauncher_01__03.png-676fe604cda8b51b61d2054a9e4a23bc.ctex"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_RocketLauncher_01__03.png"
+dest_files=["res://.godot/imported/SM_Wep_RocketLauncher_01__03.png-34a407628df956c5a2c6eeb960a13cd2.ctex"]
 
 [params]
 

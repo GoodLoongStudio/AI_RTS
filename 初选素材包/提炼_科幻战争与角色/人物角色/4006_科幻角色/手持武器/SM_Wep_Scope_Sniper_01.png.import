@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bws07s1250rws"
-path="res://.godot/imported/SM_Wep_Scope_Sniper_01.png-4efb6c8f19dd58407cdc75fcbabec023.ctex"
+path="res://.godot/imported/SM_Wep_Scope_Sniper_01.png-d0e49a4dec02d55fdc1230a31be8d92c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/01_科幻战争_4006/武器/SM_Wep_Scope_Sniper_01.png"
-dest_files=["res://.godot/imported/SM_Wep_Scope_Sniper_01.png-4efb6c8f19dd58407cdc75fcbabec023.ctex"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Scope_Sniper_01.png"
+dest_files=["res://.godot/imported/SM_Wep_Scope_Sniper_01.png-d0e49a4dec02d55fdc1230a31be8d92c.ctex"]
 
 [params]
 

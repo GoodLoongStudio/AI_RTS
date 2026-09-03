@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://dwlbr73gni1xh"
-path="res://.godot/imported/SM_Wep_Melee_HuntingKnife_01.fbx-bdb9357ca8009c530895fab1229f9896.scn"
+path="res://.godot/imported/SM_Wep_Melee_HuntingKnife_01.fbx-f00799b1bb31d6c1e262e406d2e0da07.scn"
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/03_末日战争_463/武器/SM_Wep_Melee_HuntingKnife_01.fbx"
-dest_files=["res://.godot/imported/SM_Wep_Melee_HuntingKnife_01.fbx-bdb9357ca8009c530895fab1229f9896.scn"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Melee_HuntingKnife_01.fbx"
+dest_files=["res://.godot/imported/SM_Wep_Melee_HuntingKnife_01.fbx-f00799b1bb31d6c1e262e406d2e0da07.scn"]
 
 [params]
 

@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cojnff6c8b38y"
-path="res://.godot/imported/SM_Wep_SMG_01__02.png-83c47fa1801fd2e1d78adf49b785fd30.ctex"
+path="res://.godot/imported/SM_Wep_SMG_01__02.png-967461c27a0b3a557c786f6466c4aa5e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/01_科幻战争_4006/武器/SM_Wep_SMG_01__02.png"
-dest_files=["res://.godot/imported/SM_Wep_SMG_01__02.png-83c47fa1801fd2e1d78adf49b785fd30.ctex"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_SMG_01__02.png"
+dest_files=["res://.godot/imported/SM_Wep_SMG_01__02.png-967461c27a0b3a557c786f6466c4aa5e.ctex"]
 
 [params]
 

@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cletwgrylpjl0"
-path="res://.godot/imported/SM_Wep_Dagger_02.png-fbe6f4858d28db4bef673506b7b27fde.ctex"
+path="res://.godot/imported/SM_Wep_Dagger_02.png-282fff651c3d8bd4374bcb12960396f8.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/01_科幻战争_4006/武器/SM_Wep_Dagger_02.png"
-dest_files=["res://.godot/imported/SM_Wep_Dagger_02.png-fbe6f4858d28db4bef673506b7b27fde.ctex"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Dagger_02.png"
+dest_files=["res://.godot/imported/SM_Wep_Dagger_02.png-282fff651c3d8bd4374bcb12960396f8.ctex"]
 
 [params]
 

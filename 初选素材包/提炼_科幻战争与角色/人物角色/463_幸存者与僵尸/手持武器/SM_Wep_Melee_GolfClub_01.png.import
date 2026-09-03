@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c7prulw64151e"
-path="res://.godot/imported/SM_Wep_Melee_GolfClub_01.png-77e8bb70a917b08c061e91fad5b57245.ctex"
+path="res://.godot/imported/SM_Wep_Melee_GolfClub_01.png-e1b38d6398761edf80f9ed50df3a3088.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/03_末日战争_463/武器/SM_Wep_Melee_GolfClub_01.png"
-dest_files=["res://.godot/imported/SM_Wep_Melee_GolfClub_01.png-77e8bb70a917b08c061e91fad5b57245.ctex"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Melee_GolfClub_01.png"
+dest_files=["res://.godot/imported/SM_Wep_Melee_GolfClub_01.png-e1b38d6398761edf80f9ed50df3a3088.ctex"]
 
 [params]
 

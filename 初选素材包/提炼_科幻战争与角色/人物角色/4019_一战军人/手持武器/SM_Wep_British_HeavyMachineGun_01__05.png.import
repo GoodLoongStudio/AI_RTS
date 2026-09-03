@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dprj6f4tmewmr"
-path="res://.godot/imported/SM_Wep_British_HeavyMachineGun_01__05.png-c16f1f0d3d547f6eb080819923cc8dae.ctex"
+path="res://.godot/imported/SM_Wep_British_HeavyMachineGun_01__05.png-5caa980f317022c59af343dc745f6e82.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/02_一战战争_4019/武器/SM_Wep_British_HeavyMachineGun_01__05.png"
-dest_files=["res://.godot/imported/SM_Wep_British_HeavyMachineGun_01__05.png-c16f1f0d3d547f6eb080819923cc8dae.ctex"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/4019_一战军人/手持武器/SM_Wep_British_HeavyMachineGun_01__05.png"
+dest_files=["res://.godot/imported/SM_Wep_British_HeavyMachineGun_01__05.png-5caa980f317022c59af343dc745f6e82.ctex"]
 
 [params]
 

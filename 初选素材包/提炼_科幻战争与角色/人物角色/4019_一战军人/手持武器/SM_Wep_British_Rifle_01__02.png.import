@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cmmag3gg3nhjr"
-path="res://.godot/imported/SM_Wep_British_Rifle_01__02.png-9e7fea44ee4ad21e546b3e9560eb3342.ctex"
+path="res://.godot/imported/SM_Wep_British_Rifle_01__02.png-c8d424b9abb1cec58da7c3ff3e7b6f52.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/02_一战战争_4019/武器/SM_Wep_British_Rifle_01__02.png"
-dest_files=["res://.godot/imported/SM_Wep_British_Rifle_01__02.png-9e7fea44ee4ad21e546b3e9560eb3342.ctex"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/4019_一战军人/手持武器/SM_Wep_British_Rifle_01__02.png"
+dest_files=["res://.godot/imported/SM_Wep_British_Rifle_01__02.png-c8d424b9abb1cec58da7c3ff3e7b6f52.ctex"]
 
 [params]
 

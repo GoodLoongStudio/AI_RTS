@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://dmuyod2ert1e5"
-path="res://.godot/imported/SM_Wep_NailBomb_01.fbx-0eea3e364a8012afe046103609df8b53.scn"
+path="res://.godot/imported/SM_Wep_NailBomb_01.fbx-3d4dd9cdc51943b07af2b6858c5f141d.scn"
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/03_末日战争_463/武器/SM_Wep_NailBomb_01.fbx"
-dest_files=["res://.godot/imported/SM_Wep_NailBomb_01.fbx-0eea3e364a8012afe046103609df8b53.scn"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_NailBomb_01.fbx"
+dest_files=["res://.godot/imported/SM_Wep_NailBomb_01.fbx-3d4dd9cdc51943b07af2b6858c5f141d.scn"]
 
 [params]
 

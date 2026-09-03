@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://5i54juuqkb3q"
-path="res://.godot/imported/SM_Wep_FlareGun_01.fbx-7c7a9eac5fe53a10871d699564c19742.scn"
+path="res://.godot/imported/SM_Wep_FlareGun_01.fbx-636ecb390e2b8d676ecbe99621486f90.scn"
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/03_末日战争_463/武器/SM_Wep_FlareGun_01.fbx"
-dest_files=["res://.godot/imported/SM_Wep_FlareGun_01.fbx-7c7a9eac5fe53a10871d699564c19742.scn"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_FlareGun_01.fbx"
+dest_files=["res://.godot/imported/SM_Wep_FlareGun_01.fbx-636ecb390e2b8d676ecbe99621486f90.scn"]
 
 [params]
 

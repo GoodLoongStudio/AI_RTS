@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b3djscnlfiwtj"
-path="res://.godot/imported/SM_Wep_German_HeavyMachineGun_01__04.png-9586af6b12b28a9702dfba14a05b6be8.ctex"
+path="res://.godot/imported/SM_Wep_German_HeavyMachineGun_01__04.png-6bf62c3faaf5ab8a83d4ae10e65464fc.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/02_一战战争_4019/武器/SM_Wep_German_HeavyMachineGun_01__04.png"
-dest_files=["res://.godot/imported/SM_Wep_German_HeavyMachineGun_01__04.png-9586af6b12b28a9702dfba14a05b6be8.ctex"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/4019_一战军人/手持武器/SM_Wep_German_HeavyMachineGun_01__04.png"
+dest_files=["res://.godot/imported/SM_Wep_German_HeavyMachineGun_01__04.png-6bf62c3faaf5ab8a83d4ae10e65464fc.ctex"]
 
 [params]
 

@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://bolfpisjdt511"
-path="res://.godot/imported/SM_Wep_Mod_Attach_Silencer_03.fbx-a2ea82bb4b691a5cbd05a76de3e5ea76.scn"
+path="res://.godot/imported/SM_Wep_Mod_Attach_Silencer_03.fbx-65e96c6a11a968539b16ce5e71ba6e10.scn"
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/03_末日战争_463/武器/SM_Wep_Mod_Attach_Silencer_03.fbx"
-dest_files=["res://.godot/imported/SM_Wep_Mod_Attach_Silencer_03.fbx-a2ea82bb4b691a5cbd05a76de3e5ea76.scn"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Silencer_03.fbx"
+dest_files=["res://.godot/imported/SM_Wep_Mod_Attach_Silencer_03.fbx-65e96c6a11a968539b16ce5e71ba6e10.scn"]
 
 [params]
 

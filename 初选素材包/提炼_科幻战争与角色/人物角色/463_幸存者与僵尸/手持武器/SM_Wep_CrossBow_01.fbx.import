@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://0qcoo8bo2uog"
-path="res://.godot/imported/SM_Wep_CrossBow_01.fbx-9cda6b8cf57b683f968fc8f936f8ad3d.scn"
+path="res://.godot/imported/SM_Wep_CrossBow_01.fbx-670b1ad3ac53aeb469ce0d6b832c1c29.scn"
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/03_末日战争_463/武器/SM_Wep_CrossBow_01.fbx"
-dest_files=["res://.godot/imported/SM_Wep_CrossBow_01.fbx-9cda6b8cf57b683f968fc8f936f8ad3d.scn"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_CrossBow_01.fbx"
+dest_files=["res://.godot/imported/SM_Wep_CrossBow_01.fbx-670b1ad3ac53aeb469ce0d6b832c1c29.scn"]
 
 [params]
 

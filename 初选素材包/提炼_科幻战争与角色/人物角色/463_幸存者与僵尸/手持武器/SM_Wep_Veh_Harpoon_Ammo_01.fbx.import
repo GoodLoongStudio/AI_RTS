@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://cedxdyj8slncw"
-path="res://.godot/imported/SM_Wep_Veh_Harpoon_Ammo_01.fbx-07544306a3d908ba7b65b4012a71e656.scn"
+path="res://.godot/imported/SM_Wep_Veh_Harpoon_Ammo_01.fbx-33514ba6a89f0d48d1f936d89aa613b5.scn"
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/03_末日战争_463/武器/SM_Wep_Veh_Harpoon_Ammo_01.fbx"
-dest_files=["res://.godot/imported/SM_Wep_Veh_Harpoon_Ammo_01.fbx-07544306a3d908ba7b65b4012a71e656.scn"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Veh_Harpoon_Ammo_01.fbx"
+dest_files=["res://.godot/imported/SM_Wep_Veh_Harpoon_Ammo_01.fbx-33514ba6a89f0d48d1f936d89aa613b5.scn"]
 
 [params]
 

@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c570lkuej3v6d"
-path="res://.godot/imported/SM_Wep_Veh_Saw_Launcher_Ammo_01.png-e3fd6efd68fd5f2833b5b721c741de34.ctex"
+path="res://.godot/imported/SM_Wep_Veh_Saw_Launcher_Ammo_01.png-877331d666d6485324acc36e4699c6cb.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/03_末日战争_463/武器/SM_Wep_Veh_Saw_Launcher_Ammo_01.png"
-dest_files=["res://.godot/imported/SM_Wep_Veh_Saw_Launcher_Ammo_01.png-e3fd6efd68fd5f2833b5b721c741de34.ctex"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Veh_Saw_Launcher_Ammo_01.png"
+dest_files=["res://.godot/imported/SM_Wep_Veh_Saw_Launcher_Ammo_01.png-877331d666d6485324acc36e4699c6cb.ctex"]
 
 [params]
 

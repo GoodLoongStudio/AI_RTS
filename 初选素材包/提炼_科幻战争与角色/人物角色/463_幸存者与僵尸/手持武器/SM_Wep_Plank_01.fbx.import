@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://bd1pdrpyna2ic"
-path="res://.godot/imported/SM_Wep_Plank_01.fbx-4f23791b9a63d5e34ad82e332a74a585.scn"
+path="res://.godot/imported/SM_Wep_Plank_01.fbx-dd37290d86e221f6ae89a9994b75eb6d.scn"
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/03_末日战争_463/武器/SM_Wep_Plank_01.fbx"
-dest_files=["res://.godot/imported/SM_Wep_Plank_01.fbx-4f23791b9a63d5e34ad82e332a74a585.scn"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Plank_01.fbx"
+dest_files=["res://.godot/imported/SM_Wep_Plank_01.fbx-dd37290d86e221f6ae89a9994b75eb6d.scn"]
 
 [params]
 

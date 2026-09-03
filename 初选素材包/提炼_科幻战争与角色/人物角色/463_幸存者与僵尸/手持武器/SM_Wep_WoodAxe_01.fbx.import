@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://cby1uejc5l50m"
-path="res://.godot/imported/SM_Wep_WoodAxe_01.fbx-7119184a0d5ad9e62c1f96c67e56bfc9.scn"
+path="res://.godot/imported/SM_Wep_WoodAxe_01.fbx-8e2a14d4743899751257d40bd5f7b7f7.scn"
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/03_末日战争_463/武器/SM_Wep_WoodAxe_01.fbx"
-dest_files=["res://.godot/imported/SM_Wep_WoodAxe_01.fbx-7119184a0d5ad9e62c1f96c67e56bfc9.scn"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_WoodAxe_01.fbx"
+dest_files=["res://.godot/imported/SM_Wep_WoodAxe_01.fbx-8e2a14d4743899751257d40bd5f7b7f7.scn"]
 
 [params]
 

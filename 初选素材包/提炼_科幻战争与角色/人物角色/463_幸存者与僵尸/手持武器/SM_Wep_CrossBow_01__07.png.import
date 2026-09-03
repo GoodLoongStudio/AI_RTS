@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dttj5v1jiiptt"
-path="res://.godot/imported/SM_Wep_CrossBow_01__07.png-79196b25c95e1bf6e4d2122a6c7f74ee.ctex"
+path="res://.godot/imported/SM_Wep_CrossBow_01__07.png-145d35de3b5c81a712e9e993dca0cb4e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/03_末日战争_463/武器/SM_Wep_CrossBow_01__07.png"
-dest_files=["res://.godot/imported/SM_Wep_CrossBow_01__07.png-79196b25c95e1bf6e4d2122a6c7f74ee.ctex"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_CrossBow_01__07.png"
+dest_files=["res://.godot/imported/SM_Wep_CrossBow_01__07.png-145d35de3b5c81a712e9e993dca0cb4e.ctex"]
 
 [params]
 

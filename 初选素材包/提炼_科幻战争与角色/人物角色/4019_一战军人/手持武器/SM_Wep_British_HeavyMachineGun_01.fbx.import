@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://ckoiop4q8dayl"
-path="res://.godot/imported/SM_Wep_British_HeavyMachineGun_01.fbx-80d4d6d18c4fe107e626cd0f80fc7956.scn"
+path="res://.godot/imported/SM_Wep_British_HeavyMachineGun_01.fbx-6c9b81de6405df4a24df8d28e2cd6255.scn"
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/02_一战战争_4019/武器/SM_Wep_British_HeavyMachineGun_01.fbx"
-dest_files=["res://.godot/imported/SM_Wep_British_HeavyMachineGun_01.fbx-80d4d6d18c4fe107e626cd0f80fc7956.scn"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/4019_一战军人/手持武器/SM_Wep_British_HeavyMachineGun_01.fbx"
+dest_files=["res://.godot/imported/SM_Wep_British_HeavyMachineGun_01.fbx-6c9b81de6405df4a24df8d28e2cd6255.scn"]
 
 [params]
 

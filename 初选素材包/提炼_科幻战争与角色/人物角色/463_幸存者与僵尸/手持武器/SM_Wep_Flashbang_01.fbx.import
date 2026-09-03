@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://hfutg8sk2hyt"
-path="res://.godot/imported/SM_Wep_Flashbang_01.fbx-0a464140dcf1e9ddf7a010f19e409586.scn"
+path="res://.godot/imported/SM_Wep_Flashbang_01.fbx-0cf03b7f2940f702566a048e686101b1.scn"
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/03_末日战争_463/武器/SM_Wep_Flashbang_01.fbx"
-dest_files=["res://.godot/imported/SM_Wep_Flashbang_01.fbx-0a464140dcf1e9ddf7a010f19e409586.scn"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Flashbang_01.fbx"
+dest_files=["res://.godot/imported/SM_Wep_Flashbang_01.fbx-0cf03b7f2940f702566a048e686101b1.scn"]
 
 [params]
 

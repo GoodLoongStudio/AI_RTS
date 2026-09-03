@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bk3jn6uk4desi"
-path="res://.godot/imported/SM_Wep_Revolver_01__04.png-fd0c46cae82b1d1cf1718dddb78e0a2b.ctex"
+path="res://.godot/imported/SM_Wep_Revolver_01__04.png-a452d036ad4e80af0267f6711d9d1c12.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/03_末日战争_463/武器/SM_Wep_Revolver_01__04.png"
-dest_files=["res://.godot/imported/SM_Wep_Revolver_01__04.png-fd0c46cae82b1d1cf1718dddb78e0a2b.ctex"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Revolver_01__04.png"
+dest_files=["res://.godot/imported/SM_Wep_Revolver_01__04.png-a452d036ad4e80af0267f6711d9d1c12.ctex"]
 
 [params]
 

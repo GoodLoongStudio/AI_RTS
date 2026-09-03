@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://cnfeqiwf24ers"
-path="res://.godot/imported/SM_Wep_Butcher_01.fbx-50949fe634d3eed5b19659a9a0deba67.scn"
+path="res://.godot/imported/SM_Wep_Butcher_01.fbx-7a1203a2223328240b3bb7a4b6f0aa94.scn"
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/03_末日战争_463/武器/SM_Wep_Butcher_01.fbx"
-dest_files=["res://.godot/imported/SM_Wep_Butcher_01.fbx-50949fe634d3eed5b19659a9a0deba67.scn"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Butcher_01.fbx"
+dest_files=["res://.godot/imported/SM_Wep_Butcher_01.fbx-7a1203a2223328240b3bb7a4b6f0aa94.scn"]
 
 [params]
 

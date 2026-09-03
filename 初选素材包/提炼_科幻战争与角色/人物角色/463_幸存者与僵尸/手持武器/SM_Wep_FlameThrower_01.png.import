@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bwvj8iqy5lohq"
-path="res://.godot/imported/SM_Wep_FlameThrower_01.png-371e1fbc4e5001d2bd93c7bff147aecb.ctex"
+path="res://.godot/imported/SM_Wep_FlameThrower_01.png-372a4342e492db62e25ae267dde5baa8.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/03_末日战争_463/武器/SM_Wep_FlameThrower_01.png"
-dest_files=["res://.godot/imported/SM_Wep_FlameThrower_01.png-371e1fbc4e5001d2bd93c7bff147aecb.ctex"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_FlameThrower_01.png"
+dest_files=["res://.godot/imported/SM_Wep_FlameThrower_01.png-372a4342e492db62e25ae267dde5baa8.ctex"]
 
 [params]
 

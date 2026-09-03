@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://yqbwafi46t0t"
-path="res://.godot/imported/SM_Wep_PipeWrench_01.fbx-90fdd331be6ff356e98c1d004ddc6963.scn"
+path="res://.godot/imported/SM_Wep_PipeWrench_01.fbx-54c789ae7189ec2a7a33c768e4c024d8.scn"
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/03_末日战争_463/武器/SM_Wep_PipeWrench_01.fbx"
-dest_files=["res://.godot/imported/SM_Wep_PipeWrench_01.fbx-90fdd331be6ff356e98c1d004ddc6963.scn"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_PipeWrench_01.fbx"
+dest_files=["res://.godot/imported/SM_Wep_PipeWrench_01.fbx-54c789ae7189ec2a7a33c768e4c024d8.scn"]
 
 [params]
 

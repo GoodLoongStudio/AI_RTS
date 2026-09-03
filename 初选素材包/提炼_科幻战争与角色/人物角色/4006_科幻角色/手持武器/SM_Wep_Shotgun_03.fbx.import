@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://bi84pnb6p66f4"
-path="res://.godot/imported/SM_Wep_Shotgun_03.fbx-6a828981ba7ac7b5f93268382145e6d6.scn"
+path="res://.godot/imported/SM_Wep_Shotgun_03.fbx-734051c4e9453b397b468d4dc0ddc826.scn"
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/01_科幻战争_4006/武器/SM_Wep_Shotgun_03.fbx"
-dest_files=["res://.godot/imported/SM_Wep_Shotgun_03.fbx-6a828981ba7ac7b5f93268382145e6d6.scn"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Shotgun_03.fbx"
+dest_files=["res://.godot/imported/SM_Wep_Shotgun_03.fbx-734051c4e9453b397b468d4dc0ddc826.scn"]
 
 [params]
 

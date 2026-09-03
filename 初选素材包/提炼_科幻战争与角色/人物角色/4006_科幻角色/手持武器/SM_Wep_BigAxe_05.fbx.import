@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://v3akysc857sh"
-path="res://.godot/imported/SM_Wep_BigAxe_05.fbx-f5693097bac5a6a63f19f0ead47731f4.scn"
+path="res://.godot/imported/SM_Wep_BigAxe_05.fbx-2bbaff94751170c89a817f3707af1847.scn"
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/01_科幻战争_4006/武器/SM_Wep_BigAxe_05.fbx"
-dest_files=["res://.godot/imported/SM_Wep_BigAxe_05.fbx-f5693097bac5a6a63f19f0ead47731f4.scn"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_BigAxe_05.fbx"
+dest_files=["res://.godot/imported/SM_Wep_BigAxe_05.fbx-2bbaff94751170c89a817f3707af1847.scn"]
 
 [params]
 

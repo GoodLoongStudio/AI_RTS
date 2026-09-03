@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://ys2j85nwkuqn"
-path="res://.godot/imported/SM_Wep_AssaultRifle_01.fbx-f217fa86ed5d15de996cfa2a774e98df.scn"
+path="res://.godot/imported/SM_Wep_AssaultRifle_01.fbx-1c74ffe8193ffa4b63d3c9b5cac2c0ba.scn"
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/03_末日战争_463/武器/SM_Wep_AssaultRifle_01.fbx"
-dest_files=["res://.godot/imported/SM_Wep_AssaultRifle_01.fbx-f217fa86ed5d15de996cfa2a774e98df.scn"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_AssaultRifle_01.fbx"
+dest_files=["res://.godot/imported/SM_Wep_AssaultRifle_01.fbx-1c74ffe8193ffa4b63d3c9b5cac2c0ba.scn"]
 
 [params]
 

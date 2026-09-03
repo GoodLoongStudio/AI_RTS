@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://v2td4i2r4c1t"
-path="res://.godot/imported/SM_Wep_Veh_Saw_Launcher_Ammo_01.fbx-f0f9cbc5160d5b4e54f9d180b5f538b0.scn"
+path="res://.godot/imported/SM_Wep_Veh_Saw_Launcher_Ammo_01.fbx-fe06eb25ea5ee9d135da4e40563ce5fb.scn"
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/03_末日战争_463/武器/SM_Wep_Veh_Saw_Launcher_Ammo_01.fbx"
-dest_files=["res://.godot/imported/SM_Wep_Veh_Saw_Launcher_Ammo_01.fbx-f0f9cbc5160d5b4e54f9d180b5f538b0.scn"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Veh_Saw_Launcher_Ammo_01.fbx"
+dest_files=["res://.godot/imported/SM_Wep_Veh_Saw_Launcher_Ammo_01.fbx-fe06eb25ea5ee9d135da4e40563ce5fb.scn"]
 
 [params]
 

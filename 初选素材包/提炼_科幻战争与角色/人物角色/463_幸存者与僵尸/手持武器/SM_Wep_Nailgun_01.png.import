@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cfyrt7a8bqjga"
-path="res://.godot/imported/SM_Wep_Nailgun_01.png-691d6150af5af5159c0bee91a97037b9.ctex"
+path="res://.godot/imported/SM_Wep_Nailgun_01.png-b6a7f466104f650280da691a706c65c1.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/03_末日战争_463/武器/SM_Wep_Nailgun_01.png"
-dest_files=["res://.godot/imported/SM_Wep_Nailgun_01.png-691d6150af5af5159c0bee91a97037b9.ctex"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Nailgun_01.png"
+dest_files=["res://.godot/imported/SM_Wep_Nailgun_01.png-b6a7f466104f650280da691a706c65c1.ctex"]
 
 [params]
 

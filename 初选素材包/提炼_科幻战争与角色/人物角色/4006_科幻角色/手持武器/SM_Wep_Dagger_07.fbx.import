@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://bdnw5d5spndcg"
-path="res://.godot/imported/SM_Wep_Dagger_07.fbx-3566670c81fe5f3255bc84f1a040f17e.scn"
+path="res://.godot/imported/SM_Wep_Dagger_07.fbx-842e2af98c36262ff7b26ced168ca38f.scn"
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/01_科幻战争_4006/武器/SM_Wep_Dagger_07.fbx"
-dest_files=["res://.godot/imported/SM_Wep_Dagger_07.fbx-3566670c81fe5f3255bc84f1a040f17e.scn"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Dagger_07.fbx"
+dest_files=["res://.godot/imported/SM_Wep_Dagger_07.fbx-842e2af98c36262ff7b26ced168ca38f.scn"]
 
 [params]
 

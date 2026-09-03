@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://ctk5w611uaan4"
-path="res://.godot/imported/SM_Wep_Assault_01.fbx-69dbef6210e6d3ad93dedf7b5a9d6d93.scn"
+path="res://.godot/imported/SM_Wep_Assault_01.fbx-dcbd4c5729d9f2c0ea1ccfe725dbf769.scn"
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/01_科幻战争_4006/武器/SM_Wep_Assault_01.fbx"
-dest_files=["res://.godot/imported/SM_Wep_Assault_01.fbx-69dbef6210e6d3ad93dedf7b5a9d6d93.scn"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/4006_科幻角色/手持武器/SM_Wep_Assault_01.fbx"
+dest_files=["res://.godot/imported/SM_Wep_Assault_01.fbx-dcbd4c5729d9f2c0ea1ccfe725dbf769.scn"]
 
 [params]
 

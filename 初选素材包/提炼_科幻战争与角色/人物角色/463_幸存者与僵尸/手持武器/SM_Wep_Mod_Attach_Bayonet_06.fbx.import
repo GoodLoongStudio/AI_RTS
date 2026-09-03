@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://cwvf8e4t7rsnk"
-path="res://.godot/imported/SM_Wep_Mod_Attach_Bayonet_06.fbx-8b1055c3b199b6bc1f1c7a7411df53dd.scn"
+path="res://.godot/imported/SM_Wep_Mod_Attach_Bayonet_06.fbx-fda3c4087770d727b36cf1418c8f6f8c.scn"
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/03_末日战争_463/武器/SM_Wep_Mod_Attach_Bayonet_06.fbx"
-dest_files=["res://.godot/imported/SM_Wep_Mod_Attach_Bayonet_06.fbx-8b1055c3b199b6bc1f1c7a7411df53dd.scn"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_Bayonet_06.fbx"
+dest_files=["res://.godot/imported/SM_Wep_Mod_Attach_Bayonet_06.fbx-fda3c4087770d727b36cf1418c8f6f8c.scn"]
 
 [params]
 

@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://cgdo47doeixgs"
-path="res://.godot/imported/SM_Wep_Mod_Attach_IronSight_05.fbx-79701d330142454237adddfc923c074c.scn"
+path="res://.godot/imported/SM_Wep_Mod_Attach_IronSight_05.fbx-dd9c5bcf8e4d3998e427c804d3a942db.scn"
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/03_末日战争_463/武器/SM_Wep_Mod_Attach_IronSight_05.fbx"
-dest_files=["res://.godot/imported/SM_Wep_Mod_Attach_IronSight_05.fbx-79701d330142454237adddfc923c074c.scn"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Mod_Attach_IronSight_05.fbx"
+dest_files=["res://.godot/imported/SM_Wep_Mod_Attach_IronSight_05.fbx-dd9c5bcf8e4d3998e427c804d3a942db.scn"]
 
 [params]
 

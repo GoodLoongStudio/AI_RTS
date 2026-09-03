@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://blg2xnydxxvoh"
-path="res://.godot/imported/SM_Wep_Katana_01.fbx-44e6b14649e2dd9305c483f6397621c2.scn"
+path="res://.godot/imported/SM_Wep_Katana_01.fbx-328c5c8dc46771a108be6b51599ef371.scn"
 
 [deps]
 
-source_file="res://初选素材包/提炼_科幻战争与角色/03_末日战争_463/武器/SM_Wep_Katana_01.fbx"
-dest_files=["res://.godot/imported/SM_Wep_Katana_01.fbx-44e6b14649e2dd9305c483f6397621c2.scn"]
+source_file="res://初选素材包/提炼_科幻战争与角色/人物角色/463_幸存者与僵尸/手持武器/SM_Wep_Katana_01.fbx"
+dest_files=["res://.godot/imported/SM_Wep_Katana_01.fbx-328c5c8dc46771a108be6b51599ef371.scn"]
 
 [params]
 
