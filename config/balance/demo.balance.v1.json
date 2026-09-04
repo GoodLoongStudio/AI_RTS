@@ -196,6 +196,16 @@
       "sightRangeMeters": 8.0,
       "weaponIds": ["anti_air_turret_rocket"],
       "canForceFireGround": false
+    },
+    {
+      "id": "barracks",
+      "maxHp": 14.0,
+      "sightRangeMeters": 8.0,
+      "weaponIds": [],
+      "canForceFireGround": false,
+      "producer": {
+        "queueLimit": 5
+      }
     }
   ],
   "productions": [
@@ -242,7 +252,7 @@
       "cost": [
         { "kind": "A", "amount": 150 }
       ],
-      "allowedProducerUnitTypeIds": ["command_center"]
+      "allowedProducerUnitTypeIds": ["barracks"]
     }
   ],
   "constructions": [
@@ -295,6 +305,16 @@
       ],
       "environmentId": "terrain.surface",
       "footprintRadiusMeters": 0.6
+    },
+    {
+      "id": "barracks",
+      "unitTypeId": "barracks",
+      "requiredWork": 200,
+      "cost": [
+        { "kind": "A", "amount": 600 }
+      ],
+      "environmentId": "terrain.surface",
+      "footprintRadiusMeters": 1.5
     }
   ],
   "skills": [

@@ -46,6 +46,11 @@
    "unitTypeId": "anti_air_turret",
    "scenePath": "res://source/match/units/AntiAirTurret.tscn",
    "blueprintScenePath": "res://source/match/units/structure-geometries/AntiAirTurret.tscn"
+  },
+  {
+   "unitTypeId": "barracks",
+   "scenePath": "res://source/match/units/Barracks.tscn",
+   "blueprintScenePath": "res://source/match/units/structure-geometries/Barracks.tscn"
   }
  ],
  "weaponAssets": [

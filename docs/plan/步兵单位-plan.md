@@ -1,6 +1,6 @@
 # 步兵单位-plan
 
-> 负责会话：WorkBuddy 主会话 ｜ 创建：2026-09-04 ｜ 状态：期 1 ✅ 已完成（09-04），期 2 ⏳ 待开工
+> 负责会话：WorkBuddy 主会话 ｜ 创建：2026-09-04 ｜ 状态：期 1 ✅ 期 2 核心 ✅（09-04；兵营/生产迁移/AI 出兵已交付，动画接入待绑骨会话产出）
 
 ## Overview
 
@@ -58,13 +58,13 @@
 
 ### 期 2：兵营 + AI 出兵 ⏳
 
-7. ⏳ **兵营建筑**：`structure-geometries/Barracks.tscn`（SM_Bld_Corp_Barracks_01 换模管线）+
+7. ✅ **兵营建筑**：`structure-geometries/Barracks.tscn`（SM_Bld_Corp_Barracks_01 换模管线）+
    `Barracks.gd`（复用 VehicleFactory 的生产建筑模式）+ 建造定义 + 蓝图放置
-8. ⏳ **生产迁移**：productions.soldier 的 producer 改为 barracks；指挥中心页签保留或移除按体验定
-9. ⏳ **AI 接入**：EconomyController/OffenseController 支持步兵批量产出并编入 battlegroup
+8. ✅ **生产迁移**：productions.soldier 的 producer 改为 barracks；指挥中心页签保留或移除按体验定
+9. ✅ **AI 接入**：EconomyController/OffenseController 支持步兵批量产出并编入 battlegroup
    （难度档位：EASY 不出步兵 / NORMAL 混编 / HARD 步海战术）
 10. ⏳ **动画补全**：接入另一会话产出的动作剪辑（待命/行走/开火/死亡），含朝向与移速同步
-11. ⏳ **回归 + 验收**：全量自动测试 + 对局体验确认
+11. ⏳ **回归 + 验收**（动画相关回归待动画接入后补）：全量自动测试 + 对局体验确认
 
 ## Timeline
 

@@ -3,6 +3,7 @@ extends Node
 const MatchScene = preload("res://tests/manual/TestAllUnits.tscn")
 const InfantryScene = preload("res://source/match/units/Infantry.tscn")
 const InfantryScript = preload("res://source/match/units/Infantry.gd")
+const BarracksScene = preload("res://source/match/units/Barracks.tscn")
 
 var _failures := 0
 var _produced_units := []
@@ -18,7 +19,15 @@ func _ready():
 
 	var human = match_instance.get_node("Players/Human")
 	var command_center = human.get_node("CommandCenter")
-	var queue = command_center.production_queue
+	# 期 2：步兵生产迁移到兵营——现场部署一座已完工兵营
+	var barracks = BarracksScene.instantiate()
+	barracks.global_transform = Transform3D(
+		Basis(), command_center.global_position + Vector3(4, 0, 0)
+	)
+	human.add_child(barracks)
+	MatchSignals.setup_and_spawn_unit.emit(barracks, barracks.global_transform, human)
+	barracks._construction_progress = 1.0
+	var queue = barracks.production_queue
 	var runtime = match_instance.get_node("ProductionRuntime")
 	_check(
 		human.add_resources({"resource_a": 3000, "resource_b": 3000}, "ScriptedAdjustment"),
@@ -41,7 +50,7 @@ func _ready():
 		elapsed_seconds += 0.1
 	_check(_produced_units.size() == 1, "步兵应在有限时间内只部署一次")
 	if _produced_units.is_empty():
-		print("Infantry deployment diagnostic: ", runtime.GetQueue(command_center))
+		print("Infantry deployment diagnostic: ", runtime.GetQueue(barracks))
 		print("Infantry queue smoke test completed: %d failure(s)" % _failures)
 		match_instance.queue_free()
 		await get_tree().process_frame
@@ -75,8 +84,9 @@ func _ready():
 	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1)
 
 
-func _on_unit_production_finished(unit, producer):
-	if producer.name == "CommandCenter":
+func _on_unit_production_finished(unit, _producer):
+	# 生产者节点在部署时会被 Match 重命名（Unit_N），按产品脚本判定更可靠
+	if unit.get_script() == InfantryScript:
 		_produced_units.append(unit)
 
 

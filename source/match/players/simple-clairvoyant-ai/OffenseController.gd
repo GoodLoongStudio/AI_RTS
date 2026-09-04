@@ -21,6 +21,10 @@ const WORKER_TYPE_ID := "worker"
 const VEHICLE_FACTORY_TYPE_ID := "vehicle_factory"
 const AIRCRAFT_FACTORY_TYPE_ID := "aircraft_factory"
 const TANK_TYPE_ID := "tank"
+const BarracksScene = preload("res://source/match/units/Barracks.tscn")
+const SoldierScene = preload("res://source/match/units/Infantry.tscn")
+const BARRACKS_TYPE_ID := "barracks"
+const SOLDIER_TYPE_ID := "soldier"
 const HELICOPTER_TYPE_ID := "helicopter"
 
 var _player = null
@@ -39,6 +43,9 @@ var _secondary_unit_type_id := ""
 var _number_of_pending_unit_resource_requests := {}
 ## QueueFull 等拒绝后的退避截止时刻(ms)——按 metadata 键控。
 var _queue_full_backoff := {}
+## 期 2 步兵副线开关与在编上限（由难度档位决定）
+var _infantry_production_enabled := false
+var _infantry_cap := 0
 var _secondary_production_enabled := false
 var _battlegroup_under_forming = null
 var _battlegroups := []
@@ -100,6 +107,23 @@ func provision(resources, metadata):
 			metadata,
 			own_entities
 		)
+	elif metadata == "barracks_structure":
+		_provision_structure(
+			BARRACKS_TYPE_ID,
+			BarracksScene,
+			resources,
+			metadata,
+			own_entities
+		)
+	elif metadata == "soldier_unit":
+		_provision_unit(
+			SOLDIER_TYPE_ID,
+			BARRACKS_TYPE_ID,
+			SoldierScene,
+			resources,
+			metadata,
+			own_entities
+		)
 	else:
 		assert(false, "unexpected flow")
 
@@ -125,6 +149,9 @@ func _configure_primary_and_secondary_types():
 	)
 	_secondary_unit_scene = TankScene if secondary_is_vehicle else HelicopterScene
 	_secondary_unit_type_id = TANK_TYPE_ID if secondary_is_vehicle else HELICOPTER_TYPE_ID
+	# 期 2 步兵副线：NORMAL/HARD 启用兵营出步兵，EASY 保持无步兵
+	_infantry_production_enabled = _ai.difficulty != _ai.Difficulty.EASY
+	_infantry_cap = 8 if _ai.difficulty == _ai.Difficulty.HARD else 4
 
 
 func _setup_refresh_timer():
@@ -151,7 +178,16 @@ func _refresh_logistics():
 			"secondary_structure",
 			own_entities
 		)
+	if _infantry_production_enabled:
+		_enforce_structure_existence(
+			BARRACKS_TYPE_ID,
+			BarracksScene,
+			"barracks_structure",
+			own_entities
+		)
 	_enforce_units_production_by_ratio(own_entities)
+	if _infantry_production_enabled:
+		_enforce_infantry_production(own_entities)
 	_refresh_defense_response(own_entities)
 
 
@@ -207,6 +243,32 @@ func _queued_unit_counts(own_entities: Array) -> Dictionary:
 			elif product_type_id == _secondary_unit_type_id:
 				counts["secondary"] += 1
 	return counts
+
+
+## 步兵副线（期 2）：兵营完工且步兵在编上限内时请求生产，不占用主/副配比。
+func _enforce_infantry_production(own_entities: Array):
+	if Time.get_ticks_msec() - _setup_ticks_ms < int(_ai.first_wave_delay_s * 1000.0):
+		return
+	if Time.get_ticks_msec() < int(_queue_full_backoff.get("soldier_unit", 0)):
+		return
+	if _completed_producers(BARRACKS_TYPE_ID, own_entities).is_empty():
+		return
+	var queued: int = _number_of_pending_unit_resource_requests.get("soldier_unit", 0)
+	for entity in own_entities:
+		var production = entity.get("production", null)
+		if production == null:
+			continue
+		for item in production.get("items", []):
+			if item.get("product_type_id", "") == SOLDIER_TYPE_ID:
+				queued += 1
+	if queued >= _infantry_cap or _number_of_pending_unit_resource_requests.get(
+		"soldier_unit", 0
+	) > 0:
+		return
+	_number_of_pending_unit_resource_requests["soldier_unit"] = (
+		_number_of_pending_unit_resource_requests.get("soldier_unit", 0) + 1
+	)
+	resources_required.emit(_balance.GetProductionCost(SoldierScene), "soldier_unit")
 
 
 ## 防御响应（AI-plan Part A Phase 5）：基地威胁有效时派最近的非撤退编组回防；
@@ -477,9 +539,11 @@ func _refresh_battlegroups(own_entities: Array):
 ## 按稳定 ID 分配 Tank 与 Helicopter：优先补最缺员的既有编组，编组全满且
 ## 未达编组总数时创建新编组。
 func _attach_unassigned_battle_units(own_entities: Array):
+	var battle_type_ids := [TANK_TYPE_ID, HELICOPTER_TYPE_ID]
+	if _infantry_production_enabled:
+		battle_type_ids.append(SOLDIER_TYPE_ID)
 	var battle_entities: Array = own_entities.filter(
-		func(entity):
-			return entity.get("type_id", "") in [TANK_TYPE_ID, HELICOPTER_TYPE_ID]
+		func(entity): return entity.get("type_id", "") in battle_type_ids
 	)
 	for entity in battle_entities:
 		var unit_id: String = entity.get("id", "")

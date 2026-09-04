@@ -133,7 +133,7 @@ public sealed record BalanceConfigRequirements(
 /// <summary>提供当前 Demo 组合根要求的稳定定义清单。</summary>
 public static class DemoBalanceRequirements
 {
-    /// <summary>构造当前九种实体、四种产品、五种建筑和两种资源的要求。</summary>
+    /// <summary>构造当前十种实体、五种产品、六种建筑和两种资源的要求。</summary>
     public static BalanceConfigRequirements Create() => new(
         new UnitTypeId[]
         {
@@ -145,14 +145,17 @@ public static class DemoBalanceRequirements
             new("vehicle_factory"),
             new("aircraft_factory"),
             new("anti_ground_turret"),
-            new("anti_air_turret")
+            new("anti_air_turret"),
+            new("soldier"),
+            new("barracks")
         }.ToFrozenSet(),
         new ProductionDefinitionId[]
         {
             new("worker"),
             new("drone"),
             new("tank"),
-            new("helicopter")
+            new("helicopter"),
+            new("soldier")
         }.ToFrozenSet(),
         new StructureDefinitionId[]
         {
@@ -160,7 +163,8 @@ public static class DemoBalanceRequirements
             new("vehicle_factory"),
             new("aircraft_factory"),
             new("anti_ground_turret"),
-            new("anti_air_turret")
+            new("anti_air_turret"),
+            new("barracks")
         }.ToFrozenSet(),
         new[] { ResourceKind.A, ResourceKind.B }.ToFrozenSet());
 }

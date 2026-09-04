@@ -30,7 +30,7 @@ func _ready():
 	await get_tree().process_frame
 
 	var income_applied: bool = rule_ai.add_resources(
-		{"resource_a": 100, "resource_b": 100},
+		{"resource_a": 3000, "resource_b": 3000},
 		"ScriptedAdjustment"
 	)
 	_check(income_applied,
