@@ -24,7 +24,7 @@ update_rotation = false
 update_scale = false
 
 [node name="RotationSynchronizer" type="RemoteTransform3D" parent="."]
-remote_path = NodePath("../DetachTransform/Geometry/turret_single/tmpParent/turret_single2/turret")
+remote_path = NodePath("../DetachTransform/Geometry/SM_Veh_Turret_Large_01")
 update_position = false
 update_scale = false
 
@@ -32,8 +32,8 @@ update_scale = false
 
 [node name="Geometry" parent="DetachTransform" instance=ExtResource("2_tlome")]
 
-[node name="ProjectileOrigin" type="Marker3D" parent="DetachTransform/Geometry/turret_single/tmpParent/turret_single2/turret" index="2"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.13715, -0.412822)
+[node name="ProjectileOrigin" type="Marker3D" parent="DetachTransform/Geometry/SM_Veh_Turret_Large_01"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, -0.9)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
@@ -62,7 +62,4 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
 radius = 0.6
 
 [node name="RotateRandomlyWhenLookingForTargets" parent="." instance=ExtResource("8_l7mop")]
-node_to_rotate = NodePath("../DetachTransform/Geometry/turret_single/tmpParent/turret_single2/turret")
-
-[editable path="DetachTransform/Geometry"]
-[editable path="DetachTransform/Geometry/turret_single"]
+node_to_rotate = NodePath("../DetachTransform/Geometry/SM_Veh_Turret_Large_01")

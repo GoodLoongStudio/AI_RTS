@@ -14,6 +14,12 @@ static var _shared_materials := {}
 
 
 func _ready() -> void:
+	apply()
+
+
+## 绑定/重绑图集材质。建筑完工时 Structure 会清空 material_override，
+## 需要再次调用本方法恢复 Synty 外观。
+func apply() -> void:
 	if albedo_texture == null:
 		push_warning("SyntyMaterialBinder 未配置图集，保持白模")
 		return
