@@ -1,6 +1,6 @@
 # 步兵单位-plan
 
-> 负责会话：WorkBuddy 主会话 ｜ 创建：2026-09-04 ｜ 状态：⏳ 待确认开工
+> 负责会话：WorkBuddy 主会话 ｜ 创建：2026-09-04 ｜ 状态：期 1 ✅ 已完成（09-04），期 2 ⏳ 待开工
 
 ## Overview
 
@@ -42,19 +42,19 @@
 
 ### 期 1：最小闭环 ⏳
 
-1. ⏳ **素材接入**：拷贝 `Soldier_Male_01_rigged.fbx` + 贴图到 `assets/models/scifi-worlds/`；
+1. ✅ **素材接入**：拷贝 `Soldier_Male_01_rigged.fbx` + 贴图到 `assets/models/scifi-worlds/`；
    headless 导入并 dump 节点树/动画列表，确认骨架与动画剪辑可用性（动画缺失则记录降级方案）
-2. ⏳ **单位实现**：新建 `source/match/units/Infantry.tscn + Infantry.gd`
+2. ✅ **单位实现**：新建 `source/match/units/Infantry.tscn + Infantry.gd`
    （Area3D，复用 traits：Movement / HealthBar / Selection / Highlight / Targetability /
    UnitVisualBindings；碰撞圆柱 r=0.3 h=0.9；武器按数值表配）
-3. ⏳ **平衡配置**：`config/balance/demo.balance.v1.json` 新增 `unitTypes.soldier`
+3. ✅ **平衡配置**：`config/balance/demo.balance.v1.json` 新增 `unitTypes.soldier`
    （movement/weapons/weaponIds）与 `productions.soldier`（producer=command_center）；
    同步更新 BalanceConfigLoaderTests 的 pin
-4. ⏳ **生产入口**：Ra3Sidebar 指挥中心页签新增"步兵"格子（TABS 配置 + 图标可选）；
+4. ✅ **生产入口**：Ra3Sidebar 指挥中心页签新增"步兵"格子（TABS 配置 + 图标可选）；
    CommandCenterMenu 若有独立菜单同步加
-5. ⏳ **自动化测试**：新增 `InfantrySmokeTest`（生产入队→部署→移动→攻击假人→击杀）；
+5. ✅ **自动化测试**：新增 `InfantrySmokeTest`（生产入队→部署→移动→攻击假人→击杀）；
    跑 ProductionQueue / StructurePlacement / WorkerGather 回归确认无破坏
-6. ⏳ **验收**：自定义模式人工目检（选中圈/血条/开火弹道）+ 截图；提交并推送
+6. ✅ **验收**：自定义模式人工目检（选中圈/血条/开火弹道）+ 截图；提交并推送
 
 ### 期 2：兵营 + AI 出兵 ⏳
 
