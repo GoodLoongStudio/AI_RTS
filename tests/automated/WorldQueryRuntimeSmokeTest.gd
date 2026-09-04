@@ -133,6 +133,8 @@ func _ready():
 	_check(economy["economy"].has("balances"), "经济成功结果必须显式包含余额")
 	_check(economy["economy"]["balances"].get("resource_a", -1) == human.resource_a,
 		"查询资源 A 应使用外置配置一致的稳定字段名并返回权威余额")
+	_check(economy["economy"]["balances"].get("resource_b", -1) == human.resource_b,
+		"查询资源 B 应使用外置配置一致的稳定字段名并返回权威余额")
 
 	print("World query runtime smoke test completed: %d failure(s)" % _failures)
 	match_instance.queue_free()

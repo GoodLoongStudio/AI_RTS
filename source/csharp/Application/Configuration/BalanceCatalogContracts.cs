@@ -133,7 +133,7 @@ public sealed record BalanceConfigRequirements(
 /// <summary>提供当前 Demo 组合根要求的稳定定义清单。</summary>
 public static class DemoBalanceRequirements
 {
-    /// <summary>构造当前九种实体、四种产品、五种建筑和一种资源（钱）的要求。</summary>
+    /// <summary>构造当前九种实体、四种产品、五种建筑和两种资源的要求。</summary>
     public static BalanceConfigRequirements Create() => new(
         new UnitTypeId[]
         {
@@ -162,5 +162,5 @@ public static class DemoBalanceRequirements
             new("anti_ground_turret"),
             new("anti_air_turret")
         }.ToFrozenSet(),
-        new[] { ResourceKind.A }.ToFrozenSet());
+        new[] { ResourceKind.A, ResourceKind.B }.ToFrozenSet());
 }

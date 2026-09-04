@@ -15,6 +15,7 @@
 [ext_resource type="PackedScene" uid="uid://dh8dedilkhuoy" path="res://source/match/players/human/Human.tscn" id="5_tlbff"]
 [ext_resource type="PackedScene" uid="uid://bf3jjdafqvh0w" path="res://source/match/units/non-player/ResourceA.tscn" id="6_414qe"]
 [ext_resource type="PackedScene" uid="uid://cfa8cpnpk5pcb" path="res://source/match/units/AntiAirTurret.tscn" id="6_lglnp"]
+[ext_resource type="PackedScene" uid="uid://bufgjfa3ne3uk" path="res://source/match/units/non-player/ResourceB.tscn" id="7_g0wbf"]
 [ext_resource type="PackedScene" uid="uid://i58ffvwxbbwm" path="res://source/match/units/Tank.tscn" id="9_csgr3"]
 [ext_resource type="PackedScene" uid="uid://bf0r3fovbvf1m" path="res://source/match/units/Worker.tscn" id="10_c3eov"]
 [ext_resource type="Shader" uid="uid://thg3u157hi5" path="res://source/shaders/2d/white_transparent.gdshader" id="16_mqpbu"]
@@ -73,6 +74,10 @@ resource_a = 2
 [node name="ResourceA15" parent="Map/Resources" index="4" unique_id=24525374 instance=ExtResource("6_414qe")]
 transform = Transform3D(0.157813, 0, -0.987469, 0, 1, 0, 0.987469, 0, 0.157813, 11.6939, -7.15256e-06, 17.7958)
 resource_a = 2
+
+[node name="ResourceB5" parent="Map/Resources" index="10" unique_id=1724610599 instance=ExtResource("7_g0wbf")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.9437, -7.62939e-06, 16.1825)
+resource_b = 2
 
 [node name="Human" parent="Players" index="0" unique_id=39322703 instance=ExtResource("5_tlbff")]
 

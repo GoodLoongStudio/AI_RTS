@@ -29,6 +29,10 @@ func _ready():
 		is_equal_approx(runtime.GetCollectionDurationSeconds("resource_a"), 1.0),
 		"Resource A 采集周期应由 Catalog 映射为 1 秒"
 	)
+	_check(
+		is_equal_approx(runtime.GetCollectionDurationSeconds("resource_b"), 2.0),
+		"Resource B 采集周期应由 Catalog 映射为 2 秒"
+	)
 	var tank_display = runtime.GetUnitDisplaySnapshot(TankScene)
 	_check(
 		tank_display["hp_max"] == 10.0 and tank_display["attack_range"] == 5.0,
@@ -36,13 +40,13 @@ func _ready():
 	)
 	var tank_cost = runtime.GetProductionCost(TankScene)
 	_check(
-		tank_cost == {"resource_a": 3},
-		"规则 AI 与 HUD 应读取完整 Tank 生产成本副本（单资源）"
+		tank_cost == {"resource_a": 3, "resource_b": 1},
+		"规则 AI 与 HUD 应读取完整 Tank 生产成本副本"
 	)
 	var command_center_cost = runtime.GetConstructionCost(CommandCenterScene)
 	_check(
-		command_center_cost == {"resource_a": 8},
-		"规则 AI 与 HUD 应读取完整 CommandCenter 施工成本副本（单资源）"
+		command_center_cost == {"resource_a": 8, "resource_b": 8},
+		"规则 AI 与 HUD 应读取完整 CommandCenter 施工成本副本"
 	)
 	_verify_unit_configuration(runtime)
 

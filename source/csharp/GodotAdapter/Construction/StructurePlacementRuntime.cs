@@ -179,6 +179,7 @@ public partial class StructurePlacementRuntime : Node
             var key = cost.Kind switch
             {
                 ResourceKind.A => "resource_a",
+                ResourceKind.B => "resource_b",
                 _ => throw new InvalidOperationException($"未知建筑资源类型：{cost.Kind}")
             };
             result[key] = cost.Amount;

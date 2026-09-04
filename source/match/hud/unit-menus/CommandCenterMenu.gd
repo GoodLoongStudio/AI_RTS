@@ -11,13 +11,15 @@ func _ready():
 	var balance = find_parent("Match").get_node("BalanceConfigRuntime")
 	var worker_properties = balance.GetUnitDisplaySnapshot(WorkerUnit)
 	var worker_cost = balance.GetProductionCost(WorkerUnit)
-	_worker_button.tooltip_text = ("{0} - {1}\n{2} HP\n{3}: {4}".format(
+	_worker_button.tooltip_text = ("{0} - {1}\n{2} HP\n{3}: {4}, {5}: {6}".format(
 		[
 			tr("WORKER"),
 			tr("WORKER_DESCRIPTION"),
 			worker_properties["hp_max"],
 			tr("RESOURCE_A"),
-			worker_cost["resource_a"]
+			worker_cost["resource_a"],
+			tr("RESOURCE_B"),
+			worker_cost["resource_b"]
 		]
 	))
 

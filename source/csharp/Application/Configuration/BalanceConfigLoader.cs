@@ -1117,9 +1117,14 @@ public sealed class BalanceConfigLoader
             kind = ResourceKind.A;
             return true;
         }
+        if (value == "B")
+        {
+            kind = ResourceKind.B;
+            return true;
+        }
         kind = default;
         Add(errors, string.IsNullOrWhiteSpace(value) ? BalanceConfigErrorCode.MissingValue :
-            BalanceConfigErrorCode.InvalidEnum, path, "资源类型只能是 A（钱）；B 类资源已移除。");
+            BalanceConfigErrorCode.InvalidEnum, path, "资源类型必须是 A 或 B。");
         return false;
     }
 
@@ -1351,13 +1356,12 @@ public sealed class BalanceConfigLoader
 
     private static HashSet<ResourceKind> ParsedResourceKinds(
         IEnumerable<ResourceDefinitionDto> resources) => resources
-        .Where(item => item.Kind is "A")
+        .Where(item => item.Kind is "A" or "B")
         .Select(item => ParseResourceKind(item.Kind!))
         .ToHashSet();
 
     private static ResourceKind ParseResourceKind(string value) => value == "A" ?
-        ResourceKind.A :
-        throw new ArgumentOutOfRangeException(nameof(value), value, "未知资源类型，只支持 A（钱）。");
+        ResourceKind.A : ResourceKind.B;
 
     private static CombatDomain ParseCombatDomain(string value) => value == "terrain" ?
         CombatDomain.Terrain : CombatDomain.Air;

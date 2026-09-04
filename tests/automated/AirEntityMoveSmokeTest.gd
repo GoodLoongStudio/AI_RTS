@@ -23,7 +23,7 @@ func _ready():
 	var human = match_instance.get_node("Players/Human")
 	var tank = human.get_node("Tank")
 	var helicopter = human.get_node("Helicopter")
-	var resource = match_instance.get_node("Map/Resources/ResourceA16")
+	var resource = match_instance.get_node("Map/Resources/ResourceB")
 	var enemy_building = match_instance.get_node("Players/PolicyTestEnemy/TargetCommandCenter")
 	var gateway = human.get_node("UnitCommandGateway")
 	var controller = human.get_node("UnitActionsController")

@@ -334,16 +334,18 @@ func request_legacy_deliver_resources_to_base() -> bool:
 	if resources_max <= 0 or player == null:
 		return false
 	var resource_a_amount: int = int(get("resource_a"))
-	if resource_a_amount <= 0:
+	var resource_b_amount: int = int(get("resource_b"))
+	if resource_a_amount <= 0 and resource_b_amount <= 0:
 		return true
 	var accepted = player.add_resources(
-		{"resource_a": resource_a_amount},
+		{"resource_a": resource_a_amount, "resource_b": resource_b_amount},
 		"WorkerDelivery",
 		self
 	)
 	if not accepted:
 		return false
 	set("resource_a", 0)
+	set("resource_b", 0)
 	return true
 
 

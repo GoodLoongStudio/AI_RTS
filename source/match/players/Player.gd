@@ -10,6 +10,14 @@ signal changed
 		resource_a = value
 		if not _applying_authoritative_snapshot:
 			emit_changed()
+@export var resource_b = 0:
+	set(value):
+		if _economy_runtime != null and not _applying_authoritative_snapshot:
+			push_error("resource_b is an authoritative C# account mirror; use a resource transaction")
+			return
+		resource_b = value
+		if not _applying_authoritative_snapshot:
+			emit_changed()
 @export var color = Color.WHITE
 
 var _color_material = null
@@ -23,16 +31,17 @@ var _applying_authoritative_snapshot := false
 func setup_resource_account(economy_runtime):
 	assert(_economy_runtime == null, "resource account can only be configured once")
 	_economy_runtime = economy_runtime
-	_resource_account_id = _economy_runtime.RegisterPlayer(self, resource_a)
+	_resource_account_id = _economy_runtime.RegisterPlayer(self, resource_a, resource_b)
 
 
 ## 接收 C# 权威账户快照并更新 Legacy 只读字段，供现有 HUD 与测试读取。
-func apply_authoritative_resource_snapshot(a: int, version: int):
+func apply_authoritative_resource_snapshot(a: int, b: int, version: int):
 	if version < _resource_account_version:
 		return
 	_resource_account_version = version
 	_applying_authoritative_snapshot = true
 	resource_a = a
+	resource_b = b
 	_applying_authoritative_snapshot = false
 	emit_changed()
 

@@ -271,7 +271,9 @@ func _op_gather(match_node, parsed) -> String:
 	for resource in get_tree().get_nodes_in_group("resource_units"):
 		if resource == null or not is_instance_valid(resource):
 			continue
-		var matches_kind: bool = kind == "a" and "resource_a" in resource
+		var matches_kind := (kind == "a" and "resource_a" in resource) or (
+			kind == "b" and "resource_b" in resource
+		)
 		if not matches_kind:
 			continue
 		var distance: float = resource.global_position.distance_to(origin)
@@ -393,6 +395,44 @@ func _control_center(control: Control) -> Array:
 	return [center.x, center.y]
 
 
+## 轻量战况快照：只回统计数字（无逐单位明细），供高频采样器秒级轮询。
+func _collect_status_lite(match_node, player, out: Dictionary, full_vision: bool) -> Dictionary:
+	out["lite"] = true
+	out.erase("units")
+	out.erase("resources")
+	out.erase("viewport_size")
+	out.erase("window_size")
+	out["players"] = get_tree().get_nodes_in_group("players").map(
+		func(p): return {
+			"name": str(p.name),
+			"human": _is_human_player(p),
+			"a": int(p.resource_a) if (p == player or full_vision) else -1,
+			"b": int(p.resource_b) if (p == player or full_vision) else -1,
+		})
+	if player != null:
+		out["local_player_name"] = str(player.name)
+		out["balance"] = {"a": int(player.resource_a), "b": int(player.resource_b)}
+	var counts := {"total": 0, "mine": 0, "scouted_enemy": 0, "mine_by_type": {}}
+	for unit in get_tree().get_nodes_in_group("units"):
+		if unit == null or not is_instance_valid(unit):
+			continue
+		var mine: bool = unit.get_parent() == player
+		if not mine and not full_vision and not unit.is_in_group("revealed_units"):
+			continue
+		counts["total"] += 1
+		if mine:
+			counts["mine"] += 1
+			var key := str(unit.get("unit_type_id")) if "unit_type_id" in unit else "unknown"
+			counts["mine_by_type"][key] = int(counts["mine_by_type"].get(key, 0)) + 1
+		elif not full_vision:
+			counts["scouted_enemy"] += 1
+	out["counts"] = counts
+	var outcome_runtime = match_node.get_node_or_null("MatchOutcomeRuntime")
+	if outcome_runtime != null and outcome_runtime.has_method("InspectOutcome"):
+		out["outcome"] = outcome_runtime.InspectOutcome()
+	return out
+
+
 func _collect_status(match_node, parsed = null) -> Dictionary:
 	var tree := get_tree()
 	var viewport := get_viewport()
@@ -412,23 +452,38 @@ func _collect_status(match_node, parsed = null) -> Dictionary:
 		return out
 	var player = _resolve_player(match_node, parsed if parsed != null else {})
 	out["match"] = true
-	# 玩家明细总是输出：副官（外部 AI）靠它选定 as_player 指挥对象（human 标记真人）。
+	var settings_node = match_node.get_node_or_null("FogOfWar")
+	var fog_active: bool = settings_node != null and bool(settings_node.visible)
+	var full_vision: bool = bool((parsed if parsed != null else {}).get("full_vision", false)) \
+		or not fog_active
+	out["full_vision"] = full_vision
+	# 轻量模式：只回统计（几百字节），供 5 秒级高频采样器使用。
+	# 全量 status 在单位较多时可达 24KB+，受 Godot TCP 逐帧写出限制需 20~60s 才传完，
+	# 无法支撑高频采样；lite 只回计数与战况版本，秒级返回。
+	if bool((parsed if parsed != null else {}).get("lite", false)):
+		return _collect_status_lite(match_node, player, out, full_vision)
+	# 玩家明细：副官（外部 AI）靠它选定 as_player 指挥对象（human 标记真人）。
+	# 战争迷雾公平性：敌方经济余额对迷雾内的对手不可见，统一脱敏为 -1。
 	out["players"] = get_tree().get_nodes_in_group("players").map(
 		func(p): return {
 			"name": str(p.name),
 			"human": _is_human_player(p),
-			"a": int(p.resource_a),
-			"b": int(p.resource_b),
+			"a": int(p.resource_a) if (p == player or full_vision) else -1,
+			"b": int(p.resource_b) if (p == player or full_vision) else -1,
 		})
 	if player == null:
 		_append_unit_entries(out, match_node, null)
 		return out
 	out["local_player_name"] = str(player.name)
 	out["player_nodes"] = get_tree().get_nodes_in_group("players").map(func(p): return str(p.name))
-	out["balance"] = {"a": int(player.resource_a)}
+	out["balance"] = {"a": int(player.resource_a), "b": int(player.resource_b)}
 	out["ra3_sidebar_ui"] = _collect_sidebar_ui()
 	out["all_balances"] = get_tree().get_nodes_in_group("players").map(
-		func(p): return {"player": str(p.name), "a": int(p.resource_a)}
+		func(p): return {
+			"player": str(p.name),
+			"a": int(p.resource_a) if (p == player or full_vision) else -1,
+			"b": int(p.resource_b) if (p == player or full_vision) else -1,
+		}
 	)
 	var outcome_runtime = match_node.get_node_or_null("MatchOutcomeRuntime")
 	if outcome_runtime != null and outcome_runtime.has_method("InspectOutcome"):
@@ -453,19 +508,23 @@ func _collect_status(match_node, parsed = null) -> Dictionary:
 			"fog_circle_count": fog_viewport.get_child_count() if fog_viewport != null else -1,
 			"combined_child_count": fog.get_node("CombinedViewport").get_child_count(),
 		}
-	_append_unit_entries(out, match_node, player)
+	_append_unit_entries(out, match_node, player, full_vision)
 	return out
 
 
-func _append_unit_entries(out: Dictionary, _match_node, player) -> void:
+func _append_unit_entries(out: Dictionary, _match_node, player, full_vision := false) -> void:
 	var tree := get_tree()
 	var camera := tree.current_scene.get_viewport().get_camera_3d() if tree.current_scene != null else null
 	for unit in tree.get_nodes_in_group("units"):
 		if unit == null or not is_instance_valid(unit):
 			continue
-		var carried := [0]
-		if "resource_a" in unit:
-			carried = [int(unit.resource_a)]
+		var mine: bool = unit.get_parent() == player
+		# 迷雾公平性：非本方且未被侦察的单位不进入 status 输出。
+		if not mine and not full_vision and not unit.is_in_group("revealed_units"):
+			continue
+		var carried := [0, 0]
+		if "resource_a" in unit and "resource_b" in unit:
+			carried = [int(unit.resource_a), int(unit.resource_b)]
 		var entry := {
 			"name": unit.name,
 			"owner": unit.get_parent().name if unit.get_parent() != null else "",
@@ -500,6 +559,8 @@ func _append_unit_entries(out: Dictionary, _match_node, player) -> void:
 		var resource_entry := {"name": resource.name}
 		if "resource_a" in resource:
 			resource_entry["kind"] = "a"
+		elif "resource_b" in resource:
+			resource_entry["kind"] = "b"
 		if camera != null:
 			var resource_screen: Vector2 = camera.unproject_position(
 				resource.global_position

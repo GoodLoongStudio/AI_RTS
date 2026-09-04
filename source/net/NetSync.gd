@@ -343,7 +343,9 @@ func apply_client_snapshot(
 			continue
 		var player = players[slot]
 		if player != null and player.has_method("apply_authoritative_resource_snapshot"):
-			player.apply_authoritative_resource_snapshot(int(item["a"]), server_frame)
+			player.apply_authoritative_resource_snapshot(
+				int(item["a"]), int(item["b"]), server_frame
+			)
 
 
 func _broadcast_snapshot() -> void:
@@ -366,7 +368,9 @@ func _broadcast_snapshot() -> void:
 	var players := get_tree().get_nodes_in_group("players")
 	for i in range(players.size()):
 		var player = players[i]
-		resources_payload.append({"slot": i, "a": int(player.resource_a)})
+		resources_payload.append(
+			{"slot": i, "a": int(player.resource_a), "b": int(player.resource_b)}
+		)
 	if _frame % 100 == 0:
 		print("[SNAP] 服务器镜像余额: ", resources_payload)
 	# 复核 P2：快照携带服务器帧号，客户端用它做资源版本去重（原来传客户端本地 _frame 恒为 0）。
@@ -592,6 +596,8 @@ func _spawn_unit(
 			unit.queue_free()
 			return
 	unit.global_transform = xf
+	# 物理插值开启后，进树后的瞬移需显式 reset，避免从原点滑到出生位的拖影。
+	unit.reset_physics_interpolation()
 	if "hp" in unit:
 		unit.hp = hp
 	if _match.has_method("_setup_unit_groups"):

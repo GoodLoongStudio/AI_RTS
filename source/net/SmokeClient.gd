@@ -203,7 +203,7 @@ func _rts_chain_test() -> void:
 		_log("SMOKE_SUITE CHAIN=FAIL (基地=%s 工人=%s)" % [str(own_cc != null), str(own_worker != null)])
 		return
 
-	# GATHER：工人全部采“钱”矿（单资源），攒够兵工厂造价（6A）再放置。
+	# GATHER：工人 1 采 A 矿、工人 2 采 B 矿（坦克需要 3A+1B），攒够兵工厂造价（6A）再放置。
 	var workers: Array = []
 	for unit in tree.get_nodes_in_group("controlled_units"):
 		if (
@@ -213,22 +213,34 @@ func _rts_chain_test() -> void:
 		):
 			workers.append(unit)
 	var a_resources: Array = []
+	var b_resources: Array = []
 	for resource in tree.get_nodes_in_group("resource_units"):
 		if "resource_a" in resource:
 			a_resources.append(resource)
+		elif "resource_b" in resource:
+			b_resources.append(resource)
 	var nearest_a = null
+	var nearest_b = null
 	var nearest_a_distance := 1e12
+	var nearest_b_distance := 1e12
 	for resource in a_resources:
 		var distance: float = resource.global_position.distance_to(own_cc.global_position)
 		if distance < nearest_a_distance:
 			nearest_a_distance = distance
 			nearest_a = resource
+	for resource in b_resources:
+		var distance: float = resource.global_position.distance_to(own_cc.global_position)
+		if distance < nearest_b_distance:
+			nearest_b_distance = distance
+			nearest_b = resource
 	if not workers.is_empty():
 		# 只派真正能采集的工人（resources_max>0），逐个下发——无人机等混入会整批被拒。
 		var miner_count := 0
 		for worker in workers:
 			if "resources_max" in worker and int(worker.get("resources_max")) > 0:
-				var pick = nearest_a
+				var pick = nearest_a if miner_count % 2 == 0 else nearest_b
+				if pick == null:
+					pick = nearest_a if nearest_a != null else nearest_b
 				if pick != null:
 					var gather_result: Dictionary = gateway.GatherResources(
 						[worker], pick, player
@@ -338,39 +350,45 @@ func _rts_chain_test() -> void:
 		_log("SMOKE_SUITE PRODUCE_WORKER=FAIL (90s 未出货)")
 		return
 
-	# MINE2：单资源（钱）——继续采矿直到够坦克造价（停滞换矿）。
+	# MINE2：坦克需要 3A+1B——继续采矿直到够造价（停滞换矿）。
 	var mine_ok := false
 	var mine_last_a := -1
+	var mine_last_b := -1
 	var mine_stall := 0
 	var mine_index := 0
 	for i in range(240):
 		await tree.create_timer(2.5).timeout
 		var balance_a := int(player.resource_a)
-		if balance_a >= 5:
-			_log("SMOKE_SUITE MINE2=PASS (a=%d, %ds)" % [
-				balance_a, int((i + 1) * 2.5)
+		var balance_b := int(player.resource_b)
+		if balance_a >= 5 and balance_b >= 2:
+			_log("SMOKE_SUITE MINE2=PASS (a=%d b=%d, %ds)" % [
+				balance_a, balance_b, int((i + 1) * 2.5)
 			])
 			mine_ok = true
 			break
-		if balance_a == mine_last_a:
+		if balance_a == mine_last_a and balance_b == mine_last_b:
 			mine_stall += 1
 			if mine_stall >= 8:
 				mine_stall = 0
 				mine_index += 1
+				var mi := 0
 				for worker2 in workers:
 					if (
 						is_instance_valid(worker2)
 						and "resources_max" in worker2
 						and int(worker2.get("resources_max")) > 0
 					):
-						if not a_resources.is_empty():
+						var list2 = a_resources if mi % 2 == 0 else b_resources
+						if not list2.is_empty():
 							gateway.GatherResources(
-								[worker2], a_resources[mine_index % a_resources.size()], player
+								[worker2], list2[mine_index % list2.size()], player
 							)
+						mi += 1
 				_log("SMOKE_SUITE MINE2=换矿重派")
 		else:
 			mine_stall = 0
 		mine_last_a = balance_a
+		mine_last_b = balance_b
 		if i % 16 == 15:
 			_log("SMOKE_SUITE MINE2=采矿中 %ds a=%d b=%d" % [
 				int((i + 1) * 2.5), balance_a, balance_b

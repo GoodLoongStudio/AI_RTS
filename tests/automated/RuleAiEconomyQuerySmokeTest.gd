@@ -23,7 +23,7 @@ func _ready():
 		"Match 应向传统规则 AI 注入公共查询 Runtime")
 	_check(not String(rule_ai.get("_query_session_id")).is_empty(),
 		"传统规则 AI 应持有绑定自身身份的标准会话")
-	var exact_balance := {"resource_a": rule_ai.resource_a}
+	var exact_balance := {"resource_a": rule_ai.resource_a, "resource_b": rule_ai.resource_b}
 	_check(rule_ai.call("_has_resources", exact_balance),
 		"公共己方经济查询应允许等于当前余额的请求")
 	_check(not rule_ai.call("_has_resources", {"resource_a": rule_ai.resource_a + 1}),
@@ -58,7 +58,7 @@ func _ready():
 		_check(
 			target != null
 			and target.get("entity_kind", "") == "ResourceNode"
-			and target.get("type_id", "") == "resource_a",
+			and target.get("type_id", "") in ["resource_a", "resource_b"],
 			"Gather 活动订单应返回下令时确认的资源 ID 与稳定类型"
 		)
 		var invalid_gather: Dictionary = rule_ai.get_node("RuleAiCommandGateway").Gather(

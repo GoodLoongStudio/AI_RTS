@@ -1,14 +1,10 @@
-[gd_scene load_steps=4 format=3 uid="uid://bmiqncjpgsw2e"]
+[gd_scene load_steps=2 format=3 uid="uid://bmiqncjpgsw2e"]
 
-[ext_resource type="PackedScene" uid="uid://crqwileh5qdjv" path="res://assets/models/polygon-scifi/SM_Veh_Turret_Large_01.fbx" id="1_model"]
-[ext_resource type="Texture2D" uid="uid://n5jvo5mqogyr" path="res://assets/models/polygon-scifi/PolygonScifiWorlds_Texture_01_A.png" id="2_atlas"]
-[ext_resource type="Script" path="res://source/match/units/SyntyMaterialBinder.gd" id="3_binder"]
+[ext_resource type="PackedScene" uid="uid://c6byun73jesch" path="res://assets/models/kenney-spacekit/turret_single.glb" id="1_h1t1o"]
 
 [node name="Geometry" type="Node3D"]
 
-[node name="SM_Veh_Turret_Large_01" parent="." instance=ExtResource("1_model")]
-transform = Transform3D(-0.5, 0, 0, 0, 0.5, 0, 0, 0, -0.5, 0, 0, 0)
+[node name="turret_single" parent="." instance=ExtResource("1_h1t1o")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, -1.5)
 
-[node name="SyntyMaterialBinder" type="Node" parent="."]
-script = ExtResource("3_binder")
-albedo_texture = ExtResource("2_atlas")
+[editable path="turret_single"]

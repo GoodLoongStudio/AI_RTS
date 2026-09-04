@@ -281,11 +281,9 @@ func _create_players_from_settings():
 			var player_scene = Constants.Match.Player.CONTROLLER_SCENES[player_settings.controller]
 			player = player_scene.instantiate()
 		player.color = player_settings.color
-		# 全局初始经济：每位玩家开局 1000 资金（资源 A）。
-		player.resource_a = 1000
-		# 单人被动 AI 测试局需要能完整演示建造与生产，不应被初始资源门槛阻断。
-		if NetSession.passive_ai_test_server or NetSession.passive_ai_test:
-			player.resource_a = 5000
+		# 初始经济：所有玩家统一 50000（用户设定 2026-09-03）。
+		player.resource_a = 50000
+		player.resource_b = 50000
 		if player_settings.spawn_index_offset > 0:
 			for _i in range(player_settings.spawn_index_offset):
 				_players.add_child(Node.new())

@@ -71,7 +71,6 @@ func is_under_construction():
 
 func _finish_construction():
 	_change_geometry_material(null)
-	_reapply_synty_material_binders()
 	if is_inside_tree():
 		constructed.emit()
 		MatchSignals.unit_construction_finished.emit(self)
@@ -81,14 +80,3 @@ func _change_geometry_material(material):
 	for child in find_child("Geometry").find_children("*"):
 		if "material_override" in child:
 			child.material_override = material
-
-
-## 完工清空施工半透明材质后，恢复 Geometry 下 SyntyMaterialBinder 的图集外观。
-func _reapply_synty_material_binders():
-	var geometry = find_child("Geometry")
-	if geometry == null:
-		return
-	for node in geometry.find_children("*"):
-		var script = node.get_script()
-		if script != null and script.resource_path.ends_with("SyntyMaterialBinder.gd"):
-			node.apply()

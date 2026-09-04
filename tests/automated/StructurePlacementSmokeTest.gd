@@ -36,7 +36,7 @@ func _ready():
 	var runtime = match_instance.get_node("StructurePlacementRuntime")
 	var cost = match_instance.get_node("BalanceConfigRuntime").GetConstructionCost(TurretScene)
 	_check(
-		human.add_resources({"resource_a": 3000}, "ScriptedAdjustment"),
+		human.add_resources({"resource_a": 10, "resource_b": 10}, "ScriptedAdjustment"),
 		"测试资源注入应成功"
 	)
 
@@ -53,9 +53,11 @@ func _ready():
 	var preview = runtime.Evaluate(human, TurretScene, placement_transform, cost)
 	_check(preview["accepted"], "己方移动单位重叠不应直接阻挡蓝图")
 	var before_a: int = human.resource_a
+	var before_b: int = human.resource_b
 	var placed = runtime.Place(human, TurretScene, placement_transform, cost)
 	_check(placed["accepted"], "具有安全驱逐落点时最终 Place 应接受")
 	_check(human.resource_a == before_a - cost["resource_a"], "Place 应原子扣除 A")
+	_check(human.resource_b == before_b - cost["resource_b"], "Place 应原子扣除 B")
 
 	var structure = placed.get("structure")
 	_check(structure != null and is_instance_valid(structure), "Place 应返回已生成施工现场")

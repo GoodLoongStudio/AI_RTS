@@ -184,6 +184,7 @@ func _align_unit_position_to_navigation() -> bool:
 			NavigationServer3D.map_get_closest_point(navigation_map, source_position)
 			- Vector3(0, path_height_offset, 0)
 		)
+		_unit.reset_physics_interpolation()  # 对齐吸附是瞬移，防插值拖影
 		return true
 	push_warning("Navigation alignment timed out for %s; preserving authored position" % _unit.name)
 	return false

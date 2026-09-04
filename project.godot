@@ -241,6 +241,10 @@ locale/translations=PackedStringArray("res://assets/translations/match.en.transl
 3d/merge_rasterizer_cell_scale=0.001
 3d/use_edge_connections=false
 
+[physics]
+
+common/physics_interpolation=true
+
 [rendering]
 
 renderer/rendering_method.mobile="gl_compatibility"

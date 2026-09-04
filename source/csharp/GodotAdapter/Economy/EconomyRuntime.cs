@@ -7,7 +7,6 @@ using Godot;
 namespace AI_RTS.GodotAdapter.Economy;
 
 /// <summary>在一个 Match 内持有唯一资源账户服务，并适配 Legacy Player 字典接口。</summary>
-/// <remarks>红警式单资源：账户里只有“钱”（ResourceKind.A / resource_a）。</remarks>
 public partial class EconomyRuntime : Node
 {
     /// <summary>向 Godot 表现层广播一次已应用的权威余额变化。</summary>
@@ -17,6 +16,7 @@ public partial class EconomyRuntime : Node
         string transactionId,
         string reason,
         int resourceA,
+        int resourceB,
         long version);
 
     private readonly InMemoryResourceAccountService _accounts = new();
@@ -36,7 +36,7 @@ public partial class EconomyRuntime : Node
     }
 
     /// <summary>注册 Player Node，并把场景导出数值作为唯一一次初始余额导入。</summary>
-    public string RegisterPlayer(Node player, int resourceA)
+    public string RegisterPlayer(Node player, int resourceA, int resourceB)
     {
         var playerId = GodotStableIdentity.Player(player);
         _players[playerId] = new WeakReference<Node>(player);
@@ -46,7 +46,7 @@ public partial class EconomyRuntime : Node
                 new ResourceTransactionId(Guid.NewGuid()),
                 _matchId,
                 playerId,
-                [new ResourceAmount(ResourceKind.A, resourceA)],
+                [new ResourceAmount(ResourceKind.A, resourceA), new ResourceAmount(ResourceKind.B, resourceB)],
                 CurrentTick()));
             if (opened.Status != ResourceTransactionStatus.Applied)
             {
@@ -136,7 +136,7 @@ public partial class EconomyRuntime : Node
         return ToGodot(result);
     }
 
-    /// <summary>把 Legacy 正数字典转换为强类型数量集合。</summary>
+    /// <summary>把 resource_a/resource_b 正数字典转换为强类型数量集合。</summary>
     private static ResourceAmount[]? ReadAmounts(Godot.Collections.Dictionary resources)
     {
         var result = new List<ResourceAmount>();
@@ -146,6 +146,7 @@ public partial class EconomyRuntime : Node
             var kind = name switch
             {
                 "resource_a" => ResourceKind.A,
+                "resource_b" => ResourceKind.B,
                 _ => (ResourceKind?)null
             };
             var value = resources[keyValue].AsInt32();
@@ -171,6 +172,7 @@ public partial class EconomyRuntime : Node
             change.TransactionId.Value.ToString("D"),
             change.Reason.ToString(),
             change.Snapshot.GetBalance(ResourceKind.A),
+            change.Snapshot.GetBalance(ResourceKind.B),
             change.Snapshot.Version);
     }
 
@@ -187,6 +189,7 @@ public partial class EconomyRuntime : Node
         player.Call(
             "apply_authoritative_resource_snapshot",
             snapshot.GetBalance(ResourceKind.A),
+            snapshot.GetBalance(ResourceKind.B),
             snapshot.Version);
     }
 
@@ -203,6 +206,7 @@ public partial class EconomyRuntime : Node
         if (result.Snapshot is not null)
         {
             dictionary["resource_a"] = result.Snapshot.GetBalance(ResourceKind.A);
+            dictionary["resource_b"] = result.Snapshot.GetBalance(ResourceKind.B);
             dictionary["version"] = result.Snapshot.Version;
         }
         return dictionary;
@@ -213,6 +217,7 @@ public partial class EconomyRuntime : Node
     {
         ["player_id"] = snapshot.PlayerId.Value.ToString("D"),
         ["resource_a"] = snapshot.GetBalance(ResourceKind.A),
+        ["resource_b"] = snapshot.GetBalance(ResourceKind.B),
         ["version"] = snapshot.Version
     };
 

@@ -1,7 +1,8 @@
-[gd_scene load_steps=35 format=4 uid="uid://c8mbc86v208ov"]
+[gd_scene load_steps=36 format=4 uid="uid://c8mbc86v208ov"]
 
 [ext_resource type="Script" path="res://source/utils/IconRenderBooth.gd" id="1_r5pdx"]
 [ext_resource type="Material" uid="uid://822ai1mlwg5d" path="res://source/match/resources/materials/resource_a.material.tres" id="2_67sfm"]
+[ext_resource type="Material" uid="uid://dny371ejwkesm" path="res://source/match/resources/materials/resource_b.material.tres" id="3_mn1ga"]
 [ext_resource type="PackedScene" uid="uid://bxx81l3t16rrs" path="res://source/match/units/structure-geometries/CommandCenter.tscn" id="4_7kjwd"]
 [ext_resource type="PackedScene" uid="uid://bmiqncjpgsw2e" path="res://source/match/units/structure-geometries/AntiGroundTurret.tscn" id="5_0vjy6"]
 [ext_resource type="PackedScene" uid="uid://cm3iqdsdeo625" path="res://source/match/units/structure-geometries/AntiAirTurret.tscn" id="6_a5m0n"]
@@ -279,6 +280,24 @@ surface_material_override/2 = ExtResource("2_67sfm")
 transform = Transform3D(-0.793353, -0.257274, 0.551725, 0, 0.906308, 0.422618, -0.608761, 0.335286, -0.719022, 2, 1.685, -2.66)
 fov = 20.0
 
+[node name="ResourceB" type="Node3D" parent="RenderBooth"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, 0)
+
+[node name="Camera3D" type="Camera3D" parent="RenderBooth/ResourceB"]
+transform = Transform3D(-0.374607, -0.391845, 0.840314, 0, 0.906308, 0.422618, -0.927184, 0.158316, -0.339509, 2.994, 1.635, -1.223)
+fov = 20.0
+
+[node name="ResourceB" type="Node3D" parent="RenderBooth/ResourceB"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.0503, 0, -1.5)
+
+[node name="tmpParent" type="Node3D" parent="RenderBooth/ResourceB/ResourceB"]
+
+[node name="rock_crystalsLargeB2" type="MeshInstance3D" parent="RenderBooth/ResourceB/ResourceB/tmpParent"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, 1.5)
+mesh = SubResource("ArrayMesh_28f1j")
+skeleton = NodePath("")
+surface_material_override/2 = ExtResource("3_mn1ga")
+
 [node name="CommandCenter" type="Node3D" parent="RenderBooth"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, 0)
 
@@ -297,6 +316,9 @@ transform = Transform3D(-0.79653, -0.255515, 0.547953, 0, 0.906308, 0.422618, -0
 fov = 20.0
 
 [node name="Geometry" parent="RenderBooth/AntiGroundTurret" instance=ExtResource("5_0vjy6")]
+
+[node name="ProjectileOrigin" type="Marker3D" parent="RenderBooth/AntiGroundTurret/Geometry/turret_single/tmpParent/turret_single2/turret" index="2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.13715, -0.412822)
 
 [node name="AntiAirTurret" type="Node3D" parent="RenderBooth"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 0, 0)
@@ -399,3 +421,10 @@ transform = Transform3D(-0.22, 0, 0, 0, 0.22, 0, 0, 0, -0.22, 0, 0.05, 0)
 script = ExtResource("13_synty_binder")
 albedo_texture = ExtResource("13_scifi_atlas")
 
+[editable path="RenderBooth/CommandCenter/Geometry"]
+[editable path="RenderBooth/AntiGroundTurret/Geometry"]
+[editable path="RenderBooth/AntiGroundTurret/Geometry/turret_single"]
+[editable path="RenderBooth/AntiAirTurret/Geometry"]
+[editable path="RenderBooth/AntiAirTurret/Geometry/turret_double"]
+[editable path="RenderBooth/AircraftFactory/Geometry"]
+[editable path="RenderBooth/VehicleFactory/Geometry"]

@@ -19,7 +19,7 @@ enum Difficulty { EASY, NORMAL, HARD }
 @export var max_command_centers = 3
 ## 每座 CommandCenter 的目标工人数（实际目标 = 现有 CC 数 × 该值）。
 @export var workers_per_command_center = 6
-## 扩张门槛：resource_a（钱）余额 ≥ 此值才请求开分矿（占位值，按实测标定）。
+## 扩张门槛：resource_a 与 resource_b 余额都 ≥ 此值才请求开分矿（占位值，按实测标定）。
 @export var expansion_resource_threshold = 10
 ## 编组存活低于 满编 × retreat_threshold 时整编撤退回主基地。
 @export var retreat_threshold = 0.5

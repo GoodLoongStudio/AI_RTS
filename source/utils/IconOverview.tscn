@@ -1,6 +1,7 @@
-[gd_scene load_steps=11 format=3 uid="uid://bw2x48ymhh377"]
+[gd_scene load_steps=12 format=3 uid="uid://bw2x48ymhh377"]
 
 [ext_resource type="Texture2D" uid="uid://gt521dioyhp8" path="res://assets/ui/icons/ResourceA.png" id="1_qjaqr"]
+[ext_resource type="Texture2D" uid="uid://bfgqbcv4e3srx" path="res://assets/ui/icons/ResourceB.png" id="2_v3che"]
 [ext_resource type="Texture2D" uid="uid://sc5cu0dm3sgn" path="res://assets/ui/icons/CommandCenter.png" id="3_ua8s7"]
 [ext_resource type="Texture2D" uid="uid://djmjxf3ikfrri" path="res://assets/ui/icons/VehicleFactory.png" id="4_jvq2i"]
 [ext_resource type="Texture2D" uid="uid://dvdd6mno4d5da" path="res://assets/ui/icons/AircraftFactory.png" id="5_s7ytc"]
@@ -28,6 +29,10 @@ columns = 5
 [node name="Button" type="Button" parent="GridContainer"]
 layout_mode = 2
 icon = ExtResource("1_qjaqr")
+
+[node name="Button2" type="Button" parent="GridContainer"]
+layout_mode = 2
+icon = ExtResource("2_v3che")
 
 [node name="Button3" type="Button" parent="GridContainer"]
 layout_mode = 2

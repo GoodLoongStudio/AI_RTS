@@ -593,10 +593,11 @@ func _start_loading(kinds: PackedInt32Array) -> void:
 	var PlayerSettings = load("res://source/data-model/PlayerSettings.gd")
 	var LoadingScene = load("res://source/main-menu/Loading.tscn")
 	var match_settings = MatchSettings.new()
-	# 联机 Demo 当前使用全可见视图。PER_PLAYER 的 FogOfWar 合成依赖客户端
-	# SubViewport 深度纹理，在 ENet 快照场景下会把整张战场误盖成黑屏；
-	# 全可见仍保留真实单位/战斗同步，确保 Demo 可以实际游玩。
-	match_settings.visibility = match_settings.Visibility.FULL
+	# 联机对局恢复 PER_PLAYER 战争迷雾（2026-09-04）。
+	# 此前 Demo 期临时强制 FULL（当时 PER_PLAYER 的 FogOfWar 合成在 ENet 下有
+	# 整屏黑盖问题）；现在 AI 副官参战，全可见=上帝视角破坏公平，必须恢复迷雾。
+	# 若客户端出现黑屏回归，单独修渲染管线，不再回退到全可见。
+	match_settings.visibility = match_settings.Visibility.PER_PLAYER
 	if dedicated_server:
 		match_settings.local_player_index = -1
 		match_settings.visible_player = 0

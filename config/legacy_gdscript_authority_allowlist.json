@@ -42,6 +42,7 @@
         "source/match/players/Player.gd",
         "source/match/units/Worker.gd",
         "source/match/units/non-player/ResourceA.gd",
+        "source/match/units/non-player/ResourceB.gd",
         "source/match/units/actions/CollectingResourcesWhileInRange.gd",
         "source/match/units/actions/CollectingResourcesSequentially.gd"
       ],

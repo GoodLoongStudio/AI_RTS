@@ -20,12 +20,12 @@ func _ready():
 
 	var human = match_instance.get_node("Players/Human")
 	var worker = human.get_node("Worker")
-	var resource = match_instance.get_node("Map/Resources/ResourceA13")
+	var resource = match_instance.get_node("Map/Resources/ResourceB5")
 	var gateway = human.get_node("UnitCommandGateway")
 	var controller = human.get_node("UnitActionsController")
 	match_instance.get_node("CommandRuntime").connect("OrderStateChanged", _on_order_state_changed)
 	controller.command_feedback.connect(_on_command_feedback)
-	var player_resources_before: int = human.resource_a
+	var player_resources_before: int = human.resource_b
 
 	MatchSignals.deselect_all_units.emit()
 	worker.find_child("Selection").select()
@@ -41,7 +41,7 @@ func _ready():
 	_check(_last_feedback_status("Gather") == "Accepted", "Gather 应提供 Accepted 即时反馈")
 
 	_check(await _wait_for_worker_cargo(worker, 1, 5.0), "Worker 应从目标资源点取得第一份载荷")
-	_check(human.resource_a == player_resources_before, "未返回 CommandCenter 前玩家资源不得增长")
+	_check(human.resource_b == player_resources_before, "未返回 CommandCenter 前玩家资源不得增长")
 	controller.stop_selected_units()
 	await get_tree().process_frame
 	_check(gateway.GetOrderState(first_order_id) == "Suspended", "Stop 应暂停并保留 Gather 订单")
@@ -49,13 +49,13 @@ func _ready():
 		worker.action != null and worker.action.is_task_suspended(),
 		"Stop 应暂停整个采集 Action，而不是只清零一帧速度"
 	)
-	var cargo_while_suspended: int = worker.resource_a
-	var resource_while_suspended: int = resource.resource_a
+	var cargo_while_suspended: int = worker.resource_b
+	var resource_while_suspended: int = resource.resource_b
 	var position_while_suspended: Vector3 = worker.global_position
 	await get_tree().create_timer(2.3).timeout
-	_check(worker.resource_a == cargo_while_suspended, "暂停期间 Worker 载荷不得继续增长")
-	_check(resource.resource_a == resource_while_suspended, "暂停期间资源节点不得继续减少")
-	_check(human.resource_a == player_resources_before, "暂停期间不得发生隐藏交付")
+	_check(worker.resource_b == cargo_while_suspended, "暂停期间 Worker 载荷不得继续增长")
+	_check(resource.resource_b == resource_while_suspended, "暂停期间资源节点不得继续减少")
+	_check(human.resource_b == player_resources_before, "暂停期间不得发生隐藏交付")
 	_check(
 		worker.global_position.distance_to(position_while_suspended) < 0.03,
 		"暂停期间 Worker 不得自动恢复移动"
@@ -73,12 +73,12 @@ func _ready():
 		"资源耗尽后 Worker 应完成最后一次交付，玩家资源增加两点"
 	)
 	await get_tree().process_frame
-	_check(worker.resource_a == 0, "交付完成后 Worker 携带资源应清零")
+	_check(worker.resource_b == 0, "交付完成后 Worker 携带资源应清零")
 	_check(gateway.GetOrderState(second_order_id) == "Completed", "耗尽后的最后交付应完成订单")
 	await get_tree().create_timer(0.5).timeout
 	_check(worker.action == null, "资源耗尽并交付后 Worker 应待机，不得自动寻找新矿")
 
-	var loss_resource = match_instance.get_node("Map/Resources/ResourceA14")
+	var loss_resource = match_instance.get_node("Map/Resources/ResourceA13")
 	var loss_worker = WorkerScene.instantiate()
 	loss_worker.name = "CargoLossWorker"
 	loss_worker.position = loss_resource.position + Vector3(1.2, 0.0, 0.0)
@@ -112,11 +112,11 @@ func _ready():
 func _wait_for_worker_cargo(worker, expected: int, timeout_seconds: float) -> bool:
 	var elapsed_seconds := 0.0
 	while elapsed_seconds < timeout_seconds:
-		if worker.resource_a >= expected:
+		if worker.resource_b >= expected:
 			return true
 		await get_tree().create_timer(0.1).timeout
 		elapsed_seconds += 0.1
-	return worker.resource_a >= expected
+	return worker.resource_b >= expected
 
 
 ## 等待载荷丢失测试 Worker 取得指定数量的 A 类资源。
@@ -134,11 +134,11 @@ func _wait_for_worker_resource_a(worker, expected: int, timeout_seconds: float) 
 func _wait_for_player_resource(player, expected: int, timeout_seconds: float) -> bool:
 	var elapsed_seconds := 0.0
 	while elapsed_seconds < timeout_seconds:
-		if player.resource_a >= expected:
+		if player.resource_b >= expected:
 			return true
 		await get_tree().create_timer(0.1).timeout
 		elapsed_seconds += 0.1
-	return player.resource_a >= expected
+	return player.resource_b >= expected
 
 
 ## 收集 Match 级订单状态事件。

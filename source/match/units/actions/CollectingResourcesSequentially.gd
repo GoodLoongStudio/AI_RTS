@@ -161,13 +161,15 @@ func _set_cc_unit(cc_unit):
 func _transfer_collected_resources_to_player():
 	var delivery = {
 		"resource_a": _unit.resource_a,
+		"resource_b": _unit.resource_b,
 	}
-	print("[GATHER] 交付 resource_a=%s player=%s" % [str(_unit.resource_a), _unit.player.name])
+	print("[GATHER] 交付 resource_a=%s resource_b=%s player=%s" % [str(_unit.resource_a), str(_unit.resource_b), _unit.player.name])
 	var accepted = _unit.player.add_resources(delivery, "WorkerDelivery", _unit)
 	assert(accepted, "a valid Worker delivery must reach its authoritative resource account")
 	if not accepted:
 		return
 	_unit.resource_a = 0
+	_unit.resource_b = 0
 
 
 static func _find_cc_closest_to_unit(unit):
@@ -195,7 +197,7 @@ static func _find_cc_closest_to_unit(unit):
 
 func _handle_sub_action_finished_while_moving_to_resource():
 	if _resource_unit == null:
-		if _unit.resource_a > 0:
+		if _unit.resource_a + _unit.resource_b > 0:
 			_change_state_to(State.MOVING_TO_CC)
 		else:
 			_finish_task(
@@ -214,7 +216,7 @@ func _handle_sub_action_finished_while_moving_to_resource():
 
 func _handle_sub_action_finished_while_collecting():
 	if _resource_unit == null:
-		if _unit.resource_a > 0:
+		if _unit.resource_a + _unit.resource_b > 0:
 			_change_state_to(State.MOVING_TO_CC)
 		else:
 			_finish_task(
@@ -294,6 +296,8 @@ func _is_resource_depleted() -> bool:
 		return false
 	if "resource_a" in _resource_unit:
 		return _resource_unit.resource_a <= 0
+	if "resource_b" in _resource_unit:
+		return _resource_unit.resource_b <= 0
 	return false
 
 
