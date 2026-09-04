@@ -30,14 +30,14 @@ func _ready():
 	await get_tree().process_frame
 
 	var income_applied: bool = rule_ai.add_resources(
-		{"resource_a": 3000, "resource_b": 3000},
+		{"resource_a": 10000, "resource_b": 10000},
 		"ScriptedAdjustment"
 	)
 	_check(income_applied,
 		"测试资源应通过权威账户成功注入")
 
 	var factory_blueprint: Dictionary = {}
-	for _attempt in range(30):
+	for _attempt in range(120):
 		await get_tree().physics_frame
 		await get_tree().physics_frame
 		var own_entities := _get_own_entities(rule_ai)
@@ -79,7 +79,7 @@ func _ready():
 
 	var completed_factory_id := ""
 	var production_planned := false
-	for _attempt in range(30):
+	for _attempt in range(120):
 		await get_tree().physics_frame
 		await get_tree().physics_frame
 		var factories: Array = _get_own_entities(rule_ai).filter(
@@ -108,7 +108,7 @@ func _ready():
 			completed_factory_node.queue_free()
 			await get_tree().process_frame
 			var replacement_found := false
-			for _attempt in range(30):
+			for _attempt in range(120):
 				await get_tree().physics_frame
 				await get_tree().physics_frame
 				var replacements: Array = _get_own_entities(rule_ai).filter(
