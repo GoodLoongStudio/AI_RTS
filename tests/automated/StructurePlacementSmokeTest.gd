@@ -36,7 +36,7 @@ func _ready():
 	var runtime = match_instance.get_node("StructurePlacementRuntime")
 	var cost = match_instance.get_node("BalanceConfigRuntime").GetConstructionCost(TurretScene)
 	_check(
-		human.add_resources({"resource_a": 10, "resource_b": 10}, "ScriptedAdjustment"),
+		human.add_resources({"resource_a": 3000, "resource_b": 3000}, "ScriptedAdjustment"),
 		"测试资源注入应成功"
 	)
 

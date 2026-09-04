@@ -26,12 +26,8 @@ func _ready():
 		"CommandCenter 应从 manifest 查询蓝图场景"
 	)
 	_check(
-		is_equal_approx(runtime.GetCollectionDurationSeconds("resource_a"), 1.0),
-		"Resource A 采集周期应由 Catalog 映射为 1 秒"
-	)
-	_check(
-		is_equal_approx(runtime.GetCollectionDurationSeconds("resource_b"), 2.0),
-		"Resource B 采集周期应由 Catalog 映射为 2 秒"
+		is_equal_approx(runtime.GetCollectionDurationSeconds("resource_a"), 0.2),
+		"Resource A 采集周期应由 Catalog 映射为 0.2 秒（2026-09-03 采集节奏 20 秒/趟）"
 	)
 	var tank_display = runtime.GetUnitDisplaySnapshot(TankScene)
 	_check(
@@ -40,13 +36,13 @@ func _ready():
 	)
 	var tank_cost = runtime.GetProductionCost(TankScene)
 	_check(
-		tank_cost == {"resource_a": 3, "resource_b": 1},
-		"规则 AI 与 HUD 应读取完整 Tank 生产成本副本"
+		tank_cost == {"resource_a": 500, "resource_b": 0},
+		"规则 AI 与 HUD 应读取完整 Tank 生产成本副本（单币种 A×500）"
 	)
 	var command_center_cost = runtime.GetConstructionCost(CommandCenterScene)
 	_check(
-		command_center_cost == {"resource_a": 8, "resource_b": 8},
-		"规则 AI 与 HUD 应读取完整 CommandCenter 施工成本副本"
+		command_center_cost == {"resource_a": 2400, "resource_b": 0},
+		"规则 AI 与 HUD 应读取完整 CommandCenter 施工成本副本（单币种 A×2400）"
 	)
 	_verify_unit_configuration(runtime)
 
@@ -70,7 +66,7 @@ func _verify_unit_configuration(runtime):
 
 	var worker = WorkerScene.instantiate()
 	runtime.ConfigureUnit(worker)
-	_check(worker.resources_max == 2, "Worker 载荷应来自 Catalog")
+	_check(worker.resources_max == 100, "Worker 载荷应来自 Catalog（2026-09-03 调整为 100）")
 	_check(worker.construction_work_per_tick == 1, "Worker 施工贡献应来自 Catalog")
 
 	var turret = AntiGroundTurretScene.instantiate()

@@ -39,6 +39,15 @@
       "warheadId": "direct_full_damage"
     },
     {
+      "id": "infantry_rifle",
+      "deliveryKind": "projectile",
+      "baseDamage": 0.5,
+      "cooldownMilliseconds": 600,
+      "rangeMeters": 2.5,
+      "targetDomains": ["terrain"],
+      "warheadId": "direct_full_damage"
+    },
+    {
       "id": "anti_ground_turret_cannon",
       "deliveryKind": "projectile",
       "baseDamage": 2.0,
@@ -129,6 +138,22 @@
       "canForceFireGround": true
     },
     {
+      "id": "soldier",
+      "maxHp": 4.0,
+      "sightRangeMeters": 6.0,
+      "movement": {
+        "domain": "terrain",
+        "speedMetersPerSecond": 3.5,
+        "maxTurnDegreesPerSecond": 360.0,
+        "canReverse": false,
+        "reverseSpeedMultiplier": 0.65,
+        "canFireWhileMoving": true,
+        "movingWeaponArcDegrees": 120.0
+      },
+      "weaponIds": ["infantry_rifle"],
+      "canForceFireGround": true
+    },
+    {
       "id": "command_center",
       "maxHp": 20.0,
       "sightRangeMeters": 10.0,
@@ -209,6 +234,15 @@
         { "kind": "A", "amount": 700 }
       ],
       "allowedProducerUnitTypeIds": ["aircraft_factory"]
+    },
+    {
+      "id": "soldier",
+      "productUnitTypeId": "soldier",
+      "requiredWork": 120,
+      "cost": [
+        { "kind": "A", "amount": 150 }
+      ],
+      "allowedProducerUnitTypeIds": ["command_center"]
     }
   ],
   "constructions": [
