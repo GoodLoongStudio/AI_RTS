@@ -24,7 +24,7 @@ script = ExtResource("1_script")
 [node name="Geometry" type="Node3D" parent="."]
 
 [node name="Infantry_Soldier_Male_01_rigged" parent="Geometry" instance=ExtResource("8_model")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 0)
 
 [node name="SyntyMaterialBinder" type="Node" parent="Geometry"]
 script = ExtResource("10_binder")

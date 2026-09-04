@@ -15,10 +15,13 @@ const BONES := [
 	"LeftArm", "RightArm", "LeftForeArm", "RightForeArm",
 	"LeftUpLeg", "RightUpLeg", "LeftLeg", "RightLeg",
 ]
-const MOVE_SPEED_EPSILON := 0.25
+## 速度阈值需高于 RVO 避让的往复微抖速度（实测抖动可到 0.4 m/s 左右）
+const MOVE_SPEED_EPSILON := 0.6
 ## 手臂从 T-Pose 垂放的轴向与角度（轴扫描截图验证：双臂同绕 X 轴 -90° 正确）
 @export var arm_axis := 0
 @export var arm_down_degrees := -90.0
+## 手肘自然弯折角（行走摆臂用）；待命保持直臂避免手部插入躯干
+@export var forearm_bend_degrees := -18.0
 ## 行走摆频（Hz）
 @export var walk_cycle_hz := 0.9
 
@@ -101,8 +104,6 @@ func _arm_down() -> void:
 func _pose_idle() -> void:
 	var sway := sin(_time * PI / 2.0)
 	_arm_down()
-	_set_rot("LeftForeArm", 0, -12.0)
-	_set_rot("RightForeArm", 0, -12.0)
 	_set_rot("Spine", 0, 2.0 * sway)
 	_set_rot("Hips", 0, 1.2 * sway)
 	_set_rot("Head", 2, 4.0 * sin(_time * PI / 4.0))
@@ -119,8 +120,8 @@ func _pose_walk() -> void:
 	_set_rot("RightLeg", 0, maxf(0.0, 28.0 * cos(cycle)))
 	_set_rot("LeftArm", arm_axis, arm_down_degrees + 26.0 * counter_swing)
 	_set_rot("RightArm", arm_axis, arm_down_degrees + 26.0 * counter_swing)
-	_set_rot("LeftForeArm", 0, -18.0)
-	_set_rot("RightForeArm", 0, -18.0)
+	_set_rot("LeftForeArm", 0, forearm_bend_degrees)
+	_set_rot("RightForeArm", 0, forearm_bend_degrees)
 	_set_rot("Hips", 2, 3.5 * swing)
 
 
