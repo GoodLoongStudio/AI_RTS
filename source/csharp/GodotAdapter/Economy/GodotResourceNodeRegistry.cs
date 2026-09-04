@@ -50,15 +50,6 @@ public sealed class GodotResourceNodeRegistry : IResourceNodeRepository
                 resourceA.AsInt32() > 0);
         }
 
-        var resourceB = node.Get("resource_b");
-        if (resourceB.VariantType != Variant.Type.Nil)
-        {
-            return new ResourceNodeSnapshot(
-                resourceNodeId,
-                ResourceKind.B,
-                resourceB.AsInt32() > 0);
-        }
-
         return null;
     }
 

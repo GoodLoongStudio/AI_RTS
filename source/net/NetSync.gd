@@ -343,9 +343,7 @@ func apply_client_snapshot(
 			continue
 		var player = players[slot]
 		if player != null and player.has_method("apply_authoritative_resource_snapshot"):
-			player.apply_authoritative_resource_snapshot(
-				int(item["a"]), int(item["b"]), server_frame
-			)
+			player.apply_authoritative_resource_snapshot(int(item["a"]), server_frame)
 
 
 func _broadcast_snapshot() -> void:
@@ -368,9 +366,7 @@ func _broadcast_snapshot() -> void:
 	var players := get_tree().get_nodes_in_group("players")
 	for i in range(players.size()):
 		var player = players[i]
-		resources_payload.append(
-			{"slot": i, "a": int(player.resource_a), "b": int(player.resource_b)}
-		)
+		resources_payload.append({"slot": i, "a": int(player.resource_a)})
 	if _frame % 100 == 0:
 		print("[SNAP] 服务器镜像余额: ", resources_payload)
 	# 复核 P2：快照携带服务器帧号，客户端用它做资源版本去重（原来传客户端本地 _frame 恒为 0）。

@@ -53,7 +53,7 @@ func _ready():
 		gateway.SetFirePolicy([command_center], "HoldFire", human)["status"] == "Accepted",
 		"无武器生产建筑应能保存出厂默认开火策略"
 	)
-	human.add_resources({"resource_a": 10, "resource_b": 10}, "ScriptedAdjustment")
+	human.add_resources({"resource_a": 10}, "ScriptedAdjustment")
 	_check(command_center.production_queue.produce(WorkerScene) != null, "Worker 应成功入队")
 
 	var elapsed_seconds := 0.0
@@ -79,7 +79,7 @@ func _ready():
 		"清除一座建筑不得影响另一座建筑"
 	)
 
-	var resource = match_instance.get_node("Map/Resources/ResourceB5")
+	var resource = match_instance.get_node("Map/Resources/ResourceA15")
 	_check(
 		rally.SetTarget([command_center], resource, human)["status"] == "Accepted",
 		"可观察资源节点应能成为集结目标"
@@ -89,7 +89,7 @@ func _ready():
 		rally.SetTarget([aircraft_factory], resource, human)["status"] == "Accepted",
 		"AircraftFactory 应能保存资源实体集结目标"
 	)
-	human.add_resources({"resource_a": 10, "resource_b": 10}, "ScriptedAdjustment")
+	human.add_resources({"resource_a": 10}, "ScriptedAdjustment")
 	_check(aircraft_factory.production_queue.produce(DroneScene) != null, "Drone 应成功入队")
 	elapsed_seconds = 0.0
 	while _produced_drone == null and elapsed_seconds < 12.0:

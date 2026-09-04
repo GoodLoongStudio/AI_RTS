@@ -146,7 +146,7 @@ internal sealed class StructurePlacementServiceTests
             definitionId,
             new CirclePlacementFootprint(2.0f),
             new PlacementEnvironmentId("terrain.surface"),
-            [new ResourceAmount(ResourceKind.A, 4), new ResourceAmount(ResourceKind.B, 2)]);
+            [new ResourceAmount(ResourceKind.A, 4)]);
         var definitions = new FakeDefinitions(definition);
         var authorization = new FakeAuthorization();
         var world = new FakeWorld();
@@ -155,7 +155,7 @@ internal sealed class StructurePlacementServiceTests
             new ResourceTransactionId(Guid.NewGuid()),
             match,
             player,
-            [new ResourceAmount(ResourceKind.A, resourceA), new ResourceAmount(ResourceKind.B, 10)],
+            [new ResourceAmount(ResourceKind.A, resourceA)],
             1));
         var service = new StructurePlacementService(
             definitions, authorization, world, accounts);

@@ -92,6 +92,4 @@ func _is_available_resource(resource) -> bool:
 		return false
 	if "resource_a" in resource:
 		return resource.resource_a > 0
-	if "resource_b" in resource:
-		return resource.resource_b > 0
 	return false

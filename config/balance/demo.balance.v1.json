@@ -1,13 +1,9 @@
 {
   "schemaVersion": 1,
-  "contentVersion": "demo-baseline-2026-08-12",
+  "contentVersion": "demo-single-resource-2026-09-03",
   "resources": [
     {
       "kind": "A",
-      "collectionDurationMilliseconds": 200
-    },
-    {
-      "kind": "B",
       "collectionDurationMilliseconds": 200
     }
   ],

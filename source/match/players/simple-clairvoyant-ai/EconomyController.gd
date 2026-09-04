@@ -14,7 +14,6 @@ const REFRESH_INTERVAL_S := 0.5
 const COMMAND_CENTER_TYPE_ID := "command_center"
 const WORKER_TYPE_ID := "worker"
 const RESOURCE_A_TYPE_ID := "resource_a"
-const RESOURCE_B_TYPE_ID := "resource_b"
 
 var _world_query_runtime = null
 var _query_session_id := ""
@@ -105,17 +104,14 @@ func _enforce_number_of_ccs(own_entities: Array, idle_worker_count: int):
 	_number_of_pending_cc_resource_requests += 1
 
 
-## 双资源余额均达到扩张门槛才允许开分矿。
+## 红警式单资源：余额（钱）达到扩张门槛才允许开分矿。
 func _economy_meets_expansion_threshold() -> bool:
 	var result: Dictionary = _world_query_runtime.GetOwnEconomy(_query_session_id)
 	if result.get("status", "") != "Accepted":
 		return false
 	var balances: Dictionary = result.get("economy", {}).get("balances", {})
 	var threshold: float = _ai.expansion_resource_threshold
-	return (
-		balances.get("resource_a", 0.0) >= threshold
-		and balances.get("resource_b", 0.0) >= threshold
-	)
+	return balances.get("resource_a", 0.0) >= threshold
 
 
 ## 统计已部署及所有生产队列中的 Worker，并为数量缺口提交资源请求。
@@ -155,10 +151,6 @@ func _assign_idle_workers_to_resources(own_entities: Array):
 		func(entity): return entity.get("type_id", "") == WORKER_TYPE_ID
 	)
 	workers.sort_custom(func(left, right): return left["id"] < right["id"])
-	var assigned_counts_by_type := {
-		RESOURCE_A_TYPE_ID: 0,
-		RESOURCE_B_TYPE_ID: 0,
-	}
 	var assigned_counts_by_node := {}
 	for worker in workers:
 		var order = worker.get("order", null)
@@ -167,21 +159,13 @@ func _assign_idle_workers_to_resources(own_entities: Array):
 		var target = order.get("target", null)
 		if target == null:
 			continue
-		var target_type: String = target.get("type_id", "")
-		if assigned_counts_by_type.has(target_type):
-			assigned_counts_by_type[target_type] += 1
 		var node_id: String = target.get("entity_id", "")
 		if not node_id.is_empty():
 			assigned_counts_by_node[node_id] = assigned_counts_by_node.get(node_id, 0) + 1
 	for worker in workers:
 		if worker.get("order", null) != null:
 			continue
-		var preferred_type := (
-			RESOURCE_A_TYPE_ID
-			if assigned_counts_by_type[RESOURCE_A_TYPE_ID] <= assigned_counts_by_type[RESOURCE_B_TYPE_ID]
-			else RESOURCE_B_TYPE_ID
-		)
-		var resource := _find_visible_resource(worker["position"], preferred_type, assigned_counts_by_node)
+		var resource := _find_visible_resource(worker["position"], assigned_counts_by_node)
 		if resource.is_empty():
 			continue
 		var result: Dictionary = _command_gateway.Gather(
@@ -189,7 +173,6 @@ func _assign_idle_workers_to_resources(own_entities: Array):
 			resource["id"]
 		)
 		if result.get("status", "") in ["Accepted", "PartiallyAccepted"]:
-			assigned_counts_by_type[resource["type_id"]] += 1
 			assigned_counts_by_node[resource["id"]] = assigned_counts_by_node.get(resource["id"], 0) + 1
 		else:
 			push_warning("规则 AI Gather 被拒绝：%s" % result)
@@ -197,9 +180,7 @@ func _assign_idle_workers_to_resources(own_entities: Array):
 
 ## 在 Worker 当前视野与搜索半径交集中选择资源；先选当前分配人数最少的节点，
 ## 同等拥挤度时取最近，尽量把工人摊开到不同矿点。
-func _find_visible_resource(
-	worker_position: Vector3, preferred_type: String, assigned_counts_by_node: Dictionary = {}
-) -> Dictionary:
+func _find_visible_resource(worker_position: Vector3, assigned_counts_by_node: Dictionary = {}) -> Dictionary:
 	var result: Dictionary = _world_query_runtime.ScanCircle(
 		_query_session_id,
 		worker_position,
@@ -211,14 +192,11 @@ func _find_visible_resource(
 		return {}
 	var resources: Array = result["entities"].filter(
 		func(entity):
-			return entity.get("type_id", "") in [RESOURCE_A_TYPE_ID, RESOURCE_B_TYPE_ID]
+			return entity.get("type_id", "") == RESOURCE_A_TYPE_ID
 	)
 	if resources.is_empty():
 		return {}
-	var preferred: Array = resources.filter(
-		func(entity): return entity.get("type_id", "") == preferred_type
-	)
-	var candidates: Array = preferred if not preferred.is_empty() else resources
+	var candidates: Array = resources
 	candidates.sort_custom(
 		func(left, right):
 			var left_count: int = assigned_counts_by_node.get(left["id"], 0)
@@ -309,7 +287,7 @@ func _find_expansion_site(own_entities: Array) -> Vector3:
 	var best_position := Vector3.INF
 	var best_distance := 400.0  # 20m 平方下限：新基地必须与现有基地保持距离
 	for entity in result.get("entities", []):
-		if entity.get("type_id", "") not in [RESOURCE_A_TYPE_ID, RESOURCE_B_TYPE_ID]:
+		if entity.get("type_id", "") != RESOURCE_A_TYPE_ID:
 			continue
 		var position: Vector3 = entity["position"]
 		var too_close := false

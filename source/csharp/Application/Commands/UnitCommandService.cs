@@ -861,7 +861,6 @@ public sealed class UnitCommandService(
     private static string ResourceTypeId(ResourceKind kind) => kind switch
     {
         ResourceKind.A => "resource_a",
-        ResourceKind.B => "resource_b",
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "未知资源种类。")
     };
 

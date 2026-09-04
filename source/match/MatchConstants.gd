@@ -47,15 +47,11 @@ class Terrain:
 
 
 class Resources:
+	# 红警式单资源：全部矿点都是“钱”（原 A 类资源），B 类资源已移除。
 	class A:
 		const COLOR = Color.BLUE
 		const MATERIAL_PATH = "res://source/match/resources/materials/resource_a.material.tres"
 		const COLLECTING_TIME_S = 1.0
-
-	class B:
-		const COLOR = Color.RED
-		const MATERIAL_PATH = "res://source/match/resources/materials/resource_b.material.tres"
-		const COLLECTING_TIME_S = 2.0
 
 
 class Units:

@@ -497,7 +497,7 @@ internal sealed class WorldQueryServiceTests
             [new WorldEconomySnapshot(
                 _observer,
                 new ResourceAccountObservation(
-                    [new ResourceAmount(ResourceKind.A, 12), new ResourceAmount(ResourceKind.B, 3)],
+                    [new ResourceAmount(ResourceKind.A, 12)],
                     5))],
             [],
             new BattlefieldBounds(0, 50, 0, 50)));

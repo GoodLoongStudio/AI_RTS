@@ -21,11 +21,10 @@ func _ready():
 	var queue = factory.production_queue
 	var runtime = match_instance.get_node("ProductionRuntime")
 	_check(
-		human.add_resources({"resource_a": 50, "resource_b": 50}, "ScriptedAdjustment"),
+		human.add_resources({"resource_a": 3000}, "ScriptedAdjustment"),
 		"测试资源注入应成功"
 	)
 	var full_balance_a: int = human.resource_a
-	var full_balance_b: int = human.resource_b
 	var tank_cost = match_instance.get_node("BalanceConfigRuntime").GetProductionCost(TankScene)
 
 	for _index in range(5):
@@ -33,14 +32,13 @@ func _ready():
 	_check(queue.size() == 5, "统一生产队列容量应为 5")
 	_check(queue.produce(TankScene) == null, "第六项不得绕过统一队列容量")
 	_check(
-		human.resource_a == full_balance_a - tank_cost["resource_a"] * 5
-		and human.resource_b == full_balance_b - tank_cost["resource_b"] * 5,
+		human.resource_a == full_balance_a - tank_cost["resource_a"] * 5,
 		"被 QueueFull 拒绝的项目不得额外扣款"
 	)
 	queue.cancel_all()
 	_check(queue.size() == 0, "CancelAll 应同步清空当前活动队列")
 	_check(
-		human.resource_a == full_balance_a and human.resource_b == full_balance_b,
+		human.resource_a == full_balance_a,
 		"取消全部未完成项目应全额退款"
 	)
 
@@ -71,8 +69,7 @@ func _ready():
 	queue.cancel(second)
 	_check(queue.size() == 0, "取消第二项后队列应为空")
 	_check(
-		human.resource_a == full_balance_a - tank_cost["resource_a"]
-		and human.resource_b == full_balance_b - tank_cost["resource_b"],
+		human.resource_a == full_balance_a - tank_cost["resource_a"],
 		"最终只应保留已完成首项的成本"
 	)
 

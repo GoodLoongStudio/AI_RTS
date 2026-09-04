@@ -57,8 +57,8 @@ internal sealed class BalanceConfigLoaderTests
         Check(result.Catalog is not null, "成功结果必须包含 Catalog");
         var catalog = result.Catalog!;
         Check(catalog.Version.SchemaVersion == 1, "基线 schemaVersion 应为 1");
-        Check(catalog.Version.ContentVersion == "demo-baseline-2026-08-12",
-            "基线 contentVersion 应保持快照日期");
+        Check(catalog.Version.ContentVersion == "demo-single-resource-2026-09-03",
+            "基线 contentVersion 应与单资源（钱）改造版本一致");
         Check(catalog.Version.ContentHash.Length == 64, "SHA-256 内容摘要应为 64 位十六进制");
 
         var tank = catalog.FindUnitType(new UnitTypeId("tank"));
@@ -93,8 +93,8 @@ internal sealed class BalanceConfigLoaderTests
         var commandCenter = catalog.FindConstruction(new StructureDefinitionId("command_center"));
         Check(commandCenter?.RequiredWork == 200,
             "CommandCenter 施工应保持迁移期 200 工作量");
-        Check(catalog.FindResource(ResourceKind.B)?.CollectionDurationMilliseconds == 200,
-            "Resource B 采集时间应映射为 200 整数毫秒（2026-09-03 采集节奏调整为 20 秒/趟）");
+        Check(catalog.FindResource(ResourceKind.A)?.CollectionDurationMilliseconds == 200,
+            "唯一资源（钱）采集时间应映射为 200 整数毫秒（2026-09-03 采集节奏调整为 20 秒/趟）");
 
         var pulse = catalog.FindSkill(new SkillDefinitionId("demo_self_pulse"));
         Check(pulse is not null, "Catalog 应包含 demo_self_pulse");

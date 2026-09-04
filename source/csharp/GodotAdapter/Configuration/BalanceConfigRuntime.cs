@@ -79,13 +79,12 @@ public partial class BalanceConfigRuntime : Node
             Assets.FindBlueprintScene(unitTypeId.Value)?.ResourcePath ?? string.Empty;
     }
 
-    /// <summary>把 Legacy resource_a/resource_b 名称映射为 Catalog 采集秒数。</summary>
+    /// <summary>把 Legacy resource_a 名称映射为 Catalog 采集秒数。</summary>
     public double GetCollectionDurationSeconds(string legacyResourceName)
     {
         var kind = legacyResourceName switch
         {
             "resource_a" => ResourceKind.A,
-            "resource_b" => ResourceKind.B,
             _ => (ResourceKind?)null
         };
         if (kind is null || Catalog.FindResource(kind.Value) is not { } definition)
@@ -145,7 +144,7 @@ public partial class BalanceConfigRuntime : Node
         return result;
     }
 
-    /// <summary>按产品场景返回包含 resource_a/resource_b 的生产成本副本。</summary>
+    /// <summary>按产品场景返回包含 resource_a 的生产成本副本。</summary>
     public Godot.Collections.Dictionary GetProductionCost(PackedScene scene)
     {
         var definition = FindProduction(scene) ??
@@ -153,7 +152,7 @@ public partial class BalanceConfigRuntime : Node
         return ToLegacyCosts(definition.Cost);
     }
 
-    /// <summary>按建筑场景返回包含 resource_a/resource_b 的施工成本副本。</summary>
+    /// <summary>按建筑场景返回包含 resource_a 的施工成本副本。</summary>
     public Godot.Collections.Dictionary GetConstructionCost(PackedScene scene)
     {
         // 防御：配置降级时返回空成本，而不是抛异常中断 GDScript 调用栈（修复黑屏级联）。
@@ -281,18 +280,17 @@ public partial class BalanceConfigRuntime : Node
         unit.Set("attack_domains", domains);
     }
 
-    /// <summary>把强类型成本转换成 Legacy HUD/规则 AI 使用的完整双资源字典副本。</summary>
+    /// <summary>把强类型成本转换成 Legacy HUD/规则 AI 使用的单资源（钱）字典副本。</summary>
     private static Godot.Collections.Dictionary ToLegacyCosts(
         IEnumerable<ResourceAmount> costs)
     {
         var result = new Godot.Collections.Dictionary
         {
-            ["resource_a"] = 0,
-            ["resource_b"] = 0
+            ["resource_a"] = 0
         };
         foreach (var cost in costs)
         {
-            result[cost.Kind == ResourceKind.A ? "resource_a" : "resource_b"] = cost.Amount;
+            result["resource_a"] = cost.Amount;
         }
         return result;
     }

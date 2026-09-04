@@ -347,7 +347,6 @@ public partial class WorldQueryRuntime : Node
     private static string ResourceKey(ResourceKind kind) => kind switch
     {
         ResourceKind.A => "resource_a",
-        ResourceKind.B => "resource_b",
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "未知资源类型。")
     };
 

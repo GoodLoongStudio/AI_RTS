@@ -200,10 +200,6 @@ public sealed class GodotWorldObservationRepository : IWorldObservationRepositor
         {
             return "resource_a";
         }
-        if (resource.Get("resource_b").VariantType != Variant.Type.Nil)
-        {
-            return "resource_b";
-        }
         return "resource_unknown";
     }
 

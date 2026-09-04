@@ -475,7 +475,7 @@ internal sealed class UnitCommandServiceTests
             stop: stop,
             workerTasks: work,
             resources: new FakeResourceRepository(
-                new ResourceNodeSnapshot(resourceId, ResourceKind.B, true)));
+                new ResourceNodeSnapshot(resourceId, ResourceKind.A, true)));
 
         var gather = service.GatherResources(
             Context(owner),
@@ -940,50 +940,47 @@ internal sealed class UnitCommandServiceTests
             "敌军应承受完整基础伤害");
     }
 
-    /// <summary>验证一笔 A/B 交易只增加一次版本并完整应用。</summary>
+    /// <summary>验证一笔交易只增加一次版本并完整应用。</summary>
     private void ResourceTransactionAppliesMultipleKindsAtomically()
     {
         var player = NewPlayerId();
         var match = new MatchId(Guid.NewGuid());
-        var service = OpenAccount(player, match, 10, 8);
+        var service = OpenAccount(player, match, 10);
 
         var result = service.Apply(new ApplyResourceTransaction(
             NewResourceTransactionId(),
             match,
             player,
-            [new ResourceDelta(ResourceKind.A, -4), new ResourceDelta(ResourceKind.B, -3)],
+            [new ResourceDelta(ResourceKind.A, -4)],
             ResourceChangeReason.ConstructionCost,
             null,
             2));
 
-        Check(result.Status == ResourceTransactionStatus.Applied, "余额足够时多资源交易应成功");
+        Check(result.Status == ResourceTransactionStatus.Applied, "余额足够时交易应成功");
         Check(result.Snapshot?.GetBalance(ResourceKind.A) == 6, "A 应按交易扣除");
-        Check(result.Snapshot?.GetBalance(ResourceKind.B) == 5, "B 应按交易扣除");
-        Check(result.Snapshot?.Version == 2, "多资源交易只应增加一次账户版本");
+        Check(result.Snapshot?.Version == 2, "交易只应增加一次账户版本");
     }
 
-    /// <summary>验证任一资源不足时整笔交易失败且其他资源不被部分扣除。</summary>
+    /// <summary>验证余额不足时整笔交易失败且余额不被部分扣除。</summary>
     private void ResourceTransactionRejectsPartialPayment()
     {
         var player = NewPlayerId();
         var match = new MatchId(Guid.NewGuid());
-        var service = OpenAccount(player, match, 10, 1);
+        var service = OpenAccount(player, match, 1);
 
         var result = service.Apply(new ApplyResourceTransaction(
             NewResourceTransactionId(),
             match,
             player,
-            [new ResourceDelta(ResourceKind.A, -4), new ResourceDelta(ResourceKind.B, -2)],
+            [new ResourceDelta(ResourceKind.A, -4)],
             ResourceChangeReason.ProductionCost,
             null,
             2));
 
         Check(result.Status == ResourceTransactionStatus.InsufficientResources,
-            "任一资源不足时应返回 InsufficientResources");
-        Check(service.Find(player)?.GetBalance(ResourceKind.A) == 10,
-            "失败交易不得部分扣除充足的 A");
-        Check(service.Find(player)?.GetBalance(ResourceKind.B) == 1,
-            "失败交易不得改变不足的 B");
+            "余额不足时应返回 InsufficientResources");
+        Check(service.Find(player)?.GetBalance(ResourceKind.A) == 1,
+            "失败交易不得改变不足的余额");
     }
 
     /// <summary>验证成功交易重放不会重复入账或重复发布事件。</summary>
@@ -991,7 +988,7 @@ internal sealed class UnitCommandServiceTests
     {
         var player = NewPlayerId();
         var match = new MatchId(Guid.NewGuid());
-        var service = OpenAccount(player, match, 0, 0);
+        var service = OpenAccount(player, match, 0);
         var changes = 0;
         service.BalanceChanged += _ => changes++;
         var transaction = new ApplyResourceTransaction(
@@ -1017,7 +1014,7 @@ internal sealed class UnitCommandServiceTests
     {
         var player = NewPlayerId();
         var match = new MatchId(Guid.NewGuid());
-        var service = OpenAccount(player, match, 0, 0);
+        var service = OpenAccount(player, match, 0);
         var id = NewResourceTransactionId();
         service.Apply(new ApplyResourceTransaction(
             id,
@@ -1048,7 +1045,7 @@ internal sealed class UnitCommandServiceTests
     {
         var player = NewPlayerId();
         var match = new MatchId(Guid.NewGuid());
-        var service = OpenAccount(player, match, int.MaxValue, 0);
+        var service = OpenAccount(player, match, int.MaxValue);
         var empty = service.Apply(new ApplyResourceTransaction(
             NewResourceTransactionId(), match, player, [],
             ResourceChangeReason.ScriptedAdjustment, null, 2));
@@ -1058,11 +1055,11 @@ internal sealed class UnitCommandServiceTests
             ResourceChangeReason.ScriptedAdjustment, null, 3));
         var duplicate = service.Apply(new ApplyResourceTransaction(
             NewResourceTransactionId(), match, player,
-            [new ResourceDelta(ResourceKind.B, 1), new ResourceDelta(ResourceKind.B, 1)],
+            [new ResourceDelta(ResourceKind.A, 1), new ResourceDelta(ResourceKind.A, 1)],
             ResourceChangeReason.ScriptedAdjustment, null, 4));
         var wrongDirection = service.Apply(new ApplyResourceTransaction(
             NewResourceTransactionId(), match, player,
-            [new ResourceDelta(ResourceKind.B, 1)],
+            [new ResourceDelta(ResourceKind.A, 1)],
             ResourceChangeReason.ConstructionCost, null, 4));
         var overflow = service.Apply(new ApplyResourceTransaction(
             NewResourceTransactionId(), match, player,
@@ -1084,7 +1081,7 @@ internal sealed class UnitCommandServiceTests
     {
         var player = NewPlayerId();
         var match = new MatchId(Guid.NewGuid());
-        var service = OpenAccount(player, match, 0, 0);
+        var service = OpenAccount(player, match, 0);
         var reasons = new[]
         {
             ResourceChangeReason.WorkerDelivery,
@@ -1100,12 +1097,12 @@ internal sealed class UnitCommandServiceTests
         {
             var result = service.Apply(new ApplyResourceTransaction(
                 NewResourceTransactionId(), match, player,
-                [new ResourceDelta(ResourceKind.B, 1)], reason, null, 2));
+                [new ResourceDelta(ResourceKind.A, 1)], reason, null, 2));
             Check(result.Status == ResourceTransactionStatus.Applied,
                 $"{reason} 应能使用统一账户入口");
         }
 
-        Check(service.Find(player)?.GetBalance(ResourceKind.B) == reasons.Length,
+        Check(service.Find(player)?.GetBalance(ResourceKind.A) == reasons.Length,
             "所有已接受收入应进入同一账户");
     }
 
@@ -1113,7 +1110,7 @@ internal sealed class UnitCommandServiceTests
     private void ResourceAccountSnapshotCannotMutateStore()
     {
         var player = NewPlayerId();
-        var service = OpenAccount(player, new MatchId(Guid.NewGuid()), 3, 4);
+        var service = OpenAccount(player, new MatchId(Guid.NewGuid()), 3);
         var snapshot = service.Find(player)!;
         var mutationRejected = false;
         try
@@ -1406,7 +1403,7 @@ internal sealed class UnitCommandServiceTests
         var owner = NewPlayerId();
         var match = new MatchId(Guid.NewGuid());
         var unit = NewUnitId();
-        var accounts = OpenAccount(owner, match, 2, 0);
+        var accounts = OpenAccount(owner, match, 2);
         var cooldowns = new InMemorySkillCooldownStore();
         var skill = new SkillDefinition(
             new SkillDefinitionId("paid_pulse"),
@@ -1450,7 +1447,7 @@ internal sealed class UnitCommandServiceTests
         var owner = NewPlayerId();
         var match = new MatchId(Guid.NewGuid());
         var unit = NewUnitId();
-        var accounts = OpenAccount(owner, match, 0, 0);
+        var accounts = OpenAccount(owner, match, 0);
         var cooldowns = new InMemorySkillCooldownStore();
         var skill = new SkillDefinition(
             new SkillDefinitionId("paid_pulse"),
@@ -1988,7 +1985,7 @@ internal sealed class UnitCommandServiceTests
         var match = new MatchId(Guid.NewGuid());
         var unit = NewUnitId();
         var damage = new FakeDamagePort();
-        var accounts = OpenAccount(owner, match, 1, 0);
+        var accounts = OpenAccount(owner, match, 1);
         var cooldowns = new InMemorySkillCooldownStore();
         var skill = WindupPulse(refund: false, keepCooldown: true);
         var service = NewService(
@@ -2020,7 +2017,7 @@ internal sealed class UnitCommandServiceTests
         var match = new MatchId(Guid.NewGuid());
         var unit = NewUnitId();
         var damage = new FakeDamagePort();
-        var accounts = OpenAccount(owner, match, 1, 0);
+        var accounts = OpenAccount(owner, match, 1);
         var cooldowns = new InMemorySkillCooldownStore();
         var skill = WindupPulse(refund: true, keepCooldown: false);
         var service = NewService(
@@ -2300,15 +2297,14 @@ internal sealed class UnitCommandServiceTests
     private static InMemoryResourceAccountService OpenAccount(
         PlayerId player,
         MatchId match,
-        int resourceA,
-        int resourceB)
+        int resourceA)
     {
         var service = new InMemoryResourceAccountService();
         var result = service.Open(new OpenResourceAccount(
             NewResourceTransactionId(),
             match,
             player,
-            [new ResourceAmount(ResourceKind.A, resourceA), new ResourceAmount(ResourceKind.B, resourceB)],
+            [new ResourceAmount(ResourceKind.A, resourceA)],
             1));
         if (result.Status != ResourceTransactionStatus.Applied)
         {

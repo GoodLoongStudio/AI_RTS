@@ -253,9 +253,7 @@ func _op_gather(match_node, parsed) -> String:
 	for resource in get_tree().get_nodes_in_group("resource_units"):
 		if resource == null or not is_instance_valid(resource):
 			continue
-		var matches_kind := (kind == "a" and "resource_a" in resource) or (
-			kind == "b" and "resource_b" in resource
-		)
+		var matches_kind: bool = kind == "a" and "resource_a" in resource
 		if not matches_kind:
 			continue
 		var distance: float = resource.global_position.distance_to(origin)
@@ -403,10 +401,10 @@ func _collect_status(match_node) -> Dictionary:
 		return out
 	out["local_player_name"] = str(player.name)
 	out["player_nodes"] = get_tree().get_nodes_in_group("players").map(func(p): return str(p.name))
-	out["balance"] = {"a": int(player.resource_a), "b": int(player.resource_b)}
+	out["balance"] = {"a": int(player.resource_a)}
 	out["ra3_sidebar_ui"] = _collect_sidebar_ui()
 	out["all_balances"] = get_tree().get_nodes_in_group("players").map(
-		func(p): return {"player": str(p.name), "a": int(p.resource_a), "b": int(p.resource_b)}
+		func(p): return {"player": str(p.name), "a": int(p.resource_a)}
 	)
 	var outcome_runtime = match_node.get_node_or_null("MatchOutcomeRuntime")
 	if outcome_runtime != null and outcome_runtime.has_method("InspectOutcome"):
@@ -441,9 +439,9 @@ func _append_unit_entries(out: Dictionary, _match_node, player) -> void:
 	for unit in tree.get_nodes_in_group("units"):
 		if unit == null or not is_instance_valid(unit):
 			continue
-		var carried := [0, 0]
-		if "resource_a" in unit and "resource_b" in unit:
-			carried = [int(unit.resource_a), int(unit.resource_b)]
+		var carried := [0]
+		if "resource_a" in unit:
+			carried = [int(unit.resource_a)]
 		var entry := {
 			"name": unit.name,
 			"owner": unit.get_parent().name if unit.get_parent() != null else "",
@@ -478,8 +476,6 @@ func _append_unit_entries(out: Dictionary, _match_node, player) -> void:
 		var resource_entry := {"name": resource.name}
 		if "resource_a" in resource:
 			resource_entry["kind"] = "a"
-		elif "resource_b" in resource:
-			resource_entry["kind"] = "b"
 		if camera != null:
 			var resource_screen: Vector2 = camera.unproject_position(
 				resource.global_position
