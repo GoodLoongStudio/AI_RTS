@@ -16,29 +16,23 @@ const MAPS = {
 		"size": Vector2i(100, 100),
 	},
 	# RTS_Map_Tool G4 生成的 4 人 Seed 地图（seed 驱动、可复现，见 RTS_Map_Tool/docs/plan）
-	"res://source/match/maps/generated/seed_8.tscn":
+	"res://source/match/maps/generated/seed_16.tscn":
 	{
-		"name": "Generated Seed 8",
+		"name": "Generated Seed 16",
 		"players": 4,
-		"size": Vector2i(96, 96),
+		"size": Vector2i(256, 256),
 	},
-	"res://source/match/maps/generated/seed_34.tscn":
+	"res://source/match/maps/generated/seed_35.tscn":
 	{
-		"name": "Generated Seed 34",
+		"name": "Generated Seed 35",
 		"players": 4,
-		"size": Vector2i(96, 96),
+		"size": Vector2i(256, 256),
 	},
-	"res://source/match/maps/generated/seed_44.tscn":
+	"res://source/match/maps/generated/seed_61.tscn":
 	{
-		"name": "Generated Seed 44",
+		"name": "Generated Seed 61",
 		"players": 4,
-		"size": Vector2i(96, 96),
-	},
-	"res://source/match/maps/generated/seed_46.tscn":
-	{
-		"name": "Generated Seed 46",
-		"players": 4,
-		"size": Vector2i(96, 96),
+		"size": Vector2i(256, 256),
 	},
 }
 

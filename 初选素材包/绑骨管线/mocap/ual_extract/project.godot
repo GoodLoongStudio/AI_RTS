@@ -1,0 +1,4 @@
+[application]
+config/name="ual_tool"
+[rendering]
+renderer/rendering_method="gl_compatibility"

@@ -62,11 +62,14 @@ func bake(map):
 	for node in get_tree().get_nodes_in_group("terrain_navigation_input"):
 		node.remove_from_group("terrain_navigation_input")
 	server_busy = true
-	NavigationServer3D.bake_from_source_geometry_data(
-		_navigation_region.navigation_mesh, _map_geometry
+	# 异步烘焙：消除"实例化 Match（导航烘焙阻塞点）"的主线程阻塞尖峰。
+	# 完成回调 _on_bake_finished 负责置回 server_busy 并同步 navmesh。
+	NavigationServer3D.bake_from_source_geometry_data_async(
+		_navigation_region.navigation_mesh, _map_geometry, _on_bake_finished
 	)
-	server_busy = false
-	_sync_navmesh_changes()
+	# 保持 bake() 的协程语义：Navigation.setup 的 await 链等首次烘焙完成后再继续。
+	while server_busy:
+		await get_tree().process_frame
 
 
 func _rebake():
@@ -140,7 +143,7 @@ func _on_schedule_navigation_rebake(domain):
 		_rebake_queued = true
 		return
 	if _earliest_frame_to_perform_next_rebake == null:
-		_earliest_frame_to_perform_next_rebake = get_tree().get_frame() + 1
+		_earliest_frame_to_perform_next_rebake = get_tree().get_frame() + 30
 
 
 func _on_bake_finished():
@@ -151,4 +154,4 @@ func _on_bake_finished():
 	_is_baking = false
 	if _rebake_queued:
 		_rebake_queued = false
-		_earliest_frame_to_perform_next_rebake = get_tree().get_frame() + 1
+		_earliest_frame_to_perform_next_rebake = get_tree().get_frame() + 30

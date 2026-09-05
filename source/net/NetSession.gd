@@ -167,7 +167,6 @@ func set_ready(is_ready: bool) -> void:
 	if is_server() and not dedicated_server:
 		_ready_peers[1] = is_ready
 		_broadcast_lobby()
-		_try_start_match()
 		return
 	_rpc_set_ready.rpc_id(1, is_ready)
 
@@ -442,7 +441,18 @@ func _try_start_match() -> void:
 ## 立即开局（单人开房仍走服务器）。
 ## 未连接时先连默认云服，连上自动单人开局；空槽保持空，不自动生成敌人。
 ## 本机 listen server 仅是开发自测路径，不在「立即开局」里。
-func start_solo(with_ai: bool = false, passive_ai_test: bool = false) -> void:
+## peaceful：和平模式（AI 首波进攻延迟 600s），供副官练发展与探索，
+## 由调试端点 start op 的 peaceful 参数传入（--e2e-peaceful 仍作为全局默认）。
+## 清除「自动开局」意图（挂起的 start_solo）。加入局服（普通进大厅）前必须调用，
+## 防止此前残留的单人开局意图在连上服务器后自动开局（2026-09-05 实测事故）。
+func clear_auto_start_intent() -> void:
+	_pending_solo_start = false
+	_pending_solo_with_ai = false
+	_pending_solo_passive_ai_test = false
+
+
+func start_solo(with_ai: bool = false, passive_ai_test: bool = false, peaceful: bool = false) -> void:
+	var use_peaceful := peaceful or e2e_peaceful
 	if not is_networked():
 		_pending_solo_start = true
 		_pending_solo_with_ai = with_ai
@@ -464,9 +474,9 @@ func start_solo(with_ai: bool = false, passive_ai_test: bool = false) -> void:
 		_set_status("等待服务器连接，连上后自动开局…")
 		return
 	if not is_server():
-		_rpc_solo_start.rpc_id(1, e2e_peaceful, with_ai, passive_ai_test)
+		_rpc_solo_start.rpc_id(1, use_peaceful, with_ai, passive_ai_test)
 		return
-	e2e_peaceful_server = e2e_peaceful
+	e2e_peaceful_server = use_peaceful
 	passive_ai_test_server = passive_ai_test
 	if with_ai:
 		_ensure_solo_opponent()
@@ -509,7 +519,11 @@ func _rpc_solo_start(
 ) -> void:
 	if not is_server() or _match_started:
 		return
-	if slot_of(multiplayer.get_remote_sender_id()) < 0:
+	var sender_slot := slot_of(multiplayer.get_remote_sender_id())
+	if sender_slot < 0:
+		return
+	# 复核 2026-09-05：只有房主（0 号槽，首位进房者）能点开局。
+	if sender_slot != 0:
 		return
 	e2e_peaceful_server = peaceful
 	passive_ai_test_server = passive_ai_test
@@ -521,6 +535,20 @@ func _rpc_solo_start(
 func _set_status(text: String) -> void:
 	_status = text
 	status_changed.emit(text)
+
+
+## 单人练习房判定：参战玩家（slot_kind != NONE 占位）不足 2 个。
+## 设计师需求（2026-09-04）：单人开局只有玩家主动退出才结束，不以胜利/失败为结束——
+## 因此结算 UI 与专用服回收都必须跳过，否则单人局开局即被判胜利并回收服务器。
+func is_solo_practice() -> bool:
+	var tree := get_tree()
+	if tree == null:
+		return false
+	var count := 0
+	for p in tree.get_nodes_in_group("players"):
+		if p.has_meta("slot_kind") and int(p.get_meta("slot_kind")) != 0:
+			count += 1
+	return count < 2
 
 
 @rpc("any_peer", "reliable")
@@ -537,7 +565,7 @@ func _rpc_set_ready(is_ready: bool) -> void:
 	var peer_id := multiplayer.get_remote_sender_id()
 	_ready_peers[peer_id] = is_ready
 	_broadcast_lobby()
-	_try_start_match()
+	# 复核 2026-09-05：准备只作状态展示，不再自动开局——开局权在房主。
 
 
 @rpc("authority", "reliable")

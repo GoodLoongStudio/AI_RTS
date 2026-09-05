@@ -235,11 +235,14 @@ func _op_start(parsed) -> String:
 		return JSON.stringify({"error": "not networked"})
 	var with_ai := bool(parsed.get("with_ai", false))
 	var passive_ai_test := bool(parsed.get("passive_ai_test", false))
-	NetSession.start_solo(with_ai, passive_ai_test)
+	# peaceful：和平模式，AI 首波进攻延迟 600s —— 副官练发展与探索用。
+	var peaceful := bool(parsed.get("peaceful", false))
+	NetSession.start_solo(with_ai, passive_ai_test, peaceful)
 	return JSON.stringify({
 		"ok": true,
 		"with_ai": with_ai,
 		"passive_ai_test": passive_ai_test,
+		"peaceful": peaceful,
 	})
 
 func _op_move(match_node, parsed) -> String:

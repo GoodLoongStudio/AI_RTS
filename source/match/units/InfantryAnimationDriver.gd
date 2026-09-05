@@ -1,8 +1,12 @@
 extends Node
 
-## 步兵程序化骨骼动画（期 2 Step10）：外部动作剪辑尚未产出，本驱动按绑骨管线
-## full_anim.py 的姿态函数在 Godot 内实时驱动 Skeleton3D，提供待命/行走/开火三态。
-## 待动作剪辑就绪后可整体替换为 AnimationPlayer，而单位场景与测试不受影响。
+## 步兵骨骼动画驱动（v2）：绑骨管线烘焙的九段剪辑（Infantry_anim_v2.glb 内嵌
+## AnimationPlayer）按 Unit.action 类型 + 实际位移速度映射播放；受击时短暂
+## 覆盖为 Hit。取代期 2 Step10 的程序化摆骨骼方案（_pose_idle/_pose_walk 等）。
+## 剪辑清单：循环 Idle/Walk/Run/Gather/Build，单发 Attack/Fire/Hit/Death
+## （剪辑名 "-loop" 后缀在 glTF 导入时已转为循环标志）。
+## 未接入：Death——单位死亡由 Unit._handle_unit_death 立即 queue_free，
+## 播放死亡动画需延迟销毁（玩法逻辑改动），待单独批准。
 
 const ATTACK_ACTION_SUFFIXES := [
 	"OrdinaryAttacking.gd",
@@ -10,126 +14,107 @@ const ATTACK_ACTION_SUFFIXES := [
 	"AttackingWhileInRange.gd",
 	"ExplicitForceAttacking.gd",
 ]
-const BONES := [
-	"Hips", "Spine", "Spine2", "Head",
-	"LeftArm", "RightArm", "LeftForeArm", "RightForeArm",
-	"LeftUpLeg", "RightUpLeg", "LeftLeg", "RightLeg",
+const BUILD_ACTION_SUFFIXES := [
+	"ConstructingWhileInRange.gd",
 ]
+const COLLECTING_SCRIPT_SUFFIX := "CollectingResourcesSequentially.gd"
+const COLLECTING_STATE := 2  # CollectingResourcesSequentially.State.COLLECTING
 ## 速度阈值需高于 RVO 避让的往复微抖速度（实测抖动可到 0.4 m/s 左右）
 const MOVE_SPEED_EPSILON := 0.6
-## 手臂从 T-Pose 垂放的轴向与角度（轴扫描截图验证：双臂同绕 X 轴 -90° 正确）
-@export var arm_axis := 0
-@export var arm_down_degrees := -90.0
-## 手肘自然弯折角（行走摆臂用）；待命保持直臂避免手部插入躯干
-@export var forearm_bend_degrees := -18.0
-## 行走摆频（Hz）
-@export var walk_cycle_hz := 0.9
+## 走/跑分界：步兵巡航速度 3.5 m/s，低于该值视为走
+const RUN_SPEED_MIN := 2.6
+## 受击覆盖时长：Hit 剪辑全长约 0.67s，覆盖窗口略短便于衔接下一状态
+const HIT_OVERLAY_MSEC := 500
+const LOOP_CLIPS := ["Idle", "Walk", "Run", "Gather", "Build"]
 
-var _skeleton: Skeleton3D
+var _player: AnimationPlayer
 var _unit: Node
-var _time := 0.0
 var _last_position := Vector3.INF
-var _moving := false
-var _bone_indices := {}
-var _rest_rotations := {}
+var _speed := 0.0
+var _hit_overlay_until := -1
 
 
 func _ready() -> void:
 	_unit = get_parent()
-	_skeleton = _unit.find_child("Skeleton3D", true, false)
-	if _skeleton == null:
-		push_warning("InfantryAnimationDriver: 未找到 Skeleton3D，动画驱动停用")
+	_player = _unit.find_child("AnimationPlayer", true, false)
+	if _player == null:
+		push_warning("InfantryAnimationDriver: 未找到 AnimationPlayer，动画驱动停用")
 		set_process(false)
 		return
-	for bone in BONES:
-		var index := _skeleton.find_bone(bone)
-		if index >= 0:
-			_bone_indices[bone] = index
-			_rest_rotations[bone] = _skeleton.get_bone_rest(index).basis.get_rotation_quaternion()
+	for clip in LOOP_CLIPS:
+		if _player.has_animation(clip):
+			_player.get_animation(clip).loop_mode = Animation.LOOP_LINEAR
+	if _unit.has_signal("hp_changed"):
+		_unit.hp_changed.connect(_on_hp_changed)
+	_play("Idle")
 
 
-func _process(delta: float) -> void:
-	if _skeleton == null:
-		return
-	_time += delta
-	_update_moving(delta)
-	if _moving:
-		_pose_walk()
-	elif _is_attacking():
-		_pose_attack()
-	else:
-		_pose_idle()
+func _process(_delta: float) -> void:
+	_update_speed(_delta)
+	_play(_desired_clip())
 
 
-func _update_moving(delta: float) -> void:
+func _on_hp_changed() -> void:
+	# 单位初始化时 hp 仍为 null 即会发 hp_changed，需防 Nil
+	if _unit.hp != null and _unit.hp > 0:
+		_hit_overlay_until = Time.get_ticks_msec() + HIT_OVERLAY_MSEC
+
+
+func _update_speed(delta: float) -> void:
 	var position: Vector3 = _unit.global_position
 	if _last_position == Vector3.INF:
 		_last_position = position
 		return
 	var displacement := position - _last_position
 	displacement.y = 0.0
-	_moving = displacement.length() / maxf(delta, 0.0001) > MOVE_SPEED_EPSILON
+	_speed = displacement.length() / maxf(delta, 0.0001)
 	_last_position = position
 
 
-func _is_attacking() -> bool:
+func _desired_clip() -> String:
+	if Time.get_ticks_msec() < _hit_overlay_until:
+		return "Hit"
 	var action = _unit.get("action")
-	if action == null or action.get_script() == null:
-		return false
-	var script_path := str(action.get_script().resource_path)
-	for suffix in ATTACK_ACTION_SUFFIXES:
-		if script_path.ends_with(suffix):
+	var script_path := ""
+	if action != null and action.get_script() != null:
+		script_path = str(action.get_script().resource_path)
+	if _has_suffix(script_path, ATTACK_ACTION_SUFFIXES):
+		return "Fire"
+	if _has_suffix(script_path, BUILD_ACTION_SUFFIXES):
+		return "Build"
+	if _is_collecting(action, script_path):
+		return "Gather"
+	if _speed > MOVE_SPEED_EPSILON:
+		return "Run" if _speed >= RUN_SPEED_MIN else "Walk"
+	return "Idle"
+
+
+func _has_suffix(path: String, suffixes: Array) -> bool:
+	for suffix in suffixes:
+		if path.ends_with(suffix):
 			return true
 	return false
 
 
-func _set_rot(bone: String, axis: int, degrees: float) -> void:
-	if not _bone_indices.has(bone):
+## 采集判定：直接采集动作处于 COLLECTING 态，或自动采集包装器的子动作在采集态
+func _is_collecting(action, script_path: String) -> bool:
+	if script_path.ends_with(COLLECTING_SCRIPT_SUFFIX):
+		return int(action.get("_state")) == COLLECTING_STATE
+	if script_path.ends_with("AutoGatheringResources.gd"):
+		var sub = action.get("_sub_action")
+		if sub != null and sub.get_script() != null \
+				and str(sub.get_script().resource_path).ends_with(COLLECTING_SCRIPT_SUFFIX):
+			return int(sub.get("_state")) == COLLECTING_STATE
+	return false
+
+
+## 单发剪辑播完且状态未变时重播（如持续攻击时的 Fire 循环）；
+## 同名循环剪辑播放中不重启。
+func _play(clip: String) -> void:
+	if not _player.has_animation(clip):
 		return
-	var axis_vectors := [Vector3(1, 0, 0), Vector3(0, 1, 0), Vector3(0, 0, 1)]
-	var axis_vector: Vector3 = axis_vectors[axis]
-	_skeleton.set_bone_pose_rotation(
-		_bone_indices[bone],
-		_rest_rotations[bone] * Quaternion(axis_vector, deg_to_rad(degrees))
-	)
-
-
-## 双臂从 T-Pose 垂放到持枪下垂位（左右骨骼 rest 非镜像，需同号旋转）。
-func _arm_down() -> void:
-	_set_rot("LeftArm", arm_axis, arm_down_degrees)
-	_set_rot("RightArm", arm_axis, arm_down_degrees)
-
-
-## 待命：轻微呼吸起伏 + 双臂持枪下垂。
-func _pose_idle() -> void:
-	var sway := sin(_time * PI / 2.0)
-	_arm_down()
-	_set_rot("Spine", 0, 2.0 * sway)
-	_set_rot("Hips", 0, 1.2 * sway)
-	_set_rot("Head", 2, 4.0 * sin(_time * PI / 4.0))
-
-
-## 行走：摆腿摆臂 + 髋部摆动（频率随配置，幅度沿用绑骨管线行走姿态）。
-func _pose_walk() -> void:
-	var cycle := fmod(_time * walk_cycle_hz, 1.0) * 2.0 * PI
-	var swing := sin(cycle)
-	var counter_swing := sin(cycle * 0.5 + PI / 3.0)
-	_set_rot("LeftUpLeg", 0, 36.0 * swing)
-	_set_rot("RightUpLeg", 0, -36.0 * swing)
-	_set_rot("LeftLeg", 0, maxf(0.0, -28.0 * cos(cycle)))
-	_set_rot("RightLeg", 0, maxf(0.0, 28.0 * cos(cycle)))
-	_set_rot("LeftArm", arm_axis, arm_down_degrees + 26.0 * counter_swing)
-	_set_rot("RightArm", arm_axis, arm_down_degrees + 26.0 * counter_swing)
-	_set_rot("LeftForeArm", 0, forearm_bend_degrees)
-	_set_rot("RightForeArm", 0, forearm_bend_degrees)
-	_set_rot("Hips", 2, 3.5 * swing)
-
-
-## 开火：双手端枪指向正前 + 随冷却节奏的后坐起伏。
-func _pose_attack() -> void:
-	var recoil := sin(fmod(_time, 0.6) / 0.6 * PI) * 8.0
-	_set_rot("LeftArm", arm_axis, arm_down_degrees)
-	_set_rot("RightArm", arm_axis, arm_down_degrees)
-	_set_rot("LeftForeArm", 0, -70.0)
-	_set_rot("RightForeArm", 0, -70.0)
-	_set_rot("Spine2", 2, -6.0 + recoil)
+	if _player.current_animation == clip:
+		var one_shot := not LOOP_CLIPS.has(clip)
+		if not one_shot or _player.is_playing():
+			return
+	_player.play(clip, 0.2)

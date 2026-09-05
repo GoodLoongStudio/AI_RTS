@@ -24,6 +24,7 @@ public partial class MatchOutcomeRuntime : Node
     private bool _evaluationPending;
     private bool _terminalPublished;
     private bool _shuttingDown;
+    private bool _soloPractice;
 
     /// <summary>在 Match 完成玩家和初始单位装配后建立权威快照并开启判定。</summary>
     public void Initialize(Node playersContainer, Node? localHumanPlayer)
@@ -55,6 +56,16 @@ public partial class MatchOutcomeRuntime : Node
         }
 
         _matchSignals = GetNode("/root/MatchSignals");
+
+        // 单人练习房（参战方不足 2）：设计师要求「只有玩家主动退出才结束，
+        // 不以胜利/失败为结束」。此时完全不启用歼灭判定——否则开局即被判胜利，
+        // 既弹出结算 UI 又会触发专用服回收，对局彻底冻结。
+        _soloPractice = _registeredSides.Count < 2;
+        if (_soloPractice)
+        {
+            return;
+        }
+
         _matchSignals.Connect("unit_spawned", Callable.From<Node>(OnUnitSpawned));
         PublishIfTerminal(_service.StartMatch());
     }
@@ -154,7 +165,7 @@ public partial class MatchOutcomeRuntime : Node
     /// <summary>将同一帧中的生成和死亡事实合并，支持真正的同时全灭平局。</summary>
     private void ScheduleEvaluation()
     {
-        if (_evaluationPending || _terminalPublished || _shuttingDown)
+        if (_evaluationPending || _terminalPublished || _shuttingDown || _soloPractice)
         {
             return;
         }

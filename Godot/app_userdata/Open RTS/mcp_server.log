@@ -1,0 +1,196 @@
+[INFO] Transport type set to: 1
+[INFO] Transport type set to: http
+[INFO] HTTP port set to: 9080
+[INFO] HTTP port set to: 9080
+[INFO] SSE enabled: true
+[INFO] SSE enabled: true
+[INFO] Remote config - allow: false, CORS: *
+[INFO] Remote config: allow_remote=false, cors=*
+[INFO] Log level set to: 2
+[INFO] Security level set to: 1
+[INFO] Rate limit set to: 100 requests/minute
+[INFO] Registering all MCP tools...
+[INFO] Registering tool module: NodeToolsNative (before=0)
+[INFO] Tool registered: create_node
+[INFO] Tool registered: delete_node
+[INFO] Tool registered: update_node_property
+[INFO] Tool registered: batch_update_node_properties
+[INFO] Tool registered: batch_scene_node_edits
+[INFO] Tool registered: get_node_properties
+[INFO] Tool registered: list_nodes
+[INFO] Tool registered: get_scene_tree
+[INFO] Tool registered: duplicate_node
+[INFO] Tool registered: move_node
+[INFO] Tool registered: rename_node
+[INFO] Tool registered: add_resource
+[INFO] Tool registered: set_anchor_preset
+[INFO] Tool registered: connect_signal
+[INFO] Tool registered: disconnect_signal
+[INFO] Tool registered: get_node_groups
+[INFO] Tool registered: set_node_groups
+[INFO] Tool registered: find_nodes_in_group
+[INFO] Tool registered: audit_scene_node_persistence
+[INFO] Tool registered: audit_scene_inheritance
+[INFO] Registered tool module: NodeToolsNative (after=20, added=20)
+[INFO] Registering tool module: ScriptToolsNative (before=20)
+[INFO] Tool registered: list_project_scripts
+[INFO] Tool registered: list_project_script_symbols
+[INFO] Tool registered: find_script_symbol_definition
+[INFO] Tool registered: find_script_symbol_references
+[INFO] Tool registered: rename_script_symbol
+[INFO] Tool registered: read_script
+[INFO] Tool registered: create_script
+[INFO] Tool registered: modify_script
+[INFO] Tool registered: analyze_script
+[INFO] Tool registered: get_current_script
+[INFO] Tool registered: open_script_at_line
+[INFO] Tool registered: attach_script
+[INFO] Tool registered: validate_script
+[INFO] Tool registered: search_in_files
+[INFO] Registered tool module: ScriptToolsNative (after=34, added=14)
+[INFO] Registering tool module: SceneToolsNative (before=34)
+[INFO] Tool registered: create_scene
+[INFO] Tool registered: save_scene
+[INFO] Tool registered: open_scene
+[INFO] Tool registered: get_current_scene
+[INFO] Tool registered: get_scene_structure
+[INFO] Tool registered: list_project_scenes
+[INFO] Tool registered: list_open_scenes
+[INFO] Tool registered: close_scene_tab
+[INFO] Registered tool module: SceneToolsNative (after=42, added=8)
+[INFO] Registering tool module: EditorToolsNative (before=42)
+[INFO] Tool registered: get_editor_state
+[INFO] Tool registered: run_project
+[INFO] Tool registered: stop_project
+[INFO] Tool registered: get_selected_nodes
+[INFO] Tool registered: select_node
+[INFO] Tool registered: select_file
+[INFO] Tool registered: get_inspector_properties
+[INFO] Tool registered: set_editor_setting
+[INFO] Tool registered: get_editor_screenshot
+[INFO] Tool registered: get_signals
+[INFO] Tool registered: reload_project
+[INFO] Tool registered: list_export_presets
+[INFO] Tool registered: inspect_export_templates
+[INFO] Tool registered: validate_export_preset
+[INFO] Tool registered: run_export
+[INFO] Registered tool module: EditorToolsNative (after=57, added=15)
+[INFO] Registering tool module: DebugToolsNative (before=57)
+[INFO] Tool registered: get_editor_logs
+[INFO] Tool registered: execute_script
+[INFO] Tool registered: get_performance_metrics
+[INFO] Tool registered: debug_print
+[INFO] Tool registered: execute_editor_script
+[INFO] Tool registered: clear_output
+[INFO] Tool registered: get_debugger_sessions
+[INFO] Tool registered: get_debug_threads
+[INFO] Tool registered: set_debugger_breakpoint
+[INFO] Tool registered: send_debugger_message
+[INFO] Tool registered: toggle_debugger_profiler
+[INFO] Tool registered: get_debugger_messages
+[INFO] Tool registered: get_debug_state_events
+[INFO] Tool registered: get_debug_output
+[INFO] Tool registered: add_debugger_capture_prefix
+[INFO] Tool registered: get_debug_stack_frames
+[INFO] Tool registered: get_debug_stack_variables
+[INFO] Tool registered: get_debug_scopes
+[INFO] Tool registered: get_debug_variables
+[INFO] Tool registered: expand_debug_variable
+[INFO] Tool registered: evaluate_debug_expression
+[INFO] Tool registered: install_runtime_probe
+[INFO] Tool registered: remove_runtime_probe
+[INFO] Tool registered: request_debug_break
+[INFO] Tool registered: send_debug_command
+[INFO] Tool registered: debug_step_into
+[INFO] Tool registered: debug_step_over
+[INFO] Tool registered: debug_step_out
+[INFO] Tool registered: debug_continue
+[INFO] Tool registered: debug_step_into_and_wait
+[INFO] Tool registered: debug_step_over_and_wait
+[INFO] Tool registered: debug_step_out_and_wait
+[INFO] Tool registered: debug_continue_and_wait
+[INFO] Tool registered: await_debugger_state
+[INFO] Tool registered: get_runtime_info
+[INFO] Tool registered: await_scene_ready
+[INFO] Tool registered: get_runtime_performance_snapshot
+[INFO] Tool registered: get_runtime_memory_trend
+[INFO] Tool registered: get_runtime_scene_tree
+[INFO] Tool registered: inspect_runtime_node
+[INFO] Tool registered: create_runtime_node
+[INFO] Tool registered: delete_runtime_node
+[INFO] Tool registered: update_runtime_node_property
+[INFO] Tool registered: call_runtime_node_method
+[INFO] Tool registered: evaluate_runtime_expression
+[INFO] Tool registered: simulate_runtime_input_event
+[INFO] Tool registered: simulate_runtime_input_action
+[INFO] Tool registered: list_runtime_input_actions
+[INFO] Tool registered: upsert_runtime_input_action
+[INFO] Tool registered: remove_runtime_input_action
+[INFO] Tool registered: list_runtime_animations
+[INFO] Tool registered: play_runtime_animation
+[INFO] Tool registered: stop_runtime_animation
+[INFO] Tool registered: get_runtime_animation_state
+[INFO] Tool registered: get_runtime_animation_tree_state
+[INFO] Tool registered: set_runtime_animation_tree_active
+[INFO] Tool registered: travel_runtime_animation_tree
+[INFO] Tool registered: get_runtime_material_state
+[INFO] Tool registered: get_runtime_theme_item
+[INFO] Tool registered: set_runtime_theme_override
+[INFO] Tool registered: clear_runtime_theme_override
+[INFO] Tool registered: get_runtime_shader_parameters
+[INFO] Tool registered: set_runtime_shader_parameter
+[INFO] Tool registered: list_runtime_tilemap_layers
+[INFO] Tool registered: get_runtime_tilemap_cell
+[INFO] Tool registered: set_runtime_tilemap_cell
+[INFO] Tool registered: list_runtime_audio_buses
+[INFO] Tool registered: get_runtime_audio_bus
+[INFO] Tool registered: update_runtime_audio_bus
+[INFO] Tool registered: get_runtime_screenshot
+[INFO] Tool registered: await_runtime_condition
+[INFO] Tool registered: assert_runtime_condition
+[INFO] Registered tool module: DebugToolsNative (after=129, added=72)
+[INFO] Registering tool module: ProjectToolsNative (before=129)
+[INFO] Tool registered: get_project_info
+[INFO] Tool registered: get_project_settings
+[INFO] Tool registered: list_project_tests
+[INFO] Tool registered: run_project_test
+[INFO] Tool registered: run_project_tests
+[INFO] Tool registered: list_project_input_actions
+[INFO] Tool registered: upsert_project_input_action
+[INFO] Tool registered: remove_project_input_action
+[INFO] Tool registered: list_project_autoloads
+[INFO] Tool registered: list_project_global_classes
+[INFO] Tool registered: get_class_api_metadata
+[INFO] Tool registered: inspect_csharp_project_support
+[INFO] Tool registered: compare_render_screenshots
+[INFO] Tool registered: inspect_tileset_resource
+[INFO] Tool registered: list_project_resources
+[INFO] Tool registered: create_resource
+[INFO] Tool registered: get_project_structure
+[INFO] Tool registered: reimport_resources
+[INFO] Tool registered: get_import_metadata
+[INFO] Tool registered: get_resource_uid_info
+[INFO] Tool registered: fix_resource_uid
+[INFO] Tool registered: get_resource_dependencies
+[INFO] Tool registered: scan_missing_resource_dependencies
+[INFO] Tool registered: scan_cyclic_resource_dependencies
+[INFO] Tool registered: detect_broken_scripts
+[INFO] Tool registered: audit_project_health
+[INFO] Registered tool module: ProjectToolsNative (after=155, added=26)
+[INFO] All MCP tools registered successfully. Total: 155
+[INFO] Registering all MCP resources...
+[INFO] Resource registered: godot://scene/list
+[INFO] Resource registered: godot://scene/current
+[INFO] Resource registered: godot://script/list
+[INFO] Resource registered: godot://script/current
+[INFO] Resource registered: godot://project/info
+[INFO] Resource registered: godot://project/settings
+[INFO] Resource registered: godot://editor/state
+[INFO] All MCP resources registered successfully
+[INFO] Loaded saved tool states before UI creation
+[INFO] Creating main screen panel...
+[INFO] Plugin reference set to panel
+[INFO] Server core reference set to panel
+[INFO] Main screen panel created successfully
+[INFO] MCP server not auto-started. Use Start button or --mcp-server flag.
+[INFO] Godot Native MCP Plugin initialized

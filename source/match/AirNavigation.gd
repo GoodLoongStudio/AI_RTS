@@ -44,7 +44,13 @@ func bake(map):
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	terrain_navigation.server_busy = true
-	_navigation_region.bake_navigation_mesh(false)
+	# on_thread：烘焙移到后台线程，完成后 bake_finished 信号唤醒本协程。
+	var air_baked: Array = [false]
+	var on_air_baked: Callable = func(): air_baked[0] = true
+	_navigation_region.bake_finished.connect(on_air_baked, CONNECT_ONE_SHOT)
+	_navigation_region.bake_navigation_mesh(true)
+	while not air_baked[0]:
+		await get_tree().process_frame
 	await get_tree().process_frame
 	terrain_navigation.server_busy = false
 

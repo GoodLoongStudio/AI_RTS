@@ -48,6 +48,9 @@ func _show():
 
 ## 将结构化终态映射到当前 Legacy 面板；胜负计算不在 UI 中进行。
 func _on_match_resolved(resolution: Dictionary):
+	# 单人练习房：不以胜负结束，玩家主动退出才算结束（设计师需求 2026-09-04）。
+	if NetSession.is_solo_practice():
+		return
 	if visible or not is_inside_tree():
 		return
 	_fill_campaign_summary(resolution)

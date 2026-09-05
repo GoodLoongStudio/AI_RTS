@@ -9,7 +9,7 @@ func _ready() -> void:
 	# Online._ready 的 autojoin 钩子接管加入+立即开局（供 Godot MCP 一键开局）。
 	# 复核 2026-09-02：只在本进程第一次加载 Main 时生效——自动化会话遗留/重建
 	# autojoin.txt 期间，玩家点「返回」到主菜单会被立刻弹回联机界面（表现为返回失灵）。
-	if not _autojoin_fired and ("--autojoin" in OS.get_cmdline_user_args() or FileAccess.file_exists("res://autojoin.txt")):
+	if not _autojoin_fired and "--autojoin" in OS.get_cmdline_user_args():
 		_autojoin_fired = true
 		_on_online_button_pressed()
 

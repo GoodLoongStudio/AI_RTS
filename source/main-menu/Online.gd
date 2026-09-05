@@ -13,7 +13,6 @@ const SLOT_AI := 2
 @onready var _ready_button: Button = $PanelContainer/MarginContainer/VBoxContainer/ReadyRow/ReadyButton
 @onready var _solo_button: Button = $PanelContainer/MarginContainer/VBoxContainer/ReadyRow/SoloButton
 @onready var _join_button: Button = $PanelContainer/MarginContainer/VBoxContainer/JoinRow/JoinButton
-@onready var _listen_button: Button = $PanelContainer/MarginContainer/VBoxContainer/JoinRow/ListenButton
 @onready var _name_edit: LineEdit = $PanelContainer/MarginContainer/VBoxContainer/TitleRow/NameRow/NameEdit
 @onready var _slots_box: VBoxContainer = $PanelContainer/MarginContainer/VBoxContainer/MainRow/SlotsBox
 
@@ -31,10 +30,10 @@ func _ready() -> void:
 	_refresh_connection_ui()
 	# 调试钩子：-- --autolobby 直接本机开房，供自动化截图与自测。
 	if "--autolobby" in OS.get_cmdline_user_args():
-		_on_listen_button_pressed()
+		NetSession.host(_port())
 	# 调试钩子：-- --autojoin（或 res://autojoin.txt 存在）直接加入默认服务器并立即开局，
 	# 供 Godot MCP 一键开出「已在对局中」的游戏窗口。
-	if "--autojoin" in OS.get_cmdline_user_args() or FileAccess.file_exists("res://autojoin.txt"):
+	if "--autojoin" in OS.get_cmdline_user_args():
 		_auto_join_solo()
 	# 调试控制端点已改为 autoload 自挂载（project.godot 注册，带 --debugport 才启用），
 	# 客户端与专用服进程均可使用，此处不再手动挂载。
@@ -143,10 +142,18 @@ func _on_slot_toggle_pressed(slot: int) -> void:
 
 func _refresh_connection_ui() -> void:
 	var connected := NetSession.is_networked()
+	var is_host := NetSession.local_slot == 0
+	# 两段式流程（2026-09-05）：未连接只给「加入局服」；
+	# 进房后才出现 地图/槽位/准备，开局按钮仅房主可见。
 	_join_button.visible = not connected
-	_listen_button.visible = not connected
 	_host_edit.get_parent().visible = not connected
 	_ready_button.visible = connected
+	var solo_btn := get_node_or_null("PanelContainer/MarginContainer/VBoxContainer/ReadyRow/SoloButton") as Button
+	if solo_btn != null:
+		solo_btn.visible = connected and is_host
+	var main_row := get_node_or_null("PanelContainer/MarginContainer/VBoxContainer/MainRow")
+	if main_row != null:
+		main_row.visible = connected
 	_name_edit.editable = not connected
 
 
@@ -159,15 +166,11 @@ func _on_status_changed(text: String) -> void:
 
 
 func _on_join_button_pressed() -> void:
+	# 加入局服 = 只进大厅，绝不自动开局：先清掉任何残留的单人开局意图。
+	NetSession.clear_auto_start_intent()
 	var err := NetSession.join(_host_edit.text.strip_edges(), _port())
 	if err != OK:
 		_status_label.text = "连接失败：%s" % err
-
-
-func _on_listen_button_pressed() -> void:
-	var err := NetSession.host(_port())
-	if err != OK:
-		_status_label.text = "开房失败：%s（端口被占用？）" % err
 
 
 func _on_ready_button_pressed() -> void:

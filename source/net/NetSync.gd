@@ -616,6 +616,11 @@ func _rpc_despawn(path: String) -> void:
 
 ## 对局结束: 服务器广播结果并回收, 客户端回主菜单(2026-08-31 黑屏修复)。
 func _on_match_finished(result: String) -> void:
+	# 单人练习房：不以胜负结束，且不回收专用服（设计师需求 2026-09-04）。
+	# 否则单人局开局即被判胜利 → 广播 → 5 秒后专用服退出。
+	if NetSession.is_solo_practice():
+		print("[对局] 单人练习房：跳过结算广播（", result, "），对局继续")
+		return
 	if not NetSession.is_networked():
 		return
 	if NetSession.is_server():
