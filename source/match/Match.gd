@@ -16,6 +16,7 @@ const CommandCenter = preload("res://source/match/units/CommandCenter.tscn")
 const Drone = preload("res://source/match/units/Drone.tscn")
 const Worker = preload("res://source/match/units/Worker.tscn")
 const VehicleFactory = preload("res://source/match/units/VehicleFactory.tscn")
+const Barracks = preload("res://source/match/units/Barracks.tscn")
 
 @export var settings: Resource = null
 
@@ -346,6 +347,10 @@ func _spawn_player_units(player, spawn_transform):
 		# 测试局预置已完成车辆工厂，确保生产流程可以直接通过 UI 验证。
 		_setup_and_spawn_unit(
 			VehicleFactory.instantiate(), spawn_transform.translated(Vector3(0, 0, 6)), player, false
+		)
+		# 期 2：同步预置已完成兵营，联机冒烟可验证步兵生产转发链路。
+		_setup_and_spawn_unit(
+			Barracks.instantiate(), spawn_transform.translated(Vector3(0, 0, 9)), player, false
 		)
 
 
