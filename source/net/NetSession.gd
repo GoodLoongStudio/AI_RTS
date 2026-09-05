@@ -447,13 +447,17 @@ func _try_start_match() -> void:
 func is_room_owner() -> bool:
 	if not is_networked():
 		return false
-	if not dedicated_server:
-		return local_slot == 0
+	# 本机 listen server：自己就是 0 号槽房主。
+	if not dedicated_server and local_slot == 0:
+		return true
+	# 专用服：房主 = 最小槽位的人类（以大厅广播快照为准；客户端的
+	# _slots/_slot_kinds 字典不同步，不能用于判定）。
+	var first_human_slot := -1
 	for slot in range(last_lobby_slots.size()):
-		var entry: Dictionary = last_lobby_slots[slot]
-		if int(entry.get("kind", -1)) == SLOT_HUMAN:
-			return local_slot == slot
-	return false
+		if int(last_lobby_slots[slot].get("kind", -1)) == SLOT_HUMAN:
+			first_human_slot = slot
+			break
+	return first_human_slot >= 0 and local_slot == first_human_slot
 
 
 ## 立即开局（单人开房仍走服务器）。

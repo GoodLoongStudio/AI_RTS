@@ -103,7 +103,7 @@ func _slot_color(i: int) -> Color:
 
 
 func _on_lobby_updated(slots: Array) -> void:
-	var am_host := NetSession.is_networked() and NetSession.local_slot == 0
+	var am_host := NetSession.is_room_owner()
 	for i in range(_slot_rows.size()):
 		if i >= slots.size():
 			continue
