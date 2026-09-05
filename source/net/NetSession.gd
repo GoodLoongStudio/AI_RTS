@@ -440,22 +440,20 @@ func _try_start_match() -> void:
 	_launch_match()
 
 
-## 房主判定：本机 listen server 为 0 号槽；专用服为当前最小槽位的人类玩家。
-## 大厅的「立即开局」按钮只对房主可见（此前判定写死 slot 0，专用服上
-## slot 0 被 AI 补位时真人永远拿不到开局按钮——2026-09-05 用户实测事故）。
+## 房主判定：本机 listen server 为 0 号槽；专用服以最近一次大厅广播为准，
+## 房主 = 最小槽位的人类玩家（此前判定写死 slot 0，专用服上 slot 0 被 AI
+## 补位时真人永远拿不到开局按钮——2026-09-05 用户实测事故）。
+## 注意：客户端的 _slots/_slot_kinds 字典不随广播同步，必须用 last_lobby_slots。
 func is_room_owner() -> bool:
 	if not is_networked():
 		return false
 	if not dedicated_server:
 		return local_slot == 0
-	var human_slots: Array = []
-	for peer_id in _slots.keys():
-		var slot := int(_slots[peer_id])
-		if slot >= 0 and int(_slot_kinds[slot]) == SLOT_HUMAN:
-			human_slots.append(slot)
-	if human_slots.is_empty():
-		return false
-	return local_slot == human_slots.min()
+	for slot in range(last_lobby_slots.size()):
+		var entry: Dictionary = last_lobby_slots[slot]
+		if int(entry.get("kind", -1)) == SLOT_HUMAN:
+			return local_slot == slot
+	return false
 
 
 ## 立即开局（单人开房仍走服务器）。
