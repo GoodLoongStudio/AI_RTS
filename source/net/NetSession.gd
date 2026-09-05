@@ -430,12 +430,32 @@ func _rpc_set_slot_kind(slot: int, kind: int) -> void:
 func _try_start_match() -> void:
 	if not is_server() or _match_started:
 		return
-	if connected_human_count() < 2:
+	# 联机大厅口径（2026-09-05）：「点准备后开局」——所有已连接人类就绪即开，
+	# 空槽/补位 AI 按大厅槽位配置参战；单人 + AI 也能在专用服直接开局。
+	if connected_human_count() < 1:
 		return
 	for peer_id in _ready_peers.keys():
 		if not _ready_peers[peer_id]:
 			return
 	_launch_match()
+
+
+## 房主判定：本机 listen server 为 0 号槽；专用服为当前最小槽位的人类玩家。
+## 大厅的「立即开局」按钮只对房主可见（此前判定写死 slot 0，专用服上
+## slot 0 被 AI 补位时真人永远拿不到开局按钮——2026-09-05 用户实测事故）。
+func is_room_owner() -> bool:
+	if not is_networked():
+		return false
+	if not dedicated_server:
+		return local_slot == 0
+	var human_slots: Array = []
+	for peer_id in _slots.keys():
+		var slot := int(_slots[peer_id])
+		if slot >= 0 and int(_slot_kinds[slot]) == SLOT_HUMAN:
+			human_slots.append(slot)
+	if human_slots.is_empty():
+		return false
+	return local_slot == human_slots.min()
 
 
 ## 立即开局（单人开房仍走服务器）。

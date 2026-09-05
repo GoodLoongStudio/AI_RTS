@@ -142,7 +142,7 @@ func _on_slot_toggle_pressed(slot: int) -> void:
 
 func _refresh_connection_ui() -> void:
 	var connected := NetSession.is_networked()
-	var is_host := NetSession.local_slot == 0
+	var is_host := NetSession.is_room_owner()
 	# 两段式流程（2026-09-05）：未连接只给「加入局服」；
 	# 进房后才出现 地图/槽位/准备，开局按钮仅房主可见。
 	_join_button.visible = not connected
