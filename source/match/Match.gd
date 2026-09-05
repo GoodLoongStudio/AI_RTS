@@ -13,7 +13,6 @@ const CampaignController = preload("res://source/campaign/CampaignController.gd"
 const CampaignHeroIdentity = preload("res://source/campaign/CampaignHeroIdentity.gd")
 
 const CommandCenter = preload("res://source/match/units/CommandCenter.tscn")
-const Drone = preload("res://source/match/units/Drone.tscn")
 const Worker = preload("res://source/match/units/Worker.tscn")
 const VehicleFactory = preload("res://source/match/units/VehicleFactory.tscn")
 const Barracks = preload("res://source/match/units/Barracks.tscn")
@@ -333,10 +332,9 @@ func _spawn_player_units(player, spawn_transform):
 		_register_campaign_hero(hero_unit)
 		return
 
+	# 开局只有主基地 + 两个工人（2026-09-05 用户设定）：
+	# 其余建筑/单位一律由工人采集资源后建造/生产，无人机也不再开局赠送。
 	_setup_and_spawn_unit(CommandCenter.instantiate(), spawn_transform, player, false)
-	_setup_and_spawn_unit(
-		Drone.instantiate(), spawn_transform.translated(Vector3(-2, 0, -2)), player
-	)
 	_setup_and_spawn_unit(
 		Worker.instantiate(), spawn_transform.translated(Vector3(-3, 0, 3)), player
 	)
