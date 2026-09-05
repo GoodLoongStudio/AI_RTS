@@ -44,6 +44,9 @@ signal follow_ended(reason)
 signal return_to_base_ended(reason)
 
 const MATERIAL_ALBEDO_TO_REPLACE = Color(0.99, 0.81, 0.48)
+## 无 SyntyMaterialBinder 的单位（如 GLB 步兵）的阵营着色 shader
+const TEAM_TINT_SHADER := preload("res://source/shaders/3d/team_tint.gdshader")
+static var _team_material_cache := {}
 const MATERIAL_ALBEDO_TO_REPLACE_EPSILON = 0.05
 
 var hp = null:
@@ -437,6 +440,44 @@ func _setup_color():
 		MATERIAL_ALBEDO_TO_REPLACE_EPSILON,
 		material
 	)
+	# Synty 换模单位的阵营色（2026-09-05）：图集材质与玩家阵营色相乘，
+	# 让步兵/兵营/工厂等新模型在小地图之外也能直观区分阵营。
+	var geometry = find_child("Geometry")
+	if geometry == null:
+		return
+	for node in geometry.find_children("*", "Node", true, false):
+		if node.has_method("apply_team_tint"):
+			node.apply_team_tint(player.color)
+	# 无 binder 的网格（GLB 步兵等）：逐面片覆盖阵营 ShaderMaterial。
+	# 已有 material_override 的（binder 单位）跳过，避免双重着色。
+	for mesh_instance in geometry.find_children("*", "MeshInstance3D", true, false):
+		if mesh_instance.material_override != null:
+			continue
+		for surface_id in range(mesh_instance.mesh.get_surface_count()):
+			mesh_instance.set_surface_override_material(
+				surface_id,
+				_team_shader_material(mesh_instance.get_active_material(surface_id), player.color)
+			)
+
+
+func _team_shader_material(source_material: Material, color: Color) -> Material:
+	var texture: Texture2D = null
+	var base := Color.WHITE
+	if source_material is StandardMaterial3D:
+		texture = source_material.albedo_texture
+		base = source_material.albedo_color
+	var texture_key := texture.resource_path if texture != null else "none"
+	var cache_key := "%s|%s|%s" % [texture_key, base.to_html(), color.to_html()]
+	var material = _team_material_cache.get(cache_key)
+	if material == null:
+		material = ShaderMaterial.new()
+		material.shader = TEAM_TINT_SHADER
+		material.set_shader_parameter("albedo_texture", texture)
+		material.set_shader_parameter("albedo_color", base)
+		material.set_shader_parameter("team_color", color)
+		material.set_shader_parameter("team_mix", 0.75)
+		_team_material_cache[cache_key] = material
+	return material
 
 
 func _set_action(action_node):
