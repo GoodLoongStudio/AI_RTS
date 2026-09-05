@@ -398,7 +398,7 @@ func host_set_slot_kind(slot: int, kind: int) -> void:
 
 
 func _server_set_slot_kind(sender_slot: int, slot: int, kind: int) -> void:
-	if sender_slot != 0 or slot < 0 or slot >= MAX_PLAYERS:
+	if not _is_room_owner_slot(sender_slot) or slot < 0 or slot >= MAX_PLAYERS:
 		return
 	if kind != SLOT_EMPTY and kind != SLOT_AI:
 		return
@@ -536,6 +536,19 @@ func _launch_match() -> void:
 
 
 @rpc("any_peer", "reliable")
+## 服务器侧房主判定：最小槽位的人类（与大厅 is_room_owner / Online UI 同口径）。
+## 旧口径写死 sender_slot == 0，专用服上 0 号槽被 AI 补位时真人房主的所有
+## 开局/增删 AI 请求都会被静默拒绝（2026-09-05 用户实测三按钮全无反应）。
+func _is_room_owner_slot(sender_slot: int) -> bool:
+	var human_slots: Array = []
+	for i in range(MAX_PLAYERS):
+		if int(_slot_kinds[i]) == SLOT_HUMAN:
+			human_slots.append(i)
+	if human_slots.is_empty():
+		return false
+	return sender_slot == human_slots.min()
+
+
 func _rpc_solo_start(
 	peaceful: bool = false, with_ai: bool = false, passive_ai_test: bool = false
 ) -> void:
@@ -544,8 +557,7 @@ func _rpc_solo_start(
 	var sender_slot := slot_of(multiplayer.get_remote_sender_id())
 	if sender_slot < 0:
 		return
-	# 复核 2026-09-05：只有房主（0 号槽，首位进房者）能点开局。
-	if sender_slot != 0:
+	if not _is_room_owner_slot(sender_slot):
 		return
 	e2e_peaceful_server = peaceful
 	passive_ai_test_server = passive_ai_test
