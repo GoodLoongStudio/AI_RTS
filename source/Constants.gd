@@ -20,10 +20,10 @@ class Match:
 
 class Player:
 	const COLORS = [
-		Color("66b1ff"),
-		Color("ff5c73"),
-		Color("a5ff99"),
-		Color("ed85ff"),
+		Color("2979ff"),
+		Color("ff5252"),
+		Color("00e676"),
+		Color("d500f9"),
 		Color("006400"),
 		Color("bdb76b"),
 		Color("000080"),

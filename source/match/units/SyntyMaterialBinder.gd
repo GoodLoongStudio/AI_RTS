@@ -71,10 +71,8 @@ func _apply_material() -> void:
 	]
 	var material: ShaderMaterial = _shared_materials.get(cache_key)
 	if material == null:
-		var shader := Shader.new()
-		shader.code = TEAM_TINT_SHADER
 		material = ShaderMaterial.new()
-		material.shader = shader
+		material.shader = TEAM_TINT_SHADER
 		material.set_shader_parameter("albedo_texture", albedo_texture)
 		material.set_shader_parameter("albedo_color", albedo_color)
 		material.set_shader_parameter("team_color", tint)

@@ -27,6 +27,10 @@ func _ready():
 	human.add_child(barracks)
 	MatchSignals.setup_and_spawn_unit.emit(barracks, barracks.global_transform, human)
 	barracks._construction_progress = 1.0
+	# 等玩家权威经济账户就绪（Match 就绪后异步配置，时序随加载波动）
+	var eco_deadline := Time.get_ticks_msec() + 10000
+	while human._economy_runtime == null and Time.get_ticks_msec() < eco_deadline:
+		await get_tree().physics_frame
 	var queue = barracks.production_queue
 	var runtime = match_instance.get_node("ProductionRuntime")
 	_check(

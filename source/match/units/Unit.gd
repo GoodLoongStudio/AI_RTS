@@ -45,7 +45,7 @@ signal return_to_base_ended(reason)
 
 const MATERIAL_ALBEDO_TO_REPLACE = Color(0.99, 0.81, 0.48)
 ## 无 SyntyMaterialBinder 的单位（如 GLB 步兵）的阵营着色 shader
-const TEAM_TINT_SHADER := preload("res://source/shaders/3d/team_tint.gdshader")
+const TEAM_TINT_SHADER: Shader = preload("res://source/shaders/3d/team_tint.gdshader")
 static var _team_material_cache := {}
 const MATERIAL_ALBEDO_TO_REPLACE_EPSILON = 0.05
 
@@ -475,7 +475,7 @@ func _team_shader_material(source_material: Material, color: Color) -> Material:
 		material.set_shader_parameter("albedo_texture", texture)
 		material.set_shader_parameter("albedo_color", base)
 		material.set_shader_parameter("team_color", color)
-		material.set_shader_parameter("team_mix", 0.75)
+		material.set_shader_parameter("team_mix", 0.85)
 		_team_material_cache[cache_key] = material
 	return material
 

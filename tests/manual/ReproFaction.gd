@@ -1,14 +1,28 @@
 extends Node
 
-# 临时验证：蓝/红两阵营步兵特写对比。用完删除。
+# 临时验证：蓝/红两阵营步兵特写对比（轮询等待 _setup_color 完成后再切色）。用完删除。
 
-func _tint(unit: Node, color: Color) -> void:
-	var found := 0
-	for binder in unit.find_child("Geometry", true, false).find_children("*", "Node", true, false):
-		if binder.has_method("apply_team_tint"):
-			found += 1
-			binder.apply_team_tint(color)
-	print("[TINT] _tint found binders=", found)
+func _spawn(player, scene: PackedScene, pos: Vector3) -> Node:
+	var unit = scene.instantiate()
+	MatchSignals.setup_and_spawn_unit.emit(unit, Transform3D(Basis(), pos), player)
+	return unit
+
+
+func _wait_tinted(unit: Node, timeout_ms := 10000) -> bool:
+	var deadline := Time.get_ticks_msec() + timeout_ms
+	while Time.get_ticks_msec() < deadline:
+		await get_tree().physics_frame
+		var geometry = unit.find_child("Geometry", true, false)
+		if geometry == null:
+			continue
+		var has_override := false
+		for mi in geometry.find_children("*", "MeshInstance3D", true, false):
+			if mi.material_override != null:
+				has_override = true
+				break
+		if has_override:
+			return true
+	return false
 
 
 func _ready() -> void:
@@ -22,22 +36,18 @@ func _ready() -> void:
 	var tank = human.get_node("Tank")
 	var infantry = preload("res://source/match/units/Infantry.tscn")
 
-	# 在坦克旁空地生成两个步兵：左蓝右红（远离测试图预置单位）
+	# 蓝方：设玩家色 → 生成 → 轮询等待着色完成
+	human.color = Color("2979ff")
 	var base: Vector3 = tank.global_position + Vector3(2.0, 0, 3.0)
-	var blue_soldier = infantry.instantiate()
-	blue_soldier.global_transform = Transform3D(Basis(), base + Vector3(-0.6, 0, 0))
-	human.add_child(blue_soldier)
-	MatchSignals.setup_and_spawn_unit.emit(blue_soldier, blue_soldier.global_transform, human)
-	var red_soldier = infantry.instantiate()
-	red_soldier.global_transform = Transform3D(Basis(), base + Vector3(0.6, 0, 0))
-	human.add_child(red_soldier)
-	MatchSignals.setup_and_spawn_unit.emit(red_soldier, red_soldier.global_transform, human)
+	var blue_soldier = _spawn(human, infantry, base + Vector3(-0.6, 0, 0))
+	var blue_ok := await _wait_tinted(blue_soldier)
+	print("[FACTION] blue tinted=", blue_ok)
 
-	# 等 Unit._setup_color 完成（它用 player.color=白 覆盖一遍）后再注入阵营色
-	for i in range(15):
-		await get_tree().physics_frame
-	_tint(blue_soldier, Color("66b1ff"))
-	_tint(red_soldier, Color("ff5c73"))
+	# 红方：切换玩家色 → 生成 → 轮询等待
+	human.color = Color("ff5252")
+	var red_soldier = _spawn(human, infantry, base + Vector3(0.6, 0, 0))
+	var red_ok := await _wait_tinted(red_soldier)
+	print("[FACTION] red tinted=", red_ok)
 
 	var cam := Camera3D.new()
 	match_instance.add_child(cam)
@@ -46,18 +56,17 @@ func _ready() -> void:
 	cam.current = true
 	for i in range(120):
 		await get_tree().physics_frame
-	# 数值诊断：直接读两个步兵 mesh 的 override 与 shader 参数
-	for unit in [blue_soldier, red_soldier]:
-		print("[DIAG] geo children at diag: ", unit.find_child("Geometry", true, false).get_children())
-		for mi in unit.find_child("Geometry", true, false).find_children("*", "MeshInstance3D", true, false):
-			var ov = mi.material_override
-			if ov != null and ov is ShaderMaterial:
-				print("[DIAG] ", unit.name, " mesh=", mi.name,
-					" team_color=", ov.get_shader_parameter("team_color"),
-					" team_mix=", ov.get_shader_parameter("team_mix"))
-			else:
-				print("[DIAG] ", unit.name, " mesh=", mi.name, " override=", ov)
 	var image := get_viewport().get_texture().get_image()
+	var blue_px: Color = image.get_pixelv(
+		cam.unproject_position(blue_soldier.global_position + Vector3(0, 0.3, 0))
+	)
+	var red_px: Color = image.get_pixelv(
+		cam.unproject_position(red_soldier.global_position + Vector3(0, 0.3, 0))
+	)
+	print(
+		"[PIXEL] blue=(%.2f %.2f %.2f) red=(%.2f %.2f %.2f)"
+		% [blue_px.r, blue_px.g, blue_px.b, red_px.r, red_px.g, red_px.b]
+	)
 	image.save_png("res://repro_faction.png")
 	print("FACTION_SHOT saved")
 	get_tree().quit()
