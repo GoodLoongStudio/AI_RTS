@@ -9,3 +9,5 @@
 - Git 提交信息用中文，格式如"功能: xxx""修复: xxx"。
 - 工作区根目录有"服务器信息.md"放云服务器凭据（不进仓库）。
 - 近期提交：素材包上传、RA3 风格对局 UI 侧栏、联机大厅超时修复、AI QueueFull 退避等。
+- **铁律：所有新功能必须覆盖全部模式**（自定义战斗/联机/战役）。三者共用 Match→RA3Sidebar→balance/manifest（联机走 NetSession._start_loading + NetSync 命令转发 produce/place_structure，AI 在专用服侧跑）；新增单位/建筑需同步 5 处：unitTypes/constructions/productions（balance JSON）、demo.assets.v1.json（manifest：scenePath+blueprint）、DemoBalanceRequirements 白名单、RA3Sidebar 页签、对应测试。改完必须跑 Godot 自动测试 + 真实联机双端验证。
+- 开发技巧：Godot CLI 加 `--log-file 本地路径` 规避 AppData 沙箱拒绝；git 国内拉取断流已配 HTTP/1.1+500MB 缓冲；skinned mesh 的 AABB 不可信（实测差百倍），量尺寸要用截图。
