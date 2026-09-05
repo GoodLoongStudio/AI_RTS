@@ -146,6 +146,11 @@ func _refresh_connection_ui() -> void:
 	# 两段式流程（2026-09-05）：未连接只给「加入局服」；
 	# 进房后才出现 地图/槽位/准备，开局按钮仅房主可见。
 	_join_button.visible = not connected
+	var local_host_button := get_node_or_null(
+		"PanelContainer/MarginContainer/VBoxContainer/JoinRow/LocalHostButton"
+	) as Button
+	if local_host_button != null:
+		local_host_button.visible = not connected
 	_host_edit.get_parent().visible = not connected
 	_ready_button.visible = connected
 	var solo_btn := get_node_or_null("PanelContainer/MarginContainer/VBoxContainer/ReadyRow/SoloButton") as Button
@@ -171,6 +176,18 @@ func _on_join_button_pressed() -> void:
 	var err := NetSession.join(_host_edit.text.strip_edges(), _port())
 	if err != OK:
 		_status_label.text = "连接失败：%s" % err
+
+
+## 本机开房（单人测试）：不连云服，本机即服即玩；AI 补位后点「立即开局」。
+## 2026-09-05 新增——云服要求 2 真人的老口径下，单人也能完成全功能自测。
+func _on_local_host_button_pressed() -> void:
+	NetSession.clear_auto_start_intent()
+	var err := NetSession.host(_port())
+	if err != OK:
+		_status_label.text = "本机开房失败（端口被占用？）：%s" % err
+	else:
+		NetSession.host_set_slot_kind(1, NetSession.SLOT_AI)
+		_status_label.text = "本机房已开：点「立即开局」即可 1 人 + AI 对战"
 
 
 func _on_ready_button_pressed() -> void:

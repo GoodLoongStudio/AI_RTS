@@ -225,6 +225,12 @@ layout_mode = 2
 size_flags_horizontal = 3
 text = "加入局服"
 
+[node name="LocalHostButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/JoinRow"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "本机开房（单人测试）"
+
 [node name="ReadyRow" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_constants/separation = 8
@@ -253,6 +259,7 @@ text = "返回"
 
 [connection signal="text_changed" from="PanelContainer/MarginContainer/VBoxContainer/TitleRow/NameRow/NameEdit" to="." method="_on_name_edit_text_changed"]
 [connection signal="pressed" from="PanelContainer/MarginContainer/VBoxContainer/JoinRow/JoinButton" to="." method="_on_join_button_pressed"]
+[connection signal="pressed" from="PanelContainer/MarginContainer/VBoxContainer/JoinRow/LocalHostButton" to="." method="_on_local_host_button_pressed"]
 [connection signal="pressed" from="PanelContainer/MarginContainer/VBoxContainer/ReadyRow/ReadyButton" to="." method="_on_ready_button_pressed"]
 [connection signal="pressed" from="PanelContainer/MarginContainer/VBoxContainer/ReadyRow/SoloButton" to="." method="_on_solo_button_pressed"]
 [connection signal="pressed" from="PanelContainer/MarginContainer/VBoxContainer/BackButton" to="." method="_on_back_button_pressed"]
