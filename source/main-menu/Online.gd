@@ -196,8 +196,9 @@ func _on_ready_button_pressed() -> void:
 
 
 func _on_solo_button_pressed() -> void:
-	# “立即开局（单人测试）”明确进入被动 AI 测试局：AI 可发展，但不主动攻击。
-	NetSession.start_solo(true, true)
+	# 立即开局 = 正式对局：开局仅主基地+1无人机+2工人（2026-09-05 用户设定），
+	# 不再进被动测试局（那会预置车厂/兵营，开局一堆东西）。
+	NetSession.start_solo(true, false)
 
 
 ## 调试钩子：--autojoin 或 res://autojoin.txt 存在时，直接加入默认服务器并立即开局，

@@ -229,7 +229,7 @@ text = "加入局服"
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "本机开房（单人测试）"
+text = "本机开房（单人对AI）"
 
 [node name="ReadyRow" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
