@@ -1,0 +1,59 @@
+{
+	"clips": {
+		"Crawl": {
+			"duration": 2.16666674613953,
+			"loop": 1,
+			"max_bone_rotation_radians": 2.12959599494934,
+			"min_mesh_y": 0.00382381677627563
+		},
+		"Death": {
+			"duration": 2.40000009536743,
+			"loop": 0,
+			"max_bone_rotation_radians": 2.34609270095825,
+			"min_mesh_y": 0.00395742245018482
+		},
+		"Fire": {
+			"duration": 0.600000023841858,
+			"loop": 0,
+			"max_bone_rotation_radians": 0.0478934943675995,
+			"min_mesh_y": 0.00400016363710165
+		},
+		"Hit": {
+			"duration": 0.699999988079071,
+			"loop": 0,
+			"max_bone_rotation_radians": 0.131555899977684,
+			"min_mesh_y": 0.00400016363710165
+		},
+		"HitHeavy": {
+			"duration": 0.899999976158142,
+			"loop": 0,
+			"max_bone_rotation_radians": 0.34689000248909,
+			"min_mesh_y": 0.00400016363710165
+		},
+		"Idle": {
+			"duration": 1.96666669845581,
+			"loop": 1,
+			"max_bone_rotation_radians": 0.0773822292685509,
+			"min_mesh_y": 0.00400000857189298
+		},
+		"Run": {
+			"duration": 0.699999988079071,
+			"loop": 1,
+			"max_bone_rotation_radians": 1.57451510429382,
+			"min_mesh_y": 0.00608930457383394
+		}
+	},
+	"engine": {
+		"build": "official",
+		"hash": "a13da4feb8d8aefc283c3763d33a2f170a18d541",
+		"hex": 263937,
+		"major": 4,
+		"minor": 7,
+		"patch": 1,
+		"status": "stable",
+		"string": "4.7.1-stable (official)",
+		"timestamp": 0
+	},
+	"failures": [],
+	"passed": true
+}

@@ -1,0 +1,62 @@
+{
+  "passed": true,
+  "failures": [],
+  "clips": {
+    "Idle-loop": {
+      "samples": 60,
+      "joint_export_error_m": 2.149069830668157e-05,
+      "mesh_bounds_export_error_m": 8.702278137207031e-06,
+      "body_min_z_m": 0.004006917588412762,
+      "rifle_min_z_m": 0.7294561862945557,
+      "rigid_hand_error_m": 6.218950129063854e-06
+    },
+    "Run-loop": {
+      "samples": 22,
+      "joint_export_error_m": 2.4441502178333163e-05,
+      "mesh_bounds_export_error_m": 7.927417755126953e-06,
+      "body_min_z_m": 0.004000160377472639,
+      "rifle_min_z_m": 0.6328087449073792,
+      "rigid_hand_error_m": 4.057511563464951e-06
+    },
+    "Fire": {
+      "samples": 19,
+      "joint_export_error_m": 2.1162327261944688e-05,
+      "mesh_bounds_export_error_m": 1.0222196578979492e-05,
+      "body_min_z_m": 0.004006895236670971,
+      "rifle_min_z_m": 1.235652208328247,
+      "rigid_hand_error_m": 5.006463078830572e-06
+    },
+    "Hit": {
+      "samples": 22,
+      "joint_export_error_m": 2.1162327261944688e-05,
+      "mesh_bounds_export_error_m": 8.64267349243164e-06,
+      "body_min_z_m": 0.004006895236670971,
+      "rifle_min_z_m": 0.7556436657905579,
+      "rigid_hand_error_m": 6.0390942885074e-06
+    },
+    "HitHeavy": {
+      "samples": 28,
+      "joint_export_error_m": 2.1162327261944688e-05,
+      "mesh_bounds_export_error_m": 8.940696716308594e-06,
+      "body_min_z_m": 0.004006895236670971,
+      "rifle_min_z_m": 0.7556436657905579,
+      "rigid_hand_error_m": 1.771750572449858e-06
+    },
+    "Crawl-loop": {
+      "samples": 66,
+      "joint_export_error_m": 2.4161597626790287e-05,
+      "mesh_bounds_export_error_m": 1.4722347259521484e-05,
+      "body_min_z_m": 0.03109925426542759,
+      "rifle_min_z_m": 0.004008165095001459,
+      "rigid_hand_error_m": 8.117194708249829e-06
+    },
+    "Death": {
+      "samples": 73,
+      "joint_export_error_m": 2.2120712310462098e-05,
+      "mesh_bounds_export_error_m": 1.3589859008789062e-05,
+      "body_min_z_m": 0.004001547582447529,
+      "rifle_min_z_m": 0.09013912081718445,
+      "rigid_hand_error_m": 1.0165904280859316e-05
+    }
+  }
+}
