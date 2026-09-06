@@ -54,7 +54,24 @@ def measure(path):
         check(rigid<.0002,f'{path.suffix} {name} rifle remains rigid on right hand: {rigid:.7f} m')
         h=[Vector(r['joints']['Hips']) for r in rows]
         horizontal=max(Vector((v.x-h[0].x,v.y-h[0].y,0)).length for v in h)
-        check(horizontal<.0001,f'{path.suffix} {name} no horizontal root drift')
+        if name=='HitHeavy':
+            check(1.8<horizontal<2.5,f'{path.suffix} blast has deliberate backward travel: {horizontal:.3f} m')
+            lift=max(v.z for v in h)-h[0].z
+            check(lift>.4,f'{path.suffix} blast hip rises before falling: {lift:.3f} m')
+            clearance=max(r['bounds']['InfantryBody'][2] for r in rows)
+            check(clearance>.3,f'{path.suffix} blast whole body leaves the ground: {clearance:.3f} m')
+            check(rows[-1]['joints']['Head'][2]<.45 and rows[-1]['joints']['Hips'][2]<.35,
+                  f'{path.suffix} blast finishes lying dead')
+            hold=max((Vector(r['joints'][n])-Vector(rows[-1]['joints'][n])).length for r in rows[-10:] for n in rows[-1]['joints'])
+            check(hold<.0001,f'{path.suffix} blast terminal pose holds without standing up: {hold:.7f} m')
+        else:
+            check(horizontal<.0001,f'{path.suffix} {name} no horizontal root drift')
+        if name=='Hit':
+            from mathutils import Quaternion
+            angles=[Quaternion(r['quaternions']['Spine_03']).rotation_difference(Quaternion(rows[0]['quaternions']['Spine_03'])).angle for r in rows]
+            peak=max(range(len(angles)),key=angles.__getitem__)
+            check(peak<=2 and max(angles)>.05,f'{path.suffix} bullet impact peaks within two frames: frame {peak}')
+            check(angles[-1]<.0001,f'{path.suffix} bullet flinch recovers to the starting pose')
         if name.endswith('-loop'):
             seam=max((Vector(rows[0]['joints'][n])-Vector(rows[-1]['joints'][n])).length for n in rows[0]['joints'])
             check(seam<.0001,f'{path.suffix} {name} all joint positions close at loop seam: {seam:.7f} m')

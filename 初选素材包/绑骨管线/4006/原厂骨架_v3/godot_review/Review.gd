@@ -1,9 +1,10 @@
 extends Node3D
 
 const CLIPS := ["Idle", "Run", "Fire", "Hit", "HitHeavy", "Crawl", "Death"]
-const LABELS := ["待命", "跑步", "射击", "轻受击", "重受击", "匍匐", "死亡"]
+const LABELS := ["待命", "跑步", "射击", "子弹命中", "爆炸击飞死亡", "匍匐", "死亡"]
 const LOOPS := ["Idle", "Run", "Crawl"]
-const EXPECTED_SECONDS := {"Idle": 59.0/30.0, "Run": 0.7, "Fire": 0.6, "Hit": 0.7, "HitHeavy": 0.9, "Crawl": 65.0/30.0, "Death": 2.4}
+const EXPECTED_SECONDS := {"Idle": 59.0/30.0, "Run": 0.7, "Fire": 0.6, "Hit": 0.3, "HitHeavy": 1.8, "Crawl": 65.0/30.0, "Death": 2.4}
+var camera: Camera3D
 var player: AnimationPlayer
 var skeleton: Skeleton3D
 var info: Label
@@ -18,7 +19,7 @@ func _ready() -> void:
 	model.rotation.y = PI
 	player = model.find_child("AnimationPlayer", true, false)
 	skeleton = model.find_child("Skeleton3D", true, false)
-	var camera := Camera3D.new()
+	camera = Camera3D.new()
 	add_child(camera)
 	camera.position = Vector3(2.6, 2.2, -4.6)
 	camera.look_at(Vector3(0, 0.85, 0))
@@ -38,8 +39,9 @@ func _ready() -> void:
 	light.rotation_degrees = Vector3(-45, -30, 0)
 	light.light_energy = 1.3
 	light.shadow_enabled = true
-	light.shadow_bias = 0.01
-	light.shadow_normal_bias = 0.2
+	light.directional_shadow_max_distance = 12.0
+	light.shadow_bias = 0.1
+	light.shadow_normal_bias = 0.8
 	var environment := WorldEnvironment.new()
 	var settings := Environment.new()
 	settings.background_mode = Environment.BG_COLOR
@@ -84,8 +86,15 @@ func _setup_controls() -> void:
 func _play(clip: String) -> void:
 	selected = clip
 	paused = false
+	_frame_clip(clip)
 	player.play(clip)
 	info.text = "4006 原厂骨架 · " + LABELS[CLIPS.find(clip)]
+
+func _frame_clip(clip: String) -> void:
+	var target := Vector3(0, 1, 1.05) if clip == "HitHeavy" else Vector3(0, 0.85, 0)
+	camera.position = target + Vector3(2.6, 1.35, -4.6)
+	camera.look_at(target)
+	camera.size = 3.5 if clip == "HitHeavy" else 2.6
 
 func _check(condition: bool, message: String) -> void:
 	print(("PASS " if condition else "FAIL ") + message)
@@ -101,6 +110,7 @@ func _verify() -> void:
 		_check(skeleton.find_bone(name) >= 0, "bone " + name)
 	var results := {}
 	for clip in CLIPS:
+		_frame_clip(clip)
 		_check(player.has_animation(clip), "clip " + clip)
 		if not player.has_animation(clip): continue
 		var animation := player.get_animation(clip)
@@ -115,7 +125,9 @@ func _verify() -> void:
 		for bone in skeleton.get_bone_count(): before.append(skeleton.get_bone_pose_rotation(bone))
 		var maximum := 0.0
 		var lowest := INF
-		for fraction in [0.0, 0.25, 0.5, 0.75, 1.0]:
+		var fractions := [0.0, 0.25, 0.5, 0.75, 1.0]
+		if clip == "Hit": fractions.insert(1, 1.0/9.0)
+		for fraction in fractions:
 			player.seek(animation.length * fraction, true)
 			await get_tree().process_frame
 			for instance in skeleton.get_parent().find_children("*", "MeshInstance3D", true, false):
@@ -125,7 +137,8 @@ func _verify() -> void:
 				if not rotation.is_finite():
 					_check(false, clip + " finite pose")
 				maximum = maxf(maximum, rotation.angle_to(before[bone]))
-			if DisplayServer.get_name() != "headless" and fraction in [0.0, 0.5, 1.0]:
+			var capture: bool = fraction in [0.0, 0.5, 1.0] or (clip == "HitHeavy" and fraction == 0.25) or (clip == "Hit" and fraction == 1.0/9.0)
+			if DisplayServer.get_name() != "headless" and capture:
 				info.text = "4006 · " + clip + " · " + str(fraction)
 				await RenderingServer.frame_post_draw
 				var directory := ProjectSettings.globalize_path("res://screenshots")

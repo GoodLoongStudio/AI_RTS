@@ -41,6 +41,7 @@ func _ready():
 		cannon_target.hp == cannon_hp_before - 2,
 		"发射者阵亡后 CannonShell 应使用发射快照完成一次伤害；实际 HP=%s" % cannon_target.hp
 	)
+	_check(not cannon_target.has_meta("damage_presentation"), "炮弹命中类型不得残留到下一次伤害")
 
 	var rocket_source = _add_unit(
 		HelicopterScene, human, "RocketSource", cannon_target.position + Vector3(-3, 0, 0)
@@ -62,6 +63,7 @@ func _ready():
 		rocket_target.hp == rocket_hp_before - 1,
 		"发射者阵亡后 Rocket 应使用发射快照完成一次伤害"
 	)
+	_check(not rocket_target.has_meta("damage_presentation"), "火箭命中类型不得残留到下一次伤害")
 
 	var lost_target_source = _add_unit(
 		HelicopterScene, human, "LostTargetSource", rocket_target.position + Vector3(-3, 0, 0)

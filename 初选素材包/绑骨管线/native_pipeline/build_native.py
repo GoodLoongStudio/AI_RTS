@@ -5,6 +5,7 @@ import bpy
 from mathutils import Vector,Matrix,Quaternion
 from baseline import setup,bind,world_rest,apply_world_rotations,MAP,OUT,ROOT,ASSETS,stage
 from weapon_layer import load_weapon,rifle_hold,curl_fingers
+from reaction_layer import HIT_SECONDS,BLAST_SECONDS,bullet_flinch,blast_source_time,blast_death
 
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--review',action='store_true',help='Render selected frames after baking')
@@ -66,8 +67,12 @@ def detached_hand_weapon(rots,hip):
     wrist=dst.matrix_world@dst.pose.bones['Hand_R'].head
     gun.matrix_world=Matrix.LocRotScale(wrist-q@Vector((-.048,.020,.0144)),q,Vector((.8,.8,.8)))
 
+idle_rots,idle_hip=evaluate('A','A::Idle',20/30)
+rifle_hold(dst,idle_rots,idle_hip,gun,0,'Idle')
+idle_rots={n:(dst.matrix_world@dst.pose.bones[n].matrix).to_quaternion() for n in idle_rots}
+
 specs=[('Idle-loop','A','A::Idle',1.966666667),('Run-loop','A','A::Run',.7),
-       ('Fire','A','A::Idle',.6),('Hit','A','A::Idle',.7),('HitHeavy','A','A::Idle',.9),
+       ('Fire','A','A::Idle',.6),('Hit','A','A::Idle',HIT_SECONDS),('HitHeavy','C','Death01',BLAST_SECONDS),
        ('Crawl-loop','C','Crawl_Fwd',None),('Death','C','Death01',None)]
 poses={};stats={};ground_target=.004
 for active,key,action,duration in specs:
@@ -76,15 +81,15 @@ for active,key,action,duration in specs:
     for i in range(count+1):
         t=i/30
         sample=t if active in ['Idle-loop','Run-loop','Crawl-loop','Death'] else 20/30
+        if active=='HitHeavy':sample=blast_source_time(t)
         rots,hip=evaluate(key,action,sample)
-        if active in ['Hit','HitHeavy']:
-            u=i/count;strength=math.sin(math.pi*u)**2
-            bend=math.radians(10 if active=='Hit' else 23)*strength
-            twist=math.radians(3 if active=='Hit' else -10)*strength
-            for bone,factor in [('Spine_01',.2),('Spine_02',.55),('Spine_03',1),('Neck',.85),('Head',.75),('Clavicle_L',1),('Clavicle_R',1)]:
-                rots[bone]=Quaternion((0,0,1),twist*factor)@Quaternion((1,0,0),-bend*factor)@rots[bone]
+        if active=='Hit':
+            bullet_flinch(rots,t)
             apply_world_rotations(dst,rots,hip)
-        if active in ['Crawl-loop','Death']:
+        if active=='HitHeavy':
+            rots,hip=blast_death(rots,hip,idle_rots,idle_hip,t)
+            apply_world_rotations(dst,rots,hip)
+        if active in ['Crawl-loop','Death','HitHeavy']:
             detached_hand_weapon(rots,hip)
         else:rifle_hold(dst,rots,hip,gun,t,active.replace('-loop',''))
         # The body controls grounding. Weapon clearance is recorded independently.
@@ -93,7 +98,7 @@ for active,key,action,duration in specs:
     # Constant height correction on standing/running preserves the flight phase.
     base=ground_target-min(f['min_z'] for f in frames)
     for f in frames:
-        dz=base if active not in ['Crawl-loop','Death'] else max(ground_target-f['all_min_z'],0)
+        dz=base if active not in ['Crawl-loop','Death','HitHeavy'] else max(ground_target-f['all_min_z'],0)
         for pb in dst.pose.bones:pb.matrix_basis=f['basis'][pb.name]
         bpy.context.view_layer.update()
         hipworld=dst.matrix_world@dst.pose.bones['Hips'].matrix
@@ -104,7 +109,7 @@ for active,key,action,duration in specs:
     if active.endswith('-loop'):frames[-1]={'basis':{n:m.copy() for n,m in frames[0]['basis'].items()},'gun':frames[0]['gun'].copy(),'min_z':frames[0]['min_z'],'all_min_z':frames[0]['all_min_z']}
     poses[active]=frames
     stats[active]={'duration':count/30,'samples':len(frames),'source':action,'ground_offset':base,
-       'pose_layer':'authored rifle recoil' if active=='Fire' else 'authored standing rifle hit reaction' if active in ['Hit','HitHeavy'] else 'rifle grip IK' if active in ['Idle-loop','Run-loop'] else 'right hand rifle carry',
+       'pose_layer':'authored rifle recoil' if active=='Fire' else 'fast bullet impact and recovery' if active=='Hit' else 'blast launch, airborne fall, landing and terminal dead hold' if active=='HitHeavy' else 'rifle grip IK' if active in ['Idle-loop','Run-loop'] else 'right hand rifle carry',
        'loop':active.endswith('-loop')}
     print('SAMPLED',active,stats[active],flush=True)
 

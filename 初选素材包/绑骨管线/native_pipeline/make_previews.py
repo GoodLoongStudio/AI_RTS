@@ -1,12 +1,14 @@
 """Assemble GIFs and contact sheets from the final-GLB rendered frames."""
 from pathlib import Path
+import json
 from PIL import Image,ImageDraw,ImageFont
 
 OUT=Path(__file__).resolve().parent.parent/'4006/原厂骨架_v3'
 REVIEW=OUT/'动画审核';REVIEW.mkdir(exist_ok=True)
 CLIPS=['Idle-loop','Run-loop','Fire','Hit','HitHeavy','Crawl-loop','Death']
 font=ImageFont.truetype(r'C:\Windows\Fonts\msyh.ttc',22)
-labels=['待命','跑步','射击','轻受击','重受击','匍匐','死亡']
+labels=['待命','跑步','射击','子弹命中','爆炸击飞死亡','匍匐','死亡']
+specs=json.loads((OUT/'native_build.json').read_text(encoding='utf8'))
 sheet=Image.new('RGB',(480*4,600*2),(27,31,38));dr=ImageDraw.Draw(sheet)
 for index,(clip,label) in enumerate(zip(CLIPS,labels)):
     files=sorted((OUT/'review_frames'/clip).glob('*.png'))
@@ -20,8 +22,10 @@ for index,(clip,label) in enumerate(zip(CLIPS,labels)):
     for i,f in enumerate(frames):sample.paste(f.resize((120,140)),(120*i,0))
     palette=sample.quantize(colors=256)
     quantized=[f.quantize(palette=palette,dither=Image.Dither.NONE) for f in frames]
-    # GIF has 10 ms timing resolution: 70/60/70 ms repeats to approximate 15 fps.
-    durations=[70 if i%3!=1 else 60 for i in range(len(frames))]
+    # Preserve source timestamps, including the faster 30fps light-hit sampling.
+    ticks=[round(int(f.stem)/30*100) for f in files]
+    end=round(specs[clip]['duration']*100)
+    durations=[max(10,(b-a)*10) for a,b in zip(ticks,ticks[1:]+[end])]
     if not clip.endswith('-loop'):durations[-1]=650
     quantized[0].save(REVIEW/(clip+'.gif'),save_all=True,append_images=quantized[1:],duration=durations,loop=0,optimize=False)
     x=index%4*480;y=index//4*600

@@ -161,6 +161,7 @@ _data = {
 }
 
 [node name="Rocket" type="Node3D"]
+metadata/impact_reaction = "explosion"
 script = ExtResource("1_dy0dc")
 
 [node name="DetachTransform" type="Node" parent="."]

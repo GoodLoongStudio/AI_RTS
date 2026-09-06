@@ -24,19 +24,19 @@
     "loop": false
   },
   "Hit": {
-    "duration": 0.7,
-    "samples": 22,
+    "duration": 0.3,
+    "samples": 10,
     "source": "A::Idle",
     "ground_offset": 0.01643485137820244,
-    "pose_layer": "authored standing rifle hit reaction",
+    "pose_layer": "fast bullet impact and recovery",
     "loop": false
   },
   "HitHeavy": {
-    "duration": 0.9,
-    "samples": 28,
-    "source": "A::Idle",
-    "ground_offset": 0.01643485137820244,
-    "pose_layer": "authored standing rifle hit reaction",
+    "duration": 1.8,
+    "samples": 55,
+    "source": "Death01",
+    "ground_offset": 0.1800593056678772,
+    "pose_layer": "blast launch, airborne fall, landing and terminal dead hold",
     "loop": false
   },
   "Crawl-loop": {

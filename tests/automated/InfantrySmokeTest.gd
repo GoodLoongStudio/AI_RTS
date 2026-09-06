@@ -21,11 +21,10 @@ func _ready():
 	var command_center = human.get_node("CommandCenter")
 	# 期 2：步兵生产迁移到兵营——现场部署一座已完工兵营
 	var barracks = BarracksScene.instantiate()
-	barracks.global_transform = Transform3D(
+	var barracks_transform := Transform3D(
 		Basis(), command_center.global_position + Vector3(4, 0, 0)
 	)
-	human.add_child(barracks)
-	MatchSignals.setup_and_spawn_unit.emit(barracks, barracks.global_transform, human)
+	MatchSignals.setup_and_spawn_unit.emit(barracks, barracks_transform, human, false)
 	barracks._construction_progress = 1.0
 	# 等玩家权威经济账户就绪（Match 就绪后异步配置，时序随加载波动）
 	var eco_deadline := Time.get_ticks_msec() + 10000

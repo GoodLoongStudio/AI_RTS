@@ -141,7 +141,32 @@ public partial class ProjectileRuntime : Node
 
             var targetOwner = target.GetParent()?.Name.ToString() ?? "<none>";
             GD.Print($"[DAMAGE] source={state.Snapshot.SourcePlayerId.Value:D} target={target.Name} owner={targetOwner} amount={application.Damage:0.###} mode={state.Snapshot.ImpactSelectionMode}");
-            target.Set("hp", target.Get("hp").AsSingle() - application.Damage);
+            // 命中表现只描述本次伤害；不能靠掉血量把子弹误判为爆炸。
+            var direction = target is Node3D spatialTarget ?
+                spatialTarget.GlobalPosition - impactPoint : Vector3.Zero;
+            if (direction.LengthSquared() < 0.0001f)
+            {
+                direction = impactPoint - ToVector(state.Snapshot.Origin);
+            }
+            var hadContext = target.HasMeta("damage_presentation");
+            var previousContext = hadContext ? target.GetMeta("damage_presentation") : default;
+            target.SetMeta("damage_presentation", new Godot.Collections.Dictionary
+            {
+                ["reaction"] = state.ImpactReaction,
+                ["direction"] = direction
+            });
+            try
+            {
+                target.Set("hp", target.Get("hp").AsSingle() - application.Damage);
+            }
+            finally
+            {
+                if (GodotObject.IsInstanceValid(target))
+                {
+                    if (hadContext) target.SetMeta("damage_presentation", previousContext);
+                    else target.RemoveMeta("damage_presentation");
+                }
+            }
         }
 
         return applications.Count;
@@ -193,7 +218,8 @@ public partial class ProjectileRuntime : Node
         var state = new ActiveProjectile(
             snapshot,
             target is null ? null : new WeakReference<Node3D>(target),
-            ToVector(snapshot.InitialAimPoint));
+            ToVector(snapshot.InitialAimPoint),
+            projectile.GetMeta("impact_reaction", "bullet").AsString());
         _active.Add(snapshot.AttackId, state);
 
         var id = snapshot.AttackId.Value.ToString("D");
@@ -257,7 +283,8 @@ public partial class ProjectileRuntime : Node
     private sealed class ActiveProjectile(
         AttackLaunchSnapshot snapshot,
         WeakReference<Node3D>? target,
-        Vector3 lastAimPoint)
+        Vector3 lastAimPoint,
+        string impactReaction)
     {
         /// <summary>发射时冻结的权威攻击数据。</summary>
         public AttackLaunchSnapshot Snapshot { get; } = snapshot;
@@ -267,6 +294,9 @@ public partial class ProjectileRuntime : Node
 
         /// <summary>目标失效后继续使用的最后有效瞄准点。</summary>
         public Vector3 LastAimPoint { get; set; } = lastAimPoint;
+
+        /// <summary>从投射物资源冻结的命中表现，不参与伤害数值计算。</summary>
+        public string ImpactReaction { get; } = impactReaction;
     }
 
     /// <summary>汇总一次发射所需的不可变配置和 Godot 表现场景。</summary>

@@ -27,20 +27,20 @@
       "rigid_hand_error_m": 5.006463078830572e-06
     },
     "Hit": {
-      "samples": 22,
+      "samples": 10,
       "joint_export_error_m": 2.1162327261944688e-05,
-      "mesh_bounds_export_error_m": 8.64267349243164e-06,
+      "mesh_bounds_export_error_m": 8.612871170043945e-06,
       "body_min_z_m": 0.004006895236670971,
-      "rifle_min_z_m": 0.7556436657905579,
-      "rigid_hand_error_m": 6.0390942885074e-06
+      "rifle_min_z_m": 0.7429158091545105,
+      "rigid_hand_error_m": 6.001085393054511e-06
     },
     "HitHeavy": {
-      "samples": 28,
-      "joint_export_error_m": 2.1162327261944688e-05,
-      "mesh_bounds_export_error_m": 8.940696716308594e-06,
-      "body_min_z_m": 0.004006895236670971,
-      "rifle_min_z_m": 0.7556436657905579,
-      "rigid_hand_error_m": 1.771750572449858e-06
+      "samples": 55,
+      "joint_export_error_m": 2.2204810243497034e-05,
+      "mesh_bounds_export_error_m": 1.3768672943115234e-05,
+      "body_min_z_m": 0.004001738969236612,
+      "rifle_min_z_m": 0.10446665436029434,
+      "rigid_hand_error_m": 9.927185013487119e-06
     },
     "Crawl-loop": {
       "samples": 66,
