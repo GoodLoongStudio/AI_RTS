@@ -29,6 +29,10 @@ func _ready():
 	await get_tree().physics_frame
 	await get_tree().process_frame
 
+	# 等权威经济账户就绪（Match 就绪后异步配置，时序随加载波动）
+	var eco_wait_deadline := Time.get_ticks_msec() + 10000
+	while rule_ai._economy_runtime == null and Time.get_ticks_msec() < eco_wait_deadline:
+		await get_tree().physics_frame
 	var income_applied: bool = rule_ai.add_resources(
 		{"resource_a": 10000, "resource_b": 10000},
 		"ScriptedAdjustment"

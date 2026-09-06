@@ -70,6 +70,13 @@ func _ready():
 	if NetSession.dedicated_server and difficulty == Difficulty.NORMAL:
 		difficulty = Difficulty.EASY
 	_apply_difficulty_profile()
+	# 联机对手 AI 降速（2026-09-06 用户实测：NORMAL 满编平推太快，没时间测功能）：
+	# 仅联机生效——2 分钟发育保护 + 缩小编组（2×5），单机自定义保持原 NORMAL 口径。
+	if NetSession.is_networked() and difficulty == Difficulty.NORMAL:
+		workers_per_command_center = 5
+		expected_number_of_battlegroups = 2
+		expected_number_of_units_in_battlegroup = 5
+		first_wave_delay_s = 120.0
 	if NetSession.e2e_peaceful_server:
 		first_wave_delay_s = 600.0
 	# wait for match to be ready
