@@ -13,6 +13,7 @@ const AIM_ALIGNED_EPSILON_RAD = 0.01
 var _target_unit = null
 var _one_shot_timer = null
 var _range_check_timer = null
+var _stationary_aim_node: Node3D = null
 
 @onready var _unit = Utils.NodeEx.find_parent_with_group(self, "units")
 @onready var _unit_movement_trait = _unit.find_child("Movement")
@@ -31,6 +32,8 @@ func _ready():
 		# non-stationary units must hold shooting as long as passive movement is active
 		_unit_movement_trait.passive_movement_started.connect(_on_passive_movement_started)
 		_unit_movement_trait.passive_movement_finished.connect(_on_passive_movement_finished)
+	else:
+		_stationary_aim_node = _find_stationary_aim_node()
 	_setup_one_shot_timer()
 	_setup_range_check_timer()
 	_schedule_hit()
@@ -59,14 +62,34 @@ func _setup_range_check_timer():
 	_range_check_timer.start(RANGE_CHECK_INTERVAL)
 
 
-## 按限速平滑转向目标（车体/炮塔共用 -Z 正前方约定）；
+## 炮塔类（无 Movement）的瞄准节点：与待机扫描（RotateRandomlyWhenLookingForTargets）
+## 同一个炮管节点。战斗瞄准直接转炮管而非根节点——待机扫描会把炮管留在任意角度，
+## 若只看根节点朝向，会出现"炮管指向侧面却已开火"的发射方向错误。
+func _find_stationary_aim_node() -> Node3D:
+	var idle_trait = _unit.find_child("RotateRandomlyWhenLookingForTargets", false, false)
+	if idle_trait == null:
+		return null
+	var node_path: NodePath = idle_trait.get("node_to_rotate")
+	if node_path.is_empty():
+		return null
+	var aim_node = _unit.get_node_or_null(node_path)
+	return aim_node if aim_node is Node3D else null
+
+
+## 当前用于瞄准判定的节点：炮塔用炮管节点，机动单位用车体根节点。
+func _aim_node() -> Node3D:
+	return _stationary_aim_node if _stationary_aim_node != null else _unit
+
+
+## 按限速平滑转向目标（车体/炮管共用 -Z 正前方约定）；
 ## 炮塔类用固定的慢速转向，机动单位沿用平衡配置注入的车体转速。
 func _rotate_unit_towards_target(delta: float):
 	# 显式类型：经未类型化节点链取值返回 Variant，:= 无法推断（项目将推断警告当错误）
+	var aim_node := _aim_node()
 	var to_target: Vector3 = (
 		(
 			Vector3(_target_unit.global_position.x, _unit.global_position.y, _target_unit.global_position.z)
-			- _unit.global_position
+			- aim_node.global_position
 		)
 		* Vector3(1, 0, 1)
 	)
@@ -76,21 +99,24 @@ func _rotate_unit_towards_target(delta: float):
 	if _unit_movement_trait != null:
 		turn_speed = maxf(_unit_movement_trait.max_turn_speed_deg_per_sec, 1.0)
 	var target_yaw: float = atan2(-to_target.x, -to_target.z)
-	var current_yaw: float = _unit.global_transform.basis.get_euler().y
+	var current_yaw: float = aim_node.global_transform.basis.get_euler().y
 	var yaw_diff: float = angle_difference(current_yaw, target_yaw)
 	if absf(yaw_diff) < AIM_ALIGNED_EPSILON_RAD:
 		return
-	var max_step: float = deg_to_rad(turn_speed) * delta
+	var max_step := deg_to_rad(turn_speed) * delta
 	var new_yaw: float = current_yaw + clampf(yaw_diff, -max_step, max_step)
-	_unit.global_transform = Transform3D(Basis(Vector3.UP, new_yaw), _unit.global_transform.origin)
+	aim_node.global_rotation_degrees.y = rad_to_deg(new_yaw)
 
 
 ## 车体/炮管正前方（-Z）与目标方向的水平夹角（度）。
 func _aim_error_degrees() -> float:
-	var to_target: Vector3 = (_target_unit.global_position - _unit.global_position) * Vector3(1, 0, 1)
+	var aim_node := _aim_node()
+	var to_target: Vector3 = (
+		(_target_unit.global_position - aim_node.global_position) * Vector3(1, 0, 1)
+	)
 	if to_target.length() < 0.05:
 		return 0.0  # 目标在正上/下方（如防空对顶空），水平面无方向可对
-	var forward: Vector3 = (-_unit.global_transform.basis.z) * Vector3(1, 0, 1)
+	var forward: Vector3 = (-aim_node.global_transform.basis.z) * Vector3(1, 0, 1)
 	return rad_to_deg(forward.normalized().angle_to(to_target.normalized()))
 
 
