@@ -64,6 +64,14 @@ func _apply_material() -> void:
 	if albedo_texture == null:
 		push_warning("SyntyMaterialBinder 未配置图集，保持白模")
 		return
+	var target := get_parent()
+	if target == null:
+		return
+	if _is_owner_under_construction(target):
+		# 建筑施工中：保持 Structure 设置的半透明施工材质，不覆盖
+		# （换模后此处的无条件覆盖曾把施工透明预览冲掉；完工时
+		# Structure._reapply_synty_material_binders 会再次调用本方法绑回图集材质）。
+		return
 	var tint := _resolve_tint()
 	var team_mix := 0.0 if tint == Color.WHITE else team_tint_strength
 	var cache_key := "%s|%s|%s" % [
@@ -78,8 +86,15 @@ func _apply_material() -> void:
 		material.set_shader_parameter("team_color", tint)
 		material.set_shader_parameter("team_mix", team_mix)
 		_shared_materials[cache_key] = material
-	var target := get_parent()
-	if target == null:
-		return
 	for mesh_instance in target.find_children("*", "MeshInstance3D", true, false):
 		mesh_instance.material_override = material
+
+
+## 所属单位是否为施工中的建筑（Structure.is_under_construction）。
+func _is_owner_under_construction(geometry_node: Node) -> bool:
+	var unit = geometry_node.get_parent()
+	return (
+		unit != null
+		and "is_under_construction" in unit
+		and unit.is_under_construction()
+	)
