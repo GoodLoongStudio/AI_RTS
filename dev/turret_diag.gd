@@ -35,12 +35,13 @@ func _process(delta: float) -> bool:
 	return false
 
 
-## 逐帧复刻新的战斗瞄准逻辑：炮塔直接旋转炮管节点（mesh）而非根节点。
+## 逐帧复刻新的战斗瞄准逻辑：炮塔模型炮管朝 +Z，直接旋转炮管节点对准目标。
 func _simulate_combat_rotation(delta: float) -> void:
 	var mesh: Node3D = _turret.get_node("DetachTransform/Geometry/SM_Veh_Turret_Large_01")
 	var turn_speed := TURN_SPEED_DEG
-	var target_yaw := atan2(-_target_dir.x, -_target_dir.z)
-	var current_yaw := mesh.global_transform.basis.get_euler().y
+	var to_target := _target_dir * Vector3(1, 0, 1)
+	var target_yaw := atan2(to_target.x, to_target.z)
+	var current_yaw := atan2(mesh.global_transform.basis.z.x, mesh.global_transform.basis.z.z)
 	var yaw_diff := angle_difference(current_yaw, target_yaw)
 	if absf(yaw_diff) < 0.01:
 		return
@@ -54,11 +55,12 @@ func _dump(label: String) -> void:
 	var muzzle: Node3D = _turret.get_node(
 		"DetachTransform/Geometry/SM_Veh_Turret_Large_01/ProjectileOrigin"
 	)
-	var to_target_yaw := atan2(-_target_dir.x, -_target_dir.z)
+	var to_target_yaw := atan2(_target_dir.x, _target_dir.z)  # 炮管 +Z 约定
 	print("==== %s ====" % label)
-	print("root yaw   = %7.2f  (目标 yaw = %.2f)" % [
+	print("root yaw   = %7.2f  (目标炮管 yaw = %.2f)" % [
 		rad_to_deg(_turret.global_transform.basis.get_euler().y), rad_to_deg(to_target_yaw)])
-	print("mesh yaw(global) = %7.2f" % rad_to_deg(mesh.global_transform.basis.get_euler().y))
+	print("mesh yaw(global) = %7.2f  (炮管+Z yaw)" % rad_to_deg(
+		atan2(mesh.global_transform.basis.z.x, mesh.global_transform.basis.z.z)))
 	print("muzzle pos = ", muzzle.global_position)
 	# 炮口相对根的位置（正面应为 -Z 侧再随转向旋转）
 	var muzzle_local_to_root: Vector3 = (

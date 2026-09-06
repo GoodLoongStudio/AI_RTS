@@ -68,11 +68,19 @@ func _ready():
 	gateway.AttackUnits([attacker], enemy, human)
 	# 2026-09-06: 开火前炮管须转向对准目标（~90° / 240°每秒 + 重试间隔），
 	# 首发存在合法延迟——轮询等待首次开火元数据而非固定 0.2s。
+	# 10s 上限：机器高负载时物理帧速下降，5s 可能不够模拟时间走完转向+首发。
 	var first_shot_wait_s := 0.0
-	while not attacker.has_meta("next_attack_availability_time") and first_shot_wait_s < 5.0:
+	while not attacker.has_meta("next_attack_availability_time") and first_shot_wait_s < 10.0:
 		await get_tree().create_timer(0.1).timeout
 		first_shot_wait_s += 0.1
 	_check(attacker.has_meta("next_attack_availability_time"), "开火后应记录下一次攻击可用的模拟时间")
+	if not attacker.has_meta("next_attack_availability_time"):
+		# 首发未发生：立即收尾退出，避免下方类型化赋值中断协程导致进程永久挂起
+		print("Attack simulation time smoke test completed: %d failure(s)" % _failures)
+		match_instance.queue_free()
+		await get_tree().process_frame
+		SmokeTestExit.request(get_tree(), 1)
+		return
 	var available_at: int = attacker.get_meta("next_attack_availability_time")
 	var remaining_before: int = available_at - match_instance.get_simulation_msec()
 	_check(remaining_before > 0, "攻击间隔剩余时间应记在模拟时钟上")

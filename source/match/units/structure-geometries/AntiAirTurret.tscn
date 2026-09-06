@@ -7,7 +7,7 @@
 [node name="Geometry" type="Node3D"]
 
 [node name="SM_Veh_Turret_Medium_01" parent="." instance=ExtResource("1_model")]
-transform = Transform3D(-0.4, 0, 0, 0, 0.4, 0, 0, 0, -0.4, 0, 0.02, 0)
+transform = Transform3D(0.4, 0, 0, 0, 0.4, 0, 0, 0, 0.4, 0, 0.02, 0)
 
 [node name="SyntyMaterialBinder" type="Node" parent="."]
 script = ExtResource("3_binder")

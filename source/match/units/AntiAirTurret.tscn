@@ -23,17 +23,12 @@ remote_path = NodePath("../DetachTransform/Geometry")
 update_rotation = false
 update_scale = false
 
-[node name="RotationSynchronizer" type="RemoteTransform3D" parent="."]
-remote_path = NodePath("../DetachTransform/Geometry/SM_Veh_Turret_Medium_01")
-update_position = false
-update_scale = false
-
 [node name="DetachTransform" type="Node" parent="."]
 
 [node name="Geometry" parent="DetachTransform" instance=ExtResource("2_bhouy")]
 
 [node name="ProjectileOrigin" type="Marker3D" parent="DetachTransform/Geometry/SM_Veh_Turret_Medium_01"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, -0.6)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, 0.6)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)

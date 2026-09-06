@@ -81,14 +81,16 @@ func _aim_node() -> Node3D:
 	return _stationary_aim_node if _stationary_aim_node != null else _unit
 
 
-## 按限速平滑转向目标（车体/炮管共用 -Z 正前方约定）；
-## 炮塔类用固定的慢速转向，机动单位沿用平衡配置注入的车体转速。
+## 按限速平滑转向目标。
+## 机动单位：车体 -Z 为正前方，转速用平衡配置注入的车体角速度。
+## 炮塔（无 Movement）：Synty 炮塔模型炮管朝 **+Z**，直接旋转炮管节点，
+## 正前方取炮管节点的 +Z——否则会出现"炮管背对目标却判已对准"的发射方向错误。
 func _rotate_unit_towards_target(delta: float):
 	# 显式类型：经未类型化节点链取值返回 Variant，:= 无法推断（项目将推断警告当错误）
 	var aim_node := _aim_node()
 	var to_target: Vector3 = (
 		(
-			Vector3(_target_unit.global_position.x, _unit.global_position.y, _target_unit.global_position.z)
+			Vector3(_target_unit.global_position.x, aim_node.global_position.y, _target_unit.global_position.z)
 			- aim_node.global_position
 		)
 		* Vector3(1, 0, 1)
@@ -98,8 +100,14 @@ func _rotate_unit_towards_target(delta: float):
 	var turn_speed := STATIONARY_TURN_SPEED_DEG_PER_SEC
 	if _unit_movement_trait != null:
 		turn_speed = maxf(_unit_movement_trait.max_turn_speed_deg_per_sec, 1.0)
-	var target_yaw: float = atan2(-to_target.x, -to_target.z)
-	var current_yaw: float = aim_node.global_transform.basis.get_euler().y
+	var forward_sign := -1.0 if _stationary_aim_node == null else 1.0
+	var target_yaw: float = atan2(
+		forward_sign * to_target.x, forward_sign * to_target.z
+	)
+	var current_yaw: float = atan2(
+		forward_sign * aim_node.global_transform.basis.z.x,
+		forward_sign * aim_node.global_transform.basis.z.z
+	)
 	var yaw_diff: float = angle_difference(current_yaw, target_yaw)
 	if absf(yaw_diff) < AIM_ALIGNED_EPSILON_RAD:
 		return
@@ -108,7 +116,7 @@ func _rotate_unit_towards_target(delta: float):
 	aim_node.global_rotation_degrees.y = rad_to_deg(new_yaw)
 
 
-## 车体/炮管正前方（-Z）与目标方向的水平夹角（度）。
+## 车体/炮管正前方与目标方向的水平夹角（度）；正前方约定同上（机动 -Z，炮塔炮管 +Z）。
 func _aim_error_degrees() -> float:
 	var aim_node := _aim_node()
 	var to_target: Vector3 = (
@@ -116,7 +124,10 @@ func _aim_error_degrees() -> float:
 	)
 	if to_target.length() < 0.05:
 		return 0.0  # 目标在正上/下方（如防空对顶空），水平面无方向可对
-	var forward: Vector3 = (-aim_node.global_transform.basis.z) * Vector3(1, 0, 1)
+	var forward_sign := -1.0 if _stationary_aim_node == null else 1.0
+	var forward: Vector3 = (
+		forward_sign * aim_node.global_transform.basis.z * Vector3(1, 0, 1)
+	)
 	return rad_to_deg(forward.normalized().angle_to(to_target.normalized()))
 
 
