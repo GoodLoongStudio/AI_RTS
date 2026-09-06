@@ -178,16 +178,16 @@ func _on_join_button_pressed() -> void:
 		_status_label.text = "连接失败：%s" % err
 
 
-## 本机开房（单人测试）：不连云服，本机即服即玩；AI 补位后点「立即开局」。
-## 2026-09-05 新增——云服要求 2 真人的老口径下，单人也能完成全功能自测。
+## 本机开房（单人测试）：不连云服，本机即服即玩；默认只保留本机人类。
+## AI 必须由房主在槽位上显式点击「＋AI」后才加入，避免单人演示出现
+## 未请求的电脑玩家和第三方单位。
 func _on_local_host_button_pressed() -> void:
 	NetSession.clear_auto_start_intent()
 	var err := NetSession.host(_port())
 	if err != OK:
 		_status_label.text = "本机开房失败（端口被占用？）：%s" % err
 	else:
-		NetSession.host_set_slot_kind(1, NetSession.SLOT_AI)
-		_status_label.text = "本机房已开：点「立即开局」即可 1 人 + AI 对战"
+		_status_label.text = "本机房已开：默认仅 1 名玩家；需要电脑时请在槽位上点击「＋AI」"
 
 
 func _on_ready_button_pressed() -> void:
@@ -196,9 +196,9 @@ func _on_ready_button_pressed() -> void:
 
 
 func _on_solo_button_pressed() -> void:
-	# 立即开局 = 正式对局：开局仅主基地+1无人机+2工人（2026-09-05 用户设定），
-	# 不再进被动测试局（那会预置车厂/兵营，开局一堆东西）。
-	NetSession.start_solo(true, false)
+	# 立即开局 = 正式单人对局：不隐式添加 AI，开局仅主基地+1无人机+2工人。
+	# 需要电脑时由房主先在大厅槽位显式添加 AI，再点击此按钮。
+	NetSession.start_solo(false, false)
 
 
 ## 调试钩子：--autojoin 或 res://autojoin.txt 存在时，直接加入默认服务器并立即开局，

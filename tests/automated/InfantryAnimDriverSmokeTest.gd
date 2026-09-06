@@ -13,6 +13,25 @@ const ALL_CLIPS := ["Idle", "Run", "Hit", "HitHeavy", "Fire", "Crawl", "Death"]
 
 var _failures := 0
 
+## Fire 进入监视状态：_process 轮询实现，避免协程/闭包生命周期陷阱。
+var _monitor_player_id := 0
+var _monitor_events: Dictionary = {}
+var _monitor_was_fire := false
+
+
+func _process(_delta):
+	if _monitor_player_id == 0:
+		return
+	var player_now := instance_from_id(_monitor_player_id) as AnimationPlayer
+	if player_now == null:
+		# 被监视单位已释放：停止监视，不访问已释放对象。
+		_monitor_player_id = 0
+		return
+	var is_fire: bool = player_now.current_animation == "Fire"
+	if is_fire and not _monitor_was_fire:
+		_monitor_events.fire_entries.append(Time.get_ticks_msec())
+	_monitor_was_fire = is_fire
+
 
 func _ready():
 	var match_instance = MatchScene.instantiate()
@@ -80,7 +99,7 @@ func _ready():
 	_check(accumulated > 1.0, "单位应实际位移（%.2fm）" % accumulated)
 	_check(saw_move_clip, "移动中应出现 Run 剪辑")
 	if DisplayServer.get_name() != "headless":
-		await _screenshot("G:/AIRTS/tmp_logs/anim_verify/driver_moving.png", infantry.global_position)
+		await _screenshot("G:/AIRTS/tmp_logs/anim_verify_r2/driver_moving.png", infantry.global_position)
 
 	infantry.hp = infantry.hp - 1
 	await get_tree().process_frame
@@ -146,21 +165,35 @@ func _ready():
 		_check(visual.get_meta("death_clip") == "HitHeavy", "真实炮弹致死应选择爆炸击飞死亡")
 		_check(not visual.is_in_group("units") and visual.find_children("*", "CollisionObject3D", true, false).is_empty(), "死亡视觉不得继续参战或保留碰撞")
 		_check(visual.global_basis.z.normalized().dot(blast_direction) > 0.99, "炸飞方向应背离炮弹来向")
-		_check(death_player.is_playing(), "死亡视觉应继续播放腾空过程")
+		_check(death_player != null and death_player.is_playing(), "死亡视觉应继续播放腾空过程")
 		if DisplayServer.get_name() != "headless":
-			await _screenshot("G:/AIRTS/tmp_logs/anim_verify/blast_airborne.png", visual.global_position + blast_direction * 0.45)
-		await get_tree().create_timer(1.75).timeout
-		_check(is_instance_valid(visual) and not death_player.is_playing() and death_player.assigned_animation == "HitHeavy", "炸飞播完后应保持死亡姿态，不重播或站起")
-		if DisplayServer.get_name() != "headless":
-			await _screenshot("G:/AIRTS/tmp_logs/anim_verify/blast_death_hold.png", visual.global_position + blast_direction * 0.45)
-		# 按真实剪辑长度与驱动定格时长推算清理窗口，不硬编码固定等待。
-		# 用实例 ID 观察销毁：lambda 不捕获对象引用，避免视觉释放后
-		# 闭包访问已 freed 捕获值产生运行期错误（Lambda capture ... was freed）。
+			await _screenshot("G:/AIRTS/tmp_logs/anim_verify_r2/blast_airborne.png", visual.global_position + blast_direction * 0.45)
+		# 按真实剪辑长度等待播放结束，不硬编码固定等待。
 		var blast_clip_length: float = death_player.get_animation("HitHeavy").length
-		var visual_id := visual.get_instance_id()
-		var visual_gone := func(): return instance_from_id(visual_id) == null
-		var freed := await _wait_until(visual_gone,
-			blast_clip_length + AnimDriver.DEATH_HOLD_SECONDS + 2.0)
+		await get_tree().create_timer(blast_clip_length + 0.3).timeout
+		# 生命期观察只捕获实例 ID：视觉节点可能已释放，闭包不得持有对象引用，
+		# 否则报 "Lambda capture ... was freed" 且把断言失败掩盖成运行期错误。
+		var blast_visual_id := visual.get_instance_id()
+		var blast_player_id := death_player.get_instance_id()
+		var blast_settled := func():
+			var visual_now = instance_from_id(blast_visual_id)
+			var player_now = instance_from_id(blast_player_id)
+			return (
+				visual_now != null and player_now != null
+				and not player_now.is_playing()
+				and player_now.assigned_animation == "HitHeavy"
+			)
+		_check(await _wait_until(blast_settled, 2.0), "炸飞播完后应保持死亡姿态，不重播或站起")
+		if DisplayServer.get_name() != "headless":
+			var held_visual = instance_from_id(blast_visual_id)
+			if held_visual != null:
+				await _screenshot("G:/AIRTS/tmp_logs/anim_verify_r2/blast_death_hold.png",
+					held_visual.global_position + blast_direction * 0.45)
+		var blast_freed := func(): return instance_from_id(blast_visual_id) == null
+		var freed := await _wait_until(
+			blast_freed,
+			blast_clip_length + AnimDriver.DEATH_HOLD_SECONDS + 2.0
+		)
 		_check(freed, "死亡视觉应在定格后清理")
 
 	var shooter = InfantryScene.instantiate()
@@ -176,17 +209,19 @@ func _ready():
 	_check(not is_instance_valid(victim), "致死子弹应移除战斗单位")
 	visuals = get_tree().get_nodes_in_group("infantry_death_visuals")
 	_check(visuals.size() == 1 and visuals[0].get_meta("death_clip") == "Death", "真实步枪致死应普通倒地，不能因血量比例而被当成爆炸")
-	# 清理节奏 = Death 剪辑实际长度 + 驱动定格时长；等待窗口加 2s 余量。
-	var death_anim: AnimationPlayer = visuals[0].find_child("AnimationPlayer", true, false)
-	var death_clip_length: float = death_anim.get_animation("Death").length
-	var death_cleaned := await _wait_until(
-		func(): return get_tree().get_nodes_in_group("infantry_death_visuals").is_empty(),
-		death_clip_length + AnimDriver.DEATH_HOLD_SECONDS + 2.0
-	)
-	_check(death_cleaned, "普通死亡视觉也应自动清理")
+	# 断言失败后不得继续索引空数组：只有视觉确实存在才继续清理校验。
+	if visuals.size() >= 1:
+		var death_anim: AnimationPlayer = visuals[0].find_child("AnimationPlayer", true, false)
+		var death_clip_length: float = death_anim.get_animation("Death").length
+		var death_group_empty := func(): return get_tree().get_nodes_in_group("infantry_death_visuals").is_empty()
+		var death_cleaned := await _wait_until(
+			death_group_empty,
+			death_clip_length + AnimDriver.DEATH_HOLD_SECONDS + 2.0
+		)
+		_check(death_cleaned, "普通死亡视觉也应自动清理")
 
 	if DisplayServer.get_name() != "headless":
-		await _screenshot("G:/AIRTS/tmp_logs/anim_verify/driver_idle.png", shooter.global_position)
+		await _screenshot("G:/AIRTS/tmp_logs/anim_verify_r2/driver_idle.png", shooter.global_position)
 
 	_finish(match_instance)
 
@@ -213,12 +248,16 @@ func _test_fire_events(match_instance, human, gateway):
 	var runtime = match_instance.get_node("ProjectileRuntime")
 	var projectiles = match_instance.get_node("Projectiles")
 	# Dictionary 是引用容器，信号闭包更新后等待协程也能观察到。
-	var events := {"fired": 0, "spawned": 0, "ordered": true}
+	# fired_msec/fire_entries 供"进入 Fire 必须有真实发射事件兜底"的全程监视。
+	var events := {"fired": 0, "spawned": 0, "ordered": true,
+		"fired_msec": [], "fire_entries": [], "stop_monitor": false}
 	var on_spawn := func(_projectile): events.spawned += 1
 	projectiles.child_entered_tree.connect(on_spawn)
 	attacker.attack_fired.connect(func():
 		events.fired += 1
+		events.fired_msec.append(Time.get_ticks_msec())
 		events.ordered = events.ordered and events.spawned == events.fired)
+	_begin_fire_entry_monitor(player.get_instance_id(), events)
 	gateway.SetFirePolicy([attacker], "FireAtWill", human)
 	var result = gateway.AttackUnits([attacker], target, human)
 	_check(result.get("unit_results", []).any(
@@ -302,9 +341,18 @@ func _test_fire_events(match_instance, human, gateway):
 	var move_origin: Vector3 = attacker.global_position
 	gateway.ForceMoveUnits([attacker], move_origin + Vector3(-6, 0, 0), human)
 	# 注意：GDScript 解析器不接受 lambda 体跨行且后续还有实参的写法，
-	# 复杂条件必须先落成独立 Callable 变量。
+	# 复杂条件必须先落成独立 Callable 变量。生命期观察只捕获实例 ID，
+	# 断言失败后的再次求值不得访问已释放的对象捕获。
+	var attacker_id := attacker.get_instance_id()
+	var attacker_player_id := player.get_instance_id()
 	var run_with_displacement := func():
-		return player.current_animation == "Run" and attacker.global_position.distance_to(move_origin) > 0.1
+		var unit_now = instance_from_id(attacker_id)
+		var player_now = instance_from_id(attacker_player_id)
+		return (
+			unit_now != null and player_now != null
+			and player_now.current_animation == "Run"
+			and unit_now.global_position.distance_to(move_origin) > 0.1
+		)
 	_check(await _wait_until(run_with_displacement, 2.0),
 		"射击后移动应切换 Run，并产生实际位移")
 	# 此处只隔离表现层竞争，发射仍创建真实子弹，不伪造信号或直接播放剪辑。
@@ -325,7 +373,10 @@ func _test_fire_events(match_instance, human, gateway):
 			break
 		await get_tree().process_frame
 	_check(not replayed_fire, "移动开火后停止不得补播旧射击（应直接回 Idle）")
-	_check(await _wait_until(func(): return player.current_animation == "Idle", 2.0),
+	var stopped_idle := func():
+		var player_now = instance_from_id(attacker_player_id)
+		return player_now != null and player_now.current_animation == "Idle"
+	_check(await _wait_until(stopped_idle, 2.0),
 		"移动停止后应回 Idle，不补播移动中的射击")
 	await get_tree().create_timer(player.get_animation("Fire").length + 0.1).timeout
 	_check(player.current_animation == "Idle", "无新发射时应保持 Idle")
@@ -355,6 +406,11 @@ func _test_fire_events(match_instance, human, gateway):
 		"强制地面攻击也应播放 Fire")
 	_check(events.ordered and events.fired == events.spawned and events.fired >= 8,
 		"每个开火事件之前必须已有真实投射物，且一弹一事件（%d/%d）" % [events.fired, events.spawned])
+	# 停止监视并核对全程：每一次动画进入 Fire 都必须有 0.3s 内的真实
+	# 发射事件兜底；移动开火残余补播等回归会以"无来源进入"暴露。
+	_monitor_player_id = 0
+	_check(_all_fire_entries_backed(events),
+		"每次进入 Fire 播放都必须有真实发射事件兜底（全程监视）")
 	projectiles.child_entered_tree.disconnect(on_spawn)
 	attacker.queue_free()
 	enemy.queue_free()
@@ -367,6 +423,34 @@ func _wait_for_shot(events: Dictionary, count: int):
 	# 开火事件由本帧位移采样后消费；等待表现层处理完毕再读播放位置。
 	await get_tree().process_frame
 	await get_tree().process_frame
+
+
+## 启动 Fire 进入监视（Fire 播放中的同名重启不算进入）。
+## 观察只持有实例 ID，被监视单位释放后 _process 中安全停止。
+func _begin_fire_entry_monitor(player_id: int, events: Dictionary) -> void:
+	_monitor_player_id = player_id
+	_monitor_events = events
+	_monitor_was_fire = false
+
+
+## 校验每次进入 Fire 播放都有真实发射事件兜底。
+## 合法表现链路：事件 → 挂起窗口(250ms，窗口内等速度滤波归零) → 消费播放，
+## 被动推挤可拖满整个窗口再消费，故容差取 400ms（250ms 窗口 + 过渡 + 帧调度）。
+## 停止后补播旧射击的回归会以"无来源进入"在此暴露。
+func _all_fire_entries_backed(events: Dictionary) -> bool:
+	var unbacked := 0
+	for entry_msec in events.fire_entries:
+		var backed := false
+		for shot_msec in events.fired_msec:
+			if shot_msec <= entry_msec and entry_msec - shot_msec <= 400:
+				backed = true
+				break
+		if not backed:
+			unbacked += 1
+			print("FIRE_ENTRY_UNBACKED entry=%d shots=%s" % [entry_msec, events.fired_msec])
+	print("FIRE_MONITOR entries=%s" % [events.fire_entries])
+	print("FIRE_MONITOR shots=%s" % [events.fired_msec])
+	return unbacked == 0
 
 
 func _wait_until(condition: Callable, timeout_seconds: float) -> bool:

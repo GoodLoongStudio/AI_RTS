@@ -15,18 +15,27 @@ func _ready() -> void:
 		if tex == null:
 			push_warning("ApplyAtlas: 图集加载失败 %s" % atlas)
 			continue
-		_apply(child, tex)
+		# 风化染色（metadata/tint = "r,g,b" 乘法系数）：让冷灰岩石与棕土地形融合
+		var tint := Color(1, 1, 1)
+		var tint_s: String = child.get_meta("tint", "")
+		if not tint_s.is_empty():
+			var parts := tint_s.split(",")
+			if parts.size() == 3:
+				tint = Color(float(parts[0]), float(parts[1]), float(parts[2]))
+		_apply(child, tex, tint)
 
 
-func _apply(node: Node, tex: Texture2D) -> void:
+func _apply(node: Node, tex: Texture2D, tint: Color = Color(1, 1, 1)) -> void:
 	if node is MeshInstance3D:
 		var mi := node as MeshInstance3D
-		if not _mat_cache.has(tex.resource_path):
+		var key := tex.resource_path + "|" + tint.to_html()
+		if not _mat_cache.has(key):
 			var mat := StandardMaterial3D.new()
 			mat.albedo_texture = tex
+			mat.albedo_color = tint
 			mat.roughness = 1.0
 			mat.metallic = 0.0
-			_mat_cache[tex.resource_path] = mat
-		mi.material_override = _mat_cache[tex.resource_path]
+			_mat_cache[key] = mat
+		mi.material_override = _mat_cache[key]
 	for c in node.get_children():
-		_apply(c, tex)
+		_apply(c, tex, tint)

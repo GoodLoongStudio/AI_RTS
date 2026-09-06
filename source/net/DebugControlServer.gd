@@ -621,6 +621,10 @@ func _collect_status(match_node, parsed = null) -> Dictionary:
 	var out := {
 		"match": false,
 		"local_slot": NetSession.local_slot,
+		# 联网/权威状态：外部测试在发 op=start 前必须确认 networked=true，
+		# 否则 start_solo 会走 join(默认云端地址) 分支误连玩家局服。
+		"networked": NetSession.is_networked(),
+		"is_server": NetSession.is_server(),
 		"units": [],
 		"resources": [],
 		"balance": null,

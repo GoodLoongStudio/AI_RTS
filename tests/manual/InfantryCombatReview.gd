@@ -18,6 +18,8 @@ const TARGET_DEBUG_HP := 1000.0
 ## 调试准备：连射观察时步兵的临时血量。
 const INFANTRY_DEBUG_HP := 50.0
 const MOVE_DISTANCE := 6.0
+## 本次验收截图输出目录：换新批次目录，旧目录（anim_verify）全部保留不混用。
+const SCREENSHOT_DIR := "G:/AIRTS/tmp_logs/anim_verify_r2/"
 
 var _match: Node
 var _human: Node
@@ -36,9 +38,13 @@ var _last_command_text := "无"
 var _move_flip := false
 var _status_accum := 0.0
 var _reset_token := 0
+## 部署/重置进行中标志：期间一切战斗按钮安全拒绝，避免对半初始化单位下命令。
+var _deploying := true
+var _stage_text := "初始化"
 
 var _buttons := {}
 var _status_label: Label
+var _review_panel: PanelContainer
 var _smoke_failures := 0
 
 
@@ -54,7 +60,7 @@ func _ready() -> void:
 	await _wait_for_scene_units()
 	_setup_fire_isolation()
 	_ensure_enemy_player()
-	_spawn_review_units()
+	await _spawn_review_units()
 	if "--smoke" in OS.get_cmdline_user_args():
 		_run_smoke()
 
@@ -102,6 +108,8 @@ func _ensure_enemy_player() -> void:
 func _spawn_review_units() -> void:
 	_reset_token += 1
 	var token := _reset_token
+	_deploying = true
+	_stage_text = "部署中"
 	_fire_count = 0
 	_infantry_anim = null
 	_infantry = InfantryScene.instantiate()
@@ -114,6 +122,11 @@ func _spawn_review_units() -> void:
 	_blast_tank = TankScene.instantiate()
 	MatchSignals.setup_and_spawn_unit.emit(
 		_blast_tank, Transform3D(Basis(), TARGET_SPAWN + Vector3(4, 0, 0)), _enemy_player)
+	# spawn 管线会把单位强制改名为 Unit_N（Match.gd），入树后再覆盖为验收
+	# 专用名，供残留/重复检测与基线单位区分。
+	_infantry.name = "ReviewInfantry"
+	_target.name = "ReviewTarget"
+	_blast_tank.name = "ReviewBlastTank"
 	await get_tree().process_frame
 	await get_tree().process_frame
 	if token != _reset_token:
@@ -128,19 +141,35 @@ func _spawn_review_units() -> void:
 		_infantry.attack_fired.connect(_on_infantry_fired)
 		# 部署后先停火：开火一律由按钮显式开启，避免自动射击污染调试血量。
 		_gateway.SetFirePolicy([_infantry], "HoldFire", _human)
+	_deploying = false
+	_stage_text = "已部署"
 	_last_command_text = "部署完成（步兵 / 靶子 / 爆炸坦克）"
+	_refresh_status_now()
 
 
 func _on_infantry_fired() -> void:
 	_fire_count += 1
 
 
-## 每个战斗按钮前统一检查步兵有效性；阵亡后提示重置，避免悬空引用。
-func _infantry_ready() -> bool:
-	if is_instance_valid(_infantry):
+## 战斗按钮统一前置检查：部署/重置进行中、步兵已阵亡都安全拒绝。
+func _combat_ready() -> bool:
+	if _deploying:
+		_last_command_text = "部署/重置进行中，请稍候"
+		_refresh_status_now()
+		return false
+	if not is_instance_valid(_infantry):
+		_last_command_text = "步兵已阵亡，请先点击 [重置场景]"
+		_refresh_status_now()
+		return false
+	return true
+
+
+## 依赖靶子存活的按钮（连续受击/普通死亡）的额外检查。
+func _target_alive() -> bool:
+	if is_instance_valid(_target):
 		return true
-	_last_command_text = "步兵已阵亡，请先点击 [重置场景]"
-	_status_label.text = _build_status_text()
+	_last_command_text = "靶子已失效，请先点击 [重置场景]"
+	_refresh_status_now()
 	return false
 
 
@@ -157,6 +186,8 @@ func _pacify_target() -> void:
 func _on_reset_pressed() -> void:
 	_reset_token += 1
 	var token := _reset_token
+	_deploying = true
+	_stage_text = "重置中"
 	_disable_follow_camera()
 	for node in [_infantry, _target, _blast_tank]:
 		if is_instance_valid(node):
@@ -164,6 +195,7 @@ func _on_reset_pressed() -> void:
 	_infantry = null
 	_target = null
 	_blast_tank = null
+	_infantry_anim = null
 	# 上一轮的独立死亡视觉与飞行中投射物不属于任何单位引用，
 	# 必须在此显式回收，否则会混入新一轮表现（旧尸体/幽灵弹道）。
 	for visual in get_tree().get_nodes_in_group("infantry_death_visuals"):
@@ -172,18 +204,42 @@ func _on_reset_pressed() -> void:
 	var projectiles = _match.get_node_or_null("Projectiles")
 	if projectiles != null:
 		for projectile in projectiles.get_children():
-			projectile.queue_free()
+			# 只回收真实投射物节点（持有 attack_id），不误删容器内的无关对象；
+			# 投射物退出场景树时 ProjectileRuntime 会同步 Forget 其活动记录。
+			if is_instance_valid(projectile) and projectile.get("attack_id") != null:
+				projectile.queue_free()
 	_last_command_text = "重置中…"
-	await get_tree().process_frame
-	await get_tree().process_frame
+	_refresh_status_now()
+	# 等旧对象真正退出场景树后再重新部署：queue_free 在帧末生效。
+	# 连点重置由令牌丢弃过期部署，不会产生重复单位或悬空引用。
+	var deadline := Time.get_ticks_msec() + 2000
+	while Time.get_ticks_msec() < deadline:
+		await get_tree().process_frame
+		if _review_leftovers() == 0:
+			break
 	if token != _reset_token:
 		return
-	_spawn_review_units()
+	await _spawn_review_units()
+
+
+## 统计尚未退出的验收残留（死亡视觉 + 飞行中投射物），0 表示场景已干净。
+func _review_leftovers() -> int:
+	var leftovers := 0
+	for visual in get_tree().get_nodes_in_group("infantry_death_visuals"):
+		if is_instance_valid(visual):
+			leftovers += 1
+	var projectiles = _match.get_node_or_null("Projectiles")
+	if projectiles != null:
+		for child in projectiles.get_children():
+			if is_instance_valid(child) and child.get("attack_id") != null:
+				leftovers += 1
+	return leftovers
 
 
 func _on_move_pressed() -> void:
-	if not _infantry_ready():
+	if not _combat_ready():
 		return
+	_stage_text = "移动"
 	_move_flip = not _move_flip
 	var offset := Vector3(MOVE_DISTANCE, 0, 0) if _move_flip else Vector3(-MOVE_DISTANCE, 0, 0)
 	var destination: Vector3 = _infantry.global_position + offset
@@ -192,28 +248,32 @@ func _on_move_pressed() -> void:
 
 ## 调试：先把靶子传送到远处（避免手动点选），再下真实攻击命令触发追击。
 func _on_chase_pressed() -> void:
-	if not _infantry_ready():
+	if not _combat_ready() or not _target_alive():
 		return
+	_stage_text = "追击"
 	_pacify_target()
-	if is_instance_valid(_target):
-		_target.global_position = TARGET_FAR_SPAWN
-		_target.reset_physics_interpolation()
+	_target.global_position = TARGET_FAR_SPAWN
+	_target.reset_physics_interpolation()
 	_gateway.SetFirePolicy([_infantry], "FireAtWill", _human)
 	_log_command("射程外攻击与追击", _gateway.AttackUnits([_infantry], _target, _human))
 
 
 func _on_stop_pressed() -> void:
-	if not _infantry_ready():
+	if not _combat_ready():
 		return
+	_stage_text = "停止"
 	_pacify_target()
 	_log_command("停止并停火", _gateway.StopUnits([_infantry], _human))
 	_gateway.SetFirePolicy([_infantry], "HoldFire", _human)
 
 
 ## 调试：临时提高步兵血量，让靶子真实连射且不会致死，观察连续受击。
+## 先停止步兵先前的攻击/移动，保证受检条件只来自靶子的真实子弹。
 func _on_repeat_hits_pressed() -> void:
-	if not _infantry_ready():
+	if not _combat_ready() or not _target_alive():
 		return
+	_stage_text = "连续受击"
+	_gateway.StopUnits([_infantry], _human)
 	_gateway.SetFirePolicy([_infantry], "HoldFire", _human)
 	_infantry.hp = INFANTRY_DEBUG_HP
 	_gateway.SetFirePolicy([_target], "FireAtWill", _enemy_player)
@@ -223,9 +283,12 @@ func _on_repeat_hits_pressed() -> void:
 
 
 ## 调试：把步兵血量压到一发步枪可致死，由靶子真实子弹触发普通死亡。
+## 先停止步兵先前的攻击/移动，保证致死判定不受步兵自身动作干扰。
 func _on_normal_death_pressed() -> void:
-	if not _infantry_ready():
+	if not _combat_ready() or not _target_alive():
 		return
+	_stage_text = "普通死亡"
+	_gateway.StopUnits([_infantry], _human)
 	_gateway.SetFirePolicy([_infantry], "HoldFire", _human)
 	_infantry.hp = 0.25
 	_gateway.SetFirePolicy([_target], "FireAtWill", _enemy_player)
@@ -235,12 +298,18 @@ func _on_normal_death_pressed() -> void:
 
 
 ## 调试：把步兵血量压到 1，由真实坦克炮弹触发致死爆炸（击飞死亡视觉）。
+## 先停止步兵先前动作并让靶子停火：切换到爆炸测试前必须隔离步枪弹，
+#  避免靶子残余连射抢先致死、污染爆炸表现。
 func _on_explosion_death_pressed() -> void:
-	if not _infantry_ready():
+	if not _combat_ready():
 		return
 	if not is_instance_valid(_blast_tank):
 		_last_command_text = "爆炸坦克已失效，请重置场景"
+		_refresh_status_now()
 		return
+	_stage_text = "致死爆炸"
+	_pacify_target()
+	_gateway.StopUnits([_infantry], _human)
 	_gateway.SetFirePolicy([_infantry], "HoldFire", _human)
 	_infantry.hp = 1.0
 	_runtime.LaunchEntity(_blast_tank, _infantry)
@@ -287,6 +356,7 @@ func _build_ui() -> void:
 	add_child(layer)
 	var panel := PanelContainer.new()
 	panel.name = "ReviewPanel"
+	_review_panel = panel
 	panel.anchor_left = 0.0
 	panel.anchor_right = 0.0
 	panel.anchor_top = 0.0
@@ -333,6 +403,7 @@ func _build_ui() -> void:
 
 func _build_status_text() -> String:
 	var lines := PackedStringArray()
+	lines.append("阶段: %s" % _stage_text)
 	if is_instance_valid(_infantry):
 		lines.append("步兵: 存活 HP=%s/%s  位置=%s" % [
 			_infantry.hp, _infantry.hp_max,
@@ -375,6 +446,36 @@ func _snapped_position(position: Vector3) -> String:
 	return "(%.1f, %.1f, %.1f)" % [position.x, position.y, position.z]
 
 
+## 立即刷新状态面板：按钮反馈与截图前同步，不等 0.2s 节流。
+func _refresh_status_now() -> void:
+	if _status_label != null:
+		_status_label.text = _build_status_text()
+
+
+## 截图瞬间的权威状态快照（阶段/动画名/动画时间/开火计数/死亡视觉），与图像一一对应入日志。
+func _log_state_snapshot(shot_path: String) -> void:
+	var anim_text := "无"
+	var anim_pos := -1.0
+	if is_instance_valid(_infantry_anim):
+		anim_text = _infantry_anim.current_animation if _infantry_anim.is_playing() \
+			else _infantry_anim.assigned_animation + "(停)"
+		anim_pos = _infantry_anim.current_animation_position
+	var death_text := ""
+	for visual in get_tree().get_nodes_in_group("infantry_death_visuals"):
+		if not is_instance_valid(visual):
+			continue
+		var death_player: AnimationPlayer = visual.find_child("AnimationPlayer", true, false)
+		if death_player != null:
+			death_text += " death[%s]=%s(%.2f/%.2f)" % [
+				visual.get_meta("death_clip", "?"),
+				death_player.current_animation if death_player.is_playing()
+					else death_player.assigned_animation + "(停)",
+				death_player.current_animation_position,
+				death_player.current_animation_length]
+	print("STATE_SNAPSHOT stage=%s anim=%s anim_t=%.2f fires=%d%s shot=%s" % [
+		_stage_text, anim_text, anim_pos, _fire_count, death_text, shot_path.get_file()])
+
+
 func _log_command(action_text: String, result) -> void:
 	var status := str(result.get("status", "?")) if result is Dictionary else str(result)
 	var accepted := 0
@@ -391,6 +492,7 @@ func _log_command(action_text: String, result) -> void:
 # ---------------------------------------------------------------- 冒烟自检
 
 ## --smoke：无头依次触发与按钮完全相同的处理函数，验证场景逻辑闭环。
+## 窗口模式额外输出关键帧截图（追击/开火/轻击/爆炸四段连续帧）+ 状态快照日志。
 func _run_smoke() -> void:
 	await get_tree().create_timer(1.5).timeout
 	_check(is_instance_valid(_infantry) and _infantry.is_in_group("units"), "步兵已部署并入组")
@@ -410,16 +512,48 @@ func _run_smoke() -> void:
 	_on_stop_pressed()
 	_check(await _wait_until(_infantry_standing, 3.0), "停止后回到站立状态")
 
+	# 连点重置：第一次重置的部署被令牌丢弃，最终只保留最后一组单位。
+	_on_reset_pressed()
+	_on_reset_pressed()
+	var double_reset_done := await _wait_until(_deployment_settled, 6.0)
+	_check(double_reset_done, "连点重置后部署收敛")
+	var counts := _deployed_unit_counts()
+	_check(_review_units_unique(counts), "连点重置不产生重复单位（实际 %s）" % [counts])
+
 	_on_chase_pressed()
 	var fired := await _wait_until(func(): return _fire_count > 0, 10.0)
 	_check(fired, "射程外追击后由真实投射物触发开火事件")
 	if fired and DisplayServer.get_name() != "headless":
-		await _capture("G:/AIRTS/tmp_logs/anim_verify/review_chase_fire.png",
-			_infantry.global_position if is_instance_valid(_infantry) else INFANTRY_SPAWN)
+		# 追击途中 Run 关键帧（若已到位切剪则跳过，不代表失败）。
+		var in_run := func():
+			return (
+				is_instance_valid(_infantry_anim)
+				and _infantry_anim.current_animation == "Run"
+				and _infantry_anim.is_playing()
+			)
+		if in_run.call() and is_instance_valid(_infantry):
+			await _capture(SCREENSHOT_DIR + "review_chase_run.png", _infantry.global_position)
+		# 实际开火截图：必须确认 AnimationPlayer 正在播放 Fire，不能只等 attack_fired。
+		var fire_check := func():
+			return (
+				is_instance_valid(_infantry_anim)
+				and _infantry_anim.current_animation == "Fire"
+				and _infantry_anim.is_playing()
+			)
+		var fire_visible := await _wait_until(fire_check, 2.5)
+		_check(fire_visible, "追击到位首发展现为站姿 Fire（AnimationPlayer 实际播放中）")
+		if fire_visible and is_instance_valid(_infantry):
+			await _capture(SCREENSHOT_DIR + "review_chase_fire.png", _infantry.global_position)
+			await get_tree().create_timer(0.15).timeout
+			if fire_check.call() and is_instance_valid(_infantry):
+				await _capture(SCREENSHOT_DIR + "review_chase_fire_2.png", _infantry.global_position)
 	_on_stop_pressed()
 	_pacify_target()
 
 	_on_repeat_hits_pressed()
+	# 等待真实投射物在飞（Projectiles 容器出现持有 attack_id 的子弹节点）。
+	var shots_flying := await _wait_until(_projectiles_present, 6.0)
+	_check(shots_flying, "连续受击阶段应有真实投射物在飞")
 	# 诊断轮询：不用 lambda，避免跨行实参与闭包捕获语义陷阱。
 	var hit_seen := false
 	var dist_at_end := -1.0
@@ -437,60 +571,142 @@ func _run_smoke() -> void:
 	cmd_at_end = _last_command_text
 	_check(hit_seen, "真实子弹连射触发存活受击 Hit（cmd=%s dist=%.2f policy=%s）" % [
 		cmd_at_end, dist_at_end, policy_at_end])
-	_pacify_target()
-	_check(await _wait_until(_infantry_standing, 3.0), "停火后步兵回稳")
+	if hit_seen and DisplayServer.get_name() != "headless":
+		var in_hit := func():
+			return (
+				is_instance_valid(_infantry_anim)
+				and _infantry_anim.current_animation == "Hit"
+				and is_instance_valid(_infantry)
+			)
+		if in_hit.call():
+			await _capture(SCREENSHOT_DIR + "review_hit.png", _infantry.global_position)
+	# 子弹仍在飞行期间直接重置：验证飞行中投射物与 ProjectileRuntime 活动记录正确释放。
+	_on_reset_pressed()
+	var redeployed := await _wait_until(_deployment_settled, 6.0)
+	_check(redeployed, "子弹飞行期间重置后重新部署完成")
+	_check(_review_leftovers() == 0, "子弹飞行期间重置后无投射物/死亡视觉残留")
+	counts = _deployed_unit_counts()
+	_check(_review_units_unique(counts), "子弹飞行期间重置后单位唯一")
 
 	_on_normal_death_pressed()
 	var died := await _wait_until(func(): return not is_instance_valid(_infantry), 5.0)
 	_check(died, "真实步枪致死移除战斗单位")
-	var visuals := get_tree().get_nodes_in_group("infantry_death_visuals")
-	_check(visuals.size() == 1 and visuals[0].get_meta("death_clip") == "Death",
+	# 死亡视觉出现即处于定格计时中，立刻重置验证尸体回收路径。
+	var visual_up := await _wait_until(_death_visual_present, 3.0)
+	_check(visual_up, "普通死亡应产生死亡视觉（定格中）")
+	var death_visuals := get_tree().get_nodes_in_group("infantry_death_visuals")
+	_check(death_visuals.size() == 1 and death_visuals[0].get_meta("death_clip") == "Death",
 		"普通致死应使用 Death 视觉")
-
 	_on_reset_pressed()
-	var respawned := func():
-		return is_instance_valid(_infantry) and _infantry.is_in_group("units")
-	_check(await _wait_until(respawned, 5.0), "重置后步兵重新部署")
+	var respawned := await _wait_until(_deployment_settled, 6.0)
+	_check(respawned, "尸体定格期间重置后重新部署完成")
 	_check(_fire_count == 0, "重置后开火计数清零")
-	# 上一轮普通死亡留下了死亡视觉，重置必须显式回收（帧末生效后组应清空）。
-	_check(get_tree().get_nodes_in_group("infantry_death_visuals").is_empty(),
-		"重置后无死亡视觉残留")
-	var projectiles_node = _match.get_node_or_null("Projectiles")
-	_check(projectiles_node == null or projectiles_node.get_child_count() == 0,
-		"重置后无飞行中投射物残留")
+	_check(_review_leftovers() == 0, "尸体定格期间重置后无死亡视觉/投射物残留")
+	counts = _deployed_unit_counts()
+	_check(_review_units_unique(counts), "尸体定格期间重置后单位唯一")
 
 	_on_explosion_death_pressed()
+	# 爆炸按钮内部必须先让靶子停火：切换到致死爆炸前隔离步枪弹，避免抢先致死。
+	_check(_gateway.GetFirePolicy(_target) == "HoldFire", "致死爆炸前靶子已停止持续射击")
 	var blasted := await _wait_until(func(): return not is_instance_valid(_infantry), 5.0)
 	_check(blasted, "真实炮弹致死移除战斗单位")
-	visuals = get_tree().get_nodes_in_group("infantry_death_visuals")
-	_check(not visuals.is_empty() and visuals[-1].get_meta("death_clip") == "HitHeavy",
-		"致死爆炸应使用 HitHeavy 视觉")
-	if DisplayServer.get_name() != "headless":
-		# 等到击飞中段再截，确认腾空姿态与方向。
-		await get_tree().create_timer(0.7).timeout
-		var blast_focus := INFANTRY_SPAWN
-		if not visuals.is_empty() and is_instance_valid(visuals[-1]):
-			blast_focus = visuals[-1].global_position
-		await _capture("G:/AIRTS/tmp_logs/anim_verify/review_blast_airborne.png", blast_focus)
+	var blast_visuals := get_tree().get_nodes_in_group("infantry_death_visuals")
+	_check(blast_visuals.size() == 1 and blast_visuals[0].get_meta("death_clip") == "HitHeavy",
+		"致死爆炸应产生唯一的 HitHeavy 视觉（场景已隔离）")
+	if DisplayServer.get_name() != "headless" and blast_visuals.size() == 1:
+		var blast_visual: Node3D = blast_visuals[0]
+		# 关键帧：起飞 → 腾空 → 落地 → 定格，全部聚焦受检单位的唯一死亡视觉。
+		# 起飞帧等 0.12s 截（避开剪辑起始的站立过渡，呈现已后仰离地的击飞姿态）。
+		await get_tree().create_timer(0.12).timeout
+		if is_instance_valid(blast_visual):
+			await _capture(SCREENSHOT_DIR + "review_blast_launch.png", blast_visual.global_position)
+		await get_tree().create_timer(0.3).timeout
+		if is_instance_valid(blast_visual):
+			await _capture(SCREENSHOT_DIR + "review_blast_airborne.png", blast_visual.global_position)
+		await get_tree().create_timer(0.35).timeout
+		if is_instance_valid(blast_visual):
+			await _capture(SCREENSHOT_DIR + "review_blast_landing.png", blast_visual.global_position)
+		# 按真实剪辑长度等待播放结束进入定格，不硬编码固定等待。
+		var blast_player: AnimationPlayer = blast_visual.find_child("AnimationPlayer", true, false)
+		if blast_player != null:
+			await get_tree().create_timer(blast_player.get_animation("HitHeavy").length + 0.15).timeout
+		if is_instance_valid(blast_visual):
+			await _capture(SCREENSHOT_DIR + "review_blast_hold.png", blast_visual.global_position)
 
 	print("InfantryCombatReviewSmoke completed: %d failure(s)" % _smoke_failures)
 	SmokeTestExitScript.request(get_tree(), 1 if _smoke_failures > 0 else 0)
 
 
-## 窗口模式下用独立相机对焦目标截屏；headless 自动跳过。
+func _deployment_settled() -> bool:
+	return not _deploying and is_instance_valid(_infantry) and _infantry.is_in_group("units")
+
+
+func _projectiles_present() -> bool:
+	var projectiles = _match.get_node_or_null("Projectiles")
+	if projectiles == null:
+		return false
+	for child in projectiles.get_children():
+		if is_instance_valid(child) and child.get("attack_id") != null:
+			return true
+	return false
+
+
+func _death_visual_present() -> bool:
+	return not get_tree().get_nodes_in_group("infantry_death_visuals").is_empty()
+
+
+## 统计验收创建的单位数（按 Review 前缀命名，不含基线场景单位）。
+## 同类 >1 说明重置产生了重复单位；=1 为正常部署；=0 为已阵亡/未部署。
+func _deployed_unit_counts() -> Dictionary:
+	var counts := {"infantry": 0, "target": 0, "blast": 0}
+	for unit in get_tree().get_nodes_in_group("units"):
+		if not is_instance_valid(unit):
+			continue
+		var unit_name := String(unit.name)
+		if unit_name.begins_with("ReviewInfantry"):
+			counts.infantry += 1
+		elif unit_name.begins_with("ReviewTarget"):
+			counts.target += 1
+		elif unit_name.begins_with("ReviewBlastTank"):
+			counts.blast += 1
+	return counts
+
+
+## 部署收敛后三类验收单位都应恰好各 1 个：0 表示丢失，>1 表示重复。
+func _review_units_unique(counts: Dictionary) -> bool:
+	return counts.infantry == 1 and counts.target == 1 and counts.blast == 1
+
+
+## 窗口模式下用固定正交近景相机对焦目标截屏；headless 自动跳过。
+## 截图前同步刷新状态面板并输出状态快照；期间隐藏验收面板和游戏 HUD，
+## 避免把 UI 当成动画内容或遮挡受检角色。
 func _capture(path: String, focus: Vector3) -> void:
+	_refresh_status_now()
+	_log_state_snapshot(path)
 	var camera := Camera3D.new()
 	camera.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	add_child(camera)
-	camera.global_position = focus + Vector3(2.6, 2.0, -3.0)
-	camera.look_at(focus + Vector3(0, 0.5, 0))
+	camera.global_position = focus + Vector3(2.0, 1.8, -2.6)
+	camera.look_at(focus + Vector3(0, 0.55, 0))
+	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
+	camera.size = 3.0
 	camera.current = true
+	var canvas_visibility: Array[Dictionary] = []
+	for canvas in get_tree().root.find_children("*", "CanvasLayer", true, false):
+		if not is_instance_valid(canvas):
+			continue
+		canvas_visibility.append({"node": canvas, "visible": canvas.visible})
+		canvas.visible = false
 	await get_tree().process_frame
 	await RenderingServer.frame_post_draw
 	var image := get_viewport().get_texture().get_image()
 	DirAccess.make_dir_recursive_absolute(path.get_base_dir())
 	image.save_png(path)
 	print("REVIEW_SCREENSHOT_SAVED ", path)
+	for item in canvas_visibility:
+		var canvas = item.get("node")
+		if is_instance_valid(canvas):
+			canvas.visible = bool(item.get("visible", true))
 	if is_instance_valid(_match_camera):
 		_match_camera.current = true
 	camera.queue_free()
