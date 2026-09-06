@@ -34,7 +34,9 @@ const TABS = [
 		"id": "infantry", "caption": "步兵", "producer": BarracksUnit,
 		"producer_caption": "兵营",
 		"items": [
-			{"scene": WorkerUnit, "caption": "工人", "icon": "worker"},
+			# 工人从主基地生产（开局即可）：只要主基地在就能补充工人，不必先造兵营
+			{"scene": WorkerUnit, "caption": "工人", "icon": "worker",
+				"producer": CommandCenterUnit, "producer_caption": "主基地"},
 			{"scene": SoldierUnit, "caption": "步兵", "icon": "soldier"},
 		],
 	},
@@ -526,14 +528,17 @@ func _begin_structure_placement(structure_scene):
 func _select_builder_if_needed() -> bool:
 	# 注意：request_legacy_construct 定义在 Unit 基类，所有单位都有该方法，
 	# 不能用它判定工人——必须按 Worker 场景路径精确匹配。
+	# 施工中的工人不被新建造任务抢占：选人各优先级全部排除正在建造的工人。
 	var selected_workers = get_tree().get_nodes_in_group("selected_units").filter(
-		func(unit): return is_instance_valid(unit) and _is_worker(unit)
+		func(unit): return is_instance_valid(unit) and _is_worker(unit) and not _is_constructing_builder(unit)
 	)
 	if not selected_workers.is_empty():
 		return true
 	var idle_pick = null
 	var any_pick = null
 	for unit in _own_workers():
+		if _is_constructing_builder(unit):
+			continue
 		if any_pick == null:
 			any_pick = unit
 		if idle_pick == null and unit.get("action") == null:
@@ -542,7 +547,7 @@ func _select_builder_if_needed() -> bool:
 	if pick == null:
 		pick = any_pick
 	if pick == null:
-		_set_status("没有可用工人：请先在「步兵」页签生产工人")
+		_set_status("所有工人都在建造中：请等待任一建造完成，或生产新工人")
 		return false
 	MatchSignals.deselect_all_units.emit()
 	for child in pick.get_children():
@@ -550,6 +555,18 @@ func _select_builder_if_needed() -> bool:
 			child.select()
 			break
 	return true
+
+
+## 工人当前是否在建造（含寻路在途）：顶层动作为 Constructing。
+func _is_constructing_builder(unit) -> bool:
+	var action = unit.get("action")
+	if action == null:
+		return false
+	var action_script = action.get_script()
+	return (
+		action_script != null
+		and action_script.resource_path == "res://source/match/units/actions/Constructing.gd"
+	)
 
 
 func _is_worker(unit) -> bool:
@@ -639,6 +656,14 @@ func _refresh_tabs():
 			available = not _own_workers().is_empty()
 		else:
 			available = not _own_units_by_scene(tab.producer).is_empty()
+			if not available:
+				# 页签内任一物品有其可用生产设施即解锁（如步兵页签的工人走主基地生产）
+				for item in tab.items:
+					if not item.get("place", false) and not _own_units_by_scene(
+						item.get("producer", tab.producer)
+					).is_empty():
+						available = true
+						break
 		var tab_button: Button = _tab_buttons[tab.id]
 		tab_button.disabled = not available
 		if not available:

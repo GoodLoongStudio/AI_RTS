@@ -72,7 +72,9 @@ func _find_stationary_aim_node() -> Node3D:
 	var node_path: NodePath = idle_trait.get("node_to_rotate")
 	if node_path.is_empty():
 		return null
-	var aim_node = _unit.get_node_or_null(node_path)
+	# node_to_rotate 相对于 trait 节点（"../DetachTransform/..."），必须由 trait 解析；
+	# 用单位根节点解析会越界拿不到节点，导致炮塔退回根节点旋转（炮管不瞄准）
+	var aim_node = idle_trait.get_node_or_null(node_path)
 	return aim_node if aim_node is Node3D else null
 
 
