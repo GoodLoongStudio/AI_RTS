@@ -7,7 +7,7 @@ const ROTATION_MULTIPLIER_CHANGE_INTERVAL_LB_S = 0.2
 const ROTATION_MULTIPLIER_CHANGE_INTERVAL_UB_S = 0.8
 
 @export var node_to_rotate: NodePath
-@export var rotation_speed = 120.0  # degrees/s
+@export var rotation_speed = 60.0  # degrees/s（2026-09-06: 120→60，索敌扫描更沉稳，避免 360° 快速空转）
 
 var _current_rotation_multiplier = 0
 

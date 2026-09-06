@@ -23,6 +23,20 @@ func _ready():
 	await get_tree().physics_frame
 	await get_tree().process_frame
 
+	# 会话绑定发生在 Match._ready 的导航烘焙 await 之后（WorldQueryRuntime.BindRuleAiSessions），
+	# 固定等 3 帧会拿到 Nil 并中断本协程（表现为测试挂起无 completed）——
+	# 与 RuleAiAggressionSmokeTest 同口径：轮询等待而非依赖帧数时序。
+	var session_waited := 0.0
+	while rule_ai.get("_world_query_runtime") == null and session_waited < 30.0:
+		await get_tree().create_timer(0.5).timeout
+		session_waited += 0.5
+	if not _check(rule_ai.get("_world_query_runtime") != null, "Match 应在 30s 内绑定 rule AI world query 会话"):
+		print("Rule AI defense smoke test completed: %d failure(s)" % _failures)
+		match_instance.queue_free()
+		await get_tree().process_frame
+		SmokeTestExit.request(get_tree(), 1)
+		return
+
 	var spawns: Dictionary = rule_ai.get("_world_query_runtime").GetSpawnPoints(
 		rule_ai.get("_query_session_id")
 	)
@@ -82,9 +96,10 @@ func _own_tank(rule_ai) -> Dictionary:
 	return {}
 
 
-func _check(condition: bool, message: String):
+func _check(condition: bool, message: String) -> bool:
 	if condition:
-		return
+		return true
 	_failures += 1
 	print("FAIL: %s" % message)
 	push_error(message)
+	return false

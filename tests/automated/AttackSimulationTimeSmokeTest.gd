@@ -66,7 +66,12 @@ func _ready():
 	gateway.SetFirePolicy([enemy], "HoldFire", enemy_player)
 	gateway.SetFirePolicy([attacker], "FireAtWill", human)
 	gateway.AttackUnits([attacker], enemy, human)
-	await get_tree().create_timer(0.2).timeout
+	# 2026-09-06: 开火前炮管须转向对准目标（~90° / 240°每秒 + 重试间隔），
+	# 首发存在合法延迟——轮询等待首次开火元数据而非固定 0.2s。
+	var first_shot_wait_s := 0.0
+	while not attacker.has_meta("next_attack_availability_time") and first_shot_wait_s < 5.0:
+		await get_tree().create_timer(0.1).timeout
+		first_shot_wait_s += 0.1
 	_check(attacker.has_meta("next_attack_availability_time"), "开火后应记录下一次攻击可用的模拟时间")
 	var available_at: int = attacker.get_meta("next_attack_availability_time")
 	var remaining_before: int = available_at - match_instance.get_simulation_msec()
