@@ -4,7 +4,6 @@ extends Node
 ## 纯资产验证，不实例化任何游戏单位、不触碰游戏逻辑。
 
 const ANIM_GLB := "res://assets/models/polygon-scifi/Infantry_native_v3.glb"
-const FBX_MODEL := "res://assets/models/polygon-scifi/Infantry_Soldier_Male_01_rigged.fbx"
 const SHOT_DIR := "G:/AIRTS/tmp_logs/anim_verify"
 
 ## Idle/Run 来自 Soldier，Crawl/Death 来自 UAL，Fire/Hit/HitHeavy 为步枪姿势层。
@@ -38,15 +37,10 @@ func _ready():
 			_check(skeleton.find_bone(bone) >= 0, "应存在骨骼 %s" % bone)
 
 	_print_aabb(model, "GLB")
-	var fbx_packed: PackedScene = load(FBX_MODEL)
-	if fbx_packed != null:
-		var fbx_model := fbx_packed.instantiate()
-		add_child(fbx_model)
-		# Infantry.tscn 的游戏挂载变换：scale 0.45 + 绕 Y 转 180°
-		fbx_model.transform = Transform3D(
-			Basis(Vector3.UP, PI).scaled(Vector3.ONE * 0.45), Vector3.ZERO)
-		await get_tree().process_frame
-		_print_aabb(fbx_model, "FBX(游戏挂载变换)")
+	# 直接检查当前 GLB 的游戏挂载尺寸，不再加载已淘汰的重绑 FBX。
+	model.scale = Vector3.ONE * 0.45
+	_print_aabb(model, "GLB(游戏挂载变换)")
+	model.scale = Vector3.ONE
 
 	var player: AnimationPlayer = model.find_child("AnimationPlayer", true, false)
 	_check(player != null, "GLB 内应有 AnimationPlayer")
