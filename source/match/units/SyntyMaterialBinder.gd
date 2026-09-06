@@ -90,11 +90,12 @@ func _apply_material() -> void:
 		mesh_instance.material_override = material
 
 
-## 所属单位是否为施工中的建筑（Structure.is_under_construction）。
+## 所属单位是否为施工中的建筑（沿祖先链查找 Structure——
+## 炮塔的 Geometry 挂在 DetachTransform 之下，不能只看直接父节点）。
 func _is_owner_under_construction(geometry_node: Node) -> bool:
-	var unit = geometry_node.get_parent()
-	return (
-		unit != null
-		and "is_under_construction" in unit
-		and unit.is_under_construction()
-	)
+	var current: Node = geometry_node.get_parent()
+	while current != null:
+		if "is_under_construction" in current:
+			return current.is_under_construction()
+		current = current.get_parent()
+	return false

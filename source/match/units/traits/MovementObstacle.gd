@@ -11,7 +11,11 @@ func _ready():
 	await get_tree().process_frame  # wait for navigation to be operational
 	set_navigation_map(_match.navigation.get_navigation_map_rid_by_domain(domain))
 	_align_unit_position_to_navigation()
-	_affect_navigation_if_needed()
+	if "is_under_construction" in _unit and _unit.is_under_construction():
+		# 施工中的建筑不阻挡寻路（虚化无碰撞体积）；完工信号后再加入导航障碍并重烘
+		_unit.constructed.connect(_affect_navigation_if_needed)
+	else:
+		_affect_navigation_if_needed()
 
 
 func _exit_tree():

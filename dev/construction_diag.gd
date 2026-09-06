@@ -6,6 +6,7 @@ extends SceneTree
 var _frame := 0
 var _match: Node
 var _factory: Node3D
+var _turret: Node3D
 
 
 func _initialize():
@@ -18,46 +19,57 @@ func _process(_delta) -> bool:
 	match _frame:
 		10:
 			_spawn_factory()
+			_spawn_turret()
 		12:
-			_dump("施工标记后")
+			_dump("施工标记后", _factory)
+			_dump("施工标记后", _turret)
 		14:
-			_advance_work()
+			_advance_work(_factory)
+			_advance_work(_turret)
 		16:
-			_dump("工作量拉满+完工后")
+			_dump("工作量拉满+完工后", _factory)
+			_dump("工作量拉满+完工后", _turret)
 			return true
 	return false
 
 
-func _spawn_factory() -> void:
+func _spawn_unit(scene_path: String) -> Node3D:
 	var human = _match.get_node("Players/Human")
-	_factory = load("res://source/match/units/VehicleFactory.tscn").instantiate()
+	var unit: Node3D = load(scene_path).instantiate()
 	# 手动复刻 Match._setup_and_spawn_unit 的关键顺序（-s 模式无 MatchSignals 自动加载）：
 	# 先 mark_as_under_construction，再 add_child 入树（binder _ready 在入树时触发）。
-	_factory.global_transform = Transform3D(Basis.IDENTITY, Vector3(10, 0, 10))
-	_factory.mark_as_under_construction()
-	_factory.add_to_group("units")
-	human.add_child(_factory)
+	unit.global_transform = Transform3D(Basis.IDENTITY, Vector3(10, 0, 10))
+	unit.mark_as_under_construction()
+	unit.add_to_group("units")
+	human.add_child(unit)
+	return unit
 
 
-func _advance_work() -> void:
-	_factory.apply_authoritative_construction_work(10, 10)
-	var completed: bool = _factory.complete_authoritative_construction()
-	print("[DIAG] complete_authoritative_construction -> ", completed,
-		"  is_constructed=", _factory.is_constructed())
+func _spawn_factory() -> void:
+	_factory = _spawn_unit("res://source/match/units/VehicleFactory.tscn")
 
 
-func _dump(label: String) -> void:
-	print("==== %s ====" % label)
-	print("is_constructed=", _factory.is_constructed(),
-		"  is_under_construction=", _factory.is_under_construction())
-	var geometry = _factory.find_child("Geometry")
+func _spawn_turret() -> void:
+	_turret = _spawn_unit("res://source/match/units/AntiGroundTurret.tscn")
+
+
+func _advance_work(unit: Node3D) -> void:
+	unit.apply_authoritative_construction_work(10, 10)
+	var completed: bool = unit.complete_authoritative_construction()
+	print("[DIAG] %s complete -> %s  is_constructed=%s" % [
+		unit.name, completed, unit.is_constructed()])
+
+
+func _dump(label: String, unit: Node3D) -> void:
+	print("==== %s : %s ====" % [label, unit.name])
+	print("is_constructed=", unit.is_constructed(),
+		"  is_under_construction=", unit.is_under_construction())
+	var geometry = unit.find_child("Geometry")
 	for mesh_instance in geometry.find_children("*", "MeshInstance3D", true, false):
 		var override = mesh_instance.material_override
 		var desc := "null"
 		if override != null:
-			desc = "%s(transparent=%s)" % [override.get_class(), override.transparency]
+			desc = override.get_class()
+			if override is StandardMaterial3D:
+				desc += "(transparent=%s alpha=%.2f)" % [override.transparency, override.albedo_color.a]
 		print("  mesh=", mesh_instance.name, "  override=", desc)
-	var binder = geometry.find_children("*", "", true, false).filter(
-		func(n): return n.get_script() != null and str(n.get_script().resource_path).ends_with("SyntyMaterialBinder.gd")
-	)
-	print("  binder count=", binder.size())

@@ -52,6 +52,7 @@ func _bind_local_input():
 	MatchSignals.terrain_targeted.connect(_on_terrain_targeted)
 	MatchSignals.unit_targeted.connect(_on_unit_targeted)
 	MatchSignals.unit_spawned.connect(_on_unit_spawned)
+	MatchSignals.unit_selected.connect(_on_unit_selected_cancel_idle_construction)
 	var command_runtime = find_parent("Match").get_node_or_null("CommandRuntime")
 	if command_runtime != null:
 		command_runtime.connect("OrderStateChanged", _on_order_state_changed)
@@ -722,3 +723,34 @@ func _on_unit_targeted(unit, target_position: Vector3):
 
 func _on_unit_spawned(_unit):
 	pass
+
+
+## 左键点击「无工人在建」的己方施工中建筑 → 取消建造并退款（2026-09-06）。
+## 有工人在建（含在途）时不取消，正常选中查看。
+func _on_unit_selected_cancel_idle_construction(unit):
+	if not (unit is Structure) or not unit.is_under_construction():
+		return
+	if not unit.is_in_group("controlled_units"):
+		return
+	if _has_assigned_builders(unit):
+		return
+	var gateway = get_parent().get_node_or_null("UnitCommandGateway")
+	if gateway == null:
+		return
+	var cancel_result: Dictionary = gateway.CancelConstruction(unit, get_parent())
+	if cancel_result.get("accepted", false):
+		print("[INPUT] cancel idle construction site=", unit.name)
+	else:
+		print(
+			"[INPUT] cancel idle construction rejected site=", unit.name,
+			" status=", cancel_result.get("status", "")
+		)
+
+
+## 是否存在指向该施工现场的建造中工人（含寻路在途）。
+func _has_assigned_builders(site) -> bool:
+	for unit in get_tree().get_nodes_in_group("controlled_units"):
+		var action = unit.action
+		if action != null and action.get_script() == Actions.Constructing and action._target_unit == site:
+			return true
+	return false
