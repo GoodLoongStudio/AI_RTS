@@ -34,6 +34,8 @@ signal deselected
 signal hp_changed
 signal action_changed(new_action)
 signal action_updated
+## 实际创建投射物后发出；表现层不得仅凭攻击 Action 推断本帧开火。
+signal attack_fired
 signal explicit_force_attack_ended(reason)
 signal ordinary_attack_ended(reason)
 signal entity_attack_move_ended(reason)

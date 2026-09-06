@@ -229,6 +229,8 @@ public partial class ProjectileRuntime : Node
         projectile.Set("visible_snapshot", source.Visible);
         projectile.TreeExited += () => Forget(id);
         _projectiles.AddChild(projectile);
+        // 实体攻击、地面攻击与调试发射共用同一真实发射事件，避免各 Action 漏报或重复报。
+        if (source.HasSignal("attack_fired")) source.EmitSignal("attack_fired");
         return id;
     }
 

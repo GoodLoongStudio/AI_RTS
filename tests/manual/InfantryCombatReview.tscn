@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" uid="uid://b65yuqx0iw62f" path="res://tests/manual/TestAllUnits.tscn" id="1_match"]
+[ext_resource type="Script" path="res://tests/manual/InfantryCombatReview.gd" id="2_review"]
+
+[node name="InfantryCombatReview" type="Node"]
+script = ExtResource("2_review")
+
+[node name="Match" parent="." instance=ExtResource("1_match")]
