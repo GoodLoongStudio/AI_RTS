@@ -15,6 +15,8 @@ func _ready():
 	_refresh_occluders()
 	MatchSignals.unit_spawned.connect(func(_unit): _refresh_occluders())
 	MatchSignals.unit_died.connect(func(_unit): call_deferred("_refresh_occluders"))
+	# 建筑完工会重绑图集材质：作废旧缓存的基础/淡出材质，避免完工后仍恢复成施工半透明材质
+	MatchSignals.unit_construction_finished.connect(_refresh_unit_fade_materials)
 
 
 func _process(_delta):
@@ -65,14 +67,45 @@ func _apply_fade(blocking: Dictionary):
 	for occluder in _occluders:
 		if not is_instance_valid(occluder):
 			continue
-		_ensure_fade_materials(occluder)
 		var should_fade: bool = blocking.has(occluder)
 		if should_fade:
+			_ensure_fade_materials(occluder)
 			occluder.material_override = occluder.get_meta("occlusion_fade_material")
 			_faded[occluder] = true
-		else:
+		elif _faded.has(occluder):
+			# 淡出→恢复：先刷新基础材质再恢复（完工重绑后基础材质已变）
+			_refresh_base_override(occluder)
 			occluder.material_override = occluder.get_meta("occlusion_base_override")
 			_faded.erase(occluder)
+		else:
+			# 未淡出时跟踪外部材质变化（如施工→完工重绑），保持 base 与淡出材质新鲜；
+			# 此前这里每帧无条件写回捕获时的旧 base，会把完工后的实体材质重新压成施工半透明
+			_refresh_base_override(occluder)
+
+
+## 外部修改了网格材质（完工重绑）时刷新缓存的基础材质并作废旧淡出材质。
+func _refresh_base_override(mesh: GeometryInstance3D) -> void:
+	var current = mesh.material_override
+	if mesh.get_meta("occlusion_base_override", null) != current:
+		mesh.set_meta("occlusion_base_override", current)
+		if mesh.has_meta("occlusion_fade_ready"):
+			mesh.remove_meta("occlusion_fade_ready")
+			mesh.remove_meta("occlusion_fade_material")
+
+
+## 建筑完工：丢弃该建筑全部网格的淡出材质缓存，按当前（重绑后）材质重新捕获。
+func _refresh_unit_fade_materials(unit) -> void:
+	var geometry = unit.find_child("Geometry")
+	if geometry == null:
+		return
+	for mesh in geometry.find_children("*", "MeshInstance3D", true, false):
+		var was_faded: bool = _faded.has(mesh)
+		for meta in ["occlusion_fade_ready", "occlusion_fade_material", "occlusion_base_override"]:
+			mesh.remove_meta(meta)
+		_ensure_fade_materials(mesh)
+		if was_faded:
+			mesh.material_override = mesh.get_meta("occlusion_fade_material")
+		_faded.erase(mesh)
 
 
 func _ensure_fade_materials(mesh: GeometryInstance3D):
