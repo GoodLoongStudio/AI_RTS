@@ -36,6 +36,49 @@ const MAPS = {
 	},
 }
 
+# RTS_Map_Tool 工作台生成的地图按唯一 map_id 隔离登记（2026-09-06）：
+# 每个 source/match/maps/generated/<map_id>/map_index.json 声明一张地图，
+# 工作台安装地图包时写入，无需逐张手改本文件；下载包在任意同版本 AI_RTS
+# 中解包后同样被自动发现。上方三个旧平面 seed 地图保留不变。
+# 注意：静态初始化依赖 DirAccess 运行时读文件，不是常量表达式；
+# Godot 4 的 const 只接受常量表达式，必须用 static var（访问方式不变）。
+static var GENERATED_MAPS := _load_generated_maps()
+static var ALL_MAPS := _merged_maps()
+
+
+static func _merged_maps() -> Dictionary:
+	var merged := MAPS.duplicate()
+	merged.merge(GENERATED_MAPS, true)
+	return merged
+
+
+static func _load_generated_maps() -> Dictionary:
+	var result := {}
+	var base := "res://source/match/maps/generated"
+	var dir := DirAccess.open(base)
+	if dir == null:
+		return result
+	dir.list_dir_begin()
+	var entry := dir.get_next()
+	while not entry.is_empty():
+		if dir.current_is_dir() and not entry.begins_with("."):
+			var index_path := base.path_join(entry).path_join("map_index.json")
+			if FileAccess.file_exists(index_path):
+				var f := FileAccess.open(index_path, FileAccess.READ)
+				if f != null:
+					var parsed = JSON.parse_string(f.get_as_text())
+					f.close()
+					if parsed is Dictionary and parsed.has("path"):
+						var size_arr: Array = parsed.get("size", [256, 256])
+						result[parsed["path"]] = {
+							"name": str(parsed.get("name", entry)),
+							"players": int(parsed.get("players", 4)),
+							"size": Vector2i(int(size_arr[0]), int(size_arr[1])),
+						}
+		entry = dir.get_next()
+	dir.list_dir_end()
+	return result
+
 
 class Navigation:
 	enum Domain { AIR, TERRAIN }

@@ -549,6 +549,7 @@ func _is_room_owner_slot(sender_slot: int) -> bool:
 	return sender_slot == human_slots.min()
 
 
+@rpc("any_peer", "call_remote", "reliable")
 func _rpc_solo_start(
 	peaceful: bool = false, with_ai: bool = false, passive_ai_test: bool = false
 ) -> void:

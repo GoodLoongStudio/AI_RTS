@@ -18,6 +18,7 @@ const COMMAND_LABELS = {
 	"SCOUT": "侦察", "RETREAT": "撤退", "STOP": "停止"
 }
 const F1_DOUBLE_TAP_MS := 350
+const STATE_ONLINE := "● 副官已接入，正在观察"
 
 var control_mode := "squad"
 var hero_name := "先锋指挥单元"
@@ -38,6 +39,8 @@ var _hero_camera_locked := false
 var _current_objective := "等待战区任务同步"
 var _current_suggestion := "保持待命，等待新的任务信息。"
 var _current_risk := "未知"
+var _current_phase := "观察"
+var _latest_decision := "尚未下达决定，正在观察战况。"
 var _mock_agent_busy := false
 @onready var _input_runtime = find_parent("Match").get_node("InputBindingRuntime")
 
@@ -140,7 +143,7 @@ func _build_ui():
 	ai_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_row.add_child(ai_title)
 	_agent_state = Label.new()
-	_agent_state.text = "● 战术链路在线"
+	_agent_state.text = STATE_ONLINE
 	title_row.add_child(_agent_state)
 
 	_context_label = Label.new()
@@ -152,17 +155,17 @@ func _build_ui():
 	quick_row.add_theme_constant_override("separation", 6)
 	right_box.add_child(quick_row)
 	var next_button := Button.new()
-	next_button.text = "下一步？"
+	next_button.text = "下一步建议"
 	next_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	next_button.pressed.connect(_ask_mock_agent.bind("NEXT"))
 	quick_row.add_child(next_button)
 	var risk_button := Button.new()
-	risk_button.text = "风险？"
+	risk_button.text = "风险评估"
 	risk_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	risk_button.pressed.connect(_ask_mock_agent.bind("RISK"))
 	quick_row.add_child(risk_button)
 	var status_button := Button.new()
-	status_button.text = "战况？"
+	status_button.text = "当前战况"
 	status_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	status_button.pressed.connect(_ask_mock_agent.bind("STATUS"))
 	quick_row.add_child(status_button)
@@ -174,7 +177,7 @@ func _build_ui():
 	_chat_log.custom_minimum_size = Vector2(405, 430)
 	right_box.add_child(_chat_log)
 	_command_hint = Label.new()
-	_command_hint.text = "AI理解：%s · 待命" % _control_display(1)
+	_command_hint.text = "副官理解：%s · 待命" % _control_display(1)
 	_command_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	right_box.add_child(_command_hint)
 
@@ -329,7 +332,7 @@ func _select_squad(squad_id: int):
 		if _is_hero_mode():
 			_append_ai("先锋单位尚未接入战场。")
 		else:
-			_append_ai("%d %s 尚未由任务系统建立。" % [squad_id, SQUAD_NAMES[squad_id]])
+			_append_ai("%s 还没有可指挥的部队。" % _control_display(squad_id))
 	else:
 		Utils.Match.select_units(Utils.Set.from_array(units))
 	_refresh_squad_ui()
@@ -353,10 +356,11 @@ func _begin_command(command: String):
 			_execute_stop()
 		"MOVE", "SCOUT", "RETREAT":
 			pending_command = command
-			_append_ai("理解你的意图：让%s%s。请在地图上右键指定位置，我会把目标交给 RTS 执行层。" % [_control_display(active_squad), COMMAND_LABELS[command]])
+			_append_ai("理解你的意图：让%s%s。请在地图上右键指定位置，我会安排部队出发。" % [_control_display(active_squad), COMMAND_LABELS[command]])
 		"ATTACK":
 			pending_command = command
 			_append_ai("理解你的意图：让%s攻击指定目标。请右键选择敌方单位。" % _control_display(active_squad))
+	_note_decision("申请让%s%s" % [_control_display(active_squad), COMMAND_LABELS[command]])
 	_refresh_squad_ui()
 
 
@@ -372,11 +376,12 @@ func _execute_defend():
 				player
 			)
 	):
-		_append_ai("命令未执行：当前小队没有可设置防守姿态的单位或公共命令入口不可用。")
+		_append_ai("暂时无法执行：当前小队没有适合防守的单位，请稍后再试。")
 		return
 	squad_status[active_squad] = "警戒中" if _is_hero_mode() else "固守中"
 	pending_command = ""
 	_append_ai("命令已下达：%s原地警戒。我会继续关注任务状态。" % _control_display(active_squad))
+	_note_decision("让%s原地警戒" % _control_display(active_squad))
 	_refresh_squad_ui()
 	squad_command_executed.emit(active_squad, "DEFEND")
 
@@ -386,11 +391,12 @@ func _execute_stop():
 	if not _submit_public_squad_command(
 		func(gateway, player): return gateway.StopUnits(units, player)
 	):
-		_append_ai("命令未执行：公共停止命令拒绝或入口不可用。")
+		_append_ai("暂时无法执行停止命令，请稍后再试。")
 		return
 	squad_status[active_squad] = "待命"
 	pending_command = ""
 	_append_ai("命令已下达：%s停止当前任务，重新进入待命。" % _control_display(active_squad))
+	_note_decision("让%s停止当前任务，重新待命" % _control_display(active_squad))
 	_refresh_squad_ui()
 	squad_command_executed.emit(active_squad, "STOP")
 
@@ -423,7 +429,8 @@ func _on_terrain_targeted(_position):
 	var executed_command = pending_command
 	var label = COMMAND_LABELS[executed_command]
 	squad_status[active_squad] = "%s中" % label
-	_append_ai("已确认地图目标。%s开始%s；路线由底层 RTS 系统执行。" % [_control_display(active_squad), label])
+	_append_ai("已确认地图目标。%s开始%s，部队已经在路上了。" % [_control_display(active_squad), label])
+	_note_decision("确认目标位置，让%s%s" % [_control_display(active_squad), label])
 	pending_command = ""
 	_refresh_squad_ui()
 	squad_command_executed.emit(active_squad, executed_command)
@@ -437,6 +444,7 @@ func _on_unit_targeted(unit, _target_position):
 		return
 	squad_status[active_squad] = "交战中"
 	_append_ai("敌方目标已确认。%s开始集火 %s。" % [_control_display(active_squad), unit.type])
+	_note_decision("确认敌方目标，让%s集火%s" % [_control_display(active_squad), unit.type])
 	pending_command = ""
 	_refresh_squad_ui()
 	squad_command_executed.emit(active_squad, "ATTACK")
@@ -457,7 +465,7 @@ func _on_text_submitted(text: String):
 	if not question.is_empty():
 		_respond_to_ai_question(question)
 		_mock_agent_busy = false
-		_set_agent_state("● 战术链路在线")
+		_set_agent_state(STATE_ONLINE)
 		return
 
 	var squad_id = _parse_squad(command_text)
@@ -465,14 +473,14 @@ func _on_text_submitted(text: String):
 		_select_squad(squad_id)
 	var command = _parse_command(command_text)
 	if command.is_empty():
-		_append_ai("我理解到这是一个战术意图，但当前模拟链路还不能安全转换成执行命令。你可以直接说‘去前面看看’、‘原地警戒’、‘攻击目标’，或者问我‘下一步做什么’。")
+		_append_ai("我理解了你的意图，但还需要你在地图上确认目标位置。你可以直接说‘去前面看看’、‘原地警戒’、‘攻击目标’，或者问我‘下一步做什么’。")
 		_mock_agent_busy = false
-		_set_agent_state("● 战术链路在线")
+		_set_agent_state(STATE_ONLINE)
 		return
 	_append_ai("我的理解：%s需要%s。%s" % [_control_display(active_squad), COMMAND_LABELS[command], _command_reasoning(command)])
 	_begin_command(command)
 	_mock_agent_busy = false
-	_set_agent_state("● 战术链路在线")
+	_set_agent_state(STATE_ONLINE)
 
 
 func _parse_ai_question(text: String) -> String:
@@ -493,7 +501,7 @@ func _ask_mock_agent(question: String):
 	await get_tree().create_timer(0.22).timeout
 	_respond_to_ai_question(question)
 	_mock_agent_busy = false
-	_set_agent_state("● 战术链路在线")
+	_set_agent_state(STATE_ONLINE)
 
 
 func _respond_to_ai_question(question: String):
@@ -501,7 +509,7 @@ func _respond_to_ai_question(question: String):
 		"NEXT":
 			_append_ai("建议：%s\n理由：这一步与当前任务目标直接相关，我不会假设战争迷雾外存在未确认目标。" % _current_suggestion)
 		"RISK":
-			_append_ai("当前风险评估：%s。这个判断只基于任务脚本已经确认的信息；未知区域仍按未知处理。" % _current_risk)
+			_append_ai("当前风险评估：%s。这个判断只基于已经确认的情报；未知区域仍按未知处理。" % _current_risk)
 		"STATUS":
 			_append_ai("当前目标：%s\n%s状态：%s。" % [_current_objective, _control_display(active_squad), squad_status[active_squad]])
 
@@ -563,7 +571,7 @@ func _refresh_squad_ui():
 		var prefix = "▶ " if squad_id == active_squad else ""
 		var count = _get_squad_units(squad_id).size()
 		_squad_buttons[squad_id].text = "%s%s  · %d\n%s" % [prefix, _control_display(squad_id), count, squad_status[squad_id]]
-	_command_hint.text = "AI理解：%s · %s%s" % [_control_display(active_squad), squad_status[active_squad], " · 等待你确认目标" if not pending_command.is_empty() else ""]
+	_command_hint.text = "副官理解：%s · %s%s" % [_control_display(active_squad), squad_status[active_squad], " · 等待你确认目标" if not pending_command.is_empty() else ""]
 	_update_hero_focus_card()
 
 
@@ -581,7 +589,42 @@ func set_agent_context(objective: String, suggestion: String, risk: String):
 func _refresh_agent_context():
 	if _context_label == null:
 		return
-	_context_label.text = "当前态势：%s\n风险：%s" % [_current_objective, _current_risk]
+	_current_phase = _infer_phase()
+	_context_label.text = (
+		"当前阶段：%s\n当前目标：%s\n最近决定：%s\n风险评估：%s\n%s"
+		% [_current_phase, _current_objective, _latest_decision, _current_risk, _wait_confirm_text()]
+	)
+
+
+## 从当前待确认命令与小队状态推断副官阶段，让玩家一眼看懂副官在做什么
+## （观察/机动/侦察/交战/撤退/防守/等待玩家确认目标）。
+func _infer_phase() -> String:
+	if not pending_command.is_empty():
+		return "等待玩家确认目标"
+	var status: String = str(squad_status.get(active_squad, "待命"))
+	if status.contains("攻击") or status.contains("交战"):
+		return "交战"
+	if status.contains("侦察"):
+		return "侦察"
+	if status.contains("撤退"):
+		return "撤退"
+	if status.contains("移动"):
+		return "机动"
+	if status.contains("警戒") or status.contains("固守"):
+		return "防守"
+	return "观察"
+
+
+func _wait_confirm_text() -> String:
+	if pending_command.is_empty():
+		return "等待玩家确认：否"
+	return "等待玩家确认：是（请在地图上点选目标）"
+
+
+## 记录最近决定并刷新上下文面板。
+func _note_decision(text: String):
+	_latest_decision = text
+	_refresh_agent_context()
 
 
 func _set_agent_state(text: String):
