@@ -19,9 +19,7 @@ const ICON_BY_SCENE := {
 }
 
 const CELL_SIZE := 56.0
-const COLUMNS := 2
-const PANEL_WIDTH := 132.0
-const TOP_OFFSET := 150.0
+const PANEL_HEIGHT := 72.0
 const REFRESH_INTERVAL := 0.3
 
 const PANEL_BG = Color(0.09, 0.10, 0.12, 0.97)
@@ -32,7 +30,7 @@ const CELL_HOVER_BG = Color(0.10, 0.13, 0.17)
 const CAPTION_COLOR = Color(0.85, 0.87, 0.90)
 
 var _scroll: ScrollContainer = null
-var _grid: GridContainer = null
+var _grid: HBoxContainer = null
 var _refresh_accumulator := 0.0
 
 
@@ -55,19 +53,18 @@ func _process(delta):
 
 
 func _build_ui():
-	custom_minimum_size = Vector2(PANEL_WIDTH, 0.0)
-	set_anchors_and_offsets_preset(Control.PRESET_LEFT_WIDE)
+	# 魔兽争霸式底部横条：贴屏幕下缘横向排列，右侧让位给 RA3 侧栏（宽 288）
+	custom_minimum_size = Vector2(0, PANEL_HEIGHT)
+	set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 	offset_left = 8.0
-	offset_top = TOP_OFFSET
-	offset_right = 8.0 + PANEL_WIDTH
-	offset_bottom = -12.0
+	offset_top = -PANEL_HEIGHT - 8.0
+	offset_right = -(288.0 + 16.0)
+	offset_bottom = -8.0
 	_scroll = ScrollContainer.new()
-	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	add_child(_scroll)
-	_grid = GridContainer.new()
-	_grid.columns = COLUMNS
-	_grid.add_theme_constant_override("h_separation", 4)
-	_grid.add_theme_constant_override("v_separation", 4)
+	_grid = HBoxContainer.new()
+	_grid.add_theme_constant_override("separation", 4)
 	_scroll.add_child(_grid)
 
 
