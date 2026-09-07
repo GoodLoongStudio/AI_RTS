@@ -344,11 +344,14 @@ func _select_tab(tab_id: String):
 	for tab_item in tab.items:
 		# 页签级字段（place/producer/producer_caption）下放合并进每个格子条目，
 		# 供 _cost_caption/_queue_stats 等统一按 item 取用。
+		# 物品自带 producer（如工人走主基地）时不得被页签默认值覆盖。
 		var item = tab_item.duplicate()
 		item["place"] = tab.get("place", false)
 		if not tab.get("place", false):
-			item["producer"] = tab.get("producer")
-			item["producer_caption"] = tab.get("producer_caption", "")
+			if not item.has("producer"):
+				item["producer"] = tab.get("producer")
+			if not item.has("producer_caption"):
+				item["producer_caption"] = tab.get("producer_caption", "")
 		var cell = _make_cell(item)
 		_grid.add_child(cell.button)
 		_cells.append(cell)
