@@ -34,7 +34,6 @@ const TABS = [
 		"id": "infantry", "caption": "步兵", "producer": BarracksUnit,
 		"producer_caption": "兵营",
 		"items": [
-			{"scene": WorkerUnit, "caption": "工人", "icon": "worker"},
 			{"scene": SoldierUnit, "caption": "步兵", "icon": "soldier"},
 		],
 	},
@@ -42,6 +41,9 @@ const TABS = [
 		"id": "vehicles", "caption": "载具", "producer": VehicleFactoryUnit,
 		"producer_caption": "车辆工厂",
 		"items": [
+			# 工人按钮放在载具页签首位：主基地开局即可生产，无需兵营/车厂
+			{"scene": WorkerUnit, "caption": "工人", "icon": "worker",
+				"producer": CommandCenterUnit, "producer_caption": "主基地"},
 			{"scene": TankUnit, "caption": "坦克", "icon": "tank"},
 		],
 	},
@@ -342,11 +344,14 @@ func _select_tab(tab_id: String):
 	for tab_item in tab.items:
 		# 页签级字段（place/producer/producer_caption）下放合并进每个格子条目，
 		# 供 _cost_caption/_queue_stats 等统一按 item 取用。
+		# 物品自带 producer（如工人走主基地）时不得被页签默认值覆盖。
 		var item = tab_item.duplicate()
 		item["place"] = tab.get("place", false)
 		if not tab.get("place", false):
-			item["producer"] = tab.get("producer")
-			item["producer_caption"] = tab.get("producer_caption", "")
+			if not item.has("producer"):
+				item["producer"] = tab.get("producer")
+			if not item.has("producer_caption"):
+				item["producer_caption"] = tab.get("producer_caption", "")
 		var cell = _make_cell(item)
 		_grid.add_child(cell.button)
 		_cells.append(cell)
@@ -526,14 +531,17 @@ func _begin_structure_placement(structure_scene):
 func _select_builder_if_needed() -> bool:
 	# 注意：request_legacy_construct 定义在 Unit 基类，所有单位都有该方法，
 	# 不能用它判定工人——必须按 Worker 场景路径精确匹配。
+	# 施工中的工人不被新建造任务抢占：选人各优先级全部排除正在建造的工人。
 	var selected_workers = get_tree().get_nodes_in_group("selected_units").filter(
-		func(unit): return is_instance_valid(unit) and _is_worker(unit)
+		func(unit): return is_instance_valid(unit) and _is_worker(unit) and not _is_constructing_builder(unit)
 	)
 	if not selected_workers.is_empty():
 		return true
 	var idle_pick = null
 	var any_pick = null
 	for unit in _own_workers():
+		if _is_constructing_builder(unit):
+			continue
 		if any_pick == null:
 			any_pick = unit
 		if idle_pick == null and unit.get("action") == null:
@@ -542,7 +550,7 @@ func _select_builder_if_needed() -> bool:
 	if pick == null:
 		pick = any_pick
 	if pick == null:
-		_set_status("没有可用工人：请先在「步兵」页签生产工人")
+		_set_status("所有工人都在建造中：请等待任一建造完成，或生产新工人")
 		return false
 	MatchSignals.deselect_all_units.emit()
 	for child in pick.get_children():
@@ -550,6 +558,18 @@ func _select_builder_if_needed() -> bool:
 			child.select()
 			break
 	return true
+
+
+## 工人当前是否在建造（含寻路在途）：顶层动作为 Constructing。
+func _is_constructing_builder(unit) -> bool:
+	var action = unit.get("action")
+	if action == null:
+		return false
+	var action_script = action.get_script()
+	return (
+		action_script != null
+		and action_script.resource_path == "res://source/match/units/actions/Constructing.gd"
+	)
 
 
 func _is_worker(unit) -> bool:
@@ -561,7 +581,11 @@ func _produce_unit(item: Dictionary):
 	if producer == null:
 		_set_status("没有可用的%s" % str(item.get("producer_caption", "生产建筑")))
 		return
-	producer.production_queue.produce(_packed_scene(item.scene))
+	var queue_item = producer.production_queue.produce(_packed_scene(item.scene))
+	if queue_item == null:
+		_set_status("%s 的生产队列已满（右键格子可取消排队）" % str(item.get("producer_caption", "生产建筑")))
+	else:
+		_set_status("%s 已加入%s生产队列" % [str(item.caption), str(item.get("producer_caption", "生产建筑"))])
 
 
 func _pick_producer(producer_scene):
@@ -639,6 +663,14 @@ func _refresh_tabs():
 			available = not _own_workers().is_empty()
 		else:
 			available = not _own_units_by_scene(tab.producer).is_empty()
+			if not available:
+				# 页签内任一物品有其可用生产设施即解锁（如步兵页签的工人走主基地生产）
+				for item in tab.items:
+					if not item.get("place", false) and not _own_units_by_scene(
+						item.get("producer", tab.producer)
+					).is_empty():
+						available = true
+						break
 		var tab_button: Button = _tab_buttons[tab.id]
 		tab_button.disabled = not available
 		if not available:

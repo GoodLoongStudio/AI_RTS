@@ -117,6 +117,10 @@ func _on_input_action_pressed(action_id: String):
 			_on_ground_attack_move_pressed()
 		"unit.stop":
 			_on_stop_pressed()
+		"selection.select_all":
+			actions_controller.select_all_units()
+		"selection.select_same_type":
+			actions_controller.select_same_type_units()
 		"unit.stance_hold_ground":
 			_set_engagement_stance("HoldGround")
 		"unit.stance_aggressive":

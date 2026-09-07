@@ -85,6 +85,9 @@ func _update_circle_params():
 
 func _on_input_event(_camera, event, _click_position, _click_normal, _shape_idx):
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		# A 键攻击移动瞄准中：左键用于确认攻击点（由 UnitActionsController 消费），不做选择
+		if not get_tree().get_nodes_in_group("attack_move_targeting").is_empty():
+			return
 		print("[INPUT] unit click unit=", _unit.name, " pos=", event.position)
 		if _selected and _input_runtime.IsModifierPressed("Shift"):
 			deselect()

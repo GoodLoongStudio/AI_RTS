@@ -48,7 +48,7 @@ tooltip_text = "下一次右键地面将作为强制移动目标"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(122, 30)
 layout_mode = 2
-text = "移动并攻击 [R]"
+text = "移动并攻击 [A]"
 tooltip_text = "下一次右键地面指定推进目标；途中按当前交战姿态清除敌人"
 
 [node name="ForceAttackButton" type="Button" parent="MarginContainer/VBoxContainer/Buttons"]

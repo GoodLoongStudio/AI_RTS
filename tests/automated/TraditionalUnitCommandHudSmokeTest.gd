@@ -5,9 +5,11 @@ const CommandCenterScene = preload("res://source/match/units/CommandCenter.tscn"
 const Moving = preload("res://source/match/units/actions/Moving.gd")
 
 var _failures := 0
+var _finished := false
 
 
 func _ready():
+	get_tree().create_timer(60.0).timeout.connect(_on_failsafe)
 	var match_instance = MatchScene.instantiate()
 	add_child(match_instance)
 	await get_tree().process_frame
@@ -23,7 +25,13 @@ func _ready():
 	)
 	match_instance._setup_and_spawn_unit(command_center, command_center_transform, human, false)
 	await get_tree().process_frame
-	var hud = match_instance.get_node_or_null("HUD/TraditionalUnitCommandHUD")
+	# 命令栏可能被 RA3 侧栏收编（重挂到侧栏命令区）：轮询等待并在 HUD 子树中查找
+	var hud = _find_command_hud(match_instance)
+	var hud_waited := 0.0
+	while hud == null and hud_waited < 10.0:
+		await get_tree().create_timer(0.2).timeout
+		hud_waited += 0.2
+		hud = _find_command_hud(match_instance)
 	_check(hud != null, "传统单位命令栏应随 Human 创建")
 
 	var selection = tank.find_child("Selection")
@@ -65,11 +73,11 @@ func _ready():
 	input_runtime.emit_signal("ActionPressed", "unit.attack_move")
 	_check(
 		"地面或敌方单位" in feedback_label.text,
-		"R 快捷键应进入地面或敌方单位目标确认状态"
+		"A 快捷键应进入地面或敌方单位目标确认状态"
 	)
 	ground_attack_move_button.pressed.emit()
 	_check(ground_attack_move_button.text.begins_with("移动并攻击"), "再次点击应取消移动并攻击目标确认")
-	_check("[R]" in ground_attack_move_button.text, "移动并攻击应显示 R 键")
+	_check("[A]" in ground_attack_move_button.text, "移动并攻击应显示 A 键")
 	_check("[C]" in force_move_button.text, "强制移动应显示 C 键")
 	_check("[X]" in force_attack_button.text, "强制攻击应显示 X 键")
 	_check("战术后退" in tactical_withdraw_button.text, "Z 应显示为战术后退")
@@ -178,7 +186,7 @@ func _ready():
 	print("Traditional unit command HUD smoke test completed: %d failure(s)" % _failures)
 	match_instance.queue_free()
 	await get_tree().process_frame
-	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1)
+	_finish()
 
 
 func _check(condition: bool, message: String):
@@ -186,3 +194,28 @@ func _check(condition: bool, message: String):
 		return
 	_failures += 1
 	push_error("Traditional unit command HUD assertion failed: %s" % message)
+
+
+func _find_command_hud(match_instance):
+	var hud_root = match_instance.get_node_or_null("HUD")
+	if hud_root == null:
+		return null
+	if hud_root.name == "TraditionalUnitCommandHUD":
+		return hud_root
+	var candidates = hud_root.find_children("TraditionalUnitCommandHUD", "", true, false)
+	return candidates[0] if not candidates.is_empty() else null
+
+
+func _on_failsafe():
+	if _finished:
+		return
+	print("FAIL: 看门狗超时——测试协程中断未收尾")
+	_finish()
+
+
+func _finish():
+	if _finished:
+		return
+	_finished = true
+	print("Traditional unit command HUD smoke test completed: %d failure(s)" % _failures)
+	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1)

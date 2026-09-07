@@ -48,7 +48,11 @@ signal return_to_base_ended(reason)
 const MATERIAL_ALBEDO_TO_REPLACE = Color(0.99, 0.81, 0.48)
 ## 无 SyntyMaterialBinder 的单位（如 GLB 步兵）的阵营着色 shader
 const TEAM_TINT_SHADER: Shader = preload("res://source/shaders/3d/team_tint.gdshader")
+const COMBAT_SFX = preload("res://source/match/units/traits/CombatSfx.gd")
 static var _team_material_cache := {}
+## 战斗音效：命中冷却与上次 HP 快照（_process 轮询受击）
+var _sfx_last_hp = null
+var _sfx_impact_cooldowns := {}
 const MATERIAL_ALBEDO_TO_REPLACE_EPSILON = 0.05
 
 var hp = null:
@@ -103,6 +107,18 @@ func _ready():
 	_setup_color()
 	_setup_properties_from_balance_catalog()
 	assert(_safety_checks())
+	_setup_combat_sfx()
+
+
+func _setup_combat_sfx():
+	if not has_signal("attack_fired"):
+		return
+	attack_fired.connect(_on_combat_sfx_fired)
+
+
+## 开火音效：攻击动作发射投射物时由 attack_fired 触发。
+func _on_combat_sfx_fired():
+	COMBAT_SFX.play_at(self, COMBAT_SFX.fire_key_for(self))
 
 
 func is_revealing():
@@ -398,9 +414,24 @@ func _set_hp(value):
 	hp = max(0, value)
 	if old_hp != null and hp < old_hp and not _suppress_damage_event:
 		MatchSignals.unit_damaged.emit(self)
+	# 命中音效：C# 权威结算在改 hp 的瞬间设置 damage_presentation（reaction 类别），
+	# 只在这个窗口内能读到——延迟到帧末播放（meta 随后被移除/还原）。
+	if old_hp != null and hp < old_hp and has_meta("damage_presentation") and is_inside_tree():
+		var reaction := str(get_meta("damage_presentation").get("reaction", "explosion"))
+		call_deferred("_play_impact_sfx", COMBAT_SFX.impact_key_for(reaction, self))
 	hp_changed.emit()
 	if hp == 0:
 		_handle_unit_death()
+
+
+## 播放命中音效（按音效键冷却，连续炮击不吞掉夹在中间的子弹金属声）。
+func _play_impact_sfx(sfx_key: String):
+	if sfx_key.is_empty() or not is_inside_tree():
+		return
+	if float(_sfx_impact_cooldowns.get(sfx_key, 0.0)) > 0.0:
+		return
+	_sfx_impact_cooldowns[sfx_key] = 0.09
+	COMBAT_SFX.play_at(self, sfx_key)
 
 
 func _set_hp_max(value):

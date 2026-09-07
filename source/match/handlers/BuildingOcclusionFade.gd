@@ -86,7 +86,13 @@ func _apply_fade(blocking: Dictionary):
 ## 外部修改了网格材质（完工重绑）时刷新缓存的基础材质并作废旧淡出材质。
 func _refresh_base_override(mesh: GeometryInstance3D) -> void:
 	var current = mesh.material_override
-	if mesh.get_meta("occlusion_base_override", null) != current:
+	# get_meta 的缺省值参数不能显式传 null（引擎视为未提供而报错），必须先 has_meta
+	var base = (
+		mesh.get_meta("occlusion_base_override")
+		if mesh.has_meta("occlusion_base_override")
+		else null
+	)
+	if base != current:
 		mesh.set_meta("occlusion_base_override", current)
 		if mesh.has_meta("occlusion_fade_ready"):
 			mesh.remove_meta("occlusion_fade_ready")
