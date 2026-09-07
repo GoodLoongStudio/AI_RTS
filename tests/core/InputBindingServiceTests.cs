@@ -46,18 +46,18 @@ internal sealed class InputBindingServiceTests
         var service = NewService();
 
         Check(Action(service.Resolve(Parse("Q"), Contexts(
-                InputContextId.Camera,
-                InputContextId.LegacyAgent))) == "camera.rotate_clockwise",
-            "旧 AI Q 键取消后，Q 应回到镜头旋转");
+                InputContextId.Selection,
+                InputContextId.LegacyAgent))) == "selection.select_all",
+            "Q 键应解析为全选己方单位（2026-09-07 键位改版）");
         Check(Action(service.Resolve(Parse("R"), Contexts(
                 InputContextId.LegacyAgent,
                 InputContextId.UnitCommand,
                 InputContextId.BuildPlacement))) == "build.rotate",
-            "建造放置时 R 应旋转蓝图，不触发攻击移动");
+            "建造放置时 R 应旋转蓝图，不触发镜头旋转");
         Check(Action(service.Resolve(Parse("R"), Contexts(
-                InputContextId.LegacyAgent,
-                InputContextId.UnitCommand))) == "unit.attack_move",
-            "AI HUD 打开时 R 仍应是正式攻击移动");
+                InputContextId.Camera,
+                InputContextId.LegacyAgent))) == "camera.rotate_clockwise",
+            "建造放置外 R 应是镜头顺时针旋转（原攻击移动已迁至 A）");
     }
 
     /// <summary>验证首版允许 Alt+字母，但拒绝两个以上修饰键。</summary>
@@ -79,8 +79,8 @@ internal sealed class InputBindingServiceTests
         });
 
         Check(!result.Applied, "含非法组合键的覆盖批次应整体拒绝");
-        Check(service.FindChord(Id("camera.move_up")) == Parse("W"),
-            "整体拒绝后合法项也不应部分生效");
+        Check(service.FindChord(Id("camera.move_up")) == Parse("UP"),
+            "整体拒绝后合法项也不应部分生效（方向键为当前默认）");
     }
 
     /// <summary>验证同一上下文中的重复绑定会被拒绝。</summary>
@@ -89,10 +89,10 @@ internal sealed class InputBindingServiceTests
         var service = NewService();
         var result = service.ApplyOverrides(new Dictionary<InputActionId, string>
         {
-            [Id("camera.move_up")] = "S"
+            [Id("camera.move_up")] = "DOWN"
         });
 
-        Check(!result.Applied, "同一 Camera 上下文的重复 S 应被拒绝");
+        Check(!result.Applied, "同一 Camera 上下文的重复 DOWN 应被拒绝");
         Check(result.Errors.Any(item => item.Code == InputBindingErrorCode.BindingConflict),
             "重复绑定应返回稳定的 BindingConflict 错误");
     }
@@ -117,10 +117,10 @@ internal sealed class InputBindingServiceTests
         var service = NewService();
         var contexts = Contexts(InputContextId.UnitCommand);
 
-        Check(Action(service.Resolve(Parse("R"), contexts)) == "unit.attack_move",
-            "R 应解析为攻击移动");
-        Check(Action(service.Resolve(Parse("F"), contexts)) == "unit.stop",
-            "F 应解析为完整停止");
+        Check(Action(service.Resolve(Parse("A"), contexts)) == "unit.attack_move",
+            "A 应解析为攻击移动（2026-09-07 键位改版）");
+        Check(Action(service.Resolve(Parse("S"), contexts)) == "unit.stop",
+            "S 应解析为完整停止（2026-09-07 键位改版）");
         Check(Action(service.Resolve(Parse("G"), contexts)) == "unit.stance_hold_ground",
             "G 应解析为固守");
         Check(Action(service.Resolve(Parse("C"), contexts)) == "unit.force_move",
@@ -151,6 +151,7 @@ internal sealed class InputBindingServiceTests
         var service = NewService();
         var playContexts = Contexts(
             InputContextId.Camera,
+            InputContextId.Selection,
             InputContextId.UnitCommand,
             InputContextId.LegacyAgent);
 
@@ -166,18 +167,24 @@ internal sealed class InputBindingServiceTests
             "副官打开时 J 应为撤退");
         Check(Action(service.Resolve(Parse("K"), playContexts)) == "legacy.command_stop",
             "副官打开时 K 应为停止");
-        Check(Action(service.Resolve(Parse("Q"), playContexts)) == "camera.rotate_clockwise",
-            "副官打开时 Q 仍应旋转镜头");
-        Check(Action(service.Resolve(Parse("W"), playContexts)) == "camera.move_up",
-            "副官打开时 W 仍应上移镜头");
+        Check(Action(service.Resolve(Parse("Q"), playContexts)) == "selection.select_all",
+            "副官打开时 Q 应解析为全选己方单位");
+        Check(Action(service.Resolve(Parse("W"), playContexts)) == "selection.select_same_type",
+            "副官打开时 W 应解析为选相同类型单位");
         Check(Action(service.Resolve(Parse("E"), playContexts)) == "camera.rotate_counterclockwise",
             "副官打开时 E 仍应反向旋转镜头");
-        Check(Action(service.Resolve(Parse("D"), playContexts)) == "camera.move_right",
-            "副官打开时 D 仍应右移镜头");
-        Check(Action(service.Resolve(Parse("R"), playContexts)) == "unit.attack_move",
-            "副官打开时 R 仍应是攻击移动");
-        Check(Action(service.Resolve(Parse("F"), playContexts)) == "unit.stop",
-            "副官打开时 F 仍应是完整停止");
+        Check(Action(service.Resolve(Parse("UP"), playContexts)) == "camera.move_up",
+            "副官打开时方向键上应上移镜头");
+        Check(Action(service.Resolve(Parse("LEFT"), playContexts)) == "camera.move_left",
+            "副官打开时方向键左应左移镜头");
+        Check(Action(service.Resolve(Parse("A"), playContexts)) == "unit.attack_move",
+            "副官打开时 A 仍应是攻击移动");
+        Check(Action(service.Resolve(Parse("S"), playContexts)) == "unit.stop",
+            "副官打开时 S 仍应是完整停止");
+        Check(Action(service.Resolve(Parse("W"), Contexts(
+                InputContextId.Camera,
+                InputContextId.UnitCommand))) == null,
+            "Selection 上下文未激活时 W 不应触发选择");
         Check(Action(service.Resolve(Parse("U"), Contexts(
                 InputContextId.Camera,
                 InputContextId.UnitCommand))) == null,

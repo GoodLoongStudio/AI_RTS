@@ -8,7 +8,7 @@ namespace AI_RTS.GodotAdapter.Input;
 public partial class InputBindingRuntime : Node
 {
     /// <summary>玩家覆盖文件结构版本。</summary>
-    public const int ControlsSchemaVersion = 2;
+    public const int ControlsSchemaVersion = 3;
 
     /// <summary>玩家本地键位覆盖路径；不进入 Git 仓库。</summary>
     [Export(PropertyHint.File, "*.cfg")]
