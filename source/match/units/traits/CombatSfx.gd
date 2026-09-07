@@ -17,12 +17,12 @@ const FIRE_SOUND_BY_SCENE := {
 }
 
 const VOLUME_BY_KEY := {
-	"rifle_fire": -10.0,
-	"cannon_fire": -2.0,
-	"rocket_fire": -6.0,
-	"impact_metal": -6.0,
-	"impact_flesh": -8.0,
-	"impact_explosion": -4.0,
+	"rifle_fire": -4.0,
+	"cannon_fire": 2.0,
+	"rocket_fire": -1.0,
+	"impact_metal": 0.0,
+	"impact_flesh": -2.0,
+	"impact_explosion": 1.0,
 }
 
 ## 测试观察用：最近播放的音效键（仅测试断言使用）。
@@ -32,6 +32,8 @@ static var _stream_cache := {}
 
 
 ## 在 host 位置播放一次音效；host 通常为单位节点，音源挂到 Match 场景避免随单位销毁。
+## 注意：等距相机距战场很远（正交 size 1-20 + 俯视角距离），3D 衰减必须放大
+## unit_size，否则玩家什么都听不到——衰减曲线只在近距离 gently 衰减。
 static func play_at(host: Node3D, key: String) -> void:
 	if key.is_empty() or not is_inside_tree_host(host):
 		return
@@ -40,9 +42,10 @@ static func play_at(host: Node3D, key: String) -> void:
 		return
 	var player := AudioStreamPlayer3D.new()
 	player.stream = stream
-	player.volume_db = VOLUME_BY_KEY.get(key, -6.0)
-	player.max_distance = 90.0
-	player.unit_size = 8.0
+	player.volume_db = VOLUME_BY_KEY.get(key, -4.0)
+	player.max_distance = 160.0
+	player.unit_size = 60.0
+	player.pitch_scale = randf_range(0.94, 1.06)  # 微随机音高避免重复发机器感
 	player.bus = "Master"
 	var match_root := host.find_parent("Match")
 	var parent := match_root if match_root != null else host.get_tree().current_scene
