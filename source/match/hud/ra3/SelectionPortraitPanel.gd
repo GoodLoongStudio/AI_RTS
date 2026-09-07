@@ -81,6 +81,9 @@ func _refresh_now():
 		child.queue_free()
 	for unit in selected:
 		_grid.add_child(_make_portrait(unit))
+	# ScrollContainer 不回报内容尺寸：按格子数显式算宽，框体随内容收缩（封顶 900）
+	var width := selected.size() * (CELL_SIZE + 4.0) + 8.0
+	_scroll.custom_minimum_size = Vector2(minf(width, 900.0), PANEL_HEIGHT)
 
 
 func _make_portrait(unit) -> Button:

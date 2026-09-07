@@ -38,6 +38,12 @@ func _ready():
 	_check(panel.visible, "有选中单位时头像栏应可见")
 	var buttons = grid.get_children()
 	_check(buttons.size() == units.size(), "头像格数应等于选中单位数（实际 %d）" % buttons.size())
+	# 回归：框体须随内容收缩展开（ScrollContainer 不回报内容尺寸，曾塌成一条线）
+	var bar_width: float = panel._scroll.custom_minimum_size.x
+	_check(
+		bar_width >= units.size() * 56.0,
+		"头像栏宽度应随格子数展开（实际 %.0fpx）" % bar_width
+	)
 
 	# 点击第一个头像：应只保留该单元格绑定的单位选中
 	var clicked_unit = buttons[0].get_meta("unit")
