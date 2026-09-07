@@ -158,8 +158,9 @@ func _on_force_attack_pressed():
 	if _targeting_command == "ForceAttack":
 		actions_controller.cancel_command_targeting()
 		return
-	if actions_controller.get_selected_command_unit_count() == 0:
-		_feedback_label.text = "请先选择已支持的单位"
+	# 炮塔等无法移动的单位也可强制攻击（2026-09-07）
+	if actions_controller.get_selected_force_attack_unit_count() == 0:
+		_feedback_label.text = "请先选择可攻击的单位"
 		return
 	actions_controller.begin_force_attack_targeting()
 
@@ -302,11 +303,12 @@ func _on_command_feedback(
 
 func _refresh_availability():
 	var has_supported_units: bool = actions_controller.get_selected_command_unit_count() > 0
+	var has_force_attack_units: bool = actions_controller.get_selected_force_attack_unit_count() > 0
 	var has_engagement_units: bool = actions_controller.get_selected_engagement_policy_unit_count() > 0
 	var has_fire_policy_units: bool = actions_controller.get_selected_fire_policy_unit_count() > 0
 	var has_rally_producers: bool = actions_controller.get_selected_rally_producer_count() > 0
 	_force_move_button.disabled = not has_supported_units
-	_force_attack_button.disabled = not has_supported_units
+	_force_attack_button.disabled = not has_force_attack_units
 	_tactical_withdraw_button.disabled = not has_supported_units
 	_ground_attack_move_button.disabled = not has_supported_units
 	_halt_button.disabled = not has_supported_units

@@ -212,6 +212,13 @@ func get_selected_command_unit_count() -> int:
 	).size()
 
 
+## 返回可执行强制攻击的选中单位数量：含无 Movement 的炮塔（2026-09-07）。
+func get_selected_force_attack_unit_count() -> int:
+	return _get_selected_controlled_units().filter(
+		func(unit): return unit.get("attack_range") != null
+	).size()
+
+
 ## 返回可保存交战姿态的选中实体数量；Worker 也支持侵略/撤回基地。
 func get_selected_engagement_policy_unit_count() -> int:
 	return _get_selected_controlled_units().filter(_is_engagement_policy_unit).size()
@@ -425,10 +432,12 @@ func _unhandled_input(event):
 		get_viewport().set_input_as_handled()
 
 
-## Q 键：全选当前玩家的作战单位（不含建筑单位）。
+## Q 键：全选当前玩家的作战单位（不含建筑单位与工人）。
 func select_all_units():
 	for unit in get_tree().get_nodes_in_group("controlled_units"):
 		if unit is Structure:
+			continue
+		if str(unit.scene_file_path) == "res://source/match/units/Worker.tscn":
 			continue
 		var selection = unit.find_child("Selection")
 		if selection != null and selection.has_method("select"):

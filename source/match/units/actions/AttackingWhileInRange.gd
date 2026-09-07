@@ -14,6 +14,8 @@ var _target_unit = null
 var _one_shot_timer = null
 var _range_check_timer = null
 var _stationary_aim_node: Node3D = null
+## 显式 ForceAttack 置 true：命中结算允许按友伤倍率伤害友军（2026-09-07）。
+var allows_friendly_damage := false
 
 @onready var _unit = Utils.NodeEx.find_parent_with_group(self, "units")
 @onready var _unit_movement_trait = _unit.find_child("Movement")
@@ -192,7 +194,7 @@ func _hit_target():
 	_unit.set_meta(
 		"next_attack_availability_time", _simulation_msec() + int(_unit.attack_interval * 1000.0)
 	)
-	_projectile_runtime.LaunchEntity(_unit, _target_unit)
+	_projectile_runtime.LaunchEntity(_unit, _target_unit, allows_friendly_damage)
 	_schedule_hit()
 
 

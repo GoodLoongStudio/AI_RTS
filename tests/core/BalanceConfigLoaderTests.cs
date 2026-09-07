@@ -79,8 +79,8 @@ internal sealed class BalanceConfigLoaderTests
         Check(cannon?.TargetDomains.SetEquals([CombatDomain.Terrain]) == true,
             "Tank 主武器只应攻击 Terrain");
         Check(catalog.FindWarhead(new WarheadDefinitionId("direct_full_damage"))?
-            .FriendlyFireDamageMultiplier == 0.0f,
-            "演示直接命中弹头默认禁止友伤");
+            .FriendlyFireDamageMultiplier == 0.5f,
+            "演示直接命中弹头对友军按 0.5 倍率结算（强制攻击友军可造成伤害）");
 
         var tankProduction = catalog.FindProduction(new ProductionDefinitionId("tank"));
         Check(tankProduction?.ProductTypeId == new UnitTypeId("tank") &&
