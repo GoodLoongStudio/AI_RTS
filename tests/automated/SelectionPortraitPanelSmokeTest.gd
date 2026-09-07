@@ -36,18 +36,22 @@ func _ready():
 	await get_tree().process_frame
 
 	_check(panel.visible, "有选中单位时头像栏应可见")
-	var buttons = grid.get_children()
-	_check(buttons.size() == units.size(), "头像格数应等于选中单位数（实际 %d）" % buttons.size())
-	# 回归：框体须随内容收缩展开（ScrollContainer 不回报内容尺寸，曾塌成一条线）
+	# 固定框：网格恒为 20 槽（3 个头像 + 17 个透明占位），框宽恒定
+	var cells = grid.get_children().filter(func(cell): return cell.has_meta("unit"))
+	_check(cells.size() == units.size(), "头像格数应等于选中单位数（实际 %d）" % cells.size())
+	_check(
+		grid.get_children().size() == 20,
+		"槽位总数应恒为 20（实际 %d）" % grid.get_children().size()
+	)
 	var bar_width: float = panel._scroll.custom_minimum_size.x
 	_check(
-		bar_width >= units.size() * 56.0,
-		"头像栏宽度应随格子数展开（实际 %.0fpx）" % bar_width
+		is_equal_approx(bar_width, panel.FRAME_WIDTH),
+		"框宽应恒定为 %.0fpx（实际 %.0fpx）" % [panel.FRAME_WIDTH, bar_width]
 	)
 
 	# 点击第一个头像：应只保留该单元格绑定的单位选中
-	var clicked_unit = buttons[0].get_meta("unit")
-	buttons[0].pressed.emit()
+	var clicked_unit = cells[0].get_meta("unit")
+	cells[0].pressed.emit()
 	await get_tree().process_frame
 	var selected_now = get_tree().get_nodes_in_group("selected_units")
 	var selected_names := selected_now.map(func(u): return str(u.name))

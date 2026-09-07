@@ -18,8 +18,15 @@ const ICON_BY_SCENE := {
 	"res://source/match/units/Barracks.tscn": "barracks",
 }
 
-const CELL_SIZE := 56.0
-const PANEL_HEIGHT := 72.0
+const CELL_SIZE := 48.0
+const MAX_PORTRAITS := 20
+const CELL_SEPARATION := 4.0
+const FRAME_PADDING := 12.0
+## 固定框宽：永远 20 个槽位（空槽透明占位），框体大小不随选中数量变化
+const FRAME_WIDTH := (
+	MAX_PORTRAITS * CELL_SIZE + (MAX_PORTRAITS - 1) * CELL_SEPARATION + FRAME_PADDING
+)
+const PANEL_HEIGHT := 64.0
 const REFRESH_INTERVAL := 0.3
 
 const PANEL_BG = Color(0.09, 0.10, 0.12, 0.97)
@@ -53,23 +60,24 @@ func _process(delta):
 
 
 func _build_ui():
-	# 魔兽争霸式底部头像条：框体随内容收缩、群居屏幕正下方中央（最多 900px，超出横向滚动）
+	# 魔兽争霸式底部固定头像框：恒定 20 槽位宽度，居中于屏幕正下方中央
+	custom_minimum_size = Vector2(FRAME_WIDTH, PANEL_HEIGHT)
 	set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	offset_left = 0.0
 	offset_right = 0.0
 	offset_top = -PANEL_HEIGHT - 8.0
 	offset_bottom = -8.0
 	grow_horizontal = Control.GROW_DIRECTION_BOTH
-	custom_maximum_size = Vector2(900.0, PANEL_HEIGHT)
 	_scroll = ScrollContainer.new()
 	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_scroll.custom_minimum_size = Vector2(FRAME_WIDTH, PANEL_HEIGHT)
 	add_child(_scroll)
 	_grid = HBoxContainer.new()
-	_grid.add_theme_constant_override("separation", 4)
+	_grid.add_theme_constant_override("separation", CELL_SEPARATION)
 	_scroll.add_child(_grid)
 
 
-## 重建头像格子（选中集通常 ≤ 20 个，全量重建成本可忽略）。
+## 重建头像格子：最多显示 20 个，空槽透明占位保持框体恒定。
 func _refresh_now():
 	var selected := get_tree().get_nodes_in_group("selected_units").filter(
 		func(unit): return is_instance_valid(unit) and unit.is_in_group("controlled_units")
@@ -79,11 +87,15 @@ func _refresh_now():
 		return
 	for child in _grid.get_children():
 		child.queue_free()
-	for unit in selected:
+	var shown := selected.slice(0, MAX_PORTRAITS)
+	for unit in shown:
 		_grid.add_child(_make_portrait(unit))
-	# ScrollContainer 不回报内容尺寸：按格子数显式算宽，框体随内容收缩（封顶 900）
-	var width := selected.size() * (CELL_SIZE + 4.0) + 8.0
-	_scroll.custom_minimum_size = Vector2(minf(width, 900.0), PANEL_HEIGHT)
+	# 空槽透明占位：框体恒定 20 槽宽度，不随选中数量变化
+	for _index in range(MAX_PORTRAITS - shown.size()):
+		var filler := PanelContainer.new()
+		filler.custom_minimum_size = Vector2(CELL_SIZE, CELL_SIZE)
+		filler.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+		_grid.add_child(filler)
 
 
 func _make_portrait(unit) -> Button:
