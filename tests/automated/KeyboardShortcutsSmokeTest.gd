@@ -5,6 +5,7 @@ extends Node
 
 const MatchScene = preload("res://tests/manual/TestAllUnits.tscn")
 const WorkerScene = preload("res://source/match/units/Worker.tscn")
+const Structure = preload("res://source/match/units/Structure.gd")
 
 var _failures := 0
 var _finished := false
@@ -35,7 +36,7 @@ func _ready():
 	var moved: Vector3 = camera.global_position - camera_position_before
 	_check(moved.length() > 0.01, "按住方向键上应移动视角（位移 %.3f）" % moved.length())
 
-	# --- 2) Q 全选己方单位 ---
+	# --- 2) Q 全选作战单位（不含建筑） ---
 	var extra_workers := []
 	for index in range(2):
 		var worker = WorkerScene.instantiate()
@@ -52,9 +53,14 @@ func _ready():
 	input_runtime.emit_signal("ActionPressed", "selection.select_all")
 	await get_tree().process_frame
 	var selected_all = get_tree().get_nodes_in_group("selected_units")
+	var structures_selected = selected_all.filter(
+		func(unit): return unit is Structure
+	)
 	_check(
-		selected_all.size() >= 8,
-		"Q 应全选己方单位（实际 %d 个）" % selected_all.size()
+		selected_all.size() >= 6 and structures_selected.is_empty(),
+		"Q 应全选作战单位且不含建筑（实际 %d 个，其中建筑 %d 个）" % [
+			selected_all.size(), structures_selected.size()
+		]
 	)
 
 	# --- 3) W 选相同类型单位 ---
@@ -87,7 +93,26 @@ func _ready():
 		"S 应触发完整停止并至少接受一个单位"
 	)
 
-	# --- 5) A+左键 = 攻击移动 ---
+	# --- 5) A 按住 + 右键点地面 = 攻击移动（兼容按住 A 的操作习惯） ---
+	_feedback.clear()
+	_press_key(input_runtime, KEY_A, true)  # 按住 A（不释放）
+	MatchSignals.deselect_all_units.emit()
+	await get_tree().process_frame
+	human.get_node("Tank").get_node("Selection").select()
+	await get_tree().process_frame
+	_feedback.clear()
+	MatchSignals.terrain_targeted.emit(Vector3(14.0, 0.0, 14.0))
+	await get_tree().process_frame
+	var held_feedback = _feedback.filter(
+		func(entry): return entry["command"] == "GroundAttackMove"
+	)
+	_check(
+		not held_feedback.is_empty() and held_feedback[0]["accepted"] > 0,
+		"按住 A + 右键点地面应下达攻击移动命令"
+	)
+	_press_key(input_runtime, KEY_A, false)
+
+	# --- 6) A+左键 = 攻击移动 ---
 	MatchSignals.deselect_all_units.emit()
 	await get_tree().process_frame
 	human.get_node("Tank").get_node("Selection").select()

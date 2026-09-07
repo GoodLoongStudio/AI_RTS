@@ -23,6 +23,7 @@ var _is_ground_attack_move_targeting := false:
 var _local_input_bound := false
 var _skill_targeting_id := ""
 var _skill_targeting_kind := ""
+var _input_runtime = null
 
 
 class Actions:
@@ -59,6 +60,7 @@ func _bind_local_input():
 	if MatchSignals.match_started.is_connected(_on_match_started_for_input):
 		MatchSignals.match_started.disconnect(_on_match_started_for_input)
 	print("[INPUT] UnitActionsController enabled player=", get_parent().name)
+	_input_runtime = find_parent("Match").get_node_or_null("InputBindingRuntime")
 	MatchSignals.terrain_targeted.connect(_on_terrain_targeted)
 	MatchSignals.unit_targeted.connect(_on_unit_targeted)
 	MatchSignals.unit_spawned.connect(_on_unit_spawned)
@@ -423,11 +425,19 @@ func _unhandled_input(event):
 		get_viewport().set_input_as_handled()
 
 
-## Q 键：全选当前玩家全部己方单位。
-func select_all_units():	for unit in get_tree().get_nodes_in_group("controlled_units"):
+## Q 键：全选当前玩家的作战单位（不含建筑单位）。
+func select_all_units():
+	for unit in get_tree().get_nodes_in_group("controlled_units"):
+		if unit is Structure:
+			continue
 		var selection = unit.find_child("Selection")
 		if selection != null and selection.has_method("select"):
 			selection.select()
+
+
+## A 键当前是否物理按住：覆盖"按住 A 再点击"而单击前瞄准态已被清除的情况。
+func _is_attack_move_key_held() -> bool:
+	return _input_runtime != null and _input_runtime.IsActionPressed("unit.attack_move")
 
 
 ## W 键：全选与当前选中单位相同类型的所有己方单位。
@@ -715,7 +725,7 @@ func _on_terrain_targeted(position):
 		cancel_command_targeting()
 		_cast_selected_skill(skill_id, null, position)
 		return
-	if _is_ground_attack_move_targeting:
+	if _is_ground_attack_move_targeting or _is_attack_move_key_held():
 		_is_ground_attack_move_targeting = false
 		command_targeting_changed.emit("")
 		_execute_targeted_ground_attack_move(position)
@@ -765,7 +775,7 @@ func _on_unit_targeted(unit, target_position: Vector3):
 		if explicit_targetability != null:
 			explicit_targetability.animate()
 			return
-	if _is_ground_attack_move_targeting:
+	if _is_ground_attack_move_targeting or _is_attack_move_key_held():
 		_is_ground_attack_move_targeting = false
 		command_targeting_changed.emit("")
 		_execute_targeted_entity_attack_move(unit)
