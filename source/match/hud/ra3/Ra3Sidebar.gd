@@ -34,9 +34,6 @@ const TABS = [
 		"id": "infantry", "caption": "步兵", "producer": BarracksUnit,
 		"producer_caption": "兵营",
 		"items": [
-			# 工人从主基地生产（开局即可）：只要主基地在就能补充工人，不必先造兵营
-			{"scene": WorkerUnit, "caption": "工人", "icon": "worker",
-				"producer": CommandCenterUnit, "producer_caption": "主基地"},
 			{"scene": SoldierUnit, "caption": "步兵", "icon": "soldier"},
 		],
 	},
@@ -44,6 +41,9 @@ const TABS = [
 		"id": "vehicles", "caption": "载具", "producer": VehicleFactoryUnit,
 		"producer_caption": "车辆工厂",
 		"items": [
+			# 工人按钮放在载具页签首位：主基地开局即可生产，无需兵营/车厂
+			{"scene": WorkerUnit, "caption": "工人", "icon": "worker",
+				"producer": CommandCenterUnit, "producer_caption": "主基地"},
 			{"scene": TankUnit, "caption": "坦克", "icon": "tank"},
 		],
 	},
@@ -578,7 +578,11 @@ func _produce_unit(item: Dictionary):
 	if producer == null:
 		_set_status("没有可用的%s" % str(item.get("producer_caption", "生产建筑")))
 		return
-	producer.production_queue.produce(_packed_scene(item.scene))
+	var queue_item = producer.production_queue.produce(_packed_scene(item.scene))
+	if queue_item == null:
+		_set_status("%s 的生产队列已满（右键格子可取消排队）" % str(item.get("producer_caption", "生产建筑")))
+	else:
+		_set_status("%s 已加入%s生产队列" % [str(item.caption), str(item.get("producer_caption", "生产建筑"))])
 
 
 func _pick_producer(producer_scene):
