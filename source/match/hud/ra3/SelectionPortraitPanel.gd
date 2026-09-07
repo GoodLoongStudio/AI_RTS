@@ -53,13 +53,14 @@ func _process(delta):
 
 
 func _build_ui():
-	# 魔兽争霸式底部横条：贴屏幕下缘横向排列，右侧让位给 RA3 侧栏（宽 288）
-	custom_minimum_size = Vector2(0, PANEL_HEIGHT)
-	set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	offset_left = 8.0
+	# 魔兽争霸式底部头像条：框体随内容收缩、群居屏幕正下方中央（最多 900px，超出横向滚动）
+	set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	offset_left = 0.0
+	offset_right = 0.0
 	offset_top = -PANEL_HEIGHT - 8.0
-	offset_right = -(288.0 + 16.0)
 	offset_bottom = -8.0
+	grow_horizontal = Control.GROW_DIRECTION_BOTH
+	custom_maximum_size = Vector2(900.0, PANEL_HEIGHT)
 	_scroll = ScrollContainer.new()
 	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	add_child(_scroll)
