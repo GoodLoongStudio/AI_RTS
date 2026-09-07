@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tests/automated/SelectionPortraitPanelSmokeTest.gd" id="1_portrait"]
+
+[node name="SelectionPortraitPanelSmokeTest" type="Node"]
+script = ExtResource("1_portrait")

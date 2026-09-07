@@ -9,6 +9,7 @@ const TraditionalUnitCommandHUD = preload(
 	"res://source/match/hud/TraditionalUnitCommandHUD.tscn"
 )
 const Ra3Sidebar = preload("res://source/match/hud/ra3/Ra3Sidebar.gd")
+const SelectionPortraitPanel = preload("res://source/match/hud/ra3/SelectionPortraitPanel.gd")
 const CampaignController = preload("res://source/campaign/CampaignController.gd")
 const CampaignHeroIdentity = preload("res://source/campaign/CampaignHeroIdentity.gd")
 
@@ -103,6 +104,7 @@ func _ready():
 			minimap_fog_mask.visible = false
 	if not _is_dedicated_or_headless():
 		_setup_ra3_sidebar()
+		_setup_selection_portrait_panel()
 		if not NetSession.is_networked():
 			_setup_ai_command_hud()
 		_setup_traditional_unit_command_hud()
@@ -185,6 +187,13 @@ func _setup_ra3_sidebar():
 	var top_left_column = $HUD.get_node_or_null("TopLeftColumn")
 	if top_left_column != null:
 		top_left_column.visible = false
+
+
+## 红警3 式左侧选中单位头像栏：框选后逐个显示头像，点击头像单独选中该单位。
+func _setup_selection_portrait_panel():
+	var panel = SelectionPortraitPanel.new()
+	panel.name = "SelectionPortraitPanel"
+	$HUD.add_child(panel)
 
 
 func _setup_traditional_unit_command_hud():
