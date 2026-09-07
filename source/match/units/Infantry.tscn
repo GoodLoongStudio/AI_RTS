@@ -8,7 +8,7 @@
 [ext_resource type="PackedScene" uid="uid://c3ssj2p6voauk" path="res://source/match/units/traits/HealthBar.tscn" id="5_healthbar"]
 [ext_resource type="PackedScene" uid="uid://d4cm4yhtf11ur" path="res://source/match/units/traits/Targetability.tscn" id="6_targetability"]
 [ext_resource type="Script" path="res://source/csharp/GodotAdapter/Units/Visuals/UnitVisualBindings.cs" id="7_bindings"]
-[ext_resource type="PackedScene" uid="uid://th5hmcu7lowe" path="res://assets/models/polygon-scifi/Infantry_anim_v2.glb" id="8_model"]
+[ext_resource type="PackedScene" path="res://assets/models/polygon-scifi/Infantry_native_v3.glb" id="8_model"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_inf"]
 height = 0.4
@@ -21,8 +21,8 @@ script = ExtResource("1_script")
 
 [node name="Geometry" type="Node3D" parent="."]
 
-[node name="Infantry_anim_v2" parent="Geometry" instance=ExtResource("8_model")]
-transform = Transform3D(0.45, 0, 0, 0, 0.45, 0, 0, 0, 0.45, 0, 0, 0)
+[node name="Infantry_native_v3" parent="Geometry" instance=ExtResource("8_model")]
+transform = Transform3D(-0.45, 0, 0, 0, 0.45, 0, 0, 0, -0.45, 0, 0, 0)
 
 [node name="ProjectileOrigin" type="Marker3D" parent="Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, -0.2)

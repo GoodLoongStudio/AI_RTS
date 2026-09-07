@@ -285,6 +285,11 @@ func _create_players_from_settings():
 		# 初始经济：所有玩家统一 50000（用户设定 2026-09-03）。
 		player.resource_a = 50000
 		player.resource_b = 50000
+		# 仅自动化测试启动参数生效的低余额局：用于真实触发 InsufficientResources
+		# （工人 200 而余额 150）。正常玩家进程不带 --e2e-low-balance 不受影响，
+		# 不构成任何运行时可调作弊接口。
+		if "--e2e-low-balance" in OS.get_cmdline_user_args():
+			player.resource_a = 150
 		if player_settings.spawn_index_offset > 0:
 			for _i in range(player_settings.spawn_index_offset):
 				_players.add_child(Node.new())

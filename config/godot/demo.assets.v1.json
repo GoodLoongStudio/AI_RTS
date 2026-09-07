@@ -72,7 +72,7 @@
   },
   {
    "weaponId": "infantry_rifle",
-   "projectileScenePath": "res://source/match/units/projectiles/CannonShell.tscn"
+   "projectileScenePath": "res://source/match/units/projectiles/RifleRound.tscn"
   }
  ]
 }

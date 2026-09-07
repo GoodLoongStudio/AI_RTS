@@ -1,20 +1,18 @@
 extends Node
 
-## 验证烘焙导出的步兵动画 GLB（绑骨管线 Infantry_anim_v1.glb）：
-## 五段剪辑齐全、骨骼结构正确、可播放推进、循环标志符合命名约定、截图供目检。
+## 验证原厂 50 骨架步兵 GLB：七段剪辑、原生手指骨、真实姿态变化及循环标志。
 ## 纯资产验证，不实例化任何游戏单位、不触碰游戏逻辑。
 
-const ANIM_GLB := "res://assets/models/polygon-scifi/Infantry_anim_v2.glb"
-const FBX_MODEL := "res://assets/models/polygon-scifi/Infantry_Soldier_Male_01_rigged.fbx"
+const ANIM_GLB := "res://assets/models/polygon-scifi/Infantry_native_v3.glb"
 const SHOT_DIR := "G:/AIRTS/tmp_logs/anim_verify"
 
-## 九段剪辑: Idle/Walk/Run 来自 Soldier 真人动捕, Attack/Fire/Gather/Build/Hit/Death
-## 来自 UAL (Quaternius CC0 通用骨架重定向)。"Gather-loop/Build-loop/Idle-loop" 等
+## Idle/Run 来自 Soldier，Crawl/Death 来自 UAL，Fire/Hit/HitHeavy 为步枪姿势层。
 ## Godot glTF 导入约定: "-loop" 后缀转为循环标志并从名字中移除。
-const LOOP_CLIPS := ["Idle", "Walk", "Run", "Gather", "Build"]
-const ONESHOT_CLIPS := ["Attack", "Fire", "Hit", "Death"]
-const EXPECTED_BONES := ["Hips", "Spine", "Spine2", "Head", "LeftArm", "RightArm",
-	"LeftForeArm", "RightForeArm", "LeftUpLeg", "RightUpLeg", "LeftLeg", "RightLeg"]
+const LOOP_CLIPS := ["Idle", "Run", "Crawl"]
+const ONESHOT_CLIPS := ["Hit", "HitHeavy", "Fire", "Death"]
+const EXPECTED_BONES := ["Root", "Hips", "Spine_01", "Spine_03", "Head", "Shoulder_L", "Shoulder_R",
+	"Elbow_L", "Elbow_R", "UpperLeg_L", "UpperLeg_R", "LowerLeg_L", "LowerLeg_R",
+	"Hand_L", "Hand_R", "Thumb_01", "IndexFinger_01", "Finger_01"]
 
 var _failures := 0
 
@@ -26,27 +24,23 @@ func _ready():
 		_finish()
 		return
 	var model := packed.instantiate()
+	model.rotation.y = PI
 	add_child(model)
 	await get_tree().process_frame
 
 	var skeleton: Skeleton3D = model.find_child("Skeleton3D", true, false)
 	_check(skeleton != null, "GLB 内应有 Skeleton3D")
 	if skeleton != null:
-		_check(skeleton.get_bone_count() == 23,
-			"骨骼数应为 23，实际 %d" % skeleton.get_bone_count())
+		_check(skeleton.get_bone_count() == 50,
+			"骨骼数应为 50，实际 %d" % skeleton.get_bone_count())
 		for bone in EXPECTED_BONES:
 			_check(skeleton.find_bone(bone) >= 0, "应存在骨骼 %s" % bone)
 
 	_print_aabb(model, "GLB")
-	var fbx_packed: PackedScene = load(FBX_MODEL)
-	if fbx_packed != null:
-		var fbx_model := fbx_packed.instantiate()
-		add_child(fbx_model)
-		# Infantry.tscn 的游戏挂载变换：scale 0.45 + 绕 Y 转 180°
-		fbx_model.transform = Transform3D(
-			Basis(Vector3.UP, PI).scaled(Vector3.ONE * 0.45), Vector3.ZERO)
-		await get_tree().process_frame
-		_print_aabb(fbx_model, "FBX(游戏挂载变换)")
+	# 直接检查当前 GLB 的游戏挂载尺寸，不再加载已淘汰的重绑 FBX。
+	model.scale = Vector3.ONE * 0.45
+	_print_aabb(model, "GLB(游戏挂载变换)")
+	model.scale = Vector3.ONE
 
 	var player: AnimationPlayer = model.find_child("AnimationPlayer", true, false)
 	_check(player != null, "GLB 内应有 AnimationPlayer")
@@ -67,7 +61,6 @@ func _ready():
 				"%s 应为单次播放（loop_mode=%d）" % [clip, player.get_animation(clip).loop_mode])
 
 	_setup_stage()
-	var left_arm := skeleton.find_bone("LeftArm") if skeleton != null else -1
 	for clip in LOOP_CLIPS + ONESHOT_CLIPS:
 		if not player.has_animation(clip):
 			continue
@@ -75,13 +68,20 @@ func _ready():
 		await get_tree().process_frame
 		_check(player.is_playing() and player.current_animation == clip,
 			"剪辑 %s 应能开始播放" % clip)
-		var pose_before := skeleton.get_bone_pose_rotation(left_arm) if left_arm >= 0 else Quaternion()
+		var pose_before: Array[Quaternion] = []
+		if skeleton != null:
+			for bone in skeleton.get_bone_count():
+				pose_before.append(skeleton.get_bone_pose_rotation(bone))
 		player.advance(0.2)
 		await get_tree().process_frame
 		_check(player.current_animation_position > 0.0,
 			"剪辑 %s 播放位置应推进（pos=%.3f）" % [clip, player.current_animation_position])
-		var pose_after := skeleton.get_bone_pose_rotation(left_arm) if left_arm >= 0 else Quaternion()
-		_check(pose_after != pose_before or player.current_animation_position >= 0.2,
+		var bone_changed := false
+		if skeleton != null:
+			for bone in skeleton.get_bone_count():
+				if skeleton.get_bone_pose_rotation(bone).angle_to(pose_before[bone]) > 0.0001:
+					bone_changed = true
+		_check(bone_changed,
 			"剪辑 %s 应实际驱动骨骼姿态" % clip)
 		if DisplayServer.get_name() != "headless":
 			# 目检帧: 每段抽起始/中间/结束 3 帧

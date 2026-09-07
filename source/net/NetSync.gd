@@ -377,6 +377,20 @@ func _broadcast_snapshot() -> void:
 	_rpc_snapshot.rpc(units_payload, resources_payload, _frame)
 
 
+## 把转发命令的终态登记到调试端点命令历史，供副官按 command_id 复核。
+## （仅本地调用，不是 RPC；@rpc 注解属于下方的 _rpc_command。）
+func _record_command_terminal(command_id: String, op: String, issuer: Node,
+		subject: String, scene: String, status: String, reason: String,
+		artifact_id := "") -> void:
+	if command_id.is_empty():
+		return
+	var dbg = get_node_or_null("/root/DebugControlServer")
+	if dbg == null or not dbg.has_method("record_command"):
+		return
+	dbg.record_command(command_id, op, str(issuer.name), subject, scene,
+		status, reason, artifact_id)
+
+
 @rpc("any_peer", "reliable")
 func _rpc_command(
 	op: String,
@@ -411,11 +425,28 @@ func _rpc_command(
 		if unit != null and is_instance_valid(unit) and unit.get_parent() == issuer:
 			units.append(unit)
 	if op == "produce":
-		if units.is_empty() or extra.is_empty():
+		# extra 协议：scene_path[|command_id]；command_id 由客户端生成用于复核关联。
+		var extra_parts: PackedStringArray = extra.split("|")
+		var produce_scene := str(extra_parts[0])
+		var produce_command_id := str(extra_parts[1]) if extra_parts.size() > 1 else ""
+		if units.is_empty() or produce_scene.is_empty():
+			print("[CMD][服务器] produce 拒绝: units=%d extra='%s' paths=%s" % [
+				units.size(), extra, paths])
 			return
 		var queue = units[0].find_child("ProductionQueue")
-		if queue != null:
-			queue.produce(load(extra))
+		if queue == null:
+			print("[CMD][服务器] produce 拒绝: %s 无 ProductionQueue" % units[0].name)
+			return
+		var produced = queue.produce(load(produce_scene))
+		var receipt: Dictionary = queue.get_last_result() if queue.has_method("get_last_result") else {}
+		print("[CMD][服务器] produce %s element=%s receipt=%s" % [
+			produce_scene, str(produced != null), str(receipt)])
+		var item_id := ""
+		if receipt.get("item") is Dictionary:
+			item_id = str(receipt["item"].get("item_id", ""))
+		_record_command_terminal(produce_command_id, "produce", issuer, str(units[0].name),
+			produce_scene, str(receipt.get("status", "")),
+			str(receipt.get("reason", "")) if receipt.has("reason") else "", item_id)
 		return
 	if op == "place_structure":
 		# 人类玩家放置建筑（复核 2026-08-31：此前傀儡端 Place 只在本地生成, 服务器毫不知情）。
@@ -423,24 +454,33 @@ func _rpc_command(
 		if placement_runtime == null or units.is_empty() or extra.is_empty():
 			print("[CMD][服务器] place_structure 拒绝: runtime/参数缺失")
 			return
+		# extra 协议：scene_path|yaw[|command_id]；command_id 由客户端生成用于复核关联。
 		var parts: PackedStringArray = extra.split("|")
 		var yaw: float = float(parts[1]) if parts.size() > 1 else 0.0
+		var build_command_id := str(parts[2]) if parts.size() > 2 else ""
 		var structure_transform := Transform3D(
 			Basis.IDENTITY.rotated(Vector3.UP, yaw), destination
 		)
 		var place_result: Dictionary = placement_runtime.Place(
 			issuer, load(parts[0]), structure_transform, {}
 		)
+		var place_ok := bool(place_result.get("accepted", false))
 		print(
 			"[CMD][服务器] place_structure accepted=",
-			bool(place_result.get("accepted", false)),
+			place_ok,
 			" issue=",
 			str(place_result.get("primary_issue", ""))
 		)
-		if bool(place_result.get("accepted", false)):
+		if place_ok:
 			placement_runtime.AssignBuilders(
 				units, place_result["structure"], issuer, place_result["displaced_unit_ids"]
 			)
+		var structure_node = place_result.get("structure")
+		_record_command_terminal(build_command_id, "build", issuer,
+			"|".join(units.map(func(u): return str(u.name))), str(parts[0]),
+			"Accepted" if place_ok else "Rejected",
+			str(place_result.get("primary_issue", "")),
+			str(structure_node.name) if structure_node != null and is_instance_valid(structure_node) else "")
 		return
 	if units.is_empty():
 		print("[CMD][服务器] 拒绝: 单位解析为空 op=%s paths=%s" % [op, paths])

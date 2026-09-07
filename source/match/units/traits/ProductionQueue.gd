@@ -26,6 +26,7 @@ class ProductionQueueElement:
 
 var _queue := []
 var _runtime = null
+var _last_result: Dictionary = {}
 
 @onready var _unit = get_parent()
 
@@ -43,6 +44,11 @@ func get_elements():
 	return _queue
 
 
+## 最近一次提交的权威回执；调试端点和 HUD 用它区分接受、拒绝与待确认。
+func get_last_result() -> Dictionary:
+	return _last_result.duplicate(true)
+
+
 ## 通过统一 C# 服务提交生产；不存在暂停、调序或容量绕过参数。
 func produce(unit_prototype):
 	if NetSession.should_forward_commands():
@@ -53,13 +59,30 @@ func produce(unit_prototype):
 				scene_path = unit_prototype.resource_path
 			else:
 				scene_path = str(unit_prototype)
-			sync.forward_command("produce", [_unit], Vector3.ZERO, null, _unit.player, scene_path)
+			# 客户端生成稳定 command_id 随命令上送，服务器保留同一 ID 落账，
+			# 副官下一轮可用 op=commands 按 id 复核最终 Accepted/Rejected。
+			var command_id := "%08x-%04x-4%03x-%04x-%012x" % [
+				randi(), randi() & 0xFFFF, randi() & 0xFFF,
+				randi() & 0xFFFF, Time.get_ticks_msec() * 4096 + (randi() & 0xFFF),
+			]
+			sync.forward_command(
+				"produce", [_unit], Vector3.ZERO, null, _unit.player,
+				scene_path + "|" + command_id
+			)
+			_last_result = {
+				"accepted": false,
+				"status": "PendingAuthority",
+				"command_id": command_id,
+				"producer": str(_unit.name),
+				"scene": scene_path,
+			}
 			return null
 	var result = _runtime.Enqueue(
 		_unit,
 		unit_prototype,
 		_unit.player
 	)
+	_last_result = result.duplicate(true)
 	if not result["accepted"]:
 		if result["status"] == "InsufficientResources":
 			MatchSignals.not_enough_resources_for_production.emit(_unit.player)

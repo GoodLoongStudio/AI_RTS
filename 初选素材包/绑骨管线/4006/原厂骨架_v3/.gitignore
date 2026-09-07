@@ -1,0 +1,5 @@
+.godot/
+*.blend1
+review_frames/
+godot_review/.godot/
+godot_review/screenshots/*.import

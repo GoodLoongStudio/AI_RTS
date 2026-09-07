@@ -40,6 +40,7 @@ color_ramp = SubResource("GradientTexture1D_trail")
 size = Vector2(0.16, 0.16)
 
 [node name="CannonShell" type="Node3D"]
+metadata/impact_reaction = "explosion"
 script = ExtResource("1_hyk5q")
 
 [node name="Body" type="MeshInstance3D" parent="."]
