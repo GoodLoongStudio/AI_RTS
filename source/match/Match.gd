@@ -10,6 +10,7 @@ const TraditionalUnitCommandHUD = preload(
 )
 const Ra3Sidebar = preload("res://source/match/hud/ra3/Ra3Sidebar.gd")
 const SelectionPortraitPanel = preload("res://source/match/hud/ra3/SelectionPortraitPanel.gd")
+const MusicDirector = preload("res://source/match/MusicDirector.gd")
 const CampaignController = preload("res://source/campaign/CampaignController.gd")
 const CampaignHeroIdentity = preload("res://source/campaign/CampaignHeroIdentity.gd")
 
@@ -105,6 +106,7 @@ func _ready():
 	if not _is_dedicated_or_headless():
 		_setup_ra3_sidebar()
 		_setup_selection_portrait_panel()
+		_setup_music_director()
 		if not NetSession.is_networked():
 			_setup_ai_command_hud()
 		_setup_traditional_unit_command_hud()
@@ -112,6 +114,13 @@ func _ready():
 		$HUD.visible = false
 	_setup_campaign()
 	MatchSignals.match_started.emit()
+
+
+## 对局背景音乐导演：和平曲 ↔ 战斗曲（受击刷新战斗状态，2s 交叉淡化）。
+func _setup_music_director():
+	var director = MusicDirector.new()
+	director.name = "MusicDirector"
+	add_child(director)
 
 
 func _unhandled_input(event):
