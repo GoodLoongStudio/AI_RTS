@@ -1,0 +1,539 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": "adjutant-e2e-2026-09-07",
+  "resources": [
+    {
+      "kind": "A",
+      "collectionDurationMilliseconds": 200
+    },
+    {
+      "kind": "B",
+      "collectionDurationMilliseconds": 200
+    }
+  ],
+  "warheads": [
+    {
+      "id": "direct_full_damage",
+      "impactSelectionMode": "intendedTargetOnly",
+      "radiusMeters": 0.0,
+      "friendlyFireDamageMultiplier": 0.0
+    }
+  ],
+  "weapons": [
+    {
+      "id": "helicopter_rocket",
+      "deliveryKind": "projectile",
+      "baseDamage": 1.0,
+      "cooldownMilliseconds": 1000,
+      "rangeMeters": 5.0,
+      "targetDomains": ["terrain", "air"],
+      "warheadId": "direct_full_damage"
+    },
+    {
+      "id": "tank_cannon",
+      "deliveryKind": "projectile",
+      "baseDamage": 2.0,
+      "cooldownMilliseconds": 750,
+      "rangeMeters": 5.0,
+      "targetDomains": ["terrain"],
+      "warheadId": "direct_full_damage"
+    },
+    {
+      "id": "infantry_rifle",
+      "deliveryKind": "projectile",
+      "baseDamage": 0.5,
+      "cooldownMilliseconds": 600,
+      "rangeMeters": 2.5,
+      "targetDomains": ["terrain"],
+      "warheadId": "direct_full_damage"
+    },
+    {
+      "id": "anti_ground_turret_cannon",
+      "deliveryKind": "projectile",
+      "baseDamage": 2.0,
+      "cooldownMilliseconds": 1000,
+      "rangeMeters": 8.0,
+      "targetDomains": ["terrain"],
+      "warheadId": "direct_full_damage"
+    },
+    {
+      "id": "anti_air_turret_rocket",
+      "deliveryKind": "projectile",
+      "baseDamage": 2.0,
+      "cooldownMilliseconds": 750,
+      "rangeMeters": 8.0,
+      "targetDomains": ["air"],
+      "warheadId": "direct_full_damage"
+    }
+  ],
+  "unitTypes": [
+    {
+      "id": "drone",
+      "maxHp": 6.0,
+      "sightRangeMeters": 10.0,
+      "movement": {
+        "domain": "air",
+        "speedMetersPerSecond": 4.0,
+        "maxTurnDegreesPerSecond": 480.0,
+        "canReverse": false,
+        "reverseSpeedMultiplier": 0.65,
+        "canFireWhileMoving": false,
+        "movingWeaponArcDegrees": 0.0
+      },
+      "weaponIds": [],
+      "canForceFireGround": false
+    },
+    {
+      "id": "worker",
+      "maxHp": 6.0,
+      "sightRangeMeters": 5.0,
+      "movement": {
+        "domain": "terrain",
+        "speedMetersPerSecond": 2.5,
+        "maxTurnDegreesPerSecond": 360.0,
+        "canReverse": false,
+        "reverseSpeedMultiplier": 0.65,
+        "canFireWhileMoving": false,
+        "movingWeaponArcDegrees": 0.0
+      },
+      "weaponIds": [],
+      "canForceFireGround": false,
+      "gatherer": {
+        "carryCapacity": 100
+      },
+      "constructor": {
+        "workPerTick": 1
+      }
+    },
+    {
+      "id": "scout",
+      "maxHp": 5.0,
+      "sightRangeMeters": 12.0,
+      "movement": {
+        "domain": "air",
+        "speedMetersPerSecond": 5.0,
+        "maxTurnDegreesPerSecond": 420.0,
+        "canReverse": false,
+        "reverseSpeedMultiplier": 0.65,
+        "canFireWhileMoving": false,
+        "movingWeaponArcDegrees": 0.0
+      },
+      "weaponIds": [],
+      "canForceFireGround": false
+    },
+    {
+      "id": "helicopter",
+      "maxHp": 10.0,
+      "sightRangeMeters": 8.0,
+      "movement": {
+        "domain": "air",
+        "speedMetersPerSecond": 4.0,
+        "maxTurnDegreesPerSecond": 300.0,
+        "canReverse": false,
+        "reverseSpeedMultiplier": 0.65,
+        "canFireWhileMoving": false,
+        "movingWeaponArcDegrees": 0.0
+      },
+      "weaponIds": ["helicopter_rocket"],
+      "canForceFireGround": false
+    },
+    {
+      "id": "tank",
+      "maxHp": 10.0,
+      "sightRangeMeters": 8.0,
+      "movement": {
+        "domain": "terrain",
+        "speedMetersPerSecond": 2.75,
+        "maxTurnDegreesPerSecond": 240.0,
+        "canReverse": true,
+        "reverseSpeedMultiplier": 0.65,
+        "canFireWhileMoving": true,
+        "movingWeaponArcDegrees": 120.0
+      },
+      "weaponIds": ["tank_cannon"],
+      "canForceFireGround": true
+    },
+    {
+      "id": "soldier",
+      "maxHp": 4.0,
+      "sightRangeMeters": 6.0,
+      "movement": {
+        "domain": "terrain",
+        "speedMetersPerSecond": 3.5,
+        "maxTurnDegreesPerSecond": 360.0,
+        "canReverse": false,
+        "reverseSpeedMultiplier": 0.65,
+        "canFireWhileMoving": true,
+        "movingWeaponArcDegrees": 120.0
+      },
+      "weaponIds": ["infantry_rifle"],
+      "canForceFireGround": true
+    },
+    {
+      "id": "command_center",
+      "maxHp": 20.0,
+      "sightRangeMeters": 10.0,
+      "weaponIds": [],
+      "canForceFireGround": false,
+      "producer": {
+        "queueLimit": 5
+      }
+    },
+    {
+      "id": "vehicle_factory",
+      "maxHp": 16.0,
+      "sightRangeMeters": 8.0,
+      "weaponIds": [],
+      "canForceFireGround": false,
+      "producer": {
+        "queueLimit": 5
+      }
+    },
+    {
+      "id": "aircraft_factory",
+      "maxHp": 16.0,
+      "sightRangeMeters": 8.0,
+      "weaponIds": [],
+      "canForceFireGround": false,
+      "producer": {
+        "queueLimit": 5
+      }
+    },
+    {
+      "id": "anti_ground_turret",
+      "maxHp": 8.0,
+      "sightRangeMeters": 8.0,
+      "weaponIds": ["anti_ground_turret_cannon"],
+      "canForceFireGround": false
+    },
+    {
+      "id": "anti_air_turret",
+      "maxHp": 8.0,
+      "sightRangeMeters": 8.0,
+      "weaponIds": ["anti_air_turret_rocket"],
+      "canForceFireGround": false
+    },
+    {
+      "id": "barracks",
+      "maxHp": 14.0,
+      "sightRangeMeters": 8.0,
+      "weaponIds": [],
+      "canForceFireGround": false,
+      "producer": {
+        "queueLimit": 5
+      }
+    }
+  ],
+  "productions": [
+    {
+      "id": "worker",
+      "productUnitTypeId": "worker",
+      "requiredWork": 180,
+      "cost": [
+        { "kind": "A", "amount": 200 }
+      ],
+      "allowedProducerUnitTypeIds": ["command_center"]
+    },
+    {
+      "id": "drone",
+      "productUnitTypeId": "drone",
+      "requiredWork": 180,
+      "cost": [
+        { "kind": "A", "amount": 200 }
+      ],
+      "allowedProducerUnitTypeIds": ["aircraft_factory"]
+    },
+    {
+      "id": "scout",
+      "productUnitTypeId": "scout",
+      "requiredWork": 100,
+      "cost": [
+        { "kind": "A", "amount": 120 }
+      ],
+      "allowedProducerUnitTypeIds": ["aircraft_factory"]
+    },
+    {
+      "id": "tank",
+      "productUnitTypeId": "tank",
+      "requiredWork": 360,
+      "cost": [
+        { "kind": "A", "amount": 555 }
+      ],
+      "allowedProducerUnitTypeIds": ["vehicle_factory"]
+    },
+    {
+      "id": "helicopter",
+      "productUnitTypeId": "helicopter",
+      "requiredWork": 360,
+      "cost": [
+        { "kind": "A", "amount": 700 }
+      ],
+      "allowedProducerUnitTypeIds": ["aircraft_factory"]
+    },
+    {
+      "id": "soldier",
+      "productUnitTypeId": "soldier",
+      "requiredWork": 120,
+      "cost": [
+        { "kind": "A", "amount": 150 }
+      ],
+      "allowedProducerUnitTypeIds": ["barracks"]
+    }
+  ],
+  "constructions": [
+    {
+      "id": "command_center",
+      "unitTypeId": "command_center",
+      "requiredWork": 200,
+      "cost": [
+        { "kind": "A", "amount": 2400 }
+      ],
+      "environmentId": "terrain.surface",
+      "footprintRadiusMeters": 2.0
+    },
+    {
+      "id": "vehicle_factory",
+      "unitTypeId": "vehicle_factory",
+      "requiredWork": 200,
+      "cost": [
+        { "kind": "A", "amount": 600 }
+      ],
+      "environmentId": "terrain.surface",
+      "footprintRadiusMeters": 1.5
+    },
+    {
+      "id": "aircraft_factory",
+      "unitTypeId": "aircraft_factory",
+      "requiredWork": 200,
+      "cost": [
+        { "kind": "A", "amount": 1200 }
+      ],
+      "environmentId": "terrain.surface",
+      "footprintRadiusMeters": 1.5
+    },
+    {
+      "id": "anti_ground_turret",
+      "unitTypeId": "anti_ground_turret",
+      "requiredWork": 200,
+      "cost": [
+        { "kind": "A", "amount": 600 }
+      ],
+      "environmentId": "terrain.surface",
+      "footprintRadiusMeters": 0.6
+    },
+    {
+      "id": "anti_air_turret",
+      "unitTypeId": "anti_air_turret",
+      "requiredWork": 200,
+      "cost": [
+        { "kind": "A", "amount": 600 }
+      ],
+      "environmentId": "terrain.surface",
+      "footprintRadiusMeters": 0.6
+    },
+    {
+      "id": "barracks",
+      "unitTypeId": "barracks",
+      "requiredWork": 200,
+      "cost": [
+        { "kind": "A", "amount": 600 }
+      ],
+      "environmentId": "terrain.surface",
+      "footprintRadiusMeters": 1.5
+    }
+  ],
+  "skills": [
+    {
+      "id": "demo_self_pulse",
+      "trigger": "active",
+      "target": "self",
+      "effects": [
+        { "kind": "dealDamage", "amount": 1.0 }
+      ],
+      "cooldownMilliseconds": 3000
+    },
+    {
+      "id": "demo_unit_pulse",
+      "trigger": "active",
+      "target": "unit",
+      "equippedUnitTypeIds": ["tank"],
+      "relation": "enemy",
+      "rangeMeters": 5.0,
+      "requireAlive": true,
+      "allowSelf": false,
+      "effects": [
+        { "kind": "dealDamage", "amount": 2.0 }
+      ],
+      "cost": [
+        { "kind": "A", "amount": 1 }
+      ],
+      "cooldownMilliseconds": 3000
+    },
+    {
+      "id": "demo_ground_mark",
+      "trigger": "active",
+      "target": "ground",
+      "rangeMeters": 8.0,
+      "effects": [
+        { "kind": "emitEvent", "eventKind": "skillEmitted" }
+      ],
+      "cooldownMilliseconds": 1000
+    },
+    {
+      "id": "demo_delayed_pulse",
+      "trigger": "active",
+      "target": "self",
+      "effects": [
+        { "kind": "dealDamage", "amount": 1.0 },
+        { "kind": "dealDamage", "amount": 1.0, "delayMilliseconds": 2000 }
+      ],
+      "cooldownMilliseconds": 4000
+    },
+    {
+      "id": "demo_self_heal",
+      "trigger": "active",
+      "target": "self",
+      "equippedUnitTypeIds": ["tank"],
+      "effects": [
+        { "kind": "restoreHealth", "amount": 3.0 }
+      ],
+      "cooldownMilliseconds": 2000
+    },
+    {
+      "id": "demo_self_slow",
+      "trigger": "active",
+      "target": "self",
+      "effects": [
+        {
+          "kind": "addStatus",
+          "statusId": "demo_slow",
+          "durationMilliseconds": 3000,
+          "attribute": "moveSpeed",
+          "modifier": 0.5,
+          "stack": "refresh"
+        }
+      ],
+      "cooldownMilliseconds": 3000
+    },
+    {
+      "id": "demo_self_burst",
+      "trigger": "active",
+      "target": "self",
+      "effects": [
+        { "kind": "dealDamage", "amount": 1.0 },
+        { "kind": "restoreHealth", "amount": 1.0, "timing": "simultaneous" }
+      ],
+      "cooldownMilliseconds": 3000
+    },
+    {
+      "id": "demo_self_ticks",
+      "trigger": "active",
+      "target": "self",
+      "effects": [
+        {
+          "kind": "dealDamage",
+          "amount": 1.0,
+          "periodMilliseconds": 1000,
+          "repeatCount": 3
+        }
+      ],
+      "cooldownMilliseconds": 4000
+    },
+    {
+      "id": "demo_self_heal_if_wounded",
+      "trigger": "active",
+      "target": "self",
+      "effects": [
+        { "kind": "restoreHealth", "amount": 3.0, "condition": "targetWounded" }
+      ],
+      "cooldownMilliseconds": 2000
+    },
+    {
+      "id": "demo_on_damage_heal",
+      "trigger": "event",
+      "event": "unitDamaged",
+      "target": "self",
+      "equippedUnitTypeIds": ["tank"],
+      "effects": [
+        { "kind": "restoreHealth", "amount": 1.0 }
+      ],
+      "cooldownMilliseconds": 2000
+    },
+    {
+      "id": "demo_wounded_regen",
+      "trigger": "condition",
+      "activationCondition": "targetWounded",
+      "target": "self",
+      "effects": [
+        { "kind": "restoreHealth", "amount": 1.0 }
+      ],
+      "cooldownMilliseconds": 3000
+    },
+    {
+      "id": "demo_passive_slow",
+      "trigger": "passive",
+      "target": "self",
+      "effects": [
+        {
+          "kind": "addStatus",
+          "statusId": "demo_passive_slow",
+          "durationMilliseconds": 1500,
+          "attribute": "moveSpeed",
+          "modifier": 0.75,
+          "stack": "refresh"
+        }
+      ],
+      "cooldownMilliseconds": 1000
+    },
+    {
+      "id": "demo_windup_pulse",
+      "trigger": "active",
+      "target": "self",
+      "castDelayMilliseconds": 1000,
+      "effects": [
+        { "kind": "dealDamage", "amount": 1.0 },
+        { "kind": "dealDamage", "amount": 1.0, "delayMilliseconds": 1000 }
+      ],
+      "interrupt": {
+        "phases": ["beforeActivation", "afterActivation"],
+        "causes": ["stop", "death"],
+        "refundCost": false,
+        "keepCooldown": true
+      },
+      "cooldownMilliseconds": 3000
+    },
+    {
+      "id": "demo_issue_move",
+      "trigger": "active",
+      "target": "ground",
+      "rangeMeters": 8.0,
+      "effects": [
+        { "kind": "issueCommand", "command": "move" }
+      ],
+      "cooldownMilliseconds": 1000
+    },
+    {
+      "id": "demo_issue_attack",
+      "trigger": "active",
+      "target": "unit",
+      "relation": "enemy",
+      "rangeMeters": 5.0,
+      "requireAlive": true,
+      "allowSelf": false,
+      "effects": [
+        { "kind": "issueCommand", "command": "attack" }
+      ],
+      "cooldownMilliseconds": 2000
+    },
+    {
+      "id": "demo_spawn_drone",
+      "trigger": "active",
+      "target": "ground",
+      "rangeMeters": 8.0,
+      "effects": [
+        { "kind": "createObject", "templateId": "drone" }
+      ],
+      "cooldownMilliseconds": 4000
+    }
+  ]
+}

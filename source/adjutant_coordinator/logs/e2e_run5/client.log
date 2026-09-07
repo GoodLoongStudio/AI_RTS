@@ -1,0 +1,43 @@
+Godot Engine v4.7.1.stable.mono.official.a13da4feb - https://godotengine.org
+
+[DBGCTL] 调试控制端点已启动 127.0.0.1:24570
+[godot_ai game_helper] registered mcp capture (debugger active=false, logger=true)
+Loading[7.6s] 预加载
+Loading[7.6s] 载入地图 res://source/match/maps/PlainAndSimple.tscn
+Loading[7.6s] 地图实例完成
+Loading[8.1s] 实例化 Match（导航烘焙阻塞点）
+Loading[8.1s] 添加 Match 到场景树
+Loading[8.4s] Match 就绪
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+[ECO] PublishSnapshot player=5341458b a=50000
+[ECO] PublishSnapshot player=5584b612 a=50000
+[ECO] PublishSnapshot player=108db621 a=50000
+[ECO] PublishSnapshot player=5a9b3414 a=50000
+[TINT] apply_team_tint (0.1608, 0.4745, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.1608, 0.4745, 1.0, 1.0)
+[TINT] apply_team_tint (0.1608, 0.4745, 1.0, 1.0) on Geometry
+[TINT] override meshes=4 tint=(0.1608, 0.4745, 1.0, 1.0)
+[TINT] apply_team_tint (0.1608, 0.4745, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.1608, 0.4745, 1.0, 1.0)
+[TINT] apply_team_tint (0.1608, 0.4745, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.1608, 0.4745, 1.0, 1.0)
+[INPUT] UnitActionsController enabled player=Player_0
+ERROR: The object does not have any 'meta' values with the key 'occlusion_base_override'.
+   at: get_meta (core/object/object.cpp:1053)
+   GDScript backtrace (most recent call first):
+       [0] _refresh_base_override (res://source/match/handlers/BuildingOcclusionFade.gd:89)
+       [1] _apply_fade (res://source/match/handlers/BuildingOcclusionFade.gd:83)
+       [2] _process (res://source/match/handlers/BuildingOcclusionFade.gd:23)
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+[TINT] apply_team_tint (0.1608, 0.4745, 1.0, 1.0) on Geometry
+[TINT] override meshes=1 tint=(0.1608, 0.4745, 1.0, 1.0)
+ERROR: The object does not have any 'meta' values with the key 'occlusion_base_override'.
+   at: get_meta (core/object/object.cpp:1053)
+   GDScript backtrace (most recent call first):
+       [0] _refresh_base_override (res://source/match/handlers/BuildingOcclusionFade.gd:89)
+       [1] _apply_fade (res://source/match/handlers/BuildingOcclusionFade.gd:83)
+       [2] _process (res://source/match/handlers/BuildingOcclusionFade.gd:23)
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)

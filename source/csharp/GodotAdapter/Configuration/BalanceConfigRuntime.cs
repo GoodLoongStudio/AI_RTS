@@ -31,6 +31,7 @@ public partial class BalanceConfigRuntime : Node
     /// <summary>在其他 Match 子节点初始化前完成配置加载；错误配置直接阻止对局启动。</summary>
     public override void _EnterTree()
     {
+        ApplyCommandLineOverrides();
         // 修复联机/进局黑屏：C# 异常从 _EnterTree 抛到 Godot 会中断节点初始化，
         // 导致 Assets/Catalog 永远保持 null，随后每个 C# 调用都在 GDScript 侧
         // 触发 NullReferenceException 级联（WorkerMenu._ready → Loading 卡死 → 黑屏）。
@@ -295,6 +296,26 @@ public partial class BalanceConfigRuntime : Node
             result[cost.Kind == ResourceKind.A ? "resource_a" : "resource_b"] = cost.Amount;
         }
         return result;
+    }
+
+    /// <summary>
+    /// 允许用 `--balance-config=&lt;path&gt;` / `--assets-manifest=&lt;path&gt;` 用户参数
+    /// 指向独立测试配置（如副官 E2E 的新增内容/成本变更验证）。
+    /// 未传参时保持仓库权威默认值，玩家对局与既有行为完全不受影响。
+    /// </summary>
+    private void ApplyCommandLineOverrides()
+    {
+        foreach (var argument in OS.GetCmdlineUserArgs())
+        {
+            if (argument.StartsWith("--balance-config=", StringComparison.Ordinal))
+            {
+                BalanceConfigPath = argument["--balance-config=".Length..];
+            }
+            else if (argument.StartsWith("--assets-manifest=", StringComparison.Ordinal))
+            {
+                AssetManifestPath = argument["--assets-manifest=".Length..];
+            }
+        }
     }
 
     /// <summary>读取 res:// JSON；缺失或空文件交给上层严格 Loader 报告。</summary>

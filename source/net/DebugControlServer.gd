@@ -21,6 +21,28 @@ const COMMAND_LOG_LIMIT := 64
 ## 供副官按 command_id 在下一轮复核最终 Accepted/Rejected（PendingAuthority 不落账）。
 var _command_log: Array = []
 
+# ---------- 副官双层改造（第一阶段） ----------
+## 副官幂等账本上限：满时显式拒绝新命令（LedgerFull），不静默遗忘未完成命令。
+## 与 _command_log（展示历史，64 条）分离：去重能力不随展示历史裁剪丢失。
+const ADJUTANT_LEDGER_LIMIT := 256
+
+## C# AdjutantObservationRuntime 实例（_ready 动态挂载，不进场景文件）。
+var _adjutant_observation: Node = null
+## 幂等账本："<match_id>|<player_id>" -> {command_id: {"receipt": Dict, "params": String}}
+var _adjutant_ledger := {}
+## 副官控制租约："<match_id>|<player_id>" -> {unit_name: {"generation": int, "active": bool}}
+var _adjutant_leases := {}
+## 副官租约代际（对局内自增）；玩家手动命令使租约失效，重新接管需要显式授权。
+var _adjutant_lease_generation := 0
+## 规则视图缓存：match_id -> rules（Catalog 对局生命周期内不可变）。
+var _adjutant_rules_cache := {}
+## 敌情情报（last_seen）："<match_id>|<player_id>" -> {unit_name: intel_dict}
+## 迷雾公平性：只记录该玩家自己视野确认过的敌情；失去视野冻结数据不更新，
+## 不向模型提供 full_vision（旧 op=status 的 full_vision 参数保留兼容不变）。
+var _adjutant_intel := {}
+## 副官命令执行标志：复用旧 op 路径时避免把自己的命令误判为玩家手动接管。
+var _adjutant_executing := false
+
 
 func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
@@ -35,7 +57,24 @@ func _ready() -> void:
 		print("[DBGCTL] 端口 %d 被占用, 调试控制端点未启动" % _port)
 		set_process(false)
 		return
+	_mount_adjutant_observation()
 	print("[DBGCTL] 调试控制端点已启动 127.0.0.1:%d" % _port)
+
+
+## 动态挂载 C# 副官观测运行时（规则导出 + 公共包头）。
+## Mono 环境 set_script(load("....cs")) 模式已由 BalanceConfigRuntimeSmokeTest 验证。
+func _mount_adjutant_observation() -> void:
+	var script: Script = load(
+		"res://source/csharp/GodotAdapter/Adjutant/AdjutantObservationRuntime.cs"
+	) as Script
+	if script == null:
+		push_error("[DBGCTL] AdjutantObservationRuntime.cs 加载失败，副官 rules/tactical 端点不可用")
+		return
+	var node := Node.new()
+	node.name = "AdjutantObservationRuntime"
+	node.set_script(script)
+	add_child(node)
+	_adjutant_observation = node
 
 
 func _process(_delta: float) -> void:
@@ -100,6 +139,16 @@ func _dispatch(line: String) -> String:
 			return _op_attack(match_node, parsed)
 		"commands":
 			return JSON.stringify({"ok": true, "commands": _query_commands(parsed)})
+		"rules":
+			return JSON.stringify(_op_rules(match_node))
+		"tactical":
+			return JSON.stringify(_op_tactical(match_node, parsed))
+		"strategic":
+			return JSON.stringify(_op_strategic(match_node, parsed))
+		"adjutant_command":
+			return JSON.stringify(_op_adjutant_command(match_node, parsed))
+		"adjutant_batch":
+			return JSON.stringify(_op_adjutant_batch(match_node, parsed))
 	return JSON.stringify({"error": "unknown op"})
 
 
@@ -278,6 +327,7 @@ func _op_move(match_node, parsed) -> String:
 		dest_raw = [0.0, 0.0]
 	var destination := Vector3(float(dest_raw[0]), 0.0, float(dest_raw[1]))
 	var result: Dictionary = gateway.MoveUnits(nodes, destination, player)
+	notify_player_override(str(player.name), nodes.map(func(n): return str(n.name)))
 	return JSON.stringify(_unified_receipt(result, {
 		"moved": nodes.map(func(n): return n.name),
 	}))
@@ -328,6 +378,7 @@ func _op_gather(match_node, parsed) -> String:
 			"error": "no resource of kind " + kind,
 		})
 	var result: Dictionary = gateway.GatherResources(nodes, target, player)
+	notify_player_override(str(player.name), nodes.map(func(n): return str(n.name)))
 	return JSON.stringify(_unified_receipt(result, {
 		"resource": target.name,
 	}))
@@ -335,14 +386,6 @@ func _op_gather(match_node, parsed) -> String:
 
 func _op_build(match_node, parsed) -> String:
 	var player = _resolve_player(match_node, parsed)
-	var sync = match_node.get_node_or_null("NetSync")
-	if sync == null:
-		return JSON.stringify({
-			"ok": false,
-			"status": "NoNetSync",
-			"reason": "对局网络层未初始化，无法提交建造。",
-			"error": "no netsync",
-		})
 	var builders := _resolve_own_units(player, parsed.get("units", []))
 	if builders.is_empty():
 		return JSON.stringify({
@@ -359,7 +402,8 @@ func _op_build(match_node, parsed) -> String:
 	# The debug endpoint runs inside the authority process for local listen-server
 	# tests. Calling forward_command there sends an RPC to peer 1 but does not
 	# reliably execute the command locally, so apply placement directly on server.
-	if NetSession.is_server():
+	# 单机（未联网）对局同样没有转发目标，也直接权威执行（副官单机冒烟依赖此路径）。
+	if NetSession.is_server() or not NetSession.is_networked():
 		var placement_runtime = match_node.get_node_or_null("StructurePlacementRuntime")
 		if placement_runtime == null:
 			return JSON.stringify({
@@ -382,6 +426,8 @@ func _op_build(match_node, parsed) -> String:
 		var place_ok := bool(place_result.get("accepted", false))
 		var place_status := "Accepted" if place_ok else "Rejected"
 		var place_issue := str(place_result.get("primary_issue", ""))
+		if place_ok:
+			notify_player_override(str(player.name), builders.map(func(n): return str(n.name)))
 		# 直执行没有客户端上送的 command_id，服务器补发一个便于副官复核。
 		var server_command_id := _new_command_id()
 		var structure_node = place_result.get("structure")
@@ -401,6 +447,14 @@ func _op_build(match_node, parsed) -> String:
 		})
 	# 客户端转发：生成稳定 command_id 随命令上送，服务器保留同一 ID 落账，
 	# 副官下一轮可用 op=commands 复核最终 Accepted/Rejected。
+	var sync = match_node.get_node_or_null("NetSync")
+	if sync == null:
+		return JSON.stringify({
+			"ok": false,
+			"status": "NoNetSync",
+			"reason": "对局网络层未初始化，无法提交建造。",
+			"error": "no netsync",
+		})
 	var command_id := _new_command_id()
 	sync.forward_command(
 		"place_structure", builders, position, null, player,
@@ -466,6 +520,8 @@ func _op_produce(match_node, parsed) -> String:
 	record_command(str(receipt.get("command_id", "")), "produce", str(player.name),
 		producer_name, scene_path, produce_status, "" if produce_ok else _production_reason(produce_status),
 		item_id)
+	if produce_ok:
+		notify_player_override(str(player.name), [producer_name])
 	receipt["producer"] = producer_name
 	receipt["scene"] = scene_path
 	receipt["queue_size"] = queue.size() if queue.has_method("size") else -1
@@ -532,6 +588,7 @@ func _op_attack(match_node, parsed) -> String:
 			"error": "target not found",
 		})
 	var result: Dictionary = gateway.AttackUnits(attackers, target, player)
+	notify_player_override(str(player.name), attackers.map(func(n): return str(n.name)))
 	return JSON.stringify(_unified_receipt(result, {
 		"target": target_name,
 	}))
@@ -921,10 +978,18 @@ func record_command(command_id: String, op: String, player_name: String,
 
 
 ## op=commands 查询：带 command_id 精确复核单条，否则返回全部历史（新→旧）。
+## 副官统一入口的命令优先查幂等账本（adjutant_command 的权威回执即终态）；
+## 旧 op 直执行/转发路径仍查 _command_log 展示历史。
 func _query_commands(parsed) -> Array:
 	var wanted := str(parsed.get("command_id", ""))
 	if wanted.is_empty():
 		return _command_log.duplicate(true)
+	for view_key in _adjutant_ledger.keys():
+		var ledger: Dictionary = _adjutant_ledger[view_key]
+		if ledger.has(wanted):
+			var receipt: Dictionary = (ledger[wanted]["receipt"] as Dictionary).duplicate(true)
+			receipt["source"] = "adjutant_ledger"
+			return [receipt]
 	for entry in _command_log:
 		if entry.get("command_id", "") == wanted:
 			return [entry.duplicate(true)]
@@ -966,3 +1031,636 @@ func _production_snapshot(match_node, unit):
 	if queue.has_method("get_last_result"):
 		result["last_command"] = queue.get_last_result()
 	return result
+
+
+# =====================================================================
+# 副官双层改造第一阶段：动态规则导出 / 战术观测 / 统一命令协议
+# ---------------------------------------------------------------------
+# 设计要点（与 docs/ai-adjutant-dual-layer/architecture.md 对应）：
+# - 规则视图来自当前 Match 实际加载的 Catalog（对局内不可变），不读磁盘最新配置。
+# - 战术快照带公共包头，敌方数据遵守 as_player 自己的视野；历史情报带
+#   last_seen_tick，失去视野冻结不更新，确认死亡是独立事件。
+# - 命令协议带对局/玩家身份与版本，幂等作用域 (match_id, player_id, command_id)，
+#   过期命令显式拒绝，玩家手动命令立即取消副官租约（PlayerOverride）。
+# - 幂等账本与 _command_log 展示历史分离，容量满显式背压。
+# =====================================================================
+
+## 挂载状态检查：C# 观测运行时缺失时统一拒绝（不伪造身份）。
+func _adjutant_require_observation() -> Dictionary:
+	if _adjutant_observation == null or not is_instance_valid(_adjutant_observation):
+		return {"error": "no observation runtime"}
+	return {}
+
+
+## 当前权威 match_id；对局未就绪或配置降级时为空，调用方必须拒绝命令。
+func _adjutant_match_id(match_node) -> String:
+	if _adjutant_require_observation().has("error"):
+		return ""
+	return str(_adjutant_observation.ResolveMatchId(match_node))
+
+
+## 当前对局规则版本键（Catalog content hash）。
+func _adjutant_rules_version(match_node) -> String:
+	if _adjutant_require_observation().has("error"):
+		return ""
+	return str(_adjutant_observation.ResolveRulesVersion(match_node))
+
+
+## 副官视角玩家节点：按 player_id 精确匹配 players 组，不回退本地玩家。
+## 服务器权威进程没有本地玩家，外接副官全靠显式 player_id 指挥。
+func _adjutant_resolve_player(wanted: String):
+	if wanted.is_empty():
+		return null
+	for p in get_tree().get_nodes_in_group("players"):
+		if str(p.name) == wanted:
+			return p
+	return null
+
+
+## op=rules：从当前对局 Catalog 导出规则视图（对局内缓存，Catalog 不可变）。
+func _op_rules(match_node) -> Dictionary:
+	var guard := _adjutant_require_observation()
+	if not guard.is_empty():
+		return guard
+	var match_id := _adjutant_match_id(match_node)
+	if match_id.is_empty():
+		return {"error": "match unavailable", "reason": "当前对局没有稳定 match_id（对局未就绪或配置降级）。"}
+	if _adjutant_rules_cache.has(match_id):
+		return _adjutant_rules_cache[match_id]
+	var rules: Dictionary = _adjutant_observation.ExportRules(match_node)
+	if rules.has("error"):
+		return rules
+	rules["match_id"] = match_id
+	_adjutant_rules_cache[match_id] = rules
+	return rules
+
+
+## op=tactical：战术快照（三视图之三）。
+## 参数：as_player（必填）、center:[x,z]、radius、limit（默认 128）、offset（续取）。
+## 实体统一放 entities 数组，kind ∈ unit_self / unit_enemy / unit_enemy_frozen /
+## unit_enemy_dead / resource；truncated + next_offset 显式截断续取。
+func _op_tactical(match_node, parsed) -> Dictionary:
+	var guard := _adjutant_require_observation()
+	if not guard.is_empty():
+		return guard
+	var player = _adjutant_resolve_player(str(parsed.get("as_player", "")))
+	if player == null:
+		return {"error": "player not found", "reason": "as_player 必须是对局中存在的玩家节点名。"}
+	var header: Dictionary = _adjutant_observation.BuildHeader(match_node, player)
+	var match_id := str(header["match_id"])
+	if match_id.is_empty():
+		return {"error": "match unavailable", "reason": "当前对局没有稳定 match_id。"}
+	var view_key := "%s|%s" % [match_id, str(player.name)]
+	var current_tick := int(header["server_tick"])
+	var center_raw: Array = parsed.get("center", [])
+	var has_center := center_raw.size() >= 2
+	var center := Vector2(float(center_raw[0]) if has_center else 0.0, float(center_raw[1]) if has_center else 0.0)
+	var radius := float(parsed.get("radius", 0.0))
+	var in_scope := func(position: Vector3) -> bool:
+		if not has_center:
+			return true
+		var delta := Vector2(position.x, position.z) - center
+		return delta.length() <= radius
+	var limit := int(parsed.get("limit", 128))
+	var offset := int(parsed.get("offset", 0))
+	if limit <= 0:
+		limit = 128
+	if offset < 0:
+		offset = 0
+
+	var intel: Dictionary = _adjutant_intel.get(view_key, {})
+	var world_names := {}
+	var entities: Array = []
+	var totals := {"self": 0, "enemy": 0, "enemy_frozen": 0, "enemy_dead": 0, "resource": 0}
+	var covered := {"self": 0, "enemy": 0, "enemy_frozen": 0, "enemy_dead": 0, "resource": 0}
+
+	for unit in get_tree().get_nodes_in_group("units"):
+		if not _is_real_unit(unit):
+			continue
+		var unit_name := str(unit.name)
+		world_names[unit_name] = true
+		var mine: bool = unit.get_parent() == player
+		if mine:
+			totals["self"] += 1
+			if not in_scope.call(unit.global_position):
+				continue
+			covered["self"] += 1
+			entities.append(_tactical_self_entry(unit))
+		else:
+			var scouted: bool = _unit_scouted(unit, player)
+			if scouted:
+				totals["enemy"] += 1
+				if not in_scope.call(unit.global_position):
+					continue
+				covered["enemy"] += 1
+				# 只在本玩家当前视野内才更新情报；绝不写全局组。
+				intel[unit_name] = {
+					"unit_type": str(unit.get("unit_type_id")) if "unit_type_id" in unit else "",
+					"pos": [unit.global_position.x, unit.global_position.y, unit.global_position.z],
+					"hp": float(unit.hp) if "hp" in unit and unit.hp != null else 0.0,
+					"hp_max": float(unit.hp_max) if "hp_max" in unit and unit.hp_max != null else 0.0,
+					"last_seen_tick": current_tick,
+					"confirmed_dead": false,
+				}
+				entities.append(_tactical_enemy_entry(unit_name, intel[unit_name], "unit_enemy"))
+			elif intel.has(unit_name):
+				totals["enemy_frozen"] += 1
+				var frozen: Dictionary = intel[unit_name]
+				# 失去视野：只读冻结情报，不更新位置/血量；死亡与否由世界移除单独判定。
+				if frozen.get("confirmed_dead", false):
+					continue
+				entities.append({
+					"kind": "unit_enemy_frozen",
+					"name": unit_name,
+					"unit_type": str(frozen.get("unit_type", "")),
+					"pos": frozen.get("pos", [0.0, 0.0, 0.0]),
+					"hp": float(frozen.get("hp", 0.0)),
+					"hp_max": float(frozen.get("hp_max", 0.0)),
+					"last_seen_tick": int(frozen.get("last_seen_tick", 0)),
+					"confirmed_dead": false,
+				})
+				covered["enemy_frozen"] += 1
+	# 确认死亡：上一轮已知、本轮世界已无 → 独立于失去视野的事件。
+	for unit_name in intel.keys():
+		if world_names.has(unit_name):
+			continue
+		var dead: Dictionary = intel[unit_name]
+		if not bool(dead.get("confirmed_dead", false)):
+			dead["confirmed_dead"] = true
+			dead["confirmed_dead_tick"] = current_tick
+		totals["enemy_dead"] += 1
+		entities.append({
+			"kind": "unit_enemy_dead",
+			"name": unit_name,
+			"unit_type": str(dead.get("unit_type", "")),
+			"pos": dead.get("pos", [0.0, 0.0, 0.0]),
+			"hp": 0.0,
+			"hp_max": float(dead.get("hp_max", 0.0)),
+			"last_seen_tick": int(dead.get("last_seen_tick", 0)),
+			"confirmed_dead": true,
+			"confirmed_dead_tick": int(dead.get("confirmed_dead_tick", current_tick)),
+		})
+		covered["enemy_dead"] += 1
+	_adjutant_intel[view_key] = intel
+
+	for resource in get_tree().get_nodes_in_group("resource_units"):
+		if resource == null or not is_instance_valid(resource):
+			continue
+		totals["resource"] += 1
+		if not in_scope.call(resource.global_position):
+			continue
+		covered["resource"] += 1
+		var kind := "a" if "resource_a" in resource else ("b" if "resource_b" in resource else "unknown")
+		entities.append({
+			"kind": "resource",
+			"name": str(resource.name),
+			"resource_kind": kind,
+			"pos": [resource.global_position.x, resource.global_position.y, resource.global_position.z],
+		})
+
+	# 截断与续取：显式报告，未返回的实体不等于阵亡（模型必须用 next_offset 续取）。
+	var truncated := offset + limit < entities.size()
+	var window := entities.slice(offset, min(offset + limit, entities.size()))
+	var production: Array = []
+	for unit in get_tree().get_nodes_in_group("units"):
+		if not _is_real_unit(unit):
+			continue
+		if unit.get_parent() != player:
+			continue
+		var producer_view = _production_snapshot(match_node, unit)
+		if producer_view != null:
+			production.append(producer_view)
+	var outcome_runtime = match_node.get_node_or_null("MatchOutcomeRuntime")
+	header["entities"] = window
+	header["covered"] = covered
+	header["totals"] = totals
+	header["production"] = production
+	header["truncated"] = truncated
+	header["next_offset"] = offset + limit if truncated else -1
+	header["balance"] = {
+		"a": int(player.resource_a) if "resource_a" in player else 0,
+		"b": int(player.resource_b) if "resource_b" in player else 0,
+	}
+	if outcome_runtime != null and outcome_runtime.has_method("InspectOutcome"):
+		header["outcome"] = outcome_runtime.InspectOutcome()
+	return header
+
+
+## 我方实体条目：完整字段（能力/队列/施工/当前动作），供选择动作与目标。
+func _tactical_self_entry(unit) -> Dictionary:
+	var entry := {
+		"kind": "unit_self",
+		"name": str(unit.name),
+		"unit_type": str(unit.get("unit_type_id")) if "unit_type_id" in unit else "",
+		"hp": float(unit.hp) if "hp" in unit and unit.hp != null else 0.0,
+		"hp_max": float(unit.hp_max) if "hp_max" in unit and unit.hp_max != null else 0.0,
+		"pos": [unit.global_position.x, unit.global_position.y, unit.global_position.z],
+		"movement": unit.find_child("Movement", false, false) != null,
+		"queue": unit.find_child("ProductionQueue", false, false) != null,
+		"attack": "attack_range" in unit,
+		"gather": "resource_a" in unit and "resource_b" in unit,
+		"construct": "construction_work_per_tick" in unit and int(unit.get("construction_work_per_tick")) > 0,
+		"carried": [
+			int(unit.resource_a) if "resource_a" in unit else 0,
+			int(unit.resource_b) if "resource_b" in unit else 0,
+		],
+	}
+	if "is_constructed" in unit:
+		entry["constructed"] = bool(unit.is_constructed())
+	if "action" in unit and unit.action != null and is_instance_valid(unit.action):
+		entry["action"] = str(unit.action.get_script().resource_path) if unit.action.get_script() != null else str(unit.action)
+	return entry
+
+
+## 可见敌方条目（实时视野内数据 + last_seen_tick）。
+func _tactical_enemy_entry(unit_name: String, intel_entry: Dictionary, kind: String) -> Dictionary:
+	return {
+		"kind": kind,
+		"name": unit_name,
+		"unit_type": str(intel_entry.get("unit_type", "")),
+		"pos": intel_entry.get("pos", [0.0, 0.0, 0.0]),
+		"hp": float(intel_entry.get("hp", 0.0)),
+		"hp_max": float(intel_entry.get("hp_max", 0.0)),
+		"last_seen_tick": int(intel_entry.get("last_seen_tick", 0)),
+		"confirmed_dead": false,
+	}
+
+
+## op=strategic：战略摘要（三视图之二）：资源、产能、已知敌情及时间、地图边界、
+## 可用能力与生产关系。任务进展由协调器管理，不在游戏端伪造。
+func _op_strategic(match_node, parsed) -> Dictionary:
+	var guard := _adjutant_require_observation()
+	if not guard.is_empty():
+		return guard
+	var player = _adjutant_resolve_player(str(parsed.get("as_player", "")))
+	if player == null:
+		return {"error": "player not found", "reason": "as_player 必须是对局中存在的玩家节点名。"}
+	var header: Dictionary = _adjutant_observation.BuildHeader(match_node, player)
+	var match_id := str(header["match_id"])
+	if match_id.is_empty():
+		return {"error": "match unavailable", "reason": "当前对局没有稳定 match_id。"}
+	var view_key := "%s|%s" % [match_id, str(player.name)]
+
+	var production: Array = []
+	for unit in get_tree().get_nodes_in_group("units"):
+		if not _is_real_unit(unit):
+			continue
+		if unit.get_parent() != player:
+			continue
+		var producer_view = _production_snapshot(match_node, unit)
+		if producer_view != null:
+			production.append(producer_view)
+
+	# 敌情摘要：来自本玩家 last_seen 情报（含确认死亡），带 tick 时间；无 full_vision。
+	var intel: Dictionary = _adjutant_intel.get(view_key, {})
+	var enemy_entries: Array = []
+	for unit_name in intel.keys():
+		var item: Dictionary = intel[unit_name]
+		enemy_entries.append({
+			"name": unit_name,
+			"unit_type": str(item.get("unit_type", "")),
+			"pos": item.get("pos", [0.0, 0.0, 0.0]),
+			"hp": float(item.get("hp", 0.0)),
+			"last_seen_tick": int(item.get("last_seen_tick", 0)),
+			"confirmed_dead": bool(item.get("confirmed_dead", false)),
+		})
+
+	# 地图边界：当前对局实际地图尺寸（Match.map.size）。
+	var map_bounds: Array = []
+	if match_node.get("map") != null and "size" in match_node.get("map"):
+		var map_size: Vector2 = match_node.get("map").size
+		map_bounds = [map_size.x, map_size.y]
+
+	# 可用能力：动作集 + 动态生产关系 + 可建造列表（全部来自规则视图，无硬编码名单）。
+	var rules := _op_rules(match_node)
+	var production_relations: Array = []
+	var buildable: Array = []
+	if not rules.has("error"):
+		for relation in rules.get("productions", []):
+			production_relations.append({
+				"product_type_id": str(relation.get("product_type_id", "")),
+				"cost": relation.get("cost", []),
+				"allowed_producer_type_ids": relation.get("allowed_producer_type_ids", []),
+			})
+		for construction in rules.get("constructions", []):
+			buildable.append({
+				"id": str(construction.get("id", "")),
+				"cost": construction.get("cost", []),
+				"scene_path": str(construction.get("blueprint_scene_path", "")),
+			})
+
+	header["resources"] = {
+		"a": int(player.resource_a) if "resource_a" in player else 0,
+		"b": int(player.resource_b) if "resource_b" in player else 0,
+	}
+	header["enemy_balances_masked"] = true
+	header["production"] = production
+	header["enemy_intel"] = enemy_entries
+	header["map_bounds"] = map_bounds
+	header["available_actions"] = ["move", "attack_move", "attack", "gather", "stop", "produce", "build"]
+	header["production_relations"] = production_relations
+	header["buildable"] = buildable
+	return header
+
+
+## op=adjutant_command：副官统一命令入口（第一阶段动作集）。
+## 验证链：结构 → 幂等 → 对局身份 → 玩家授权 → 规则版本 → 快照时效 → 过期 →
+## 目标合法性（scene 必须来自规则视图）→ 控制租约 → 权威执行。
+func _op_adjutant_command(match_node, parsed) -> Dictionary:
+	var guard := _adjutant_require_observation()
+	if not guard.is_empty():
+		return _adjutant_receipt_error("InternalError", "副官观测运行时不可用。")
+	var current_tick := int(_adjutant_observation.CurrentServerTick())
+	var command_id := str(parsed.get("command_id", ""))
+	var action := str(parsed.get("action", ""))
+	if command_id.is_empty() or action.is_empty():
+		return _adjutant_receipt_error("InvalidCommand", "command_id 与 action 为必填字段。")
+	var match_id := _adjutant_match_id(match_node)
+	if match_id.is_empty():
+		return _adjutant_receipt_error("MatchUnavailable", "当前对局没有稳定 match_id，拒绝一切命令。")
+	var requested_match := str(parsed.get("match_id", ""))
+	if requested_match.is_empty():
+		return _adjutant_receipt_error("InvalidCommand", "match_id 为必填字段。", command_id, match_id, "", current_tick)
+	if requested_match != match_id:
+		return _adjutant_receipt_error("MatchMismatch", "命令 match_id 与当前对局不一致，拒绝执行。", command_id, match_id, "", current_tick)
+	var player_id := str(parsed.get("player_id", ""))
+	var player = _adjutant_resolve_player(player_id)
+	if player == null:
+		return _adjutant_receipt_error("PlayerNotFound", "player_id 必须是对局中存在的玩家。", command_id, match_id, player_id, current_tick)
+	if _is_human_player(player) == false:
+		return _adjutant_receipt_error("PlayerNotAuthorized", "副官只能指挥真人玩家部队，不能接管 AI 玩家。", command_id, match_id, player_id, current_tick)
+	var as_player := str(parsed.get("as_player", ""))
+	if not as_player.is_empty() and as_player != player_id:
+		return _adjutant_receipt_error("PlayerMismatch", "as_player 与 player_id 不一致。", command_id, match_id, player_id, current_tick)
+
+	var view_key := "%s|%s" % [match_id, player_id]
+	var params := str(parsed.get("params", {}))
+
+	# 幂等：同 (match, player, command_id) 同参数 → 原回执；不同参数 → 显式冲突。
+	var ledger: Dictionary = _adjutant_ledger.get(view_key, {})
+	if ledger.has(command_id):
+		var prior: Dictionary = ledger[command_id]
+		if str(prior.get("params", "")) == params:
+			var replay: Dictionary = (prior["receipt"] as Dictionary).duplicate(true)
+			replay["idempotent_replay"] = true
+			return replay
+		return _adjutant_receipt_error("DuplicateConflict", "同 command_id 已用不同参数提交，明确拒绝。", command_id, match_id, player_id, current_tick)
+	if _adjutant_ledger_size() >= ADJUTANT_LEDGER_LIMIT:
+		return _adjutant_receipt_error("LedgerFull", "幂等账本已满（背压），请等待旧命令终态复核后重试。", command_id, match_id, player_id, current_tick)
+
+	# 对局与版本校验：新提交按当前版本保守拒绝；不自动取消任何已接受命令。
+	var rules_version := str(parsed.get("rules_version", ""))
+	var current_rules := _adjutant_rules_version(match_node)
+	if rules_version != current_rules:
+		return _adjutant_receipt_error("RulesVersionStale", "命令 rules_version 与当前对局规则不一致；请先重新获取规则视图。", command_id, match_id, player_id, current_tick)
+	var based_on_snapshot := int(parsed.get("based_on_snapshot", -1))
+	if based_on_snapshot >= 0:
+		var latest: int = int(_adjutant_observation.NextSnapshotId()) - 1
+		if based_on_snapshot > latest:
+			return _adjutant_receipt_error("SnapshotInFuture", "based_on_snapshot 晚于当前已知快照，拒绝。", command_id, match_id, player_id, current_tick)
+
+	var issued_tick := int(parsed.get("issued_tick", 0))
+	var expires_tick := int(parsed.get("expires_tick", 0))
+	if expires_tick <= 0 or current_tick > expires_tick:
+		return _adjutant_receipt_error("Expired", "命令已过 expires_tick（服务器 tick 为准），拒绝执行。", command_id, match_id, player_id, current_tick)
+
+	# 执行动作。 PendingAuthority（客户端转发路径）同样落账等待复核。
+	# 深拷贝执行参数：不得污染调用方 params（幂等 params 指纹在执行前取样）。
+	var params_dict: Dictionary = parsed.get("params", {}) if parsed.get("params", {}) is Dictionary else {}
+	var exec_params: Dictionary = params_dict.duplicate(true)
+	exec_params["as_player"] = player_id
+	var result: Dictionary = _adjutant_execute(match_node, player, action, exec_params, command_id, match_id, player_id, current_tick)
+	var receipt := {
+		"ok": bool(result.get("accepted", false)),
+		"accepted": bool(result.get("accepted", false)),
+		"status": str(result.get("status", "Rejected")),
+		"reason": str(result.get("reason", "")),
+		"command_id": command_id,
+		"request_id": str(parsed.get("request_id", "")),
+		"task_id": str(parsed.get("task_id", "")),
+		"plan_version": str(parsed.get("plan_version", "")),
+		"rules_version": rules_version,
+		"match_id": match_id,
+		"player_id": player_id,
+		"action": action,
+		"issued_tick": issued_tick,
+		"expires_tick": expires_tick,
+		"server_tick": current_tick,
+		"result": result,
+	}
+	ledger[command_id] = {"receipt": receipt, "params": params}
+	_adjutant_ledger[view_key] = ledger
+	return receipt
+
+
+## op=adjutant_batch：逐条提交批次；明确非原子，前一条花掉资源后
+## 后一条按剩余资源重新校验（权威入口天然逐条结算）。
+func _op_adjutant_batch(match_node, parsed) -> Dictionary:
+	var commands: Array = parsed.get("commands", []) if parsed.get("commands", []) is Array else []
+	var receipts: Array = []
+	var accepted_count := 0
+	var rejected_count := 0
+	for command in commands:
+		if not (command is Dictionary):
+			rejected_count += 1
+			receipts.append({"ok": false, "status": "InvalidCommand", "reason": "批次元素必须是命令包对象。"})
+			continue
+		var receipt := _op_adjutant_command(match_node, command)
+		receipts.append(receipt)
+		if bool(receipt.get("accepted", false)):
+			accepted_count += 1
+		else:
+			rejected_count += 1
+	return {
+		"ok": rejected_count == 0,
+		"accepted": rejected_count == 0,
+		"status": "Accepted" if rejected_count == 0 else ("PartiallyAccepted" if accepted_count > 0 else "Rejected"),
+		"batch_total": commands.size(),
+		"accepted_count": accepted_count,
+		"rejected_count": rejected_count,
+		"receipts": receipts,
+	}
+
+
+## 副官动作执行：优先复用现有 op 实现（同一权威路径），scene 类目标必须来自规则视图。
+func _adjutant_execute(match_node, player, action: String, params: Dictionary,
+		command_id: String, match_id: String, player_id: String, current_tick: int) -> Dictionary:
+	if not _adjutant_authorize_units(player, params, command_id, match_id, player_id, current_tick):
+		return {"accepted": false, "status": "PlayerOverride",
+			"reason": "目标单位控制租约已被玩家手动命令取消；重新接管需要显式 reacquire 授权。"}
+	var scene_guard: Dictionary = _adjutant_check_scene(match_node, action, params, player)
+	if not scene_guard.is_empty():
+		return scene_guard
+	_adjutant_executing = true
+	var result: Dictionary
+	match action:
+		"move":
+			result = _parse_op_result(_op_move(match_node, params))
+		"gather":
+			result = _parse_op_result(_op_gather(match_node, params))
+		"attack":
+			result = _parse_op_result(_op_attack(match_node, params))
+		"attack_move":
+			result = _adjutant_execute_attack_move(match_node, player, params)
+		"stop":
+			result = _adjutant_execute_stop(match_node, player, params)
+		"produce":
+			result = _parse_op_result(_op_produce(match_node, params))
+		"build":
+			result = _parse_op_result(_op_build(match_node, params))
+		_:
+			result = {"accepted": false, "status": "UnsupportedAction",
+				"reason": "动作 %s 不在第一阶段副官动作集内（未知机制显式 unsupported）。" % action}
+	_adjutant_executing = false
+	return result
+
+
+## 解析旧 op JSON 字符串结果为字典（复用路径的协议适配）。
+func _parse_op_result(text: String) -> Dictionary:
+	var parsed = JSON.parse_string(text)
+	if parsed is Dictionary:
+		return parsed
+	return {"accepted": false, "status": "Rejected", "reason": "内部执行结果解析失败。"}
+
+
+## attack_move 直接走权威网关（没有等价旧 op）。
+func _adjutant_execute_attack_move(match_node, player, params: Dictionary) -> Dictionary:
+	var gateway = NetSession.command_gateway_for(player)
+	if gateway == null:
+		return {"accepted": false, "status": "NoGateway", "reason": "该玩家没有可用的命令网关。"}
+	var nodes := _resolve_own_units(player, params.get("units", []))
+	if nodes.is_empty():
+		return {"accepted": false, "status": "UnitsNotFound", "reason": "找不到属于该玩家的攻击移动单位。"}
+	var dest_raw: Array = params.get("dest", [0.0, 0.0])
+	var destination := Vector3(float(dest_raw[0]) if dest_raw.size() > 0 else 0.0, 0.0, float(dest_raw[1]) if dest_raw.size() > 1 else 0.0)
+	var result: Dictionary = gateway.GroundAttackMoveUnits(nodes, destination, player)
+	return _unified_receipt(result, {"moved": nodes.map(func(n): return n.name)})
+
+
+## stop 直接走权威网关。
+func _adjutant_execute_stop(match_node, player, params: Dictionary) -> Dictionary:
+	var gateway = NetSession.command_gateway_for(player)
+	if gateway == null:
+		return {"accepted": false, "status": "NoGateway", "reason": "该玩家没有可用的命令网关。"}
+	var nodes := _resolve_own_units(player, params.get("units", []))
+	if nodes.is_empty():
+		return {"accepted": false, "status": "UnitsNotFound", "reason": "找不到属于该玩家的单位。"}
+	var result: Dictionary = gateway.StopUnits(nodes, player)
+	return _unified_receipt(result, {})
+
+
+## scene 类目标校验：场景路径必须命中当前规则视图的受信任映射；
+## 生产选择必须匹配动态生产关系（不硬编码坦克/工厂名单）。
+func _adjutant_check_scene(match_node, action: String, params: Dictionary, player) -> Dictionary:
+	if action != "produce" and action != "build":
+		return {}
+	var rules := _op_rules(match_node)
+	if rules.has("error"):
+		return {"accepted": false, "status": "RulesUnavailable", "reason": "规则视图不可用，无法校验场景目标。"}
+	var scene_path := str(params.get("scene", ""))
+	if scene_path.is_empty():
+		return {"accepted": false, "status": "InvalidCommand", "reason": "缺少 scene 目标路径。"}
+	var type_by_scene := {}
+	for unit_type in rules.get("unit_types", []):
+		type_by_scene[str(unit_type.get("scene_path", ""))] = str(unit_type.get("id", ""))
+	if not type_by_scene.has(scene_path):
+		return {"accepted": false, "status": "UntrustedScene",
+			"reason": "scene 不在当前规则视图的受信任映射中；模型不得构造任意资源路径。"}
+	var target_type: String = str(type_by_scene[scene_path])
+	if action == "produce":
+		var producer_name := str(params.get("unit", params.get("producer", "")))
+		var producer_type := ""
+		for unit in _resolve_own_units(player, [producer_name]):
+			producer_type = str(unit.get("unit_type_id")) if "unit_type_id" in unit else ""
+		for relation in rules.get("productions", []):
+			if str(relation.get("product_type_id", "")) != target_type:
+				continue
+			if producer_type in (relation.get("allowed_producer_type_ids", []) as Array):
+				return {}
+			return {"accepted": false, "status": "InvalidProducer",
+				"reason": "按当前动态生产关系，%s 不能生产 %s。" % [producer_type, target_type]}
+		return {"accepted": false, "status": "ProductNotAllowed",
+			"reason": "当前规则没有 %s 的生产定义（未知内容显式 unsupported）。" % target_type}
+	# build：目标类型必须存在建筑施工定义。
+	for construction in rules.get("constructions", []):
+		if str(construction.get("unit_type_id", "")) == target_type:
+			return {}
+	return {"accepted": false, "status": "NotBuildable",
+		"reason": "当前规则没有 %s 的施工定义，不能建造。" % target_type}
+
+
+## 控制租约：玩家手动命令使租约失效；重新接管必须带 reacquire=true 显式授权。
+## 返回 false 表示存在被玩家接管且未重新授权的目标单位（拒绝整条命令）。
+func _adjutant_authorize_units(player, params: Dictionary,
+		command_id: String, match_id: String, player_id: String, current_tick: int) -> bool:
+	var wanted: Array = params.get("units", []) if params.get("units", []) is Array else []
+	if wanted.is_empty():
+		return true
+	var reacquire := bool(params.get("reacquire", false))
+	var view_key := "%s|%s" % [match_id, player_id]
+	var leases: Dictionary = _adjutant_leases.get(view_key, {})
+	var overridden := false
+	for unit_name in wanted:
+		if leases.has(str(unit_name)) and not bool(leases[str(unit_name)].get("active", true)):
+			overridden = true
+	if overridden and not reacquire:
+		return false
+	if overridden and reacquire:
+		# 显式重新接管：记录授权事实与命令关联（第一阶段协议字段，UI 属第二阶段）。
+		for unit_name in wanted:
+			if leases.has(str(unit_name)):
+				_adjutant_lease_generation += 1
+				leases[str(unit_name)] = {
+					"generation": _adjutant_lease_generation,
+					"active": true,
+					"reacquired_command_id": command_id,
+					"reacquired_tick": current_tick,
+				}
+		_adjutant_leases[view_key] = leases
+		return true
+	# 首次租用：登记代际。
+	for unit_name in wanted:
+		if not leases.has(str(unit_name)):
+			_adjutant_lease_generation += 1
+			leases[str(unit_name)] = {"generation": _adjutant_lease_generation, "active": true}
+	_adjutant_leases[view_key] = leases
+	return true
+
+
+## 玩家手动命令收口：立即取消副官对相关单位的控制租约。
+## 调用方：本文件内各手动 op（直执行成功后）与 UnitActionsController（真实 UI 路径）。
+func notify_player_override(player_name: String, unit_names: Array) -> void:
+	if _adjutant_executing or unit_names.is_empty():
+		return
+	for pair_key in _adjutant_leases.keys():
+		var suffix := "|" + player_name
+		if not str(pair_key).ends_with(suffix):
+			continue
+		var leases: Dictionary = _adjutant_leases[pair_key]
+		for unit_name in unit_names:
+			if leases.has(str(unit_name)):
+				leases[str(unit_name)]["active"] = false
+
+
+## 幂等账本总容量统计（跨对局/玩家共享上限，显式背压）。
+func _adjutant_ledger_size() -> int:
+	var total := 0
+	for view_key in _adjutant_ledger.keys():
+		total += (_adjutant_ledger[view_key] as Dictionary).size()
+	return total
+
+
+## 构造带身份上下文的错误回执。
+func _adjutant_receipt_error(status: String, reason: String, command_id := "",
+		match_id := "", player_id := "", current_tick := -1) -> Dictionary:
+	return {
+		"ok": false,
+		"accepted": false,
+		"status": status,
+		"reason": reason,
+		"command_id": command_id,
+		"match_id": match_id,
+		"player_id": player_id,
+		"server_tick": current_tick,
+		"result": {},
+	}
