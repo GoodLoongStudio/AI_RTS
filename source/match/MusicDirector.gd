@@ -1,14 +1,14 @@
 extends Node
 class_name MusicDirector
 
-## 对局背景音乐导演（2026-09-07）：和平曲 ↔ 战斗曲自动切换。
+## 对局背景音乐导演（2026-09-08 换官方音乐包）：和平曲 ↔ 战斗曲自动切换。
 ## 战斗判定：任意己方单位受击（unit_damaged）刷新战斗计时；
 ## 计时归零后回到和平曲。切换用 2s 交叉淡入淡出。
-## 音源：assets/music/*.wav（条对齐无缝循环，循环点在 import 后由 loop_mode 打开）。
+## 音源：assets/music/command_*.ogg（循环在运行时打开，OGG 用 loop 属性）。
 
 const TRACKS := {
-	"peace": "res://assets/music/peace_theme.wav",
-	"battle": "res://assets/music/battle_theme.wav",
+	"peace": "res://assets/music/command_battle_bed.ogg",
+	"battle": "res://assets/music/command_battle_full.ogg",
 }
 const BATTLE_HOLD_SECONDS := 7.0
 const FADE_SECONDS := 2.0
@@ -25,11 +25,7 @@ func _ready():
 		var player := AudioStreamPlayer.new()
 		player.name = "Music_" + key
 		var stream = load(TRACKS[key])
-		if stream != null and stream is AudioStreamWAV:
-			stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
-			stream.loop_begin = 0
-			# 16-bit 立体声：帧数 = 字节数 / (2 字节 × 2 声道)
-			stream.loop_end = stream.data.size() / 4
+		_enable_loop(stream)
 		player.stream = stream
 		player.volume_db = -60.0
 		player.bus = "Master"
@@ -37,6 +33,19 @@ func _ready():
 		_players[key] = player
 	MatchSignals.unit_damaged.connect(_on_unit_damaged)
 	MatchSignals.match_started.connect(_on_match_started, CONNECT_ONE_SHOT)
+
+
+## 按流类型打开无缝循环：OGG 用 loop 属性，WAV 用 FORWARD 循环段。
+static func _enable_loop(stream) -> void:
+	if stream == null:
+		return
+	if stream is AudioStreamOggVorbis:
+		stream.loop = true
+	elif stream is AudioStreamWAV:
+		stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		stream.loop_begin = 0
+		# 16-bit 立体声：帧数 = 字节数 / (2 字节 × 2 声道)
+		stream.loop_end = stream.data.size() / 4
 
 
 func _process(delta):

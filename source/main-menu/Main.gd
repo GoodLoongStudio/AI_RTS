@@ -1,7 +1,7 @@
 extends Control
 
-## 主菜单背景音乐（2026-09-07）：菜单场景内循环 menu_theme。
-const MENU_MUSIC := "res://assets/music/menu_theme.wav"
+## 主菜单背景音乐（2026-09-08 官方音乐包）：菜单场景内循环 command_menu。
+const MENU_MUSIC := "res://assets/music/command_menu.ogg"
 const MENU_MUSIC_DB := -8.0
 
 static var _autojoin_fired := false  # 每进程只生效一次，防止把玩家弹回联机界面
@@ -24,10 +24,7 @@ func _start_menu_music() -> void:
 	var player := AudioStreamPlayer.new()
 	player.name = "MenuMusic"
 	var stream = load(MENU_MUSIC)
-	if stream is AudioStreamWAV:
-		stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
-		stream.loop_begin = 0
-		stream.loop_end = stream.data.size() / 4  # 16-bit 立体声帧数
+	MusicDirector._enable_loop(stream)
 	player.stream = stream
 	player.volume_db = MENU_MUSIC_DB
 	add_child(player)

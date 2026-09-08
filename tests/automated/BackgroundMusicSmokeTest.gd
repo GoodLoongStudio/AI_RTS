@@ -33,7 +33,10 @@ func _ready():
 	_check(director._current == "peace", "对局开始应播放和平曲（实际 %s）" % director._current)
 	var peace_player: AudioStreamPlayer = director._players["peace"]
 	_check(peace_player.playing, "和平曲应在播放中")
-	_check(peace_player.stream.loop_mode == AudioStreamWAV.LOOP_FORWARD, "和平曲应设为无缝循环")
+	_check(
+		peace_player.stream is AudioStreamOggVorbis and peace_player.stream.loop,
+		"和平曲应为 OGG 循环播放"
+	)
 
 	# 交火：敌方坦克贴脸人类坦克 → 自动互殴 → unit_damaged → 切战斗曲
 	var enemy_player = Player.new()
@@ -68,7 +71,7 @@ func _ready():
 
 	# 主菜单音源资源存在
 	_check(
-		ResourceLoader.exists("res://assets/music/menu_theme.wav"),
+		ResourceLoader.exists("res://assets/music/command_menu.ogg"),
 		"主菜单音乐资源应存在"
 	)
 
