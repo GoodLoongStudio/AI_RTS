@@ -2,6 +2,7 @@ extends "res://source/match/units/actions/Action.gd"
 
 const AttackingWhileInRange = preload("res://source/match/units/actions/AttackingWhileInRange.gd")
 const AutoAttacking = preload("res://source/match/units/actions/AutoAttacking.gd")
+const ExplicitForceAttacking = preload("res://source/match/units/actions/ExplicitForceAttacking.gd")
 const Moving = preload("res://source/match/units/actions/Moving.gd")
 
 const REFRESH_INTERVAL = 1.0 / 60.0 * 10.0
@@ -86,9 +87,23 @@ func _attack_unit(unit):
 	_sub_action = (
 		AutoAttacking.new(unit) if _unit.movement_speed > 0.0 else AttackingWhileInRange.new(unit)
 	)
-	_sub_action.tree_exited.connect(_on_attack_finished)
+	_sub_action.tree_exited.connect(_on_attack_finished.bind(_sub_action))
 	add_child(_sub_action)
 	_unit.action_updated.emit()
+
+
+## 炮塔等固定单位的显式强制攻击入口：作为子动作挂载，结束后续接自主索敌。
+func force_attack(target_unit) -> bool:
+	if _sub_action != null:
+		_sub_action.queue_free()
+	_sub_action = ExplicitForceAttacking.new(target_unit)
+	_sub_action.force_attack_ended.connect(
+		func(reason): _unit.explicit_force_attack_ended.emit(reason)
+	)
+	_sub_action.tree_exited.connect(_on_attack_finished.bind(_sub_action))
+	add_child(_sub_action)
+	_unit.action_updated.emit()
+	return true
 
 
 func _on_timer_timeout():
@@ -105,12 +120,16 @@ func _on_timer_timeout():
 		_attack_unit(_pick_closest_unit(units_to_attack, _unit))
 
 
-func _on_attack_finished():
+func _on_attack_finished(finished_action = null):
 	if not is_inside_tree():
+		return
+	# 只清理退出的那个子动作，避免旧子动作收尾时误清新子动作
+	if finished_action != null and _sub_action != finished_action:
 		return
 	_sub_action = null
 	_unit.action_updated.emit()
-	_timer.timeout.connect(_on_timer_timeout)
+	if not _timer.timeout.is_connected(_on_timer_timeout):
+		_timer.timeout.connect(_on_timer_timeout)
 
 
 func _try_returning_to_guard_anchor() -> bool:

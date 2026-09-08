@@ -36,7 +36,7 @@ func _ready():
 	var moved: Vector3 = camera.global_position - camera_position_before
 	_check(moved.length() > 0.01, "按住方向键上应移动视角（位移 %.3f）" % moved.length())
 
-	# --- 2) Q 全选作战单位（不含建筑） ---
+	# --- 2) Q 全选作战单位（不含建筑与工人） ---
 	var extra_workers := []
 	for index in range(2):
 		var worker = WorkerScene.instantiate()
@@ -53,13 +53,13 @@ func _ready():
 	input_runtime.emit_signal("ActionPressed", "selection.select_all")
 	await get_tree().process_frame
 	var selected_all = get_tree().get_nodes_in_group("selected_units")
-	var structures_selected = selected_all.filter(
-		func(unit): return unit is Structure
+	var excluded = selected_all.filter(
+		func(unit): return unit is Structure or unit.scene_file_path == WorkerScene.resource_path
 	)
 	_check(
-		selected_all.size() >= 6 and structures_selected.is_empty(),
-		"Q 应全选作战单位且不含建筑（实际 %d 个，其中建筑 %d 个）" % [
-			selected_all.size(), structures_selected.size()
+		selected_all.size() == 3 and excluded.is_empty(),
+		"Q 应只选作战单位（实际 %d 个，建筑/工人 %d 个）" % [
+			selected_all.size(), excluded.size()
 		]
 	)
 

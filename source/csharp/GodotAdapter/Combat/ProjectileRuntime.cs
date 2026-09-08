@@ -34,9 +34,7 @@ public partial class ProjectileRuntime : Node
     }
 
     /// <summary>发射指向实体目标的投射物，并在发射瞬间冻结伤害与来源数据。</summary>
-    public string LaunchEntity(
-        Node sourceNode,
-        Node targetNode)
+    public string LaunchEntity(Node sourceNode, Node targetNode, bool allowsFriendlyDamage = false)
     {
         var source = RequireSpatial(sourceNode, nameof(sourceNode));
         var target = RequireSpatial(targetNode, nameof(targetNode));
@@ -50,7 +48,8 @@ public partial class ProjectileRuntime : Node
             targetId,
             launch.Weapon,
             launch.Warhead,
-            launch.Warhead.ImpactSelectionMode);
+            launch.Warhead.ImpactSelectionMode,
+            allowsFriendlyDamage);
 
         return Spawn(snapshot, launch.ProjectileScene, source, target);
     }
@@ -189,7 +188,8 @@ public partial class ProjectileRuntime : Node
         UnitId? targetId,
         WeaponDefinition weapon,
         WarheadDefinition warhead,
-        ImpactSelectionMode selectionMode)
+        ImpactSelectionMode selectionMode,
+        bool allowsFriendlyDamage = false)
     {
         var sourcePlayer = _units.RegisterPlayer(source.GetParent());
         return new AttackLaunchSnapshot(
@@ -203,7 +203,8 @@ public partial class ProjectileRuntime : Node
             weapon.BaseDamage,
             warhead.RadiusMeters,
             warhead.FriendlyFireDamageMultiplier,
-            selectionMode);
+            selectionMode,
+            allowsFriendlyDamage);
     }
 
     /// <summary>实例化投射物并在进入 SceneTree 前注入全部表现快照。</summary>

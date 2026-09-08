@@ -75,6 +75,7 @@ internal sealed class UnitCommandServiceTests
         RunTest(nameof(AcceptedOrdersPreserveOriginalTargets), AcceptedOrdersPreserveOriginalTargets);
         RunTest(nameof(AreaWarheadUsesImpactPointAndFootprints), AreaWarheadUsesImpactPointAndFootprints);
         RunTest(nameof(WarheadResultsAreStableUniqueAndRespectFriendlyFire), WarheadResultsAreStableUniqueAndRespectFriendlyFire);
+        RunTest(nameof(ForceAttackSnapshotDamagesFriendly), ForceAttackSnapshotDamagesFriendly);
         RunTest(nameof(ResourceTransactionAppliesMultipleKindsAtomically), ResourceTransactionAppliesMultipleKindsAtomically);
         RunTest(nameof(ResourceTransactionRejectsPartialPayment), ResourceTransactionRejectsPartialPayment);
         RunTest(nameof(ResourceTransactionReplayIsIdempotent), ResourceTransactionReplayIsIdempotent);
@@ -938,6 +939,39 @@ internal sealed class UnitCommandServiceTests
             "友军应应用发射快照中的友伤倍率");
         Check(damage.Single(item => item.UnitId == enemy).Damage == 10.0f,
             "敌军应承受完整基础伤害");
+    }
+
+    /// <summary>验证显式 ForceAttack 快照可伤害友军（按友伤倍率），普通直击仍不伤友军。</summary>
+    private void ForceAttackSnapshotDamagesFriendly()
+    {
+        var sourcePlayer = NewPlayerId();
+        var friendly = NewUnitId();
+        var resolver = new WarheadDamageResolver();
+        var candidates = new[]
+        {
+            new ImpactCandidateSnapshot(
+                friendly, sourcePlayer, new WorldPosition(0, 0, 0), 0.5f, true)
+        };
+
+        var normal = LaunchSnapshot(
+            sourcePlayer,
+            friendly,
+            0.0f,
+            ImpactSelectionMode.IntendedTargetOnly,
+            friendlyFireMultiplier: 0.5f);
+        Check(resolver.Resolve(normal, new WorldPosition(0, 0, 0), candidates).Count == 0,
+            "普通直击不得伤害友军");
+
+        var forced = LaunchSnapshot(
+            sourcePlayer,
+            friendly,
+            0.0f,
+            ImpactSelectionMode.IntendedTargetOnly,
+            friendlyFireMultiplier: 0.5f,
+            allowsFriendlyDamage: true);
+        var damage = resolver.Resolve(forced, new WorldPosition(0, 0, 0), candidates);
+        Check(damage.Count == 1 && damage[0].Damage == 5.0f,
+            "强制攻击友军应按友伤倍率造成伤害");
     }
 
     /// <summary>验证一笔 A/B 交易只增加一次版本并完整应用。</summary>
@@ -2323,7 +2357,8 @@ internal sealed class UnitCommandServiceTests
         UnitId? intendedTarget,
         float radius,
         ImpactSelectionMode selectionMode,
-        float friendlyFireMultiplier = 1.0f) => new(
+        float friendlyFireMultiplier = 1.0f,
+        bool allowsFriendlyDamage = false) => new(
             new AttackInstanceId(Guid.NewGuid()),
             NewUnitId(),
             sourcePlayer,
@@ -2334,7 +2369,8 @@ internal sealed class UnitCommandServiceTests
             10.0f,
             radius,
             friendlyFireMultiplier,
-            selectionMode);
+            selectionMode,
+            allowsFriendlyDamage);
 
     private void RunTest(string name, Action test)
     {

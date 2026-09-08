@@ -53,7 +53,8 @@ public sealed record AttackLaunchSnapshot(
     float BaseDamage,
     float WarheadRadius,
     float FriendlyFireDamageMultiplier,
-    ImpactSelectionMode ImpactSelectionMode);
+    ImpactSelectionMode ImpactSelectionMode,
+    bool AllowsFriendlyDamage = false);
 
 /// <summary>提供爆点结算所需的最小可伤害对象快照。</summary>
 public readonly record struct ImpactCandidateSnapshot(

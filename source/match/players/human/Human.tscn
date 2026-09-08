@@ -25,8 +25,10 @@ script = ExtResource("4_ljr74")
 
 [node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="VoiceNarratorController"]
 process_mode = 3
+bus = &"Voice"
 
 [node name="UnitVoicesController" type="Node" parent="."]
 script = ExtResource("5_i4ssw")
 
 [node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="UnitVoicesController"]
+bus = &"Voice"

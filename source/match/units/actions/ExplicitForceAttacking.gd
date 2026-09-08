@@ -39,6 +39,9 @@ func _attack_or_move_closer():
 		if _target_in_range()
 		else FollowingToReachDistance.new(_target_unit, _unit.attack_range)
 	)
+	if _sub_action is AttackingWhileInRange:
+		# 显式强制攻击：命中允许按友伤倍率伤害友军
+		_sub_action.allows_friendly_damage = true
 	_sub_action.tree_exited.connect(_on_sub_action_finished)
 	add_child(_sub_action)
 	_unit.action_updated.emit()

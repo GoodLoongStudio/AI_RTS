@@ -386,6 +386,10 @@ func request_legacy_attack(target_unit) -> bool:
 func request_legacy_force_attack(target_unit) -> bool:
 	if attack_range == null or target_unit == null or not "hp" in target_unit:
 		return false
+	# 炮塔等固定单位顶层动作恒为 WaitingForTargets（其 _set_action 拒绝替换），
+	# 强制攻击作为其子动作挂载（2026-09-07 炮塔支持强制攻击）
+	if action != null and action.has_method("force_attack"):
+		return action.force_attack(target_unit)
 	var force_attack = LegacyForceAttackAction.new(target_unit)
 	force_attack.force_attack_ended.connect(explicit_force_attack_ended.emit)
 	action = force_attack

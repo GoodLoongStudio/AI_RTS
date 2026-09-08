@@ -34,11 +34,11 @@ public sealed class WarheadDamageResolver : IWarheadDamageResolver
             .Select(group => group.First())
             .OrderBy(item => item.UnitId.Value))
         {
-            // Direct entity attacks must never damage the attacker's own side.
-            // ForceAttack may still be accepted as an order, but a stale or
-            // misrouted target reference must not turn it into self-damage.
+            // 直接实体攻击默认不伤己方；显式 ForceAttack（AllowsFriendlyDamage）
+            // 对友军按弹头友伤倍率结算——普通误伤/过期目标引用仍被拦截。
             if (launch.ImpactSelectionMode == ImpactSelectionMode.IntendedTargetOnly &&
-                candidate.OwnerId == launch.SourcePlayerId)
+                candidate.OwnerId == launch.SourcePlayerId &&
+                !launch.AllowsFriendlyDamage)
             {
                 continue;
             }

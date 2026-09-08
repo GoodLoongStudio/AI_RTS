@@ -101,7 +101,8 @@ public sealed class SkillInstantEffectExecutor(
             amount,
             0.0f,
             FriendlyFireMultiplier(),
-            ImpactSelectionMode.IntendedTargetOnly);
+            ImpactSelectionMode.IntendedTargetOnly,
+            AllowsFriendlyDamage: true);
         var candidates = new[]
         {
             new ImpactCandidateSnapshot(

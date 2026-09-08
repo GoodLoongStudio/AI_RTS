@@ -1,5 +1,7 @@
 extends Control
 
+## 主菜单背景音乐由常驻自动加载 MenuMusic 播放（跨菜单场景不断），
+## 此处不再单独挂载（2026-09-08）。
 
 static var _autojoin_fired := false  # 每进程只生效一次，防止把玩家弹回联机界面
 
