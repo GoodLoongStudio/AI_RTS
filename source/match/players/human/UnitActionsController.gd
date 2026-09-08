@@ -523,7 +523,22 @@ func _emit_command_feedback(command_name: String, accepted_count: int, rejected_
 		status = "Accepted"
 	elif accepted_count > 0:
 		status = "PartiallyAccepted"
+	if accepted_count > 0:
+		_release_adjutant_leases()
 	command_feedback.emit(command_name, accepted_count, rejected_count, status)
+
+
+## 玩家手动命令成功后立即取消副官对这些单位的控制租约（玩家优先权）。
+## 重新接管需要副官侧显式 reacquire 授权（见 DebugControlServer 租约协议）。
+func _release_adjutant_leases():
+	var dbg = get_node_or_null("/root/DebugControlServer")
+	if dbg == null or not dbg.has_method("notify_player_override"):
+		return
+	var unit_names: Array = get_tree().get_nodes_in_group("selected_units").map(
+		func(unit): return str(unit.name)
+	)
+	if not unit_names.is_empty():
+		dbg.notify_player_override(str(get_parent().name), unit_names)
 
 
 func _try_setting_rally_points(target_point: Vector3):

@@ -32,6 +32,11 @@ var _speed := 0.0
 var _hit_overlay_remaining := 0.0
 var _fire_pending := false
 var _fire_pending_window := 0.0
+## 挂起开火事件所属的指挥上下文（事件到达时单位的 action 节点）。
+## 消费时要求该上下文仍然有效：移动开火在移动结束边界发出的最后一发
+## （发射瞬间意图恰好已被导航结束清空）会随移动动作退出而失去上下文，
+## 据此与"追击刹停第一枪"（攻击动作贯穿切换、上下文保持）精确区分。
+var _fire_pending_action: Node = null
 var _fire_active := false
 var _hit_clip := "Hit"
 var _last_hp = null
@@ -65,6 +70,7 @@ func _process(delta: float) -> void:
 	# 当前资产是全身站姿射击；中弹立即丢弃待播开火（受击优先且不补播）。
 	if _hit_overlay_remaining > 0.0:
 		_fire_pending = false
+		_fire_pending_action = null
 		_fire_active = false
 	elif _speed > MOVE_SPEED_EPSILON:
 		_fire_active = false
@@ -72,13 +78,22 @@ func _process(delta: float) -> void:
 		# 速度滤波衰减过阈值即播；被动位移（避让推挤）拖住超过窗口则丢弃。
 		if _fire_pending and _fire_pending_window <= 0.0:
 			_fire_pending = false
+			_fire_pending_action = null
 	elif _fire_pending:
 		_fire_pending = false
-		_fire_active = true
-		# 同名剪辑也从冲击首帧重启，连射不会吞掉新的发射事件。
-		_player.stop()
-		_player.play("Fire", 0.015)
-		_player.advance(0.0)
+		# 站定确认后再消费：发射事件的指挥上下文必须仍然有效（发起发射的
+		# action 仍在指挥该单位）。移动开火循环在移动结束边界（导航结束已清
+		# 意图、移动动作即将退出）发出的残余一发，会在消费前失去上下文而被
+		# 丢弃；攻击命令的刹停第一枪其攻击动作贯穿到位切换，上下文保持有效，
+		# 正常播出。此判据不区分具体动作类型，只验证发射来源的存续。
+		var fire_context_alive: bool = _unit.action == _fire_pending_action
+		_fire_pending_action = null
+		if fire_context_alive:
+			_fire_active = true
+			# 同名剪辑也从冲击首帧重启，连射不会吞掉新的发射事件。
+			_player.stop()
+			_player.play("Fire", 0.015)
+			_player.advance(0.0)
 	_play(_desired_clip())
 
 
@@ -115,8 +130,11 @@ func _on_attack_fired() -> void:
 	# 因此用"是否仍被命令移动"判据可精确区分两者；速度只用于挂起后的消费。
 	if _is_moving_by_intent():
 		return
+	# 记录发射时的指挥上下文，供挂起消费时验证（见 _process）：只有发起
+	# 发射的 action 仍然在位，这发站定开火才值得表现。
 	_fire_pending = true
 	_fire_pending_window = FIRE_PENDING_WINDOW
+	_fire_pending_action = _unit.action
 
 
 ## 单位是否仍被命令移动（Movement 持有导航目标即视为移动意图存在）。
@@ -151,6 +169,7 @@ func _on_hp_changed() -> void:
 	if loss <= 0.0:
 		return
 	_fire_pending = false
+	_fire_pending_action = null
 	_fire_active = false
 	_hit_clip = "Hit"
 	var duration_msec := HIT_OVERLAY_MSEC

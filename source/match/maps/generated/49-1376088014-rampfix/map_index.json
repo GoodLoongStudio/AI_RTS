@@ -1,0 +1,12 @@
+{
+ "height_data": "res://source/match/maps/generated/49-1376088014-rampfix/height_data.bin",
+ "height_data_sha256": "6216ccf36748a069f85a31586a1b1175d33f6620af0651129279ce4cf4f45cfd",
+ "map_id": "49-1376088014-rampfix",
+ "name": "Generated 49-1376088014-rampfix",
+ "path": "res://source/match/maps/generated/49-1376088014-rampfix/map_49-1376088014-rampfix.tscn",
+ "players": 4,
+ "size": [
+  256,
+  256
+ ]
+}
