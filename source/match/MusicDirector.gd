@@ -4,12 +4,15 @@ class_name MusicDirector
 ## 对局背景音乐导演：和平曲 ↔ 战斗曲自动切换。
 ## 战斗判定：任意己方单位受击（unit_damaged）刷新战斗计时；
 ## 计时归零后回到和平曲。切换用 2s 交叉淡入淡出。
-## 2026-09-08：对局曲池暂空——用户待提供对局 BGM 音频；
-## 主菜单音乐（menu_theme.ogg）由 Main.gd 直接挂载，与本导演无关。
-## 用户补音频后：把 TRACKS["peace"] 与 BATTLE_TRACKS 填上即可恢复切换逻辑。
+## 2026-09-08 用户指定：战斗曲=battle_theme（midnight_treads 裁掉前 4s），
+## 和平曲=peace_theme（silo_protocol）。
 
-const TRACKS := {}
-const BATTLE_TRACKS := []
+const TRACKS := {
+	"peace": "res://assets/music/peace_theme.ogg",
+}
+const BATTLE_TRACKS := [
+	"res://assets/music/battle_theme.wav",
+]
 const BATTLE_HOLD_SECONDS := 7.0
 const FADE_SECONDS := 2.0
 const MUSIC_DB := -10.0
