@@ -12,16 +12,13 @@ const FIRE_SOUND_BY_SCENE := {
 	"res://source/match/units/Tank.tscn": "cannon_fire",
 	"res://source/match/units/AntiGroundTurret.tscn": "cannon_fire",
 	"res://source/match/units/AntiAirTurret.tscn": "rocket_fire",
-	"res://source/match/units/Helicopter.tscn": "rotary_fire",
+	"res://source/match/units/Helicopter.tscn": "rocket_fire",
 	"res://source/match/units/Drone.tscn": "rocket_fire",
 }
 
 const VOLUME_BY_KEY := {
 	"rifle_fire": -4.0,
 	"cannon_fire": 2.0,
-	"rotary_fire": -2.0,
-	"construct_start": -6.0,
-	"construct_done": -4.0,
 	"rocket_fire": -1.0,
 	"impact_metal": 0.0,
 	"impact_flesh": -2.0,
