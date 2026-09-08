@@ -20,6 +20,7 @@ func _ready():
 
 	var director = match_instance.get_node_or_null("MusicDirector")
 	_check(director != null, "对局应挂载 MusicDirector")
+	print("[BGM] match scene_file_path='", match_instance.scene_file_path, "'")
 	if director == null:
 		_finish()
 		return
@@ -81,6 +82,11 @@ func _ready():
 		ResourceLoader.exists("res://assets/music/menu_theme.ogg"),
 		"主菜单音乐资源应存在"
 	)
+	# 常驻菜单音乐：进入对局后应已停止
+	var menu_music = get_node_or_null("/root/MenuMusic")
+	_check(menu_music != null, "MenuMusic 常驻播放器应存在")
+	if menu_music != null:
+		_check(not menu_music._player.playing, "进入对局后主菜单音乐应停止")
 
 	_finish()
 

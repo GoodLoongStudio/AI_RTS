@@ -1,15 +1,12 @@
 extends Control
 
-## 主菜单背景音乐（2026-09-08 音乐包 v2）：菜单场景内循环 menu_theme。
-## 音量走 Music 总线（设置里可调），曲目本身略作增益。
-const MENU_MUSIC := "res://assets/music/menu_theme.ogg"
-const MENU_MUSIC_DB := -4.0
+## 主菜单背景音乐由常驻自动加载 MenuMusic 播放（跨菜单场景不断），
+## 此处不再单独挂载（2026-09-08）。
 
 static var _autojoin_fired := false  # 每进程只生效一次，防止把玩家弹回联机界面
 
 
 func _ready() -> void:
-	_start_menu_music()
 	# 调试钩子：--autojoin（或 res://autojoin.txt）→ 直接进联机界面，
 	# Online._ready 的 autojoin 钩子接管加入+立即开局（供 Godot MCP 一键开局）。
 	# 复核 2026-09-02：只在本进程第一次加载 Main 时生效——自动化会话遗留/重建
@@ -17,20 +14,6 @@ func _ready() -> void:
 	if not _autojoin_fired and "--autojoin" in OS.get_cmdline_user_args():
 		_autojoin_fired = true
 		_on_online_button_pressed()
-
-
-func _start_menu_music() -> void:
-	if not ResourceLoader.exists(MENU_MUSIC):
-		return
-	var player := AudioStreamPlayer.new()
-	player.name = "MenuMusic"
-	var stream = load(MENU_MUSIC)
-	MusicDirector._enable_loop(stream)
-	player.stream = stream
-	player.volume_db = MENU_MUSIC_DB
-	player.bus = "Music"
-	add_child(player)
-	player.play()
 
 
 func _on_campaign_button_pressed():
