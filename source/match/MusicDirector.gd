@@ -5,10 +5,10 @@ class_name MusicDirector
 ## 战斗判定：任意己方单位受击（unit_damaged）刷新战斗计时；
 ## 计时归零后回到和平曲。切换用 2s 交叉淡入淡出。
 ## 2026-09-08 用户指定：战斗曲=battle_theme（midnight_treads 裁掉前 4s），
-## 和平曲=peace_theme（silo_protocol）。
+## 和平曲=peace_theme（silo_protocol 裁掉前 18s，取后半段）。
 
 const TRACKS := {
-	"peace": "res://assets/music/peace_theme.ogg",
+	"peace": "res://assets/music/peace_theme.wav",
 }
 const BATTLE_TRACKS := [
 	"res://assets/music/battle_theme.wav",

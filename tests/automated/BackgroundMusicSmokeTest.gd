@@ -32,8 +32,9 @@ func _ready():
 	var peace_player: AudioStreamPlayer = director._players["peace"]
 	_check(peace_player.playing, "和平曲应在播放中")
 	_check(
-		peace_player.stream is AudioStreamOggVorbis and peace_player.stream.loop,
-		"和平曲应为 OGG 循环播放"
+		peace_player.stream is AudioStreamWAV and peace_player.stream.loop_mode ==
+			AudioStreamWAV.LOOP_FORWARD,
+		"和平曲应为 WAV 循环播放"
 	)
 
 	# 交火：敌方坦克贴脸人类坦克 → 自动互殴 → unit_damaged → 切战斗曲
