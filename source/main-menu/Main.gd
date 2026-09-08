@@ -1,7 +1,7 @@
 extends Control
 
-## 主菜单背景音乐（2026-09-08 官方音乐包）：菜单场景内循环 command_menu。
-const MENU_MUSIC := "res://assets/music/command_menu.ogg"
+## 主菜单背景音乐（2026-09-08 音乐包 v2）：菜单场景内循环 menu_theme。
+const MENU_MUSIC := "res://assets/music/menu_theme.ogg"
 const MENU_MUSIC_DB := -8.0
 
 static var _autojoin_fired := false  # 每进程只生效一次，防止把玩家弹回联机界面

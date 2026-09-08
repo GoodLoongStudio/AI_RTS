@@ -1,15 +1,25 @@
 extends Node
 class_name MusicDirector
 
-## 对局背景音乐导演（2026-09-08 换官方音乐包）：和平曲 ↔ 战斗曲自动切换。
+## 对局背景音乐导演（2026-09-08 音乐包 v2）：和平曲 ↔ 战斗曲自动切换。
 ## 战斗判定：任意己方单位受击（unit_damaged）刷新战斗计时；
 ## 计时归零后回到和平曲。切换用 2s 交叉淡入淡出。
-## 音源：assets/music/command_*.ogg（循环在运行时打开，OGG 用 loop 属性）。
+## 战斗曲池：8 首官方战斗曲随机轮换（避免连续重复同一首），
+## 和平曲沿用 v1 安静底乐层（音乐包 v2 无专属和平曲）。
 
 const TRACKS := {
 	"peace": "res://assets/music/command_battle_bed.ogg",
-	"battle": "res://assets/music/command_battle_full.ogg",
 }
+const BATTLE_TRACKS := [
+	"res://assets/music/battle_grinding_steel_mandate.ogg",
+	"res://assets/music/battle_hostile_perimeter_breach.ogg",
+	"res://assets/music/battle_iron_under_noon.ogg",
+	"res://assets/music/battle_iron_undergrowth.ogg",
+	"res://assets/music/battle_midnight_treads.ogg",
+	"res://assets/music/battle_panic_at_the_perimeter.ogg",
+	"res://assets/music/battle_silo_protocol.ogg",
+	"res://assets/music/battle_winter_in_the_bunker.ogg",
+]
 const BATTLE_HOLD_SECONDS := 7.0
 const FADE_SECONDS := 2.0
 const MUSIC_DB := -10.0
@@ -18,6 +28,7 @@ var _players := {}
 var _current := ""
 var _battle_hold := 0.0
 var _started := false
+var _last_battle_path := ""
 
 
 func _ready():
@@ -31,8 +42,26 @@ func _ready():
 		player.bus = "Master"
 		add_child(player)
 		_players[key] = player
+	# 战斗曲播放器：流在每次切入战斗时随机指定
+	var battle_player := AudioStreamPlayer.new()
+	battle_player.name = "Music_battle"
+	battle_player.volume_db = -60.0
+	battle_player.bus = "Master"
+	add_child(battle_player)
+	_players["battle"] = battle_player
 	MatchSignals.unit_damaged.connect(_on_unit_damaged)
 	MatchSignals.match_started.connect(_on_match_started, CONNECT_ONE_SHOT)
+
+
+## 随机挑选一首战斗曲（不与上一次重复），设置循环后交给战斗播放器。
+func _prepare_random_battle_stream() -> void:
+	var path: String = BATTLE_TRACKS.pick_random()
+	if path == _last_battle_path and BATTLE_TRACKS.size() > 1:
+		path = BATTLE_TRACKS[(BATTLE_TRACKS.find(path) + 1) % BATTLE_TRACKS.size()]
+	_last_battle_path = path
+	var stream = load(path)
+	_enable_loop(stream)
+	_players["battle"].stream = stream
 
 
 ## 按流类型打开无缝循环：OGG 用 loop 属性，WAV 用 FORWARD 循环段。
@@ -70,9 +99,12 @@ func _on_unit_damaged(_unit):
 
 
 ## 淡出当前曲目并淡入目标曲目（重复调用同一曲目为 no-op）。
+## 战斗曲在切入前随机换一首（同场战斗连续触发不会中途换曲）。
 func play_track(key: String):
 	if _current == key or not _players.has(key):
 		return
+	if key == "battle":
+		_prepare_random_battle_stream()
 	var incoming: AudioStreamPlayer = _players[key]
 	if _current != "":
 		var outgoing: AudioStreamPlayer = _players[_current]

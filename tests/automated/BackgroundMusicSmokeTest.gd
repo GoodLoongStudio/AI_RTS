@@ -71,7 +71,7 @@ func _ready():
 
 	# 主菜单音源资源存在
 	_check(
-		ResourceLoader.exists("res://assets/music/command_menu.ogg"),
+		ResourceLoader.exists("res://assets/music/menu_theme.ogg"),
 		"主菜单音乐资源应存在"
 	)
 
