@@ -22,12 +22,14 @@ var _audio_value_labels := {}
 func _ready():
 	if embedded_mode:
 		_prepare_embedded_mode()
+		UISfx.play("ui_menu_open")  # 游戏内打开设置：菜单开音
 	_setup_save_timer()
 	_mouse_movement_restricted.button_pressed = Globals.options.mouse_restricted
 	_screen.selected = Globals.options.screen
 	_setup_resolution_options()
 	_build_camera_settings()
 	_build_audio_settings()
+	UISfx.play("ui_plate")  # 设置面板展开落位音
 
 
 func _prepare_embedded_mode():
@@ -322,6 +324,7 @@ func _on_save_button_pressed():
 func _on_back_button_pressed():
 	_save_options()
 	if embedded_mode:
+		UISfx.play("ui_menu_close")  # 游戏内关闭设置：菜单关音
 		close_requested.emit()
 		return
 	get_tree().change_scene_to_file("res://source/main-menu/Main.tscn")

@@ -332,6 +332,8 @@ func _style_button(button: Button):
 # ---------------------------------------------------------------- 页签与格子
 
 func _select_tab(tab_id: String):
+	if _active_tab_id != tab_id:
+		UISfx.play("ui_drawer")  # 页签切换：抽屉滑出音
 	_active_tab_id = tab_id
 	for id in _tab_buttons:
 		var tab_button: Button = _tab_buttons[id]

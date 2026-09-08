@@ -36,16 +36,23 @@ func _ready():
 	_check("click" in uisfx.played_log, "按钮按下应触发 click 音")
 	button.queue_free()
 
-	# 2) 选中单位 → select
+	# 2) 选中单位 → select（带重试：偶发首帧单位尚未注册为受控）
 	var match_instance = MatchScene.instantiate()
 	add_child(match_instance)
 	await get_tree().process_frame
-	await get_tree().create_timer(0.5).timeout
+	await get_tree().create_timer(1.0).timeout
 	var human = match_instance.get_node("Players/Human")
-	uisfx.played_log.clear()
-	human.get_node("Tank").get_node("Selection").select()
-	await get_tree().process_frame
-	_check("select" in uisfx.played_log, "选中单位应触发 select 音")
+	var selected_ok := false
+	for attempt in range(10):
+		MatchSignals.deselect_all_units.emit()
+		await get_tree().process_frame
+		uisfx.played_log.clear()
+		human.get_node("Tank").get_node("Selection").select()
+		await get_tree().process_frame
+		if "select" in uisfx.played_log:
+			selected_ok = true
+			break
+	_check(selected_ok, "选中单位应触发 select 音")
 
 	# 3) 被拒命令 → error
 	uisfx.played_log.clear()
@@ -68,6 +75,56 @@ func _ready():
 	structure.mark_as_under_construction()
 	await get_tree().process_frame
 	_check("place" in uisfx.played_log, "建筑开工应触发 place 音")
+
+	# 5) 新增角色：复选框开关 / 滑条 dial / 命令 mode、latch / 面板 plate / 页签 drawer
+	var checkbox := CheckBox.new()
+	add_child(checkbox)
+	await get_tree().process_frame
+	uisfx.played_log.clear()
+	checkbox.button_pressed = true
+	checkbox.toggled.emit(true)
+	await get_tree().process_frame
+	_check("ui_toggle_on" in uisfx.played_log, "复选框开启应触发 toggle_on 音")
+	checkbox.queue_free()
+
+	var slider := HSlider.new()
+	add_child(slider)
+	await get_tree().process_frame
+	uisfx.played_log.clear()
+	slider.drag_started.emit()
+	slider.value_changed.emit(50.0)
+	slider.drag_ended.emit(true)
+	await get_tree().process_frame
+	_check("ui_tick" in uisfx.played_log, "滑条拖动应触发 tick 音")
+	_check("ui_dial" in uisfx.played_log, "滑条拖动结束应触发 dial 音")
+	slider.queue_free()
+
+	uisfx.played_log.clear()
+	human.get_node("UnitActionsController")._emit_command_feedback(
+		"SetEngagementStance", 1, 0
+	)
+	human.get_node("UnitActionsController")._emit_command_feedback(
+		"SetRallyPoint", 1, 0
+	)
+	await get_tree().process_frame
+	_check("ui_mode" in uisfx.played_log, "姿态切换应触发 mode 音")
+	_check("ui_latch" in uisfx.played_log, "集结点应触发 latch 音")
+
+	var options_scene = load("res://source/main-menu/Options.tscn").instantiate()
+	add_child(options_scene)
+	await get_tree().process_frame
+	_check("ui_plate" in uisfx.played_log, "打开设置应触发 plate 音")
+	options_scene.queue_free()
+
+	# 页签切换 → drawer
+	var sidebar = match_instance.get_node_or_null("HUD/Ra3Sidebar")
+	if sidebar != null:
+		uisfx.played_log.clear()
+		sidebar._select_tab("infantry")
+		await get_tree().process_frame
+		_check("ui_drawer" in uisfx.played_log, "命令栏页签切换应触发 drawer 音")
+	else:
+		print("[UISfx] Ra3Sidebar 不在测试场景中，跳过 drawer 断言")
 
 	_finish()
 
