@@ -4,8 +4,9 @@ class_name MusicDirector
 ## 对局背景音乐导演：和平曲 ↔ 战斗曲自动切换。
 ## 战斗判定：任意己方单位受击（unit_damaged）刷新战斗计时；
 ## 计时归零后回到和平曲。切换用 2s 交叉淡入淡出。
-## 2026-09-08 用户指定：战斗曲=battle_theme（midnight_treads 裁掉前 4s），
-## 和平曲=peace_theme（silo_protocol 裁掉前 18s，取后半段）。
+## 2026-09-08 用户指定：战斗曲=battle_theme（midnight_treads 裁掉前 17s），
+## 和平曲=peace_theme（silo_protocol 裁掉前 18s，取后半段）；
+## 切曲间静音停顿 3 秒（淡出 → 停顿 → 淡入）。
 
 const TRACKS := {
 	"peace": "res://assets/music/peace_theme.wav",
@@ -14,11 +15,15 @@ const BATTLE_TRACKS := [
 	"res://assets/music/battle_theme.wav",
 ]
 const BATTLE_HOLD_SECONDS := 7.0
-const FADE_SECONDS := 2.0
+const FADE_SECONDS := 1.5
+## 曲目切换间的静音停顿（秒）：淡出 → 停顿 → 淡入
+const SWITCH_GAP_SECONDS := 3.0
 const MUSIC_DB := -10.0
 
 var _players := {}
 var _current := ""
+var _pending := ""
+var _switch_tween: Tween = null
 var _battle_hold := 0.0
 var _started := false
 var _last_battle_path := ""
@@ -94,21 +99,32 @@ func _on_unit_damaged(_unit):
 		play_track("battle")
 
 
-## 淡出当前曲目并淡入目标曲目（重复调用同一曲目为 no-op）。
-## 战斗曲在切入前随机换一首（同场战斗连续触发不会中途换曲）。
+## 曲目切换：淡出当前曲 → 静音停顿几秒 → 再淡入新曲（避免生硬硬切）。
+## 切换进行中重复请求同一目标为 no-op；反向请求则取消当前切换改道。
 func play_track(key: String):
-	if _current == key or not _players.has(key):
+	if _current == key or not _players.has(key) or _pending == key:
 		return
+	_pending = key
+	if _switch_tween != null and _switch_tween.is_valid():
+		_switch_tween.kill()
+	var tween := create_tween()
+	if _current != "" and _players.has(_current):
+		var outgoing: AudioStreamPlayer = _players[_current]
+		tween.tween_property(outgoing, "volume_db", -60.0, FADE_SECONDS)
+		tween.tween_callback(outgoing.stop)
+	tween.tween_interval(SWITCH_GAP_SECONDS)
+	tween.tween_callback(_begin_track.bind(key))
+	_switch_tween = tween
+
+
+## 停顿结束：真正切入新曲（战斗曲在此刻随机挑选）。
+func _begin_track(key: String):
+	_current = key
+	_pending = ""
 	if key == "battle":
 		_prepare_random_battle_stream()
 	var incoming: AudioStreamPlayer = _players[key]
-	if _current != "":
-		var outgoing: AudioStreamPlayer = _players[_current]
-		var tween_out = create_tween()
-		tween_out.tween_property(outgoing, "volume_db", -60.0, FADE_SECONDS)
-		tween_out.tween_callback(outgoing.stop)
 	incoming.volume_db = -60.0
 	incoming.play()
-	var tween_in = create_tween()
+	var tween_in := create_tween()
 	tween_in.tween_property(incoming, "volume_db", MUSIC_DB, FADE_SECONDS)
-	_current = key
