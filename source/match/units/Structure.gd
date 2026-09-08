@@ -27,6 +27,7 @@ func mark_as_under_construction():
 	if hp == null:
 		await ready
 	set_hp_without_damage(1)
+	UISfx.play("place")
 
 
 ## 镜像 C# 权威整数施工进度；新增 HP 属于施工来源，不触发受击事件。

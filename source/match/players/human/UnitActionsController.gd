@@ -525,6 +525,8 @@ func _emit_command_feedback(command_name: String, accepted_count: int, rejected_
 		status = "PartiallyAccepted"
 	if accepted_count > 0:
 		_release_adjutant_leases()
+	if rejected_count > 0 and accepted_count == 0:
+		UISfx.play("error")  # 命令整体被拒：无效操作提示音
 	command_feedback.emit(command_name, accepted_count, rejected_count, status)
 
 
