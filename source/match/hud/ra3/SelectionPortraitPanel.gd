@@ -42,6 +42,7 @@ const BADGE_COLOR = Color(0.98, 0.83, 0.42)
 var _scroll: ScrollContainer = null
 var _grid: VBoxContainer = null
 var _refresh_accumulator := 0.0
+var _last_signature := ""
 
 
 func _ready():
@@ -101,11 +102,20 @@ func _group_selected_by_type() -> Array:
 
 
 ## 重建头像格子：每类型一格 + ×N 角标；栏高随类型数自适应（封顶滚动）。
+## 重建头像格子：每类型一格 + ×N 角标；栏高随类型数自适应（封顶滚动）。
+## 选中组合未变化时跳过重建（此前每 0.3s 全量重建格子造成持续开销）。
 func _refresh_now():
 	var groups := _group_selected_by_type()
 	visible = not groups.is_empty()
 	if not visible:
+		_last_signature = ""
 		return
+	var signature := ""
+	for group in groups:
+		signature += "%s:%d," % [group["scene"], group["units"].size()]
+	if signature == _last_signature:
+		return
+	_last_signature = signature
 	for child in _grid.get_children():
 		child.queue_free()
 	for group in groups:

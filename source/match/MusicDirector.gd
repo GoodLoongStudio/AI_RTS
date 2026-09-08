@@ -33,9 +33,6 @@ func _ready():
 	for key in TRACKS:
 		var player := AudioStreamPlayer.new()
 		player.name = "Music_" + key
-		var stream = load(TRACKS[key])
-		_enable_loop(stream)
-		player.stream = stream
 		player.volume_db = -60.0
 		player.bus = "Master"
 		add_child(player)
@@ -50,6 +47,17 @@ func _ready():
 		_players["battle"] = battle_player
 	MatchSignals.unit_damaged.connect(_on_unit_damaged)
 	MatchSignals.match_started.connect(_on_match_started, CONNECT_ONE_SHOT)
+
+
+## 首次播放前才装载大音频流（24MB 级 WAV 解压耗时，避免拖慢对局启动）。
+func _ensure_stream(key: String) -> void:
+	var player: AudioStreamPlayer = _players[key]
+	if player.stream != null:
+		return
+	if key == "peace" and TRACKS.has("peace"):
+		var stream = load(TRACKS["peace"])
+		_enable_loop(stream)
+		player.stream = stream
 
 
 ## 随机挑选一首战斗曲（不与上一次重复），设置循环后交给战斗播放器。
@@ -100,6 +108,7 @@ func _on_unit_damaged(_unit):
 
 
 ## 曲目切换：淡出当前曲 → 静音停顿几秒 → 再淡入新曲（避免生硬硬切）。
+## 无当前曲目（如开局首播）直接淡入，不停顿；
 ## 切换进行中重复请求同一目标为 no-op；反向请求则取消当前切换改道。
 func play_track(key: String):
 	if _current == key or not _players.has(key) or _pending == key:
@@ -107,11 +116,14 @@ func play_track(key: String):
 	_pending = key
 	if _switch_tween != null and _switch_tween.is_valid():
 		_switch_tween.kill()
+	if _current == "":
+		# 开局首播：无旧曲可淡出，立即开始
+		_begin_track(key)
+		return
 	var tween := create_tween()
-	if _current != "" and _players.has(_current):
-		var outgoing: AudioStreamPlayer = _players[_current]
-		tween.tween_property(outgoing, "volume_db", -60.0, FADE_SECONDS)
-		tween.tween_callback(outgoing.stop)
+	var outgoing: AudioStreamPlayer = _players[_current]
+	tween.tween_property(outgoing, "volume_db", -60.0, FADE_SECONDS)
+	tween.tween_callback(outgoing.stop)
 	tween.tween_interval(SWITCH_GAP_SECONDS)
 	tween.tween_callback(_begin_track.bind(key))
 	_switch_tween = tween
@@ -121,6 +133,7 @@ func play_track(key: String):
 func _begin_track(key: String):
 	_current = key
 	_pending = ""
+	_ensure_stream(key)
 	if key == "battle":
 		_prepare_random_battle_stream()
 	var incoming: AudioStreamPlayer = _players[key]
