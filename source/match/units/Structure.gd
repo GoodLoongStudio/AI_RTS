@@ -5,6 +5,7 @@ signal constructed
 const UNDER_CONSTRUCTION_MATERIAL = preload(
 	"res://source/match/resources/materials/structure_under_construction.material.tres"
 )
+const CombatSfx = preload("res://source/match/units/traits/CombatSfx.gd")
 
 var _construction_progress = 1.0
 var _construction_refund_requested := false
@@ -27,6 +28,7 @@ func mark_as_under_construction():
 	if hp == null:
 		await ready
 	set_hp_without_damage(1)
+	CombatSfx.play_at(self, "construct_start")
 
 
 ## 镜像 C# 权威整数施工进度；新增 HP 属于施工来源，不触发受击事件。
@@ -75,6 +77,7 @@ func _finish_construction():
 	if is_inside_tree():
 		constructed.emit()
 		MatchSignals.unit_construction_finished.emit(self)
+		CombatSfx.play_at(self, "construct_done")
 
 
 func _change_geometry_material(material):
