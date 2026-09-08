@@ -1,25 +1,15 @@
 extends Node
 class_name MusicDirector
 
-## 对局背景音乐导演（2026-09-08 音乐包 v2）：和平曲 ↔ 战斗曲自动切换。
+## 对局背景音乐导演：和平曲 ↔ 战斗曲自动切换。
 ## 战斗判定：任意己方单位受击（unit_damaged）刷新战斗计时；
 ## 计时归零后回到和平曲。切换用 2s 交叉淡入淡出。
-## 战斗曲池：8 首官方战斗曲随机轮换（避免连续重复同一首），
-## 和平曲沿用 v1 安静底乐层（音乐包 v2 无专属和平曲）。
+## 2026-09-08：对局曲池暂空——用户待提供对局 BGM 音频；
+## 主菜单音乐（menu_theme.ogg）由 Main.gd 直接挂载，与本导演无关。
+## 用户补音频后：把 TRACKS["peace"] 与 BATTLE_TRACKS 填上即可恢复切换逻辑。
 
-const TRACKS := {
-	"peace": "res://assets/music/command_battle_bed.ogg",
-}
-const BATTLE_TRACKS := [
-	"res://assets/music/battle_grinding_steel_mandate.ogg",
-	"res://assets/music/battle_hostile_perimeter_breach.ogg",
-	"res://assets/music/battle_iron_under_noon.ogg",
-	"res://assets/music/battle_iron_undergrowth.ogg",
-	"res://assets/music/battle_midnight_treads.ogg",
-	"res://assets/music/battle_panic_at_the_perimeter.ogg",
-	"res://assets/music/battle_silo_protocol.ogg",
-	"res://assets/music/battle_winter_in_the_bunker.ogg",
-]
+const TRACKS := {}
+const BATTLE_TRACKS := []
 const BATTLE_HOLD_SECONDS := 7.0
 const FADE_SECONDS := 2.0
 const MUSIC_DB := -10.0
@@ -42,13 +32,14 @@ func _ready():
 		player.bus = "Master"
 		add_child(player)
 		_players[key] = player
-	# 战斗曲播放器：流在每次切入战斗时随机指定
-	var battle_player := AudioStreamPlayer.new()
-	battle_player.name = "Music_battle"
-	battle_player.volume_db = -60.0
-	battle_player.bus = "Master"
-	add_child(battle_player)
-	_players["battle"] = battle_player
+	if not BATTLE_TRACKS.is_empty():
+		# 战斗曲播放器：流在每次切入战斗时随机指定
+		var battle_player := AudioStreamPlayer.new()
+		battle_player.name = "Music_battle"
+		battle_player.volume_db = -60.0
+		battle_player.bus = "Master"
+		add_child(battle_player)
+		_players["battle"] = battle_player
 	MatchSignals.unit_damaged.connect(_on_unit_damaged)
 	MatchSignals.match_started.connect(_on_match_started, CONNECT_ONE_SHOT)
 
@@ -78,7 +69,7 @@ static func _enable_loop(stream) -> void:
 
 
 func _process(delta):
-	if not _started:
+	if not _started or _players.is_empty():
 		return
 	_battle_hold = maxf(0.0, _battle_hold - delta)
 	if _battle_hold <= 0.0 and _current != "peace":
@@ -87,11 +78,13 @@ func _process(delta):
 
 func _on_match_started():
 	_started = true
+	if _players.is_empty():
+		return
 	play_track("peace")
 
 
 func _on_unit_damaged(_unit):
-	if not _started:
+	if not _started or _players.is_empty():
 		return
 	_battle_hold = BATTLE_HOLD_SECONDS
 	if _current != "battle":
