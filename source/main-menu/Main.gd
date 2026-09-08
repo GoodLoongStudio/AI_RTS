@@ -1,8 +1,9 @@
 extends Control
 
 ## 主菜单背景音乐（2026-09-08 音乐包 v2）：菜单场景内循环 menu_theme。
+## 音量走 Music 总线（设置里可调），曲目本身略作增益。
 const MENU_MUSIC := "res://assets/music/menu_theme.ogg"
-const MENU_MUSIC_DB := -8.0
+const MENU_MUSIC_DB := -4.0
 
 static var _autojoin_fired := false  # 每进程只生效一次，防止把玩家弹回联机界面
 
@@ -27,6 +28,7 @@ func _start_menu_music() -> void:
 	MusicDirector._enable_loop(stream)
 	player.stream = stream
 	player.volume_db = MENU_MUSIC_DB
+	player.bus = "Music"
 	add_child(player)
 	player.play()
 

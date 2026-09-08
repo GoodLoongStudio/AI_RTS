@@ -36,6 +36,15 @@ func _ready():
 			AudioStreamWAV.LOOP_FORWARD,
 		"和平曲应为 WAV 循环播放"
 	)
+	_check(peace_player.bus == "Music", "对局音乐应路由到 Music 总线")
+	var music_bus := AudioServer.get_bus_index("Music")
+	var voice_bus := AudioServer.get_bus_index("Voice")
+	_check(music_bus >= 0 and voice_bus >= 0, "Music/Voice 音频总线应存在")
+	if voice_bus >= 0:
+		_check(
+			not AudioServer.is_bus_mute(voice_bus),
+			"语音总线默认不应静音"
+		)
 
 	# 交火：敌方坦克贴脸人类坦克 → 自动互殴 → unit_damaged → 切战斗曲
 	var enemy_player = Player.new()

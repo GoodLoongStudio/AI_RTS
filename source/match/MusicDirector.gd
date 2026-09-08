@@ -18,7 +18,7 @@ const BATTLE_HOLD_SECONDS := 7.0
 const FADE_SECONDS := 1.5
 ## 曲目切换间的静音停顿（秒）：淡出 → 停顿 → 淡入
 const SWITCH_GAP_SECONDS := 3.0
-const MUSIC_DB := -10.0
+const MUSIC_DB := -6.0
 
 var _players := {}
 var _current := ""
@@ -34,7 +34,7 @@ func _ready():
 		var player := AudioStreamPlayer.new()
 		player.name = "Music_" + key
 		player.volume_db = -60.0
-		player.bus = "Master"
+		player.bus = "Music"
 		add_child(player)
 		_players[key] = player
 	if not BATTLE_TRACKS.is_empty():
@@ -42,7 +42,7 @@ func _ready():
 		var battle_player := AudioStreamPlayer.new()
 		battle_player.name = "Music_battle"
 		battle_player.volume_db = -60.0
-		battle_player.bus = "Master"
+		battle_player.bus = "Music"
 		add_child(battle_player)
 		_players["battle"] = battle_player
 	MatchSignals.unit_damaged.connect(_on_unit_damaged)

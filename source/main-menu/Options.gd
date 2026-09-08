@@ -15,6 +15,8 @@ var _save_timer: Timer
 var _camera_edge_scroll: CheckBox
 var _camera_controls := {}
 var _camera_value_labels := {}
+var _audio_sliders := {}
+var _audio_value_labels := {}
 
 
 func _ready():
@@ -25,6 +27,7 @@ func _ready():
 	_screen.selected = Globals.options.screen
 	_setup_resolution_options()
 	_build_camera_settings()
+	_build_audio_settings()
 
 
 func _prepare_embedded_mode():
@@ -196,6 +199,79 @@ func _apply_camera_options_live():
 		camera.call("_apply_user_camera_options")
 
 
+## 音频设置面板：背景音乐 / 人物语音音量（0-100%，实时生效并持久化）。
+func _build_audio_settings():
+	var audio_panel := PanelContainer.new()
+	audio_panel.name = "AudioSettings"
+	_settings_box.add_child(audio_panel)
+	_settings_box.move_child(audio_panel, _settings_box.get_child_count() - 2)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 12)
+	margin.add_theme_constant_override("margin_top", 12)
+	margin.add_theme_constant_override("margin_right", 12)
+	margin.add_theme_constant_override("margin_bottom", 12)
+	audio_panel.add_child(margin)
+
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 10)
+	margin.add_child(box)
+
+	var title := Label.new()
+	title.text = "音频"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 22)
+	box.add_child(title)
+
+	_add_audio_slider(box, "music_volume", "背景音乐音量")
+	_add_audio_slider(box, "voice_volume", "人物语音音量")
+
+	var hint := Label.new()
+	hint.text = "提示：音量实时生效；0% 为静音。"
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.modulate = Color(0.78, 0.82, 0.88)
+	box.add_child(hint)
+
+
+func _add_audio_slider(parent: Control, key: String, label_text: String):
+	var initial_percent := roundi(Globals.get_audio_volume(key) * 100.0)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	parent.add_child(row)
+
+	var label := Label.new()
+	label.text = label_text
+	label.custom_minimum_size = Vector2(165, 0)
+	row.add_child(label)
+
+	var slider := HSlider.new()
+	slider.min_value = 0.0
+	slider.max_value = 100.0
+	slider.step = 5.0
+	slider.value = initial_percent
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider.custom_minimum_size = Vector2(250, 30)
+	row.add_child(slider)
+
+	var value_label := Label.new()
+	value_label.custom_minimum_size = Vector2(78, 0)
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	value_label.text = "%d%%" % initial_percent
+	row.add_child(value_label)
+
+	_audio_sliders[key] = slider
+	_audio_value_labels[key] = value_label
+	slider.value_changed.connect(_on_audio_slider_changed.bind(key))
+
+
+func _on_audio_slider_changed(value: float, key: String):
+	Globals.set_audio_volume(key, value / 100.0)
+	var value_label: Label = _audio_value_labels[key]
+	value_label.text = "%d%%" % roundi(value)
+	_queue_save()
+
+
 func _queue_save():
 	_save_timer.start()
 
@@ -205,6 +281,7 @@ func _save_options():
 	if save_error != OK:
 		push_warning("无法保存显示设置：%s" % error_string(save_error))
 	Globals.save_camera_options()
+	Globals.save_audio_options()
 
 
 func _on_mouse_movement_restricted_pressed():
