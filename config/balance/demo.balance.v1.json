@@ -32,8 +32,8 @@
     {
       "id": "tank_cannon",
       "deliveryKind": "projectile",
-      "baseDamage": 2.0,
-      "cooldownMilliseconds": 750,
+      "baseDamage": 3.5,
+      "cooldownMilliseconds": 1500,
       "rangeMeters": 7.5,
       "targetDomains": ["terrain"],
       "warheadId": "direct_full_damage"
