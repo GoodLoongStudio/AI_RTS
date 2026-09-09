@@ -40,7 +40,7 @@
     },
     {
       "id": "infantry_rifle",
-      "deliveryKind": "projectile",
+      "deliveryKind": "hitscan",
       "baseDamage": 0.5,
       "cooldownMilliseconds": 600,
       "rangeMeters": 2.5,

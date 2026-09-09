@@ -13,6 +13,8 @@ public partial class ProjectileRuntime : Node
 {
     /// <summary>按攻击实例 ID 保存仍在飞行的权威快照和制导目标弱引用。</summary>
     private readonly Dictionary<AttackInstanceId, ActiveProjectile> _active = new();
+    /// <summary>曳光线段自增编号，保证节点名唯一。</summary>
+    private int _tracerIndex;
 
     /// <summary>复用稳定单位 ID 注册和 Godot Node 弱引用查询。</summary>
     private readonly GodotUnitRegistry _units = new();
@@ -51,7 +53,11 @@ public partial class ProjectileRuntime : Node
             launch.Warhead.ImpactSelectionMode,
             allowsFriendlyDamage);
 
-        return Spawn(snapshot, launch.ProjectileScene, source, target);
+        if (launch.Weapon.DeliveryKind == WeaponDeliveryKind.Hitscan)
+        {
+            return SpawnHitscan(snapshot, source, target);
+        }
+        return Spawn(snapshot, launch.ProjectileScene!, source, target);
     }
 
     /// <summary>发射指向纯世界落点的投射物，并使用实际爆点执行范围查询。</summary>
@@ -71,7 +77,11 @@ public partial class ProjectileRuntime : Node
             launch.Warhead,
             ImpactSelectionMode.Area);
 
-        return Spawn(snapshot, launch.ProjectileScene, source, null);
+        if (launch.Weapon.DeliveryKind == WeaponDeliveryKind.Hitscan)
+        {
+            return SpawnHitscan(snapshot, source, null);
+        }
+        return Spawn(snapshot, launch.ProjectileScene!, source, null);
     }
 
     /// <summary>返回制导目标的最新有效位置；目标失效后保持最后已知位置。</summary>
@@ -207,6 +217,57 @@ public partial class ProjectileRuntime : Node
             allowsFriendlyDamage);
     }
 
+    /// <summary>
+    /// 即时命中武器（hitscan）：立刻结算伤害，并把一条短寿命曳光线段
+    /// （枪口 → 目标，参照 Defilade 风格的细白弹道）挂到 Projectiles 容器。
+    /// </summary>
+    private string SpawnHitscan(AttackLaunchSnapshot snapshot, Node3D source, Node3D? target)
+    {
+        var state = new ActiveProjectile(
+            snapshot,
+            target is null ? null : new WeakReference<Node3D>(target),
+            ToVector(snapshot.InitialAimPoint),
+            "bullet");
+        _active.Add(snapshot.AttackId, state);
+
+        var muzzle = GetLaunchTransform(source).Origin;
+        var impact = ToVector(snapshot.InitialAimPoint);
+        SpawnTracer(muzzle, impact);
+        // 实体攻击、地面攻击与调试发射共用同一真实发射事件，避免各 Action 漏报或重复报。
+        if (source.HasSignal("attack_fired")) source.EmitSignal("attack_fired");
+        // 命中即结算：复用既有伤害管线（打印/表现/掉血完全一致）。
+        ResolveImpact(snapshot.AttackId.Value.ToString("D"), impact);
+        return snapshot.AttackId.Value.ToString("D");
+    }
+
+    /// <summary>生成一条 0.1 秒内淡出消失的细白曳光线段。</summary>
+    private void SpawnTracer(Vector3 from, Vector3 to)
+    {
+        var meshInstance = new MeshInstance3D
+        {
+            Name = $"Tracer_{_tracerIndex++}"
+        };
+        var material = new StandardMaterial3D
+        {
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            AlbedoColor = new Color(1.0f, 1.0f, 1.0f, 0.85f)
+        };
+        var mesh = new ImmediateMesh();
+        mesh.SurfaceBegin(Mesh.PrimitiveType.Lines, material);
+        // 抬高线段两端，避免贴地 z-fighting；终点略上抬对准躯干高度。
+        mesh.SurfaceAddVertex(from + new Vector3(0.0f, 0.12f, 0.0f));
+        mesh.SurfaceAddVertex(to + new Vector3(0.0f, 0.35f, 0.0f));
+        mesh.SurfaceEnd();
+        meshInstance.Mesh = mesh;
+        meshInstance.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
+        _projectiles.AddChild(meshInstance);
+        var tween = meshInstance.CreateTween();
+        tween.TweenProperty(meshInstance, "material_override:albedo_color:a", 0.0f, 0.1f);
+        tween.TweenCallback(Callable.From(meshInstance.QueueFree));
+        meshInstance.MaterialOverride = material;
+    }
+
     /// <summary>实例化投射物并在进入 SceneTree 前注入全部表现快照。</summary>
     private string Spawn(
         AttackLaunchSnapshot snapshot,
@@ -248,13 +309,13 @@ public partial class ProjectileRuntime : Node
         }
         var weapon = _configuration.Catalog.FindWeapon(unit.WeaponIds[0]) ??
             throw new InvalidOperationException($"主武器 {unit.WeaponIds[0].Value} 不存在。");
-        if (weapon.DeliveryKind != WeaponDeliveryKind.Projectile)
-        {
-            throw new InvalidOperationException(
-                $"主武器 {weapon.Id.Value} 不是 Projectile，不能使用投射物运行时。");
-        }
         var warhead = _configuration.Catalog.FindWarhead(weapon.WarheadId) ??
             throw new InvalidOperationException($"弹头 {weapon.WarheadId.Value} 不存在。");
+        if (weapon.DeliveryKind == WeaponDeliveryKind.Hitscan)
+        {
+            // 即时命中武器不需要投射物场景：视觉由曳光线段承担。
+            return new LaunchDefinition(weapon, warhead, null);
+        }
         var scene = _configuration.Assets.FindProjectileScene(weapon.Id) ??
             throw new InvalidOperationException($"主武器 {weapon.Id.Value} 缺少投射物映射。");
         return new LaunchDefinition(weapon, warhead, scene);
@@ -306,5 +367,5 @@ public partial class ProjectileRuntime : Node
     private sealed record LaunchDefinition(
         WeaponDefinition Weapon,
         WarheadDefinition Warhead,
-        PackedScene ProjectileScene);
+        PackedScene? ProjectileScene);
 }
