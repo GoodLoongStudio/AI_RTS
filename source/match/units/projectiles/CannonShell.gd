@@ -42,8 +42,10 @@ func _process(delta: float):
 
 	var origin: Vector3 = launch_transform.origin
 	var ratio := clampf(_elapsed / _flight_seconds, 0.0, 1.0)
-	var position := origin.lerp(aim_point, ratio)
-	# 直线弹道 + 平方递增的下坠（arc_height 此时表示末端下坠幅度，非抛物线高度）
+	# 视觉终点抬到目标躯干高度，避免末端下坠的炮弹看起来砸进地里。
+	var visual_aim := aim_point + Vector3(0.0, 0.3, 0.0)
+	var position := origin.lerp(visual_aim, ratio)
+	# 直线弹道 + 平方递增的轻微下坠（arc_height 此时表示末端下坠幅度，非抛物线高度）
 	position.y -= _arc_height * ratio * ratio
 	global_position = position
 	var travel := aim_point - origin
