@@ -17,60 +17,70 @@ script = ExtResource("1_msrcd")
 [node name="Background" parent="." instance=ExtResource("2_mgrkx")]
 layout_mode = 1
 
-[node name="PanelContainer" type="PanelContainer" parent="."]
+[node name="CenterContainer" type="CenterContainer" parent="."]
 layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -350.0
-offset_top = -410.0
-offset_right = 350.0
-offset_bottom = 410.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 
-[node name="MarginContainer" type="MarginContainer" parent="PanelContainer"]
+[node name="PanelContainer" type="PanelContainer" parent="CenterContainer"]
+custom_minimum_size = Vector2(700, 480)
+layout_mode = 2
+mouse_filter = 0
+clip_contents = true
+
+[node name="MarginContainer" type="MarginContainer" parent="CenterContainer/PanelContainer"]
 layout_mode = 2
 theme_override_constants/margin_left = 26
 theme_override_constants/margin_top = 22
 theme_override_constants/margin_right = 26
 theme_override_constants/margin_bottom = 22
 
-[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer"]
+[node name="ScrollContainer" type="ScrollContainer" parent="CenterContainer/PanelContainer/MarginContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 0
+follow_focus = true
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer"]
 custom_minimum_size = Vector2(620, 0)
 layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 3
 theme_override_constants/separation = 12
-alignment = 1
 
-[node name="Title" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="Title" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 30
 text = "设置"
 horizontal_alignment = 1
 
-[node name="DisplayPanel" type="PanelContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="DisplayPanel" type="PanelContainer" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="MarginContainer" type="MarginContainer" parent="PanelContainer/MarginContainer/VBoxContainer/DisplayPanel"]
+[node name="MarginContainer" type="MarginContainer" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DisplayPanel"]
 layout_mode = 2
 theme_override_constants/margin_left = 12
 theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 10
 
-[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer/DisplayPanel/MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DisplayPanel/MarginContainer"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Label" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/DisplayPanel/MarginContainer/VBoxContainer"]
+[node name="Label" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DisplayPanel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
 text = "显示"
 horizontal_alignment = 1
 
-[node name="Screen" type="OptionButton" parent="PanelContainer/MarginContainer/VBoxContainer/DisplayPanel/MarginContainer/VBoxContainer"]
+[node name="Screen" type="OptionButton" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DisplayPanel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 focus_mode = 0
 item_count = 2
@@ -80,60 +90,60 @@ popup/item_0/id = 0
 popup/item_1/text = "窗口"
 popup/item_1/id = 1
 
-[node name="ResolutionRow" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer/DisplayPanel/MarginContainer/VBoxContainer"]
+[node name="ResolutionRow" type="HBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DisplayPanel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Label" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/DisplayPanel/MarginContainer/VBoxContainer/ResolutionRow"]
+[node name="Label" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DisplayPanel/MarginContainer/VBoxContainer/ResolutionRow"]
 custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
 text = "分辨率"
 vertical_alignment = 1
 
-[node name="Resolution" type="OptionButton" parent="PanelContainer/MarginContainer/VBoxContainer/DisplayPanel/MarginContainer/VBoxContainer/ResolutionRow"]
+[node name="Resolution" type="OptionButton" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DisplayPanel/MarginContainer/VBoxContainer/ResolutionRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 focus_mode = 0
 
-[node name="MousePanel" type="PanelContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="MousePanel" type="PanelContainer" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="MarginContainer" type="MarginContainer" parent="PanelContainer/MarginContainer/VBoxContainer/MousePanel"]
+[node name="MarginContainer" type="MarginContainer" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MousePanel"]
 layout_mode = 2
 theme_override_constants/margin_left = 12
 theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 10
 
-[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer/MousePanel/MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MousePanel/MarginContainer"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Label" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/MousePanel/MarginContainer/VBoxContainer"]
+[node name="Label" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MousePanel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
 text = "鼠标"
 horizontal_alignment = 1
 
-[node name="MouseMovementRestricted" type="CheckBox" parent="PanelContainer/MarginContainer/VBoxContainer/MousePanel/MarginContainer/VBoxContainer"]
+[node name="MouseMovementRestricted" type="CheckBox" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MousePanel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 focus_mode = 0
 text = "将鼠标限制在游戏窗口内"
 
-[node name="SaveButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="SaveButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 52)
 theme = ExtResource("1_a5uwh")
 text = "保存设置"
 
-[node name="Button" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="Button" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 52)
 theme = ExtResource("1_a5uwh")
 text = "返回"
 
-[connection signal="item_selected" from="PanelContainer/MarginContainer/VBoxContainer/DisplayPanel/MarginContainer/VBoxContainer/Screen" to="." method="_on_screen_item_selected"]
-[connection signal="item_selected" from="PanelContainer/MarginContainer/VBoxContainer/DisplayPanel/MarginContainer/VBoxContainer/ResolutionRow/Resolution" to="." method="_on_resolution_item_selected"]
-[connection signal="pressed" from="PanelContainer/MarginContainer/VBoxContainer/MousePanel/MarginContainer/VBoxContainer/MouseMovementRestricted" to="." method="_on_mouse_movement_restricted_pressed"]
-[connection signal="pressed" from="PanelContainer/MarginContainer/VBoxContainer/SaveButton" to="." method="_on_save_button_pressed"]
-[connection signal="pressed" from="PanelContainer/MarginContainer/VBoxContainer/Button" to="." method="_on_back_button_pressed"]
+[connection signal="item_selected" from="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DisplayPanel/MarginContainer/VBoxContainer/Screen" to="." method="_on_screen_item_selected"]
+[connection signal="item_selected" from="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/DisplayPanel/MarginContainer/VBoxContainer/ResolutionRow/Resolution" to="." method="_on_resolution_item_selected"]
+[connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MousePanel/MarginContainer/VBoxContainer/MouseMovementRestricted" to="." method="_on_mouse_movement_restricted_pressed"]
+[connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/SaveButton" to="." method="_on_save_button_pressed"]
+[connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/Button" to="." method="_on_back_button_pressed"]

@@ -9,7 +9,9 @@ const Options = preload("res://source/data-model/Options.gd")
 @onready var _screen = find_child("Screen")
 @onready var _resolution = find_child("Resolution")
 @onready var _mouse_movement_restricted = find_child("MouseMovementRestricted")
-@onready var _settings_box = $PanelContainer/MarginContainer/VBoxContainer
+@onready var _settings_box = $CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer
+@onready var _center = $CenterContainer
+@onready var _panel = $CenterContainer/PanelContainer
 
 var _save_timer: Timer
 var _camera_edge_scroll: CheckBox
@@ -29,6 +31,10 @@ func _ready():
 	_setup_resolution_options()
 	_build_camera_settings()
 	_build_audio_settings()
+	# 内容构建完成后再 clamp（camera/audio 面板动态加进去后高度才稳定）。
+	# 监听 size_changed 让窗口缩放/全屏切换时自动重排，防止未来再加设置项时跑屏外。
+	_clamp_to_viewport()
+	get_viewport().size_changed.connect(_clamp_to_viewport)
 	UISfx.play("ui_plate")  # 设置面板展开落位音
 
 
@@ -51,6 +57,23 @@ func _setup_save_timer():
 	_save_timer.wait_time = 0.25
 	_save_timer.timeout.connect(_save_options)
 	add_child(_save_timer)
+
+
+## 防御性 viewport 适配：菜单面板用 CenterContainer 自适应居中 + 内层 ScrollContainer
+## 自动滚动，但若 viewport 极端矮（如窗口被手动缩很小），仍要把 panel 高度 clamp 到
+## viewport - 边距，防止标题/底部按钮跑到屏外。CenterContainer 已经把 PanelContainer
+## 居中，所以这里只需要给 PanelContainer 一个最大高度上限。
+func _clamp_to_viewport() -> void:
+	if _panel == null or _center == null:
+		return
+	var viewport_rect := get_viewport().get_visible_rect()
+	var top_margin := 40.0  # 上方留给标题栏/FPS 覆盖等
+	var bottom_margin := 40.0
+	var max_h := maxf(360.0, viewport_rect.size.y - top_margin - bottom_margin)
+	# custom_minimum_size.y 设上限即可；CenterContainer 会基于 PanelContainer 的 min size 居中。
+	# 横向不动（700 已够用），纵向不设下限避免空内容时面板塌缩。
+	if _panel.custom_minimum_size.y != max_h:
+		_panel.custom_minimum_size = Vector2(_panel.custom_minimum_size.x, max_h)
 
 
 func _setup_resolution_options():

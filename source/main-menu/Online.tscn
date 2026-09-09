@@ -17,249 +17,259 @@ script = ExtResource("1_online")
 [node name="Background" parent="." instance=ExtResource("2_bg")]
 layout_mode = 1
 
-[node name="PanelContainer" type="PanelContainer" parent="."]
+[node name="CenterContainer" type="CenterContainer" parent="."]
 layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -380.0
-offset_top = -320.0
-offset_right = 380.0
-offset_bottom = 320.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 
-[node name="MarginContainer" type="MarginContainer" parent="PanelContainer"]
+[node name="PanelContainer" type="PanelContainer" parent="CenterContainer"]
+custom_minimum_size = Vector2(760, 540)
+layout_mode = 2
+mouse_filter = 0
+clip_contents = true
+
+[node name="MarginContainer" type="MarginContainer" parent="CenterContainer/PanelContainer"]
 layout_mode = 2
 theme_override_constants/margin_left = 24
 theme_override_constants/margin_top = 20
 theme_override_constants/margin_right = 24
 theme_override_constants/margin_bottom = 20
 
-[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer"]
+[node name="ScrollContainer" type="ScrollContainer" parent="CenterContainer/PanelContainer/MarginContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 0
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer"]
 custom_minimum_size = Vector2(700, 0)
 layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 3
 theme_override_constants/separation = 10
 
-[node name="TitleRow" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="TitleRow" type="HBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Title" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/TitleRow"]
+[node name="Title" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/TitleRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 28
 text = "联机 Demo"
 
-[node name="NameRow" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer/TitleRow"]
+[node name="NameRow" type="HBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/TitleRow"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="NameLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/TitleRow/NameRow"]
+[node name="NameLabel" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/TitleRow/NameRow"]
 layout_mode = 2
 text = "昵称"
 
-[node name="NameEdit" type="LineEdit" parent="PanelContainer/MarginContainer/VBoxContainer/TitleRow/NameRow"]
+[node name="NameEdit" type="LineEdit" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/TitleRow/NameRow"]
 custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
 max_length = 16
 
-[node name="Hint" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="Hint" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 autowrap_mode = 3
 text = "对局一律走腾讯云权威服。准备仅作状态展示；由房主点「立即开局」开始对局。房主可在槽位上增删 AI。"
 
-[node name="MainRow" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="MainRow" type="HBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 16
 
-[node name="SlotsBox" type="VBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer/MainRow"]
+[node name="SlotsBox" type="VBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MainRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
-[node name="MapCard" type="PanelContainer" parent="PanelContainer/MarginContainer/VBoxContainer/MainRow"]
+[node name="MapCard" type="PanelContainer" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MainRow"]
 layout_mode = 2
 
-[node name="MapBox" type="VBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer/MainRow/MapCard"]
+[node name="MapBox" type="VBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MainRow/MapCard"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="MapTitle" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/MainRow/MapCard/MapBox"]
+[node name="MapTitle" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MainRow/MapCard/MapBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "Plain & Simple"
 
-[node name="MapSub" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer/MainRow/MapCard/MapBox"]
+[node name="MapSub" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MainRow/MapCard/MapBox"]
 layout_mode = 2
 text = "4 人 · 草原遭遇战 · 50×50"
 
-[node name="MapGrid" type="GridContainer" parent="PanelContainer/MarginContainer/VBoxContainer/MainRow/MapCard/MapBox"]
+[node name="MapGrid" type="GridContainer" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MainRow/MapCard/MapBox"]
 layout_mode = 2
 columns = 5
 
-[node name="C1" type="ColorRect" parent="PanelContainer/MarginContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
+[node name="C1" type="ColorRect" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
 custom_minimum_size = Vector2(44, 26)
 layout_mode = 2
 color = Color(0.47, 0.58, 0.3, 1)
 
-[node name="C2" type="ColorRect" parent="PanelContainer/MarginContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
+[node name="C2" type="ColorRect" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
 custom_minimum_size = Vector2(44, 26)
 layout_mode = 2
 color = Color(0.67, 0.58, 0.35, 1)
 
-[node name="C3" type="ColorRect" parent="PanelContainer/MarginContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
+[node name="C3" type="ColorRect" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
 custom_minimum_size = Vector2(44, 26)
 layout_mode = 2
 color = Color(0.38, 0.5, 0.26, 1)
 
-[node name="C4" type="ColorRect" parent="PanelContainer/MarginContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
+[node name="C4" type="ColorRect" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
 custom_minimum_size = Vector2(44, 26)
 layout_mode = 2
 color = Color(0.55, 0.62, 0.32, 1)
 
-[node name="C5" type="ColorRect" parent="PanelContainer/MarginContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
+[node name="C5" type="ColorRect" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
 custom_minimum_size = Vector2(44, 26)
 layout_mode = 2
 color = Color(0.34, 0.46, 0.3, 1)
 
-[node name="C6" type="ColorRect" parent="PanelContainer/MarginContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
+[node name="C6" type="ColorRect" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
 custom_minimum_size = Vector2(44, 26)
 layout_mode = 2
 color = Color(0.62, 0.55, 0.33, 1)
 
-[node name="C7" type="ColorRect" parent="PanelContainer/MarginContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
+[node name="C7" type="ColorRect" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
 custom_minimum_size = Vector2(44, 26)
 layout_mode = 2
 color = Color(0.31, 0.47, 0.24, 1)
 
-[node name="C8" type="ColorRect" parent="PanelContainer/MarginContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
+[node name="C8" type="ColorRect" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
 custom_minimum_size = Vector2(44, 26)
 layout_mode = 2
 color = Color(0.48, 0.56, 0.28, 1)
 
-[node name="C9" type="ColorRect" parent="PanelContainer/MarginContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
+[node name="C9" type="ColorRect" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
 custom_minimum_size = Vector2(44, 26)
 layout_mode = 2
 color = Color(0.58, 0.5, 0.3, 1)
 
-[node name="C10" type="ColorRect" parent="PanelContainer/MarginContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
+[node name="C10" type="ColorRect" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
 custom_minimum_size = Vector2(44, 26)
 layout_mode = 2
 color = Color(0.42, 0.54, 0.27, 1)
 
-[node name="C11" type="ColorRect" parent="PanelContainer/MarginContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
+[node name="C11" type="ColorRect" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
 custom_minimum_size = Vector2(44, 26)
 layout_mode = 2
 color = Color(0.36, 0.52, 0.29, 1)
 
-[node name="C12" type="ColorRect" parent="PanelContainer/MarginContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
+[node name="C12" type="ColorRect" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
 custom_minimum_size = Vector2(44, 26)
 layout_mode = 2
 color = Color(0.52, 0.6, 0.31, 1)
 
-[node name="C13" type="ColorRect" parent="PanelContainer/MarginContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
+[node name="C13" type="ColorRect" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
 custom_minimum_size = Vector2(44, 26)
 layout_mode = 2
 color = Color(0.44, 0.49, 0.33, 1)
 
-[node name="C14" type="ColorRect" parent="PanelContainer/MarginContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
+[node name="C14" type="ColorRect" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
 custom_minimum_size = Vector2(44, 26)
 layout_mode = 2
 color = Color(0.6, 0.53, 0.34, 1)
 
-[node name="C15" type="ColorRect" parent="PanelContainer/MarginContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
+[node name="C15" type="ColorRect" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
 custom_minimum_size = Vector2(44, 26)
 layout_mode = 2
 color = Color(0.33, 0.45, 0.25, 1)
 
-[node name="C16" type="ColorRect" parent="PanelContainer/MarginContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
+[node name="C16" type="ColorRect" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
 custom_minimum_size = Vector2(44, 26)
 layout_mode = 2
 color = Color(0.5, 0.57, 0.29, 1)
 
-[node name="C17" type="ColorRect" parent="PanelContainer/MarginContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
+[node name="C17" type="ColorRect" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
 custom_minimum_size = Vector2(44, 26)
 layout_mode = 2
 color = Color(0.57, 0.52, 0.32, 1)
 
-[node name="C18" type="ColorRect" parent="PanelContainer/MarginContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
+[node name="C18" type="ColorRect" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
 custom_minimum_size = Vector2(44, 26)
 layout_mode = 2
 color = Color(0.4, 0.53, 0.28, 1)
 
-[node name="C19" type="ColorRect" parent="PanelContainer/MarginContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
+[node name="C19" type="ColorRect" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
 custom_minimum_size = Vector2(44, 26)
 layout_mode = 2
 color = Color(0.63, 0.56, 0.36, 1)
 
-[node name="C20" type="ColorRect" parent="PanelContainer/MarginContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
+[node name="C20" type="ColorRect" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MainRow/MapCard/MapBox/MapGrid"]
 custom_minimum_size = Vector2(44, 26)
 layout_mode = 2
 color = Color(0.37, 0.5, 0.27, 1)
 
-[node name="HostRow" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="HostRow" type="HBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="HostEdit" type="LineEdit" parent="PanelContainer/MarginContainer/VBoxContainer/HostRow"]
+[node name="HostEdit" type="LineEdit" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/HostRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 placeholder_text = "服务器 IP"
 
-[node name="PortEdit" type="LineEdit" parent="PanelContainer/MarginContainer/VBoxContainer/HostRow"]
+[node name="PortEdit" type="LineEdit" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/HostRow"]
 custom_minimum_size = Vector2(90, 0)
 layout_mode = 2
 placeholder_text = "端口"
 
-[node name="JoinRow" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="JoinRow" type="HBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="JoinButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/JoinRow"]
+[node name="JoinButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/JoinRow"]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "加入局服"
 
-[node name="LocalHostButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/JoinRow"]
+[node name="LocalHostButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/JoinRow"]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "本机开房（单人对AI）"
 
-[node name="ReadyRow" type="HBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="ReadyRow" type="HBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="ReadyButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/ReadyRow"]
+[node name="ReadyButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ReadyRow"]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "准备"
 
-[node name="SoloButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer/ReadyRow"]
+[node name="SoloButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ReadyRow"]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "立即开局（房主开局）"
 
-[node name="StatusLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="StatusLabel" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 autowrap_mode = 3
 text = "尚未连接"
 horizontal_alignment = 1
 
-[node name="BackButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="BackButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 text = "返回"
 
-[connection signal="text_changed" from="PanelContainer/MarginContainer/VBoxContainer/TitleRow/NameRow/NameEdit" to="." method="_on_name_edit_text_changed"]
-[connection signal="pressed" from="PanelContainer/MarginContainer/VBoxContainer/JoinRow/JoinButton" to="." method="_on_join_button_pressed"]
-[connection signal="pressed" from="PanelContainer/MarginContainer/VBoxContainer/JoinRow/LocalHostButton" to="." method="_on_local_host_button_pressed"]
-[connection signal="pressed" from="PanelContainer/MarginContainer/VBoxContainer/ReadyRow/ReadyButton" to="." method="_on_ready_button_pressed"]
-[connection signal="pressed" from="PanelContainer/MarginContainer/VBoxContainer/ReadyRow/SoloButton" to="." method="_on_solo_button_pressed"]
-[connection signal="pressed" from="PanelContainer/MarginContainer/VBoxContainer/BackButton" to="." method="_on_back_button_pressed"]
+[connection signal="text_changed" from="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/TitleRow/NameRow/NameEdit" to="." method="_on_name_edit_text_changed"]
+[connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/JoinRow/JoinButton" to="." method="_on_join_button_pressed"]
+[connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/JoinRow/LocalHostButton" to="." method="_on_local_host_button_pressed"]
+[connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ReadyRow/ReadyButton" to="." method="_on_ready_button_pressed"]
+[connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ReadyRow/SoloButton" to="." method="_on_solo_button_pressed"]
+[connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/BackButton" to="." method="_on_back_button_pressed"]

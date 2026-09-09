@@ -7,14 +7,14 @@ const SLOT_EMPTY := 0
 const SLOT_HUMAN := 1
 const SLOT_AI := 2
 
-@onready var _host_edit: LineEdit = $PanelContainer/MarginContainer/VBoxContainer/HostRow/HostEdit
-@onready var _port_edit: LineEdit = $PanelContainer/MarginContainer/VBoxContainer/HostRow/PortEdit
-@onready var _status_label: Label = $PanelContainer/MarginContainer/VBoxContainer/StatusLabel
-@onready var _ready_button: Button = $PanelContainer/MarginContainer/VBoxContainer/ReadyRow/ReadyButton
-@onready var _solo_button: Button = $PanelContainer/MarginContainer/VBoxContainer/ReadyRow/SoloButton
-@onready var _join_button: Button = $PanelContainer/MarginContainer/VBoxContainer/JoinRow/JoinButton
-@onready var _name_edit: LineEdit = $PanelContainer/MarginContainer/VBoxContainer/TitleRow/NameRow/NameEdit
-@onready var _slots_box: VBoxContainer = $PanelContainer/MarginContainer/VBoxContainer/MainRow/SlotsBox
+@onready var _host_edit: LineEdit = $CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/HostRow/HostEdit
+@onready var _port_edit: LineEdit = $CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/HostRow/PortEdit
+@onready var _status_label: Label = $CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/StatusLabel
+@onready var _ready_button: Button = $CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ReadyRow/ReadyButton
+@onready var _solo_button: Button = $CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ReadyRow/SoloButton
+@onready var _join_button: Button = $CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/JoinRow/JoinButton
+@onready var _name_edit: LineEdit = $CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/TitleRow/NameRow/NameEdit
+@onready var _slots_box: VBoxContainer = $CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MainRow/SlotsBox
 
 var _slot_rows: Array = []
 
@@ -44,6 +44,23 @@ func _ready() -> void:
 		var smoke := Node.new()
 		smoke.set_script(load("res://source/net/SmokeClient.gd"))
 		get_tree().root.add_child.call_deferred(smoke)
+	# 防御性 viewport 适配：菜单面板被 CenterContainer 居中，但若 viewport 极端窄/矮
+	# （如窗口被手动缩很小），custom_minimum_size 写死的宽高仍会越过 viewport 边界，
+	# 导致顶部/底部被裁。clamp 到 viewport - margin 让 panel 永远在屏内。
+	_clamp_to_viewport()
+	get_viewport().size_changed.connect(_clamp_to_viewport)
+
+
+func _clamp_to_viewport() -> void:
+	var panel := get_node_or_null("CenterContainer/PanelContainer")
+	if panel == null:
+		return
+	var viewport_rect := get_viewport().get_visible_rect()
+	var margin := 40.0
+	var max_w := maxf(360.0, viewport_rect.size.x - margin * 2.0)
+	var max_h := maxf(360.0, viewport_rect.size.y - margin * 2.0)
+	var cur: Vector2 = panel.custom_minimum_size
+	panel.custom_minimum_size = Vector2(minf(cur.x, max_w), minf(cur.y, max_h))
 
 
 func _auto_screenshot() -> void:
@@ -147,16 +164,16 @@ func _refresh_connection_ui() -> void:
 	# 进房后才出现 地图/槽位/准备，开局按钮仅房主可见。
 	_join_button.visible = not connected
 	var local_host_button := get_node_or_null(
-		"PanelContainer/MarginContainer/VBoxContainer/JoinRow/LocalHostButton"
+		"CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/JoinRow/LocalHostButton"
 	) as Button
 	if local_host_button != null:
 		local_host_button.visible = not connected
 	_host_edit.get_parent().visible = not connected
 	_ready_button.visible = connected
-	var solo_btn := get_node_or_null("PanelContainer/MarginContainer/VBoxContainer/ReadyRow/SoloButton") as Button
+	var solo_btn := get_node_or_null("CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ReadyRow/SoloButton") as Button
 	if solo_btn != null:
 		solo_btn.visible = connected and is_host
-	var main_row := get_node_or_null("PanelContainer/MarginContainer/VBoxContainer/MainRow")
+	var main_row := get_node_or_null("CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MainRow")
 	if main_row != null:
 		main_row.visible = connected
 	_name_edit.editable = not connected

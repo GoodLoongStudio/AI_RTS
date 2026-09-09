@@ -20,6 +20,27 @@ func _ready():
 	var option_nodes = find_child("GridContainer").find_children("OptionButton*")
 	for option_node_id in range(option_nodes.size()):
 		option_nodes[option_node_id].item_selected.connect(_on_player_selected.bind(option_node_id))
+	# 防御性 viewport 适配：菜单面板被 CenterContainer 居中，但若 viewport 极端窄/矮
+	# （如窗口被手动缩很小），custom_minimum_size 写死的宽高仍会越过 viewport 边界，
+	# 导致顶部/底部被裁。clamp 到 viewport - margin 让 panel 永远在屏内。
+	_clamp_to_viewport()
+	get_viewport().size_changed.connect(_clamp_to_viewport)
+
+
+## 把 panel 的 custom_minimum_size clamp 到 viewport - margin。
+## 配合 CenterContainer + PanelContainer(clip_contents=true) + ScrollContainer：
+## - viewport 够大：panel 用 .tscn 写死的最小尺寸，居中显示
+## - viewport 太小：panel 缩到 viewport - 边距，超出内容靠 ScrollContainer 滚动
+func _clamp_to_viewport() -> void:
+	var panel := get_node_or_null("CenterContainer/PanelContainer")
+	if panel == null:
+		return
+	var viewport_rect := get_viewport().get_visible_rect()
+	var margin := 40.0
+	var max_w := maxf(360.0, viewport_rect.size.x - margin * 2.0)
+	var max_h := maxf(360.0, viewport_rect.size.y - margin * 2.0)
+	var cur: Vector2 = panel.custom_minimum_size
+	panel.custom_minimum_size = Vector2(minf(cur.x, max_w), minf(cur.y, max_h))
 
 
 func _unhandled_input(event: InputEvent):
@@ -29,7 +50,7 @@ func _unhandled_input(event: InputEvent):
 
 
 func _setup_settings_button():
-	var button_box = $PanelContainer/MarginContainer/VBoxContainer/VBoxContainer
+	var button_box = $CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/VBoxContainer
 	var settings_button := Button.new()
 	settings_button.name = "SettingsButton"
 	settings_button.text = "设置"
