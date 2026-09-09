@@ -1,0 +1,82 @@
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="Script" path="res://source/match/units/projectiles/ShellExplosion.gd" id="1_script"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_fire"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+billboard_mode = 1
+albedo_color = Color(1, 0.7, 0.3, 1)
+
+[sub_resource type="Gradient" id="Gradient_fire"]
+offsets = PackedFloat32Array(0, 0.35, 1)
+colors = PackedColorArray(1, 0.9, 0.5, 1, 1, 0.45, 0.12, 0.9, 0.3, 0.1, 0.05, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_fire"]
+gradient = SubResource("Gradient_fire")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_fire"]
+emission_shape = 3
+emission_sphere_radius = 0.25
+spread = 180.0
+initial_velocity_min = 2.5
+initial_velocity_max = 5.0
+gravity = Vector3(0, 0.6, 0)
+scale_min = 0.8
+scale_max = 1.4
+color_ramp = SubResource("GradientTexture1D_fire")
+
+[sub_resource type="QuadMesh" id="QuadMesh_fire"]
+size = Vector2(0.35, 0.35)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_smoke"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+billboard_mode = 1
+albedo_color = Color(0.3, 0.28, 0.26, 1)
+
+[sub_resource type="Gradient" id="Gradient_smoke"]
+offsets = PackedFloat32Array(0, 0.4, 1)
+colors = PackedColorArray(0.35, 0.32, 0.3, 0.85, 0.24, 0.22, 0.21, 0.6, 0.16, 0.15, 0.14, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_smoke"]
+gradient = SubResource("Gradient_smoke")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_smoke"]
+emission_shape = 3
+emission_sphere_radius = 0.3
+spread = 180.0
+initial_velocity_min = 0.8
+initial_velocity_max = 1.8
+gravity = Vector3(0, 0.9, 0)
+scale_min = 1.2
+scale_max = 2.0
+color_ramp = SubResource("GradientTexture1D_smoke")
+
+[sub_resource type="QuadMesh" id="QuadMesh_smoke"]
+size = Vector2(0.6, 0.6)
+
+[node name="ShellExplosion" type="Node3D"]
+script = ExtResource("1_script")
+
+[node name="Fire" type="GPUParticles3D" parent="."]
+material_override = SubResource("StandardMaterial3D_fire")
+amount = 26
+lifetime = 0.4
+one_shot = true
+explosiveness = 1.0
+local_coords = false
+process_material = SubResource("ParticleProcessMaterial_fire")
+draw_pass_1 = SubResource("QuadMesh_fire")
+
+[node name="Smoke" type="GPUParticles3D" parent="."]
+material_override = SubResource("StandardMaterial3D_smoke")
+amount = 18
+lifetime = 1.4
+one_shot = true
+explosiveness = 1.0
+local_coords = false
+process_material = SubResource("ParticleProcessMaterial_smoke")
+draw_pass_1 = SubResource("QuadMesh_smoke")

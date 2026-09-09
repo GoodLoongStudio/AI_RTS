@@ -7,6 +7,9 @@ var visible_snapshot := true
 
 const FLIGHT_SECONDS := 0.5
 const ARC_HEIGHT := 0.45
+const EXPLOSION_SCENE := preload(
+	"res://source/match/units/projectiles/ShellExplosion.tscn"
+)
 
 var _elapsed := 0.0
 var _impacted := false
@@ -50,7 +53,7 @@ func _process(delta: float):
 		_perform_impact()
 
 
-## 在最后有效瞄准点执行一次权威命中，随后释放视觉节点。
+## 在最后有效瞄准点执行一次权威命中，在落点迸发火光与黑烟，随后释放视觉节点。
 func _perform_impact():
 	if _impacted:
 		return
@@ -58,4 +61,15 @@ func _perform_impact():
 	var impact_point: Vector3 = projectile_runtime.GetAimPoint(attack_id)
 	if impact_point.is_finite():
 		projectile_runtime.ResolveImpact(attack_id, impact_point)
+		_spawn_explosion(impact_point)
 	queue_free()
+
+
+## 落点一次性爆炸：橙红火光 + 黑烟升腾（挂到 Projectiles 容器避免随弹体销毁）。
+func _spawn_explosion(impact_point: Vector3):
+	var explosion = EXPLOSION_SCENE.instantiate()
+	var parent := get_parent()
+	if parent == null:
+		return
+	parent.add_child(explosion)
+	explosion.global_position = impact_point + Vector3(0.0, 0.2, 0.0)
