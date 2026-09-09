@@ -240,32 +240,38 @@ public partial class ProjectileRuntime : Node
         return snapshot.AttackId.Value.ToString("D");
     }
 
-    /// <summary>生成一条 0.1 秒内淡出消失的细白曳光线段。</summary>
+    /// <summary>生成一条 0.15 秒内淡出消失的白色发光曳光带（有宽度的长条，1 像素线在远处不可见）。</summary>
     private void SpawnTracer(Vector3 from, Vector3 to)
     {
-        var meshInstance = new MeshInstance3D
+        var start = from + new Vector3(0.0f, 0.25f, 0.0f);
+        var end = to + new Vector3(0.0f, 0.45f, 0.0f);
+        var length = (end - start).Length();
+        if (length < 0.05f)
         {
-            Name = $"Tracer_{_tracerIndex++}"
-        };
+            return;
+        }
         var material = new StandardMaterial3D
         {
             ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
             Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-            AlbedoColor = new Color(1.0f, 1.0f, 1.0f, 0.85f)
+            AlbedoColor = new Color(1.0f, 0.97f, 0.9f, 0.92f),
+            EmissionEnabled = true,
+            Emission = new Color(1.0f, 0.95f, 0.85f)
         };
-        var mesh = new ImmediateMesh();
-        mesh.SurfaceBegin(Mesh.PrimitiveType.Lines, material);
-        // 抬高线段两端，避免贴地 z-fighting；终点略上抬对准躯干高度。
-        mesh.SurfaceAddVertex(from + new Vector3(0.0f, 0.12f, 0.0f));
-        mesh.SurfaceAddVertex(to + new Vector3(0.0f, 0.35f, 0.0f));
-        mesh.SurfaceEnd();
-        meshInstance.Mesh = mesh;
-        meshInstance.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
+        var meshInstance = new MeshInstance3D
+        {
+            Name = $"Tracer_{_tracerIndex++}",
+            Mesh = new BoxMesh { Size = new Vector3(0.06f, 0.06f, length) },
+            MaterialOverride = material,
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off
+        };
+        // 长条几何体以中点放置，Z 轴对准弹道方向（LookAt 使 -Z 指向目标，长条对称无方向差）。
         _projectiles.AddChild(meshInstance);
+        meshInstance.GlobalPosition = (start + end) / 2.0f;
+        meshInstance.LookAt(end, Vector3.Up);
         var tween = meshInstance.CreateTween();
-        tween.TweenProperty(meshInstance, "material_override:albedo_color:a", 0.0f, 0.1f);
+        tween.TweenProperty(meshInstance, "material_override:albedo_color:a", 0.0f, 0.15f);
         tween.TweenCallback(Callable.From(meshInstance.QueueFree));
-        meshInstance.MaterialOverride = material;
     }
 
     /// <summary>实例化投射物并在进入 SceneTree 前注入全部表现快照。</summary>
