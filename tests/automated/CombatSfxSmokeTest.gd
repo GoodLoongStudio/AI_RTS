@@ -47,7 +47,8 @@ func _ready():
 		var heard := CombatSfx.played_log
 		var has_rifle := "rifle_fire" in heard
 		var has_cannon := "cannon_fire" in heard
-		if has_rifle and has_cannon:
+		var has_impact := "impact_explosion" in heard or "impact_flesh" in heard
+		if has_rifle and has_cannon and has_impact:
 			break
 		await get_tree().create_timer(0.25).timeout
 		waited += 0.25
