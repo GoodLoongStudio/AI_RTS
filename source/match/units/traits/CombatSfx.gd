@@ -63,12 +63,12 @@ static func fire_key_for(unit: Node3D) -> String:
 	return str(FIRE_SOUND_BY_SCENE.get(str(unit.scene_file_path), ""))
 
 
-## 命中音效键：武器反应类别 × 受击面（步兵=软体，其余=金属）。
+## 命中音效键：武器反应类别 × 受击面（步兵=软体；金属受击不出声——钢板音已按用户要求移除）。
 static func impact_key_for(reaction: String, unit: Node3D) -> String:
 	if reaction != "bullet":
 		return "impact_explosion"
 	var is_soft_target := str(unit.scene_file_path).contains("Infantry")
-	return "impact_flesh" if is_soft_target else "impact_metal"
+	return "impact_flesh" if is_soft_target else ""
 
 
 static func clear_played_log() -> void:

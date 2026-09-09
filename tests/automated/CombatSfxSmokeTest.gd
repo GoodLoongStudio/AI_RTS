@@ -1,7 +1,7 @@
 extends Node
 
-## 战斗音效冒烟测试（2026-09-07）：
-## 步兵打坦克应有枪声+金属命中音；坦克开火应有炮声；坦克打步兵应有爆炸命中音。
+## 战斗音效冒烟测试（2026-09-07；2026-09-09 金属命中音按用户要求移除）：
+## 步兵打坦克应有枪声（金属命中静音）；坦克开火应有炮声；坦克打步兵应有爆炸命中音。
 
 const MatchScene = preload("res://tests/manual/TestAllUnits.tscn")
 const InfantryScene = preload("res://source/match/units/Infantry.tscn")
@@ -47,8 +47,7 @@ func _ready():
 		var heard := CombatSfx.played_log
 		var has_rifle := "rifle_fire" in heard
 		var has_cannon := "cannon_fire" in heard
-		var has_metal := "impact_metal" in heard
-		if has_rifle and has_cannon and has_metal:
+		if has_rifle and has_cannon:
 			break
 		await get_tree().create_timer(0.25).timeout
 		waited += 0.25
@@ -56,7 +55,10 @@ func _ready():
 	var heard_log := CombatSfx.played_log
 	_check("rifle_fire" in heard_log, "士兵开火应有枪声（rifle_fire）")
 	_check("cannon_fire" in heard_log, "坦克开火应有炮声（cannon_fire）")
-	_check("impact_metal" in heard_log, "子弹/炮弹命中坦克应有金属命中音（impact_metal）")
+	_check(
+		"impact_metal" not in heard_log,
+		"子弹命中钢板不应再播放金属命中音（已移除）"
+	)
 	_check(
 		"impact_explosion" in heard_log or "impact_flesh" in heard_log,
 		"坦克打步兵应有爆炸/软体命中音"
