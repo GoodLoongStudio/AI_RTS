@@ -1,6 +1,25 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="PackedScene" path="res://source/match/units/projectiles/CannonShell.tscn" id="1_base"]
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_tracer"]
+shading_mode = 0
+albedo_color = Color(1, 0.98, 0.85, 1)
+emission_enabled = true
+emission = Color(1, 0.95, 0.8, 1)
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_tracer"]
+radius = 0.035
+height = 0.3
+
 [node name="RifleRound" instance=ExtResource("1_base")]
 metadata/impact_reaction = "bullet"
+metadata/flight_seconds = 0.14
+metadata/arc_height = 0.04
+
+[node name="Body" parent="." index="0"]
+material_override = SubResource("StandardMaterial3D_tracer")
+mesh = SubResource("CapsuleMesh_tracer")
+
+[node name="Trail" parent="." index="1"]
+visible = false

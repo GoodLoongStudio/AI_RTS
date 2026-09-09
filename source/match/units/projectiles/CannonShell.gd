@@ -10,6 +10,9 @@ const ARC_HEIGHT := 0.45
 
 var _elapsed := 0.0
 var _impacted := false
+# 飞行参数可由场景 metadata 覆盖（RifleRound 用快而平的曳光弹，炮弹用慢而高的抛物线）。
+var _flight_seconds := FLIGHT_SECONDS
+var _arc_height := ARC_HEIGHT
 
 @onready var _trail: GPUParticles3D = $Trail
 
@@ -20,6 +23,8 @@ func _ready():
 	assert(projectile_runtime != null, "projectile runtime was not provided")
 	visible = visible_snapshot
 	global_position = launch_transform.origin
+	_flight_seconds = float(get_meta("flight_seconds", FLIGHT_SECONDS))
+	_arc_height = float(get_meta("arc_height", ARC_HEIGHT))
 	if _trail != null:
 		_trail.emitting = true
 
@@ -33,9 +38,9 @@ func _process(delta: float):
 		return
 
 	var origin: Vector3 = launch_transform.origin
-	var ratio := clampf(_elapsed / FLIGHT_SECONDS, 0.0, 1.0)
+	var ratio := clampf(_elapsed / _flight_seconds, 0.0, 1.0)
 	var position := origin.lerp(aim_point, ratio)
-	position.y += sin(ratio * PI) * ARC_HEIGHT
+	position.y += sin(ratio * PI) * _arc_height
 	global_position = position
 	var travel := aim_point - origin
 	if travel.length_squared() > 0.0001:
