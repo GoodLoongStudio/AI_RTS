@@ -16,6 +16,7 @@ var _impacted := false
 # 飞行参数可由场景 metadata 覆盖（RifleRound 用快而平的曳光弹，炮弹用慢而高的抛物线）。
 var _flight_seconds := FLIGHT_SECONDS
 var _arc_height := ARC_HEIGHT
+var _show_impact_explosion := true
 
 @onready var _trail: GPUParticles3D = $Trail
 
@@ -28,6 +29,8 @@ func _ready():
 	global_position = launch_transform.origin
 	_flight_seconds = float(get_meta("flight_seconds", FLIGHT_SECONDS))
 	_arc_height = float(get_meta("arc_height", ARC_HEIGHT))
+	# 步枪等轻武器命中不炸出火光，只有炮弹类落点爆炸。
+	_show_impact_explosion = bool(get_meta("impact_explosion", true))
 	if _trail != null:
 		_trail.emitting = true
 
@@ -64,7 +67,8 @@ func _perform_impact():
 	var impact_point: Vector3 = projectile_runtime.GetAimPoint(attack_id)
 	if impact_point.is_finite():
 		projectile_runtime.ResolveImpact(attack_id, impact_point)
-		_spawn_explosion(impact_point)
+		if _show_impact_explosion:
+			_spawn_explosion(impact_point)
 	queue_free()
 
 
