@@ -21,5 +21,8 @@ metadata/arc_height = 0.04
 material_override = SubResource("StandardMaterial3D_tracer")
 mesh = SubResource("CapsuleMesh_tracer")
 
-[node name="Trail" parent="." index="1"]
+[node name="Sparks" parent="." index="1"]
+visible = false
+
+[node name="Trail" parent="." index="2"]
 visible = false
