@@ -9,8 +9,8 @@ emission_enabled = true
 emission = Color(1, 0.62, 0.25, 1)
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_shell"]
-radius = 0.13
-height = 0.7
+radius = 0.07
+height = 0.6
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_sparks"]
 transparency = 1
@@ -31,15 +31,15 @@ emission_shape = 1
 emission_sphere_radius = 0.05
 direction = Vector3(0, 0, 1)
 spread = 8.0
-initial_velocity_min = 0.8
-initial_velocity_max = 1.6
+initial_velocity_min = 0.5
+initial_velocity_max = 1.0
 gravity = Vector3(0, -0.4, 0)
-scale_min = 0.8
-scale_max = 1.2
+scale_min = 1.0
+scale_max = 1.4
 color_ramp = SubResource("GradientTexture1D_sparks")
 
 [sub_resource type="QuadMesh" id="QuadMesh_sparks"]
-size = Vector2(0.09, 0.09)
+size = Vector2(0.14, 0.14)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_trail"]
 transparency = 1
@@ -63,12 +63,12 @@ spread = 15.0
 initial_velocity_min = 0.1
 initial_velocity_max = 0.35
 gravity = Vector3(0, 0.25, 0)
-scale_min = 0.7
-scale_max = 1.1
+scale_min = 0.5
+scale_max = 0.8
 color_ramp = SubResource("GradientTexture1D_trail")
 
 [sub_resource type="QuadMesh" id="QuadMesh_trail"]
-size = Vector2(0.22, 0.22)
+size = Vector2(0.16, 0.16)
 
 [node name="CannonShell" type="Node3D"]
 metadata/impact_reaction = "explosion"
@@ -81,8 +81,8 @@ mesh = SubResource("CapsuleMesh_shell")
 
 [node name="Sparks" type="GPUParticles3D" parent="."]
 material_override = SubResource("StandardMaterial3D_sparks")
-amount = 36
-lifetime = 0.16
+amount = 60
+lifetime = 0.25
 explosiveness = 0.05
 local_coords = false
 process_material = SubResource("ParticleProcessMaterial_sparks")
@@ -90,7 +90,7 @@ draw_pass_1 = SubResource("QuadMesh_sparks")
 
 [node name="Trail" type="GPUParticles3D" parent="."]
 material_override = SubResource("StandardMaterial3D_trail")
-amount = 36
+amount = 56
 lifetime = 1.2
 explosiveness = 0.05
 local_coords = false
