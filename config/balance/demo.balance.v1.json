@@ -34,7 +34,7 @@
       "deliveryKind": "projectile",
       "baseDamage": 2.0,
       "cooldownMilliseconds": 750,
-      "rangeMeters": 5.0,
+      "rangeMeters": 7.5,
       "targetDomains": ["terrain"],
       "warheadId": "direct_full_damage"
     },

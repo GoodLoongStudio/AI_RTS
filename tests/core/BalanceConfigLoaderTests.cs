@@ -74,7 +74,7 @@ internal sealed class BalanceConfigLoaderTests
 
         var cannon = catalog.FindWeapon(new WeaponDefinitionId("tank_cannon"));
         Check(cannon?.BaseDamage == 2.0f && cannon.CooldownMilliseconds == 750 &&
-            cannon.RangeMeters == 5.0f,
+            cannon.RangeMeters == 7.5f,
             "Tank 主武器应使用整数毫秒并匹配攻击基线");
         Check(cannon?.TargetDomains.SetEquals([CombatDomain.Terrain]) == true,
             "Tank 主武器只应攻击 Terrain");

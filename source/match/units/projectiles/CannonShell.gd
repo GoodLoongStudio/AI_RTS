@@ -43,7 +43,8 @@ func _process(delta: float):
 	var origin: Vector3 = launch_transform.origin
 	var ratio := clampf(_elapsed / _flight_seconds, 0.0, 1.0)
 	var position := origin.lerp(aim_point, ratio)
-	position.y += sin(ratio * PI) * _arc_height
+	# 直线弹道 + 平方递增的下坠（arc_height 此时表示末端下坠幅度，非抛物线高度）
+	position.y -= _arc_height * ratio * ratio
 	global_position = position
 	var travel := aim_point - origin
 	if travel.length_squared() > 0.0001:

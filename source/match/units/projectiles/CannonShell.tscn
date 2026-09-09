@@ -72,6 +72,7 @@ size = Vector2(0.16, 0.16)
 
 [node name="CannonShell" type="Node3D"]
 metadata/impact_reaction = "explosion"
+metadata/arc_height = 0.1
 script = ExtResource("1_hyk5q")
 
 [node name="Body" type="MeshInstance3D" parent="."]
