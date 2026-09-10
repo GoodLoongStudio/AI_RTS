@@ -20,11 +20,24 @@ func _ready():
 	if Engine.is_editor_hint():
 		return
 	hide()
+	_apply_enemy_color_if_needed()
 	_recalulate_bar_value()
 	_unit.selected.connect(_on_unit_selected)
 	_unit.deselected.connect(_on_unit_deselected)
 	_unit.hp_changed.connect(_on_hp_changed)
 	_visibility_timer.timeout.connect(_on_visibility_timer_timeout)
+
+
+## 非本地玩家的单位血条染红（满血红色，随血量衰减到灰）。
+func _apply_enemy_color_if_needed():
+	var match_node = _unit.find_parent("Match")
+	if match_node == null or not match_node.has_method("get_local_player"):
+		return
+	var local_player = match_node.get_local_player()
+	if local_player == null or _unit.get_parent() == local_player:
+		return
+	var gradient: Gradient = _actual_bar.texture.gradient
+	gradient.set_color(0, Color(0.9, 0.12, 0.05, 1.0))
 
 
 func _recalulate_bar_value():

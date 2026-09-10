@@ -179,12 +179,22 @@ func _add_count_badge(button: Button, count: int) -> void:
 ## 点击堆叠头像：取消全选，选中该类型的全部己方单位。
 func _on_portrait_pressed(units: Array):
 	MatchSignals.deselect_all_units.emit()
+	var focus_unit = null
 	for unit in units:
 		if not is_instance_valid(unit) or not unit.is_in_group("controlled_units"):
 			continue
 		var selection = unit.find_child("Selection")
 		if selection != null and selection.has_method("select"):
 			selection.select()
+		if focus_unit == null:
+			focus_unit = unit
+	# 点击头像顺带把镜头跳到该类单位的位置（一次性跳转，不锁定跟随）。
+	if focus_unit != null and focus_unit.is_inside_tree():
+		var camera = get_tree().root.find_child("IsometricCamera3D", true, false)
+		if camera != null and camera.has_method("set_position_safely"):
+			if camera.has_method("clear_follow_target"):
+				camera.clear_follow_target()
+			camera.set_position_safely(focus_unit.global_position)
 
 
 func _icon_key(unit) -> String:
