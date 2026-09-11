@@ -274,11 +274,9 @@ func _build_ui():
 	_status_label.clip_text = true
 	vbox.add_child(_status_label)
 
-	# 弹性占位：把命令面板与功能行推到侧栏底部（用户要求指令面板下移）。
-	vbox.add_child(Control.new())
-	vbox.get_child(vbox.get_child_count() - 1).size_flags_vertical = Control.SIZE_EXPAND_FILL
-
 	# 命令面板槽：收编 TraditionalUnitCommandHUD（右下情境面板进侧栏）。
+	# 布局：网格滚动区 EXPAND_FILL 吃满全部剩余空间（用户要求卡片区域向下扩大），
+	# 命令面板/功能行固定高度贴底。
 	_command_slot = VBoxContainer.new()
 	vbox.add_child(_command_slot)
 
