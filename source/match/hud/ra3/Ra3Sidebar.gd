@@ -58,7 +58,6 @@ const TABS = [
 			{"scene": HoverBikeUnit, "caption": "悬浮摩托", "icon": "hover_bike"},
 			{"scene": ArmyTruckUnit, "caption": "运输卡车", "icon": "army_truck"},
 			{"scene": AmbulanceUnit, "caption": "救护车", "icon": "ambulance"},
-			{"scene": DropShipUnit, "caption": "运输机", "icon": "drop_ship"},
 		],
 	},
 	{
@@ -66,6 +65,7 @@ const TABS = [
 		"producer_caption": "航空工厂",
 		"items": [
 			{"scene": HelicopterUnit, "caption": "直升机", "icon": "helicopter"},
+			{"scene": DropShipUnit, "caption": "运输机", "icon": "drop_ship"},
 			{"scene": DroneUnit, "caption": "无人机", "icon": "drone"},
 		],
 	},
