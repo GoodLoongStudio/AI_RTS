@@ -142,6 +142,7 @@ public static class DemoBalanceRequirements
             new("helicopter"),
             new("tank"),
             new("apc"),
+            new("rocket_artillery"),
             new("command_center"),
             new("vehicle_factory"),
             new("aircraft_factory"),
@@ -156,6 +157,7 @@ public static class DemoBalanceRequirements
             new("drone"),
             new("tank"),
             new("apc"),
+            new("rocket_artillery"),
             new("helicopter"),
             new("soldier")
         }.ToFrozenSet(),

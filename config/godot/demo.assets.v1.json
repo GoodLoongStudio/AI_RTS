@@ -55,6 +55,10 @@
   {
    "unitTypeId": "apc",
    "scenePath": "res://source/match/units/APC.tscn"
+  },
+  {
+   "unitTypeId": "rocket_artillery",
+   "scenePath": "res://source/match/units/RocketArtillery.tscn"
   }
  ],
  "weaponAssets": [
@@ -81,6 +85,10 @@
   {
    "weaponId": "apc_autocannon",
    "projectileScenePath": "res://source/match/units/projectiles/RifleRound.tscn"
+  },
+  {
+   "weaponId": "rocket_artillery",
+   "projectileScenePath": "res://source/match/units/projectiles/Rocket.tscn"
   }
  ]
 }
