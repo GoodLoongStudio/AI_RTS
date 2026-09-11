@@ -44,9 +44,9 @@ func _ready():
 		"运输机应在 40s 内从机场部署（实际 %d）" % _produced_drop_ships.size()
 	)
 
-	# 逐单位生成渲染图标：替代此前直接拷贝贴图集的占位图标
+	# 逐单位生成渲染图标（仅新单位；既有单位图标不动）
+	# 位置用已验证的空地 z=8 一带（TestAllUnits 建筑区之外）
 	var roster = [
-		["tank", preload("res://source/match/units/Tank.tscn")],
 		["apc", APCScene],
 		["rocket", RocketArtilleryScene],
 		["heavy_tank", HeavyTankScene],
@@ -67,16 +67,17 @@ func _ready():
 	camera.size = 3.2
 	sub.add_child(camera)
 	for entry in roster:
+		var spot = _find_free_spot()
 		var unit = entry[1].instantiate()
 		MatchSignals.setup_and_spawn_unit.emit(
-			unit, Transform3D(Basis.IDENTITY, Vector3(30.0, 0, 30.0)), human, false
+			unit, Transform3D(Basis.IDENTITY, spot), human, false
 		)
 		await get_tree().process_frame
 		await get_tree().create_timer(0.4).timeout
 		if not is_instance_valid(unit):
 			continue
 		camera.look_at_from_position(
-			Vector3(30.0, 2.2, 31.8), Vector3(30.0, 0.5, 30.0), Vector3.UP
+			Vector3(spot.x, 2.2, spot.z + 1.8), Vector3(spot.x, 0.5, spot.z), Vector3.UP
 		)
 		await RenderingServer.frame_post_draw
 		var image = sub.get_texture().get_image()
@@ -94,6 +95,22 @@ func _ready():
 func _on_unit_production_finished(unit, producer):
 	if producer.name == "AircraftFactory" and unit.scene_file_path == DropShipScene.resource_path:
 		_produced_drop_ships.append(unit)
+
+
+## 在地图上找一个离所有单位/建筑至少 4 米的空位，保证图标里没有杂物。
+func _find_free_spot() -> Vector3:
+	var all_units = get_tree().get_nodes_in_group("units")
+	for z in [20.0, 18.0, 16.0, 14.0, 12.0, 10.0, 8.0, 22.0, 24.0, 26.0]:
+		for x in [2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0, 20.0, 22.0, 24.0]:
+			var candidate = Vector3(x, 0, z)
+			var free := true
+			for u in all_units:
+				if is_instance_valid(u) and u.global_position.distance_to(candidate) < 4.0:
+					free = false
+					break
+			if free:
+				return candidate
+	return Vector3(0, 0, 20)
 
 
 func _check(condition: bool, message: String):
