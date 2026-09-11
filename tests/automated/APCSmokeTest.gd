@@ -39,6 +39,12 @@ func _ready():
 	await get_tree().process_frame
 	await get_tree().create_timer(0.5).timeout
 	_check(apc.hp != null and apc.hp_max != null, "APC 应接入权威生命值配置")
+	# 选中/高亮特性必须齐全（缺失会导致单位无法被框选）
+	var selection = apc.find_child("Selection", true, false)
+	_check(selection != null and selection.has_method("select"), "APC 必须带 Selection 特性（可选）")
+	_check(apc.find_child("Highlight", true, false) != null, "APC 必须带 Highlight 特性")
+	if selection != null and selection.has_method("select"):
+		selection.select()
 	var hp_before: float = enemy_soldier.hp
 
 	var waited := 0.0
