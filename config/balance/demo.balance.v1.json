@@ -17,12 +17,6 @@
    "impactSelectionMode": "intendedTargetOnly",
    "radiusMeters": 0.0,
    "friendlyFireDamageMultiplier": 0.5
-  },
-  {
-   "id": "splash_damage",
-   "impactSelectionMode": "area",
-   "radiusMeters": 1.5,
-   "friendlyFireDamageMultiplier": 0.5
   }
  ],
  "weapons": [
@@ -92,17 +86,6 @@
     "terrain"
    ],
    "warheadId": "direct_full_damage"
-  },
-  {
-   "id": "rocket_artillery",
-   "deliveryKind": "projectile",
-   "baseDamage": 4.0,
-   "cooldownMilliseconds": 3000,
-   "rangeMeters": 9.0,
-   "targetDomains": [
-    "terrain"
-   ],
-   "warheadId": "splash_damage"
   }
  ],
  "unitTypes": [
@@ -255,42 +238,6 @@
    "producer": {
     "queueLimit": 5
    }
-  },
-  {
-   "id": "apc",
-   "maxHp": 14.0,
-   "sightRangeMeters": 8.0,
-   "movement": {
-    "domain": "terrain",
-    "speedMetersPerSecond": 2.3,
-    "maxTurnDegreesPerSecond": 240.0,
-    "canReverse": true,
-    "reverseSpeedMultiplier": 0.65,
-    "canFireWhileMoving": true,
-    "movingWeaponArcDegrees": 120.0
-   },
-   "weaponIds": [
-    "apc_autocannon"
-   ],
-   "canForceFireGround": true
-  },
-  {
-   "id": "rocket_artillery",
-   "maxHp": 10.0,
-   "sightRangeMeters": 9.0,
-   "movement": {
-    "domain": "terrain",
-    "speedMetersPerSecond": 2.0,
-    "maxTurnDegreesPerSecond": 200.0,
-    "canReverse": true,
-    "reverseSpeedMultiplier": 0.6,
-    "canFireWhileMoving": true,
-    "movingWeaponArcDegrees": 120.0
-   },
-   "weaponIds": [
-    "rocket_artillery"
-   ],
-   "canForceFireGround": true
   }
  ],
  "productions": [
@@ -362,34 +309,6 @@
    ],
    "allowedProducerUnitTypeIds": [
     "barracks"
-   ]
-  },
-  {
-   "id": "apc",
-   "productUnitTypeId": "apc",
-   "requiredWork": 300,
-   "cost": [
-    {
-     "kind": "A",
-     "amount": 900
-    }
-   ],
-   "allowedProducerUnitTypeIds": [
-    "vehicle_factory"
-   ]
-  },
-  {
-   "id": "rocket_artillery",
-   "productUnitTypeId": "rocket_artillery",
-   "requiredWork": 360,
-   "cost": [
-    {
-     "kind": "A",
-     "amount": 1200
-    }
-   ],
-   "allowedProducerUnitTypeIds": [
-    "vehicle_factory"
    ]
   }
  ],
