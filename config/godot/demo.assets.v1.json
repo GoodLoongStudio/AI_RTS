@@ -51,6 +51,10 @@
    "unitTypeId": "barracks",
    "scenePath": "res://source/match/units/Barracks.tscn",
    "blueprintScenePath": "res://source/match/units/structure-geometries/Barracks.tscn"
+  },
+  {
+   "unitTypeId": "transport_truck",
+   "scenePath": "res://source/match/units/TransportTruck.tscn"
   }
  ],
  "weaponAssets": [

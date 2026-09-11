@@ -238,6 +238,22 @@
    "producer": {
     "queueLimit": 5
    }
+  },
+  {
+   "id": "transport_truck",
+   "maxHp": 14.0,
+   "sightRangeMeters": 7.0,
+   "movement": {
+    "domain": "terrain",
+    "speedMetersPerSecond": 2.6,
+    "maxTurnDegreesPerSecond": 300.0,
+    "canReverse": true,
+    "reverseSpeedMultiplier": 0.65,
+    "canFireWhileMoving": false,
+    "movingWeaponArcDegrees": 0.0
+   },
+   "weaponIds": [],
+   "canForceFireGround": false
   }
  ],
  "productions": [
@@ -309,6 +325,20 @@
    ],
    "allowedProducerUnitTypeIds": [
     "barracks"
+   ]
+  },
+  {
+   "id": "transport_truck",
+   "productUnitTypeId": "transport_truck",
+   "requiredWork": 240,
+   "cost": [
+    {
+     "kind": "A",
+     "amount": 600
+    }
+   ],
+   "allowedProducerUnitTypeIds": [
+    "vehicle_factory"
    ]
   }
  ],

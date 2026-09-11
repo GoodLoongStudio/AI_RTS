@@ -139,8 +139,10 @@ public static class DemoBalanceRequirements
         {
             new("drone"),
             new("worker"),
+            new("transport_truck"),
             new("helicopter"),
             new("tank"),
+            new("transport_truck"),
             new("command_center"),
             new("vehicle_factory"),
             new("aircraft_factory"),
