@@ -90,6 +90,8 @@ var _grid: GridContainer = null
 var _function_row: HBoxContainer = null
 var _command_slot: VBoxContainer = null
 var _funds_label_a: Label = null
+var _repair_button: Button = null
+var _sell_button: Button = null
 var _status_label: Label = null
 
 
@@ -201,6 +203,27 @@ func _build_ui():
 	funds_row.add_child(spacer)
 	funds_row.add_child(_make_funds_chip("钱", Color(0.55, 0.75, 1.0)))
 	_funds_label_a = _make_funds_value(funds_row)
+
+	# 维修 / 出售（红警3 式，作用于当前选中的己方建筑）。
+	var mode_row = HBoxContainer.new()
+	mode_row.add_theme_constant_override("separation", 6)
+	vbox.add_child(mode_row)
+	_repair_button = Button.new()
+	_repair_button.text = "维修"
+	_repair_button.custom_minimum_size = Vector2(0, 26)
+	_repair_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_repair_button.add_theme_font_size_override("font_size", 13)
+	_style_button(_repair_button)
+	_repair_button.pressed.connect(_on_repair_pressed)
+	mode_row.add_child(_repair_button)
+	_sell_button = Button.new()
+	_sell_button.text = "出售"
+	_sell_button.custom_minimum_size = Vector2(0, 26)
+	_sell_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_sell_button.add_theme_font_size_override("font_size", 13)
+	_style_button(_sell_button)
+	_sell_button.pressed.connect(_on_sell_pressed)
+	mode_row.add_child(_sell_button)
 
 	vbox.add_child(HSeparator.new())
 
@@ -512,6 +535,36 @@ func _item_tooltip(item: Dictionary) -> String:
 
 
 # ---------------------------------------------------------------- 命令
+
+## 维修/出售按钮：作用于当前选中的己方建筑（无选中建筑时提示）。
+func _on_repair_pressed():
+	var structures = _selected_own_structures()
+	if structures.is_empty():
+		_set_status("维修：请先选中一座己方建筑")
+		return
+	for structure in structures:
+		structure.set_repairing(not structure.is_repairing())
+	_set_status("维修中：%s 座建筑（再点一次停止）" % structures.size())
+
+
+func _on_sell_pressed():
+	var structures = _selected_own_structures()
+	if structures.is_empty():
+		_set_status("出售：请先选中一座己方建筑")
+		return
+	for structure in structures:
+		structure.sell()
+	_set_status("已出售 %s 座建筑（返还 50%% 造价）" % structures.size())
+
+
+## 当前选中的己方建筑列表（有 sell 能力的 Structure）。
+func _selected_own_structures() -> Array:
+	var result: Array = []
+	for unit in get_tree().get_nodes_in_group("controlled_units"):
+		if is_instance_valid(unit) and unit.has_method("sell"):
+			result.append(unit)
+	return result
+
 
 func _on_cell_pressed(item: Dictionary):
 	if item.get("place", false):

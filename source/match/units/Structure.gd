@@ -10,9 +10,69 @@ var _construction_progress = 1.0
 var _construction_refund_requested := false
 var _construction_completion_announced := true
 
+## 维修/出售（2026-09-11，仿红警3）：维修按秒耗资金回血，出售返还半价即毁。
+const REPAIR_RATE_HP_PER_SEC := 6.0
+const REPAIR_COST_PER_HP := 0.25
+const SELL_REFUND_RATIO := 0.5
+
+var _repairing := false
+var _repair_debt := 0.0
+
 @onready var production_queue = find_child("ProductionQueue"):
 	set(_value):
 		pass
+
+
+## 维修开关：开启后按秒回血并从玩家账户扣费，满血或资金不足自动停止。
+func set_repairing(repairing: bool):
+	_repairing = repairing
+	_repair_debt = 0.0
+
+
+func is_repairing() -> bool:
+	return _repairing
+
+
+func _process(delta):
+	if not _repairing:
+		return
+	if hp == null or hp_max == null or hp >= hp_max:
+		_repairing = false
+		return
+	var player = get_parent()
+	if player == null or player.get("_economy_runtime") == null:
+		return
+	var heal = min(REPAIR_RATE_HP_PER_SEC * delta, float(hp_max) - float(hp))
+	if heal <= 0.0:
+		return
+	_repair_debt += heal * REPAIR_COST_PER_HP
+	var owed := int(floor(_repair_debt))
+	if owed < 1:
+		return
+	if not player.has_resources({"resource_a": owed}):
+		_repairing = false
+		return
+	if player.subtract_resources({"resource_a": owed}, "ScriptedAdjustment", self):
+		_repair_debt -= owed
+		set_hp_without_damage(min(hp + heal, hp_max))
+
+
+## 出售：返还造价一半，走既有死亡路径移除建筑。
+func sell():
+	var refund := 0
+	var match_node = find_parent("Match")
+	if match_node != null:
+		var balance = match_node.get_node_or_null("BalanceConfigRuntime")
+		if balance != null and balance.has_method("GetConstructionCost"):
+			var cost = balance.GetConstructionCost(load(str(scene_file_path)))
+			if cost != null:
+				refund = int(int(cost.get("resource_a", 0)) * SELL_REFUND_RATIO)
+	set_repairing(false)
+	var player = get_parent()
+	if refund > 0 and player != null and player.get("_economy_runtime") != null:
+		player.add_resources({"resource_a": refund}, "ConstructionRefund", self)
+	MatchSignals.deselect_all_units.emit()
+	hp = 0
 
 
 func is_revealing():
