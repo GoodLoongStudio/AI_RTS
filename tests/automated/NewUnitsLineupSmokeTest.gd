@@ -6,6 +6,7 @@ extends Node
 
 const MatchScene = preload("res://tests/manual/TestAllUnits.tscn")
 const HelicopterScene = preload("res://source/match/units/Helicopter.tscn")
+const APCScene = preload("res://source/match/units/APC.tscn")
 
 var _failures := 0
 var _produced_drop_ships: Array = []
@@ -40,7 +41,9 @@ func _ready():
 
 	# 逐单位生成渲染图标（仅新单位；既有单位图标不动）
 	# 位置用已验证的空地 z=8 一带（TestAllUnits 建筑区之外）
-	var roster = []
+	var roster = [
+		["apc", APCScene],
+	]
 	# 用独立 SubViewport 渲染图标：共享 3D 世界但不带 HUD/侧栏
 	var sub = SubViewport.new()
 	sub.size = Vector2i(128, 128)

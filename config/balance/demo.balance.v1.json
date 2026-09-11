@@ -254,6 +254,24 @@
    },
    "weaponIds": [],
    "canForceFireGround": false
+  },
+  {
+   "id": "apc",
+   "maxHp": 14.0,
+   "sightRangeMeters": 8.0,
+   "movement": {
+    "domain": "terrain",
+    "speedMetersPerSecond": 2.3,
+    "maxTurnDegreesPerSecond": 240.0,
+    "canReverse": true,
+    "reverseSpeedMultiplier": 0.65,
+    "canFireWhileMoving": true,
+    "movingWeaponArcDegrees": 120.0
+   },
+   "weaponIds": [
+    "apc_autocannon"
+   ],
+   "canForceFireGround": true
   }
  ],
  "productions": [
@@ -335,6 +353,20 @@
     {
      "kind": "A",
      "amount": 600
+    }
+   ],
+   "allowedProducerUnitTypeIds": [
+    "vehicle_factory"
+   ]
+  },
+  {
+   "id": "apc",
+   "productUnitTypeId": "apc",
+   "requiredWork": 300,
+   "cost": [
+    {
+     "kind": "A",
+     "amount": 900
     }
    ],
    "allowedProducerUnitTypeIds": [
