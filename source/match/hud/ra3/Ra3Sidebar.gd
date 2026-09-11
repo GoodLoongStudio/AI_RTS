@@ -63,19 +63,18 @@ const GRID_COLUMNS := 3
 const GRID_CAPACITY := 9
 const REFRESH_INTERVAL := 0.4
 
-const PANEL_BG = Color(0.055, 0.085, 0.10, 0.97)
-const PANEL_EDGE = Color(0.22, 0.65, 0.60)
+const PANEL_BG = Color(0.09, 0.10, 0.12, 0.97)
+const PANEL_EDGE = Color(0.45, 0.50, 0.55)
 const GOLD = Color(0.95, 0.83, 0.42)
 const GOLD_DIM = Color(0.62, 0.53, 0.28)
 const CELL_BG = Color(0.05, 0.06, 0.08)
-const CELL_EDGE = Color(0.15, 0.35, 0.33)
-const CELL_HOVER_BG = Color(0.08, 0.14, 0.15)
-const CELL_ACTIVE_BG = Color(0.08, 0.20, 0.19)
+const CELL_EDGE = Color(0.30, 0.33, 0.36)
+const CELL_HOVER_BG = Color(0.10, 0.13, 0.17)
+const CELL_ACTIVE_BG = Color(0.13, 0.17, 0.22)
 const CELL_DISABLED_BG = Color(0.05, 0.055, 0.065)
 const CELL_DISABLED_EDGE = Color(0.18, 0.19, 0.21)
-const HIGHLIGHT = Color(0.20, 0.78, 0.72)
+const HIGHLIGHT = Color(0.40, 0.62, 0.95)
 const SHADE_COLOR = Color(0.18, 0.32, 0.55, 0.60)
-const COST_UNAFFORDABLE = Color(0.90, 0.30, 0.25)
 
 var _match = null
 var _local_player = null
@@ -199,7 +198,7 @@ func _build_ui():
 	var spacer = Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	funds_row.add_child(spacer)
-	funds_row.add_child(_make_funds_chip("$", GOLD))
+	funds_row.add_child(_make_funds_chip("钱", Color(0.55, 0.75, 1.0)))
 	_funds_label_a = _make_funds_value(funds_row)
 
 	vbox.add_child(HSeparator.new())
@@ -240,7 +239,7 @@ func _build_ui():
 	_status_label = Label.new()
 	_status_label.text = ""
 	_status_label.add_theme_font_size_override("font_size", 12)
-	_status_label.add_theme_color_override("font_color", Color(0.60, 0.70, 0.78))
+	_status_label.add_theme_color_override("font_color", GOLD_DIM)
 	_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_status_label.clip_text = true
 	vbox.add_child(_status_label)
@@ -280,7 +279,7 @@ func _make_funds_chip(caption: String, color: Color) -> HBoxContainer:
 func _make_funds_value(row: HBoxContainer) -> Label:
 	var label = Label.new()
 	label.text = "0"
-	label.add_theme_font_size_override("font_size", 20)
+	label.add_theme_font_size_override("font_size", 18)
 	label.add_theme_color_override("font_color", GOLD)
 	row.add_child(label)
 	return label
@@ -312,7 +311,7 @@ func _make_button_styles(button: Button):
 	hover.set_corner_radius_all(3)
 	var pressed = StyleBoxFlat.new()
 	pressed.bg_color = CELL_ACTIVE_BG
-	pressed.border_color = HIGHLIGHT
+	pressed.border_color = GOLD
 	pressed.set_border_width_all(1)
 	pressed.set_corner_radius_all(3)
 	var disabled = StyleBoxFlat.new()
@@ -449,7 +448,7 @@ func _make_cell(item: Dictionary) -> Dictionary:
 
 	button.tooltip_text = _item_tooltip(item)
 	return {
-		"item": item, "button": button, "shade": shade, "badge": badge, "cost": cost,
+		"item": item, "button": button, "shade": shade, "badge": badge,
 	}
 
 
@@ -491,24 +490,6 @@ func _cost_caption(item: Dictionary) -> String:
 	var a := int(cost.get("resource_a", 0))
 	# 单资源（钱）后成本只展示 A；历史 B 成本已折算并入。
 	return "%d" % a
-
-
-## 物品的资金成本数值；无价格数据返回 -1（不参与红价判定）。
-func _item_cost_a(item: Dictionary) -> int:
-	if _balance == null:
-		return -1
-	var cost = null
-	if item.get("place", false):
-		if not _balance.has_method("GetConstructionCost"):
-			return -1
-		cost = _balance.GetConstructionCost(_packed_scene(item.scene))
-	else:
-		if not _balance.has_method("GetProductionCost"):
-			return -1
-		cost = _balance.GetProductionCost(_packed_scene(item.scene))
-	if cost == null:
-		return -1
-	return int(cost.get("resource_a", 0))
 
 
 func _item_tooltip(item: Dictionary) -> String:
@@ -715,12 +696,6 @@ func _refresh_cells():
 		else:
 			cell.badge.text = "×%d" % stats.count
 			cell.shade.offset_top = -CELL_SIZE * stats.progress
-		if "cost" in cell and cell.cost != null and _local_player != null:
-			var item_cost := _item_cost_a(item)
-			var unaffordable := item_cost >= 0 and item_cost > int(_local_player.resource_a)
-			cell.cost.add_theme_color_override(
-				"font_color", COST_UNAFFORDABLE if unaffordable else GOLD_DIM
-			)
 
 
 func _refresh_funds():
