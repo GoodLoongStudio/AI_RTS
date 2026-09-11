@@ -59,26 +59,6 @@
   {
    "unitTypeId": "rocket_artillery",
    "scenePath": "res://source/match/units/RocketArtillery.tscn"
-  },
-  {
-   "unitTypeId": "heavy_tank",
-   "scenePath": "res://source/match/units/HeavyTank.tscn"
-  },
-  {
-   "unitTypeId": "hover_bike",
-   "scenePath": "res://source/match/units/HoverBike.tscn"
-  },
-  {
-   "unitTypeId": "drop_ship",
-   "scenePath": "res://source/match/units/DropShip.tscn"
-  },
-  {
-   "unitTypeId": "supply_truck",
-   "scenePath": "res://source/match/units/ArmyTruck.tscn"
-  },
-  {
-   "unitTypeId": "ambulance",
-   "scenePath": "res://source/match/units/Ambulance.tscn"
   }
  ],
  "weaponAssets": [

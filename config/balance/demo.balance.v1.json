@@ -158,7 +158,7 @@
     "movingWeaponArcDegrees": 0.0
    },
    "weaponIds": [
-    "helicopter_rocket"
+    "apc_autocannon"
    ],
    "canForceFireGround": false
   },
@@ -291,90 +291,6 @@
     "rocket_artillery"
    ],
    "canForceFireGround": true
-  },
-  {
-   "id": "heavy_tank",
-   "maxHp": 20.0,
-   "sightRangeMeters": 8.0,
-   "movement": {
-    "domain": "terrain",
-    "speedMetersPerSecond": 2.2,
-    "maxTurnDegreesPerSecond": 200,
-    "canReverse": true,
-    "reverseSpeedMultiplier": 0.65,
-    "canFireWhileMoving": true,
-    "movingWeaponArcDegrees": 120
-   },
-   "weaponIds": [
-    "tank_cannon"
-   ],
-   "canForceFireGround": true
-  },
-  {
-   "id": "hover_bike",
-   "maxHp": 6.0,
-   "sightRangeMeters": 9.0,
-   "movement": {
-    "domain": "terrain",
-    "speedMetersPerSecond": 4.5,
-    "maxTurnDegreesPerSecond": 360,
-    "canReverse": true,
-    "reverseSpeedMultiplier": 0.65,
-    "canFireWhileMoving": true,
-    "movingWeaponArcDegrees": 90
-   },
-   "weaponIds": [
-    "apc_autocannon"
-   ],
-   "canForceFireGround": true
-  },
-  {
-   "id": "drop_ship",
-   "maxHp": 20.0,
-   "sightRangeMeters": 8.0,
-   "movement": {
-    "domain": "air",
-    "speedMetersPerSecond": 4.5,
-    "maxTurnDegreesPerSecond": 240,
-    "canReverse": true,
-    "reverseSpeedMultiplier": 0.65,
-    "canFireWhileMoving": false,
-    "movingWeaponArcDegrees": 0
-   },
-   "weaponIds": [],
-   "canForceFireGround": false
-  },
-  {
-   "id": "supply_truck",
-   "maxHp": 12.0,
-   "sightRangeMeters": 7.0,
-   "movement": {
-    "domain": "terrain",
-    "speedMetersPerSecond": 3.0,
-    "maxTurnDegreesPerSecond": 300,
-    "canReverse": true,
-    "reverseSpeedMultiplier": 0.65,
-    "canFireWhileMoving": false,
-    "movingWeaponArcDegrees": 0
-   },
-   "weaponIds": [],
-   "canForceFireGround": false
-  },
-  {
-   "id": "ambulance",
-   "maxHp": 12.0,
-   "sightRangeMeters": 7.0,
-   "movement": {
-    "domain": "terrain",
-    "speedMetersPerSecond": 3.0,
-    "maxTurnDegreesPerSecond": 300,
-    "canReverse": true,
-    "reverseSpeedMultiplier": 0.65,
-    "canFireWhileMoving": false,
-    "movingWeaponArcDegrees": 0
-   },
-   "weaponIds": [],
-   "canForceFireGround": false
   }
  ],
  "productions": [
@@ -470,76 +386,6 @@
     {
      "kind": "A",
      "amount": 1200
-    }
-   ],
-   "allowedProducerUnitTypeIds": [
-    "vehicle_factory"
-   ]
-  },
-  {
-   "id": "heavy_tank",
-   "productUnitTypeId": "heavy_tank",
-   "requiredWork": 420,
-   "cost": [
-    {
-     "kind": "A",
-     "amount": 1400
-    }
-   ],
-   "allowedProducerUnitTypeIds": [
-    "vehicle_factory"
-   ]
-  },
-  {
-   "id": "hover_bike",
-   "productUnitTypeId": "hover_bike",
-   "requiredWork": 150,
-   "cost": [
-    {
-     "kind": "A",
-     "amount": 400
-    }
-   ],
-   "allowedProducerUnitTypeIds": [
-    "vehicle_factory"
-   ]
-  },
-  {
-   "id": "drop_ship",
-   "productUnitTypeId": "drop_ship",
-   "requiredWork": 400,
-   "cost": [
-    {
-     "kind": "A",
-     "amount": 1500
-    }
-   ],
-   "allowedProducerUnitTypeIds": [
-    "aircraft_factory"
-   ]
-  },
-  {
-   "id": "supply_truck",
-   "productUnitTypeId": "supply_truck",
-   "requiredWork": 200,
-   "cost": [
-    {
-     "kind": "A",
-     "amount": 600
-    }
-   ],
-   "allowedProducerUnitTypeIds": [
-    "vehicle_factory"
-   ]
-  },
-  {
-   "id": "ambulance",
-   "productUnitTypeId": "ambulance",
-   "requiredWork": 240,
-   "cost": [
-    {
-     "kind": "A",
-     "amount": 800
     }
    ],
    "allowedProducerUnitTypeIds": [

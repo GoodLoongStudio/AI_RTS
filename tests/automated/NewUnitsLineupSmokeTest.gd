@@ -7,11 +7,7 @@ extends Node
 const MatchScene = preload("res://tests/manual/TestAllUnits.tscn")
 const APCScene = preload("res://source/match/units/APC.tscn")
 const RocketArtilleryScene = preload("res://source/match/units/RocketArtillery.tscn")
-const HeavyTankScene = preload("res://source/match/units/HeavyTank.tscn")
-const HoverBikeScene = preload("res://source/match/units/HoverBike.tscn")
-const DropShipScene = preload("res://source/match/units/DropShip.tscn")
-const ArmyTruckScene = preload("res://source/match/units/ArmyTruck.tscn")
-const AmbulanceScene = preload("res://source/match/units/Ambulance.tscn")
+const HelicopterScene = preload("res://source/match/units/Helicopter.tscn")
 
 var _failures := 0
 var _produced_drop_ships: Array = []
@@ -26,14 +22,14 @@ func _ready():
 
 	var human = match_instance.get_node("Players/Human")
 
-	# 机场生产运输机（页签修复后的关键验证）
+	# 机场生产直升机（飞机页签生产链路验证）
 	var aircraft_factory = human.get_node("AircraftFactory")
 	var waited := 0.0
 	while waited < 10.0 and human.get("_economy_runtime") == null:
 		await get_tree().create_timer(0.2).timeout
 		waited += 0.2
 	human.add_resources({"resource_a": 5000}, "ScriptedAdjustment")
-	var item = aircraft_factory.production_queue.produce(DropShipScene)
+	var item = aircraft_factory.production_queue.produce(HelicopterScene)
 	_check(item != null, "机场应可入队生产运输机")
 	var produce_waited := 0.0
 	while _produced_drop_ships.is_empty() and produce_waited < 40.0:
@@ -41,7 +37,7 @@ func _ready():
 		produce_waited += 0.25
 	_check(
 		_produced_drop_ships.size() == 1,
-		"运输机应在 40s 内从机场部署（实际 %d）" % _produced_drop_ships.size()
+		"直升机应在 40s 内从机场部署（实际 %d）" % _produced_drop_ships.size()
 	)
 
 	# 逐单位生成渲染图标（仅新单位；既有单位图标不动）
@@ -49,11 +45,6 @@ func _ready():
 	var roster = [
 		["apc", APCScene],
 		["rocket", RocketArtilleryScene],
-		["heavy_tank", HeavyTankScene],
-		["hover_bike", HoverBikeScene],
-		["drop_ship", DropShipScene],
-		["army_truck", ArmyTruckScene],
-		["ambulance", AmbulanceScene],
 	]
 	# 用独立 SubViewport 渲染图标：共享 3D 世界但不带 HUD/侧栏
 	var sub = SubViewport.new()
@@ -104,7 +95,7 @@ func _ready():
 
 
 func _on_unit_production_finished(unit, producer):
-	if producer.name == "AircraftFactory" and unit.scene_file_path == DropShipScene.resource_path:
+	if producer.name == "AircraftFactory" and unit.scene_file_path == HelicopterScene.resource_path:
 		_produced_drop_ships.append(unit)
 
 

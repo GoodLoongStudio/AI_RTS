@@ -14,11 +14,6 @@ const WorkerUnit := "res://source/match/units/Worker.tscn"
 const TankUnit := "res://source/match/units/Tank.tscn"
 const APCUnit := "res://source/match/units/APC.tscn"
 const RocketArtilleryUnit := "res://source/match/units/RocketArtillery.tscn"
-const HeavyTankUnit := "res://source/match/units/HeavyTank.tscn"
-const HoverBikeUnit := "res://source/match/units/HoverBike.tscn"
-const ArmyTruckUnit := "res://source/match/units/ArmyTruck.tscn"
-const AmbulanceUnit := "res://source/match/units/Ambulance.tscn"
-const DropShipUnit := "res://source/match/units/DropShip.tscn"
 const HelicopterUnit := "res://source/match/units/Helicopter.tscn"
 const DroneUnit := "res://source/match/units/Drone.tscn"
 const SoldierUnit := "res://source/match/units/Infantry.tscn"
@@ -54,10 +49,6 @@ const TABS = [
 			{"scene": TankUnit, "caption": "坦克", "icon": "tank"},
 			{"scene": APCUnit, "caption": "装甲车", "icon": "apc"},
 			{"scene": RocketArtilleryUnit, "caption": "火箭炮车", "icon": "rocket"},
-			{"scene": HeavyTankUnit, "caption": "重型坦克", "icon": "heavy_tank"},
-			{"scene": HoverBikeUnit, "caption": "悬浮摩托", "icon": "hover_bike"},
-			{"scene": ArmyTruckUnit, "caption": "运输卡车", "icon": "army_truck"},
-			{"scene": AmbulanceUnit, "caption": "救护车", "icon": "ambulance"},
 		],
 	},
 	{
@@ -65,7 +56,6 @@ const TABS = [
 		"producer_caption": "航空工厂",
 		"items": [
 			{"scene": HelicopterUnit, "caption": "直升机", "icon": "helicopter"},
-			{"scene": DropShipUnit, "caption": "运输机", "icon": "drop_ship"},
 			{"scene": DroneUnit, "caption": "无人机", "icon": "drone"},
 		],
 	},
@@ -261,7 +251,7 @@ func _build_ui():
 
 	var grid_scroll = ScrollContainer.new()
 	grid_scroll.custom_minimum_size = Vector2(0, CELL_SIZE * 3 + 16)
-	grid_scroll.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	grid_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	grid_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	vbox.add_child(grid_scroll)
 	var grid_shell = PanelContainer.new()
