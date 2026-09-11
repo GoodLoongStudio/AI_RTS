@@ -549,15 +549,14 @@ func _item_tooltip(item: Dictionary) -> String:
 
 # ---------------------------------------------------------------- 命令
 
-## 维修/出售按钮：作用于当前选中的己方建筑（无选中建筑时提示）。
+## 维修按钮：进入维修指定模式，随后左键点击己方建筑切换其维修状态（右键取消）。
 func _on_repair_pressed():
-	var structures = _selected_own_structures()
-	if structures.is_empty():
-		_set_status("维修：请先选中一座己方建筑")
+	var controller = _local_actions_controller()
+	if controller == null:
+		_set_status("维修：指令控制器未就绪")
 		return
-	for structure in structures:
-		structure.set_repairing(not structure.is_repairing())
-	_set_status("维修中：%s 座建筑（再点一次停止）" % structures.size())
+	controller.begin_repair_targeting()
+	_set_status("维修模式：左键点击你的建筑开始/停止维修（右键取消）")
 
 
 ## 卸货按钮：选中载有士兵的运输车后点击，乘客散开下车。
@@ -573,14 +572,21 @@ func _on_unload_pressed():
 	_set_status("已卸货 %s 台运输车" % unloaded if unloaded > 0 else "卸货：请先选中载有士兵的运输车")
 
 
+## 出售按钮：进入出售指定模式，随后左键点击己方建筑精准出售（右键取消）。
 func _on_sell_pressed():
-	var structures = _selected_own_structures()
-	if structures.is_empty():
-		_set_status("出售：请先选中一座己方建筑")
+	var controller = _local_actions_controller()
+	if controller == null:
+		_set_status("出售：指令控制器未就绪")
 		return
-	for structure in structures:
-		structure.sell()
-	_set_status("已出售 %s 座建筑（返还 50%% 造价）" % structures.size())
+	controller.begin_sell_targeting()
+	_set_status("出售模式：左键点击要出售的建筑（右键取消）")
+
+
+## 本地玩家的指令控制器。
+func _local_actions_controller():
+	if _local_player == null:
+		return null
+	return _local_player.find_child("UnitActionsController", true, false)
 
 
 ## 当前选中的己方建筑列表（有 sell 能力的 Structure）。
