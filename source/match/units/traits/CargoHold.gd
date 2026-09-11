@@ -2,8 +2,8 @@ extends Node
 
 ## 运输货舱（红警3 式，2026-09-11 用户指定交互）：
 ## 选中士兵右键运输车 → 步兵标记"登车"并走向运输车，进入 3 米内自动上车；
-## 选中运输车点侧栏"卸货"按钮 → 乘客散开下车；运输车被毁则乘客殉职。
-## 不做自动装载：未标记登车的步兵靠近也不会上车。
+## 只有侧栏"卸货"按钮能卸载（到达目的地不自动卸，由玩家手动控制）。
+## 运输车被毁则乘客殉职。不做自动装载：未标记登车的步兵靠近也不会上车。
 
 const LOAD_RADIUS := 3.0
 const UNLOAD_SPREAD := 1.2
@@ -13,8 +13,6 @@ const BOARDING_META := "boarding_transport"
 
 var _transport: Node3D = null
 var _passengers: Array = []
-var _board_anchor := Vector3.ZERO
-var _has_board_anchor := false
 
 
 func _ready():
@@ -24,11 +22,6 @@ func _ready():
 func _process(_delta):
 	if _transport == null or not is_instance_valid(_transport):
 		return
-	# 卸载：运输车驶离上车位置 3 米以外并停下（空闲态）时，视为抵达目的地卸货
-	if _has_board_anchor and not _passengers.is_empty() and _transport_is_idle():
-		if _transport.global_position.distance_to(_board_anchor) > 3.0:
-			unload_all()
-			return
 	# 接应已标记登车的步兵：进入 3 米内即装载
 	if _passengers.size() >= capacity:
 		return
@@ -61,23 +54,15 @@ func load_unit(unit):
 	unit.process_mode = Node.PROCESS_MODE_DISABLED
 	if unit.has_meta(BOARDING_META):
 		unit.remove_meta(BOARDING_META)
-	# 首名乘客上车时记录装载锚点（卸货判定基准）
-	if _passengers.is_empty():
-		_board_anchor = _transport.global_position
-		_has_board_anchor = true
 	for area in _collect_areas(unit):
 		area.set_deferred("collision_layer", 0)
 	var selection = unit.find_child("Selection", true, false)
 	if selection != null and selection.has_method("deselect"):
 		selection.deselect()
 	_passengers.append(unit)
-	if _passengers.size() == 1:
-		_board_anchor = _transport.global_position
-		_has_board_anchor = true
 
 
 func unload_all():
-	_has_board_anchor = false
 	var passengers := _passengers.duplicate()
 	_passengers.clear()
 	for i in range(passengers.size()):
