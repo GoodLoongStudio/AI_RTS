@@ -59,8 +59,9 @@ const TABS = [
 
 const SIDEBAR_WIDTH := 288.0
 const CELL_SIZE := 58.0
-const GRID_COLUMNS := 3
-const GRID_CAPACITY := 9
+const CELL_WIDTH := 250.0
+const GRID_COLUMNS := 1
+const GRID_CAPACITY := 12
 const REFRESH_INTERVAL := 0.4
 
 const PANEL_BG = Color(0.09, 0.10, 0.12, 0.97)
@@ -203,34 +204,36 @@ func _build_ui():
 
 	vbox.add_child(HSeparator.new())
 
-	# 页签 + 3×3 生产网格。
-	var production_row = HBoxContainer.new()
-	production_row.add_theme_constant_override("separation", 6)
-	vbox.add_child(production_row)
-
-	var tab_column = VBoxContainer.new()
-	tab_column.add_theme_constant_override("separation", 4)
-	production_row.add_child(tab_column)
+	# 红警式排版：分类页签横排在生产区上方，卡片竖排单列（可滚动）。
+	var tab_row = HBoxContainer.new()
+	tab_row.add_theme_constant_override("separation", 6)
+	vbox.add_child(tab_row)
 	var tab_group = ButtonGroup.new()
 	for tab in TABS:
 		var tab_button = Button.new()
 		tab_button.text = tab.caption
 		tab_button.toggle_mode = true
 		tab_button.button_group = tab_group
-		tab_button.custom_minimum_size = Vector2(46, 46)
+		tab_button.custom_minimum_size = Vector2(56, 30)
 		tab_button.add_theme_font_size_override("font_size", 13)
 		tab_button.set_meta("tab_id", tab.id)
 		tab_button.pressed.connect(_select_tab.bind(tab.id))
 		_style_button(tab_button)
-		tab_column.add_child(tab_button)
+		tab_row.add_child(tab_button)
 		_tab_buttons[tab.id] = tab_button
 
+	var grid_scroll = ScrollContainer.new()
+	grid_scroll.custom_minimum_size = Vector2(0, CELL_SIZE * 3 + 16)
+	grid_scroll.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	grid_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	vbox.add_child(grid_scroll)
 	var grid_shell = PanelContainer.new()
 	grid_shell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	grid_shell.add_theme_stylebox_override("panel", _make_cell_style(CELL_BG, CELL_EDGE, 4))
-	production_row.add_child(grid_shell)
+	grid_scroll.add_child(grid_shell)
 	_grid = GridContainer.new()
 	_grid.columns = GRID_COLUMNS
+	_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_grid.add_theme_constant_override("h_separation", 4)
 	_grid.add_theme_constant_override("v_separation", 4)
 	grid_shell.add_child(_grid)
@@ -379,7 +382,7 @@ func _tab_by_id(tab_id: String):
 
 func _make_cell(item: Dictionary) -> Dictionary:
 	var button = Button.new()
-	button.custom_minimum_size = Vector2(CELL_SIZE, CELL_SIZE)
+	button.custom_minimum_size = Vector2(CELL_WIDTH, CELL_SIZE)
 	_make_button_styles(button)
 	button.set_meta("cell_caption", str(item.caption))
 	button.pressed.connect(_on_cell_pressed.bind(item))
