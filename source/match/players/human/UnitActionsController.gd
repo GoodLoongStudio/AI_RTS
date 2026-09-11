@@ -61,6 +61,7 @@ func _bind_local_input():
 	_local_input_bound = true
 	if MatchSignals.match_started.is_connected(_on_match_started_for_input):
 		MatchSignals.match_started.disconnect(_on_match_started_for_input)
+	add_to_group("unit_actions_controller")
 	print("[INPUT] UnitActionsController enabled player=", get_parent().name)
 	_input_runtime = find_parent("Match").get_node_or_null("InputBindingRuntime")
 	MatchSignals.terrain_targeted.connect(_on_terrain_targeted)

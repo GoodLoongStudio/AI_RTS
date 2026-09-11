@@ -88,6 +88,14 @@ func _on_input_event(_camera, event, _click_position, _click_normal, _shape_idx)
 		# A 键攻击移动瞄准中：左键用于确认攻击点（由 UnitActionsController 消费），不做选择
 		if not get_tree().get_nodes_in_group("attack_move_targeting").is_empty():
 			return
+		# 维修/出售指定模式：左键点击单位交给 UnitActionsController 结算，不做选择
+		var actions_controller = get_tree().get_first_node_in_group("unit_actions_controller")
+		if actions_controller != null and (
+			actions_controller.is_repair_targeting() or actions_controller.is_sell_targeting()
+		):
+			MatchSignals.unit_targeted.emit(_unit, _click_position)
+			get_viewport().set_input_as_handled()
+			return
 		print("[INPUT] unit click unit=", _unit.name, " pos=", event.position)
 		if _selected and _input_runtime.IsModifierPressed("Shift"):
 			deselect()
