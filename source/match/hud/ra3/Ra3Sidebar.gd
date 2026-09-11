@@ -59,8 +59,8 @@ const TABS = [
 
 const SIDEBAR_WIDTH := 288.0
 const CELL_SIZE := 58.0
-const CELL_WIDTH := 250.0
-const GRID_COLUMNS := 1
+const CELL_WIDTH := 123.0
+const GRID_COLUMNS := 2
 const GRID_CAPACITY := 12
 const REFRESH_INTERVAL := 0.4
 
@@ -247,9 +247,12 @@ func _build_ui():
 	_status_label.clip_text = true
 	vbox.add_child(_status_label)
 
+	# 弹性占位：把命令面板与功能行推到侧栏底部（用户要求指令面板下移）。
+	vbox.add_child(Control.new())
+	vbox.get_child(vbox.get_child_count() - 1).size_flags_vertical = Control.SIZE_EXPAND_FILL
+
 	# 命令面板槽：收编 TraditionalUnitCommandHUD（右下情境面板进侧栏）。
 	_command_slot = VBoxContainer.new()
-	_command_slot.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vbox.add_child(_command_slot)
 
 	# 功能行。
