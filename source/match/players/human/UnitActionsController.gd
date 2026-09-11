@@ -6,6 +6,8 @@ signal command_feedback(command_name, accepted_count, rejected_count, status)
 const Structure = preload("res://source/match/units/Structure.gd")
 const ResourceUnit = preload("res://source/match/units/non-player/ResourceUnit.gd")
 
+var _is_repair_targeting := false
+var _is_sell_targeting := false
 var _is_force_move_targeting := false
 var _is_force_attack_targeting := false
 var _is_tactical_withdraw_targeting := false
@@ -168,6 +170,8 @@ func cancel_command_targeting():
 		and not _is_force_attack_targeting
 		and not _is_tactical_withdraw_targeting
 		and not _is_ground_attack_move_targeting
+		and not _is_repair_targeting
+		and not _is_sell_targeting
 		and _skill_targeting_id.is_empty()
 	):
 		return
@@ -175,6 +179,8 @@ func cancel_command_targeting():
 	_is_force_attack_targeting = false
 	_is_tactical_withdraw_targeting = false
 	_is_ground_attack_move_targeting = false
+	_is_repair_targeting = false
+	_is_sell_targeting = false
 	_clear_skill_targeting()
 	command_targeting_changed.emit("")
 
@@ -776,6 +782,9 @@ func _on_terrain_targeted(position):
 		command_targeting_changed.emit("")
 		_execute_targeted_ground_force_attack(position)
 		return
+	if _is_repair_targeting or _is_sell_targeting:
+		cancel_command_targeting()
+		return
 	_try_navigating_selected_units_towards_position(position)
 	_try_setting_rally_points(position)
 
@@ -791,6 +800,13 @@ func _on_unit_targeted(unit, target_position: Vector3):
 		var skill_targetability = unit.find_child("Targetability")
 		if skill_targetability != null:
 			skill_targetability.animate()
+		return
+	if _is_repair_targeting or _is_sell_targeting:
+		var mode := "Repair" if _is_repair_targeting else "Sell"
+		_is_repair_targeting = false
+		_is_sell_targeting = false
+		command_targeting_changed.emit("")
+		_apply_structure_target_mode(unit, mode)
 		return
 	if _is_force_move_targeting:
 		_reject_ground_only_entity_target("ForceMove")
@@ -825,6 +841,62 @@ func _on_unit_targeted(unit, target_position: Vector3):
 		var targetability = unit.find_child("Targetability")
 		if targetability != null:
 			targetability.animate()
+
+
+## 进入维修指定模式：下一次左键点击己方建筑切换其维修状态（再点按钮/右键取消）。
+func begin_repair_targeting():
+	if _is_repair_targeting:
+		cancel_command_targeting()
+		return
+	_is_sell_targeting = false
+	_is_force_move_targeting = false
+	_is_force_attack_targeting = false
+	_is_tactical_withdraw_targeting = false
+	_is_ground_attack_move_targeting = false
+	_clear_skill_targeting()
+	_is_repair_targeting = true
+	command_targeting_changed.emit("Repair")
+
+
+func is_repair_targeting() -> bool:
+	return _is_repair_targeting
+
+
+## 进入出售指定模式：下一次左键点击己方建筑出售它（右键取消）。
+func begin_sell_targeting():
+	if _is_sell_targeting:
+		cancel_command_targeting()
+		return
+	_is_repair_targeting = false
+	_is_force_move_targeting = false
+	_is_force_attack_targeting = false
+	_is_tactical_withdraw_targeting = false
+	_is_ground_attack_move_targeting = false
+	_clear_skill_targeting()
+	_is_sell_targeting = true
+	command_targeting_changed.emit("Sell")
+
+
+func is_sell_targeting() -> bool:
+	return _is_sell_targeting
+
+
+## 维修/出售模式下的建筑点击结算。
+func _apply_structure_target_mode(unit, mode: String):
+	var ok: bool = (
+		is_instance_valid(unit)
+		and unit.is_in_group("controlled_units")
+		and unit.has_method("sell")
+	)
+	if not ok:
+		_emit_command_feedback(mode, 0, 1)
+		return
+	if mode == "Repair":
+		unit.set_repairing(not unit.is_repairing())
+		_emit_command_feedback("Repair", 1, 0)
+	else:
+		unit.sell()
+		_emit_command_feedback("Sell", 1, 0)
 
 
 ## 运输车登车令：把当前选中的己方地面士兵标记为"前往该车登车"。
