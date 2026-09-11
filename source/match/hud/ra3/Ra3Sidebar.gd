@@ -94,6 +94,7 @@ var _command_slot: VBoxContainer = null
 var _funds_label_a: Label = null
 var _repair_button: Button = null
 var _sell_button: Button = null
+var _unload_button: Button = null
 var _status_label: Label = null
 
 
@@ -226,6 +227,14 @@ func _build_ui():
 	_style_button(_sell_button)
 	_sell_button.pressed.connect(_on_sell_pressed)
 	mode_row.add_child(_sell_button)
+	_unload_button = Button.new()
+	_unload_button.text = "卸货"
+	_unload_button.custom_minimum_size = Vector2(0, 26)
+	_unload_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_unload_button.add_theme_font_size_override("font_size", 13)
+	_style_button(_unload_button)
+	_unload_button.pressed.connect(_on_unload_pressed)
+	mode_row.add_child(_unload_button)
 
 	vbox.add_child(HSeparator.new())
 
@@ -545,6 +554,19 @@ func _on_repair_pressed():
 	for structure in structures:
 		structure.set_repairing(not structure.is_repairing())
 	_set_status("维修中：%s 座建筑（再点一次停止）" % structures.size())
+
+
+## 卸货按钮：选中载有士兵的运输车后点击，乘客散开下车。
+func _on_unload_pressed():
+	var unloaded := 0
+	for unit in get_tree().get_nodes_in_group("controlled_units"):
+		if not is_instance_valid(unit) or not unit.is_in_group("selected_units"):
+			continue
+		var cargo = unit.find_child("CargoHold", true, false)
+		if cargo != null and cargo.get_passenger_count() > 0:
+			cargo.unload_all()
+			unloaded += 1
+	_set_status("已卸货 %s 台运输车" % unloaded if unloaded > 0 else "卸货：请先选中载有士兵的运输车")
 
 
 func _on_sell_pressed():

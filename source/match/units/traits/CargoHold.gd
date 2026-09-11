@@ -1,18 +1,20 @@
 extends Node
 
-## 运输货舱（红警3 式运输单位，2026-09-11）：
-## 空闲时自动装载 1.4 米内已停稳的己方地面步兵（装满为止）；
-## 运输单位抵达目的地回到空闲态后自动卸载；运输单位被毁则乘客同毁。
-## 装载期间乘客隐藏/无敌/锁动作；卸载恢复并散开落位。
+## 运输货舱（红警3 式，2026-09-11 用户指定交互）：
+## 选中士兵右键运输车 → 步兵标记"登车"并走向运输车，进入 3 米内自动上车；
+## 选中运输车点侧栏"卸货"按钮 → 乘客散开下车；运输车被毁则乘客殉职。
+## 不做自动装载：未标记登车的步兵靠近也不会上车。
 
-const LOAD_RADIUS := 2.0
+const LOAD_RADIUS := 3.0
 const UNLOAD_SPREAD := 1.2
-const WAITING_FOR_TARGETS_SCRIPT := "res://source/match/units/actions/WaitingForTargets.gd"
+const BOARDING_META := "boarding_transport"
 
-@export var capacity := 4
+@export var capacity := 10
 
 var _transport: Node3D = null
 var _passengers: Array = []
+var _board_anchor := Vector3.ZERO
+var _has_board_anchor := false
 
 
 func _ready():
@@ -22,24 +24,28 @@ func _ready():
 func _process(_delta):
 	if _transport == null or not is_instance_valid(_transport):
 		return
-	if OS.has_environment("CARGO_DEBUG") and Engine.get_process_frames() % 60 == 0:
-		print("[CARGO] t=%s idle=%s pax=%d in_tree=%s tree=%s" % [
-			_transport.name, _transport_is_idle(), _passengers.size(),
-			_transport.is_inside_tree(), get_tree() != null])
-	if _transport_is_idle():
-		if not _passengers.is_empty():
+	# 卸载：运输车驶离上车位置 3 米以外并停下（空闲态）时，视为抵达目的地卸货
+	if _has_board_anchor and not _passengers.is_empty() and _transport_is_idle():
+		if _transport.global_position.distance_to(_board_anchor) > 3.0:
 			unload_all()
 			return
-		if _passengers.size() < capacity:
-			for unit in get_tree().get_nodes_in_group("controlled_units"):
-				if _passengers.size() >= capacity:
-					break
-				if not is_instance_valid(unit) or unit in _passengers:
-					continue
-				if _is_loadable_infantry(unit) and _transport.global_position.distance_to(
-					unit.global_position
-				) <= LOAD_RADIUS:
-					load_unit(unit)
+	# 接应已标记登车的步兵：进入 3 米内即装载
+	if _passengers.size() >= capacity:
+		return
+	for unit in get_tree().get_nodes_in_group("controlled_units"):
+		if _passengers.size() >= capacity:
+			break
+		if not is_instance_valid(unit) or unit.get_meta(BOARDING_META, null) != _transport:
+			continue
+		if not _is_loadable_infantry(unit):
+			continue
+		if _transport.global_position.distance_to(unit.global_position) <= LOAD_RADIUS:
+			load_unit(unit)
+
+
+## 右键下登车令：标记士兵"正在前往该车登车"（由 UnitActionsController 调用）。
+func mark_boarding(unit):
+	unit.set_meta(BOARDING_META, _transport)
 
 
 func load_unit(unit):
@@ -49,16 +55,29 @@ func load_unit(unit):
 		unit.action.queue_free()
 	unit.action = null
 	unit._action_locked = true
-	unit.visible = false
+	# 不能用 unit.visible 隐藏：迷雾的 UnitVisibilityHandler 每帧会改写 visible。
+	# 改为把乘客沉到地图下方并停用其处理，彻底脱离画面与战斗。
+	unit.global_position = _transport.global_position + Vector3(0, -30, 0)
+	unit.process_mode = Node.PROCESS_MODE_DISABLED
+	if unit.has_meta(BOARDING_META):
+		unit.remove_meta(BOARDING_META)
+	# 首名乘客上车时记录装载锚点（卸货判定基准）
+	if _passengers.is_empty():
+		_board_anchor = _transport.global_position
+		_has_board_anchor = true
 	for area in _collect_areas(unit):
 		area.set_deferred("collision_layer", 0)
 	var selection = unit.find_child("Selection", true, false)
 	if selection != null and selection.has_method("deselect"):
 		selection.deselect()
 	_passengers.append(unit)
+	if _passengers.size() == 1:
+		_board_anchor = _transport.global_position
+		_has_board_anchor = true
 
 
 func unload_all():
+	_has_board_anchor = false
 	var passengers := _passengers.duplicate()
 	_passengers.clear()
 	for i in range(passengers.size()):
@@ -66,10 +85,10 @@ func unload_all():
 		if not is_instance_valid(unit):
 			continue
 		var offset = Vector3(sin(i * 1.3) * UNLOAD_SPREAD, 0, cos(i * 1.3) * UNLOAD_SPREAD)
-		# 空中运输机卸载时保持乘客原地面高度，避免把步兵空投到飞行高度
-		var ground_point = Vector3(_transport.global_position.x, unit.global_position.y, _transport.global_position.z)
+		# 保持乘客原地面高度（避免空中运输卸载时把步兵放到飞行高度）
+		var ground_point = Vector3(_transport.global_position.x, 0.0, _transport.global_position.z)
 		unit.global_position = ground_point + offset
-		unit.visible = true
+		unit.process_mode = Node.PROCESS_MODE_INHERIT
 		for area in _collect_areas(unit):
 			area.set_deferred("collision_layer", 2)
 		unit._action_locked = false
@@ -95,15 +114,12 @@ func _is_loadable_infantry(unit) -> bool:
 		return false
 	if unit.get("_action_locked") == true:
 		return false
-	var action = unit.action
-	if action != null and is_instance_valid(action) and not _is_waiting_action(action):
-		return false  # 行进/攻击中的单位不装载，等它停下
 	return true
 
 
 func _is_waiting_action(action) -> bool:
 	var script = action.get_script()
-	return script != null and str(script.resource_path) == WAITING_FOR_TARGETS_SCRIPT
+	return script != null and str(script.resource_path).ends_with("WaitingForTargets.gd")
 
 
 func _collect_areas(unit: Node) -> Array:
@@ -117,10 +133,11 @@ func _collect_areas(unit: Node) -> Array:
 
 
 func _exit_tree():
-	# 运输单位被毁：乘客随车殉职（先恢复可见以播放死亡表现）
+	# 运输车被毁：乘客随车殉职（先恢复可见以播放死亡表现）
 	for unit in _passengers:
 		if is_instance_valid(unit):
-			unit.visible = true
+			unit.process_mode = Node.PROCESS_MODE_INHERIT
+			unit.global_position = _transport.global_position + Vector3(0, -30, 0)
 			for area in _collect_areas(unit):
 				area.set_deferred("collision_layer", 2)
 			unit._action_locked = false

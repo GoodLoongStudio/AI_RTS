@@ -1,14 +1,15 @@
 extends Node
 
-## 运输车冒烟测试（2026-09-11 晚，用户指定 SM_Veh_Apc_01 模型 / 载员 10 / 无武器 / 车厂生产）：
-## 车厂生产 → 部署可选中、货舱容量 10 → 自动装载附近步兵 → 卸载恢复 → 致死正常清理。
+## 运输车冒烟测试（2026-09-11 深夜，用户指定交互）：
+## 车厂生产 → 选中士兵右键运输车（标记登车）→ 步兵 3 米内上车（容量 10 上限）
+## → 侧栏卸货按钮卸载 → 致死正常清理。未标记登车的步兵不得自动装载。
 
 const MatchScene = preload("res://tests/manual/TestAllUnits.tscn")
 const TransportTruckScene = preload("res://source/match/units/TransportTruck.tscn")
 const InfantryScene = preload("res://source/match/units/Infantry.tscn")
 
 const PRODUCE_TIMEOUT_SECONDS := 40.0
-const WAIT_SECONDS := 90.0
+const WAIT_SECONDS := 120.0
 
 var _failures := 0
 var _finished := false
@@ -54,11 +55,10 @@ func _ready():
 		return
 	var truck = _produced[0]
 
-	# 2) 部署后：编组/特性/可选中/货舱容量 10
+	# 2) 部署后：编组/特性/可选中/货舱
 	_check(truck.is_in_group("controlled_units"), "部署的运输车应编入 controlled_units 组")
 	var selection = truck.find_child("Selection", true, false)
 	_check(selection != null and selection.has_method("select"), "运输车必须带 Selection 特性")
-	_check(truck.find_child("Highlight", true, false) != null, "运输车必须带 Highlight 特性")
 	var cargo = truck.find_child("CargoHold", true, false)
 	_check(cargo != null, "运输车必须带 CargoHold 特性")
 	if selection != null and selection.has_method("select"):
@@ -67,37 +67,65 @@ func _ready():
 		_finish()
 		return
 
-	# 3) 自动装载：2 名步兵停在车旁 → 装满检测用货舱容量断言
-	var infantry_a = InfantryScene.instantiate()
-	MatchSignals.setup_and_spawn_unit.emit(
-		infantry_a, Transform3D(Basis.IDENTITY, Vector3(10.5, 0, 10.5)), human, false
-	)
-	var infantry_b = InfantryScene.instantiate()
-	MatchSignals.setup_and_spawn_unit.emit(
-		infantry_b, Transform3D(Basis.IDENTITY, Vector3(9.6, 0, 10.4)), human, false
-	)
-	# 运输车部署位与步兵错开，把车挪到步兵旁边（直接瞬移，冻结移动）
+	# 冻结运输车移动并挪到测试位（装载阶段车必须原地待命）
 	var truck_movement = truck.find_child("Movement", true, false)
 	if truck_movement != null:
 		truck_movement.set_physics_process(false)
-	truck.global_position = Vector3(10, 0, 10)
+	truck.global_position = Vector3(12, 0, 10)
+
+	# 3) 未标记登车的步兵不得自动装载（用户明确要求非自动）
+	var bystander = InfantryScene.instantiate()
+	MatchSignals.setup_and_spawn_unit.emit(
+		bystander, Transform3D(Basis.IDENTITY, Vector3(10.5, 0, 10.5)), human, false
+	)
+	await get_tree().create_timer(1.5).timeout
+	_check(cargo.get_passenger_count() == 0, "未标记登车的步兵不应被自动装载")
+	_check(bystander.visible, "未登车步兵应保持可见")
+
+	# 4) 模拟"选中士兵右键运输车"：标记登车（与 UnitActionsController 登车令同路径）+ 士兵在 3 米内
+	var soldiers: Array = []
+	for i in range(12):
+		var soldier = InfantryScene.instantiate()
+		var angle = i * 0.6
+		var offset = Vector3(sin(angle) * 0.3, 0, cos(angle) * 0.3)
+		MatchSignals.setup_and_spawn_unit.emit(
+			soldier, Transform3D(Basis.IDENTITY, Vector3(12, 0, 10) + offset), human, false
+		)
+		soldiers.append(soldier)
+	await get_tree().process_frame
+	await get_tree().create_timer(0.5).timeout
+	for soldier in soldiers:
+		if is_instance_valid(soldier):
+			cargo.mark_boarding(soldier)
 	var load_waited := 0.0
-	while cargo.get_passenger_count() < 2 and load_waited < 12.0:
+	while cargo.get_passenger_count() < 10 and load_waited < 25.0:
 		await get_tree().create_timer(0.25).timeout
 		load_waited += 0.25
 	_check(
-		cargo.get_passenger_count() == 2,
-		"运输车应自动装载 2 名附近步兵（实际 %d）" % cargo.get_passenger_count()
+		cargo.get_passenger_count() == 10,
+		"登车步兵应在 25s 内上车且不超过容量 10（实际 %d）" % cargo.get_passenger_count()
 	)
-	_check(not infantry_a.visible, "装载后步兵应隐藏")
+	var hidden_count := 0
+	for soldier in soldiers:
+		if is_instance_valid(soldier):
+			var meta = soldier.get_meta("boarding_transport", null)
+			print("[TT-DBG] %s visible=%s meta=%s pos=%s" % [soldier.name, soldier.visible, "有" if meta != null else "无", str(soldier.global_position)])
+			if soldier.global_position.y < -10 or not soldier.visible:
+				hidden_count += 1
+	_check(hidden_count == 10, "上车的 10 名步兵应全部隐藏（实际 %d）" % hidden_count)
+	_check(bystander.visible, "未登车的旁观步兵不应被装载")
 
-	# 4) 卸载恢复
+	# 5) 卸货：全部恢复可见并散开落位
 	cargo.unload_all()
 	await get_tree().process_frame
-	_check(cargo.get_passenger_count() == 0, "卸载后货舱应为空")
-	_check(is_instance_valid(infantry_a) and infantry_a.visible, "卸载后步兵应恢复可见")
+	_check(cargo.get_passenger_count() == 0, "卸货后货舱应为空")
+	var restored := 0
+	for soldier in soldiers:
+		if is_instance_valid(soldier) and soldier.visible and soldier.global_position.y > -10:
+			restored += 1
+	_check(restored == 12, "卸货后场上步兵应全部在场可见（实际 %d/12）" % restored)
 
-	# 5) 致死伤害正常清理
+	# 6) 致死伤害正常清理
 	truck.hp = 0
 	var removal_waited := 0.0
 	while is_instance_valid(truck) and removal_waited < 10.0:

@@ -814,10 +814,34 @@ func _on_unit_targeted(unit, target_position: Vector3):
 		if attack_move_targetability != null:
 			attack_move_targetability.animate()
 		return
+	# 运输车装载（红警3 式）：选中士兵右键己方运输车 → 标记登车并走向运输车，进入 3 米内自动上车
+	if _try_board_selected_into_transport(unit):
+		if _navigate_selected_units_towards_unit(unit, target_position):
+			var boarding_targetability = unit.find_child("Targetability")
+			if boarding_targetability != null:
+				boarding_targetability.animate()
+		return
 	if _navigate_selected_units_towards_unit(unit, target_position):
 		var targetability = unit.find_child("Targetability")
 		if targetability != null:
 			targetability.animate()
+
+
+## 运输车登车令：把当前选中的己方地面士兵标记为"前往该车登车"。
+## 返回是否有士兵被标记（无标记则保持原跟随行为）。
+func _try_board_selected_into_transport(transport) -> bool:
+	var cargo = transport.find_child("CargoHold", true, false)
+	if cargo == null or not transport.is_in_group("controlled_units"):
+		return false
+	var marked := false
+	for unit in _get_selected_controlled_units():
+		if unit == transport or not is_instance_valid(unit):
+			continue
+		if unit.get("movement_domain") != Constants.Match.Navigation.Domain.TERRAIN:
+			continue
+		cargo.mark_boarding(unit)
+		marked = true
+	return marked
 
 
 func _on_unit_spawned(_unit):
