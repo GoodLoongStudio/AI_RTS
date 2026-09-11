@@ -60,29 +60,40 @@ func _ready():
 	sub.size = Vector2i(128, 128)
 	sub.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	sub.transparent_bg = true
-	sub.own_world_3d = false
+	sub.own_world_3d = true
 	match_instance.add_child(sub)
+	var light = DirectionalLight3D.new()
+	light.rotation_degrees = Vector3(-55, -30, 0)
+	light.light_energy = 1.4
+	sub.add_child(light)
 	var camera = Camera3D.new()
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
 	camera.size = 3.2
 	sub.add_child(camera)
 	for entry in roster:
-		var spot = _find_free_spot()
 		var unit = entry[1].instantiate()
 		MatchSignals.setup_and_spawn_unit.emit(
-			unit, Transform3D(Basis.IDENTITY, spot), human, false
+			unit, Transform3D(Basis.IDENTITY, Vector3(12, 0, 12)), human, false
 		)
 		await get_tree().process_frame
 		await get_tree().create_timer(0.4).timeout
 		if not is_instance_valid(unit):
 			continue
+		var geometry = unit.find_child("Geometry", true, false)
+		if geometry == null:
+			unit.queue_free()
+			continue
+		# 只把网格拷进隔离世界渲染，规避地图建筑/导航漂移干扰
+		var copy = geometry.duplicate()
+		sub.add_child(copy)
 		camera.look_at_from_position(
-			Vector3(spot.x, 2.2, spot.z + 1.8), Vector3(spot.x, 0.5, spot.z), Vector3.UP
+			Vector3(0.0, 2.2, 1.8), Vector3(0.0, 0.4, 0.0), Vector3.UP
 		)
 		await RenderingServer.frame_post_draw
 		var image = sub.get_texture().get_image()
 		image.save_png("res://source/match/hud/ra3/icons/%s.png" % entry[0])
 		print("[ICON] saved ", entry[0])
+		copy.queue_free()
 		unit.queue_free()
 		await get_tree().process_frame
 		await get_tree().create_timer(0.2).timeout
@@ -100,8 +111,8 @@ func _on_unit_production_finished(unit, producer):
 ## 在地图上找一个离所有单位/建筑至少 4 米的空位，保证图标里没有杂物。
 func _find_free_spot() -> Vector3:
 	var all_units = get_tree().get_nodes_in_group("units")
-	for z in [20.0, 18.0, 16.0, 14.0, 12.0, 10.0, 8.0, 22.0, 24.0, 26.0]:
-		for x in [2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0, 20.0, 22.0, 24.0]:
+	for z in [12.0, 14.0, 10.0, 8.0]:
+		for x in [4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0, 20.0, 22.0]:
 			var candidate = Vector3(x, 0, z)
 			var free := true
 			for u in all_units:
@@ -110,7 +121,7 @@ func _find_free_spot() -> Vector3:
 					break
 			if free:
 				return candidate
-	return Vector3(0, 0, 20)
+	return Vector3(12, 0, 12)
 
 
 func _check(condition: bool, message: String):
