@@ -59,6 +59,10 @@
   {
    "unitTypeId": "apc",
    "scenePath": "res://source/match/units/APC.tscn"
+  },
+  {
+   "unitTypeId": "heavy_tank",
+   "scenePath": "res://source/match/units/HeavyTank.tscn"
   }
  ],
  "weaponAssets": [

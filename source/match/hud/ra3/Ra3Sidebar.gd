@@ -13,6 +13,7 @@ const AntiAirTurretUnit := "res://source/match/units/AntiAirTurret.tscn"
 const WorkerUnit := "res://source/match/units/Worker.tscn"
 const TankUnit := "res://source/match/units/Tank.tscn"
 const APCUnit := "res://source/match/units/APC.tscn"
+const HeavyTankUnit := "res://source/match/units/HeavyTank.tscn"
 const TransportTruckUnit := "res://source/match/units/TransportTruck.tscn"
 const HelicopterUnit := "res://source/match/units/Helicopter.tscn"
 const DroneUnit := "res://source/match/units/Drone.tscn"
@@ -48,6 +49,7 @@ const TABS = [
 				"producer": CommandCenterUnit, "producer_caption": "主基地"},
 			{"scene": TankUnit, "caption": "坦克", "icon": "tank"},
 			{"scene": APCUnit, "caption": "装甲车", "icon": "apc"},
+			{"scene": HeavyTankUnit, "caption": "重型坦克", "icon": "heavy_tank"},
 			{"scene": TransportTruckUnit, "caption": "运输车", "icon": "transport_truck"},
 		],
 	},
