@@ -87,7 +87,7 @@ func _ready():
 		var copy = geometry.duplicate()
 		sub.add_child(copy)
 		camera.look_at_from_position(
-			Vector3(0.0, 2.2, 1.8), Vector3(0.0, 0.4, 0.0), Vector3.UP
+			Vector3(0.0, 1.1, 2.6), Vector3(0.0, 0.4, 0.0), Vector3.UP
 		)
 		await RenderingServer.frame_post_draw
 		var image = sub.get_texture().get_image()
