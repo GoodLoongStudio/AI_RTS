@@ -14,6 +14,11 @@ const WorkerUnit := "res://source/match/units/Worker.tscn"
 const TankUnit := "res://source/match/units/Tank.tscn"
 const APCUnit := "res://source/match/units/APC.tscn"
 const RocketArtilleryUnit := "res://source/match/units/RocketArtillery.tscn"
+const HeavyTankUnit := "res://source/match/units/HeavyTank.tscn"
+const HoverBikeUnit := "res://source/match/units/HoverBike.tscn"
+const ArmyTruckUnit := "res://source/match/units/ArmyTruck.tscn"
+const AmbulanceUnit := "res://source/match/units/Ambulance.tscn"
+const DropShipUnit := "res://source/match/units/DropShip.tscn"
 const HelicopterUnit := "res://source/match/units/Helicopter.tscn"
 const DroneUnit := "res://source/match/units/Drone.tscn"
 const SoldierUnit := "res://source/match/units/Infantry.tscn"
@@ -49,6 +54,11 @@ const TABS = [
 			{"scene": TankUnit, "caption": "坦克", "icon": "tank"},
 			{"scene": APCUnit, "caption": "装甲车", "icon": "apc"},
 			{"scene": RocketArtilleryUnit, "caption": "火箭炮车", "icon": "rocket"},
+			{"scene": HeavyTankUnit, "caption": "重型坦克", "icon": "heavy_tank"},
+			{"scene": HoverBikeUnit, "caption": "悬浮摩托", "icon": "hover_bike"},
+			{"scene": ArmyTruckUnit, "caption": "运输卡车", "icon": "army_truck"},
+			{"scene": AmbulanceUnit, "caption": "救护车", "icon": "ambulance"},
+			{"scene": DropShipUnit, "caption": "运输机", "icon": "drop_ship"},
 		],
 	},
 	{

@@ -2,24 +2,20 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cj8w36e1v5vex"
-path.s3tc="res://.godot/imported/Infantry_native_v3_PolygonScifiWorlds_Texture_01_A.png-a8952b9fae781c0c8336dc974b6c8031.s3tc.ctex"
+uid="uid://dqwfd3fc77syr"
+path="res://.godot/imported/army_truck.png-b70100bee4c3174f972faecd9bfb86e6.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
-"vram_texture": true
-}
-generator_parameters={
-"md5": "748e80b0c3e5d748085bdd3753dfdb05"
+"vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/models/polygon-scifi/Infantry_native_v3_PolygonScifiWorlds_Texture_01_A.png"
-dest_files=["res://.godot/imported/Infantry_native_v3_PolygonScifiWorlds_Texture_01_A.png-a8952b9fae781c0c8336dc974b6c8031.s3tc.ctex"]
+source_file="res://source/match/hud/ra3/icons/army_truck.png"
+dest_files=["res://.godot/imported/army_truck.png-b70100bee4c3174f972faecd9bfb86e6.ctex"]
 
 [params]
 
-compress/mode=2
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -27,7 +23,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=true
+mipmaps/generate=false
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""
@@ -41,4 +37,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=0
+detect_3d/compress_to=1
