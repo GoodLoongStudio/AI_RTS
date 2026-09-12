@@ -1,0 +1,48 @@
+{
+ "file": "末日_463\\Revolver_02.glb",
+ "pack": "463",
+ "pack_name": "幸存者与僵尸 463",
+ "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Revolver_02.fbx",
+ "source_sha256": "8d142856264fda0bf653cd313156a2cc84ada1e2d2bc0fecc142b932cfda61ec",
+ "texture": "PolygonApocalypse_Texture_01_A.png",
+ "kind_hint": "gun",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.0691,
+  1.1055,
+  0.2909
+ ],
+ "dims_m": [
+  0.0691,
+  1.1055,
+  0.2909
+ ],
+ "bbox_min": [
+  -0.0277,
+  -0.7959,
+  -0.1305
+ ],
+ "bbox_max": [
+  0.0414,
+  0.3096,
+  0.1605
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 2459,
+ "triangles": 4814,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}

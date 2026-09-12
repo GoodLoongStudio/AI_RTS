@@ -1,0 +1,48 @@
+{
+ "file": "怪物_4017\\DarkElf_01.glb",
+ "pack": "4017",
+ "pack_name": "幻想怪物 4017",
+ "source_fbx": "4017_幻想怪物\\PolygonFantasyRivals\\Models\\SM_Wep_DarkElf_01.fbx",
+ "source_sha256": "748e52c4d9a69a73cfc992480b2423cdaab6bb24df39e9ed3f3247f39cd38c58",
+ "texture": "FantasyRivals_Texture_01_A.png",
+ "kind_hint": "other",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.0282,
+  0.1483,
+  1.3207
+ ],
+ "dims_m": [
+  0.0282,
+  0.1483,
+  1.3207
+ ],
+ "bbox_min": [
+  -0.0141,
+  -0.0739,
+  -0.213
+ ],
+ "bbox_max": [
+  0.0141,
+  0.0744,
+  1.1077
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 123,
+ "triangles": 242,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}

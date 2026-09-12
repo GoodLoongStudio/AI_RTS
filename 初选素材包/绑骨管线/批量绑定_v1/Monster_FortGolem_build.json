@@ -1,0 +1,58 @@
+{
+  "Idle-loop": {
+    "duration": 1.9666666666666666,
+    "samples": 60,
+    "source": "A::Idle",
+    "ground_offset": 0.029727372616529465,
+    "pose_layer": "right hand melee carry",
+    "loop": true
+  },
+  "Run-loop": {
+    "duration": 0.7,
+    "samples": 22,
+    "source": "A::Run",
+    "ground_offset": 0.05097934538125992,
+    "pose_layer": "right hand melee carry",
+    "loop": true
+  },
+  "Fire": {
+    "duration": 1.5333333333333334,
+    "samples": 47,
+    "source": "Sword_Attack",
+    "ground_offset": 0.042387570530176166,
+    "pose_layer": "UAL Sword_Attack melee swing",
+    "loop": false
+  },
+  "Hit": {
+    "duration": 0.3,
+    "samples": 10,
+    "source": "A::Idle",
+    "ground_offset": 0.02959547871351242,
+    "pose_layer": "fast bullet impact and recovery",
+    "loop": false
+  },
+  "HitHeavy": {
+    "duration": 1.8,
+    "samples": 55,
+    "source": "Death01",
+    "ground_offset": 0.3265649297237396,
+    "pose_layer": "blast launch, airborne fall, landing and terminal dead hold",
+    "loop": false
+  },
+  "Crawl-loop": {
+    "duration": 2.1666666666666665,
+    "samples": 66,
+    "source": "Crawl_Fwd",
+    "ground_offset": 0.31121428990364075,
+    "pose_layer": "right hand melee carry",
+    "loop": true
+  },
+  "Death": {
+    "duration": 2.4,
+    "samples": 73,
+    "source": "Death01",
+    "ground_offset": 0.31649216198921204,
+    "pose_layer": "right hand melee carry",
+    "loop": false
+  }
+}

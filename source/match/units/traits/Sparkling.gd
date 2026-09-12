@@ -22,3 +22,8 @@ func disable():
 		return
 	_animation.queue_free()
 	_animation = null
+
+
+## 表现是否开启中（供表现同步冒烟测试断言）。
+func is_active() -> bool:
+	return _animation != null

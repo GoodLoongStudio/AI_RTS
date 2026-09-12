@@ -15,33 +15,17 @@ const MAPS = {
 		"players": 8,
 		"size": Vector2i(100, 100),
 	},
-	# RTS_Map_Tool G4 生成的 4 人 Seed 地图（seed 驱动、可复现，见 RTS_Map_Tool/docs/plan）
-	"res://source/match/maps/generated/seed_16.tscn":
-	{
-		"name": "Generated Seed 16",
-		"players": 4,
-		"size": Vector2i(256, 256),
-	},
-	"res://source/match/maps/generated/seed_35.tscn":
-	{
-		"name": "Generated Seed 35",
-		"players": 4,
-		"size": Vector2i(256, 256),
-	},
-	"res://source/match/maps/generated/seed_61.tscn":
-	{
-		"name": "Generated Seed 61",
-		"players": 4,
-		"size": Vector2i(256, 256),
-	},
 }
 
-# RTS_Map_Tool 工作台生成的地图按唯一 map_id 隔离登记（2026-09-06）：
-# 每个 source/match/maps/generated/<map_id>/map_index.json 声明一张地图，
-# 工作台安装地图包时写入，无需逐张手改本文件；下载包在任意同版本 AI_RTS
-# 中解包后同样被自动发现。上方三个旧平面 seed 地图保留不变。
+# 自定义对局地图清单**默认只保留 4 人与 8 人两张**（用户要求，2026-09-11）。
+# 之前的清单混入 3 张旧平面 seed 地图 + 13 张工作台生成的 4 人地图，共 18 项，
+# 选择成本高且对实战测试没有价值。
+# 采用**开关**而不是删除文件：地图资源与工作台的 map_index.json 原样保留，
+# 需要时把 DISCOVER_GENERATED_MAPS 改成 true 即可恢复自动发现。
 # 注意：静态初始化依赖 DirAccess 运行时读文件，不是常量表达式；
 # Godot 4 的 const 只接受常量表达式，必须用 static var（访问方式不变）。
+const DISCOVER_GENERATED_MAPS := false
+
 static var GENERATED_MAPS := _load_generated_maps()
 static var ALL_MAPS := _merged_maps()
 
@@ -54,6 +38,8 @@ static func _merged_maps() -> Dictionary:
 
 static func _load_generated_maps() -> Dictionary:
 	var result := {}
+	if not DISCOVER_GENERATED_MAPS:
+		return result
 	var base := "res://source/match/maps/generated"
 	var dir := DirAccess.open(base)
 	if dir == null:
@@ -86,6 +72,14 @@ class Navigation:
 	const DOMAIN_TO_GROUP_MAPPING = {
 		Domain.AIR: "air_navigation_input",
 		Domain.TERRAIN: "terrain_navigation_input",
+	}
+	## 静态障碍（建筑/资源）的**持久**注册表。
+	## DOMAIN_TO_GROUP_MAPPING 只是"下次烘焙的输入清单"，TerrainNavigation.bake()
+	## 每次烘焙后都会清空它，因此不能当障碍清单用。移动侧需要按障碍半径
+	## 校验落点是否落在避让圈内，故单独维护一份不会被清空的注册表。
+	const DOMAIN_TO_OBSTACLE_GROUP_MAPPING = {
+		Domain.AIR: "navigation_obstacles_air",
+		Domain.TERRAIN: "navigation_obstacles_terrain",
 	}
 
 

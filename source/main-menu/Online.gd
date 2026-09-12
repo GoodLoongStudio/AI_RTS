@@ -17,6 +17,7 @@ const SLOT_AI := 2
 @onready var _slots_box: VBoxContainer = $CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MainRow/SlotsBox
 
 var _slot_rows: Array = []
+var _last_connection_state := false
 
 
 func _ready() -> void:
@@ -28,6 +29,11 @@ func _ready() -> void:
 	NetSession.lobby_updated.connect(_on_lobby_updated)
 	_build_slot_rows()
 	_refresh_connection_ui()
+	# 正式联机入口默认直接连接云端局服，避免玩家误进入本机 listen server。
+	# 自动化仍可用 --autojoin 覆盖为连接后立即开局；本机房仅显式调试参数开放。
+	if not NetSession.is_networked() and not OS.get_cmdline_user_args().has("--allow-local-host") \
+			and not OS.get_cmdline_user_args().has("--autolobby"):
+		call_deferred("_on_join_button_pressed")
 	# 调试钩子：-- --autolobby 直接本机开房，供自动化截图与自测。
 	if "--autolobby" in OS.get_cmdline_user_args():
 		NetSession.host(_port())
@@ -49,6 +55,15 @@ func _ready() -> void:
 	# 导致顶部/底部被裁。clamp 到 viewport - margin 让 panel 永远在屏内。
 	_clamp_to_viewport()
 	get_viewport().size_changed.connect(_clamp_to_viewport)
+
+
+func _process(_delta: float) -> void:
+	# ENet 状态可能在信号回调与场景切换之间变化；持续校正一次即可避免
+	# 出现“已连接”但仍显示“加入局服”的不可点击假状态。
+	var connected := NetSession.is_networked()
+	if connected != _last_connection_state:
+		_last_connection_state = connected
+		_refresh_connection_ui()
 
 
 func _clamp_to_viewport() -> void:
@@ -159,6 +174,7 @@ func _on_slot_toggle_pressed(slot: int) -> void:
 
 func _refresh_connection_ui() -> void:
 	var connected := NetSession.is_networked()
+	_last_connection_state = connected
 	var is_host := NetSession.is_room_owner()
 	# 两段式流程（2026-09-05）：未连接只给「加入局服」；
 	# 进房后才出现 地图/槽位/准备，开局按钮仅房主可见。
@@ -167,7 +183,8 @@ func _refresh_connection_ui() -> void:
 		"CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/JoinRow/LocalHostButton"
 	) as Button
 	if local_host_button != null:
-		local_host_button.visible = not connected
+		# 本机 listen server 不属于 Hermes 云端托管链路；仅显式调试时显示。
+		local_host_button.visible = not connected and OS.get_cmdline_user_args().has("--allow-local-host")
 	_host_edit.get_parent().visible = not connected
 	_ready_button.visible = connected
 	var solo_btn := get_node_or_null("CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ReadyRow/SoloButton") as Button
@@ -185,9 +202,15 @@ func _on_name_edit_text_changed(new_text: String) -> void:
 
 func _on_status_changed(text: String) -> void:
 	_status_label.text = text
+	# 连接状态由 NetSession 异步回调产生；同步刷新大厅控件，
+	# 否则会出现“已连接，请点准备”但仍显示“加入局服”的假死界面。
+	_refresh_connection_ui()
 
 
 func _on_join_button_pressed() -> void:
+	if NetSession.is_networked():
+		_refresh_connection_ui()
+		return
 	# 加入局服 = 只进大厅，绝不自动开局：先清掉任何残留的单人开局意图。
 	NetSession.clear_auto_start_intent()
 	var err := NetSession.join(_host_edit.text.strip_edges(), _port())

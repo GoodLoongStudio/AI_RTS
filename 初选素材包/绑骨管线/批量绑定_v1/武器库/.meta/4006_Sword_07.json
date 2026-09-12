@@ -1,0 +1,48 @@
+{
+ "file": "科幻_4006\\Sword_07.glb",
+ "pack": "4006",
+ "pack_name": "科幻战争 4006",
+ "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Sword_07.fbx",
+ "source_sha256": "be9d40c9d9287b219ee8050ae394a27b321fcc912ec9a4e5075d7e65ca7b24eb",
+ "texture": "PolygonScifiWorlds_Texture_01_A.png",
+ "kind_hint": "melee",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.0791,
+  0.2013,
+  0.9191
+ ],
+ "dims_m": [
+  0.0791,
+  0.2013,
+  0.9191
+ ],
+ "bbox_min": [
+  -0.0396,
+  -0.1006,
+  -0.1248
+ ],
+ "bbox_max": [
+  0.0396,
+  0.1006,
+  0.7943
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 296,
+ "triangles": 564,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}

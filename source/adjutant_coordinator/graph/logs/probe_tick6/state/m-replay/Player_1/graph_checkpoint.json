@@ -1,0 +1,315 @@
+{
+  "checkpoint_version": 1,
+  "saved_tick": 6,
+  "state": {
+    "active_intents": [
+      {
+        "abort_when": [
+          "target_dead"
+        ],
+        "action": "attack_move",
+        "attempts": 1,
+        "based_on_snapshot": 5,
+        "command_id": "m-replay:i-emergency:1",
+        "drop_reason": "",
+        "emergency": true,
+        "expires_tick": 300,
+        "generation": 1,
+        "intent_id": "i-emergency",
+        "issued_tick": 5,
+        "merged_from": [
+          "i-emergency"
+        ],
+        "plan_version": "plan-a:v1",
+        "priority": 5,
+        "progress": {
+          "detail": "等待单位位置数据",
+          "metrics": {},
+          "stall_count": 0,
+          "status": "in_progress",
+          "units": {},
+          "updated_tick": 6
+        },
+        "rationale": "基地受袭回防",
+        "reacquire": false,
+        "state": "active",
+        "target": {
+          "pos": [
+            3.0,
+            4.0
+          ]
+        },
+        "task_id": "t-1",
+        "unit_ids": [
+          "Unit_1"
+        ]
+      },
+      {
+        "abort_when": [],
+        "action": "attack",
+        "attempts": 1,
+        "based_on_snapshot": 6,
+        "command_id": "m-replay:bt-attack-Unit_1-6:1",
+        "drop_reason": "",
+        "emergency": false,
+        "expires_tick": 606,
+        "generation": 1,
+        "intent_id": "bt-attack-Unit_1-6",
+        "issued_tick": 6,
+        "merged_from": [
+          "bt-attack-Unit_1-6"
+        ],
+        "plan_version": "plan-a:v1",
+        "priority": 75,
+        "rationale": "作战单位交火最近的可见敌人",
+        "reacquire": false,
+        "state": "active",
+        "target": {
+          "entity_id": "E_1"
+        },
+        "task_id": "",
+        "unit_ids": [
+          "Unit_1"
+        ]
+      }
+    ],
+    "active_plan": {
+      "abort_when": [
+        "base_under_attack"
+      ],
+      "based_on_snapshot": 0,
+      "match_id": "m-replay",
+      "phase_goal": "巩固基地并压制侦察",
+      "plan_id": "plan-a",
+      "plan_version": 1,
+      "player_id": "Player_1",
+      "rationale": "回放用例",
+      "reserves": {},
+      "rules_version": "hash-replay",
+      "tasks": [
+        {
+          "allowed_actions": [
+            "move",
+            "attack_move",
+            "hold"
+          ],
+          "completion": "守住基地入口",
+          "priority": 1,
+          "target_type": "",
+          "task_id": "t-1",
+          "unit_constraint": "",
+          "units": [
+            "Unit_1"
+          ]
+        }
+      ],
+      "valid_until_tick": 100000
+    },
+    "active_tasks": {
+      "t-1": "running"
+    },
+    "ai_controlled_units": [
+      "Unit_1"
+    ],
+    "candidate_intents": [],
+    "command_receipts": [
+      {
+        "accepted": true,
+        "action": "attack_move",
+        "command_id": "m-replay:i-emergency:1",
+        "intent_id": "i-emergency",
+        "ok": true,
+        "reason": "",
+        "result": {},
+        "status": "Accepted"
+      },
+      {
+        "accepted": true,
+        "action": "attack",
+        "command_id": "m-replay:bt-attack-Unit_1-6:1",
+        "intent_id": "bt-attack-Unit_1-6",
+        "ok": true,
+        "reason": "",
+        "result": {},
+        "status": "Accepted"
+      }
+    ],
+    "control_generation": 1,
+    "decision_log": [
+      {
+        "event_kinds": [],
+        "kind": "event_classified",
+        "route": "strategic",
+        "server_tick": 0
+      },
+      {
+        "kind": "plan_adopted",
+        "plan_id": "plan-a",
+        "plan_version": "plan-a:v1",
+        "reason": "adopted generation=1",
+        "server_tick": 0,
+        "tick": 0
+      },
+      {
+        "kind": "checkpoint_failed",
+        "reason": "stale_checkpoint_refused",
+        "server_tick": 0
+      },
+      {
+        "expired_intents": [],
+        "kind": "observation_ingested",
+        "new_events": 1,
+        "server_tick": 5
+      },
+      {
+        "event_kinds": [
+          "base_under_attack"
+        ],
+        "kind": "event_classified",
+        "route": "emergency_tactical",
+        "server_tick": 5
+      },
+      {
+        "emergency": true,
+        "intent_ids": [
+          "i-emergency"
+        ],
+        "kind": "tactics_proposed",
+        "server_tick": 5
+      },
+      {
+        "accepted": [
+          "i-emergency"
+        ],
+        "clamped": [],
+        "dropped": [],
+        "kind": "intents_arbitrated",
+        "merged": [],
+        "server_tick": 5,
+        "tick": 5
+      },
+      {
+        "kind": "dispatch_done",
+        "receipts": [
+          {
+            "intent_id": "i-emergency",
+            "status": "Accepted"
+          }
+        ],
+        "server_tick": 5
+      },
+      {
+        "kind": "checkpoint_failed",
+        "reason": "stale_checkpoint_refused",
+        "server_tick": 5
+      },
+      {
+        "kind": "task_progress",
+        "server_tick": 6,
+        "updated": 1
+      },
+      {
+        "event_kinds": [],
+        "kind": "event_classified",
+        "route": "wait",
+        "server_tick": 6
+      },
+      {
+        "intents": [
+          "bt-attack-Unit_1-6"
+        ],
+        "kind": "micro_control_added",
+        "server_tick": 6,
+        "tick": 6
+      },
+      {
+        "accepted": [
+          "bt-attack-Unit_1-6"
+        ],
+        "clamped": [
+          "bt-attack-Unit_1-6"
+        ],
+        "dropped": [],
+        "kind": "intents_arbitrated",
+        "merged": [],
+        "server_tick": 6,
+        "tick": 6
+      },
+      {
+        "kind": "dispatch_done",
+        "receipts": [
+          {
+            "intent_id": "bt-attack-Unit_1-6",
+            "status": "Accepted"
+          }
+        ],
+        "server_tick": 6
+      }
+    ],
+    "degraded_reason": "",
+    "last_checkpoint": {
+      "path": "G:\\AIRTS\\AI_RTS\\source\\adjutant_coordinator\\graph\\logs\\probe_tick6\\state\\m-replay\\Player_1\\graph_checkpoint.json",
+      "reason": "stale_checkpoint_refused",
+      "saved": false,
+      "saved_tick": 6
+    },
+    "last_model_error_tick": null,
+    "last_strategy_tick": 0,
+    "last_tactics_tick": 5,
+    "latest_snapshot_id": 6,
+    "match_id": "m-replay",
+    "model_errors": 0,
+    "overrides": [],
+    "paused": false,
+    "pending_events": [],
+    "pending_requests": {},
+    "plan_adopt_generation": 1,
+    "plan_version": "plan-a:v1",
+    "plan_version_history": [],
+    "player_controlled_units": [],
+    "player_id": "Player_1",
+    "released_units": [],
+    "reserves": {
+      "A": 200,
+      "B": 0
+    },
+    "reserves_initialized": true,
+    "reserves_percent": 20,
+    "route": "wait",
+    "rules_version": "hash-replay",
+    "server_tick": 6,
+    "strategy_disabled": false,
+    "task_progress": {
+      "intents": {
+        "i-emergency": {
+          "action": "attack_move",
+          "detail": "等待单位位置数据",
+          "intent_id": "i-emergency",
+          "metrics": {},
+          "status": "in_progress",
+          "task_id": "t-1",
+          "unit_ids": [
+            "Unit_1"
+          ],
+          "updated_tick": 6
+        }
+      },
+      "tasks": {
+        "t-1": {
+          "detail": "1 条意图进行中",
+          "live_intents": [
+            "i-emergency"
+          ],
+          "previous_state": "running",
+          "state": "running",
+          "updated_tick": 6
+        }
+      },
+      "truncated": false,
+      "updated_tick": 6
+    },
+    "unit_generations": {
+      "Unit_1": 1
+    }
+  }
+}

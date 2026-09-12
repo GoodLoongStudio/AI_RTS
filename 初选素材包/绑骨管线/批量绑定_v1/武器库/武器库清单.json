@@ -1,0 +1,7833 @@
+{
+ "generated": "2026-09-09",
+ "source_root": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets",
+ "convention": "单网格无骨架无蒙皮，内嵌图集贴图；游戏已知 6 件原点=握把点，其余原点=源 FBX 轴心；export_yup",
+ "excluded": "Mod_* 改枪配件、Scope_* 瞄准镜、弹壳/弹药（*_Shell、*_Spear、Harpoon_Ammo、Saw_Launcher_Ammo）、纯弹药（Missile、Rocket_Fireworks、Rocket_IED）",
+ "packs": {
+  "4006": {
+   "folder": "科幻_4006",
+   "name": "科幻战争 4006",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png"
+  },
+  "4017": {
+   "folder": "怪物_4017",
+   "name": "幻想怪物 4017",
+   "texture": "FantasyRivals_Texture_01_A.png"
+  },
+  "463": {
+   "folder": "末日_463",
+   "name": "幸存者与僵尸 463",
+   "texture": "PolygonApocalypse_Texture_01_A.png"
+  }
+ },
+ "weapons": {
+  "4006/Alien_01": {
+   "file": "科幻_4006\\Alien_01.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Alien_01.fbx",
+   "source_sha256": "ac9a914e6cf43d42f1f54a9714f3641f5c2376c45703c1bca84e3930d3574630",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0793,
+    0.8194,
+    0.3638
+   ],
+   "dims_m": [
+    0.0793,
+    0.8194,
+    0.3638
+   ],
+   "bbox_min": [
+    -0.0396,
+    -0.6391,
+    -0.1304
+   ],
+   "bbox_max": [
+    0.0396,
+    0.1803,
+    0.2333
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 644,
+   "triangles": 1180,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Alien_02": {
+   "file": "科幻_4006\\Alien_02.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Alien_02.fbx",
+   "source_sha256": "f15d280d85fe6f38ff2a1bd91decf5acdc21052cf9a32e42c096060451d84e64",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0768,
+    0.9576,
+    0.3594
+   ],
+   "dims_m": [
+    0.0768,
+    0.9576,
+    0.3594
+   ],
+   "bbox_min": [
+    -0.0384,
+    -0.7011,
+    -0.19
+   ],
+   "bbox_max": [
+    0.0384,
+    0.2565,
+    0.1694
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 746,
+   "triangles": 1358,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Alien_03": {
+   "file": "科幻_4006\\Alien_03.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Alien_03.fbx",
+   "source_sha256": "8e9dac49f7c479ae1046251e3b09a2ff2cfbf4d85b4bd4d1e48c25e16fe2d0d4",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1456,
+    1.1933,
+    0.3741
+   ],
+   "dims_m": [
+    0.1456,
+    1.1933,
+    0.3741
+   ],
+   "bbox_min": [
+    -0.0728,
+    -0.918,
+    -0.1469
+   ],
+   "bbox_max": [
+    0.0728,
+    0.2753,
+    0.2272
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 765,
+   "triangles": 1436,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Alien_04": {
+   "file": "科幻_4006\\Alien_04.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Alien_04.fbx",
+   "source_sha256": "01fc0a630067416bdb88d4b9f6b4e98bba32a4d60d4a29207b82b28dae26093f",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1258,
+    1.2436,
+    0.4208
+   ],
+   "dims_m": [
+    0.1258,
+    1.2436,
+    0.4208
+   ],
+   "bbox_min": [
+    -0.0629,
+    -0.9535,
+    -0.1556
+   ],
+   "bbox_max": [
+    0.0629,
+    0.2901,
+    0.2652
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 661,
+   "triangles": 1200,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Assault_01": {
+   "file": "科幻_4006\\Assault_01.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Assault_01.fbx",
+   "source_sha256": "a0c333274a538acca74091d374a15a5f86434104e9278e6973d301510975c80f",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 0.8,
+   "source_dims_m": [
+    0.0848,
+    0.9554,
+    0.4153
+   ],
+   "dims_m": [
+    0.0679,
+    0.7644,
+    0.3322
+   ],
+   "bbox_min": [
+    0.0178,
+    -0.5494,
+    -0.1686
+   ],
+   "bbox_max": [
+    0.0856,
+    0.215,
+    0.1636
+   ],
+   "grip_at_origin": [
+    -0.06,
+    0.025,
+    0.018
+   ],
+   "source_origin_offset_in_library": [
+    -0.048,
+    0.02,
+    0.0144
+   ],
+   "vertices": 972,
+   "triangles": 1693,
+   "used_by": [],
+   "attach": {
+    "mode": "grip_origin_game_config",
+    "scale_in_game": 0.8,
+    "config_source_space": {
+     "pos": [
+      -0.1,
+      -0.24,
+      -0.11
+     ],
+     "wrist_r": [
+      -0.06,
+      0.025,
+      0.018
+     ],
+     "wrist_l": [
+      0.11,
+      -0.29,
+      -0.025
+     ],
+     "carry": [
+      -0.048,
+      0.02,
+      0.0144
+     ]
+    },
+    "recipe": "build_batch.py rifle_hold（双手持枪 IK）/ detached_rifle（匍匐、死亡单手拖枪）",
+    "note": "原点=游戏握把点；配置数值在源空间（源原点=库内 +source_origin_offset_in_library）"
+   }
+  },
+  "4006/Assault_02": {
+   "file": "科幻_4006\\Assault_02.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Assault_02.fbx",
+   "source_sha256": "81f50c287acc515ebeb4e86649a73805d22f9c617ca123907d259d95cecad0ec",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0723,
+    0.913,
+    0.4086
+   ],
+   "dims_m": [
+    0.0723,
+    0.913,
+    0.4086
+   ],
+   "bbox_min": [
+    -0.0361,
+    -0.6329,
+    -0.1914
+   ],
+   "bbox_max": [
+    0.0361,
+    0.2801,
+    0.2172
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 1217,
+   "triangles": 2252,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Assault_03": {
+   "file": "科幻_4006\\Assault_03.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Assault_03.fbx",
+   "source_sha256": "240f400ee8e083a80967dd7593cd60edfd1e75c6b52815a97c21547617aee56b",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1054,
+    0.9709,
+    0.4496
+   ],
+   "dims_m": [
+    0.1054,
+    0.9709,
+    0.4496
+   ],
+   "bbox_min": [
+    -0.0527,
+    -0.73,
+    -0.2093
+   ],
+   "bbox_max": [
+    0.0527,
+    0.241,
+    0.2403
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 728,
+   "triangles": 1270,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/BigAxe_01": {
+   "file": "科幻_4006\\BigAxe_01.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_BigAxe_01.fbx",
+   "source_sha256": "e08979a61ee509922ab34b8b59a8d844fb689a77590b5367d3cc40ff2f16109d",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1156,
+    0.4575,
+    1.2031
+   ],
+   "dims_m": [
+    0.1156,
+    0.4575,
+    1.2031
+   ],
+   "bbox_min": [
+    -0.0578,
+    -0.2288,
+    -0.5118
+   ],
+   "bbox_max": [
+    0.0578,
+    0.2288,
+    0.6912
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 495,
+   "triangles": 954,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/BigAxe_02": {
+   "file": "科幻_4006\\BigAxe_02.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_BigAxe_02.fbx",
+   "source_sha256": "7dd7e022b648cc5d2ee141b2451a645756d1aafb677425bb9d636c4ac399be99",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1016,
+    0.3405,
+    0.998
+   ],
+   "dims_m": [
+    0.1016,
+    0.3405,
+    0.998
+   ],
+   "bbox_min": [
+    -0.0508,
+    -0.2364,
+    -0.499
+   ],
+   "bbox_max": [
+    0.0508,
+    0.1041,
+    0.499
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 425,
+   "triangles": 818,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/BigAxe_03": {
+   "file": "科幻_4006\\BigAxe_03.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_BigAxe_03.fbx",
+   "source_sha256": "44c15bb5759a9054152b4fe5826484ff6e289936fbce4e363af65d5456abf5d1",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.081,
+    0.4074,
+    1.1202
+   ],
+   "dims_m": [
+    0.081,
+    0.4074,
+    1.1202
+   ],
+   "bbox_min": [
+    -0.0405,
+    -0.1717,
+    -0.4276
+   ],
+   "bbox_max": [
+    0.0405,
+    0.2357,
+    0.6925
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 509,
+   "triangles": 1010,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/BigAxe_04": {
+   "file": "科幻_4006\\BigAxe_04.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_BigAxe_04.fbx",
+   "source_sha256": "6278a63fe4f4c34061a01bf64b11bb6f3db9e7e34d9482189b02aadd6b41dbff",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0688,
+    0.3879,
+    1.1093
+   ],
+   "dims_m": [
+    0.0688,
+    0.3879,
+    1.1093
+   ],
+   "bbox_min": [
+    -0.0344,
+    -0.1939,
+    -0.5541
+   ],
+   "bbox_max": [
+    0.0344,
+    0.1939,
+    0.5551
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 452,
+   "triangles": 856,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/BigAxe_05": {
+   "file": "科幻_4006\\BigAxe_05.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_BigAxe_05.fbx",
+   "source_sha256": "15662d7ee3ca0e2f310170a1535c7fd3c1cd90bbe7badf719c908cf9598bde8b",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0996,
+    0.4258,
+    0.9463
+   ],
+   "dims_m": [
+    0.0996,
+    0.4258,
+    0.9463
+   ],
+   "bbox_min": [
+    -0.0498,
+    -0.2129,
+    -0.3502
+   ],
+   "bbox_max": [
+    0.0498,
+    0.2129,
+    0.5961
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 662,
+   "triangles": 1280,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/BigAxe_06": {
+   "file": "科幻_4006\\BigAxe_06.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_BigAxe_06.fbx",
+   "source_sha256": "17b5d3e77851a8dee2f68e230f19595c602227ef104c4322e7bedf3442b6aab7",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1062,
+    0.4965,
+    1.0258
+   ],
+   "dims_m": [
+    0.1062,
+    0.4965,
+    1.0258
+   ],
+   "bbox_min": [
+    -0.0531,
+    -0.2483,
+    -0.3551
+   ],
+   "bbox_max": [
+    0.0531,
+    0.2483,
+    0.6707
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 604,
+   "triangles": 1120,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/BigAxe_07": {
+   "file": "科幻_4006\\BigAxe_07.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_BigAxe_07.fbx",
+   "source_sha256": "bffb6266f56534dd3ad0833f15f2e6b9933956a52a26d641d4e7d4889c722dc0",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.2358,
+    0.6051,
+    1.3908
+   ],
+   "dims_m": [
+    0.2358,
+    0.6051,
+    1.3908
+   ],
+   "bbox_min": [
+    -0.1179,
+    -0.32,
+    -0.6954
+   ],
+   "bbox_max": [
+    0.1179,
+    0.2851,
+    0.6954
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 737,
+   "triangles": 1336,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Dagger_01": {
+   "file": "科幻_4006\\Dagger_01.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Dagger_01.fbx",
+   "source_sha256": "385b177a6cb77403cb567fea9323b8bce311c22bae183c04dfaee9b9351c5630",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0552,
+    0.2005,
+    0.4944
+   ],
+   "dims_m": [
+    0.0552,
+    0.2005,
+    0.4944
+   ],
+   "bbox_min": [
+    -0.0273,
+    -0.101,
+    -0.0629
+   ],
+   "bbox_max": [
+    0.0279,
+    0.0994,
+    0.4315
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 227,
+   "triangles": 414,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Dagger_02": {
+   "file": "科幻_4006\\Dagger_02.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Dagger_02.fbx",
+   "source_sha256": "10a46c01ed0d4ac28f644371b3130e3681ce200bd06fecea6bee0f62d6771e5b",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0414,
+    0.0949,
+    0.496
+   ],
+   "dims_m": [
+    0.0414,
+    0.0949,
+    0.496
+   ],
+   "bbox_min": [
+    -0.0207,
+    -0.0475,
+    -0.095
+   ],
+   "bbox_max": [
+    0.0207,
+    0.0475,
+    0.401
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 138,
+   "triangles": 257,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Dagger_03": {
+   "file": "科幻_4006\\Dagger_03.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Dagger_03.fbx",
+   "source_sha256": "6ae567877dcf30c95fa39cf249c63982192a550ae53f822655117d84905c8c10",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0588,
+    0.1661,
+    0.5662
+   ],
+   "dims_m": [
+    0.0588,
+    0.1661,
+    0.5662
+   ],
+   "bbox_min": [
+    -0.0294,
+    -0.1114,
+    -0.1119
+   ],
+   "bbox_max": [
+    0.0294,
+    0.0547,
+    0.4543
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 195,
+   "triangles": 348,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Dagger_04": {
+   "file": "科幻_4006\\Dagger_04.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Dagger_04.fbx",
+   "source_sha256": "bbf62fcf750eda268e4bdd54c40cd2782a8cc8cba9c3dbc3b96e8d78eeb4947a",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0429,
+    0.1612,
+    0.5259
+   ],
+   "dims_m": [
+    0.0429,
+    0.1612,
+    0.5259
+   ],
+   "bbox_min": [
+    -0.0214,
+    -0.117,
+    -0.1051
+   ],
+   "bbox_max": [
+    0.0214,
+    0.0443,
+    0.4208
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 233,
+   "triangles": 402,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Dagger_05": {
+   "file": "科幻_4006\\Dagger_05.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Dagger_05.fbx",
+   "source_sha256": "706c5f5576d7745cb02d21ffcc19f43fa8174e365dc7b9545c0c838c60c9ee7e",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.05,
+    0.1161,
+    0.5129
+   ],
+   "dims_m": [
+    0.05,
+    0.1161,
+    0.5129
+   ],
+   "bbox_min": [
+    -0.025,
+    -0.058,
+    -0.1075
+   ],
+   "bbox_max": [
+    0.025,
+    0.058,
+    0.4054
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 186,
+   "triangles": 338,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Dagger_06": {
+   "file": "科幻_4006\\Dagger_06.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Dagger_06.fbx",
+   "source_sha256": "c0bdf09013cb59efdc9d4412549d29c8335ae495159e60874dfdb6a4a7f94992",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0513,
+    0.1162,
+    0.5139
+   ],
+   "dims_m": [
+    0.0513,
+    0.1162,
+    0.5139
+   ],
+   "bbox_min": [
+    -0.0256,
+    -0.0581,
+    -0.104
+   ],
+   "bbox_max": [
+    0.0256,
+    0.0581,
+    0.4099
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 285,
+   "triangles": 544,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Dagger_07": {
+   "file": "科幻_4006\\Dagger_07.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Dagger_07.fbx",
+   "source_sha256": "36a3ee256dc64fc8e137a3b195c87af8444dfbe831d86a9526342aa8e5a5e632",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0595,
+    0.1091,
+    0.5026
+   ],
+   "dims_m": [
+    0.0595,
+    0.1091,
+    0.5026
+   ],
+   "bbox_min": [
+    -0.0299,
+    -0.0589,
+    -0.0971
+   ],
+   "bbox_max": [
+    0.0296,
+    0.0502,
+    0.4055
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 182,
+   "triangles": 294,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Hammer_01": {
+   "file": "科幻_4006\\Hammer_01.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Hammer_01.fbx",
+   "source_sha256": "15b23b205d4c4f8a403c2c00a40a8abb29e3d1c9fa488aca9383b1ee99b05ce5",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.2165,
+    0.6193,
+    1.5252
+   ],
+   "dims_m": [
+    0.2165,
+    0.6193,
+    1.5252
+   ],
+   "bbox_min": [
+    -0.1082,
+    -0.3097,
+    -0.7626
+   ],
+   "bbox_max": [
+    0.1082,
+    0.3097,
+    0.7626
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 1185,
+   "triangles": 2234,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Hammer_02": {
+   "file": "科幻_4006\\Hammer_02.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Hammer_02.fbx",
+   "source_sha256": "5046193b0533d9939c89d06cb5bf3f4f9709200e1699c5114b3f05110c453860",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.2661,
+    0.6092,
+    1.451
+   ],
+   "dims_m": [
+    0.2661,
+    0.6092,
+    1.451
+   ],
+   "bbox_min": [
+    -0.133,
+    -0.3278,
+    -0.6713
+   ],
+   "bbox_max": [
+    0.133,
+    0.2814,
+    0.7797
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 668,
+   "triangles": 1216,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Hammer_03": {
+   "file": "科幻_4006\\Hammer_03.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Hammer_03.fbx",
+   "source_sha256": "ffba9f312a5c06fe4b4d8fa2f74b35f7fee06a13ff8a0262d4bdc4d77d7d8889",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.3142,
+    0.6424,
+    1.4936
+   ],
+   "dims_m": [
+    0.3142,
+    0.6424,
+    1.4936
+   ],
+   "bbox_min": [
+    -0.1571,
+    -0.3212,
+    -0.5571
+   ],
+   "bbox_max": [
+    0.1571,
+    0.3212,
+    0.9365
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 904,
+   "triangles": 1576,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Heavy_01": {
+   "file": "科幻_4006\\Heavy_01.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Heavy_01.fbx",
+   "source_sha256": "84797af93fd640d9e86164cf1f5eac5ceefbe2be9f359896ab60668458ca875b",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1993,
+    1.273,
+    0.6131
+   ],
+   "dims_m": [
+    0.1993,
+    1.273,
+    0.6131
+   ],
+   "bbox_min": [
+    -0.0996,
+    -0.833,
+    -0.1726
+   ],
+   "bbox_max": [
+    0.0996,
+    0.44,
+    0.4404
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 1162,
+   "triangles": 1988,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Heavy_02": {
+   "file": "科幻_4006\\Heavy_02.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Heavy_02.fbx",
+   "source_sha256": "8adac1539d80884e9c04e6cb73cca1a4ed3a5c5dda6fc963c6d0e433eb98ce31",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.3135,
+    0.7433,
+    0.4264
+   ],
+   "dims_m": [
+    0.3135,
+    0.7433,
+    0.4264
+   ],
+   "bbox_min": [
+    -0.1568,
+    -0.5707,
+    -0.1506
+   ],
+   "bbox_max": [
+    0.1568,
+    0.1726,
+    0.2758
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 1503,
+   "triangles": 2852,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Heavy_03": {
+   "file": "科幻_4006\\Heavy_03.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Heavy_03.fbx",
+   "source_sha256": "6b7fd86872c13074880ab891804273e3df8f52137bc5a68ba9ee22f220ceb646",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.3089,
+    1.0485,
+    0.5091
+   ],
+   "dims_m": [
+    0.3089,
+    1.0485,
+    0.5091
+   ],
+   "bbox_min": [
+    -0.1545,
+    -0.7025,
+    -0.3283
+   ],
+   "bbox_max": [
+    0.1545,
+    0.346,
+    0.1808
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 893,
+   "triangles": 1596,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Launcher_01": {
+   "file": "科幻_4006\\Launcher_01.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Launcher_01.fbx",
+   "source_sha256": "85c1913f0599e0f052135486695e7e57d17d8ecf5df77a1370ac1763d2bb10b9",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.3058,
+    1.4875,
+    0.6833
+   ],
+   "dims_m": [
+    0.3058,
+    1.4875,
+    0.6833
+   ],
+   "bbox_min": [
+    -0.1529,
+    -0.6868,
+    -0.1496
+   ],
+   "bbox_max": [
+    0.1529,
+    0.8008,
+    0.5337
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 1823,
+   "triangles": 3398,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Launcher_02": {
+   "file": "科幻_4006\\Launcher_02.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Launcher_02.fbx",
+   "source_sha256": "dc7287bad02d948a3e868ab344ab2d489ca838921d67d16bbf7080258225ae9a",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.3059,
+    1.5516,
+    0.6448
+   ],
+   "dims_m": [
+    0.3059,
+    1.5516,
+    0.6448
+   ],
+   "bbox_min": [
+    -0.1529,
+    -0.8677,
+    -0.1693
+   ],
+   "bbox_max": [
+    0.1529,
+    0.684,
+    0.4756
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 1225,
+   "triangles": 2352,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Launcher_03": {
+   "file": "科幻_4006\\Launcher_03.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Launcher_03.fbx",
+   "source_sha256": "ff442d45fd16a89022a2304e3e73c605c65469a4fa369d8d1f89258f4dcfed49",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.2551,
+    1.3141,
+    0.613
+   ],
+   "dims_m": [
+    0.2551,
+    1.3141,
+    0.613
+   ],
+   "bbox_min": [
+    -0.1275,
+    -0.5662,
+    -0.1343
+   ],
+   "bbox_max": [
+    0.1275,
+    0.7479,
+    0.4787
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 1254,
+   "triangles": 2286,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Pistol_01": {
+   "file": "科幻_4006\\Pistol_01.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Pistol_01.fbx",
+   "source_sha256": "c26256b7b557f9f81ea0d6d2c0277fbabf735fb87ee04dcc9dbf141d82b3faf5",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1066,
+    0.361,
+    0.3243
+   ],
+   "dims_m": [
+    0.1066,
+    0.361,
+    0.3243
+   ],
+   "bbox_min": [
+    -0.0533,
+    -0.2394,
+    -0.1588
+   ],
+   "bbox_max": [
+    0.0533,
+    0.1216,
+    0.1656
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 679,
+   "triangles": 1250,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Pistol_02": {
+   "file": "科幻_4006\\Pistol_02.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Pistol_02.fbx",
+   "source_sha256": "fdef528c22a185992ce718169a07cb6acc0f531bfa223fc967477ad7f77aec19",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0807,
+    0.5362,
+    0.2294
+   ],
+   "dims_m": [
+    0.0807,
+    0.5362,
+    0.2294
+   ],
+   "bbox_min": [
+    -0.0404,
+    -0.4595,
+    -0.0717
+   ],
+   "bbox_max": [
+    0.0404,
+    0.0767,
+    0.1577
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 663,
+   "triangles": 1256,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Pistol_03": {
+   "file": "科幻_4006\\Pistol_03.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Pistol_03.fbx",
+   "source_sha256": "39ef85244e19ba7dc9b65e3023c06e47395be2a2d32a7228b62b6a48e5fb7eee",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.2053,
+    0.3474,
+    0.3171
+   ],
+   "dims_m": [
+    0.2053,
+    0.3474,
+    0.3171
+   ],
+   "bbox_min": [
+    -0.1026,
+    -0.2539,
+    -0.1025
+   ],
+   "bbox_max": [
+    0.1026,
+    0.0935,
+    0.2146
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 607,
+   "triangles": 1022,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Pistol_04": {
+   "file": "科幻_4006\\Pistol_04.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Pistol_04.fbx",
+   "source_sha256": "5dfde77e600b7b3e0dc7d5d6e46554acf594091944a9260585e7f70db6ff0010",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0872,
+    0.3759,
+    0.3102
+   ],
+   "dims_m": [
+    0.0872,
+    0.3759,
+    0.3102
+   ],
+   "bbox_min": [
+    -0.0436,
+    -0.3008,
+    -0.1091
+   ],
+   "bbox_max": [
+    0.0436,
+    0.0752,
+    0.2011
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 670,
+   "triangles": 1202,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Pistol_05": {
+   "file": "科幻_4006\\Pistol_05.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Pistol_05.fbx",
+   "source_sha256": "525f2bc4f81ea7429776be25a5ed797f7311b0a34a63729bdd9597d123d49a79",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.075,
+    0.5196,
+    0.2631
+   ],
+   "dims_m": [
+    0.075,
+    0.5196,
+    0.2631
+   ],
+   "bbox_min": [
+    -0.0375,
+    -0.3749,
+    -0.1199
+   ],
+   "bbox_max": [
+    0.0375,
+    0.1447,
+    0.1432
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 699,
+   "triangles": 1272,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Pistol_06": {
+   "file": "科幻_4006\\Pistol_06.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Pistol_06.fbx",
+   "source_sha256": "908c97b443dfffae4b37d6f04950050e981d42c930a917f2789e64dd7f9c0b80",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0531,
+    0.3826,
+    0.3034
+   ],
+   "dims_m": [
+    0.0531,
+    0.3826,
+    0.3034
+   ],
+   "bbox_min": [
+    -0.0265,
+    -0.2314,
+    -0.1634
+   ],
+   "bbox_max": [
+    0.0265,
+    0.1511,
+    0.14
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 562,
+   "triangles": 986,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Shield_01": {
+   "file": "科幻_4006\\Shield_01.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Shield_01.fbx",
+   "source_sha256": "24093f70560c326842587e72dbb676c069ec56d7d46ceb9b74764ad7eb092529",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.6356,
+    0.162,
+    1.1203
+   ],
+   "dims_m": [
+    0.6356,
+    0.162,
+    1.1203
+   ],
+   "bbox_min": [
+    -0.3178,
+    -0.1367,
+    -0.5617
+   ],
+   "bbox_max": [
+    0.3178,
+    0.0253,
+    0.5586
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 135,
+   "triangles": 238,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Shield_02": {
+   "file": "科幻_4006\\Shield_02.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Shield_02.fbx",
+   "source_sha256": "3dfdd10400b92d0d3c156f58db3705c25c8a7b3bc82bad183ad0ebb186f1a8ce",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.5895,
+    0.1271,
+    1.1338
+   ],
+   "dims_m": [
+    0.5895,
+    0.1271,
+    1.1338
+   ],
+   "bbox_min": [
+    -0.2947,
+    -0.0937,
+    -0.5669
+   ],
+   "bbox_max": [
+    0.2947,
+    0.0334,
+    0.5669
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 532,
+   "triangles": 940,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Shield_03": {
+   "file": "科幻_4006\\Shield_03.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Shield_03.fbx",
+   "source_sha256": "a8b20dfb12759dc4c9d08370720af873845824b5e7e2c6460f1643d8614b909e",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.5895,
+    0.1271,
+    0.9205
+   ],
+   "dims_m": [
+    0.5895,
+    0.1271,
+    0.9205
+   ],
+   "bbox_min": [
+    -0.2947,
+    -0.1017,
+    -0.4602
+   ],
+   "bbox_max": [
+    0.2947,
+    0.0253,
+    0.4602
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 308,
+   "triangles": 540,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Shield_04": {
+   "file": "科幻_4006\\Shield_04.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Shield_04.fbx",
+   "source_sha256": "d6171635b307308cdb016c1c105d173378f4845e2aa29069fe5cf01bc784e146",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.4809,
+    0.1515,
+    1.1205
+   ],
+   "dims_m": [
+    0.4809,
+    0.1515,
+    1.1205
+   ],
+   "bbox_min": [
+    -0.2404,
+    -0.1297,
+    -0.5602
+   ],
+   "bbox_max": [
+    0.2404,
+    0.0217,
+    0.5602
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 400,
+   "triangles": 734,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Shield_05": {
+   "file": "科幻_4006\\Shield_05.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Shield_05.fbx",
+   "source_sha256": "12b91626adcafdaebfc279ca5bed84efe4d0f691474bc92807e7474f8af6a974",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.4462,
+    0.1515,
+    0.8205
+   ],
+   "dims_m": [
+    0.4462,
+    0.1515,
+    0.8205
+   ],
+   "bbox_min": [
+    -0.2231,
+    -0.1261,
+    -0.4102
+   ],
+   "bbox_max": [
+    0.2231,
+    0.0253,
+    0.4102
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 168,
+   "triangles": 286,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Shotgun_01": {
+   "file": "科幻_4006\\Shotgun_01.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Shotgun_01.fbx",
+   "source_sha256": "076eb3e3f3dbb69f45851771b58a78928341da65326f8a49b6535ab3407f14d1",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1585,
+    0.642,
+    0.2319
+   ],
+   "dims_m": [
+    0.1585,
+    0.642,
+    0.2319
+   ],
+   "bbox_min": [
+    -0.0793,
+    -0.404,
+    -0.0672
+   ],
+   "bbox_max": [
+    0.0792,
+    0.238,
+    0.1647
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 827,
+   "triangles": 1533,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Shotgun_02": {
+   "file": "科幻_4006\\Shotgun_02.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Shotgun_02.fbx",
+   "source_sha256": "fea522d5a7143c3cf649cccf376528b53e2fd74d6a9c3f0f2288195bc9b1fce9",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0896,
+    1.0416,
+    0.3313
+   ],
+   "dims_m": [
+    0.0896,
+    1.0416,
+    0.3313
+   ],
+   "bbox_min": [
+    -0.0448,
+    -0.7538,
+    -0.0987
+   ],
+   "bbox_max": [
+    0.0448,
+    0.2877,
+    0.2326
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 995,
+   "triangles": 1868,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Shotgun_03": {
+   "file": "科幻_4006\\Shotgun_03.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Shotgun_03.fbx",
+   "source_sha256": "03aab4df3891c4689bb2053c0a053d4667c7d9aa36e4b6b85d7017d89e7702a0",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1196,
+    1.0632,
+    0.3109
+   ],
+   "dims_m": [
+    0.1196,
+    1.0632,
+    0.3109
+   ],
+   "bbox_min": [
+    -0.0441,
+    -0.8018,
+    -0.1206
+   ],
+   "bbox_max": [
+    0.0755,
+    0.2614,
+    0.1904
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 746,
+   "triangles": 1354,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/SmallAxe_01": {
+   "file": "科幻_4006\\SmallAxe_01.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_SmallAxe_01.fbx",
+   "source_sha256": "6a9b32570ebbf71c0725431725ac8348bce95fee5dfe936add535412520718bc",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0872,
+    0.307,
+    0.6505
+   ],
+   "dims_m": [
+    0.0872,
+    0.307,
+    0.6505
+   ],
+   "bbox_min": [
+    -0.0436,
+    -0.1969,
+    -0.2561
+   ],
+   "bbox_max": [
+    0.0436,
+    0.1102,
+    0.3944
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 286,
+   "triangles": 558,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/SmallAxe_02": {
+   "file": "科幻_4006\\SmallAxe_02.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_SmallAxe_02.fbx",
+   "source_sha256": "c16c8efd9db096cdff1f1dd000bd77d4e9afbff991a5332b6b765b97283b5c15",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1143,
+    0.3949,
+    0.6649
+   ],
+   "dims_m": [
+    0.1143,
+    0.3949,
+    0.6649
+   ],
+   "bbox_min": [
+    -0.0572,
+    -0.2555,
+    -0.2441
+   ],
+   "bbox_max": [
+    0.0572,
+    0.1394,
+    0.4208
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 402,
+   "triangles": 786,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/SmallAxe_03": {
+   "file": "科幻_4006\\SmallAxe_03.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_SmallAxe_03.fbx",
+   "source_sha256": "84a3e5e7ba6fb2c12ec82f142947db6f4db738a89119dec24d2ff4c962c15078",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0918,
+    0.3318,
+    0.6716
+   ],
+   "dims_m": [
+    0.0918,
+    0.3318,
+    0.6716
+   ],
+   "bbox_min": [
+    -0.0459,
+    -0.208,
+    -0.2424
+   ],
+   "bbox_max": [
+    0.0459,
+    0.1238,
+    0.4292
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 314,
+   "triangles": 620,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/SmallAxe_04": {
+   "file": "科幻_4006\\SmallAxe_04.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_SmallAxe_04.fbx",
+   "source_sha256": "7fe9fd6b20fe5b18fa65adfed568703886493450789f8ec2c18cfe858a07841c",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0816,
+    0.2558,
+    0.6146
+   ],
+   "dims_m": [
+    0.0816,
+    0.2558,
+    0.6146
+   ],
+   "bbox_min": [
+    -0.0408,
+    -0.1343,
+    -0.2426
+   ],
+   "bbox_max": [
+    0.0408,
+    0.1215,
+    0.372
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 409,
+   "triangles": 770,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/SmallAxe_05": {
+   "file": "科幻_4006\\SmallAxe_05.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_SmallAxe_05.fbx",
+   "source_sha256": "0a04d5d18bf293e113a662534f220015e143fc77596f82c394995400d4a051e5",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0916,
+    0.34,
+    0.6661
+   ],
+   "dims_m": [
+    0.0916,
+    0.34,
+    0.6661
+   ],
+   "bbox_min": [
+    -0.0458,
+    -0.2025,
+    -0.2886
+   ],
+   "bbox_max": [
+    0.0458,
+    0.1375,
+    0.3775
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 417,
+   "triangles": 770,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/SMG_01": {
+   "file": "科幻_4006\\SMG_01.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_SMG_01.fbx",
+   "source_sha256": "d987ae844b80a4061d2e989c9b223299136037ac7efc46ba1d825d21453abd3d",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1552,
+    0.8228,
+    0.3728
+   ],
+   "dims_m": [
+    0.1552,
+    0.8228,
+    0.3728
+   ],
+   "bbox_min": [
+    -0.0776,
+    -0.6883,
+    -0.1977
+   ],
+   "bbox_max": [
+    0.0776,
+    0.1345,
+    0.1751
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 1137,
+   "triangles": 2213,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/SMG_02": {
+   "file": "科幻_4006\\SMG_02.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_SMG_02.fbx",
+   "source_sha256": "e4b510b7d4a004cbe3c1ebdb704f7f957310c445b03f41ff223a28c68710d7b3",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0702,
+    0.6925,
+    0.2972
+   ],
+   "dims_m": [
+    0.0702,
+    0.6925,
+    0.2972
+   ],
+   "bbox_min": [
+    -0.0351,
+    -0.4092,
+    -0.1077
+   ],
+   "bbox_max": [
+    0.0351,
+    0.2834,
+    0.1895
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 1131,
+   "triangles": 2196,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/SMG_03": {
+   "file": "科幻_4006\\SMG_03.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_SMG_03.fbx",
+   "source_sha256": "ff148a88e83a49770074c4b5e0e6433ebc8fa1671be08dcab3a7956f65b0f0b6",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0796,
+    0.8616,
+    0.4675
+   ],
+   "dims_m": [
+    0.0796,
+    0.8616,
+    0.4675
+   ],
+   "bbox_min": [
+    -0.0398,
+    -0.4308,
+    -0.1959
+   ],
+   "bbox_max": [
+    0.0398,
+    0.4308,
+    0.2716
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 1110,
+   "triangles": 2094,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Sniper_01": {
+   "file": "科幻_4006\\Sniper_01.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Sniper_01.fbx",
+   "source_sha256": "bf62b33119e21d13cd8191a16d670bfadb6a40b055959071885daafd440854b3",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1402,
+    1.6648,
+    0.5066
+   ],
+   "dims_m": [
+    0.1402,
+    1.6648,
+    0.5066
+   ],
+   "bbox_min": [
+    -0.0701,
+    -1.3949,
+    -0.223
+   ],
+   "bbox_max": [
+    0.0701,
+    0.27,
+    0.2835
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 709,
+   "triangles": 1292,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Sniper_02": {
+   "file": "科幻_4006\\Sniper_02.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Sniper_02.fbx",
+   "source_sha256": "1de543d86b91f9bd086fb8c1e83b4f4d57b416ad423463ab879e074f350bb2db",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1301,
+    1.6277,
+    0.4902
+   ],
+   "dims_m": [
+    0.1301,
+    1.6277,
+    0.4902
+   ],
+   "bbox_min": [
+    -0.0651,
+    -1.3373,
+    -0.1846
+   ],
+   "bbox_max": [
+    0.0651,
+    0.2904,
+    0.3056
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 819,
+   "triangles": 1452,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Sniper_03": {
+   "file": "科幻_4006\\Sniper_03.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Sniper_03.fbx",
+   "source_sha256": "baf4e7e3fca2eb7ef078eb426e69059480dac0a6f2588cbd07a9f93165a3a0de",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1607,
+    1.6604,
+    0.3841
+   ],
+   "dims_m": [
+    0.1607,
+    1.6604,
+    0.3841
+   ],
+   "bbox_min": [
+    -0.0803,
+    -1.3887,
+    -0.1021
+   ],
+   "bbox_max": [
+    0.0803,
+    0.2717,
+    0.282
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 947,
+   "triangles": 1742,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Sword_01a": {
+   "file": "科幻_4006\\Sword_01a.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Sword_01a.fbx",
+   "source_sha256": "255dd0f66f31b76b5e6bb4fa9372b1b16d56540acff5e718c61f20d7fc04a2b4",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0726,
+    0.1071,
+    0.9404
+   ],
+   "dims_m": [
+    0.0726,
+    0.1071,
+    0.9404
+   ],
+   "bbox_min": [
+    -0.0363,
+    -0.0536,
+    -0.1342
+   ],
+   "bbox_max": [
+    0.0363,
+    0.0536,
+    0.8062
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 272,
+   "triangles": 502,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Sword_02": {
+   "file": "科幻_4006\\Sword_02.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Sword_02.fbx",
+   "source_sha256": "e28a0f1edae24e97b6b1c5a8bae58840dba27ffeb6f1701ef2762aaadadc9658",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0895,
+    0.1917,
+    0.9561
+   ],
+   "dims_m": [
+    0.0895,
+    0.1917,
+    0.9561
+   ],
+   "bbox_min": [
+    -0.0448,
+    -0.0959,
+    -0.196
+   ],
+   "bbox_max": [
+    0.0448,
+    0.0959,
+    0.7601
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 279,
+   "triangles": 528,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Sword_03": {
+   "file": "科幻_4006\\Sword_03.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Sword_03.fbx",
+   "source_sha256": "069419f5a53a8d10c91706a0c70ae37ce462be6db86df172afe73174f1f9c9db",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0523,
+    0.2016,
+    0.9285
+   ],
+   "dims_m": [
+    0.0523,
+    0.2016,
+    0.9285
+   ],
+   "bbox_min": [
+    -0.0262,
+    -0.1092,
+    -0.1531
+   ],
+   "bbox_max": [
+    0.0262,
+    0.0924,
+    0.7754
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 296,
+   "triangles": 558,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Sword_04": {
+   "file": "科幻_4006\\Sword_04.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Sword_04.fbx",
+   "source_sha256": "2859fd833ab4cfa0156d19878681b766a63272cacf8cf84b71ad47881fd01e7d",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0771,
+    0.15,
+    0.8722
+   ],
+   "dims_m": [
+    0.0771,
+    0.15,
+    0.8722
+   ],
+   "bbox_min": [
+    -0.0386,
+    -0.0746,
+    -0.1214
+   ],
+   "bbox_max": [
+    0.0386,
+    0.0754,
+    0.7508
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 329,
+   "triangles": 600,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Sword_05": {
+   "file": "科幻_4006\\Sword_05.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Sword_05.fbx",
+   "source_sha256": "84caf5aad231c46e602516225777e0ba3bc260b63744a431916a3f13859dcc6b",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0447,
+    0.1533,
+    0.9385
+   ],
+   "dims_m": [
+    0.0447,
+    0.1533,
+    0.9385
+   ],
+   "bbox_min": [
+    -0.0223,
+    -0.1153,
+    -0.1843
+   ],
+   "bbox_max": [
+    0.0223,
+    0.0381,
+    0.7542
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 250,
+   "triangles": 458,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Sword_06": {
+   "file": "科幻_4006\\Sword_06.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Sword_06.fbx",
+   "source_sha256": "cf9f97216f620919f7a681dcb280bd192306437eabe56708f519ff92c06fc680",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0487,
+    0.2107,
+    0.9466
+   ],
+   "dims_m": [
+    0.0487,
+    0.2107,
+    0.9466
+   ],
+   "bbox_min": [
+    -0.0244,
+    -0.1054,
+    -0.1195
+   ],
+   "bbox_max": [
+    0.0244,
+    0.1054,
+    0.827
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 303,
+   "triangles": 568,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Sword_07": {
+   "file": "科幻_4006\\Sword_07.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Sword_07.fbx",
+   "source_sha256": "be9d40c9d9287b219ee8050ae394a27b321fcc912ec9a4e5075d7e65ca7b24eb",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0791,
+    0.2013,
+    0.9191
+   ],
+   "dims_m": [
+    0.0791,
+    0.2013,
+    0.9191
+   ],
+   "bbox_min": [
+    -0.0396,
+    -0.1006,
+    -0.1248
+   ],
+   "bbox_max": [
+    0.0396,
+    0.1006,
+    0.7943
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 296,
+   "triangles": 564,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4006/Sword_08": {
+   "file": "科幻_4006\\Sword_08.glb",
+   "pack": "4006",
+   "pack_name": "科幻战争 4006",
+   "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Sword_08.fbx",
+   "source_sha256": "1bfa589fd0ca60fa461fc41bed3ac3af3fe35fd94c329a4ab283b423fec4c964",
+   "texture": "PolygonScifiWorlds_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.071,
+    0.1165,
+    0.825
+   ],
+   "dims_m": [
+    0.071,
+    0.1165,
+    0.825
+   ],
+   "bbox_min": [
+    -0.0355,
+    -0.0912,
+    -0.1725
+   ],
+   "bbox_max": [
+    0.0355,
+    0.0253,
+    0.6525
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 265,
+   "triangles": 504,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4017/AncientQueen_01": {
+   "file": "怪物_4017\\AncientQueen_01.glb",
+   "pack": "4017",
+   "pack_name": "幻想怪物 4017",
+   "source_fbx": "4017_幻想怪物\\PolygonFantasyRivals\\Models\\SM_Wep_AncientQueen_01.fbx",
+   "source_sha256": "72525ea2ac01309f5d229e4c08e24d7615ddc0ba85b27f4b578c28fdd9e244fc",
+   "texture": "FantasyRivals_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.2673,
+    0.1118,
+    1.9858
+   ],
+   "dims_m": [
+    0.2673,
+    0.1118,
+    1.9858
+   ],
+   "bbox_min": [
+    -0.1337,
+    -0.0559,
+    -1.3489
+   ],
+   "bbox_max": [
+    0.1337,
+    0.0559,
+    0.6369
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 207,
+   "triangles": 414,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4017/AncientWarrior_01": {
+   "file": "怪物_4017\\AncientWarrior_01.glb",
+   "pack": "4017",
+   "pack_name": "幻想怪物 4017",
+   "source_fbx": "4017_幻想怪物\\PolygonFantasyRivals\\Models\\SM_Wep_AncientWarrior_01.fbx",
+   "source_sha256": "f90aedad02f28007059be6792dde84bbf953c0f597b059b3e40831ce6f1dd57f",
+   "texture": "FantasyRivals_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0375,
+    0.1948,
+    1.1123
+   ],
+   "dims_m": [
+    0.0375,
+    0.1948,
+    1.1123
+   ],
+   "bbox_min": [
+    -0.0188,
+    -0.1647,
+    -0.1307
+   ],
+   "bbox_max": [
+    0.0188,
+    0.0301,
+    0.9816
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 200,
+   "triangles": 396,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4017/BarbarianGiant_01": {
+   "file": "怪物_4017\\BarbarianGiant_01.glb",
+   "pack": "4017",
+   "pack_name": "幻想怪物 4017",
+   "source_fbx": "4017_幻想怪物\\PolygonFantasyRivals\\Models\\SM_Wep_BarbarianGiant_01.fbx",
+   "source_sha256": "2cbc8f6e43f4d1acb697aa06f9f8cc81aaada5ae3629a6e306203712d138eabc",
+   "texture": "FantasyRivals_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1737,
+    0.9058,
+    1.4385
+   ],
+   "dims_m": [
+    0.1737,
+    0.9058,
+    1.4385
+   ],
+   "bbox_min": [
+    -0.1071,
+    -0.527,
+    -0.3475
+   ],
+   "bbox_max": [
+    0.0666,
+    0.3789,
+    1.091
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 609,
+   "triangles": 1110,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4017/BigOrk_01": {
+   "file": "怪物_4017\\BigOrk_01.glb",
+   "pack": "4017",
+   "pack_name": "幻想怪物 4017",
+   "source_fbx": "4017_幻想怪物\\PolygonFantasyRivals\\Models\\SM_Wep_BigOrk_01.fbx",
+   "source_sha256": "509fdc7ea82e8f9231f7819df1bc8be899b1143c1ed61fe4a1342550ea273684",
+   "texture": "FantasyRivals_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.216,
+    0.6209,
+    1.6231
+   ],
+   "dims_m": [
+    0.216,
+    0.6209,
+    1.6231
+   ],
+   "bbox_min": [
+    -0.108,
+    -0.3843,
+    -0.5775
+   ],
+   "bbox_max": [
+    0.108,
+    0.2366,
+    1.0455
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 645,
+   "triangles": 1286,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4017/DarkElf_01": {
+   "file": "怪物_4017\\DarkElf_01.glb",
+   "pack": "4017",
+   "pack_name": "幻想怪物 4017",
+   "source_fbx": "4017_幻想怪物\\PolygonFantasyRivals\\Models\\SM_Wep_DarkElf_01.fbx",
+   "source_sha256": "748e52c4d9a69a73cfc992480b2423cdaab6bb24df39e9ed3f3247f39cd38c58",
+   "texture": "FantasyRivals_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0282,
+    0.1483,
+    1.3207
+   ],
+   "dims_m": [
+    0.0282,
+    0.1483,
+    1.3207
+   ],
+   "bbox_min": [
+    -0.0141,
+    -0.0739,
+    -0.213
+   ],
+   "bbox_max": [
+    0.0141,
+    0.0744,
+    1.1077
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 123,
+   "triangles": 242,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4017/Dwarf_01": {
+   "file": "怪物_4017\\Dwarf_01.glb",
+   "pack": "4017",
+   "pack_name": "幻想怪物 4017",
+   "source_fbx": "4017_幻想怪物\\PolygonFantasyRivals\\Models\\SM_Wep_Dwarf_01.fbx",
+   "source_sha256": "11a6910ace70241d0dd249b37ff354c90e2c9ff1bc352bd472b75f6a1274502a",
+   "texture": "FantasyRivals_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1034,
+    0.297,
+    0.7907
+   ],
+   "dims_m": [
+    0.1034,
+    0.297,
+    0.7907
+   ],
+   "bbox_min": [
+    -0.0517,
+    -0.2017,
+    -0.2937
+   ],
+   "bbox_max": [
+    0.0517,
+    0.0953,
+    0.497
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 146,
+   "triangles": 260,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4017/ElementalGolem_01": {
+   "file": "怪物_4017\\ElementalGolem_01.glb",
+   "pack": "4017",
+   "pack_name": "幻想怪物 4017",
+   "source_fbx": "4017_幻想怪物\\PolygonFantasyRivals\\Models\\SM_Wep_ElementalGolem_01.fbx",
+   "source_sha256": "23cfcf7e9318ffbb95953ac56c5ac2baac977d3aa5ff81f978b3f3c4ce507001",
+   "texture": "FantasyRivals_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.4197,
+    0.4294,
+    1.4733
+   ],
+   "dims_m": [
+    0.4197,
+    0.4294,
+    1.4733
+   ],
+   "bbox_min": [
+    -0.1984,
+    -0.2218,
+    -0.2344
+   ],
+   "bbox_max": [
+    0.2213,
+    0.2075,
+    1.239
+   ],
+   "grip_at_origin": [
+    -0.01,
+    0.0,
+    -0.3327
+   ],
+   "source_origin_offset_in_library": [
+    -0.01,
+    0.0,
+    -0.3327
+   ],
+   "vertices": 341,
+   "triangles": 678,
+   "used_by": [],
+   "attach": {
+    "mode": "grip_origin_game_config",
+    "scale_in_game": 1.0,
+    "bone": "Hand_R",
+    "matrix_hand_local": [
+     0.86602485,
+     0.50000095,
+     0.0,
+     0.0,
+     -4e-08,
+     7e-08,
+     1.0,
+     0.0,
+     0.50000095,
+     -0.86602485,
+     8e-08,
+     0.0,
+     -0.0,
+     1e-08,
+     0.0,
+     1.0
+    ],
+    "note": "将本 GLB 作为 Hand_R 子节点并应用 matrix_hand_local（列主序 4x4），任意同源 Synty 骨架复现游戏内持握"
+   }
+  },
+  "4017/EvilGod_01": {
+   "file": "怪物_4017\\EvilGod_01.glb",
+   "pack": "4017",
+   "pack_name": "幻想怪物 4017",
+   "source_fbx": "4017_幻想怪物\\PolygonFantasyRivals\\Models\\SM_Wep_EvilGod_01.fbx",
+   "source_sha256": "b16c62b5125867975dbb6f2db18d54b7926a953070b044be395701eb381dbd35",
+   "texture": "FantasyRivals_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0761,
+    0.0833,
+    0.5311
+   ],
+   "dims_m": [
+    0.0761,
+    0.0833,
+    0.5311
+   ],
+   "bbox_min": [
+    -0.0347,
+    -0.0385,
+    -0.1822
+   ],
+   "bbox_max": [
+    0.0414,
+    0.0449,
+    0.3489
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 41,
+   "triangles": 78,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4017/ForestGuardian_01": {
+   "file": "怪物_4017\\ForestGuardian_01.glb",
+   "pack": "4017",
+   "pack_name": "幻想怪物 4017",
+   "source_fbx": "4017_幻想怪物\\PolygonFantasyRivals\\Models\\SM_Wep_ForestGuardian_01.fbx",
+   "source_sha256": "97fc3482cae7a22885f3c9a2cc4d522f4063551a3b674a29929c0426868a6ce1",
+   "texture": "FantasyRivals_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.2874,
+    0.2352,
+    2.0806
+   ],
+   "dims_m": [
+    0.2874,
+    0.2352,
+    2.0806
+   ],
+   "bbox_min": [
+    -0.0937,
+    -0.0817,
+    -1.1641
+   ],
+   "bbox_max": [
+    0.1938,
+    0.1534,
+    0.9165
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 239,
+   "triangles": 466,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4017/ForestWitch_01": {
+   "file": "怪物_4017\\ForestWitch_01.glb",
+   "pack": "4017",
+   "pack_name": "幻想怪物 4017",
+   "source_fbx": "4017_幻想怪物\\PolygonFantasyRivals\\Models\\SM_Wep_ForestWitch_01.fbx",
+   "source_sha256": "fc88d4a6531f814749b658a1516b07c927862b55eec400ffa3359d35a7f89987",
+   "texture": "FantasyRivals_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0358,
+    0.037,
+    0.5071
+   ],
+   "dims_m": [
+    0.0358,
+    0.037,
+    0.5071
+   ],
+   "bbox_min": [
+    -0.0173,
+    -0.0223,
+    -0.0837
+   ],
+   "bbox_max": [
+    0.0185,
+    0.0147,
+    0.4234
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 86,
+   "triangles": 168,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4017/FortGolem_01": {
+   "file": "怪物_4017\\FortGolem_01.glb",
+   "pack": "4017",
+   "pack_name": "幻想怪物 4017",
+   "source_fbx": "4017_幻想怪物\\PolygonFantasyRivals\\Models\\SM_Wep_FortGolem_01.fbx",
+   "source_sha256": "39203b4c7c4e4d492cb14c84be812d6f3a56ff7386445f8597cf86075090c16b",
+   "texture": "FantasyRivals_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.3054,
+    0.4981,
+    1.1287
+   ],
+   "dims_m": [
+    0.3054,
+    0.4981,
+    1.1287
+   ],
+   "bbox_min": [
+    -0.1427,
+    -0.2491,
+    -0.1484
+   ],
+   "bbox_max": [
+    0.1627,
+    0.2491,
+    0.9803
+   ],
+   "grip_at_origin": [
+    -0.01,
+    0.0,
+    -0.1027
+   ],
+   "source_origin_offset_in_library": [
+    -0.01,
+    0.0,
+    -0.1027
+   ],
+   "vertices": 521,
+   "triangles": 1008,
+   "used_by": [],
+   "attach": {
+    "mode": "grip_origin_game_config",
+    "scale_in_game": 1.0,
+    "bone": "Hand_R",
+    "matrix_hand_local": [
+     0.86602485,
+     0.50000095,
+     0.0,
+     0.0,
+     -4e-08,
+     7e-08,
+     1.0,
+     0.0,
+     0.50000095,
+     -0.86602485,
+     8e-08,
+     0.0,
+     0.0,
+     -0.0,
+     0.0,
+     1.0
+    ],
+    "note": "将本 GLB 作为 Hand_R 子节点并应用 matrix_hand_local（列主序 4x4），任意同源 Synty 骨架复现游戏内持握"
+   }
+  },
+  "4017/MechanicalGolem_01": {
+   "file": "怪物_4017\\MechanicalGolem_01.glb",
+   "pack": "4017",
+   "pack_name": "幻想怪物 4017",
+   "source_fbx": "4017_幻想怪物\\PolygonFantasyRivals\\Models\\SM_Wep_MechanicalGolem_01.fbx",
+   "source_sha256": "4eb9dad5223fbe102531965bdc15d0d0d511e807f4c122a4d72a6dcb8d652751",
+   "texture": "FantasyRivals_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.2393,
+    0.4259,
+    1.6465
+   ],
+   "dims_m": [
+    0.2393,
+    0.4259,
+    1.6465
+   ],
+   "bbox_min": [
+    -0.0996,
+    -0.334,
+    -0.179
+   ],
+   "bbox_max": [
+    0.1397,
+    0.0919,
+    1.4674
+   ],
+   "grip_at_origin": [
+    -0.01,
+    0.0,
+    -0.3327
+   ],
+   "source_origin_offset_in_library": [
+    -0.01,
+    0.0,
+    -0.3327
+   ],
+   "vertices": 258,
+   "triangles": 512,
+   "used_by": [],
+   "attach": {
+    "mode": "grip_origin_game_config",
+    "scale_in_game": 1.0,
+    "bone": "Hand_R",
+    "matrix_hand_local": [
+     0.86602485,
+     0.50000095,
+     0.0,
+     0.0,
+     -4e-08,
+     7e-08,
+     1.0,
+     0.0,
+     0.50000095,
+     -0.86602485,
+     8e-08,
+     0.0,
+     -0.0,
+     1e-08,
+     0.0,
+     1.0
+    ],
+    "note": "将本 GLB 作为 Hand_R 子节点并应用 matrix_hand_local（列主序 4x4），任意同源 Synty 骨架复现游戏内持握"
+   }
+  },
+  "4017/MechanicalGolem_02": {
+   "file": "怪物_4017\\MechanicalGolem_02.glb",
+   "pack": "4017",
+   "pack_name": "幻想怪物 4017",
+   "source_fbx": "4017_幻想怪物\\PolygonFantasyRivals\\Models\\SM_Wep_MechanicalGolem_02.fbx",
+   "source_sha256": "544f049d0ad35e2b6d86db03c295c08c40e256762121e12378ac18e45a0d454e",
+   "texture": "FantasyRivals_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.5513,
+    1.2799,
+    1.0528
+   ],
+   "dims_m": [
+    0.5513,
+    1.2799,
+    1.0528
+   ],
+   "bbox_min": [
+    -0.2755,
+    -1.1629,
+    -0.7533
+   ],
+   "bbox_max": [
+    0.2758,
+    0.1169,
+    0.2994
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 607,
+   "triangles": 1174,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4017/Medusa_01": {
+   "file": "怪物_4017\\Medusa_01.glb",
+   "pack": "4017",
+   "pack_name": "幻想怪物 4017",
+   "source_fbx": "4017_幻想怪物\\PolygonFantasyRivals\\Models\\SM_Wep_Medusa_01.fbx",
+   "source_sha256": "a8e10577f2f68334bb8f9dc23e52b854cee307c539b3e95c129c0c8b468365c2",
+   "texture": "FantasyRivals_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1242,
+    0.1485,
+    1.5099
+   ],
+   "dims_m": [
+    0.1242,
+    0.1485,
+    1.5099
+   ],
+   "bbox_min": [
+    -0.0621,
+    -0.0742,
+    -0.951
+   ],
+   "bbox_max": [
+    0.0621,
+    0.0742,
+    0.5589
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 343,
+   "triangles": 678,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4017/MutantGuy_01": {
+   "file": "怪物_4017\\MutantGuy_01.glb",
+   "pack": "4017",
+   "pack_name": "幻想怪物 4017",
+   "source_fbx": "4017_幻想怪物\\PolygonFantasyRivals\\Models\\SM_Wep_MutantGuy_01.fbx",
+   "source_sha256": "6fab027a38ac0fea692f5054b95aa965f555d808612eeec1e7f58c8c7108ec75",
+   "texture": "FantasyRivals_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.5589,
+    0.4694,
+    1.212
+   ],
+   "dims_m": [
+    0.5589,
+    0.4694,
+    1.212
+   ],
+   "bbox_min": [
+    -0.3043,
+    -0.2236,
+    -0.3013
+   ],
+   "bbox_max": [
+    0.2546,
+    0.2458,
+    0.9107
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 879,
+   "triangles": 1546,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4017/Mystic_01": {
+   "file": "怪物_4017\\Mystic_01.glb",
+   "pack": "4017",
+   "pack_name": "幻想怪物 4017",
+   "source_fbx": "4017_幻想怪物\\PolygonFantasyRivals\\Models\\SM_Wep_Mystic_01.fbx",
+   "source_sha256": "5cd250cd21ed6988d083eddd1de31aabbf5b3d6cf055bf8d4e3cac33ce2b39c1",
+   "texture": "FantasyRivals_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0572,
+    0.1713,
+    0.6984
+   ],
+   "dims_m": [
+    0.0572,
+    0.1713,
+    0.6984
+   ],
+   "bbox_min": [
+    -0.0286,
+    -0.1332,
+    -0.1383
+   ],
+   "bbox_max": [
+    0.0286,
+    0.0381,
+    0.5601
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 86,
+   "triangles": 161,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4017/PigButcher_01": {
+   "file": "怪物_4017\\PigButcher_01.glb",
+   "pack": "4017",
+   "pack_name": "幻想怪物 4017",
+   "source_fbx": "4017_幻想怪物\\PolygonFantasyRivals\\Models\\SM_Wep_PigButcher_01.fbx",
+   "source_sha256": "c85e312e874de83b5af54ce441d8f7977d1d7f91746ec292b5df70d54128976b",
+   "texture": "FantasyRivals_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.136,
+    0.629,
+    1.5029
+   ],
+   "dims_m": [
+    0.136,
+    0.629,
+    1.5029
+   ],
+   "bbox_min": [
+    -0.068,
+    -0.4645,
+    -0.2382
+   ],
+   "bbox_max": [
+    0.068,
+    0.1645,
+    1.2647
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 479,
+   "triangles": 963,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4017/RedDemon_01": {
+   "file": "怪物_4017\\RedDemon_01.glb",
+   "pack": "4017",
+   "pack_name": "幻想怪物 4017",
+   "source_fbx": "4017_幻想怪物\\PolygonFantasyRivals\\Models\\SM_Wep_RedDemon_01.fbx",
+   "source_sha256": "d1ab7c8e73339db06e5a166cf96fa5ee8cd1336cd78a87079f7c1cee941026b4",
+   "texture": "FantasyRivals_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1948,
+    0.1948,
+    2.0999
+   ],
+   "dims_m": [
+    0.1948,
+    0.1948,
+    2.0999
+   ],
+   "bbox_min": [
+    -0.0974,
+    -0.0974,
+    -1.0499
+   ],
+   "bbox_max": [
+    0.0974,
+    0.0974,
+    1.0499
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 908,
+   "triangles": 1812,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4017/Slayer_01": {
+   "file": "怪物_4017\\Slayer_01.glb",
+   "pack": "4017",
+   "pack_name": "幻想怪物 4017",
+   "source_fbx": "4017_幻想怪物\\PolygonFantasyRivals\\Models\\SM_Wep_Slayer_01.fbx",
+   "source_sha256": "8e344b76d43730912e21af0800ed64e974d555d191f294ffb1eaaa4b53c13bb3",
+   "texture": "FantasyRivals_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1922,
+    0.4262,
+    1.9638
+   ],
+   "dims_m": [
+    0.1922,
+    0.4262,
+    1.9638
+   ],
+   "bbox_min": [
+    -0.0961,
+    -0.1923,
+    -0.3178
+   ],
+   "bbox_max": [
+    0.0961,
+    0.2339,
+    1.6461
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 370,
+   "triangles": 700,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4017/SpiritDemon_01": {
+   "file": "怪物_4017\\SpiritDemon_01.glb",
+   "pack": "4017",
+   "pack_name": "幻想怪物 4017",
+   "source_fbx": "4017_幻想怪物\\PolygonFantasyRivals\\Models\\SM_Wep_SpiritDemon_01.fbx",
+   "source_sha256": "bcf1b4dc601779e11cf6eb8163807c5eb00ef6ded750d4fbc02b0f7cfea778df",
+   "texture": "FantasyRivals_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.05,
+    0.898,
+    1.0663
+   ],
+   "dims_m": [
+    0.05,
+    0.898,
+    1.0663
+   ],
+   "bbox_min": [
+    -0.025,
+    -0.8076,
+    -0.55
+   ],
+   "bbox_max": [
+    0.025,
+    0.0904,
+    0.5163
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 192,
+   "triangles": 380,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "4017/Troll_01": {
+   "file": "怪物_4017\\Troll_01.glb",
+   "pack": "4017",
+   "pack_name": "幻想怪物 4017",
+   "source_fbx": "4017_幻想怪物\\PolygonFantasyRivals\\Models\\SM_Wep_Troll_01.fbx",
+   "source_sha256": "e8b5dc2b6d3f23d48cafe78e93ca631a2e8da17e5cc7339d962e5b5363b85263",
+   "texture": "FantasyRivals_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.572,
+    0.6686,
+    1.4826
+   ],
+   "dims_m": [
+    0.572,
+    0.6686,
+    1.4826
+   ],
+   "bbox_min": [
+    -0.2807,
+    -0.3432,
+    -0.3213
+   ],
+   "bbox_max": [
+    0.2913,
+    0.3253,
+    1.1613
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 626,
+   "triangles": 1186,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/AAGun_01": {
+   "file": "末日_463\\AAGun_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_AAGun_01.fbx",
+   "source_sha256": "75a8c75f7c4cb4ca4643c71ce63d4669370308bdb465740a4377ca55a4cc7876",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    1.2081,
+    2.1061,
+    1.6006
+   ],
+   "dims_m": [
+    1.2081,
+    2.1061,
+    1.6006
+   ],
+   "bbox_min": [
+    -0.6041,
+    -1.053,
+    -0.0
+   ],
+   "bbox_max": [
+    0.6041,
+    1.053,
+    1.6006
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 5188,
+   "triangles": 9438,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/AssaultRifle_01": {
+   "file": "末日_463\\AssaultRifle_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_AssaultRifle_01.fbx",
+   "source_sha256": "ab332b8fd30b97e659a3d7dfa361bef1f77ce9a7ac6d353b36ec38eb2b4ccab7",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0721,
+    1.0293,
+    0.3327
+   ],
+   "dims_m": [
+    0.0721,
+    1.0293,
+    0.3327
+   ],
+   "bbox_min": [
+    -0.0428,
+    -0.7232,
+    -0.1839
+   ],
+   "bbox_max": [
+    0.0293,
+    0.3061,
+    0.1488
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 1366,
+   "triangles": 2527,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/AssaultRifle_02": {
+   "file": "末日_463\\AssaultRifle_02.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_AssaultRifle_02.fbx",
+   "source_sha256": "9ecaca474fb5a8f0e7900715f453618b2602a0bf495b0e0e6bfffe328124185e",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1028,
+    1.0847,
+    0.3505
+   ],
+   "dims_m": [
+    0.1028,
+    1.0847,
+    0.3505
+   ],
+   "bbox_min": [
+    -0.0683,
+    -0.7192,
+    -0.1715
+   ],
+   "bbox_max": [
+    0.0345,
+    0.3655,
+    0.179
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 1594,
+   "triangles": 2955,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/AssaultRifle_03": {
+   "file": "末日_463\\AssaultRifle_03.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_AssaultRifle_03.fbx",
+   "source_sha256": "b16d9a18d1c4a0147caa5b50c7706b1fe7870fe2830a22ced62e65cfa1e48ee7",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0813,
+    1.0542,
+    0.2917
+   ],
+   "dims_m": [
+    0.0813,
+    1.0542,
+    0.2917
+   ],
+   "bbox_min": [
+    -0.0473,
+    -0.7135,
+    -0.1421
+   ],
+   "bbox_max": [
+    0.0339,
+    0.3407,
+    0.1496
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 1055,
+   "triangles": 1960,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Bat_Metal_01": {
+   "file": "末日_463\\Bat_Metal_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Bat_Metal_01.fbx",
+   "source_sha256": "9fad598cf056f81e318229d0958c051445172a646299bbb58544b1fc36c18f31",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1104,
+    1.0194,
+    0.2592
+   ],
+   "dims_m": [
+    0.1104,
+    1.0194,
+    0.2592
+   ],
+   "bbox_min": [
+    -0.0552,
+    -0.8617,
+    -0.1308
+   ],
+   "bbox_max": [
+    0.0552,
+    0.1578,
+    0.1285
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 696,
+   "triangles": 1380,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Bat_Wood_01": {
+   "file": "末日_463\\Bat_Wood_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Bat_Wood_01.fbx",
+   "source_sha256": "934cbe0f8e4b56b682283e3ac6c3a40c33aba3f2abeb8f50abb401c68ebf582b",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1544,
+    0.9527,
+    0.1547
+   ],
+   "dims_m": [
+    0.1544,
+    0.9527,
+    0.1547
+   ],
+   "bbox_min": [
+    -0.0753,
+    -0.9527,
+    -0.0785
+   ],
+   "bbox_max": [
+    0.0791,
+    0.0,
+    0.0763
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 379,
+   "triangles": 718,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Bat_Wood_02": {
+   "file": "末日_463\\Bat_Wood_02.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Bat_Wood_02.fbx",
+   "source_sha256": "2d6680c5fb612fa400afb4a2af12c2b0ce2d8b4dfa07927f76a85c6ef879d0a9",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1,
+    0.9527,
+    0.0998
+   ],
+   "dims_m": [
+    0.1,
+    0.9527,
+    0.0998
+   ],
+   "bbox_min": [
+    -0.0478,
+    -0.9527,
+    -0.052
+   ],
+   "bbox_max": [
+    0.0522,
+    0.0,
+    0.0478
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 574,
+   "triangles": 1060,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Baton_01": {
+   "file": "末日_463\\Baton_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Baton_01.fbx",
+   "source_sha256": "476fbf3181287c82af74a410e691e0714d458031b5fd7b55199c2b2c1750bceb",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.2149,
+    0.7198,
+    0.0788
+   ],
+   "dims_m": [
+    0.2149,
+    0.7198,
+    0.0788
+   ],
+   "bbox_min": [
+    -0.0394,
+    -0.6218,
+    -0.0394
+   ],
+   "bbox_max": [
+    0.1755,
+    0.0981,
+    0.0394
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 132,
+   "triangles": 250,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Baton_02": {
+   "file": "末日_463\\Baton_02.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Baton_02.fbx",
+   "source_sha256": "d1aa8651c33406bef05123fafde99e89dc1ee7138f122129f6a9a2018d72202f",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.2149,
+    0.7198,
+    0.0788
+   ],
+   "dims_m": [
+    0.2149,
+    0.7198,
+    0.0788
+   ],
+   "bbox_min": [
+    -0.0394,
+    -0.6218,
+    -0.0394
+   ],
+   "bbox_max": [
+    0.1755,
+    0.0981,
+    0.0394
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 257,
+   "triangles": 460,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Bomb_GasCan_01": {
+   "file": "末日_463\\Bomb_GasCan_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Bomb_GasCan_01.fbx",
+   "source_sha256": "bd7ac2aaf7d48333a15fc617bb824d18b7a02d2813912b6f54983e36d7ebbcb2",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.2335,
+    0.3511,
+    0.4088
+   ],
+   "dims_m": [
+    0.2335,
+    0.3511,
+    0.4088
+   ],
+   "bbox_min": [
+    -0.121,
+    -0.1755,
+    -0.0
+   ],
+   "bbox_max": [
+    0.1124,
+    0.1755,
+    0.4088
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 498,
+   "triangles": 976,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Bomb_Propane_01": {
+   "file": "末日_463\\Bomb_Propane_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Bomb_Propane_01.fbx",
+   "source_sha256": "1527dcdc61ad753388defc0903c993f8a5753899e578b144d40641b1683b49cc",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.3318,
+    0.3714,
+    0.4734
+   ],
+   "dims_m": [
+    0.3318,
+    0.3714,
+    0.4734
+   ],
+   "bbox_min": [
+    -0.168,
+    -0.1857,
+    -0.0
+   ],
+   "bbox_max": [
+    0.1639,
+    0.1857,
+    0.4734
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 615,
+   "triangles": 1228,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Butcher_01": {
+   "file": "末日_463\\Butcher_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Butcher_01.fbx",
+   "source_sha256": "c4a78da65bc975bd81b20952976149dadbeff1e38ba146c15a541a6023ab48ba",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0286,
+    0.3949,
+    0.1299
+   ],
+   "dims_m": [
+    0.0286,
+    0.3949,
+    0.1299
+   ],
+   "bbox_min": [
+    -0.0143,
+    -0.301,
+    -0.1088
+   ],
+   "bbox_max": [
+    0.0143,
+    0.0939,
+    0.0211
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 155,
+   "triangles": 310,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/ChainSaw_01": {
+   "file": "末日_463\\ChainSaw_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_ChainSaw_01.fbx",
+   "source_sha256": "88581e2d3f8357b01144346b9648aabc6fced663d06345a4e8c9217b12eb3770",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.3549,
+    1.0969,
+    0.3155
+   ],
+   "dims_m": [
+    0.3549,
+    1.0969,
+    0.3155
+   ],
+   "bbox_min": [
+    -0.1104,
+    -1.0063,
+    -0.1413
+   ],
+   "bbox_max": [
+    0.2446,
+    0.0906,
+    0.1742
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 916,
+   "triangles": 1693,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Cross_01": {
+   "file": "末日_463\\Cross_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Cross_01.fbx",
+   "source_sha256": "1c136108379e3b8b89224f9214a06026e2a904b941837819e4fa55aed85f5a0f",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.2631,
+    0.0577,
+    0.5202
+   ],
+   "dims_m": [
+    0.2631,
+    0.0577,
+    0.5202
+   ],
+   "bbox_min": [
+    -0.1316,
+    -0.0288,
+    -0.3051
+   ],
+   "bbox_max": [
+    0.1316,
+    0.0288,
+    0.2151
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 94,
+   "triangles": 176,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/CrossBow_01": {
+   "file": "末日_463\\CrossBow_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_CrossBow_01.fbx",
+   "source_sha256": "cf4e2594d5b82e07f80344a59688451826ceff9a4afec90aca882ea7d629a810",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.6899,
+    1.1466,
+    0.2727
+   ],
+   "dims_m": [
+    0.6899,
+    1.1466,
+    0.2727
+   ],
+   "bbox_min": [
+    -0.3449,
+    -0.829,
+    -0.0916
+   ],
+   "bbox_max": [
+    0.3449,
+    0.3176,
+    0.1811
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 2105,
+   "triangles": 3992,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/CrossBow_Clean_01": {
+   "file": "末日_463\\CrossBow_Clean_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_CrossBow_Clean_01.fbx",
+   "source_sha256": "3ede746b42ae6ab9f79508204590f59e332cd63d9baccd94a09efc869eb7f08e",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.6899,
+    1.1466,
+    0.2727
+   ],
+   "dims_m": [
+    0.6899,
+    1.1466,
+    0.2727
+   ],
+   "bbox_min": [
+    -0.3449,
+    -0.829,
+    -0.0916
+   ],
+   "bbox_max": [
+    0.3449,
+    0.3176,
+    0.1811
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 1487,
+   "triangles": 2826,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Crowbar_01": {
+   "file": "末日_463\\Crowbar_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Crowbar_01.fbx",
+   "source_sha256": "db0eb31259206e69004dcdee45b314c1200a01edc3a1e5e73e13f9f71db6541a",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0613,
+    1.0782,
+    0.2784
+   ],
+   "dims_m": [
+    0.0613,
+    1.0782,
+    0.2784
+   ],
+   "bbox_min": [
+    -0.0307,
+    -0.5945,
+    -0.1996
+   ],
+   "bbox_max": [
+    0.0307,
+    0.4837,
+    0.0788
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 262,
+   "triangles": 520,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Crutch_01": {
+   "file": "末日_463\\Crutch_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Crutch_01.fbx",
+   "source_sha256": "44d44fb614b11cbd19a26511cd2e0b8c5306551e72256d67d5264a5e49e3f2ad",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0677,
+    1.2752,
+    0.2514
+   ],
+   "dims_m": [
+    0.0677,
+    1.2752,
+    0.2514
+   ],
+   "bbox_min": [
+    -0.0338,
+    -1.2081,
+    -0.1257
+   ],
+   "bbox_max": [
+    0.0338,
+    0.0671,
+    0.1257
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 431,
+   "triangles": 834,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/FireAxe_01": {
+   "file": "末日_463\\FireAxe_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_FireAxe_01.fbx",
+   "source_sha256": "c2ffdfd85a337ff8630bf83b7ade46637d2511341ac120465defaee6cf7e3566",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1214,
+    0.9765,
+    0.3523
+   ],
+   "dims_m": [
+    0.1214,
+    0.9765,
+    0.3523
+   ],
+   "bbox_min": [
+    -0.0607,
+    -0.5807,
+    -0.144
+   ],
+   "bbox_max": [
+    0.0607,
+    0.3958,
+    0.2083
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 598,
+   "triangles": 1156,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/FlameThrower_01": {
+   "file": "末日_463\\FlameThrower_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_FlameThrower_01.fbx",
+   "source_sha256": "8c716123942cfa6237a264cd523702a5f493549edd61f9f2fedb1f00888ed11d",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1845,
+    1.532,
+    0.3022
+   ],
+   "dims_m": [
+    0.1845,
+    1.532,
+    0.3022
+   ],
+   "bbox_min": [
+    -0.0921,
+    -1.193,
+    -0.0857
+   ],
+   "bbox_max": [
+    0.0924,
+    0.339,
+    0.2165
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 1854,
+   "triangles": 3578,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/FlareGun_01": {
+   "file": "末日_463\\FlareGun_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_FlareGun_01.fbx",
+   "source_sha256": "07094922e75ba7716fafb198e9c0bb8878537ea1892db507978cba1fb8293bf2",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0728,
+    0.2816,
+    0.2459
+   ],
+   "dims_m": [
+    0.0728,
+    0.2816,
+    0.2459
+   ],
+   "bbox_min": [
+    -0.0364,
+    -0.2276,
+    -0.1061
+   ],
+   "bbox_max": [
+    0.0364,
+    0.054,
+    0.1398
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 636,
+   "triangles": 1214,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Flashbang_01": {
+   "file": "末日_463\\Flashbang_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Flashbang_01.fbx",
+   "source_sha256": "d3ada92e1bea8dfad676907cb6fb3c3ed486586faf3b0ae538e6581fa5600a59",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0549,
+    0.0713,
+    0.1761
+   ],
+   "dims_m": [
+    0.0549,
+    0.0713,
+    0.1761
+   ],
+   "bbox_min": [
+    -0.0237,
+    -0.0274,
+    -0.0699
+   ],
+   "bbox_max": [
+    0.0312,
+    0.044,
+    0.1062
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 152,
+   "triangles": 286,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Grenade_01": {
+   "file": "末日_463\\Grenade_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Grenade_01.fbx",
+   "source_sha256": "192699c46a6c049e1b4e4d10d860a770b206be6adffc84d1a73ad1faeaec9a48",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0764,
+    0.115,
+    0.1576
+   ],
+   "dims_m": [
+    0.0764,
+    0.115,
+    0.1576
+   ],
+   "bbox_min": [
+    -0.0382,
+    -0.0382,
+    -0.0
+   ],
+   "bbox_max": [
+    0.0382,
+    0.0768,
+    0.1576
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 184,
+   "triangles": 350,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Hammer_01": {
+   "file": "末日_463\\Hammer_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Hammer_01.fbx",
+   "source_sha256": "eb45c30510d1aefbe31ff88ee8472a865bdfc7bec839707be8e4e512911a161d",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0436,
+    0.4464,
+    0.2065
+   ],
+   "dims_m": [
+    0.0436,
+    0.4464,
+    0.2065
+   ],
+   "bbox_min": [
+    -0.0218,
+    -0.2937,
+    -0.0928
+   ],
+   "bbox_max": [
+    0.0218,
+    0.1527,
+    0.1137
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 210,
+   "triangles": 416,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/HuntingRifle_01": {
+   "file": "末日_463\\HuntingRifle_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_HuntingRifle_01.fbx",
+   "source_sha256": "dc9fe11b39e446146d6cb4dcb6b337cf37184181250c95686f5a8c8b16453c2c",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.101,
+    1.3205,
+    0.2585
+   ],
+   "dims_m": [
+    0.101,
+    1.3205,
+    0.2585
+   ],
+   "bbox_min": [
+    -0.0597,
+    -0.9622,
+    -0.1291
+   ],
+   "bbox_max": [
+    0.0414,
+    0.3583,
+    0.1294
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 1743,
+   "triangles": 3299,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/HuntingRifle_Clean_01": {
+   "file": "末日_463\\HuntingRifle_Clean_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_HuntingRifle_Clean_01.fbx",
+   "source_sha256": "09593ef20853e9e3c4f6047a200289abb98adcdadabdc1b7a068a9f526f89f74",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0713,
+    1.3205,
+    0.2478
+   ],
+   "dims_m": [
+    0.0713,
+    1.3205,
+    0.2478
+   ],
+   "bbox_min": [
+    -0.0357,
+    -0.9622,
+    -0.12
+   ],
+   "bbox_max": [
+    0.0357,
+    0.3583,
+    0.1278
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 742,
+   "triangles": 1352,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Hybrid_01": {
+   "file": "末日_463\\Hybrid_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Hybrid_01.fbx",
+   "source_sha256": "a3961e0280d8aa41804c54c38083a08355af0ef61c771cf1237e0b08733f2ad3",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1614,
+    0.8624,
+    0.2235
+   ],
+   "dims_m": [
+    0.1614,
+    0.8624,
+    0.2235
+   ],
+   "bbox_min": [
+    -0.0834,
+    -0.5834,
+    -0.0933
+   ],
+   "bbox_max": [
+    0.0779,
+    0.279,
+    0.1302
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 2439,
+   "triangles": 4604,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Hybrid_02": {
+   "file": "末日_463\\Hybrid_02.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Hybrid_02.fbx",
+   "source_sha256": "2dd4cd87ff984a6f90f1d909954690ba89bc40c4dfe37e26d30dd4370ee31c9a",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.2493,
+    1.0338,
+    0.2612
+   ],
+   "dims_m": [
+    0.2493,
+    1.0338,
+    0.2612
+   ],
+   "bbox_min": [
+    -0.0754,
+    -0.6668,
+    -0.0943
+   ],
+   "bbox_max": [
+    0.1739,
+    0.367,
+    0.1669
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 1762,
+   "triangles": 3466,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Hybrid_03": {
+   "file": "末日_463\\Hybrid_03.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Hybrid_03.fbx",
+   "source_sha256": "167a601259193a9c09495ae07ea1eb08b42bc2b48cb9fa18d691e722c307042f",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0554,
+    0.7943,
+    0.1871
+   ],
+   "dims_m": [
+    0.0554,
+    0.7943,
+    0.1871
+   ],
+   "bbox_min": [
+    -0.0277,
+    -0.5138,
+    -0.118
+   ],
+   "bbox_max": [
+    0.0277,
+    0.2805,
+    0.0691
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 1263,
+   "triangles": 2410,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Katana_01": {
+   "file": "末日_463\\Katana_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Katana_01.fbx",
+   "source_sha256": "90232ccfbed79d9d8216b29349dde367f364cc358d2be4c9efff67c0a095deee",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0588,
+    0.7914,
+    0.0895
+   ],
+   "dims_m": [
+    0.0588,
+    0.7914,
+    0.0895
+   ],
+   "bbox_min": [
+    -0.0294,
+    -0.6481,
+    -0.0447
+   ],
+   "bbox_max": [
+    0.0294,
+    0.1433,
+    0.0447
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 372,
+   "triangles": 704,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/MachineGun_01": {
+   "file": "末日_463\\MachineGun_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_MachineGun_01.fbx",
+   "source_sha256": "cd0829f776c59109129a1c60f2add430871346d2dc04f438813ed1161f3edcf2",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.2211,
+    1.4071,
+    0.3248
+   ],
+   "dims_m": [
+    0.2211,
+    1.4071,
+    0.3248
+   ],
+   "bbox_min": [
+    -0.0788,
+    -1.0372,
+    -0.1182
+   ],
+   "bbox_max": [
+    0.1423,
+    0.3699,
+    0.2067
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 2340,
+   "triangles": 4365,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/MachineGun_02": {
+   "file": "末日_463\\MachineGun_02.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_MachineGun_02.fbx",
+   "source_sha256": "12badc3dfb895a07aee15882d6318c5ca4b311e3c4c348a5fd10d2f84fe1097a",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1738,
+    1.039,
+    0.3346
+   ],
+   "dims_m": [
+    0.1738,
+    1.039,
+    0.3346
+   ],
+   "bbox_min": [
+    -0.0736,
+    -0.653,
+    -0.075
+   ],
+   "bbox_max": [
+    0.1002,
+    0.386,
+    0.2596
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 3492,
+   "triangles": 6690,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Melee_GolfClub_01": {
+   "file": "末日_463\\Melee_GolfClub_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Melee_GolfClub_01.fbx",
+   "source_sha256": "eadcdcfe32ed10fadb2ac6f3ffe77f879ac21ad7ec020f6a775e30e4d584f815",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0799,
+    1.5656,
+    0.1797
+   ],
+   "dims_m": [
+    0.0799,
+    1.5656,
+    0.1797
+   ],
+   "bbox_min": [
+    -0.0389,
+    -1.3886,
+    -0.0348
+   ],
+   "bbox_max": [
+    0.041,
+    0.177,
+    0.1448
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 574,
+   "triangles": 1100,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Melee_HuntingKnife_01": {
+   "file": "末日_463\\Melee_HuntingKnife_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Melee_HuntingKnife_01.fbx",
+   "source_sha256": "2f089b8f66035bc0467d5bc15432423064caa2be0b94316db2f1f5ab4de39108",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0312,
+    0.3922,
+    0.0632
+   ],
+   "dims_m": [
+    0.0312,
+    0.3922,
+    0.0632
+   ],
+   "bbox_min": [
+    -0.0156,
+    -0.317,
+    -0.0316
+   ],
+   "bbox_max": [
+    0.0156,
+    0.0753,
+    0.0316
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 231,
+   "triangles": 458,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Melee_Machete_01": {
+   "file": "末日_463\\Melee_Machete_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Melee_Machete_01.fbx",
+   "source_sha256": "7a35724d65de912ac49b6f61df69fbf5b35ef3355c540db47ae97ab8e7b2fd5e",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0877,
+    1.0086,
+    0.2252
+   ],
+   "dims_m": [
+    0.0877,
+    1.0086,
+    0.2252
+   ],
+   "bbox_min": [
+    -0.0461,
+    -0.8849,
+    -0.1528
+   ],
+   "bbox_max": [
+    0.0417,
+    0.1237,
+    0.0724
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 456,
+   "triangles": 892,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Melee_Spear_Wood_01": {
+   "file": "末日_463\\Melee_Spear_Wood_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Melee_Spear_Wood_01.fbx",
+   "source_sha256": "fe58f7547f818b93f7915aeb5fcb368725fff7de0266cb60c21de4f2de26345d",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1106,
+    2.3378,
+    0.0783
+   ],
+   "dims_m": [
+    0.1106,
+    2.3378,
+    0.0783
+   ],
+   "bbox_min": [
+    -0.0553,
+    -1.4417,
+    -0.0378
+   ],
+   "bbox_max": [
+    0.0553,
+    0.8961,
+    0.0405
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 449,
+   "triangles": 862,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Minigun_01": {
+   "file": "末日_463\\Minigun_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Minigun_01.fbx",
+   "source_sha256": "284584325b3b96dbfad255cb8d0e29eb5ad8a799c2f46e237baf03a66b92a195",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.4681,
+    1.488,
+    0.4538
+   ],
+   "dims_m": [
+    0.4681,
+    1.488,
+    0.4538
+   ],
+   "bbox_min": [
+    -0.2878,
+    -1.4364,
+    -0.313
+   ],
+   "bbox_max": [
+    0.1803,
+    0.0516,
+    0.1407
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 4053,
+   "triangles": 7522,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Minigun_Clean_01": {
+   "file": "末日_463\\Minigun_Clean_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Minigun_Clean_01.fbx",
+   "source_sha256": "a3a608334f5afafe32ca6a3e17a6d5919b1f08b6b266b7954d17cb419fd01ab0",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.4252,
+    1.4661,
+    0.4105
+   ],
+   "dims_m": [
+    0.4252,
+    1.4661,
+    0.4105
+   ],
+   "bbox_min": [
+    -0.245,
+    -1.4364,
+    -0.313
+   ],
+   "bbox_max": [
+    0.1803,
+    0.0297,
+    0.0974
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 1894,
+   "triangles": 3544,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Molotov_01": {
+   "file": "末日_463\\Molotov_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Molotov_01.fbx",
+   "source_sha256": "ac6b54875b9da1d3b7190999400146dceb15eba310e6a2d66d5390f903331a78",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.093,
+    0.1269,
+    0.3423
+   ],
+   "dims_m": [
+    0.093,
+    0.1269,
+    0.3423
+   ],
+   "bbox_min": [
+    -0.0465,
+    -0.0537,
+    -0.0
+   ],
+   "bbox_max": [
+    0.0465,
+    0.0732,
+    0.3423
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 145,
+   "triangles": 286,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/NailBomb_01": {
+   "file": "末日_463\\NailBomb_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_NailBomb_01.fbx",
+   "source_sha256": "69de0830b3f8b4d457bb9659f4e0d47e18c77a67e8328973d6668418b1a99a24",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1714,
+    0.1784,
+    0.2211
+   ],
+   "dims_m": [
+    0.1714,
+    0.1784,
+    0.2211
+   ],
+   "bbox_min": [
+    -0.0844,
+    -0.0779,
+    -0.0
+   ],
+   "bbox_max": [
+    0.087,
+    0.1006,
+    0.2211
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 376,
+   "triangles": 654,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Nailgun_01": {
+   "file": "末日_463\\Nailgun_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Nailgun_01.fbx",
+   "source_sha256": "e6e2d751d6d646e6d5b26bb6c3597e6dc4b1da74c30c35fb23ff955977cdcae5",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.2127,
+    0.3719,
+    0.5176
+   ],
+   "dims_m": [
+    0.2127,
+    0.3719,
+    0.5176
+   ],
+   "bbox_min": [
+    -0.0408,
+    -0.1859,
+    -0.3249
+   ],
+   "bbox_max": [
+    0.1719,
+    0.1859,
+    0.1926
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 988,
+   "triangles": 1850,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Nailgun_Clean_01": {
+   "file": "末日_463\\Nailgun_Clean_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Nailgun_Clean_01.fbx",
+   "source_sha256": "bd77e10c09b99016140101a15bbd6f60fa7f796fec4a420fac0bda2d685535f9",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0748,
+    0.3719,
+    0.3305
+   ],
+   "dims_m": [
+    0.0748,
+    0.3719,
+    0.3305
+   ],
+   "bbox_min": [
+    -0.0374,
+    -0.2586,
+    -0.1317
+   ],
+   "bbox_max": [
+    0.0374,
+    0.1133,
+    0.1988
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 344,
+   "triangles": 660,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Pipe_01": {
+   "file": "末日_463\\Pipe_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Pipe_01.fbx",
+   "source_sha256": "1a5b22e6d6f8113c98154fc1678d5ff938fcc48cfce77b72c572f5bf12b419e5",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1098,
+    0.9544,
+    0.1267
+   ],
+   "dims_m": [
+    0.1098,
+    0.9544,
+    0.1267
+   ],
+   "bbox_min": [
+    -0.033,
+    -0.4877,
+    -0.0634
+   ],
+   "bbox_max": [
+    0.0768,
+    0.4667,
+    0.0634
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 627,
+   "triangles": 1272,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/PipeBomb_01": {
+   "file": "末日_463\\PipeBomb_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_PipeBomb_01.fbx",
+   "source_sha256": "ea51bd8a14517aed7e1a7156cea6315d806934b75a98044a425d8fcc34e13792",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0768,
+    0.0796,
+    0.2937
+   ],
+   "dims_m": [
+    0.0768,
+    0.0796,
+    0.2937
+   ],
+   "bbox_min": [
+    -0.0384,
+    -0.0398,
+    -0.1468
+   ],
+   "bbox_max": [
+    0.0384,
+    0.0398,
+    0.1468
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 341,
+   "triangles": 572,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/PipeWrench_01": {
+   "file": "末日_463\\PipeWrench_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_PipeWrench_01.fbx",
+   "source_sha256": "b51a1da1020087bf2a4a69fc476deb5a64bc03c2fcb08be714892de5a8221482",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0591,
+    0.883,
+    0.1335
+   ],
+   "dims_m": [
+    0.0591,
+    0.883,
+    0.1335
+   ],
+   "bbox_min": [
+    -0.0267,
+    -0.6457,
+    -0.0391
+   ],
+   "bbox_max": [
+    0.0323,
+    0.2373,
+    0.0944
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 553,
+   "triangles": 1098,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Pistol_01": {
+   "file": "末日_463\\Pistol_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Pistol_01.fbx",
+   "source_sha256": "fd5ce4540411e87336654f0fa403ce24ce9ebbff2f792b3f48ed69f2ceb1799d",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0693,
+    0.8179,
+    0.3072
+   ],
+   "dims_m": [
+    0.0693,
+    0.8179,
+    0.3072
+   ],
+   "bbox_min": [
+    -0.0346,
+    -0.3832,
+    -0.2117
+   ],
+   "bbox_max": [
+    0.0346,
+    0.4348,
+    0.0956
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 919,
+   "triangles": 1764,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Plank_01": {
+   "file": "末日_463\\Plank_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Plank_01.fbx",
+   "source_sha256": "d29bc2d2e6e490dc49bdc8fb093cd41d8abb806630b499fc0dc4028654cebf4d",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.2323,
+    1.0976,
+    0.0996
+   ],
+   "dims_m": [
+    0.2323,
+    1.0976,
+    0.0996
+   ],
+   "bbox_min": [
+    -0.119,
+    -0.815,
+    -0.0511
+   ],
+   "bbox_max": [
+    0.1133,
+    0.2825,
+    0.0485
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 237,
+   "triangles": 434,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/RebarClub_01": {
+   "file": "末日_463\\RebarClub_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_RebarClub_01.fbx",
+   "source_sha256": "3c394a53fc3fc7e5e09e6c26c3507de276be2b4c6120c2df2bc73102c1c59192",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1835,
+    1.3783,
+    0.2418
+   ],
+   "dims_m": [
+    0.1835,
+    1.3783,
+    0.2418
+   ],
+   "bbox_min": [
+    -0.0701,
+    -1.0986,
+    -0.1098
+   ],
+   "bbox_max": [
+    0.1133,
+    0.2797,
+    0.132
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 228,
+   "triangles": 416,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Revolver_01": {
+   "file": "末日_463\\Revolver_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Revolver_01.fbx",
+   "source_sha256": "3f41f61afd73ddcc784de2b9c47c0a6893dda2490e7a19681079373f3aaa72a5",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0554,
+    0.3815,
+    0.2068
+   ],
+   "dims_m": [
+    0.0554,
+    0.3815,
+    0.2068
+   ],
+   "bbox_min": [
+    -0.0277,
+    -0.3231,
+    -0.1031
+   ],
+   "bbox_max": [
+    0.0277,
+    0.0584,
+    0.1036
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 1145,
+   "triangles": 2204,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Revolver_02": {
+   "file": "末日_463\\Revolver_02.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Revolver_02.fbx",
+   "source_sha256": "8d142856264fda0bf653cd313156a2cc84ada1e2d2bc0fecc142b932cfda61ec",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0691,
+    1.1055,
+    0.2909
+   ],
+   "dims_m": [
+    0.0691,
+    1.1055,
+    0.2909
+   ],
+   "bbox_min": [
+    -0.0277,
+    -0.7959,
+    -0.1305
+   ],
+   "bbox_max": [
+    0.0414,
+    0.3096,
+    0.1605
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 2459,
+   "triangles": 4814,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Rifle_01": {
+   "file": "末日_463\\Rifle_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Rifle_01.fbx",
+   "source_sha256": "259ccbda5bbdd11d6681000ac6a7d70213e020e0f279ae0dcfb7c25b95b05843",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1578,
+    0.8673,
+    0.2771
+   ],
+   "dims_m": [
+    0.1578,
+    0.8673,
+    0.2771
+   ],
+   "bbox_min": [
+    -0.0513,
+    -0.5864,
+    -0.1331
+   ],
+   "bbox_max": [
+    0.1065,
+    0.2809,
+    0.144
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 1507,
+   "triangles": 2904,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Rifle_02": {
+   "file": "末日_463\\Rifle_02.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Rifle_02.fbx",
+   "source_sha256": "6eb520e5638769438e6c80879f9a8b46337ae1833ea340dfeb02847ff9a98618",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0834,
+    1.2309,
+    0.3489
+   ],
+   "dims_m": [
+    0.0834,
+    1.2309,
+    0.3489
+   ],
+   "bbox_min": [
+    -0.0473,
+    -0.8094,
+    -0.1919
+   ],
+   "bbox_max": [
+    0.0361,
+    0.4215,
+    0.1569
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 1689,
+   "triangles": 3292,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Rifle_03": {
+   "file": "末日_463\\Rifle_03.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Rifle_03.fbx",
+   "source_sha256": "3ee0fc1ba9080469f0b182ea525fe61e7a9b7644d9ddaec9887532d7f1d89648",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0711,
+    1.1064,
+    0.1781
+   ],
+   "dims_m": [
+    0.0711,
+    1.1064,
+    0.1781
+   ],
+   "bbox_min": [
+    -0.0409,
+    -0.8157,
+    -0.0946
+   ],
+   "bbox_max": [
+    0.0302,
+    0.2908,
+    0.0835
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 1695,
+   "triangles": 3262,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/RocketLauncher_01": {
+   "file": "末日_463\\RocketLauncher_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_RocketLauncher_01.fbx",
+   "source_sha256": "d39a369707bd81476fe9e5f879f318625bd6dc025552f95b534630f3581f61ad",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1839,
+    1.5882,
+    0.3634
+   ],
+   "dims_m": [
+    0.1839,
+    1.5882,
+    0.3634
+   ],
+   "bbox_min": [
+    -0.101,
+    -0.593,
+    -0.1319
+   ],
+   "bbox_max": [
+    0.0829,
+    0.9952,
+    0.2314
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 2850,
+   "triangles": 5350,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Shotgun_01": {
+   "file": "末日_463\\Shotgun_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Shotgun_01.fbx",
+   "source_sha256": "554c96cfcbf53193aeb5c00d40f0a08f408bcdba9ade0289ceba1b67524807a7",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0609,
+    0.6166,
+    0.1917
+   ],
+   "dims_m": [
+    0.0609,
+    0.6166,
+    0.1917
+   ],
+   "bbox_min": [
+    -0.0305,
+    -0.5272,
+    -0.1027
+   ],
+   "bbox_max": [
+    0.0305,
+    0.0894,
+    0.0889
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 634,
+   "triangles": 1184,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Sign_Shield_01": {
+   "file": "末日_463\\Sign_Shield_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Sign_Shield_01.fbx",
+   "source_sha256": "6bf3cb7aeb09fd1f21b1c2186862181347f6bafa9e10b2313628c2c9fe14b35e",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.5072,
+    0.197,
+    0.5071
+   ],
+   "dims_m": [
+    0.5072,
+    0.197,
+    0.5071
+   ],
+   "bbox_min": [
+    -0.2536,
+    -0.1371,
+    -0.2536
+   ],
+   "bbox_max": [
+    0.2536,
+    0.0599,
+    0.2536
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 104,
+   "triangles": 196,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/SniperRifle_01": {
+   "file": "末日_463\\SniperRifle_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_SniperRifle_01.fbx",
+   "source_sha256": "3b4b5579c438aca7c49f9c24402ea325d501b0e324303096701daf919b0464f3",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0826,
+    1.0545,
+    0.2866
+   ],
+   "dims_m": [
+    0.0826,
+    1.0545,
+    0.2866
+   ],
+   "bbox_min": [
+    -0.053,
+    -0.731,
+    -0.1386
+   ],
+   "bbox_max": [
+    0.0295,
+    0.3234,
+    0.148
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 1708,
+   "triangles": 3175,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/SniperRifle_02": {
+   "file": "末日_463\\SniperRifle_02.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_SniperRifle_02.fbx",
+   "source_sha256": "4723e09ff0814e03ab23a73b60b75612da6797cb5a4463188d64d1a39581902d",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0799,
+    1.1742,
+    0.2491
+   ],
+   "dims_m": [
+    0.0799,
+    1.1742,
+    0.2491
+   ],
+   "bbox_min": [
+    -0.0432,
+    -0.8967,
+    -0.1203
+   ],
+   "bbox_max": [
+    0.0366,
+    0.2774,
+    0.1288
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 2159,
+   "triangles": 4085,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/SniperRifle_Pneumatic_01": {
+   "file": "末日_463\\SniperRifle_Pneumatic_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_SniperRifle_Pneumatic_01.fbx",
+   "source_sha256": "cd40359f0c12ec8e10109abdce5d5b1c872b6b08c971317fc88b50db5e675f00",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1496,
+    1.3102,
+    0.2641
+   ],
+   "dims_m": [
+    0.1496,
+    1.3102,
+    0.2641
+   ],
+   "bbox_min": [
+    -0.0488,
+    -0.6761,
+    -0.0999
+   ],
+   "bbox_max": [
+    0.1007,
+    0.6341,
+    0.1642
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 1676,
+   "triangles": 3051,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Spade_01": {
+   "file": "末日_463\\Spade_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Spade_01.fbx",
+   "source_sha256": "7bcffeac9fc7c530c9d97942d720489c35e8391595122a89f2d0a674db3704ef",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0576,
+    1.4389,
+    0.188
+   ],
+   "dims_m": [
+    0.0576,
+    1.4389,
+    0.188
+   ],
+   "bbox_min": [
+    -0.0265,
+    -0.7681,
+    -0.094
+   ],
+   "bbox_max": [
+    0.0311,
+    0.6709,
+    0.094
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 335,
+   "triangles": 670,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/SpearGun_01": {
+   "file": "末日_463\\SpearGun_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_SpearGun_01.fbx",
+   "source_sha256": "3fca8f7c18b44b2649558e38172021f8f1608f6f1c648595e47d138f864fbec0",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0856,
+    1.1072,
+    0.2385
+   ],
+   "dims_m": [
+    0.0856,
+    1.1072,
+    0.2385
+   ],
+   "bbox_min": [
+    -0.0385,
+    -0.7871,
+    -0.1091
+   ],
+   "bbox_max": [
+    0.0471,
+    0.3201,
+    0.1294
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 864,
+   "triangles": 1636,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/SubMGun_01": {
+   "file": "末日_463\\SubMGun_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_SubMGun_01.fbx",
+   "source_sha256": "2fc5c1a141de18ef7a163062d6372adadb0240ae83623b0ecd570b21ce21a229",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0869,
+    0.6356,
+    0.3503
+   ],
+   "dims_m": [
+    0.0869,
+    0.6356,
+    0.3503
+   ],
+   "bbox_min": [
+    -0.0434,
+    -0.3399,
+    -0.2433
+   ],
+   "bbox_max": [
+    0.0434,
+    0.2958,
+    0.107
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 1128,
+   "triangles": 2094,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/SubMGun_02": {
+   "file": "末日_463\\SubMGun_02.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_SubMGun_02.fbx",
+   "source_sha256": "09241382d4637854fdc9f6dd2890ccb12964abfb89d66efa7d50fa27de4e99ff",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.109,
+    0.8463,
+    0.3474
+   ],
+   "dims_m": [
+    0.109,
+    0.8463,
+    0.3474
+   ],
+   "bbox_min": [
+    -0.0545,
+    -0.5296,
+    -0.1597
+   ],
+   "bbox_max": [
+    0.0545,
+    0.3167,
+    0.1877
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 1326,
+   "triangles": 2418,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/SubMGun_03": {
+   "file": "末日_463\\SubMGun_03.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_SubMGun_03.fbx",
+   "source_sha256": "b6c6c9208227064f1bf429f33f209e956bc6aee99286bc42339ea91830ee048f",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0663,
+    0.8787,
+    0.4334
+   ],
+   "dims_m": [
+    0.0663,
+    0.8787,
+    0.4334
+   ],
+   "bbox_min": [
+    -0.0339,
+    -0.6025,
+    -0.2753
+   ],
+   "bbox_max": [
+    0.0324,
+    0.2762,
+    0.1582
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 1470,
+   "triangles": 2694,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/SubMGun_Clean_03": {
+   "file": "末日_463\\SubMGun_Clean_03.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_SubMGun_Clean_03.fbx",
+   "source_sha256": "158b322c189cafef856545373634b6d5ac6ba23d8f183df5f7966eb66e5e6be6",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0663,
+    0.7319,
+    0.4105
+   ],
+   "dims_m": [
+    0.0663,
+    0.7319,
+    0.4105
+   ],
+   "bbox_min": [
+    -0.0339,
+    -0.4577,
+    -0.2523
+   ],
+   "bbox_max": [
+    0.0324,
+    0.2741,
+    0.1582
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 1211,
+   "triangles": 2190,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Trimmer_01": {
+   "file": "末日_463\\Trimmer_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Trimmer_01.fbx",
+   "source_sha256": "24a86f0772954d3663a0ffbfebc5d019091b97d319d180577063dcf4f43de77d",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.3051,
+    1.8458,
+    0.413
+   ],
+   "dims_m": [
+    0.3051,
+    1.8458,
+    0.413
+   ],
+   "bbox_min": [
+    -0.1201,
+    -1.7056,
+    -0.4029
+   ],
+   "bbox_max": [
+    0.185,
+    0.1402,
+    0.0101
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 2512,
+   "triangles": 4645,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Trimmer_Clean_01": {
+   "file": "末日_463\\Trimmer_Clean_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Trimmer_Clean_01.fbx",
+   "source_sha256": "5721817e78ddb3b00db922d2536e9c99d12aeb31bdc757b4f6276e517dd8880d",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.3051,
+    1.8175,
+    0.4105
+   ],
+   "dims_m": [
+    0.3051,
+    1.8175,
+    0.4105
+   ],
+   "bbox_min": [
+    -0.1201,
+    -1.7051,
+    -0.3955
+   ],
+   "bbox_max": [
+    0.185,
+    0.1124,
+    0.015
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 917,
+   "triangles": 1659,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Veh_AA_01": {
+   "file": "末日_463\\Veh_AA_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Veh_AA_01.fbx",
+   "source_sha256": "671df4bc576d90b8a36ab8142d20803e553992f8dbe0b3f9d0783c97f0202ebc",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.4335,
+    1.6505,
+    0.5213
+   ],
+   "dims_m": [
+    0.4335,
+    1.6505,
+    0.5213
+   ],
+   "bbox_min": [
+    -0.32,
+    -1.1346,
+    -0.0
+   ],
+   "bbox_max": [
+    0.1135,
+    0.5159,
+    0.5213
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 2257,
+   "triangles": 4098,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Veh_Harpoon_01": {
+   "file": "末日_463\\Veh_Harpoon_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Veh_Harpoon_01.fbx",
+   "source_sha256": "3afdbf1a22c5327e6adeb372d09bd66af2850720b44202a585d9365140140726",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.3084,
+    1.0961,
+    0.4193
+   ],
+   "dims_m": [
+    0.3084,
+    1.0961,
+    0.4193
+   ],
+   "bbox_min": [
+    -0.1459,
+    -0.5674,
+    -0.0
+   ],
+   "bbox_max": [
+    0.1625,
+    0.5287,
+    0.4193
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 1299,
+   "triangles": 2284,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Veh_MachineGun_01": {
+   "file": "末日_463\\Veh_MachineGun_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Veh_MachineGun_01.fbx",
+   "source_sha256": "4a7824bd19a16dd73201f0385ea88be736c5048608fc4d55cadb9fd267812c93",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.4209,
+    1.2765,
+    0.3127
+   ],
+   "dims_m": [
+    0.4209,
+    1.2765,
+    0.3127
+   ],
+   "bbox_min": [
+    -0.0905,
+    -0.8023,
+    -0.0
+   ],
+   "bbox_max": [
+    0.3303,
+    0.4742,
+    0.3127
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 1065,
+   "triangles": 1838,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Veh_MiniGun_01": {
+   "file": "末日_463\\Veh_MiniGun_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Veh_MiniGun_01.fbx",
+   "source_sha256": "c04a26afca3fb420d11c5255f703924221fab8011d4a3ee7b36647543a1333c7",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.4836,
+    1.4463,
+    0.5353
+   ],
+   "dims_m": [
+    0.4836,
+    1.4463,
+    0.5353
+   ],
+   "bbox_min": [
+    -0.3033,
+    -1.0121,
+    -0.0
+   ],
+   "bbox_max": [
+    0.1803,
+    0.4342,
+    0.5353
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 2752,
+   "triangles": 4990,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Veh_Rocket_01": {
+   "file": "末日_463\\Veh_Rocket_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Veh_Rocket_01.fbx",
+   "source_sha256": "ede2f4cb56f1b8a238789d1aca7206706f1aeb3993149bf948cbeca2cae53301",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1105,
+    0.9115,
+    0.1105
+   ],
+   "dims_m": [
+    0.1105,
+    0.9115,
+    0.1105
+   ],
+   "bbox_min": [
+    -0.0553,
+    -0.4558,
+    -0.0553
+   ],
+   "bbox_max": [
+    0.0553,
+    0.4558,
+    0.0553
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 166,
+   "triangles": 304,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Veh_Rocket_02": {
+   "file": "末日_463\\Veh_Rocket_02.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Veh_Rocket_02.fbx",
+   "source_sha256": "6a95fe9f161b8b4258dbc6238834976cde0853f9518493c49d53f76d8416fe28",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "other",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1105,
+    0.9053,
+    0.1105
+   ],
+   "dims_m": [
+    0.1105,
+    0.9053,
+    0.1105
+   ],
+   "bbox_min": [
+    -0.0553,
+    -0.4526,
+    -0.0553
+   ],
+   "bbox_max": [
+    0.0553,
+    0.4526,
+    0.0553
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 174,
+   "triangles": 320,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Veh_Rocket_Launcher_01": {
+   "file": "末日_463\\Veh_Rocket_Launcher_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Veh_Rocket_Launcher_01.fbx",
+   "source_sha256": "d2539d27f3796db5188803e5df532712ad2d6bfa338820af3bbbe3243d408e69",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.3632,
+    0.9007,
+    0.4596
+   ],
+   "dims_m": [
+    0.3632,
+    0.9007,
+    0.4596
+   ],
+   "bbox_min": [
+    -0.1434,
+    -0.3596,
+    -0.0
+   ],
+   "bbox_max": [
+    0.2198,
+    0.5412,
+    0.4596
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 969,
+   "triangles": 1750,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Veh_Saw_Launcher_01": {
+   "file": "末日_463\\Veh_Saw_Launcher_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Veh_Saw_Launcher_01.fbx",
+   "source_sha256": "7c0f39a9c9469542ee6b518e8a795d910b71aebc9398779ef07db77861708dc5",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "gun",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.4666,
+    1.3144,
+    0.4225
+   ],
+   "dims_m": [
+    0.4666,
+    1.3144,
+    0.4225
+   ],
+   "bbox_min": [
+    -0.2333,
+    -0.9885,
+    -0.0
+   ],
+   "bbox_max": [
+    0.2333,
+    0.3259,
+    0.4225
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 1343,
+   "triangles": 2393,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/WoodAxe_01": {
+   "file": "末日_463\\WoodAxe_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_WoodAxe_01.fbx",
+   "source_sha256": "519fcab6ee9124873641fe3c2d215ec3f465e50e0b831fe671045f82cabc823a",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.1214,
+    0.8655,
+    0.2532
+   ],
+   "dims_m": [
+    0.1214,
+    0.8655,
+    0.2532
+   ],
+   "bbox_min": [
+    -0.0607,
+    -0.4792,
+    -0.1714
+   ],
+   "bbox_max": [
+    0.0607,
+    0.3862,
+    0.0818
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 742,
+   "triangles": 1468,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  },
+  "463/Wrench_01": {
+   "file": "末日_463\\Wrench_01.glb",
+   "pack": "463",
+   "pack_name": "幸存者与僵尸 463",
+   "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Wrench_01.fbx",
+   "source_sha256": "a9e9b5baee1ea8b0c1d04d16ff34880fe66fdbf50a49fb816469a74352b58fd2",
+   "texture": "PolygonApocalypse_Texture_01_A.png",
+   "kind_hint": "melee",
+   "scale_applied": 1.0,
+   "source_dims_m": [
+    0.0676,
+    0.5997,
+    0.085
+   ],
+   "dims_m": [
+    0.0676,
+    0.5997,
+    0.085
+   ],
+   "bbox_min": [
+    -0.0338,
+    -0.2998,
+    -0.0425
+   ],
+   "bbox_max": [
+    0.0338,
+    0.2998,
+    0.0425
+   ],
+   "grip_at_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "source_origin_offset_in_library": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "vertices": 475,
+   "triangles": 916,
+   "used_by": [],
+   "attach": {
+    "mode": "source_pivot",
+    "scale_in_game": 1.0,
+    "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+   }
+  }
+ }
+}

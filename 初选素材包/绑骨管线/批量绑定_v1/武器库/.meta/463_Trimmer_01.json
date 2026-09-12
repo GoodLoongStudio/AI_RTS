@@ -1,0 +1,48 @@
+{
+ "file": "末日_463\\Trimmer_01.glb",
+ "pack": "463",
+ "pack_name": "幸存者与僵尸 463",
+ "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Trimmer_01.fbx",
+ "source_sha256": "24a86f0772954d3663a0ffbfebc5d019091b97d319d180577063dcf4f43de77d",
+ "texture": "PolygonApocalypse_Texture_01_A.png",
+ "kind_hint": "melee",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.3051,
+  1.8458,
+  0.413
+ ],
+ "dims_m": [
+  0.3051,
+  1.8458,
+  0.413
+ ],
+ "bbox_min": [
+  -0.1201,
+  -1.7056,
+  -0.4029
+ ],
+ "bbox_max": [
+  0.185,
+  0.1402,
+  0.0101
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 2512,
+ "triangles": 4645,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}

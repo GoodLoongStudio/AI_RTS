@@ -1,0 +1,48 @@
+{
+ "file": "末日_463\\Spade_01.glb",
+ "pack": "463",
+ "pack_name": "幸存者与僵尸 463",
+ "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Spade_01.fbx",
+ "source_sha256": "7bcffeac9fc7c530c9d97942d720489c35e8391595122a89f2d0a674db3704ef",
+ "texture": "PolygonApocalypse_Texture_01_A.png",
+ "kind_hint": "melee",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.0576,
+  1.4389,
+  0.188
+ ],
+ "dims_m": [
+  0.0576,
+  1.4389,
+  0.188
+ ],
+ "bbox_min": [
+  -0.0265,
+  -0.7681,
+  -0.094
+ ],
+ "bbox_max": [
+  0.0311,
+  0.6709,
+  0.094
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 335,
+ "triangles": 670,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}

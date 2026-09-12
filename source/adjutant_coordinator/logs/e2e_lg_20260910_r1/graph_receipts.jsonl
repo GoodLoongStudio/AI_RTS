@@ -1,0 +1,2 @@
+{"errors": ["based_on_snapshot: 晚于当前已知快照"], "command_id": "2742aa2f-f558-4fb9-90be-47f4540d604f:i-move-1:1", "status": "InvalidCommand", "accepted": false, "reason": "based_on_snapshot: 晚于当前已知快照", "intent_id": "i-move-1", "action": "move"}
+{"errors": ["based_on_snapshot: 晚于当前已知快照"], "command_id": "2742aa2f-f558-4fb9-90be-47f4540d604f:i-reacquire:1", "status": "InvalidCommand", "accepted": false, "reason": "based_on_snapshot: 晚于当前已知快照", "intent_id": "i-reacquire", "action": "move"}

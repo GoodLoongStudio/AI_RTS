@@ -1,0 +1,58 @@
+{
+  "Idle-loop": {
+    "duration": 1.9666666666666666,
+    "samples": 60,
+    "source": "A::Idle",
+    "ground_offset": 0.012610660210251808,
+    "pose_layer": "two-hand rifle grip IK",
+    "loop": true
+  },
+  "Run-loop": {
+    "duration": 0.7,
+    "samples": 22,
+    "source": "A::Run",
+    "ground_offset": 0.018536875300109387,
+    "pose_layer": "two-hand rifle grip IK",
+    "loop": true
+  },
+  "Fire": {
+    "duration": 0.6,
+    "samples": 19,
+    "source": "A::Idle",
+    "ground_offset": 0.011785762660205364,
+    "pose_layer": "authored rifle recoil",
+    "loop": false
+  },
+  "Hit": {
+    "duration": 0.3,
+    "samples": 10,
+    "source": "A::Idle",
+    "ground_offset": 0.011785762660205364,
+    "pose_layer": "fast bullet impact and recovery",
+    "loop": false
+  },
+  "HitHeavy": {
+    "duration": 1.8,
+    "samples": 55,
+    "source": "Death01",
+    "ground_offset": 0.2707534351348877,
+    "pose_layer": "blast launch, airborne fall, landing and terminal dead hold",
+    "loop": false
+  },
+  "Crawl-loop": {
+    "duration": 2.1666666666666665,
+    "samples": 66,
+    "source": "Crawl_Fwd",
+    "ground_offset": 0.11581315034627915,
+    "pose_layer": "right hand rifle carry",
+    "loop": true
+  },
+  "Death": {
+    "duration": 2.4,
+    "samples": 73,
+    "source": "Death01",
+    "ground_offset": 0.34538357639312744,
+    "pose_layer": "right hand rifle carry",
+    "loop": false
+  }
+}

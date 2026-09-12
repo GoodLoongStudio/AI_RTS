@@ -1,0 +1,118 @@
+{
+  "run_id": "e2e_dual_regress_20260910",
+  "PASS": 21,
+  "FAIL": 0,
+  "SKIP": 0,
+  "counts": {
+    "PASS": 21,
+    "FAIL": 0,
+    "SKIP": 0
+  },
+  "results": [
+    {
+      "item": "调试端口就绪",
+      "kind": "PASS",
+      "detail": "server:24572 client:24570"
+    },
+    {
+      "item": "客户端联网（networked=true）",
+      "kind": "PASS",
+      "detail": ""
+    },
+    {
+      "item": "开局指令已发出",
+      "kind": "PASS",
+      "detail": ""
+    },
+    {
+      "item": "对局已就绪",
+      "kind": "PASS",
+      "detail": ""
+    },
+    {
+      "item": "规则视图可导出",
+      "kind": "PASS",
+      "detail": ""
+    },
+    {
+      "item": "新增普通内容 scout 被规则视图发现",
+      "kind": "PASS",
+      "detail": "scout: {\"capabilities\": {\"attack\": false, \"construct\": false, \"force_fire_ground\": false, \"gather\": false, \"move\": true, \"produ"
+    },
+    {
+      "item": "tank 成本变更（555）被规则视图发现",
+      "kind": "PASS",
+      "detail": "实际 tank cost=555"
+    },
+    {
+      "item": "scout 生产关系动态解析为 aircraft_factory",
+      "kind": "PASS",
+      "detail": "['aircraft_factory']"
+    },
+    {
+      "item": "规则版本与对局身份非空",
+      "kind": "PASS",
+      "detail": ""
+    },
+    {
+      "item": "对局单位已装载且解析到人类玩家",
+      "kind": "PASS",
+      "detail": "player=Player_0 units=4"
+    },
+    {
+      "item": "开局存在 worker 与 command_center",
+      "kind": "PASS",
+      "detail": ""
+    },
+    {
+      "item": "CommandCenter 生产 tank 被动态关系拒绝",
+      "kind": "PASS",
+      "detail": "status=InvalidProducer reason=按当前动态生产关系，command_center 不能生产 tank。"
+    },
+    {
+      "item": "副官 build 被权威接受",
+      "kind": "PASS",
+      "detail": "status=Accepted reason="
+    },
+    {
+      "item": "战术快照出现已建成的 vehicle_factory",
+      "kind": "PASS",
+      "detail": "factory=Unit_4 constructed=True"
+    },
+    {
+      "item": "vehicle_factory 生产 tank 被接受（成本 555 从当前账本扣）",
+      "kind": "PASS",
+      "detail": "status=Accepted reason="
+    },
+    {
+      "item": "op=commands 按 command_id 复核到生产终态",
+      "kind": "PASS",
+      "detail": "entries=[{\"accepted\": true, \"action\": \"produce\", \"command_id\": \"e2e-produce-tank\", \"expires_tick\": 99999999, \"issued_tick\": 0, \"match_id\": \"763747ee-c47b-4f54-88fb-98b1"
+    },
+    {
+      "item": "同 ID 同参数重放返回原回执且标记 idempotent_replay",
+      "kind": "PASS",
+      "detail": "status=Accepted replay=True"
+    },
+    {
+      "item": "重放后生产队列没有重复订单（不重复扣费）",
+      "kind": "PASS",
+      "detail": "queue_size=1（应为 1：一个 tank 订单）"
+    },
+    {
+      "item": "玩家手动命令（旧 op 路径）成功",
+      "kind": "PASS",
+      "detail": ""
+    },
+    {
+      "item": "玩家接管后副官再动同一单位被 PlayerOverride 拒绝",
+      "kind": "PASS",
+      "detail": "status=PlayerOverride"
+    },
+    {
+      "item": "显式 reacquire 授权后重新接管成功",
+      "kind": "PASS",
+      "detail": "status=Accepted"
+    }
+  ]
+}

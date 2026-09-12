@@ -1,0 +1,48 @@
+{
+ "file": "科幻_4006\\Shield_02.glb",
+ "pack": "4006",
+ "pack_name": "科幻战争 4006",
+ "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Shield_02.fbx",
+ "source_sha256": "3dfdd10400b92d0d3c156f58db3705c25c8a7b3bc82bad183ad0ebb186f1a8ce",
+ "texture": "PolygonScifiWorlds_Texture_01_A.png",
+ "kind_hint": "other",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.5895,
+  0.1271,
+  1.1338
+ ],
+ "dims_m": [
+  0.5895,
+  0.1271,
+  1.1338
+ ],
+ "bbox_min": [
+  -0.2947,
+  -0.0937,
+  -0.5669
+ ],
+ "bbox_max": [
+  0.2947,
+  0.0334,
+  0.5669
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 532,
+ "triangles": 940,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}

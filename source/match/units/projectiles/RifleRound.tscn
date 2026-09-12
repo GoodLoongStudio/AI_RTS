@@ -9,8 +9,8 @@ emission_enabled = true
 emission = Color(1, 0.95, 0.8, 1)
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_tracer"]
-radius = 0.035
-height = 0.3
+radius = 0.08
+height = 0.6
 
 [node name="RifleRound" instance=ExtResource("1_base")]
 metadata/impact_reaction = "bullet"
@@ -23,7 +23,7 @@ material_override = SubResource("StandardMaterial3D_tracer")
 mesh = SubResource("CapsuleMesh_tracer")
 
 [node name="Sparks" parent="." index="1"]
-visible = false
+visible = true
 
 [node name="Trail" parent="." index="2"]
-visible = false
+visible = true

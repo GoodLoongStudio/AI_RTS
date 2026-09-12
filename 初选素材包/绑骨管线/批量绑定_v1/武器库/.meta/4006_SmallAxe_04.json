@@ -1,0 +1,48 @@
+{
+ "file": "科幻_4006\\SmallAxe_04.glb",
+ "pack": "4006",
+ "pack_name": "科幻战争 4006",
+ "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_SmallAxe_04.fbx",
+ "source_sha256": "7fe9fd6b20fe5b18fa65adfed568703886493450789f8ec2c18cfe858a07841c",
+ "texture": "PolygonScifiWorlds_Texture_01_A.png",
+ "kind_hint": "melee",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.0816,
+  0.2558,
+  0.6146
+ ],
+ "dims_m": [
+  0.0816,
+  0.2558,
+  0.6146
+ ],
+ "bbox_min": [
+  -0.0408,
+  -0.1343,
+  -0.2426
+ ],
+ "bbox_max": [
+  0.0408,
+  0.1215,
+  0.372
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 409,
+ "triangles": 770,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}

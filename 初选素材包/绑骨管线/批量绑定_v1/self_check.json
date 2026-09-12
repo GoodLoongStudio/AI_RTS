@@ -1,0 +1,33 @@
+{
+ "date": "2026-09-09",
+ "scope": "批量绑定_v1 全部 20 个 GLB 的自检（含动图目检第二轮）",
+ "checks": [
+  {"name": "GLB 结构（python 解析 JSON chunk）", "result": "PASS",
+   "detail": "20/20：7 段动画名齐全、骨架+身体+武器、1 个 skin"},
+  {"name": "Blender 重新导入技术验证 validate_batch.py", "result": "PASS",
+   "detail": "20/20：骨数、时长、贴地、武器刚性、循环闭合、根位移、Hit 峰值、HitHeavy 轨迹"},
+  {"name": "Godot 4.7.1 引擎内 GLTFDocument 审核", "result": "PASS",
+   "detail": "checked=20 failures=0"},
+  {"name": "Godot 实机导入管线抽查（科幻/怪物/一战各1）", "result": "PASS",
+   "detail": "导入后剪辑名自动剥 -loop 后缀为 Idle/Run/Fire/Hit/HitHeavy/Crawl/Death，循环模式正确，与 InfantryAnimationDriver 契约一致"},
+  {"name": "动图/索引图逐角色目检（20/20）", "result": "PASS",
+   "detail": "全部 20 张七段索引图逐张目检：站立持枪/持棍待命、跑步、瞄准射击（怪物为挥击）、中弹、爆炸倒地、匍匐、死亡仰倒，姿态全部正确；一战英/德各自步枪、怪物三把近战棍锤、科幻全部 Assault_01。外星人头冠、女性体型、兜帽 Strider、缺席 Neck 权重的 SpaceSuit_Female_02 均正常。"},
+  {"name": "动作进程条抽查", "result": "PASS",
+   "detail": "WW1 HitHeavy 5 帧：站立→腾空后抛→落地仰倒→滑停→定格；怪物 Fire 5 帧：蓄力→抡起→下劈→收势。运动弧线正确。"}
+ ],
+ "issues_found_and_fixed": [
+  {"issue": "render_batch.py 跨 GLB 复用 Blender 会话，bpy.data.actions 按名取动作命中前一个角色的旧动作（Idle-loop.001 累积），导致预览图出现倾斜姿势/空帧",
+   "root_cause": "动作名跨 GLB 冲突 + bind() 取首个同名动作",
+   "fix": "每个 GLB 改为全新 factory 场景渲染；重渲 700 帧并重建全部索引图/GIF 后目检通过",
+   "note": "资产 GLB 本身始终正确（数值验证与单 GLB 复现均正常），缺陷仅在预览渲染器"},
+  {"issue": "怪物躺地剪辑（第一轮构建）棍子竖直把尸体撑起 1.48m",
+   "fix": "躺地剪辑强制棍身水平沿 +Y，已修复"},
+  {"issue": "近战手矩阵带 FBX cm->m 缩放致武器塌缩（第一轮构建）",
+   "fix": "手矩阵 rigid() 归一，已修复"}
+ ],
+ "known_limits": [
+  "审核相机取景沿 v3 士兵参数（目标 z=0.85，ortho 2.4），怪物举手/挥击帧头顶偶有裁切，仅为预览取景，不影响资产",
+  "游戏端接入（单位场景挂载、驱动绑定）未做",
+  "五帧抽样不足以覆盖每帧细节，最终美术定版仍需人工过目 GIF"
+ ]
+}

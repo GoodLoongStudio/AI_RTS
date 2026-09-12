@@ -1,0 +1,48 @@
+{
+ "file": "怪物_4017\\Slayer_01.glb",
+ "pack": "4017",
+ "pack_name": "幻想怪物 4017",
+ "source_fbx": "4017_幻想怪物\\PolygonFantasyRivals\\Models\\SM_Wep_Slayer_01.fbx",
+ "source_sha256": "8e344b76d43730912e21af0800ed64e974d555d191f294ffb1eaaa4b53c13bb3",
+ "texture": "FantasyRivals_Texture_01_A.png",
+ "kind_hint": "other",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.1922,
+  0.4262,
+  1.9638
+ ],
+ "dims_m": [
+  0.1922,
+  0.4262,
+  1.9638
+ ],
+ "bbox_min": [
+  -0.0961,
+  -0.1923,
+  -0.3178
+ ],
+ "bbox_max": [
+  0.0961,
+  0.2339,
+  1.6461
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 370,
+ "triangles": 700,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}

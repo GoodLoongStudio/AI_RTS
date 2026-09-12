@@ -1,0 +1,71 @@
+{
+ "file": "科幻_4006\\Assault_01.glb",
+ "pack": "4006",
+ "pack_name": "科幻战争 4006",
+ "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Assault_01.fbx",
+ "source_sha256": "a0c333274a538acca74091d374a15a5f86434104e9278e6973d301510975c80f",
+ "texture": "PolygonScifiWorlds_Texture_01_A.png",
+ "kind_hint": "other",
+ "scale_applied": 0.8,
+ "source_dims_m": [
+  0.0848,
+  0.9554,
+  0.4153
+ ],
+ "dims_m": [
+  0.0679,
+  0.7644,
+  0.3322
+ ],
+ "bbox_min": [
+  0.0178,
+  -0.5494,
+  -0.1686
+ ],
+ "bbox_max": [
+  0.0856,
+  0.215,
+  0.1636
+ ],
+ "grip_at_origin": [
+  -0.06,
+  0.025,
+  0.018
+ ],
+ "source_origin_offset_in_library": [
+  -0.048,
+  0.02,
+  0.0144
+ ],
+ "vertices": 972,
+ "triangles": 1693,
+ "used_by": [],
+ "attach": {
+  "mode": "grip_origin_game_config",
+  "scale_in_game": 0.8,
+  "config_source_space": {
+   "pos": [
+    -0.1,
+    -0.24,
+    -0.11
+   ],
+   "wrist_r": [
+    -0.06,
+    0.025,
+    0.018
+   ],
+   "wrist_l": [
+    0.11,
+    -0.29,
+    -0.025
+   ],
+   "carry": [
+    -0.048,
+    0.02,
+    0.0144
+   ]
+  },
+  "recipe": "build_batch.py rifle_hold（双手持枪 IK）/ detached_rifle（匍匐、死亡单手拖枪）",
+  "note": "原点=游戏握把点；配置数值在源空间（源原点=库内 +source_origin_offset_in_library）"
+ }
+}

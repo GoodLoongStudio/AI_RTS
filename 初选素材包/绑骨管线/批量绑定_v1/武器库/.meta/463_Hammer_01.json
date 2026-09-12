@@ -1,0 +1,48 @@
+{
+ "file": "末日_463\\Hammer_01.glb",
+ "pack": "463",
+ "pack_name": "幸存者与僵尸 463",
+ "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Hammer_01.fbx",
+ "source_sha256": "eb45c30510d1aefbe31ff88ee8472a865bdfc7bec839707be8e4e512911a161d",
+ "texture": "PolygonApocalypse_Texture_01_A.png",
+ "kind_hint": "melee",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.0436,
+  0.4464,
+  0.2065
+ ],
+ "dims_m": [
+  0.0436,
+  0.4464,
+  0.2065
+ ],
+ "bbox_min": [
+  -0.0218,
+  -0.2937,
+  -0.0928
+ ],
+ "bbox_max": [
+  0.0218,
+  0.1527,
+  0.1137
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 210,
+ "triangles": 416,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}

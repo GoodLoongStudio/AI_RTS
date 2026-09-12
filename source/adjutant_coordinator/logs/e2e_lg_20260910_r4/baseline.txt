@@ -1,0 +1,1 @@
+dc42264ca5ee43519f69cfdd0a529dbbe2a3900f 2026-09-09 21:14:12 +0800 fix(ui): 5 menu panels fit viewport at any resolution (系统性修复)

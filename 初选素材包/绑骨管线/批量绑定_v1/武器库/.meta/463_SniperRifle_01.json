@@ -1,0 +1,48 @@
+{
+ "file": "末日_463\\SniperRifle_01.glb",
+ "pack": "463",
+ "pack_name": "幸存者与僵尸 463",
+ "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_SniperRifle_01.fbx",
+ "source_sha256": "3b4b5579c438aca7c49f9c24402ea325d501b0e324303096701daf919b0464f3",
+ "texture": "PolygonApocalypse_Texture_01_A.png",
+ "kind_hint": "gun",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.0826,
+  1.0545,
+  0.2866
+ ],
+ "dims_m": [
+  0.0826,
+  1.0545,
+  0.2866
+ ],
+ "bbox_min": [
+  -0.053,
+  -0.731,
+  -0.1386
+ ],
+ "bbox_max": [
+  0.0295,
+  0.3234,
+  0.148
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 1708,
+ "triangles": 3175,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}

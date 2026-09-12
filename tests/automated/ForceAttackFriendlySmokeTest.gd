@@ -1,5 +1,7 @@
 extends Node
 
+const SmokeTestWarmup = preload("res://tests/automated/SmokeTestWarmup.gd")
+
 ## 强制攻击友军冒烟测试（2026-09-07）：
 ## 单位与炮塔对友军下达强制攻击后应造成伤害（按友伤倍率结算）。
 
@@ -16,7 +18,7 @@ func _ready():
 	get_tree().create_timer(90.0).timeout.connect(_on_failsafe)
 	var match_instance = MatchScene.instantiate()
 	add_child(match_instance)
-	await get_tree().process_frame
+	await SmokeTestWarmup.wait_for_units(get_tree(), 1)
 	await get_tree().create_timer(0.5).timeout
 
 	var human = match_instance.get_node("Players/Human")

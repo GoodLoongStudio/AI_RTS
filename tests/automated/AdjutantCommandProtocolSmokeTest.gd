@@ -115,15 +115,38 @@ func _ready():
 	var receipts: Array = batch.get("receipts", [])
 	_check(receipts.size() == 2, "批次应为每条命令返回回执")
 
-	# ---------- 幂等账本背压：满时显式拒绝，不静默遗忘 ----------
-	var overflowed := false
+	# ---------- 幂等账本背压：满时**显式淘汰**，绝不永久锁死指挥链 ----------
+	#
+	# 【2026-09-12 实机实测修正】原先这里断言"洪水必须触发 LedgerFull"。
+	# 但 command_id 形如 `<match>|<intent_id>|<attempt>`、intent_id 必须带 tick，
+	# 一局里只增不减；账本又是**进程级、跨对局不重建**，于是跑满 256 条后
+	# **所有**后续命令一律 LedgerFull（实测同局 273/275 条回执都是 LedgerFull、0 接受，
+	# 副官从此一条命令都落不了地，看起来"在跑"其实完全失效）。
+	# 新契约：满时按"①先丢终态、②再丢在途"淘汰一条并在日志留痕（不静默遗忘），
+	# 背压只在**实在淘汰不掉**时才作为最后手段。
+	var locked_out := false
+	var evicted_seen := false
 	for index in range(400):
 		var receipt := _submit("flood-%d" % index, "move",
 			{"units": [worker_name], "dest": [13.0, 13.0], "seq": index})
-		if str(receipt.get("status", "")) == "LedgerFull":
-			overflowed = true
-			break
-	_check(overflowed, "幂等账本满时应显式 LedgerFull 背压而不是静默遗忘")
+		var status := str(receipt.get("status", ""))
+		if status == "LedgerFull":
+			evicted_seen = true          # 允许瞬时背压（同名冲突/在途保护），但不能永久
+			locked_out = true
+		elif status != "PendingAuthority" and not bool(receipt.get("ok", false)):
+			locked_out = true
+	_check(_dbg._adjutant_ledger_size() <= 256,
+		"幂等账本容量必须有界（≤256），实测淘汰后应保持有界")
+	# 洪水 400 条之后**仍然必须能下命令**：这才是"不锁死指挥链"的验收点。
+	var tail := _submit("flood-tail", "move",
+		{"units": [worker_name], "dest": [13.0, 13.0], "seq": 999})
+	var tail_status := str(tail.get("status", ""))
+	_check(tail_status != "LedgerFull",
+		"洪水之后命令仍应被接受（实测淘汰生效；若为 LedgerFull 说明又回到永久锁死）")
+	if evicted_seen:
+		print("[diagnostic] 洪水期间出现过瞬时 LedgerFull（允许，未永久锁死）")
+	_check(not locked_out or tail_status != "LedgerFull",
+		"账本背压不得锁死指挥链")
 
 	print("Adjutant command protocol smoke test completed: %d failure(s)" % _failures)
 	_match.queue_free()

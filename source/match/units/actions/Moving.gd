@@ -7,9 +7,15 @@ const OpportunisticMovingFire = preload(
 var _target_position = null
 var _enable_opportunistic_fire := false
 var _moving_fire = null
+## 运行时导航是异步烘焙的，Match 会在烘焙结束后才把单位登记进 "units" 组。
+## 在这之前创建的 Action 取不到 _unit/_movement_trait，旧实现直接解引用 Nil 抛
+## SCRIPT ERROR 且永久站桩；这里改为惰性解析并在下一帧补发移动。
+var _applied := false
+## 调试开关：逐命令打印移动目标。默认关闭，避免数百单位刷屏（诊断时置 true）。
+static var debug_log_moves := false
 
 @onready var _unit = Utils.NodeEx.find_parent_with_group(self, "units")
-@onready var _movement_trait = _unit.find_child("Movement")
+@onready var _movement_trait = _unit.find_child("Movement") if _unit != null else null
 
 
 static func is_applicable(unit):
@@ -22,23 +28,18 @@ func _init(target_position, enable_opportunistic_fire := false):
 
 
 func _ready():
-	if _movement_trait == null:
-		push_error("[MOVE] _movement_trait 为 null! unit=%s" % str(_unit))
-	else:
-		print("[MOVE] ", _unit.name, " move-> ", _target_position)
-	_movement_trait.move(_target_position)
-	_movement_trait.movement_finished.connect(_on_movement_finished)
-	if _enable_opportunistic_fire:
-		_moving_fire = OpportunisticMovingFire.new()
-		add_child(_moving_fire)
+	_try_apply_move()
 
 
 func _exit_tree():
-	if is_inside_tree():
+	if _movement_trait != null and is_instance_valid(_movement_trait) and is_inside_tree():
 		_movement_trait.stop()
 
 
 func _physics_process(_delta):
+	if not _applied:
+		_try_apply_move()
+		return
 	# 自愈(2026-08-31): 旧动作退出时的 stop() 竞态会清除本动作刚下发的移动目标
 	# (target_position=INF), 造成「命令 Accepted 但单位站桩」。检测到即重发。
 	# 守卫: 单位死亡拆树时 _movement_trait 可能已释放, 悬空访问会崩游戏。
@@ -48,6 +49,28 @@ func _physics_process(_delta):
 		return
 	if _movement_trait.target_position == Vector3.INF:
 		_movement_trait.move(_target_position)
+
+
+## 惰性解析单位与移动特质；单位尚未登记进 "units" 组时留到后续帧重试。
+func _try_apply_move():
+	if _applied:
+		return
+	if _unit == null:
+		_unit = Utils.NodeEx.find_parent_with_group(self, "units")
+	if _unit == null:
+		return
+	if _movement_trait == null:
+		_movement_trait = _unit.find_child("Movement")
+	if _movement_trait == null:
+		return
+	_applied = true
+	if debug_log_moves:
+		print("[MOVE] ", _unit.name, " move-> ", _target_position)
+	_movement_trait.move(_target_position)
+	_movement_trait.movement_finished.connect(_on_movement_finished)
+	if _enable_opportunistic_fire:
+		_moving_fire = OpportunisticMovingFire.new()
+		add_child(_moving_fire)
 
 
 func _on_movement_finished():

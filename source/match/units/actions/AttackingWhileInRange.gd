@@ -198,6 +198,15 @@ func _hit_target():
 	_schedule_hit()
 
 
+## 表现层：本次开火的真实瞄准点（权威端 `Unit._broadcast_fired` 取它发给客户端）。
+## 客户端是傀儡、没有 Action，原先只能按"朝向前方 attack_range 米"猜弹道终点
+## → 敌人比射程近时会明显打过头（用户报"子弹落点不对"）。这里把权威瞄准点直接下发。
+func presentation_aim_point() -> Vector3:
+	if _target_unit != null and is_instance_valid(_target_unit):
+		return _target_unit.global_position
+	return Vector3.INF
+
+
 func _teardown_if_out_of_range():
 	if (
 		_unit.global_position_yless.distance_to(_target_unit.global_position_yless)

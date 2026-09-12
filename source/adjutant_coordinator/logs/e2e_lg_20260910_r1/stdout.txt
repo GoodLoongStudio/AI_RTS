@@ -1,0 +1,4 @@
+run_id=e2e_lg_20260910_r1 run_dir=G:\AIRTS\AI_RTS\source\adjutant_coordinator\logs\e2e_lg_20260910_r1
+baseline commit: dc42264ca5ee43519f69cfdd0a529dbbe2a3900f 2026-09-09 21:14:12 +0800 fix(ui): 5 menu panels fit viewport at any resolution (系统性修复)
+  [PASS] 调试端口就绪 | server:24572 client:24570
+  [PASS] DebugControlServer.gd 无解析错误 | 未发现 Parse Error

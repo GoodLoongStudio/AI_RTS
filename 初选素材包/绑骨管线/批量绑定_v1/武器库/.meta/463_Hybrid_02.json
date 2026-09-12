@@ -1,0 +1,48 @@
+{
+ "file": "末日_463\\Hybrid_02.glb",
+ "pack": "463",
+ "pack_name": "幸存者与僵尸 463",
+ "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Hybrid_02.fbx",
+ "source_sha256": "2dd4cd87ff984a6f90f1d909954690ba89bc40c4dfe37e26d30dd4370ee31c9a",
+ "texture": "PolygonApocalypse_Texture_01_A.png",
+ "kind_hint": "other",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.2493,
+  1.0338,
+  0.2612
+ ],
+ "dims_m": [
+  0.2493,
+  1.0338,
+  0.2612
+ ],
+ "bbox_min": [
+  -0.0754,
+  -0.6668,
+  -0.0943
+ ],
+ "bbox_max": [
+  0.1739,
+  0.367,
+  0.1669
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 1762,
+ "triangles": 3466,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}

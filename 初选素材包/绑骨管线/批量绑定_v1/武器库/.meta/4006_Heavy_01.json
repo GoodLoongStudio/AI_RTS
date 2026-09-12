@@ -1,0 +1,48 @@
+{
+ "file": "科幻_4006\\Heavy_01.glb",
+ "pack": "4006",
+ "pack_name": "科幻战争 4006",
+ "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Heavy_01.fbx",
+ "source_sha256": "84797af93fd640d9e86164cf1f5eac5ceefbe2be9f359896ab60668458ca875b",
+ "texture": "PolygonScifiWorlds_Texture_01_A.png",
+ "kind_hint": "other",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.1993,
+  1.273,
+  0.6131
+ ],
+ "dims_m": [
+  0.1993,
+  1.273,
+  0.6131
+ ],
+ "bbox_min": [
+  -0.0996,
+  -0.833,
+  -0.1726
+ ],
+ "bbox_max": [
+  0.0996,
+  0.44,
+  0.4404
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 1162,
+ "triangles": 1988,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}

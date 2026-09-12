@@ -1,0 +1,48 @@
+{
+ "file": "末日_463\\Bomb_GasCan_01.glb",
+ "pack": "463",
+ "pack_name": "幸存者与僵尸 463",
+ "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Bomb_GasCan_01.fbx",
+ "source_sha256": "bd7ac2aaf7d48333a15fc617bb824d18b7a02d2813912b6f54983e36d7ebbcb2",
+ "texture": "PolygonApocalypse_Texture_01_A.png",
+ "kind_hint": "other",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.2335,
+  0.3511,
+  0.4088
+ ],
+ "dims_m": [
+  0.2335,
+  0.3511,
+  0.4088
+ ],
+ "bbox_min": [
+  -0.121,
+  -0.1755,
+  -0.0
+ ],
+ "bbox_max": [
+  0.1124,
+  0.1755,
+  0.4088
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 498,
+ "triangles": 976,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}

@@ -1,0 +1,42 @@
+Godot Engine v4.7.1.stable.mono.official.a13da4feb - https://godotengine.org
+
+[DBGCTL] 调试控制端点已启动 127.0.0.1:24570
+[godot_ai game_helper] registered mcp capture (debugger active=false, logger=true)
+Loading[8.0s] 预加载
+Loading[8.0s] 载入地图 res://source/match/maps/PlainAndSimple.tscn
+Loading[8.0s] 地图实例完成
+Loading[8.6s] 实例化 Match（导航烘焙阻塞点）
+Loading[8.7s] 添加 Match 到场景树
+WARNING: controls.cfg 无法加载或版本不受支持，已重写为当前默认键位：Ok
+   at: void AI_RTS.GodotAdapter.Input.InputBindingRuntime.LoadUserOverrides() (res://source/csharp/GodotAdapter/Input/InputBindingRuntime.cs:173)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/main-menu/Loading.gd:57)
+   C# backtrace (most recent call first):
+       [0] void Godot.GD.PushWarning(string) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/GD.cs:396)
+       [1] void AI_RTS.GodotAdapter.Input.InputBindingRuntime.LoadUserOverrides() (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Input\InputBindingRuntime.cs:173)
+       [2] void AI_RTS.GodotAdapter.Input.InputBindingRuntime._Ready() (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Input\InputBindingRuntime.cs:43)
+       [3] bool Godot.Node.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/Node.cs:2660)
+       [4] bool AI_RTS.GodotAdapter.Input.InputBindingRuntime.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (G:\AIRTS\AI_RTS\.godot\mono\temp\obj\Debug\Godot.SourceGenerators\Godot.SourceGenerators.ScriptMethodsGenerator\AI_RTS.GodotAdapter.Input.InputBindingRuntime_ScriptMethods.generated.cs:190)
+       [5] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+Loading[9.0s] Match 就绪
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+[ECO] PublishSnapshot player=8185d670 a=50000
+[ECO] PublishSnapshot player=671d4ddb a=50000
+[ECO] PublishSnapshot player=731e8e31 a=50000
+[ECO] PublishSnapshot player=acbb3714 a=50000
+[TINT] apply_team_tint (0.1608, 0.4745, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.1608, 0.4745, 1.0, 1.0)
+[TINT] apply_team_tint (0.1608, 0.4745, 1.0, 1.0) on Geometry
+[TINT] override meshes=4 tint=(0.1608, 0.4745, 1.0, 1.0)
+[TINT] apply_team_tint (0.1608, 0.4745, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.1608, 0.4745, 1.0, 1.0)
+[TINT] apply_team_tint (0.1608, 0.4745, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.1608, 0.4745, 1.0, 1.0)
+[INPUT] UnitActionsController enabled player=Player_0
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+[TINT] apply_team_tint (0.1608, 0.4745, 1.0, 1.0) on Geometry
+[TINT] override meshes=1 tint=(0.1608, 0.4745, 1.0, 1.0)
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)

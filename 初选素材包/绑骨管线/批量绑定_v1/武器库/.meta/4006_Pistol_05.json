@@ -1,0 +1,48 @@
+{
+ "file": "科幻_4006\\Pistol_05.glb",
+ "pack": "4006",
+ "pack_name": "科幻战争 4006",
+ "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Pistol_05.fbx",
+ "source_sha256": "525f2bc4f81ea7429776be25a5ed797f7311b0a34a63729bdd9597d123d49a79",
+ "texture": "PolygonScifiWorlds_Texture_01_A.png",
+ "kind_hint": "gun",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.075,
+  0.5196,
+  0.2631
+ ],
+ "dims_m": [
+  0.075,
+  0.5196,
+  0.2631
+ ],
+ "bbox_min": [
+  -0.0375,
+  -0.3749,
+  -0.1199
+ ],
+ "bbox_max": [
+  0.0375,
+  0.1447,
+  0.1432
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 699,
+ "triangles": 1272,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}

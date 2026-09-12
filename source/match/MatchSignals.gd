@@ -25,3 +25,7 @@ signal unit_production_queue_became_empty(producer_unit)
 signal unit_construction_finished(unit)
 signal not_enough_resources_for_production(player)
 signal not_enough_resources_for_construction(player)
+## 命令可视化（纯表现层）：权威端把一次命令的动作/目标/下发者广播给表现层。
+## payload 结构见 CommandVisualizer.gd：{action, units, target, source, tick}。
+## 只影响画面，不参与任何玩法判定。
+signal order_visualized(payload)

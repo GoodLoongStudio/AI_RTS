@@ -1,0 +1,85 @@
+Godot Engine v4.7.1.stable.mono.official.a13da4feb - https://godotengine.org
+
+SCRIPT ERROR: Parse Error: Identifier "MusicDirector" not declared in the current scope.
+   at: GDScript::reload (res://source/main-menu/MenuMusic.gd:31)
+ERROR: Failed to load script "res://source/main-menu/MenuMusic.gd" with error "Parse error".
+   at: load (modules/gdscript/gdscript_resource_format.cpp:46)
+ERROR: Failed to instantiate an autoload, script 'res://source/main-menu/MenuMusic.gd' does not inherit from 'Node'.
+   at: start (main/main.cpp:4535)
+[DBGCTL] 调试控制端点已启动 127.0.0.1:24570
+[godot_ai game_helper] registered mcp capture (debugger active=false, logger=true)
+Loading[9.1s] 预加载
+Loading[9.1s] 载入地图 res://source/match/maps/PlainAndSimple.tscn
+Loading[9.2s] 地图实例完成
+Loading[9.7s] 实例化 Match（导航烘焙阻塞点）
+Loading[9.7s] 添加 Match 到场景树
+Loading[10.0s] Match 就绪
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+[ECO] PublishSnapshot player=4ddb9dfa a=50000
+[ECO] PublishSnapshot player=59df912e a=50000
+[ECO] PublishSnapshot player=5c07f079 a=50000
+[ECO] PublishSnapshot player=6f23529d a=50000
+[TINT] apply_team_tint (0.1608, 0.4745, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.1608, 0.4745, 1.0, 1.0)
+[TINT] apply_team_tint (0.1608, 0.4745, 1.0, 1.0) on Geometry
+[TINT] override meshes=4 tint=(0.1608, 0.4745, 1.0, 1.0)
+[TINT] apply_team_tint (0.1608, 0.4745, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.1608, 0.4745, 1.0, 1.0)
+[TINT] apply_team_tint (0.1608, 0.4745, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.1608, 0.4745, 1.0, 1.0)
+ERROR: Cannot open file 'res://.godot/imported/peace_theme.wav-7c723d288da4263a45935f5e206660b8.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ensure_stream (res://source/match/MusicDirector.gd:58)
+       [1] _begin_track (res://source/match/MusicDirector.gd:136)
+       [2] play_track (res://source/match/MusicDirector.gd:121)
+       [3] _on_match_started (res://source/match/MusicDirector.gd:99)
+       [4] _ready (res://source/match/Match.gd:116)
+       [5] _setup_subsystems_dependent_on_map (res://source/match/Match.gd:267)
+       [6] setup (res://source/match/Navigation.gd:27)
+       [7] bake (res://source/match/TerrainNavigation.gd:72)
+ERROR: Failed loading resource: res://.godot/imported/peace_theme.wav-7c723d288da4263a45935f5e206660b8.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ensure_stream (res://source/match/MusicDirector.gd:58)
+       [1] _begin_track (res://source/match/MusicDirector.gd:136)
+       [2] play_track (res://source/match/MusicDirector.gd:121)
+       [3] _on_match_started (res://source/match/MusicDirector.gd:99)
+       [4] _ready (res://source/match/Match.gd:116)
+       [5] _setup_subsystems_dependent_on_map (res://source/match/Match.gd:267)
+       [6] setup (res://source/match/Navigation.gd:27)
+       [7] bake (res://source/match/TerrainNavigation.gd:72)
+ERROR: Failed loading resource: res://assets/music/peace_theme.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ensure_stream (res://source/match/MusicDirector.gd:58)
+       [1] _begin_track (res://source/match/MusicDirector.gd:136)
+       [2] play_track (res://source/match/MusicDirector.gd:121)
+       [3] _on_match_started (res://source/match/MusicDirector.gd:99)
+       [4] _ready (res://source/match/Match.gd:116)
+       [5] _setup_subsystems_dependent_on_map (res://source/match/Match.gd:267)
+       [6] setup (res://source/match/Navigation.gd:27)
+       [7] bake (res://source/match/TerrainNavigation.gd:72)
+[INPUT] UnitActionsController enabled player=Player_0
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+[TINT] apply_team_tint (0.1608, 0.4745, 1.0, 1.0) on Geometry
+[TINT] override meshes=1 tint=(0.1608, 0.4745, 1.0, 1.0)
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+ERROR: Cannot open file 'res://.godot/imported/battle_theme.wav-d529a845ccd2cdb02590b116f2c6cb4c.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _prepare_random_battle_stream (res://source/match/MusicDirector.gd:69)
+       [1] _begin_track (res://source/match/MusicDirector.gd:138)
+ERROR: Failed loading resource: res://.godot/imported/battle_theme.wav-d529a845ccd2cdb02590b116f2c6cb4c.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _prepare_random_battle_stream (res://source/match/MusicDirector.gd:69)
+       [1] _begin_track (res://source/match/MusicDirector.gd:138)
+ERROR: Failed loading resource: res://assets/music/battle_theme.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _prepare_random_battle_stream (res://source/match/MusicDirector.gd:69)
+       [1] _begin_track (res://source/match/MusicDirector.gd:138)

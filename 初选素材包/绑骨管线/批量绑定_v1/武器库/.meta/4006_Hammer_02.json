@@ -1,0 +1,48 @@
+{
+ "file": "科幻_4006\\Hammer_02.glb",
+ "pack": "4006",
+ "pack_name": "科幻战争 4006",
+ "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Hammer_02.fbx",
+ "source_sha256": "5046193b0533d9939c89d06cb5bf3f4f9709200e1699c5114b3f05110c453860",
+ "texture": "PolygonScifiWorlds_Texture_01_A.png",
+ "kind_hint": "melee",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.2661,
+  0.6092,
+  1.451
+ ],
+ "dims_m": [
+  0.2661,
+  0.6092,
+  1.451
+ ],
+ "bbox_min": [
+  -0.133,
+  -0.3278,
+  -0.6713
+ ],
+ "bbox_max": [
+  0.133,
+  0.2814,
+  0.7797
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 668,
+ "triangles": 1216,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}

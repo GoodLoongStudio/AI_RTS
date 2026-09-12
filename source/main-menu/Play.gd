@@ -122,6 +122,18 @@ func _get_selected_map_path():
 
 
 func _on_start_button_pressed():
+	# 【模式隔离】自定义对局 = 本机开房（本机即服即玩）。
+	# 此前这里没有任何网络初始化：NetSession 是 autoload 全局单例，一旦玩家先玩过
+	# 联机 demo（_peer = 连着服务器），进入自定义对局时 _peer 原封不动 →
+	# 新局自以为仍在联机、命令被转发到服务器 → 表现为"自定义局和联机局混在一起"。
+	# host() 内部第一步就是 _reset_peer()，因此顺带清掉残留连接，一举两得。
+	NetSession.clear_auto_start_intent()
+	var err := NetSession.host()
+	if err != OK:
+		push_error("自定义对局本机开房失败（端口 %d 可能被占用）：%s"
+			% [NetSession.DEFAULT_PORT, err])
+		show()
+		return
 	hide()
 	var new_scene = LoadingScene.instantiate()
 	new_scene.match_settings = _create_match_settings()

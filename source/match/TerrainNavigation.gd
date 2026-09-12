@@ -8,6 +8,8 @@ var _earliest_frame_to_perform_next_rebake = null
 var _is_baking = false
 var _rebake_queued := false
 var _map_geometry = NavigationMeshSourceGeometryData3D.new()
+## 运行时重烘的双缓冲目标：烘焙完成后才换入正在使用的 region。
+var _pending_navmesh: NavigationMesh = null
 
 @onready var navigation_map_rid = get_world_3d().navigation_map
 
@@ -85,9 +87,15 @@ func _rebake():
 	# add pre-parsed map geometry
 	full_geometry.merge(_map_geometry)
 
+	# 双缓冲(2026-09-11)：不要原地重烘"正在被使用"的那个 NavigationMesh。
+	# Godot 的异步烘焙在完成前会清空目标资源的多边形，而 region 引用的正是它，
+	# 于是建筑新建/拆除触发重烘的那几百毫秒里全地图单位都查不到路径 → 集体站桩
+	# （实测：回基地/出兵指令发出后 path 长度为 0、单位纹丝不动）。
+	# 改为烘焙到副本，完成回调里再原子换入。
+	_pending_navmesh = _navigation_region.navigation_mesh.duplicate()
 	server_busy = true
 	NavigationServer3D.bake_from_source_geometry_data_async(
-		_navigation_region.navigation_mesh, full_geometry, _on_bake_finished
+		_pending_navmesh, full_geometry, _on_bake_finished
 	)
 
 
@@ -150,6 +158,10 @@ func _on_bake_finished():
 	server_busy = false
 	if not is_inside_tree():
 		return
+	if _pending_navmesh != null:
+		# 原子换入新烘焙的网格：换入前的这一刻，region 仍在提供旧的可用网格。
+		_navigation_region.navigation_mesh = _pending_navmesh
+		_pending_navmesh = null
 	_sync_navmesh_changes()
 	_is_baking = false
 	if _rebake_queued:

@@ -1,0 +1,48 @@
+{
+ "file": "怪物_4017\\RedDemon_01.glb",
+ "pack": "4017",
+ "pack_name": "幻想怪物 4017",
+ "source_fbx": "4017_幻想怪物\\PolygonFantasyRivals\\Models\\SM_Wep_RedDemon_01.fbx",
+ "source_sha256": "d1ab7c8e73339db06e5a166cf96fa5ee8cd1336cd78a87079f7c1cee941026b4",
+ "texture": "FantasyRivals_Texture_01_A.png",
+ "kind_hint": "other",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.1948,
+  0.1948,
+  2.0999
+ ],
+ "dims_m": [
+  0.1948,
+  0.1948,
+  2.0999
+ ],
+ "bbox_min": [
+  -0.0974,
+  -0.0974,
+  -1.0499
+ ],
+ "bbox_max": [
+  0.0974,
+  0.0974,
+  1.0499
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 908,
+ "triangles": 1812,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}

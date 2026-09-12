@@ -1,0 +1,157 @@
+{
+  "run_id": "e2e_lg_20260910_r10",
+  "engine": "fallback",
+  "match_id": "f5a7cc8c-f026-4f77-8a46-59c9a2b546a6",
+  "player_id": "Player_0",
+  "rules_version": "fbbbe6fecebba7b439010049f796160c7c0fc6c4a6d6ad2e2442ca634f0ed201",
+  "PASS": 28,
+  "FAIL": 0,
+  "SKIP": 0,
+  "counts": {
+    "PASS": 28,
+    "FAIL": 0,
+    "SKIP": 0
+  },
+  "results": [
+    {
+      "item": "调试端口就绪",
+      "kind": "PASS",
+      "detail": "server:24572 client:24570"
+    },
+    {
+      "item": "DebugControlServer.gd 无解析错误",
+      "kind": "PASS",
+      "detail": "未发现 Parse Error"
+    },
+    {
+      "item": "客户端联网（networked=true）",
+      "kind": "PASS",
+      "detail": ""
+    },
+    {
+      "item": "开局指令已发出",
+      "kind": "PASS",
+      "detail": ""
+    },
+    {
+      "item": "对局已就绪",
+      "kind": "PASS",
+      "detail": ""
+    },
+    {
+      "item": "规则视图可导出",
+      "kind": "PASS",
+      "detail": ""
+    },
+    {
+      "item": "对局单位已装载且解析到人类玩家",
+      "kind": "PASS",
+      "detail": ""
+    },
+    {
+      "item": "存在 worker 与 command_center",
+      "kind": "PASS",
+      "detail": ""
+    },
+    {
+      "item": "战略节点采纳计划",
+      "kind": "PASS",
+      "detail": "plan_version=e2e-plan:v1"
+    },
+    {
+      "item": "战略层本身不下发命令",
+      "kind": "PASS",
+      "detail": "sent=0"
+    },
+    {
+      "item": "紧急意图被仲裁接受",
+      "kind": "PASS",
+      "detail": "accepted=['i-move-1'] dropped=[]"
+    },
+    {
+      "item": "权威层接受移动意图（Accepted）",
+      "kind": "PASS",
+      "detail": "receipt=[{\"accepted\": true, \"action\": \"move\", \"command_id\": \"f5a7cc8c-f026-4f77-8a46-59c9a2b546a6:i-move-1:1\", \"expires_tick\": 831, \"generation\": 3, \"intent_action\": \"move\", \"intent_id\": \"i-move-1\", \"issued_t"
+    },
+    {
+      "item": "op=adjutant_leases 可查租约与意图登记",
+      "kind": "PASS",
+      "detail": "lease={\"active\": true, \"generation\": 1}"
+    },
+    {
+      "item": "游戏侧意图登记记录的控制代际与图内一致",
+      "kind": "PASS",
+      "detail": "game_registered=3 graph=3"
+    },
+    {
+      "item": "玩家手动命令（旧 op 路径）成功",
+      "kind": "PASS",
+      "detail": "status=Accepted"
+    },
+    {
+      "item": "玩家接管立即失效旧意图",
+      "kind": "PASS",
+      "detail": ""
+    },
+    {
+      "item": "玩家打断使图暂停（LangGraph interrupt 语义）",
+      "kind": "PASS",
+      "detail": ""
+    },
+    {
+      "item": "恢复后不补发旧意图",
+      "kind": "PASS",
+      "detail": "sent=1"
+    },
+    {
+      "item": "权威层拒绝玩家接管后的旧意图",
+      "kind": "PASS",
+      "detail": "status=PlayerOverride reason=单位 Unit_2 的控制租约已被玩家手动命令取消；重新接管需要显式 reacquire 授权。"
+    },
+    {
+      "item": "显式归还后 reacquire 意图被接受",
+      "kind": "PASS",
+      "detail": "accepted=['i-reacquire'] dropped=[]"
+    },
+    {
+      "item": "reacquire 被权威层接受（Accepted）",
+      "kind": "PASS",
+      "detail": "receipt=[{\"accepted\": true, \"action\": \"move\", \"command_id\": \"f5a7cc8c-f026-4f77-8a46-59c9a2b546a6:i-reacquire:1\", \"expires_tick\": 842, \"generation\": 6, \"intent_action\": \"move\", \"intent_id\": \"i-reacquire\", \"is"
+    },
+    {
+      "item": "重新接管后租约代际更新",
+      "kind": "PASS",
+      "detail": "old=1 new=2"
+    },
+    {
+      "item": "旧代际意图被权威层拒绝（StaleGeneration）",
+      "kind": "PASS",
+      "detail": "status=StaleGeneration reason=意图控制代际 1 落后于单位 Unit_2 的租约代际 2；旧模型响应不能抢回控制。"
+    },
+    {
+      "item": "模型无法绕过规则（CommandCenter 生产 tank 被拒）",
+      "kind": "PASS",
+      "detail": "status=InvalidProducer reason=按当前动态生产关系，command_center 不能生产 tank。"
+    },
+    {
+      "item": "checkpoint 已写入（按对局隔离）",
+      "kind": "PASS",
+      "detail": "{\"saved\": true, \"reason\": \"\", \"saved_tick\": 603, \"path\": \"G:\\\\AIRTS\\\\AI_RTS\\\\source\\\\adjutant_coordinator\\\\logs\\\\e2e_lg_20260910_r10\\\\state\\\\f5a7cc8c-f026-4f77-"
+    },
+    {
+      "item": "重启后可从 checkpoint 恢复",
+      "kind": "PASS",
+      "detail": "{\"restored\": true, \"reason\": \"\", \"pending_requests\": [], \"active_intents\": 1}"
+    },
+    {
+      "item": "恢复后保留计划与活跃意图",
+      "kind": "PASS",
+      "detail": "plan=e2e-plan:v1 intents=['i-move-1', 'i-reacquire']"
+    },
+    {
+      "item": "恢复后不重复下单",
+      "kind": "PASS",
+      "detail": "sent=0 accepted=[]"
+    }
+  ]
+}

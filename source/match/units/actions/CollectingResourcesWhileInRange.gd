@@ -32,6 +32,9 @@ func _ready():
 	_unit_movement_trait.passive_movement_finished.connect(_on_passive_movement_finished)
 	_setup_timer()
 	_unit.get_node("Sparkling").enable()
+	# 采集火花是**本地 Action 驱动**的表现：客户端傀儡不跑 Action，
+	# 因此必须由权威端补发（否则联机客户端永远看不到采集火花）。只读、不改玩法。
+	_unit.broadcast_presentation("gather", {"active": true})
 	if _unit_movement_trait != null:
 		# 动作建立时可能已在矿点（被挤开又贴回），主动发起面向矿点的平滑转向
 		_unit_movement_trait.face_towards(_resource_unit.global_position)
@@ -39,6 +42,7 @@ func _ready():
 
 func _exit_tree():
 	_unit.get_node("Sparkling").disable()
+	_unit.broadcast_presentation("gather", {"active": false})
 
 
 func _setup_timer():

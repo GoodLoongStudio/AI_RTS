@@ -1,4 +1,4 @@
-[gd_resource type="EditorSettings" format=3]
+[gd_resource type="EditorSettings" format=3 uid="uid://badf8tuejrjc0"]
 
 [sub_resource type="InputEventKey" id="InputEventKey_e0ryh"]
 command_or_control_autoremap = true
@@ -343,6 +343,19 @@ _editor_log_filter_1 = true
 _editor_log_filter_3 = true
 _editor_log_filter_4 = true
 _editor_log_collapse = false
+godot_ai/http_port = 8000
+godot_ai/ws_port = 9500
+godot_ai/log_startup_timing = false
+godot_ai/keep_server_on_exit = false
+godot_ai/mcp_client_scope = "user"
+godot_ai/external_client_cwd = ""
+godot_ai/telemetry_enabled = true
+godot_ai/dev_mode = false
+godot_ai/managed_server_pid = 31320
+godot_ai/managed_server_version = "3.2.4"
+godot_ai/managed_server_ws_port = 9500
+godot_ai/managed_server_ws_token = "5c924920eeb6af541efa49d2224a13363e9b32a172259b8b626c2867a683401a"
+godot_ai/managed_server_keep_alive = false
 shortcuts = [{
 "name": "editor/clear_output",
 "shortcuts": [SubResource("InputEventKey_e0ryh")]

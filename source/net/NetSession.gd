@@ -12,7 +12,17 @@ const SLOT_EMPTY := 0
 const SLOT_HUMAN := 1
 const SLOT_AI := 2
 
+## 指挥官身份（设备 ID 绑定）：同一台电脑永远同一个指挥官昵称与槽位。
+const Identity := preload("res://source/net/PlayerIdentity.gd")
+## 服务器侧身份绑定存档（设备 ID → 槽位/昵称），跨服务器重启保留。
+const IDENTITY_STORE_PATH := "user://lobby_identities.json"
+const DEVICE_KEY_MAX := 64
+
 var dedicated_server := false
+## A/B 基线开关（默认 -1 = 关闭，行为完全不变）：
+## 让指定槽位由规则 AI（SIMPLE_CLAIRVOYANT_AI）驱动，用于"副官 vs 传统行为树基线"的同条件对照。
+## 由调试端点 `op=controller {"rule_ai_slot": 0}` 设置，开局时生效；日志会打印实际控制器。
+var force_rule_ai_slot := -1
 ## E2E 测试开关: --e2e-peaceful 时专用服的 AI 首波延迟 600s, 供机器人先验证经济链。
 var e2e_peaceful := false
 ## 服务器侧: 客户端立即开局时经 RPC 传来的和平模式标记(AI 首波延迟 600s)。
@@ -25,12 +35,21 @@ var _pending_solo_start := false
 var _pending_solo_with_ai := false
 var _pending_solo_passive_ai_test := false
 var last_rtt_ms := -1  # 客户端对服务器的最近一次 RPC 往返（毫秒），-1 = 无样本
-var local_player_name := "指挥官-%03d" % (randi() % 1000)
+## 本机指挥官身份（设备 ID + 稳定昵称），见 PlayerIdentity.gd。
+var device_id := Identity.device_id()
+var local_player_name := Identity.display_name()
 var _peer: ENetMultiplayerPeer = null
 var _slots: Dictionary = {}  # peer_id -> slot 0..3
 var _ready_peers: Dictionary = {}  # peer_id -> bool
 var _slot_kinds: Array[int] = [SLOT_EMPTY, SLOT_EMPTY, SLOT_EMPTY, SLOT_EMPTY]
 var _names: Dictionary = {}  # peer_id -> 昵称（服务器权威）
+## 服务器侧：peer_id -> 设备 ID（本连接身份）
+var _peer_device: Dictionary = {}
+## 服务器侧长期记忆：设备 ID -> 上次占用的槽位 / 昵称（断开后保留，重进沿用）
+var _device_slot: Dictionary = {}
+var _device_name: Dictionary = {}
+## 服务器侧：设备 ID -> 当前在线 peer_id（同设备重复进入时顶替旧连接）
+var _device_peer: Dictionary = {}
 var _match_started := false
 var _status := "idle"
 var _match_ready_peers: Dictionary = {}
@@ -124,12 +143,14 @@ func host(port: int = DEFAULT_PORT) -> Error:
 	multiplayer.multiplayer_peer = _peer
 	multiplayer.peer_connected.connect(_on_peer_connected)
 	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
+	_load_identity_store()
 	if not dedicated_server:
 		_slots[1] = 0
 		_ready_peers[1] = false
 		_slot_kinds[0] = SLOT_HUMAN
 		_names[1] = local_player_name
 		local_slot = 0
+		_register_peer_identity(1, device_id, local_player_name)
 	_broadcast_lobby()
 	_set_status("已开房，端口 %d" % port)
 	return OK
@@ -256,6 +277,8 @@ func _reset_peer() -> void:
 	_names.clear()
 	last_lobby_slots = []
 	_match_started = false
+	_peer_device.clear()
+	_device_peer.clear()
 	_connect_deadline_msec = 0
 	_pending_solo_start = false
 	_pending_solo_with_ai = false
@@ -296,6 +319,12 @@ func _on_peer_disconnected(peer_id: int) -> void:
 	if slot >= 0 and slot < MAX_PLAYERS:
 		_slot_kinds[slot] = SLOT_EMPTY
 	_names.erase(peer_id)
+	# 设备身份记忆保留（_device_slot/_device_name），只解除“当前在线”映射：
+	# 同一台电脑重进时会沿用原槽位与昵称。
+	var device := str(_peer_device.get(peer_id, ""))
+	_peer_device.erase(peer_id)
+	if not device.is_empty() and int(_device_peer.get(device, 0)) == peer_id:
+		_device_peer.erase(device)
 	if _match_started:
 		# 复核 P1-2：掉线不再整局结束。清掉该玩家单位（见 NetSync._on_player_dropped），
 		# 歼灭规则随之自然结算（掉线算负），其余人继续打完。
@@ -312,6 +341,7 @@ func _on_peer_disconnected(peer_id: int) -> void:
 
 func _on_connected_to_server() -> void:
 	_connect_deadline_msec = 0
+	_rpc_register_client.rpc_id(1, device_id, local_player_name)
 	_rpc_set_name.rpc_id(1, local_player_name)
 	_set_status("已连接，请点准备")
 	if _pending_solo_start:
@@ -355,6 +385,120 @@ func _allocate_slot() -> int:
 	return -1
 
 
+## 设备身份登记（服务器侧）：同一台电脑只占一个槽位、用同一个昵称。
+##  - 同设备已有在线连接 → 顶替旧连接（旧连接被踢，不新增指挥官）；
+##  - 该设备上次用过的槽位仍空闲 → 复用该槽位（重进后位置稳定）；
+##  - 昵称以客户端上报为准，为空则沿用该设备上次昵称。
+func _register_peer_identity(peer_id: int, device: String, player_name: String) -> void:
+	if not is_server():
+		return
+	var key := device.strip_edges().substr(0, DEVICE_KEY_MAX)
+	var wanted_name := player_name.strip_edges().substr(0, 16)
+	if key.is_empty():
+		if not wanted_name.is_empty():
+			_names[peer_id] = wanted_name
+			_broadcast_lobby()
+		return
+	var previous_peer := int(_device_peer.get(key, 0))
+	if previous_peer != 0 and previous_peer != peer_id and _slots.has(previous_peer):
+		var previous_slot := slot_of(previous_peer)
+		_rpc_kicked.rpc_id(previous_peer, "同一台电脑已在房间中，本次连接顶替了旧连接")
+		_peer.disconnect_peer(previous_peer)
+		_slots.erase(previous_peer)
+		_ready_peers.erase(previous_peer)
+		_names.erase(previous_peer)
+		if previous_slot >= 0 and previous_slot < MAX_PLAYERS:
+			_slot_kinds[previous_slot] = SLOT_EMPTY
+		_device_peer.erase(key)
+		print("联机: 设备 %s 重复进入，顶替旧连接 peer=%d（原槽位 %d）" % [
+			key, previous_peer, previous_slot + 1])
+	_device_peer[key] = peer_id
+	_peer_device[peer_id] = key
+	var current_slot := slot_of(peer_id)
+	var remembered_slot := int(_device_slot.get(key, -1))
+	if remembered_slot >= 0 and remembered_slot != current_slot and _slot_is_human_free(remembered_slot):
+		if current_slot >= 0 and current_slot < MAX_PLAYERS:
+			_slot_kinds[current_slot] = SLOT_EMPTY
+		_slots[peer_id] = remembered_slot
+		_slot_kinds[remembered_slot] = SLOT_HUMAN
+		print("联机: 设备 %s 复用原槽位 %d" % [key, remembered_slot + 1])
+	var final_slot := slot_of(peer_id)
+	if final_slot >= 0:
+		_device_slot[key] = final_slot
+	var final_name := wanted_name
+	if final_name.is_empty():
+		final_name = str(_device_name.get(key, str(_names.get(peer_id, ""))))
+	if final_name.is_empty():
+		final_name = "指挥官"
+	_names[peer_id] = final_name
+	_device_name[key] = final_name
+	_save_identity_store()
+	_broadcast_lobby()
+	_rpc_identity_ack.rpc_id(peer_id, final_slot, final_name)
+
+
+func _slot_is_human_free(slot: int) -> bool:
+	if slot < 0 or slot >= MAX_PLAYERS:
+		return false
+	if int(_slot_kinds[slot]) == SLOT_AI:
+		return false
+	for peer_id in _slots.keys():
+		if int(_slots[peer_id]) == slot:
+			return false
+	return true
+
+
+func _load_identity_store() -> void:
+	_device_slot.clear()
+	_device_name.clear()
+	if not FileAccess.file_exists(IDENTITY_STORE_PATH):
+		return
+	var file := FileAccess.open(IDENTITY_STORE_PATH, FileAccess.READ)
+	if file == null:
+		return
+	var parsed = JSON.parse_string(file.get_as_text())
+	file.close()
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return
+	for raw_key in parsed.keys():
+		var entry = parsed[raw_key]
+		if typeof(entry) != TYPE_DICTIONARY:
+			continue
+		_device_slot[str(raw_key)] = int(entry.get("slot", -1))
+		_device_name[str(raw_key)] = str(entry.get("name", ""))
+
+
+func _save_identity_store() -> void:
+	if not is_server():
+		return
+	var payload := {}
+	for raw_key in _device_slot.keys():
+		payload[str(raw_key)] = {"slot": int(_device_slot[raw_key]),
+			"name": str(_device_name.get(raw_key, ""))}
+	var file := FileAccess.open(IDENTITY_STORE_PATH, FileAccess.WRITE)
+	if file == null:
+		push_warning("身份绑定存档写入失败：%s" % IDENTITY_STORE_PATH)
+		return
+	file.store_string(JSON.stringify(payload))
+	file.close()
+
+
+## 只读：大厅快照 + 本机身份（供调试端点与自动化核验设备绑定是否生效）。
+func lobby_snapshot() -> Dictionary:
+	var identity := Identity.describe()
+	return {
+		"slots": last_lobby_slots.duplicate(true),
+		"human_count": connected_human_count(),
+		"local_slot": local_slot,
+		"local_name": local_player_name,
+		"device_id": str(identity.get("device_id", "")),
+		"device_name": str(identity.get("name", "")),
+		"device_override": bool(identity.get("override", false)),
+		"is_server": is_server(),
+		"known_devices": _device_slot.duplicate(true),
+	}
+
+
 ## RA3 式大厅：服务器把 4 个槽位的完整状态广播给所有端。
 func _broadcast_lobby() -> void:
 	if not is_server():
@@ -383,9 +527,15 @@ func _broadcast_lobby() -> void:
 
 
 func set_local_name(player_name: String) -> void:
-	local_player_name = player_name.strip_edges().substr(0, 16)
-	if is_networked() and not multiplayer.is_server():
-		_rpc_set_name.rpc_id(1, local_player_name)
+	# 昵称改动会写进本机身份存档：下次启动仍用同一个指挥官（不再随机生成）。
+	local_player_name = Identity.remember_name(player_name)
+	if is_networked():
+		if multiplayer.is_server():
+			_names[multiplayer.get_unique_id()] = local_player_name
+			_broadcast_lobby()
+		else:
+			_rpc_register_client.rpc_id(1, device_id, local_player_name)
+			_rpc_set_name.rpc_id(1, local_player_name)
 
 
 func host_set_slot_kind(slot: int, kind: int) -> void:
@@ -415,8 +565,34 @@ func _rpc_set_name(player_name: String) -> void:
 	var peer_id := multiplayer.get_remote_sender_id()
 	if slot_of(peer_id) < 0:
 		return
-	_names[peer_id] = player_name.strip_edges().substr(0, 16)
+	var key := str(_peer_device.get(peer_id, ""))
+	var trimmed := player_name.strip_edges().substr(0, 16)
+	if not key.is_empty() and not trimmed.is_empty():
+		_device_name[key] = trimmed
+		_save_identity_store()
+	_names[peer_id] = trimmed
 	_broadcast_lobby()
+
+
+@rpc("any_peer", "reliable")
+func _rpc_register_client(device: String, player_name: String) -> void:
+	if not is_server():
+		return
+	_register_peer_identity(multiplayer.get_remote_sender_id(), device, player_name)
+
+
+@rpc("authority", "reliable")
+func _rpc_identity_ack(slot: int, player_name: String) -> void:
+	# 服务器权威：把最终槽位与昵称回给客户端，避免客户端显示与大厅不一致。
+	local_slot = slot
+	if not player_name.strip_edges().is_empty():
+		local_player_name = player_name.strip_edges().substr(0, 16)
+
+
+@rpc("authority", "reliable")
+func _rpc_kicked(reason: String) -> void:
+	_set_status(reason)
+	_reset_peer()
 
 
 @rpc("any_peer", "reliable")
@@ -677,6 +853,11 @@ func _start_loading(kinds: PackedInt32Array) -> void:
 		else:
 			# 大厅里被房主撤掉 AI 的空槽：占位玩家，不再无脑补 AI。
 			player_settings.controller = Constants.PlayerType.NONE
+		# 【A/B 基线开关】指定槽位交由规则 AI 驱动（默认 -1 = 不干预）。
+		# 用途：同一场景下 A 局由副官控制 Player_0、B 局由 SIMPLE_CLAIRVOYANT_AI 控制 Player_0，
+		# 只切换"控制器"，地图/经济/执行器都不变（GPT Q2 (a) + Q6 授权）。
+		if force_rule_ai_slot >= 0 and i == force_rule_ai_slot:
+			player_settings.controller = Constants.PlayerType.SIMPLE_CLAIRVOYANT_AI
 		match_settings.players.append(player_settings)
 	var loading = LoadingScene.instantiate()
 	loading.match_settings = match_settings

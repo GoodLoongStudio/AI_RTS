@@ -1,0 +1,48 @@
+{
+ "file": "怪物_4017\\PigButcher_01.glb",
+ "pack": "4017",
+ "pack_name": "幻想怪物 4017",
+ "source_fbx": "4017_幻想怪物\\PolygonFantasyRivals\\Models\\SM_Wep_PigButcher_01.fbx",
+ "source_sha256": "c85e312e874de83b5af54ce441d8f7977d1d7f91746ec292b5df70d54128976b",
+ "texture": "FantasyRivals_Texture_01_A.png",
+ "kind_hint": "melee",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.136,
+  0.629,
+  1.5029
+ ],
+ "dims_m": [
+  0.136,
+  0.629,
+  1.5029
+ ],
+ "bbox_min": [
+  -0.068,
+  -0.4645,
+  -0.2382
+ ],
+ "bbox_max": [
+  0.068,
+  0.1645,
+  1.2647
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 479,
+ "triangles": 963,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}

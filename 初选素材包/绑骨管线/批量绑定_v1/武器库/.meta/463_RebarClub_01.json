@@ -1,0 +1,48 @@
+{
+ "file": "末日_463\\RebarClub_01.glb",
+ "pack": "463",
+ "pack_name": "幸存者与僵尸 463",
+ "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_RebarClub_01.fbx",
+ "source_sha256": "3c394a53fc3fc7e5e09e6c26c3507de276be2b4c6120c2df2bc73102c1c59192",
+ "texture": "PolygonApocalypse_Texture_01_A.png",
+ "kind_hint": "melee",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.1835,
+  1.3783,
+  0.2418
+ ],
+ "dims_m": [
+  0.1835,
+  1.3783,
+  0.2418
+ ],
+ "bbox_min": [
+  -0.0701,
+  -1.0986,
+  -0.1098
+ ],
+ "bbox_max": [
+  0.1133,
+  0.2797,
+  0.132
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 228,
+ "triangles": 416,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}

@@ -44,6 +44,77 @@ func get_elements():
 	return _queue
 
 
+## 只读：供 NetSync 周期快照下发给客户端的队列镜像（服务器侧调用）。
+## 带 `scene_path`，客户端无需再解析 definition_id → 场景，直接 `load()` 即可。
+func presentation_snapshot() -> Array:
+	var out: Array = []
+	for element in _queue:
+		var scene_path := ""
+		if element.unit_prototype is PackedScene:
+			scene_path = element.unit_prototype.resource_path
+		out.append({
+			"item_id": element.item_id,
+			"scene_path": scene_path,
+			"state": element.state,
+			"required_work": element.required_work,
+			"completed_work": element.completed_work,
+		})
+	return out
+
+
+## 客户端镜像入口：用服务器快照对齐只读队列视图（增/改/删都在这一个入口收敛）。
+##
+## 为什么需要：C# 生产服务在客户端**被门控**（`ProductionRuntime._PhysicsProcess`
+## 非服务器直接 return），`on_authoritative_item_*` 回调永不发生 →
+## 客户端 HUD 队列恒空、没有进度动画（用户报"UI 的建造动画"缺失）。
+## 这里只维护**只读视图**：客户端下单仍走 `produce()` 转发，权威结算仍全在服务器。
+## 走快照而非事件：10Hz、幂等、可自愈（丢包/晚到都不会卡住 HUD）。
+func apply_presentation_snapshot(items: Array) -> void:
+	if NetSession.is_server():
+		return
+	var wanted: Dictionary = {}
+	for item in items:
+		if not (item is Dictionary):
+			continue
+		var item_id := str(item.get("item_id", ""))
+		if item_id.is_empty():
+			continue
+		wanted[item_id] = true
+		# 显式收敛类型：网络回来的 Variant 未必与 ProductionQueueElement 的
+		# 推断类型（int）一致，直接赋值会在运行期报类型错误。
+		var snapshot := {
+			"required_work": int(item.get("required_work", 1)),
+			"completed_work": int(item.get("completed_work", 0)),
+			"state": str(item.get("state", "Queued")),
+		}
+		var element = _find_element(item_id)
+		if element == null:
+			var scene_path := str(item.get("scene_path", ""))
+			if scene_path.is_empty():
+				continue
+			var packed = load(scene_path)
+			if packed == null:
+				continue
+			element = ProductionQueueElement.new()
+			element.item_id = item_id
+			element.unit_prototype = packed
+			_apply_snapshot(element, snapshot)
+			_queue.push_back(element)
+			element_enqueued.emit(element)
+			continue
+		_apply_snapshot(element, snapshot)
+		element.emit_changed()
+	var removed_any := false
+	for element in _queue.duplicate():
+		if wanted.has(element.item_id):
+			continue
+		_queue.erase(element)
+		element_removed.emit(element)
+		removed_any = true
+	if removed_any and _queue.is_empty():
+		MatchSignals.unit_production_queue_became_empty.emit(_unit)
+
+
 ## 最近一次提交的权威回执；调试端点和 HUD 用它区分接受、拒绝与待确认。
 func get_last_result() -> Dictionary:
 	return _last_result.duplicate(true)

@@ -1,0 +1,23 @@
+# 副官 LangGraph 重构：可选依赖（Phase 0 记录）
+#
+# 说明：
+# - 这些依赖只在“真实 LangGraph 引擎 / 真实 PydanticAI 模型节点”时才需要；
+# - 未安装时图包自动走内置确定性执行器（graph.FallbackRunner），
+#   `python -m unittest discover -s tests` 全部通过且不需要 API Key；
+# - 本文件记录的是 2026-09-10 本机实测可用的版本（Python 3.12.7）。
+#
+# 安装（独立虚拟环境，示例路径在本机不入版本库）：
+#   python -m venv G:\AIRTS\临时文件夹\airts_agent_venv
+#   G:\AIRTS\临时文件夹\airts_agent_venv\Scripts\python -m pip install -r requirements-graph.txt
+#   G:\AIRTS\临时文件夹\airts_agent_venv\Scripts\python -m unittest discover -s tests
+#
+# 服务器端（方案 §12）应使用独立目录 /opt/airts-agent/.venv，并按同样清单安装。
+
+langgraph==1.2.11
+langgraph-checkpoint==4.2.0
+langgraph-prebuilt==1.1.0
+langchain-core==1.6.2
+pydantic==2.13.5
+pydantic-ai==2.42.0
+httpx==0.28.1
+aiosqlite==0.22.1

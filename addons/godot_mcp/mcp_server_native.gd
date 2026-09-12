@@ -8,7 +8,7 @@ extends EditorPlugin
 # 配置变量（根据godot-dev-guide使用@export）
 # ============================================================================
 
-@export var auto_start: bool = false:
+@export var auto_start: bool = true:
 	set(value):
 		auto_start = value
 		notify_property_list_changed()
@@ -984,3 +984,4 @@ func _notification(what: int) -> void:
 		if _native_server and _native_server.is_running():
 			_native_server.stop()
 		_native_server = null
+

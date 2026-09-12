@@ -1,5 +1,7 @@
 extends Node
 
+const SmokeTestWarmup = preload("res://tests/automated/SmokeTestWarmup.gd")
+
 ## 对地炮塔瞄准冒烟测试：炮管必须对准敌人才开火（2026-09-06 战斗手感）。
 ## 敌坦克放在炮塔 +X 方向（初始炮管朝 +Z，需要转向 ~90°）；
 ## 断言：炮塔限速转向后开火（敌方掉血），且开火后炮管 +Z 指向敌人（误差 ≤ 15°）。
@@ -18,7 +20,7 @@ var _failures := 0
 func _ready():
 	var match_instance = MatchScene.instantiate()
 	add_child(match_instance)
-	await get_tree().process_frame
+	await SmokeTestWarmup.wait_for_units(get_tree(), 1)
 	await get_tree().create_timer(0.5).timeout
 
 	var human = match_instance.get_node("Players/Human")

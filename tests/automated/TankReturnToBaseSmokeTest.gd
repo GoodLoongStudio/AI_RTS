@@ -1,5 +1,7 @@
 extends Node
 
+const SmokeTestWarmup = preload("res://tests/automated/SmokeTestWarmup.gd")
+
 const MatchScene = preload("res://tests/manual/TestOneUnit.tscn")
 const CommandCenterScene = preload("res://source/match/units/CommandCenter.tscn")
 const Player = preload("res://source/match/players/Player.gd")
@@ -12,8 +14,7 @@ var _failures := 0
 func _ready():
 	var match_instance = MatchScene.instantiate()
 	add_child(match_instance)
-	await get_tree().process_frame
-	await get_tree().process_frame
+	await SmokeTestWarmup.wait_for_units(get_tree(), 1)
 
 	var human = match_instance.get_node("Players/Human")
 	var tank = human.get_node("Tank")
@@ -56,11 +57,15 @@ func _ready():
 	_check(not movement.get("_is_tactical_withdrawal"), "回基地不得启用战术倒车速度")
 
 	# 先确认已经开始移动，再在抵达前暂停，验证持续订单可被 Halt 保留。
-	await get_tree().create_timer(0.25).timeout
-	_check(
-		tank.global_position.distance_to(start_position) > 0.05,
-		"回基地 Action 应沿正常移动路径推进"
-	)
+	# 这里轮询等待而不是赌固定 0.25s：新增建筑会触发导航网格重烘，主线程解析几何
+	# 的尖峰可能吃掉整个定时窗口（实测偶发），断言的是"确实起步"而非调度时序。
+	var started_moving := false
+	for _i in range(120):
+		await get_tree().physics_frame
+		if tank.global_position.distance_to(start_position) > 0.05:
+			started_moving = true
+			break
+	_check(started_moving, "回基地 Action 应沿正常移动路径推进")
 	_check(
 		tank.global_position.distance_to(near_base.global_position)
 			< tank.global_position.distance_to(far_base.global_position),
@@ -214,6 +219,9 @@ func _wait_for_completed_base(base) -> bool:
 
 
 func _wait_for_replacement_target(tank, movement, replacement_base) -> bool:
+	# 目标不再是基地中心，而是基地外侧的合法站位点（建筑避让圈外的最近可站点），
+	# 因此这里判定"落在替换基地附近的合法站位"，而不是"精确等于中心坐标"。
+	var stand_off_limit := float(replacement_base.radius) + float(tank.radius) + 3.0
 	for _i in range(90):
 		if (
 			is_instance_valid(tank)
@@ -221,7 +229,8 @@ func _wait_for_replacement_target(tank, movement, replacement_base) -> bool:
 			and tank.action.get_script() == ReturningToBase
 			and not movement.get("_is_tactical_withdrawal")
 			and movement.target_position != Vector3.INF
-			and movement.target_position.distance_to(replacement_base.global_position) < 0.1
+			and movement.target_position.distance_to(replacement_base.global_position)
+			<= stand_off_limit
 		):
 			return true
 		await get_tree().process_frame

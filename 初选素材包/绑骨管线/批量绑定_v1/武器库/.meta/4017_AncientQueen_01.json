@@ -1,0 +1,48 @@
+{
+ "file": "怪物_4017\\AncientQueen_01.glb",
+ "pack": "4017",
+ "pack_name": "幻想怪物 4017",
+ "source_fbx": "4017_幻想怪物\\PolygonFantasyRivals\\Models\\SM_Wep_AncientQueen_01.fbx",
+ "source_sha256": "72525ea2ac01309f5d229e4c08e24d7615ddc0ba85b27f4b578c28fdd9e244fc",
+ "texture": "FantasyRivals_Texture_01_A.png",
+ "kind_hint": "other",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.2673,
+  0.1118,
+  1.9858
+ ],
+ "dims_m": [
+  0.2673,
+  0.1118,
+  1.9858
+ ],
+ "bbox_min": [
+  -0.1337,
+  -0.0559,
+  -1.3489
+ ],
+ "bbox_max": [
+  0.1337,
+  0.0559,
+  0.6369
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 207,
+ "triangles": 414,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}

@@ -10,6 +10,19 @@ extends Node
 
 const DEFAULT_PORT := 24568
 
+## ---------- 本机副官服务（2026-09-11 本地完整副官重构） ----------
+## 背景：此前本节点在**未传 `--debugport`** 时直接 `queue_free()`，于是玩家从
+## 正常入口进自定义对局时，本机 Python runner **没有任何数据通道**（观测读不到、
+## 意图下不去），只能靠云端 daemon —— 与"本机全链路"目标冲突。
+## 现在：正常启动也开放服务，但走**受限白名单**，只暴露副官所需的只读观测与控制 op，
+## 不开放 click/drag/key 等输入模拟与其余调试能力（避免为方便副官而无条件开放全部调试操作）。
+const ADJUTANT_PORT := 24579
+const ADJUTANT_OPS := [
+	"status", "tactical", "strategic", "rules", "commands",
+	"adjutant_intent", "adjutant_batch", "adjutant_leases", "adjutant_reserves",
+]
+var _adjutant_only := false
+
 var _server := TCPServer.new()
 var _clients: Array = []
 var _buffers := {}
@@ -42,17 +55,34 @@ var _adjutant_rules_cache := {}
 var _adjutant_intel := {}
 ## 副官命令执行标志：复用旧 op 路径时避免把自己的命令误判为玩家手动接管。
 var _adjutant_executing := false
+## 意图登记表（LangGraph 战术意图）："<match_id>|<player_id>" -> {intent_id: record}。
+## 只做校验留痕与幂等回放，不改变玩法：真正执行仍走 op=adjutant_command 的权威链。
+var _adjutant_intents := {}
+## 意图登记容量上限：满时显式拒绝新意图（背压），不静默遗忘未完成意图。
+const ADJUTANT_INTENT_LIMIT := 128
+## 副官资源预留（方案 §6）："<match_id>|<player_id>" -> {initialized, percent, values:{A,B}}。
+## 预留是**玩家设定**：首次按当时余额的 20% 取整初始化，之后玩家可改，**不按剩余余额重算**；
+## 关闭重开副官不清零（键挂在"对局身份"上），重开对局自然重建。
+var _adjutant_reserves := {}
+const ADJUTANT_RESERVE_PERCENT := 20
 
 
 func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
 	var port_index := args.find("--debugport")
-	if port_index < 0:
-		# autoload 模式下未请求调试的进程直接退出，不占资源。
+	if port_index >= 0:
+		# 显式调试模式：全量 op，端口由参数指定（自动化/联机测试用）。
+		if port_index + 1 < args.size():
+			_port = int(args[port_index + 1])
+	elif not args.has("--no-adjutant"):
+		# 正常启动：开放**受限**的本机副官服务（仅白名单 op），供本机 runner 使用。
+		# `--no-adjutant` 可显式关闭（如纯观战/纯净启动）。
+		_port = ADJUTANT_PORT
+		_adjutant_only = true
+	else:
+		# autoload 模式下未请求调试、且显式关闭副官的进程直接退出，不占资源。
 		queue_free()
 		return
-	if port_index + 1 < args.size():
-		_port = int(args[port_index + 1])
 	if _server.listen(_port, "127.0.0.1") != OK:
 		print("[DBGCTL] 端口 %d 被占用, 调试控制端点未启动" % _port)
 		set_process(false)
@@ -104,9 +134,22 @@ func _dispatch(line: String) -> String:
 	var parsed = JSON.parse_string(line)
 	if parsed == null or not (parsed is Dictionary):
 		return JSON.stringify({"error": "bad json"})
+	# 正常启动下的受限模式：只允许副官所需的观测/控制 op，
+	# 拒绝输入模拟（click/drag/key）等调试能力，避免副官常态化开启全量调试面。
+	if _adjutant_only:
+		var requested := str(parsed.get("op", ""))
+		if requested not in ADJUTANT_OPS:
+			return JSON.stringify({
+				"error": "op not allowed in adjutant-only mode",
+				"op": requested,
+				"allowed": ADJUTANT_OPS,
+			})
 	var tree := get_tree()
 	var match_node = tree.current_scene
-	if parsed.get("op", "") not in ["status", "start"] and (
+	# 大厅阶段（无对局场景）也要能用的 op：只读查询 + 输入模拟（不依赖 match 节点）。
+	# lobby 用于核验“同一台电脑只有一个指挥官”，screenshot/click/drag/key 用于大厅 UI 自动化。
+	if parsed.get("op", "") not in ["status", "start", "lobby", "screenshot", "click", "drag",
+			"key", "controller"] and (
 		match_node == null or not match_node.has_method("get_local_player")
 	):
 		return JSON.stringify({"error": "no match scene"})
@@ -139,6 +182,10 @@ func _dispatch(line: String) -> String:
 			return _op_attack(match_node, parsed)
 		"commands":
 			return JSON.stringify({"ok": true, "commands": _query_commands(parsed)})
+		"combat":
+			return JSON.stringify({"ok": true, "combat": _combat_snapshot(match_node, parsed)})
+		"force_attack":
+			return _op_force_attack(match_node, parsed)
 		"rules":
 			return JSON.stringify(_op_rules(match_node))
 		"tactical":
@@ -149,6 +196,16 @@ func _dispatch(line: String) -> String:
 			return JSON.stringify(_op_adjutant_command(match_node, parsed))
 		"adjutant_batch":
 			return JSON.stringify(_op_adjutant_batch(match_node, parsed))
+		"adjutant_intent":
+			return JSON.stringify(_op_adjutant_intent(match_node, parsed))
+		"adjutant_leases":
+			return JSON.stringify(_op_adjutant_leases(match_node, parsed))
+		"adjutant_reserves":
+			return JSON.stringify(_op_adjutant_reserves(match_node, parsed))
+		"lobby":
+			return JSON.stringify(_op_lobby())
+		"controller":
+			return _op_controller(parsed)
 	return JSON.stringify({"error": "unknown op"})
 
 
@@ -287,6 +344,21 @@ func _resolve_own_units(player, wanted: Array) -> Array:
 	return nodes
 
 
+## op=controller：A/B 基线开关（GPT Q2(a)/Q6 授权）。
+## `{"op":"controller","rule_ai_slot":0}` → 让 0 号槽在**下一局**由 SIMPLE_CLAIRVOYANT_AI 驱动；
+## `rule_ai_slot=-1` 恢复默认（人类槽由玩家/副官控制）。
+## 只改"控制器选择"，不动地图、经济规则、执行器与观测接口；默认 -1 时行为与从前完全一致。
+func _op_controller(parsed) -> String:
+	var slot := int(parsed.get("rule_ai_slot", -1))
+	NetSession.force_rule_ai_slot = slot
+	print("[DBGCTL] A/B 控制器开关: force_rule_ai_slot=%d（下一局生效）" % slot)
+	return JSON.stringify({
+		"ok": true,
+		"force_rule_ai_slot": slot,
+		"note": "下一局生效；-1 = 默认（不干预）",
+	})
+
+
 func _op_start(parsed) -> String:
 	if not NetSession.is_networked():
 		return JSON.stringify({"error": "not networked"})
@@ -328,6 +400,7 @@ func _op_move(match_node, parsed) -> String:
 	var destination := Vector3(float(dest_raw[0]), 0.0, float(dest_raw[1]))
 	var result: Dictionary = gateway.MoveUnits(nodes, destination, player)
 	notify_player_override(str(player.name), nodes.map(func(n): return str(n.name)))
+	_visualize_command(match_node, "move", nodes, destination)
 	return JSON.stringify(_unified_receipt(result, {
 		"moved": nodes.map(func(n): return n.name),
 	}))
@@ -379,6 +452,7 @@ func _op_gather(match_node, parsed) -> String:
 		})
 	var result: Dictionary = gateway.GatherResources(nodes, target, player)
 	notify_player_override(str(player.name), nodes.map(func(n): return str(n.name)))
+	_visualize_command(match_node, "gather", nodes, target.global_position)
 	return JSON.stringify(_unified_receipt(result, {
 		"resource": target.name,
 	}))
@@ -399,6 +473,17 @@ func _op_build(match_node, parsed) -> String:
 		pos_raw = [0.0, 0.0]
 	var position := Vector3(float(pos_raw[0]), 0.0, float(pos_raw[1]))
 	var scene_path := str(parsed.get("scene", "res://source/match/units/VehicleFactory.tscn"))
+	# ---------- 续建路由（2026-09-12 已授权，见 docs/程序文档/AI副官_当前执行入口.md Q6） ----------
+	# 背景（实测）：`build` 走 `StructurePlacementRuntime.Place()` = **新建一座**；
+	# 目标是"已放置但未完工"的建筑时，同位置再 Place 必然被判 `Occupied`
+	# （实测同一意图被连续 `Rejected/Occupied ×32`，工地永远建不完）。
+	# 游戏本身已有正确通道：`Constructing.is_applicable`（工人 + 己方未完工建筑）
+	# → `gateway.ConstructUnits(units, target, issuer)`（人类 UI 走的就是它）。
+	# 这里只做**路由**：仅当目标类型的**己方未完工建筑确实存在**时才改走续建，
+	# 其它情况原样走新建路径（默认行为不变）。
+	var existing_site = _find_own_unfinished_structure(player, scene_path, position)
+	if existing_site != null:
+		return _construct_on_existing_site(player, builders, existing_site, scene_path)
 	# The debug endpoint runs inside the authority process for local listen-server
 	# tests. Calling forward_command there sends an RPC to peer 1 but does not
 	# reliably execute the command locally, so apply placement directly on server.
@@ -428,6 +513,7 @@ func _op_build(match_node, parsed) -> String:
 		var place_issue := str(place_result.get("primary_issue", ""))
 		if place_ok:
 			notify_player_override(str(player.name), builders.map(func(n): return str(n.name)))
+			_visualize_command(match_node, "build", builders, position)
 		# 直执行没有客户端上送的 command_id，服务器补发一个便于副官复核。
 		var server_command_id := _new_command_id()
 		var structure_node = place_result.get("structure")
@@ -470,6 +556,68 @@ func _op_build(match_node, parsed) -> String:
 		"reason": "命令已发送，等待服务器确认建造位置和资源。",
 		"command_id": command_id,
 		"builders": builders.map(func(n): return n.name),
+	})
+
+
+## 找出"己方 + 类型匹配 + 未完工"的建筑实体（续建目标）。
+##
+## 只认：属于该玩家 + 有 `is_constructed()` 且为 false + 类型与请求的 scene 匹配。
+## 找不到就返回 null —— 调用方必须保持原有"新建"路径（默认行为不变）。
+func _find_own_unfinished_structure(player, scene_path: String, near_position: Vector3):
+	var wanted := scene_path.get_file().get_basename().to_lower()
+	if wanted.is_empty():
+		return null
+	var best = null
+	var best_distance := INF
+	for unit in get_tree().get_nodes_in_group("units"):
+		if unit == null or not is_instance_valid(unit):
+			continue
+		if unit.get_parent() != player:
+			continue
+		if not unit.has_method("is_constructed") or unit.is_constructed():
+			continue
+		var type_id := str(unit.get("unit_type_id")) if "unit_type_id" in unit else ""
+		var script_name := ""
+		if unit.get_script() != null:
+			script_name = str(unit.get_script().resource_path).get_file().get_basename().to_lower()
+		if type_id.to_lower() != wanted and script_name != wanted:
+			continue
+		var distance: float = unit.global_position.distance_to(near_position)
+		if distance < best_distance:
+			best_distance = distance
+			best = unit
+	return best
+
+
+## 对"已存在但未完工"的建筑下达续建（权威入口 = `ConstructUnits`）。
+## 不做无限重试：被拒就如实返回拒绝原因，由协调器决定是否换人/等待。
+func _construct_on_existing_site(player, builders: Array, site, scene_path: String) -> String:
+	var gateway = player.find_child("UnitCommandGateway")
+	if gateway == null:
+		return JSON.stringify({
+			"ok": false, "accepted": false, "status": "NoGateway",
+			"reason": "权威端缺少命令网关，无法下达续建。", "error": "no gateway",
+		})
+	var result: Dictionary = gateway.ConstructUnits(builders, site, player)
+	var accepted := bool(result.get("accepted", false))
+	var reason := ""
+	if not accepted:
+		# GDScript 不能用 `a or b` 做字符串回退（`or` 是布尔运算符）——
+		# 写成那样会编译失败，导致整个 DebugControlServer 加载不了、对局起不来（2026-09-12 踩过）。
+		reason = str(result.get("error_code", ""))
+		if reason.is_empty():
+			reason = str(result.get("reason", ""))
+	var command_id := _new_command_id()
+	record_command(command_id, "construct", str(player.name),
+		"|".join(builders.map(func(n): return str(n.name))), scene_path,
+		"Accepted" if accepted else "Rejected", reason, str(site.name))
+	return JSON.stringify({
+		"ok": accepted, "accepted": accepted,
+		"status": "Accepted" if accepted else "Rejected",
+		"reason": reason,
+		"command_id": command_id,
+		"site": str(site.name),
+		"result": result,
 	})
 
 
@@ -522,6 +670,8 @@ func _op_produce(match_node, parsed) -> String:
 		item_id)
 	if produce_ok:
 		notify_player_override(str(player.name), [producer_name])
+		if not nodes.is_empty():
+			_visualize_command(match_node, "produce", nodes, nodes[0].global_position)
 	receipt["producer"] = producer_name
 	receipt["scene"] = scene_path
 	receipt["queue_size"] = queue.size() if queue.has_method("size") else -1
@@ -589,6 +739,7 @@ func _op_attack(match_node, parsed) -> String:
 		})
 	var result: Dictionary = gateway.AttackUnits(attackers, target, player)
 	notify_player_override(str(player.name), attackers.map(func(n): return str(n.name)))
+	_visualize_command(match_node, "attack", attackers, target.global_position)
 	return JSON.stringify(_unified_receipt(result, {
 		"target": target_name,
 	}))
@@ -977,6 +1128,66 @@ func record_command(command_id: String, op: String, player_name: String,
 		_command_log = _command_log.slice(_command_log.size() - COMMAND_LOG_LIMIT)
 
 
+## op=combat：**只读**交火遥测（开火总数 + 最近开火事件）。
+##
+## 为什么需要它（2026-09-11 用户指出）：单位会**自动攻击**靠近的敌人，因此
+## "敌我血量变化"既不能证明"副官在指挥交火"，也不能证明"真的开了火"；
+## 交火同时也没有特效/音效可供肉眼确认 → 验收缺一条可判定信号。
+## 这里只读 `CombatSfx` 的表现层日志（谁、在哪、何时开火），
+## **不读取也不改变任何权威状态**，纯粹给验收/自动化一个证据通道。
+func _combat_snapshot(match_node, parsed) -> Dictionary:
+	var limit := int(parsed.get("limit", 20))
+	if limit <= 0:
+		limit = 20
+	var log: Array = CombatSfx.shot_log
+	var recent: Array = []
+	var start := maxi(0, log.size() - limit)
+	for index in range(start, log.size()):
+		recent.append(log[index])
+	# 弹道/投射物**视觉节点**当前数量：这是"攻击特效到底有没有被创建"的直接读数，
+	# 而且能区分**哪个进程**创建的（权威端创建 ≠ 客户端能看到）。
+	var container = match_node.get_node_or_null("Projectiles") if match_node != null else null
+	return {
+		"fire_total": int(CombatSfx.fire_total),
+		"log_size": log.size(),
+		"projectile_nodes": container.get_child_count() if container != null else -1,
+		"recent": recent,
+	}
+
+
+## op=force_attack：**强制攻击**（与玩家侧栏「强制攻击 [X]」走同一条
+## `gateway.ForceAttackUnits` 权威链，允许显式己方/友军目标）。
+##
+## 为什么需要这个调试入口：不开电脑 AI 时局内没有敌人，无法用普通 attack 触发开火，
+## 而"看不到攻击特效"必须能**可控地开一枪**才能查（弹道节点、开火事件、命中结算）。
+## 它不新增任何玩法：目标合法性、伤害结算、友伤规则全部由既有权威链裁决。
+func _op_force_attack(match_node, parsed) -> String:
+	var player = _resolve_player(match_node, parsed)
+	var gateway = NetSession.command_gateway_for(player)
+	if gateway == null:
+		return JSON.stringify({"ok": false, "accepted": false, "status": "NoGateway",
+			"reason": "该玩家没有可用的命令网关（对局未就绪或角色不支持手动命令）。"})
+	var target_name := str(parsed.get("target", ""))
+	var attackers := _resolve_own_units(player, parsed.get("units", []))
+	if attackers.is_empty():
+		return JSON.stringify({"ok": false, "accepted": false, "status": "UnitsNotFound",
+			"reason": "找不到属于该玩家的攻击单位。", "target": target_name})
+	var target = null
+	for unit in get_tree().get_nodes_in_group("units"):
+		if unit == null or not is_instance_valid(unit):
+			continue
+		if str(unit.name) == target_name:
+			target = unit
+			break
+	if target == null:
+		return JSON.stringify({"ok": false, "accepted": false, "status": "TargetNotFound",
+			"reason": "找不到目标单位（强制攻击允许己方目标）。", "target": target_name})
+	var result: Dictionary = gateway.ForceAttackUnits(attackers, target, player)
+	notify_player_override(str(player.name), attackers.map(func(n): return str(n.name)))
+	_visualize_command(match_node, "attack", attackers, target.global_position)
+	return JSON.stringify(_unified_receipt(result, {"target": target_name}))
+
+
 ## op=commands 查询：带 command_id 精确复核单条，否则返回全部历史（新→旧）。
 ## 副官统一入口的命令优先查幂等账本（adjutant_command 的权威回执即终态）；
 ## 旧 op 直执行/转发路径仍查 _command_log 展示历史。
@@ -1030,6 +1241,20 @@ func _production_snapshot(match_node, unit):
 	}
 	if queue.has_method("get_last_result"):
 		result["last_command"] = queue.get_last_result()
+	# Legacy 只读镜像单独暴露：客户端 HUD 的排队/进度动画就靠它，
+	# 而客户端的 `ProductionRuntime.GetQueue` 存在但**恒空**（C# 生产服务客户端不跑），
+	# 只看 `items` 会掩盖"镜像到底有没有同步过来"（2026-09-11 表现层核对）。
+	if queue.has_method("get_elements"):
+		var mirror: Array = []
+		for element in queue.get_elements():
+			mirror.append({
+				"item_id": str(element.item_id),
+				"state": str(element.state),
+				"completed_work": int(element.completed_work),
+				"required_work": int(element.required_work),
+			})
+		result["legacy_mirror"] = mirror
+		result["legacy_mirror_size"] = mirror.size()
 	return result
 
 
@@ -1075,6 +1300,15 @@ func _adjutant_resolve_player(wanted: String):
 		if str(p.name) == wanted:
 			return p
 	return null
+
+
+## 单机自定义对局下的唯一玩家（仅当 players 组里**恰好一个**时才返回，否则 null）。
+## 用途：本机 HUD 调整自己的预留时不必自报身份；有歧义（联机多玩家）时坚决不猜。
+func _adjutant_lone_player():
+	var players := get_tree().get_nodes_in_group("players")
+	if players.size() != 1:
+		return null
+	return players[0]
 
 
 ## op=rules：从当前对局 Catalog 导出规则视图（对局内缓存，Catalog 不可变）。
@@ -1241,9 +1475,27 @@ func _op_tactical(match_node, parsed) -> Dictionary:
 		"a": int(player.resource_a) if "resource_a" in player else 0,
 		"b": int(player.resource_b) if "resource_b" in player else 0,
 	}
+	# 玩家资源预留随观测一起下发：协调器据此限制副官花费（方案 §6 由权威端定义）。
+	# 未初始化时这里会按当前余额建立 20% 基线，语义与 op=adjutant_reserves 完全一致。
+	header["reserves"] = _adjutant_reserve_state(match_node, player).get("values", {})
+	# 权威租约代际随观测每轮回传（2026-09-12）：协调器/权威端是**两套独立代际计数**，
+	# 权威计数器跨对局全局累加，而协调器每轮从本地状态起算——任何单位第一次命令后
+	# 租约代际就领先本地，之后所有命令被 StaleGeneration 白拒（实测 5 分钟 336 条、
+	# 每单位只吃得到一条命令 = 产量停滞主因）。设计 §3：控制代际以**权威状态为准**。
+	header["lease_generations"] = _adjutant_lease_generations(view_key)
 	if outcome_runtime != null and outcome_runtime.has_method("InspectOutcome"):
 		header["outcome"] = outcome_runtime.InspectOutcome()
 	return header
+
+
+## 该视图的权威租约代际快照（unit -> generation）。
+func _adjutant_lease_generations(view_key: String) -> Dictionary:
+	var out := {}
+	var leases: Dictionary = _adjutant_leases.get(view_key, {})
+	for unit_name in leases.keys():
+		var lease: Dictionary = leases[unit_name]
+		out[str(unit_name)] = int(lease.get("generation", 0))
+	return out
 
 
 ## 我方实体条目：完整字段（能力/队列/施工/当前动作），供选择动作与目标。
@@ -1267,6 +1519,11 @@ func _tactical_self_entry(unit) -> Dictionary:
 	}
 	if "is_constructed" in unit:
 		entry["constructed"] = bool(unit.is_constructed())
+	# 施工进度（只读）：客户端傀儡上这个值只能来自 NetSync 快照的 `construction` 字段，
+	# 因此**在客户端查 op=tactical 就能判定"施工同步是否真的生效"**，
+	# 不必靠肉眼看画面（2026-09-11 用户指出交火/建造缺可视反馈）。
+	if unit.has_method("construction_progress_report"):
+		entry["construction_work"] = unit.construction_progress_report()
 	if "action" in unit and unit.action != null and is_instance_valid(unit.action):
 		entry["action"] = str(unit.action.get_script().resource_path) if unit.action.get_script() != null else str(unit.action)
 	return entry
@@ -1353,6 +1610,8 @@ func _op_strategic(match_node, parsed) -> Dictionary:
 		"a": int(player.resource_a) if "resource_a" in player else 0,
 		"b": int(player.resource_b) if "resource_b" in player else 0,
 	}
+	# 战略视图同样带预留：战略层规划时就能看到"副官可用额度"，而不是先规划再被拒。
+	header["reserves"] = _adjutant_reserve_state(match_node, player).get("values", {})
 	header["enemy_balances_masked"] = true
 	header["production"] = production
 	header["enemy_intel"] = enemy_entries
@@ -1406,7 +1665,15 @@ func _op_adjutant_command(match_node, parsed) -> Dictionary:
 			return replay
 		return _adjutant_receipt_error("DuplicateConflict", "同 command_id 已用不同参数提交，明确拒绝。", command_id, match_id, player_id, current_tick)
 	if _adjutant_ledger_size() >= ADJUTANT_LEDGER_LIMIT:
-		return _adjutant_receipt_error("LedgerFull", "幂等账本已满（背压），请等待旧命令终态复核后重试。", command_id, match_id, player_id, current_tick)
+		# 【2026-09-12 实机实测，必须淘汰】幂等账本按 command_id 记录，
+		# 而 command_id = "<match>|<intent_id>|<attempt>" 随 tick 只增不减：
+		# 一局跑满 256 条之后**所有**新命令（含采集/生产/撤离）全部返回 LedgerFull，
+		# 副官从此一条命令都发不出去（实测同局 LedgerFull 273/275、0 接受；
+		# 且该表挂在进程上、跨对局不重建，下一局依然是死的）。
+		# 背压的本意是"不静默遗忘未完成命令"，不是"永久锁死指挥链"。
+		# 淘汰顺序与意图登记表一致：① 先丢已终态的最早记录；② 再丢最早的在途记录。
+		if not _adjutant_ledger_evict_one():
+			return _adjutant_receipt_error("LedgerFull", "幂等账本已满（背压），请等待旧命令终态复核后重试。", command_id, match_id, player_id, current_tick)
 
 	# 对局与版本校验：新提交按当前版本保守拒绝；不自动取消任何已接受命令。
 	var rules_version := str(parsed.get("rules_version", ""))
@@ -1482,6 +1749,419 @@ func _op_adjutant_batch(match_node, parsed) -> Dictionary:
 	}
 
 
+## op=adjutant_intent：LangGraph 战术意图入口（有限期意图 + 控制代际）。
+## 验证链：结构 → 意图登记幂等 → 对局身份 → TTL 过期 → 控制代际/租约 →
+##        然后复用 op=adjutant_command 的完整权威链（规则/快照/目标/执行/幂等账本）。
+## 纪律：游戏侧不掌握战略计划版本，计划版本一致性由协调器与图负责；
+## 游戏侧只做代际、租约、过期、身份、目标与资源合法性校验。
+func _op_adjutant_intent(match_node, parsed) -> Dictionary:
+	var guard := _adjutant_require_observation()
+	if not guard.is_empty():
+		return _adjutant_receipt_error("InternalError", "副官观测运行时不可用。")
+	var current_tick := int(_adjutant_observation.CurrentServerTick())
+	var intent_id := str(parsed.get("intent_id", ""))
+	var action := str(parsed.get("action", ""))
+	if intent_id.is_empty() or action.is_empty():
+		return _adjutant_receipt_error("InvalidCommand", "intent_id 与 action 为必填字段。",
+			"", "", "", current_tick)
+	var match_id := _adjutant_match_id(match_node)
+	if match_id.is_empty():
+		return _adjutant_receipt_error("MatchUnavailable", "当前对局没有稳定 match_id，拒绝一切意图。",
+			intent_id, "", "", current_tick)
+	var player_id := str(parsed.get("player_id", ""))
+	var view_key := "%s|%s" % [match_id, player_id]
+	var expires_tick := int(parsed.get("expires_tick", 0))
+	if expires_tick <= 0 or current_tick > expires_tick:
+		return _adjutant_intent_receipt("Expired",
+			"意图已过 expires_tick（服务器 tick 为准），拒绝执行。",
+			intent_id, match_id, player_id, current_tick, action, parsed, {})
+
+	# 幂等：同 intent_id 重复提交返回原回执（不重复下发、不重复扣费）。
+	var registry: Dictionary = _adjutant_intents.get(view_key, {})
+	if registry.has(intent_id):
+		var prior: Dictionary = registry[intent_id]
+		var replay: Dictionary = (prior.get("receipt", {}) as Dictionary).duplicate(true)
+		replay["intent_id"] = intent_id
+		replay["intent_replay"] = true
+		return replay
+	if _adjutant_intent_count() >= ADJUTANT_INTENT_LIMIT:
+		# 满时先**淘汰最早记录**（见 _adjutant_intent_evict_one 的长注释），
+		# 只有实在淘汰不掉才真的回背压拒绝。
+		#
+		# 【2026-09-11 实机实测，必须保留这条淘汰】意图 id **必须带 tick**
+		# （否则重试会命中最早那次回执，是"改了参数却毫无变化"的真凶），
+		# 因此一局下来 intent_id 必然持续增长：实测 8 分钟约 300 条
+		# （attack 205 / gather 60 / produce 32 / build 2 / move 2 / retreat 6）。
+		# 而登记表**原本没有任何删除路径** → 达到 128 上限后**所有**命令
+		# （含劣势撤离）一律返回 IntentLedgerFull → 部队从那一刻起完全无法行动，
+		# 实测我方基地与全部单位被推平、整局崩盘；且该表挂在进程上、跨对局不重建，
+		# 下一局仍然是死的。背压的本意是"不静默遗忘未完成意图"，不是"永久锁死指挥链"。
+		if not _adjutant_intent_evict_one():
+			return _adjutant_intent_receipt("IntentLedgerFull",
+				"意图登记已满（背压），请等待终态复核后重试。",
+				intent_id, match_id, player_id, current_tick, action, parsed, {})
+
+	var params_dict: Dictionary = parsed.get("params", {}) if parsed.get("params", {}) is Dictionary else {}
+	var units: Array = []
+	if params_dict.get("units", []) is Array:
+		units = params_dict.get("units", [])
+	# Phase 4 翻译层：方案 §6 允许的高层战术动作 → 已实现的执行层动作（不新增玩法）。
+	var translation := _adjutant_translate_action(action, params_dict)
+	action = str(translation["action"])
+	params_dict = translation["params"]
+	# 场景目标允许给“规则内的 id”，由权威层解析成规则内的 scene_path；解析不得越出规则。
+	var scene_note := ""
+	if params_dict.has("scene"):
+		var raw_scene := str(params_dict.get("scene", ""))
+		var resolved := _adjutant_resolve_scene_path(match_node, raw_scene)
+		if resolved != raw_scene:
+			scene_note = "%s->%s" % [raw_scene, resolved]
+			params_dict["scene"] = resolved
+	var generation := int(parsed.get("generation", 0))
+	# 显式重新接管申请：只在此请求下才允许越过“租约已被玩家取消”的拦截，
+	# 最终是否放行仍由 _adjutant_authorize_units 的 reacquire 分支裁决并记录。
+	var reacquire := bool(params_dict.get("reacquire", false))
+	if generation > 0:
+		var stale_guard := _adjutant_generation_guard(view_key, units, generation, reacquire)
+		if not stale_guard.is_empty():
+			return _adjutant_intent_receipt(str(stale_guard["status"]),
+				str(stale_guard["reason"]), intent_id, match_id, player_id,
+				current_tick, action, parsed, {})
+
+	# 复用统一命令入口：规则版本/快照时效/目标合法性/租约/幂等账本全部走同一权威链。
+	var command := {
+		"command_id": str(parsed.get("command_id", intent_id)),
+		"request_id": str(parsed.get("request_id", "")),
+		"intent_id": intent_id,
+		"match_id": match_id,
+		"player_id": player_id,
+		"as_player": str(parsed.get("as_player", "")),
+		"rules_version": str(parsed.get("rules_version", "")),
+		"plan_version": str(parsed.get("plan_version", "")),
+		"task_id": str(parsed.get("task_id", "")),
+		"based_on_snapshot": int(parsed.get("based_on_snapshot", -1)),
+		"issued_tick": int(parsed.get("issued_tick", current_tick)),
+		"expires_tick": expires_tick,
+		"action": action,
+		"params": params_dict.duplicate(true),
+	}
+	var receipt := _op_adjutant_command(match_node, command)
+	receipt["intent_id"] = intent_id
+	receipt["intent_action"] = action
+	receipt["generation"] = generation
+	if not str(translation.get("from", "")).is_empty():
+		receipt["action_translated_from"] = str(translation["from"])
+	if not scene_note.is_empty():
+		receipt["scene_resolved_from"] = scene_note
+	registry[intent_id] = {
+		"intent_id": intent_id,
+		"action": action,
+		"action_requested": str(parsed.get("action", "")),
+		"unit_ids": units,
+		"generation": generation,
+		"issue_tick": int(parsed.get("issued_tick", current_tick)),
+		"expires_tick": expires_tick,
+		"decided_tick": current_tick,
+		"status": str(receipt.get("status", "")),
+		"accepted": bool(receipt.get("accepted", false)),
+		"receipt": receipt,
+	}
+	_adjutant_intents[view_key] = registry
+	return receipt
+
+
+## 构造意图级回执（未进入权威命令链时使用；字段与命令回执保持兼容）。
+func _adjutant_intent_receipt(status: String, reason: String, intent_id: String,
+		match_id: String, player_id: String, current_tick: int, action: String,
+		parsed, extras: Dictionary) -> Dictionary:
+	var receipt := _adjutant_receipt_error(status, reason, intent_id, match_id,
+		player_id, current_tick)
+	receipt["intent_id"] = intent_id
+	receipt["intent_action"] = action
+	receipt["generation"] = int(parsed.get("generation", 0))
+	receipt["plan_version"] = str(parsed.get("plan_version", ""))
+	receipt["task_id"] = str(parsed.get("task_id", ""))
+	for key in extras.keys():
+		receipt[key] = extras[key]
+	return receipt
+
+
+## Phase 4 翻译层：把方案 §6 允许的高层战术动作映射到已实现的执行层动作。
+## 只做语义等价翻译，不新增/不改变任何玩法逻辑：
+##   scout/regroup/retreat → move（既有移动）；defend → attack_move（有目标点）或 stop；hold → stop。
+## 返回 {"action": 执行层动作, "params": 归一化参数, "from": 原始高层动作（空表示未翻译）}。
+func _adjutant_translate_action(action: String, params: Dictionary) -> Dictionary:
+	var mapped := action
+	var out_params: Dictionary = params.duplicate(true)
+	var from := ""
+	var has_dest := out_params.has("pos") or out_params.has("dest")
+	match action:
+		"scout", "regroup", "retreat":
+			mapped = "move"
+			from = action
+		"defend":
+			mapped = "attack_move" if has_dest else "stop"
+			from = action
+		"hold":
+			mapped = "stop"
+			from = action
+		_:
+			pass
+	if from.is_empty():
+		return {"action": mapped, "params": out_params, "from": ""}
+	# 移动类动作：统一成执行层使用的 dest（[x,z]）。
+	if mapped == "move" or mapped == "attack_move":
+		if not out_params.has("dest") and out_params.has("pos"):
+			var pos_value = out_params.get("pos", null)
+			if pos_value is Array and (pos_value as Array).size() >= 2:
+				out_params["dest"] = [(pos_value as Array)[0], (pos_value as Array)[1]]
+	out_params["intent_action"] = action
+	out_params["translated_action"] = mapped
+	return {"action": mapped, "params": out_params, "from": from}
+
+
+## 场景目标解析：允许模型给“规则内的 id”（生产物类型 id / 建造物 id），
+## 解析为规则视图里的 scene_path；非规则来源一律原样返回（后续会被 UntrustedScene 拒绝）。
+func _adjutant_resolve_scene_path(match_node, raw_scene: String) -> String:
+	if raw_scene.is_empty() or raw_scene.begins_with("res://"):
+		return raw_scene
+	var rules := _op_rules(match_node)
+	if rules.has("error"):
+		return raw_scene
+	for unit_type in rules.get("unit_types", []):
+		if str(unit_type.get("id", "")) == raw_scene:
+			var path := str(unit_type.get("scene_path", ""))
+			if not path.is_empty():
+				return path
+	for construction in rules.get("constructions", []):
+		if str(construction.get("id", "")) == raw_scene:
+			var blueprint := str(construction.get("blueprint_scene_path", ""))
+			if not blueprint.is_empty():
+				return blueprint
+	return raw_scene
+
+
+## 控制代际守卫：意图代际落后于租约代际 → StaleGeneration；
+## 租约已被玩家取消 → PlayerOverride（带 reacquire 的显式重新接管申请除外）。
+## 返回空字典表示通过。
+func _adjutant_generation_guard(view_key: String, units: Array, generation: int,
+		reacquire: bool = false) -> Dictionary:
+	var leases: Dictionary = _adjutant_leases.get(view_key, {})
+	for unit_name in units:
+		var key := str(unit_name)
+		if not leases.has(key):
+			continue
+		var lease: Dictionary = leases[key]
+		var lease_generation := int(lease.get("generation", 0))
+		if generation < lease_generation:
+			return {"status": "StaleGeneration",
+				"reason": "意图控制代际 %d 落后于单位 %s 的租约代际 %d；旧模型响应不能抢回控制。" % [
+					generation, key, lease_generation]}
+		if not bool(lease.get("active", true)) and not reacquire:
+			return {"status": "PlayerOverride",
+				"reason": "单位 %s 的控制租约已被玩家手动命令取消；重新接管需要显式 reacquire 授权。" % key}
+	return {}
+
+
+## 意图登记总量（跨对局/玩家共享上限，显式背压）。
+func _adjutant_intent_count() -> int:
+	var total := 0
+	for key in _adjutant_intents.keys():
+		total += (_adjutant_intents[key] as Dictionary).size()
+	return total
+
+
+## 容量满时淘汰**一条**最早记录（FIFO 环形）。返回是否淘汰成功。
+##
+## 为什么必须淘汰而不是一味拒绝（2026-09-11 实机实测）：
+## 意图 id 必须带 tick（`rule-build-<building>-<builder>-<tick>` /
+## `bt-<action>-<unit>-<tick>`），否则重试会一直被游戏侧的幂等回执命中
+## 最早那次结果 —— 那是"改了参数却毫无变化"的真凶。代价是 intent_id
+## **必然随 tick 持续增长**：实测 8 分钟约 300 条意图。
+## 而登记表原先没有任何删除路径，128 条一到就返回 IntentLedgerFull，
+## **所有**后续命令（包括劣势撤离）全部被拒 → 部队彻底无法行动、
+## 我方基地被推平；且登记表挂在进程上不随对局重建，下一局依然是死的。
+##
+## 淘汰顺序（既保住背压本意，又不锁死指挥链）：
+##   ① 先丢**已终态**（非 PendingAuthority/Deferred）的最早记录；
+##   ② 再丢最早的在途记录；
+## 并且 `push_warning` 留痕 —— **不做静默遗忘**。
+func _adjutant_intent_evict_one() -> bool:
+	var terminal: Array = []
+	var pending: Array = []
+	for key in _adjutant_intents.keys():
+		var registry: Dictionary = _adjutant_intents[key]
+		for intent_id in registry.keys():
+			var record: Dictionary = registry[intent_id]
+			var status := str(record.get("status", ""))
+			var item := {
+				"view": str(key),
+				"intent_id": str(intent_id),
+				"tick": int(record.get("decided_tick", record.get("issue_tick", 0))),
+			}
+			if status == "PendingAuthority" or status == "Deferred":
+				pending.append(item)
+			else:
+				terminal.append(item)
+	var victim = null
+	if not terminal.is_empty():
+		terminal.sort_custom(_adjutant_intent_older_first)
+		victim = terminal[0]
+	elif not pending.is_empty():
+		pending.sort_custom(_adjutant_intent_older_first)
+		victim = pending[0]
+	if victim == null:
+		return false
+	var victim_view := str(victim["view"])
+	var victim_id := str(victim["intent_id"])
+	var victim_registry: Dictionary = _adjutant_intents.get(victim_view, {})
+	victim_registry.erase(victim_id)
+	push_warning("[adjutant] 意图登记已满，淘汰最早记录 %s（避免背压锁死指挥链）" % victim_id)
+	return true
+
+
+func _adjutant_intent_older_first(a: Dictionary, b: Dictionary) -> bool:
+	return int(a["tick"]) < int(b["tick"])
+
+
+## 幂等账本满时淘汰**一条**最早记录（与 `_adjutant_intent_evict_one` 同一纪律）。
+##
+## 为什么账本也需要淘汰（2026-09-12 实机实测）：
+## `command_id` 形如 `<match>|<intent_id>|<attempt>`，而 intent_id 必须带 tick，
+## 所以一局下来 command_id 只增不减；账本原先**没有任何删除路径**，
+## 达到 256 上限后返回 `LedgerFull`，**所有**后续命令一律被拒
+## （实测同一局 273/275 条回执都是 LedgerFull、0 接受）→ 副官看起来在跑，
+## 实际一条命令都落不了地。账本的作用是"在途命令幂等"，终态记录只需短暂存。
+##
+## 淘汰顺序：① 先丢**已终态**（非 PendingAuthority/Deferred）的最早记录；
+##           ② 再丢最早的在途记录；并 `push_warning` 留痕（不做静默遗忘）。
+func _adjutant_ledger_evict_one() -> bool:
+	var terminal: Array = []
+	var pending: Array = []
+	for key in _adjutant_ledger.keys():
+		var ledger: Dictionary = _adjutant_ledger[key]
+		for command_id in ledger.keys():
+			var entry: Dictionary = ledger[command_id]
+			var receipt: Dictionary = entry.get("receipt", {}) if entry.get("receipt", {}) is Dictionary else {}
+			var status := str(receipt.get("status", ""))
+			var item := {
+				"view": str(key),
+				"command_id": str(command_id),
+				"tick": int(entry.get("tick", receipt.get("server_tick", 0))),
+			}
+			if status == "PendingAuthority" or status == "Deferred":
+				pending.append(item)
+			else:
+				terminal.append(item)
+	var victim = null
+	if not terminal.is_empty():
+		terminal.sort_custom(_adjutant_intent_older_first)
+		victim = terminal[0]
+	elif not pending.is_empty():
+		pending.sort_custom(_adjutant_intent_older_first)
+		victim = pending[0]
+	if victim == null:
+		return false
+	var victim_view := str(victim["view"])
+	var victim_id := str(victim["command_id"])
+	var victim_ledger: Dictionary = _adjutant_ledger.get(victim_view, {})
+	victim_ledger.erase(victim_id)
+	push_warning("[adjutant] 幂等账本已满，淘汰最早记录 %s（避免背压锁死指挥链）" % victim_id)
+	return true
+
+
+## 本玩家当前余额（与 op=tactical 的 balance 同源，不另建经济账）。
+func _adjutant_balance_of(player) -> Dictionary:
+	return {
+		"A": int(player.resource_a) if "resource_a" in player else 0,
+		"B": int(player.resource_b) if "resource_b" in player else 0,
+	}
+
+
+## 读取（必要时初始化）本局该玩家的预留额度。
+## 初始化只发生一次：之后不论余额怎么变，都保持玩家设定的绝对值。
+func _adjutant_reserve_state(match_node, player) -> Dictionary:
+	var match_id := _adjutant_match_id(match_node)
+	if match_id.is_empty() or player == null:
+		return {"initialized": false, "percent": ADJUTANT_RESERVE_PERCENT, "values": {}}
+	var view_key := "%s|%s" % [match_id, str(player.name)]
+	if not _adjutant_reserves.has(view_key):
+		var balance := _adjutant_balance_of(player)
+		var values := {}
+		for kind in balance.keys():
+			# 向下取整：预留必须是整数量级，不能出现小数余额。
+			values[kind] = int(balance[kind]) * ADJUTANT_RESERVE_PERCENT / 100
+		_adjutant_reserves[view_key] = {
+			"initialized": true,
+			"percent": ADJUTANT_RESERVE_PERCENT,
+			"values": values,
+		}
+	return _adjutant_reserves[view_key]
+
+
+## op=adjutant_reserves：玩家查看 / 调整资源预留（按类型的**绝对值**）。
+## 只改"副官最多能花多少"，不改玩法余额；设为 0 表示该项不预留（副官可使用全部）。
+func _op_adjutant_reserves(match_node, parsed) -> Dictionary:
+	var guard := _adjutant_require_observation()
+	if not guard.is_empty():
+		return guard
+	var wanted := str(parsed.get("as_player", ""))
+	var player = _adjutant_resolve_player(wanted)
+	if player == null and wanted.is_empty():
+		# 本机 HUD 便利路径：单机自定义对局只有一名玩家时不必自报身份。
+		player = _adjutant_lone_player()
+	if player == null:
+		return {"error": "player not found",
+			"reason": "as_player 必须是对局中存在的玩家节点名（联机多玩家时必须显式给出）。"}
+	var reserve_state := _adjutant_reserve_state(match_node, player)
+	if str(parsed.get("action", "get")) == "set":
+		var params = parsed.get("reserves", {})
+		if not (params is Dictionary):
+			return {"error": "bad reserves",
+				"reason": "reserves 必须是 {资源类型: 绝对额度} 字典（如 {\"A\": 500}）。"}
+		var values: Dictionary = reserve_state.get("values", {})
+		for kind in params.keys():
+			values[str(kind).to_upper()] = int(params[kind])
+		reserve_state["values"] = values
+		reserve_state["initialized"] = true
+	return {
+		"ok": true,
+		"match_id": _adjutant_match_id(match_node),
+		"player_id": str(player.name),
+		"balance": _adjutant_balance_of(player),
+		"reserves": reserve_state.get("values", {}),
+		"percent": int(reserve_state.get("percent", ADJUTANT_RESERVE_PERCENT)),
+	}
+
+
+## op=adjutant_leases：只读查询当前租约代际与意图登记（验收/诊断；不改玩法）。
+func _op_adjutant_leases(match_node, parsed) -> Dictionary:
+	var guard := _adjutant_require_observation()
+	if not guard.is_empty():
+		return guard
+	var match_id := _adjutant_match_id(match_node)
+	if match_id.is_empty():
+		return {"error": "match unavailable", "reason": "当前对局没有稳定 match_id。"}
+	var player_id := str(parsed.get("player_id", parsed.get("as_player", "")))
+	var view_key := "%s|%s" % [match_id, player_id]
+	return {
+		"ok": true,
+		"match_id": match_id,
+		"player_id": player_id,
+		"server_tick": int(_adjutant_observation.CurrentServerTick()),
+		"leases": _adjutant_leases.get(view_key, {}),
+		"intents": _adjutant_intents.get(view_key, {}),
+	}
+
+
+## op=lobby：只读大厅快照 + 本机身份（用于核验“同一台电脑只有一个指挥官”）。
+func _op_lobby() -> Dictionary:
+	var net := get_node_or_null("/root/NetSession")
+	if net == null:
+		return {"error": "NetSessionUnavailable"}
+	return net.lobby_snapshot()
+
+
 ## 副官动作执行：优先复用现有 op 实现（同一权威路径），scene 类目标必须来自规则视图。
 func _adjutant_execute(match_node, player, action: String, params: Dictionary,
 		command_id: String, match_id: String, player_id: String, current_tick: int) -> Dictionary:
@@ -1515,6 +2195,30 @@ func _adjutant_execute(match_node, player, action: String, params: Dictionary,
 	return result
 
 
+## 命令可视化登记（纯表现层，2026-09-10）：把一次命令的动作/受令单位/目标点广播给表现层。
+## 只影响画面，不改变任何权威状态；副官命令由 _adjutant_executing 标记来源。
+## 目标点语义：move/attack_move=dest，gather=资源点，build=放置点，attack=敌方单位，produce=生产建筑。
+func _visualize_command(match_node, action: String, unit_nodes: Array, target: Vector3) -> void:
+	if match_node == null or unit_nodes.is_empty() or not target.is_finite():
+		return
+	var sync = match_node.get_node_or_null("NetSync")
+	if sync == null or not sync.has_method("broadcast_order_visual"):
+		return
+	var names: Array = []
+	for unit in unit_nodes:
+		if unit != null and is_instance_valid(unit):
+			names.append(str(unit.name))
+	if names.is_empty():
+		return
+	sync.broadcast_order_visual({
+		"action": action,
+		"units": names,
+		"target": [target.x, target.z],
+		"source": "adjutant" if _adjutant_executing else "player",
+		"tick": int(_adjutant_observation.CurrentServerTick()) if _adjutant_observation != null else 0,
+	})
+
+
 ## 解析旧 op JSON 字符串结果为字典（复用路径的协议适配）。
 func _parse_op_result(text: String) -> Dictionary:
 	var parsed = JSON.parse_string(text)
@@ -1534,6 +2238,7 @@ func _adjutant_execute_attack_move(match_node, player, params: Dictionary) -> Di
 	var dest_raw: Array = params.get("dest", [0.0, 0.0])
 	var destination := Vector3(float(dest_raw[0]) if dest_raw.size() > 0 else 0.0, 0.0, float(dest_raw[1]) if dest_raw.size() > 1 else 0.0)
 	var result: Dictionary = gateway.GroundAttackMoveUnits(nodes, destination, player)
+	_visualize_command(match_node, "attack_move", nodes, destination)
 	return _unified_receipt(result, {"moved": nodes.map(func(n): return n.name)})
 
 

@@ -49,6 +49,8 @@ const MATERIAL_ALBEDO_TO_REPLACE = Color(0.99, 0.81, 0.48)
 ## 无 SyntyMaterialBinder 的单位（如 GLB 步兵）的阵营着色 shader
 const TEAM_TINT_SHADER: Shader = preload("res://source/shaders/3d/team_tint.gdshader")
 const COMBAT_SFX = preload("res://source/match/units/traits/CombatSfx.gd")
+## 客户端弹道表现回放（用 preload 而不是依赖 class_name：headless 不重扫项目注册类名）
+const PROJECTILE_VISUALS = preload("res://source/match/units/projectiles/ProjectileVisuals.gd")
 static var _team_material_cache := {}
 ## 战斗音效：命中冷却与上次 HP 快照（_process 轮询受击）
 var _sfx_last_hp = null
@@ -97,6 +99,10 @@ var type:
 
 var _action_locked = false
 var _suppress_damage_event := false
+## 客户端表现用：权威端下发的"当前动作脚本路径"。
+## 傀儡本地 `action` 恒为 null（见 `_set_action` 的 puppet 分支），
+## 表现层/UI 需要知道"这个单位在干什么"时，只能读这个权威镜像（见 NetSync 快照）。
+var _presented_action_path := ""
 
 @onready var _match = find_parent("Match")
 
@@ -119,6 +125,76 @@ func _setup_combat_sfx():
 ## 开火音效：攻击动作发射投射物时由 attack_fired 触发。
 func _on_combat_sfx_fired():
 	COMBAT_SFX.play_at(self, COMBAT_SFX.fire_key_for(self))
+	_broadcast_fired()
+
+
+## 把"真实开火"广播给客户端（纯表现层）。
+## 为什么需要：客户端是傀儡、没有投射物，`attack_fired` **永远不会**在客户端触发，
+## 于是客户端既没有开火动画也没有开火音效（2026-09-11 用户报"看不到交火"）。
+## 这里在权威端唯一"确实创建了投射物"的位置广播一次；只读、不改权威状态。
+func _broadcast_fired() -> void:
+	broadcast_presentation("fired", _fired_aim_payload())
+
+
+## 权威端开火时把**真实瞄准点**一起广播。
+## 为什么需要：客户端傀儡没有 Action，`ProjectileVisuals` 原先只能按
+## "炮口朝向前方 attack_range 米"猜弹道终点 —— 敌人比射程近时会明显打过头
+## （用户报"子弹落点不对"）。带上 aim 后客户端弹道终点与权威端一致。
+## 取不到（无 Action / 目标已失效）时返回空字典，客户端退回原有近似。
+func _fired_aim_payload() -> Dictionary:
+	if action == null or not action.has_method("presentation_aim_point"):
+		return {}
+	var aim: Vector3 = action.presentation_aim_point()
+	if not aim.is_finite():
+		return {}
+	return {"aim": aim}
+
+
+## 表现事件广播入口（权威端调用；客户端傀儡上 `broadcast_presentation` 会自行忽略）。
+## 各 Action 用它把"本地才有的事件"（采集火花等）补发给客户端。
+func broadcast_presentation(kind: String, payload: Dictionary = {}) -> void:
+	if _match == null:
+		return
+	var sync = _match.get_node_or_null("NetSync")
+	if sync != null and sync.has_method("broadcast_presentation"):
+		sync.broadcast_presentation(kind, str(_match.get_path_to(self)), payload)
+
+
+## 客户端表现入口：由 NetSync 的可靠广播在傀儡上补发同一条信号，
+## 让既有的动画驱动（Fire）与音效订阅者照常工作 —— **不新增第二套表现逻辑**。
+## 另外补**弹道视觉回放**：客户端的权威投射物不存在（见 `ProjectileVisuals`），
+## 没有这一步就只有枪声与动画、看不到任何弹道（实测客户端弹道节点数为 0）。
+func present_fired(payload: Dictionary = {}) -> void:
+	if not is_inside_tree():
+		return
+	attack_fired.emit()
+	PROJECTILE_VISUALS.present(self, payload.get("aim", Vector3.INF))
+
+
+## 当前动作脚本路径：本地跑 Action 就用真实值；傀儡端退回权威镜像。
+## 表现层/UI 判断"在干什么"统一走这里，不要直接读 `action`（傀儡端恒空）。
+func presentation_action_name() -> String:
+	if action != null and action.get_script() != null:
+		return str(action.get_script().resource_path)
+	return _presented_action_path
+
+
+## 接收权威端下发的当前动作路径（客户端表现镜像，见 NetSync 快照的 action 字段）。
+func apply_presentation_action(action_path: String) -> void:
+	_presented_action_path = action_path
+
+
+## 客户端表现入口：采集火花开关。
+## 客户端傀儡不跑 Action（见 `_set_action` 的 puppet 分支），
+## 采集表现原先完全依赖本地 Action（CollectingResourcesWhileInRange）→ 客户端永远看不到。
+func present_gather(active: bool) -> void:
+	var sparkling = get_node_or_null("Sparkling")
+	if sparkling == null:
+		return
+	if active and sparkling.has_method("enable"):
+		sparkling.enable()
+	elif not active and sparkling.has_method("disable"):
+		sparkling.disable()
 
 
 func is_revealing():

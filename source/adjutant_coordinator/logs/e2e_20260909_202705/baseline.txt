@@ -1,0 +1,1 @@
+4697a918e994bc297527710a1befd6fe037adaec 2026-09-09 17:05:22 +0800 视觉: 步兵命中不再炸出火光(impact_explosion metadata 开关, RifleRound 关闭); 坦克落点爆炸火光红色加深(渐变与材质同步加深)

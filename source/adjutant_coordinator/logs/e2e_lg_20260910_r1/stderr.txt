@@ -1,0 +1,53 @@
+Exception in thread Thread-5 (_readerthread):
+Traceback (most recent call last):
+  File "D:\software\anaconda3\Lib\threading.py", line 1075, in _bootstrap_inner
+    self.run()
+  File "D:\software\anaconda3\Lib\threading.py", line 1012, in run
+    self._target(*self._args, **self._kwargs)
+  File "D:\software\anaconda3\Lib\subprocess.py", line 1599, in _readerthread
+    buffer.append(fh.read())
+                  ^^^^^^^^^
+  File "<frozen codecs>", line 322, in decode
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0xbb in position 2: invalid start byte
+Exception in thread Thread-7 (_readerthread):
+Traceback (most recent call last):
+  File "D:\software\anaconda3\Lib\threading.py", line 1075, in _bootstrap_inner
+    self.run()
+  File "D:\software\anaconda3\Lib\threading.py", line 1012, in run
+    self._target(*self._args, **self._kwargs)
+  File "D:\software\anaconda3\Lib\subprocess.py", line 1599, in _readerthread
+    buffer.append(fh.read())
+                  ^^^^^^^^^
+  File "<frozen codecs>", line 322, in decode
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0xbb in position 2: invalid start byte
+Exception in thread Thread-9 (_readerthread):
+Traceback (most recent call last):
+  File "D:\software\anaconda3\Lib\threading.py", line 1075, in _bootstrap_inner
+    self.run()
+  File "D:\software\anaconda3\Lib\threading.py", line 1012, in run
+    self._target(*self._args, **self._kwargs)
+  File "D:\software\anaconda3\Lib\subprocess.py", line 1599, in _readerthread
+    buffer.append(fh.read())
+                  ^^^^^^^^^
+  File "<frozen codecs>", line 322, in decode
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0xbb in position 2: invalid start byte
+Traceback (most recent call last):
+  File "G:\AIRTS\AI_RTS\source\adjutant_coordinator\e2e_langgraph.py", line 547, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "G:\AIRTS\AI_RTS\source\adjutant_coordinator\e2e_langgraph.py", line 521, in main
+    run_e2e(run_dir, args.run_id)
+  File "G:\AIRTS\AI_RTS\source\adjutant_coordinator\e2e_langgraph.py", line 267, in run_e2e
+    status = tcp({"op": "status", "lite": True}, port=CLIENT_DBG)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\AIRTS\AI_RTS\source\adjutant_coordinator\e2e_langgraph.py", line 68, in tcp
+    return base.tcp_call(port, payload, timeout=timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\AIRTS\AI_RTS\source\adjutant_coordinator\e2e_dual_layer.py", line 79, in tcp_call
+    with socket.create_connection(("127.0.0.1", port), timeout=timeout) as sock:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\software\anaconda3\Lib\socket.py", line 865, in create_connection
+    raise exceptions[0]
+  File "D:\software\anaconda3\Lib\socket.py", line 850, in create_connection
+    sock.connect(sa)
+ConnectionRefusedError: [WinError 10061] 由于目标计算机积极拒绝，无法连接。

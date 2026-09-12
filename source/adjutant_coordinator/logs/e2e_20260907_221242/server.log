@@ -1,0 +1,61 @@
+Godot Engine v4.7.1.stable.mono.official.a13da4feb - https://godotengine.org
+
+[DBGCTL] 调试控制端点已启动 127.0.0.1:24572
+[godot_ai game_helper] registered mcp capture (debugger active=false, logger=true)
+联机: 玩家加入槽位 1（当前 1 人）
+联机: 开局，人类 1，槽位 [0]，配置 [1, 0, 0, 0]
+Loading[8.0s] 预加载
+Loading[8.0s] 载入地图 res://source/match/maps/PlainAndSimple.tscn
+Loading[8.1s] 地图实例完成
+Loading[8.6s] 实例化 Match（导航烘焙阻塞点）
+Loading[8.7s] 添加 Match 到场景树
+WARNING: controls.cfg 无法加载或版本不受支持，已重写为当前默认键位：Ok
+   at: void AI_RTS.GodotAdapter.Input.InputBindingRuntime.LoadUserOverrides() (res://source/csharp/GodotAdapter/Input/InputBindingRuntime.cs:173)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/main-menu/Loading.gd:57)
+   C# backtrace (most recent call first):
+       [0] void Godot.GD.PushWarning(string) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/GD.cs:396)
+       [1] void AI_RTS.GodotAdapter.Input.InputBindingRuntime.LoadUserOverrides() (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Input\InputBindingRuntime.cs:173)
+       [2] void AI_RTS.GodotAdapter.Input.InputBindingRuntime._Ready() (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Input\InputBindingRuntime.cs:43)
+       [3] bool Godot.Node.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/Node.cs:2660)
+       [4] bool AI_RTS.GodotAdapter.Input.InputBindingRuntime.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (G:\AIRTS\AI_RTS\.godot\mono\temp\obj\Debug\Godot.SourceGenerators\Godot.SourceGenerators.ScriptMethodsGenerator\AI_RTS.GodotAdapter.Input.InputBindingRuntime_ScriptMethods.generated.cs:190)
+       [5] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+Loading[9.0s] Match 就绪
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+[ECO] PublishSnapshot player=4f3a486c a=50000
+[ECO] PublishSnapshot player=b8968a34 a=50000
+[ECO] PublishSnapshot player=db00cb97 a=50000
+[ECO] PublishSnapshot player=1f838265 a=50000
+[TINT] apply_team_tint (0.1608, 0.4745, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.1608, 0.4745, 1.0, 1.0)
+[TINT] apply_team_tint (0.1608, 0.4745, 1.0, 1.0) on Geometry
+[TINT] override meshes=4 tint=(0.1608, 0.4745, 1.0, 1.0)
+[TINT] apply_team_tint (0.1608, 0.4745, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.1608, 0.4745, 1.0, 1.0)
+[TINT] apply_team_tint (0.1608, 0.4745, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.1608, 0.4745, 1.0, 1.0)
+[INPUT] UnitActionsController enabled player=Player_0
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+[ECO] PublishSnapshot player=4f3a486c a=49400
+[ECO] ApplyLegacy reason=ConstructionCost player=4f3a486c status=Applied a=49400
+[TINT] apply_team_tint (0.1608, 0.4745, 1.0, 1.0) on Geometry
+[TINT] override meshes=1 tint=(0.1608, 0.4745, 1.0, 1.0)
+[ACT] Unit_2 puppet=false in_tree=true locked=false script=res://source/match/units/actions/Constructing.gd
+[ACT] Unit_2 attached child=false
+[MOVE] Unit_2 move-> (11.93934, 0.0, 5.06066)
+[ACT] Unit_2 已 add_child: in_tree=true
+[SNAP] 服务器镜像余额: [{ "slot": 0, "a": 49400, "b": 50000 }, { "slot": 1, "a": 50000, "b": 50000 }, { "slot": 2, "a": 50000, "b": 50000 }, { "slot": 3, "a": 50000, "b": 50000 }]
+[SNAP] 服务器镜像余额: [{ "slot": 0, "a": 49400, "b": 50000 }, { "slot": 1, "a": 50000, "b": 50000 }, { "slot": 2, "a": 50000, "b": 50000 }, { "slot": 3, "a": 50000, "b": 50000 }]
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+[ECO] PublishSnapshot player=4f3a486c a=48845
+[ACT] Unit_2 puppet=false in_tree=true locked=false script=res://source/match/units/actions/Moving.gd
+[ACT] Unit_2 attached child=false
+[MOVE] Unit_2 move-> (9.0, 0.0, 12.0)
+[ACT] Unit_2 已 add_child: in_tree=true
+[ACT] Unit_2 puppet=false in_tree=true locked=false script=res://source/match/units/actions/Moving.gd
+[ACT] Unit_2 attached child=false
+[MOVE] Unit_2 move-> (10.0, 0.0, 10.0)
+[ACT] Unit_2 已 add_child: in_tree=true

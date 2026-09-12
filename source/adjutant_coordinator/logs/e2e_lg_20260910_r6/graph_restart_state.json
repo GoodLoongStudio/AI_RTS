@@ -1,0 +1,425 @@
+{
+  "match_id": "58f42e43-4a78-4b67-b24d-9e0f41a24a5f",
+  "player_id": "Player_0",
+  "rules_version": "fbbbe6fecebba7b439010049f796160c7c0fc6c4a6d6ad2e2442ca634f0ed201",
+  "server_tick": 559,
+  "latest_snapshot_id": 16,
+  "active_plan": {
+    "abort_when": [
+      "base_under_attack"
+    ],
+    "based_on_snapshot": 0,
+    "match_id": "58f42e43-4a78-4b67-b24d-9e0f41a24a5f",
+    "phase_goal": "E2E：工人前压并建立生产",
+    "plan_id": "e2e-plan",
+    "plan_version": 1,
+    "player_id": "Player_0",
+    "rationale": "E2E",
+    "reserves": {},
+    "rules_version": "fbbbe6fecebba7b439010049f796160c7c0fc6c4a6d6ad2e2442ca634f0ed201",
+    "tasks": [
+      {
+        "allowed_actions": [
+          "move"
+        ],
+        "completion": "工人抵达前压点",
+        "priority": 1,
+        "target_type": "",
+        "task_id": "t-move",
+        "unit_constraint": "",
+        "units": [
+          "Unit_2"
+        ]
+      }
+    ],
+    "valid_until_tick": 10000000
+  },
+  "plan_version": "e2e-plan:v1",
+  "plan_adopt_generation": 1,
+  "active_tasks": {
+    "t-move": "running"
+  },
+  "active_intents": [
+    {
+      "abort_when": [],
+      "action": "move",
+      "attempts": 1,
+      "based_on_snapshot": 1,
+      "command_id": "58f42e43-4a78-4b67-b24d-9e0f41a24a5f:i-move-1:1",
+      "drop_reason": "player_override",
+      "emergency": false,
+      "expires_tick": 778,
+      "generation": 1,
+      "intent_id": "i-move-1",
+      "issued_tick": 538,
+      "plan_version": "e2e-plan:v1",
+      "priority": 2,
+      "rationale": "E2E 移动意图",
+      "reacquire": false,
+      "state": "dropped",
+      "target": {
+        "pos": [
+          13.0,
+          16.0
+        ]
+      },
+      "task_id": "t-move",
+      "unit_ids": [
+        "Unit_2"
+      ]
+    },
+    {
+      "abort_when": [],
+      "action": "move",
+      "attempts": 1,
+      "based_on_snapshot": 9,
+      "command_id": "58f42e43-4a78-4b67-b24d-9e0f41a24a5f:i-reacquire:1",
+      "drop_reason": "",
+      "emergency": false,
+      "expires_tick": 791,
+      "generation": 3,
+      "intent_id": "i-reacquire",
+      "issued_tick": 551,
+      "plan_version": "e2e-plan:v1",
+      "priority": 2,
+      "rationale": "E2E 移动意图",
+      "reacquire": true,
+      "state": "active",
+      "target": {
+        "pos": [
+          2.0,
+          13.0
+        ]
+      },
+      "task_id": "t-move",
+      "unit_ids": [
+        "Unit_2"
+      ]
+    }
+  ],
+  "ai_controlled_units": [
+    "Unit_2"
+  ],
+  "player_controlled_units": [],
+  "control_generation": 3,
+  "unit_generations": {
+    "Unit_2": 3
+  },
+  "released_units": [],
+  "pending_events": [],
+  "pending_requests": {},
+  "command_receipts": [
+    {
+      "accepted": true,
+      "action": "move",
+      "command_id": "58f42e43-4a78-4b67-b24d-9e0f41a24a5f:i-move-1:1",
+      "expires_tick": 778,
+      "generation": 1,
+      "intent_action": "move",
+      "intent_id": "i-move-1",
+      "issued_tick": 538,
+      "match_id": "58f42e43-4a78-4b67-b24d-9e0f41a24a5f",
+      "ok": true,
+      "plan_version": "e2e-plan:v1",
+      "player_id": "Player_0",
+      "reason": "",
+      "request_id": "graph-58f42e43-4a78-4b67-b24d-9e0f41a24a5f-i-move-1-1",
+      "result": {
+        "accepted": true,
+        "command_id": "d2f80d00-24f9-4b2b-bc7f-4353d8157559",
+        "moved": [
+          "Unit_2"
+        ],
+        "ok": true,
+        "reason": "",
+        "result": {
+          "command_id": "d2f80d00-24f9-4b2b-bc7f-4353d8157559",
+          "status": "Accepted",
+          "unit_results": [
+            {
+              "accepted": true,
+              "error_code": "None",
+              "order_id": "421dfdf0-c24f-46b6-83e9-bc785fbeb77e",
+              "unit_id": "ab33956e-6072-4488-9f08-fab99477a268"
+            }
+          ]
+        },
+        "status": "Accepted"
+      },
+      "rules_version": "fbbbe6fecebba7b439010049f796160c7c0fc6c4a6d6ad2e2442ca634f0ed201",
+      "server_tick": 538,
+      "status": "Accepted",
+      "task_id": "t-move"
+    },
+    {
+      "accepted": true,
+      "action": "move",
+      "command_id": "58f42e43-4a78-4b67-b24d-9e0f41a24a5f:i-reacquire:1",
+      "expires_tick": 791,
+      "generation": 3,
+      "intent_action": "move",
+      "intent_id": "i-reacquire",
+      "issued_tick": 551,
+      "match_id": "58f42e43-4a78-4b67-b24d-9e0f41a24a5f",
+      "ok": true,
+      "plan_version": "e2e-plan:v1",
+      "player_id": "Player_0",
+      "reason": "",
+      "request_id": "graph-58f42e43-4a78-4b67-b24d-9e0f41a24a5f-i-reacquire-1",
+      "result": {
+        "accepted": true,
+        "command_id": "9deb66ea-1240-43ca-8b57-947122d9531c",
+        "moved": [
+          "Unit_2"
+        ],
+        "ok": true,
+        "reason": "",
+        "result": {
+          "command_id": "9deb66ea-1240-43ca-8b57-947122d9531c",
+          "status": "Accepted",
+          "unit_results": [
+            {
+              "accepted": true,
+              "error_code": "None",
+              "order_id": "a4e4deb8-d6da-4458-8c5e-dff0f814b7a1",
+              "unit_id": "ab33956e-6072-4488-9f08-fab99477a268"
+            }
+          ]
+        },
+        "status": "Accepted"
+      },
+      "rules_version": "fbbbe6fecebba7b439010049f796160c7c0fc6c4a6d6ad2e2442ca634f0ed201",
+      "server_tick": 552,
+      "status": "Accepted",
+      "task_id": "t-move"
+    }
+  ],
+  "degraded_reason": "",
+  "last_strategy_tick": 537,
+  "last_tactics_tick": 551,
+  "model_errors": 0,
+  "last_model_error_tick": null,
+  "decision_log": [
+    {
+      "event_kinds": [],
+      "kind": "event_classified",
+      "route": "strategic",
+      "server_tick": 537
+    },
+    {
+      "kind": "plan_adopted",
+      "plan_id": "e2e-plan",
+      "plan_version": "e2e-plan:v1",
+      "reason": "adopted generation=1",
+      "server_tick": 537,
+      "tick": 537
+    },
+    {
+      "expired_intents": [],
+      "kind": "observation_ingested",
+      "new_events": 1,
+      "server_tick": 538
+    },
+    {
+      "event_kinds": [
+        "enemy_spotted"
+      ],
+      "kind": "event_classified",
+      "route": "emergency_tactical",
+      "server_tick": 538
+    },
+    {
+      "emergency": true,
+      "intent_ids": [
+        "i-move-1"
+      ],
+      "kind": "tactics_proposed",
+      "server_tick": 538
+    },
+    {
+      "accepted": [
+        "i-move-1"
+      ],
+      "clamped": [],
+      "dropped": [],
+      "kind": "intents_arbitrated",
+      "server_tick": 538,
+      "tick": 538
+    },
+    {
+      "kind": "dispatch_done",
+      "receipts": [
+        {
+          "intent_id": "i-move-1",
+          "status": "Accepted"
+        }
+      ],
+      "server_tick": 538
+    },
+    {
+      "dropped_intents": [
+        "i-move-1"
+      ],
+      "generation": 2,
+      "kind": "player_override_immediate",
+      "server_tick": 538,
+      "unit_ids": [
+        "Unit_2"
+      ]
+    },
+    {
+      "event_kinds": [
+        "player_override"
+      ],
+      "kind": "event_classified",
+      "route": "player_interrupt",
+      "server_tick": 541
+    },
+    {
+      "handled": [
+        {
+          "kind": "player_override",
+          "units": [
+            "Unit_2"
+          ]
+        }
+      ],
+      "kind": "plan_reconciled",
+      "plan_preserved": true,
+      "server_tick": 541
+    },
+    {
+      "event_kinds": [],
+      "kind": "event_classified",
+      "route": "wait",
+      "server_tick": 543
+    },
+    {
+      "generation": 3,
+      "kind": "player_release_immediate",
+      "server_tick": 543,
+      "unit_ids": [
+        "Unit_2"
+      ]
+    },
+    {
+      "event_kinds": [
+        "player_release"
+      ],
+      "kind": "event_classified",
+      "route": "player_interrupt",
+      "server_tick": 548
+    },
+    {
+      "handled": [
+        {
+          "kind": "player_release",
+          "units": [
+            "Unit_2"
+          ]
+        }
+      ],
+      "kind": "plan_reconciled",
+      "plan_preserved": true,
+      "server_tick": 548
+    },
+    {
+      "event_kinds": [],
+      "kind": "event_classified",
+      "route": "wait",
+      "server_tick": 548
+    },
+    {
+      "expired_intents": [],
+      "kind": "observation_ingested",
+      "new_events": 1,
+      "server_tick": 551
+    },
+    {
+      "event_kinds": [
+        "queue_idle"
+      ],
+      "kind": "event_classified",
+      "route": "tactical",
+      "server_tick": 551
+    },
+    {
+      "emergency": false,
+      "intent_ids": [
+        "i-reacquire"
+      ],
+      "kind": "tactics_proposed",
+      "server_tick": 551
+    },
+    {
+      "accepted": [
+        "i-reacquire"
+      ],
+      "clamped": [],
+      "dropped": [],
+      "kind": "intents_arbitrated",
+      "server_tick": 551,
+      "tick": 551
+    },
+    {
+      "kind": "dispatch_done",
+      "receipts": [
+        {
+          "intent_id": "i-reacquire",
+          "status": "Accepted"
+        }
+      ],
+      "server_tick": 551
+    },
+    {
+      "kind": "runtime_restored",
+      "server_tick": 551,
+      "pending_requests": [],
+      "expired_intents": []
+    },
+    {
+      "kind": "event_classified",
+      "server_tick": 559,
+      "route": "wait",
+      "event_kinds": []
+    }
+  ],
+  "overrides": [
+    {
+      "dropped_intents": [
+        "i-move-1"
+      ],
+      "generation": 2,
+      "kind": "player_override",
+      "reason": "player_manual_command",
+      "server_tick": 538,
+      "unit_ids": [
+        "Unit_2"
+      ]
+    },
+    {
+      "generation": 3,
+      "kind": "player_release",
+      "reason": "player_release",
+      "server_tick": 546,
+      "unit_ids": [
+        "Unit_2"
+      ]
+    }
+  ],
+  "route": "wait",
+  "paused": false,
+  "candidate_intents": [],
+  "dispatch_pending": [],
+  "intent_arbitration": {
+    "accepted": [],
+    "dropped": [],
+    "clamped": []
+  },
+  "last_checkpoint": {
+    "saved": true,
+    "reason": "",
+    "saved_tick": 559,
+    "path": "G:\\AIRTS\\AI_RTS\\source\\adjutant_coordinator\\logs\\e2e_lg_20260910_r6\\state\\58f42e43-4a78-4b67-b24d-9e0f41a24a5f\\Player_0\\graph_checkpoint.json"
+  }
+}

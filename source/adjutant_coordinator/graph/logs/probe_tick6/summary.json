@@ -1,0 +1,92 @@
+{
+  "FAIL": 1,
+  "PASS": 7,
+  "SKIP": 0,
+  "counts": {
+    "FAIL": 1,
+    "PASS": 7,
+    "SKIP": 0
+  },
+  "dispatch_total": 2,
+  "engine": "langgraph",
+  "fixture": "replay_base_attack.jsonl",
+  "results": [
+    {
+      "detail": "actual=strategic",
+      "item": "step0/tick0 route=strategic",
+      "kind": "PASS",
+      "step": 0
+    },
+    {
+      "detail": "dispatched=0",
+      "item": "step0/tick0 本周无下发",
+      "kind": "PASS",
+      "step": 0
+    },
+    {
+      "detail": "actual=plan-a:v1",
+      "item": "step0/tick0 plan_version=plan-a:v1",
+      "kind": "PASS",
+      "step": 0
+    },
+    {
+      "detail": "actual=emergency_tactical",
+      "item": "step1/tick5 route=emergency_tactical",
+      "kind": "PASS",
+      "step": 1
+    },
+    {
+      "detail": "actual=['i-emergency']",
+      "item": "step1/tick5 accepted=['i-emergency']",
+      "kind": "PASS",
+      "step": 1
+    },
+    {
+      "detail": "dispatched=1",
+      "item": "step1/tick5 本周无下发",
+      "kind": "PASS",
+      "step": 1
+    },
+    {
+      "detail": "actual=wait",
+      "item": "step2/tick6 route=wait",
+      "kind": "PASS",
+      "step": 2
+    },
+    {
+      "detail": "dispatched=1",
+      "item": "step2/tick6 本周无下发",
+      "kind": "FAIL",
+      "step": 2
+    }
+  ],
+  "run_id": "probe_tick6",
+  "state": {
+    "ai_controlled_units": [
+      "Unit_1"
+    ],
+    "control_generation": 1,
+    "degraded_reason": "",
+    "latest_snapshot_id": 6,
+    "live_intents": [
+      "i-emergency",
+      "bt-attack-Unit_1-6"
+    ],
+    "match_id": "m-replay",
+    "paused": false,
+    "pending_requests": [],
+    "plan_id": "plan-a",
+    "plan_phase_goal": "巩固基地并压制侦察",
+    "plan_version": "plan-a:v1",
+    "player_controlled_units": [],
+    "player_id": "Player_1",
+    "released_units": [],
+    "route": "wait",
+    "rules_version": "hash-replay",
+    "server_tick": 6,
+    "tasks": {
+      "t-1": "running"
+    }
+  },
+  "steps": 3
+}

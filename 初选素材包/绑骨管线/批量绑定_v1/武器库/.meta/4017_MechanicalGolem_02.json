@@ -1,0 +1,48 @@
+{
+ "file": "怪物_4017\\MechanicalGolem_02.glb",
+ "pack": "4017",
+ "pack_name": "幻想怪物 4017",
+ "source_fbx": "4017_幻想怪物\\PolygonFantasyRivals\\Models\\SM_Wep_MechanicalGolem_02.fbx",
+ "source_sha256": "544f049d0ad35e2b6d86db03c295c08c40e256762121e12378ac18e45a0d454e",
+ "texture": "FantasyRivals_Texture_01_A.png",
+ "kind_hint": "other",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.5513,
+  1.2799,
+  1.0528
+ ],
+ "dims_m": [
+  0.5513,
+  1.2799,
+  1.0528
+ ],
+ "bbox_min": [
+  -0.2755,
+  -1.1629,
+  -0.7533
+ ],
+ "bbox_max": [
+  0.2758,
+  0.1169,
+  0.2994
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 607,
+ "triangles": 1174,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}

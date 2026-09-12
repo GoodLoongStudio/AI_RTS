@@ -1,0 +1,48 @@
+{
+ "file": "末日_463\\CrossBow_Clean_01.glb",
+ "pack": "463",
+ "pack_name": "幸存者与僵尸 463",
+ "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_CrossBow_Clean_01.fbx",
+ "source_sha256": "3ede746b42ae6ab9f79508204590f59e332cd63d9baccd94a09efc869eb7f08e",
+ "texture": "PolygonApocalypse_Texture_01_A.png",
+ "kind_hint": "gun",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.6899,
+  1.1466,
+  0.2727
+ ],
+ "dims_m": [
+  0.6899,
+  1.1466,
+  0.2727
+ ],
+ "bbox_min": [
+  -0.3449,
+  -0.829,
+  -0.0916
+ ],
+ "bbox_max": [
+  0.3449,
+  0.3176,
+  0.1811
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 1487,
+ "triangles": 2826,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}

@@ -1,0 +1,48 @@
+{
+ "file": "科幻_4006\\Dagger_02.glb",
+ "pack": "4006",
+ "pack_name": "科幻战争 4006",
+ "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Dagger_02.fbx",
+ "source_sha256": "10a46c01ed0d4ac28f644371b3130e3681ce200bd06fecea6bee0f62d6771e5b",
+ "texture": "PolygonScifiWorlds_Texture_01_A.png",
+ "kind_hint": "melee",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.0414,
+  0.0949,
+  0.496
+ ],
+ "dims_m": [
+  0.0414,
+  0.0949,
+  0.496
+ ],
+ "bbox_min": [
+  -0.0207,
+  -0.0475,
+  -0.095
+ ],
+ "bbox_max": [
+  0.0207,
+  0.0475,
+  0.401
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 138,
+ "triangles": 257,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}

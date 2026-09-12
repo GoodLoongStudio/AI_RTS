@@ -1,0 +1,48 @@
+{
+ "file": "怪物_4017\\BarbarianGiant_01.glb",
+ "pack": "4017",
+ "pack_name": "幻想怪物 4017",
+ "source_fbx": "4017_幻想怪物\\PolygonFantasyRivals\\Models\\SM_Wep_BarbarianGiant_01.fbx",
+ "source_sha256": "2cbc8f6e43f4d1acb697aa06f9f8cc81aaada5ae3629a6e306203712d138eabc",
+ "texture": "FantasyRivals_Texture_01_A.png",
+ "kind_hint": "other",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.1737,
+  0.9058,
+  1.4385
+ ],
+ "dims_m": [
+  0.1737,
+  0.9058,
+  1.4385
+ ],
+ "bbox_min": [
+  -0.1071,
+  -0.527,
+  -0.3475
+ ],
+ "bbox_max": [
+  0.0666,
+  0.3789,
+  1.091
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 609,
+ "triangles": 1110,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}

@@ -1,0 +1,406 @@
+{
+  "checkpoint_version": 1,
+  "saved_tick": 546,
+  "state": {
+    "active_intents": [
+      {
+        "abort_when": [],
+        "action": "move",
+        "attempts": 1,
+        "based_on_snapshot": 1,
+        "command_id": "e3e4a8aa-ab2e-49a8-85be-d2bf246b497c:i-move-1:1",
+        "drop_reason": "player_override",
+        "emergency": false,
+        "expires_tick": 764,
+        "generation": 1,
+        "intent_id": "i-move-1",
+        "issued_tick": 524,
+        "plan_version": "e2e-plan:v1",
+        "priority": 2,
+        "rationale": "E2E 移动意图",
+        "reacquire": false,
+        "state": "dropped",
+        "target": {
+          "pos": [
+            13.0,
+            16.0
+          ]
+        },
+        "task_id": "t-move",
+        "unit_ids": [
+          "Unit_2"
+        ]
+      },
+      {
+        "abort_when": [],
+        "action": "move",
+        "attempts": 1,
+        "based_on_snapshot": 9,
+        "command_id": "i-reacquire",
+        "drop_reason": "receipt_PlayerOverride",
+        "emergency": false,
+        "expires_tick": 778,
+        "generation": 3,
+        "intent_id": "i-reacquire",
+        "issued_tick": 538,
+        "plan_version": "e2e-plan:v1",
+        "priority": 2,
+        "rationale": "E2E 移动意图",
+        "reacquire": true,
+        "state": "dropped",
+        "target": {
+          "pos": [
+            2.0,
+            13.0
+          ]
+        },
+        "task_id": "t-move",
+        "unit_ids": [
+          "Unit_2"
+        ]
+      }
+    ],
+    "active_plan": {
+      "abort_when": [
+        "base_under_attack"
+      ],
+      "based_on_snapshot": 0,
+      "match_id": "e3e4a8aa-ab2e-49a8-85be-d2bf246b497c",
+      "phase_goal": "E2E：工人前压并建立生产",
+      "plan_id": "e2e-plan",
+      "plan_version": 1,
+      "player_id": "Player_0",
+      "rationale": "E2E",
+      "reserves": {},
+      "rules_version": "fbbbe6fecebba7b439010049f796160c7c0fc6c4a6d6ad2e2442ca634f0ed201",
+      "tasks": [
+        {
+          "allowed_actions": [
+            "move"
+          ],
+          "completion": "工人抵达前压点",
+          "priority": 1,
+          "target_type": "",
+          "task_id": "t-move",
+          "unit_constraint": "",
+          "units": [
+            "Unit_2"
+          ]
+        }
+      ],
+      "valid_until_tick": 10000000
+    },
+    "active_tasks": {
+      "t-move": "unknown"
+    },
+    "ai_controlled_units": [],
+    "candidate_intents": [],
+    "command_receipts": [
+      {
+        "accepted": true,
+        "action": "move",
+        "command_id": "e3e4a8aa-ab2e-49a8-85be-d2bf246b497c:i-move-1:1",
+        "expires_tick": 764,
+        "generation": 1,
+        "intent_action": "move",
+        "intent_id": "i-move-1",
+        "issued_tick": 524,
+        "match_id": "e3e4a8aa-ab2e-49a8-85be-d2bf246b497c",
+        "ok": true,
+        "plan_version": "e2e-plan:v1",
+        "player_id": "Player_0",
+        "reason": "",
+        "request_id": "graph-e3e4a8aa-ab2e-49a8-85be-d2bf246b497c-i-move-1-1",
+        "result": {
+          "accepted": true,
+          "command_id": "83967872-2f67-4fd1-bedd-a28b1fcb5141",
+          "moved": [
+            "Unit_2"
+          ],
+          "ok": true,
+          "reason": "",
+          "result": {
+            "command_id": "83967872-2f67-4fd1-bedd-a28b1fcb5141",
+            "status": "Accepted",
+            "unit_results": [
+              {
+                "accepted": true,
+                "error_code": "None",
+                "order_id": "6141790e-7cdd-4e02-9821-4d7e3aa93f44",
+                "unit_id": "d6522bf1-8cfb-4b8d-be02-8a3e778ed4ef"
+              }
+            ]
+          },
+          "status": "Accepted"
+        },
+        "rules_version": "fbbbe6fecebba7b439010049f796160c7c0fc6c4a6d6ad2e2442ca634f0ed201",
+        "server_tick": 525,
+        "status": "Accepted",
+        "task_id": "t-move"
+      },
+      {
+        "accepted": false,
+        "action": "move",
+        "command_id": "i-reacquire",
+        "generation": 3,
+        "intent_action": "move",
+        "intent_id": "i-reacquire",
+        "match_id": "e3e4a8aa-ab2e-49a8-85be-d2bf246b497c",
+        "ok": false,
+        "plan_version": "e2e-plan:v1",
+        "player_id": "Player_0",
+        "reason": "单位 Unit_2 的控制租约已被玩家手动命令取消；重新接管需要显式 reacquire 授权。",
+        "result": {},
+        "server_tick": 539,
+        "status": "PlayerOverride",
+        "task_id": "t-move"
+      }
+    ],
+    "control_generation": 4,
+    "decision_log": [
+      {
+        "event_kinds": [],
+        "kind": "event_classified",
+        "route": "strategic",
+        "server_tick": 522
+      },
+      {
+        "kind": "plan_adopted",
+        "plan_id": "e2e-plan",
+        "plan_version": "e2e-plan:v1",
+        "reason": "adopted generation=1",
+        "server_tick": 522,
+        "tick": 522
+      },
+      {
+        "expired_intents": [],
+        "kind": "observation_ingested",
+        "new_events": 1,
+        "server_tick": 525
+      },
+      {
+        "event_kinds": [
+          "enemy_spotted"
+        ],
+        "kind": "event_classified",
+        "route": "emergency_tactical",
+        "server_tick": 525
+      },
+      {
+        "emergency": true,
+        "intent_ids": [
+          "i-move-1"
+        ],
+        "kind": "tactics_proposed",
+        "server_tick": 525
+      },
+      {
+        "accepted": [
+          "i-move-1"
+        ],
+        "clamped": [],
+        "dropped": [],
+        "kind": "intents_arbitrated",
+        "server_tick": 525,
+        "tick": 525
+      },
+      {
+        "kind": "dispatch_done",
+        "receipts": [
+          {
+            "intent_id": "i-move-1",
+            "status": "Accepted"
+          }
+        ],
+        "server_tick": 525
+      },
+      {
+        "dropped_intents": [
+          "i-move-1"
+        ],
+        "generation": 2,
+        "kind": "player_override_immediate",
+        "server_tick": 525,
+        "unit_ids": [
+          "Unit_2"
+        ]
+      },
+      {
+        "event_kinds": [
+          "player_override"
+        ],
+        "kind": "event_classified",
+        "route": "player_interrupt",
+        "server_tick": 531
+      },
+      {
+        "handled": [
+          {
+            "kind": "player_override",
+            "units": [
+              "Unit_2"
+            ]
+          }
+        ],
+        "kind": "plan_reconciled",
+        "plan_preserved": true,
+        "server_tick": 531
+      },
+      {
+        "event_kinds": [],
+        "kind": "event_classified",
+        "route": "wait",
+        "server_tick": 532
+      },
+      {
+        "generation": 3,
+        "kind": "player_release_immediate",
+        "server_tick": 532,
+        "unit_ids": [
+          "Unit_2"
+        ]
+      },
+      {
+        "event_kinds": [
+          "player_release"
+        ],
+        "kind": "event_classified",
+        "route": "player_interrupt",
+        "server_tick": 536
+      },
+      {
+        "handled": [
+          {
+            "kind": "player_release",
+            "units": [
+              "Unit_2"
+            ]
+          }
+        ],
+        "kind": "plan_reconciled",
+        "plan_preserved": true,
+        "server_tick": 536
+      },
+      {
+        "event_kinds": [],
+        "kind": "event_classified",
+        "route": "wait",
+        "server_tick": 537
+      },
+      {
+        "expired_intents": [],
+        "kind": "observation_ingested",
+        "new_events": 1,
+        "server_tick": 539
+      },
+      {
+        "event_kinds": [
+          "queue_idle"
+        ],
+        "kind": "event_classified",
+        "route": "tactical",
+        "server_tick": 539
+      },
+      {
+        "emergency": false,
+        "intent_ids": [
+          "i-reacquire"
+        ],
+        "kind": "tactics_proposed",
+        "server_tick": 539
+      },
+      {
+        "accepted": [
+          "i-reacquire"
+        ],
+        "clamped": [],
+        "dropped": [],
+        "kind": "intents_arbitrated",
+        "server_tick": 539,
+        "tick": 539
+      },
+      {
+        "kind": "dispatch_done",
+        "receipts": [
+          {
+            "intent_id": "i-reacquire",
+            "status": "PlayerOverride"
+          }
+        ],
+        "server_tick": 539
+      },
+      {
+        "expired_intents": [],
+        "kind": "runtime_restored",
+        "pending_requests": [],
+        "server_tick": 539
+      },
+      {
+        "event_kinds": [],
+        "kind": "event_classified",
+        "route": "wait",
+        "server_tick": 546
+      }
+    ],
+    "degraded_reason": "",
+    "last_checkpoint": {
+      "path": "G:\\AIRTS\\AI_RTS\\source\\adjutant_coordinator\\logs\\e2e_lg_20260910_r4\\state\\e3e4a8aa-ab2e-49a8-85be-d2bf246b497c\\Player_0\\graph_checkpoint.json",
+      "reason": "",
+      "saved": true,
+      "saved_tick": 539
+    },
+    "last_model_error_tick": null,
+    "last_strategy_tick": 522,
+    "last_tactics_tick": 539,
+    "latest_snapshot_id": 15,
+    "match_id": "e3e4a8aa-ab2e-49a8-85be-d2bf246b497c",
+    "model_errors": 0,
+    "overrides": [
+      {
+        "dropped_intents": [
+          "i-move-1"
+        ],
+        "generation": 2,
+        "kind": "player_override",
+        "reason": "player_manual_command",
+        "server_tick": 525,
+        "unit_ids": [
+          "Unit_2"
+        ]
+      },
+      {
+        "generation": 3,
+        "kind": "player_release",
+        "reason": "player_release",
+        "server_tick": 535,
+        "unit_ids": [
+          "Unit_2"
+        ]
+      },
+      {
+        "kind": "authority_player_override",
+        "reason": "单位 Unit_2 的控制租约已被玩家手动命令取消；重新接管需要显式 reacquire 授权。",
+        "server_tick": 539,
+        "unit_ids": [
+          "Unit_2"
+        ]
+      }
+    ],
+    "paused": false,
+    "pending_events": [],
+    "pending_requests": {},
+    "plan_adopt_generation": 1,
+    "plan_version": "e2e-plan:v1",
+    "player_controlled_units": [
+      "Unit_2"
+    ],
+    "player_id": "Player_0",
+    "released_units": [],
+    "route": "wait",
+    "rules_version": "fbbbe6fecebba7b439010049f796160c7c0fc6c4a6d6ad2e2442ca634f0ed201",
+    "server_tick": 546,
+    "unit_generations": {
+      "Unit_2": 4
+    }
+  }
+}

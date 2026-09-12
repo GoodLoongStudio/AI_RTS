@@ -1,0 +1,48 @@
+{
+ "file": "末日_463\\Veh_AA_01.glb",
+ "pack": "463",
+ "pack_name": "幸存者与僵尸 463",
+ "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Veh_AA_01.fbx",
+ "source_sha256": "671df4bc576d90b8a36ab8142d20803e553992f8dbe0b3f9d0783c97f0202ebc",
+ "texture": "PolygonApocalypse_Texture_01_A.png",
+ "kind_hint": "other",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.4335,
+  1.6505,
+  0.5213
+ ],
+ "dims_m": [
+  0.4335,
+  1.6505,
+  0.5213
+ ],
+ "bbox_min": [
+  -0.32,
+  -1.1346,
+  -0.0
+ ],
+ "bbox_max": [
+  0.1135,
+  0.5159,
+  0.5213
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 2257,
+ "triangles": 4098,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}

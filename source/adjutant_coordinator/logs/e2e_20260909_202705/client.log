@@ -1,0 +1,619 @@
+Godot Engine v4.7.1.stable.mono.official.a13da4feb - https://godotengine.org
+
+[DBGCTL] 调试控制端点已启动 127.0.0.1:24570
+ERROR: Cannot open file 'res://.godot/imported/click_01.wav-578a79177fde7118f1eb1343f5da2a70.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/click_01.wav-578a79177fde7118f1eb1343f5da2a70.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/click_01.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/click_02.wav-88fa4d6408bc54eaa08ac64bc46e674e.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/click_02.wav-88fa4d6408bc54eaa08ac64bc46e674e.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/click_02.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/click_03.wav-7f97acad4c73657232099d05dc4cb1b7.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/click_03.wav-7f97acad4c73657232099d05dc4cb1b7.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/click_03.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/click_04.wav-ec85ea257257854dc5d7e2495c3ca1f5.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/click_04.wav-ec85ea257257854dc5d7e2495c3ca1f5.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/click_04.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/click_05.wav-a64b2ff17bcf43c2e396e016c9e04305.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/click_05.wav-a64b2ff17bcf43c2e396e016c9e04305.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/click_05.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/hover_01.wav-47f75be8a19bf4844510889e9872f83b.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/hover_01.wav-47f75be8a19bf4844510889e9872f83b.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/hover_01.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/hover_02.wav-76fd5c708f75564d9a872321f80566e8.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/hover_02.wav-76fd5c708f75564d9a872321f80566e8.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/hover_02.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/hover_03.wav-e25de92a50397416e50ce56371f3b3ba.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/hover_03.wav-e25de92a50397416e50ce56371f3b3ba.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/hover_03.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/select_01.wav-3ec959f90e68229b09af450a33e6058e.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/select_01.wav-3ec959f90e68229b09af450a33e6058e.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/select_01.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/select_02.wav-5986107633afda0c4ce5477e3d4ff1cb.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/select_02.wav-5986107633afda0c4ce5477e3d4ff1cb.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/select_02.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/select_03.wav-612be45697413e6f2ca1beee47741047.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/select_03.wav-612be45697413e6f2ca1beee47741047.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/select_03.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/select_04.wav-8f65868df3a80c25255981a9cd686649.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/select_04.wav-8f65868df3a80c25255981a9cd686649.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/select_04.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/place_01.wav-9fdd6896cd393100dcc05e258490faaf.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/place_01.wav-9fdd6896cd393100dcc05e258490faaf.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/place_01.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/place_02.wav-c8b73378f2f46a1e2f0964a1e403e269.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/place_02.wav-c8b73378f2f46a1e2f0964a1e403e269.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/place_02.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/place_03.wav-92b42ed845db25f902b012e2c5e6aa32.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/place_03.wav-92b42ed845db25f902b012e2c5e6aa32.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/place_03.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/place_04.wav-657ad4a1ee1b6310c4820bc2de5762f2.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/place_04.wav-657ad4a1ee1b6310c4820bc2de5762f2.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/place_04.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/error_01.wav-9b32183ca06bf0a896e7437c1807bdd4.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/error_01.wav-9b32183ca06bf0a896e7437c1807bdd4.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/error_01.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/error_02.wav-90ba75c797ae586b2b1e1cbc96652bec.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/error_02.wav-90ba75c797ae586b2b1e1cbc96652bec.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/error_02.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/error_03.wav-e0d7b3d03c08aef7ffd15dd201701406.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/error_03.wav-e0d7b3d03c08aef7ffd15dd201701406.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/error_03.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/ui_toggle_on_01.wav-972e5ea0212699f4178b40a3d7371306.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/ui_toggle_on_01.wav-972e5ea0212699f4178b40a3d7371306.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/ui_toggle_on_01.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/ui_toggle_on_02.wav-d90021c433b5fd12bbeb0b27040dc2fd.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/ui_toggle_on_02.wav-d90021c433b5fd12bbeb0b27040dc2fd.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/ui_toggle_on_02.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/ui_toggle_on_03.wav-634b429b037b3f7ab02771e73a3981bf.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/ui_toggle_on_03.wav-634b429b037b3f7ab02771e73a3981bf.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/ui_toggle_on_03.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/ui_toggle_off_01.wav-8e8980a8e2b20acb07f6daff419b8a70.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/ui_toggle_off_01.wav-8e8980a8e2b20acb07f6daff419b8a70.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/ui_toggle_off_01.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/ui_toggle_off_02.wav-cfc3f680a4d951caf80886638449abab.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/ui_toggle_off_02.wav-cfc3f680a4d951caf80886638449abab.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/ui_toggle_off_02.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/ui_toggle_off_03.wav-a76944dd16bb9eac6eaa226cd8e669a7.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/ui_toggle_off_03.wav-a76944dd16bb9eac6eaa226cd8e669a7.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/ui_toggle_off_03.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/ui_dial_01.wav-4fe87adf8d15264b7e152f505f6be3bc.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/ui_dial_01.wav-4fe87adf8d15264b7e152f505f6be3bc.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/ui_dial_01.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/ui_dial_02.wav-f59333ec0d3c5eb24743929ace741c16.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/ui_dial_02.wav-f59333ec0d3c5eb24743929ace741c16.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/ui_dial_02.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/ui_dial_03.wav-514087d5efcb0f836436d970bf32d1e5.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/ui_dial_03.wav-514087d5efcb0f836436d970bf32d1e5.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/ui_dial_03.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/ui_dial_04.wav-0fd23c33fc5e0c6adeaefe72675afb8f.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/ui_dial_04.wav-0fd23c33fc5e0c6adeaefe72675afb8f.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/ui_dial_04.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/ui_tick_01.wav-e1b089b8e76897f185801d4bf85e6210.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/ui_tick_01.wav-e1b089b8e76897f185801d4bf85e6210.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/ui_tick_01.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/ui_tick_02.wav-1482891c2912e77f5f9d4f50f582b814.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/ui_tick_02.wav-1482891c2912e77f5f9d4f50f582b814.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/ui_tick_02.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/ui_tick_03.wav-0a0fe6eca56886a11f3da519ca1925a3.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/ui_tick_03.wav-0a0fe6eca56886a11f3da519ca1925a3.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/ui_tick_03.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/ui_tick_04.wav-618ba0a7470256cb595e56a915b6f119.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/ui_tick_04.wav-618ba0a7470256cb595e56a915b6f119.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/ui_tick_04.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/ui_drawer_01.wav-a0b102331fcb9e80f2bdd56895e2fe09.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/ui_drawer_01.wav-a0b102331fcb9e80f2bdd56895e2fe09.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/ui_drawer_01.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/ui_drawer_02.wav-809fe3998523cd37195fe46f7e99b3e2.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/ui_drawer_02.wav-809fe3998523cd37195fe46f7e99b3e2.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/ui_drawer_02.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/ui_drawer_03.wav-611368fee1a054978590586e6a3f2507.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/ui_drawer_03.wav-611368fee1a054978590586e6a3f2507.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/ui_drawer_03.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/ui_plate_01.wav-b7096a1babbdf50813625b630a7bcae1.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/ui_plate_01.wav-b7096a1babbdf50813625b630a7bcae1.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/ui_plate_01.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/ui_plate_02.wav-6790330f8f9b42d6b6c587a5346f17f4.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/ui_plate_02.wav-6790330f8f9b42d6b6c587a5346f17f4.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/ui_plate_02.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/ui_plate_03.wav-664c02f5bea76380c838ba91cacf4681.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/ui_plate_03.wav-664c02f5bea76380c838ba91cacf4681.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/ui_plate_03.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/ui_latch_01.wav-4da0c5257ec021b26aa33562878a947d.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/ui_latch_01.wav-4da0c5257ec021b26aa33562878a947d.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/ui_latch_01.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/ui_latch_02.wav-3c56df0ff4390d80ed810d81a70b8964.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/ui_latch_02.wav-3c56df0ff4390d80ed810d81a70b8964.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/ui_latch_02.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/ui_latch_03.wav-e44f339a6702f8c5605387ddaf25086c.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/ui_latch_03.wav-e44f339a6702f8c5605387ddaf25086c.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/ui_latch_03.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/ui_mode_01.wav-0e88416ca2d6df86993e89d0384c5139.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/ui_mode_01.wav-0e88416ca2d6df86993e89d0384c5139.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/ui_mode_01.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/ui_mode_02.wav-41b02265d0c721ce912ecfc4a85e5003.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/ui_mode_02.wav-41b02265d0c721ce912ecfc4a85e5003.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/ui_mode_02.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/ui_mode_03.wav-18a0f9de01ddfd5d56c9113997bf7cb4.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/ui_mode_03.wav-18a0f9de01ddfd5d56c9113997bf7cb4.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/ui_mode_03.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/ui_menu_open_01.wav-71fb134b9f598f67c7c11ab83173fd1d.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/ui_menu_open_01.wav-71fb134b9f598f67c7c11ab83173fd1d.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/ui_menu_open_01.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/ui_menu_open_02.wav-e3fc3c2fbfd4faebc06d2a11155f629d.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/ui_menu_open_02.wav-e3fc3c2fbfd4faebc06d2a11155f629d.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/ui_menu_open_02.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/ui_menu_close_01.wav-410bc7517de229c3ed3901fbb4a17d9c.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/ui_menu_close_01.wav-410bc7517de229c3ed3901fbb4a17d9c.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/ui_menu_close_01.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Cannot open file 'res://.godot/imported/ui_menu_close_02.wav-7d2ca8f975811fb790b1f33f5a0950dd.sample'.
+   at: load (core/io/resource_format_binary.cpp:1156)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://.godot/imported/ui_menu_close_02.wav-7d2ca8f975811fb790b1f33f5a0950dd.sample.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+ERROR: Failed loading resource: res://assets/sfx/ui/ui_menu_close_02.wav.
+   at: _load (core/io/resource_loader.cpp:317)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/ui/UISfx.gd:50)
+[godot_ai game_helper] registered mcp capture (debugger active=false, logger=true)
+Loading[12.0s] 预加载
+Loading[12.0s] 载入地图 res://source/match/maps/PlainAndSimple.tscn
+Loading[12.1s] 地图实例完成
+Loading[12.7s] 实例化 Match（导航烘焙阻塞点）
+Loading[12.8s] 添加 Match 到场景树
+Loading[13.1s] Match 就绪
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+[ECO] PublishSnapshot player=e42bd11f a=50000
+[ECO] PublishSnapshot player=2735d368 a=50000
+[ECO] PublishSnapshot player=cc077a53 a=50000
+[ECO] PublishSnapshot player=c5e3472f a=50000
+[TINT] apply_team_tint (0.1608, 0.4745, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.1608, 0.4745, 1.0, 1.0)
+[TINT] apply_team_tint (0.1608, 0.4745, 1.0, 1.0) on Geometry
+[TINT] override meshes=4 tint=(0.1608, 0.4745, 1.0, 1.0)
+[TINT] apply_team_tint (0.1608, 0.4745, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.1608, 0.4745, 1.0, 1.0)
+[TINT] apply_team_tint (0.1608, 0.4745, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.1608, 0.4745, 1.0, 1.0)
+[INPUT] UnitActionsController enabled player=Player_0
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+[TINT] apply_team_tint (0.1608, 0.4745, 1.0, 1.0) on Geometry
+[TINT] override meshes=1 tint=(0.1608, 0.4745, 1.0, 1.0)
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)

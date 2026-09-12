@@ -1,0 +1,14 @@
+# 场景：模型超时/断线降级 —— 不阻塞、保留既有计划与意图、恢复后继续决策
+# 注（2026-09-10）：模型超时改用 rules_fallback 规则兜底继续派工
+# （提示词要求"模型两次回答之间，部队必须继续工作"）。
+# degraded_contains 必须为真——降级可见是验收前提，不能靠兜底把失败抹平。
+# 兜底"确实能派工"的验证在 test_rules_fallback.py（那里给了 resource）。
+# 注（2026-09-11 行为变更）：行为树的 `visible_enemies`/`visible_resources` 曾因
+# **读错字段**（按 `entity_id`，而游戏端只导出 `name`）恒为空 → 就近交火、劣势撤离、
+# 工人采集兜底**全部静默失效**。修正后本场景 tick5 有**可见敌人 E_1**（Unit_1 的
+# unit_type 缺省为 tank），微操兜底会合理交火，所以这里断言"必须下发且是行为树的
+# 交火意图"，取代旧注释里的"无事实可依 → 不下发"（该说法在敌人可见时已不成立）。
+{"tick":0,"model":{"strategy":{"behavior":"timeout"}},"expect":{"route":"strategic","degraded_contains":"strategy_model_ModelTimeout","no_dispatch":true}}
+{"tick":1,"model":{"strategy":{"behavior":"completed","plan":{"plan_id":"plan-a","plan_version":1,"match_id":"m-replay","player_id":"Player_1","rules_version":"hash-replay","based_on_snapshot":1,"valid_until_tick":100000,"phase_goal":"试探性推进","tasks":[{"task_id":"t-1","priority":1,"completion":"占据前哨","units":["Unit_1"],"unit_constraint":"","target_type":"","allowed_actions":["move","attack_move","hold"]}],"reserves":{},"rationale":"回放用例","abort_when":[]}}},"expect":{"route":"strategic","plan_version":"plan-a:v1"}}
+{"tick":5,"observation":{"own":[{"name":"Unit_1"}],"enemies":[{"name":"E_1"}],"events":[{"event_id":"evt-spot-5","kind":"enemy_spotted","server_tick":5,"payload":{"subject":"Unit_1"}}]},"model":{"tactics":{"behavior":"timeout"}},"expect":{"route":"emergency_tactical","degraded_contains":"tactics_model_ModelTimeout","plan_version":"plan-a:v1","accepted_contains":["bt-attack-Unit_1-5"],"no_dispatch":false}}
+{"tick":6,"observation":{"own":[{"name":"Unit_1"}],"enemies":[{"name":"E_1"}],"events":[{"event_id":"evt-idle-6","kind":"queue_idle","server_tick":6,"payload":{"subject":"Unit_1"}}]},"model":{"tactics":{"behavior":"completed","intents":{"batch_id":"b-1","match_id":"m-replay","player_id":"Player_1","plan_version":"plan-a:v1","based_on_snapshot":6,"intents":[{"intent_id":"i-recover","plan_version":"plan-a:v1","task_id":"t-1","unit_ids":["Unit_1"],"action":"attack_move","target":{"pos":[6.0,6.0]},"priority":2,"based_on_snapshot":6,"issued_tick":6,"expires_tick":300,"generation":0,"abort_when":[],"emergency":false,"rationale":"模型恢复后继续推进"}]}}},"expect":{"accepted":["i-recover"],"no_dispatch":false}}

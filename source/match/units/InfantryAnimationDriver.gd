@@ -25,6 +25,27 @@ const HIT_OVERLAY_MSEC := 300
 const DEATH_HOLD_SECONDS := 1.0
 const LOOP_CLIPS := ["Idle", "Run", "Crawl"]
 
+## ---------------------------------------------------------------------------
+## 枪口跟随（2026-09-11 新增）
+##
+## 症状：步兵射击时子弹**不从枪口出来**。根因是 `Geometry/ProjectileOrigin`
+## 是一个**静态 Marker3D**（局部 (0, 0.55, -0.2)），不跟随骨骼；而 GLB 里的
+## 步枪是独立网格、**全部顶点刚性绑定 `Hand_R`**，待机/开火姿势下枪随手臂移动。
+## 实测（Fire 姿势，换算到 Geometry 局部）：
+##   真实枪口 (0.154, 0.631, -0.312)  vs  静态 Marker (0, 0.55, -0.20)
+##   → 横向差 0.154m、高度差 0.081m、前后差 0.112m（单位总高才 0.8m，非常明显）。
+##
+## 做法：不改 GLB、不加节点，每帧把 Marker 的世界坐标写成
+##     skeleton.global_transform * bone_global_pose(Hand_R) * (bind_pose(Hand_R) * v_muzzle)
+## 该式与 Godot 蒙皮公式 `bone_global_pose * bind_pose * v` 同构，所以
+## **与姿势无关**：枪怎么动，枪口就落在枪管末端。
+## `v_muzzle` 由步枪网格自身的 AABB 推：最长轴＝枪管轴，离手更远的那端＝枪口。
+## 取不到骨架/骨骼/步枪网格时整段跳过，Marker 保持原静态行为（不会更糟）。
+## ---------------------------------------------------------------------------
+const MUZZLE_MARKER_NAME := "ProjectileOrigin"
+const MUZZLE_MESH_NAME := "Rifle"
+const MUZZLE_BONE_NAME := "Hand_R"
+
 var _player: AnimationPlayer
 var _unit: Node
 var _last_position := Vector3.INF
@@ -41,6 +62,11 @@ var _fire_active := false
 var _hit_clip := "Hit"
 var _last_hp = null
 var _death_started := false
+## 枪口跟随：Marker 节点、其所属骨架、骨骼索引、枪口在该骨骼空间的位置。
+var _muzzle: Node3D = null
+var _muzzle_skeleton: Skeleton3D = null
+var _muzzle_bone := -1
+var _muzzle_in_bone := Vector3.INF
 
 
 func _ready() -> void:
@@ -59,10 +85,14 @@ func _ready() -> void:
 	if _unit.has_signal("attack_fired"):
 		_unit.attack_fired.connect(_on_attack_fired)
 	_player.animation_finished.connect(_on_animation_finished)
+	# 枪口跟随必须晚于 AnimationPlayer 更新骨骼姿势，否则会用到上一帧的姿势。
+	process_priority = 100
+	_setup_muzzle_tracking()
 	_play("Idle")
 
 
 func _process(delta: float) -> void:
+	_update_muzzle()
 	_hit_overlay_remaining = maxf(0.0, _hit_overlay_remaining - delta * absf(_player.speed_scale))
 	if _unit.hp != null:
 		_last_hp = _unit.hp
@@ -143,7 +173,14 @@ func _on_attack_fired() -> void:
 ## 联机木偶不经 Movement 移动，意图恒为空，此时退化为纯速度观察窗口。
 func _is_moving_by_intent() -> bool:
 	var movement = _unit.get_node_or_null("Movement")
-	return movement != null and movement.target_position != Vector3.INF
+	if movement != null and movement.target_position != Vector3.INF:
+		return true
+	# 联机傀儡不经 Movement 移动（傀儡端 Movement 直接 return，目标恒为 INF），
+	# 上面那条意图判据在客户端**恒为空**。原先没有兜底 → 客户端移动中的单位也会
+	# 播出站姿开火（2026-09-11 补开火同步时暴露）。这里退化为纯速度观察：
+	# `_speed` 是物理帧位移的低通值，正常移动稳定高于阈值。
+	# 已知代价：刹停瞬间滤波尚未衰减时可能误判一次 —— 只少播一次 Fire，不会假开火。
+	return NetSession.is_client_puppet() and _speed > MOVE_SPEED_EPSILON
 
 
 func _on_animation_finished(clip: StringName) -> void:
@@ -240,3 +277,75 @@ func _play(clip: String) -> void:
 	if _player.assigned_animation == clip:
 		return
 	_player.play(clip, 0.2)
+
+
+## ---------------------------------------------------------------------- 枪口
+
+## 解一次「枪口在 Hand_R 骨骼空间的位置」；姿势无关，之后每帧只做两次矩阵乘。
+func _setup_muzzle_tracking() -> void:
+	_muzzle = _unit.find_child(MUZZLE_MARKER_NAME, true, false) as Node3D
+	if _muzzle == null:
+		return
+	var skeleton := _unit.find_child("Skeleton3D", true, false) as Skeleton3D
+	if skeleton == null:
+		return
+	var bone := skeleton.find_bone(MUZZLE_BONE_NAME)
+	if bone < 0:
+		push_warning(
+			"InfantryAnimationDriver: 骨架缺少 %s，枪口保持静态 Marker" % MUZZLE_BONE_NAME)
+		return
+	var rifle := _find_rifle_mesh()
+	if rifle == null or rifle.skin == null:
+		return
+	# bind_pose 即 glTF 的 inverseBindMatrices：它把蒙皮空间映射到骨骼空间。
+	var bind: Transform3D = rifle.skin.get_bind_pose(bone)
+	# 手在蒙皮空间的静止位置 = bind_pose 的逆的平移。
+	var hand_rest: Vector3 = bind.affine_inverse().origin
+	var muzzle_skin: Vector3 = _pick_muzzle_vertex(rifle.mesh.get_aabb(), hand_rest)
+	if muzzle_skin == Vector3.INF:
+		return
+	_muzzle_in_bone = bind * muzzle_skin
+	_muzzle_skeleton = skeleton
+	_muzzle_bone = bone
+
+
+## 找步枪网格：GLB 里它是与身体分开的 `Rifle` 网格（共用同一套 Skin）。
+func _find_rifle_mesh() -> MeshInstance3D:
+	var direct := _unit.find_child(MUZZLE_MESH_NAME, true, false)
+	if direct is MeshInstance3D:
+		return direct
+	for node in _unit.find_children("*" + MUZZLE_MESH_NAME + "*", "MeshInstance3D", true, false):
+		return node
+	return null
+
+
+## 从网格 AABB 推枪口顶点：最长轴＝枪管轴，离手更远的那端＝枪口（近端是握把）。
+## 步枪刚性绑定 Hand_R，所以这个点在骨骼空间里是常量，与姿势无关。
+func _pick_muzzle_vertex(aabb: AABB, hand_rest: Vector3) -> Vector3:
+	var size := aabb.size
+	var axis := 0
+	if size.y > size[axis]:
+		axis = 1
+	if size.z > size[axis]:
+		axis = 2
+	if size[axis] <= 0.0:
+		return Vector3.INF
+	var center := aabb.get_center()
+	var low := center
+	low[axis] = aabb.position[axis]
+	var high := center
+	high[axis] = aabb.position[axis] + size[axis]
+	return low if low.distance_squared_to(hand_rest) > high.distance_squared_to(hand_rest) else high
+
+
+## 把 Marker 拉到枪管末端（只改位置：投射物只用 `ProjectileOrigin` 的原点）。
+func _update_muzzle() -> void:
+	if _muzzle_skeleton == null or _muzzle_in_bone == Vector3.INF:
+		return
+	if _muzzle == null or not is_instance_valid(_muzzle):
+		return
+	var bone_pose: Transform3D = (
+		_muzzle_skeleton.global_transform
+		* _muzzle_skeleton.get_bone_global_pose(_muzzle_bone)
+	)
+	_muzzle.global_position = bone_pose * _muzzle_in_bone

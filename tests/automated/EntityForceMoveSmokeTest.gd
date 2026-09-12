@@ -1,5 +1,7 @@
 extends Node
 
+const SmokeTestWarmup = preload("res://tests/automated/SmokeTestWarmup.gd")
+
 const MatchScene = preload("res://tests/manual/TestHelicopterCommands.tscn")
 const Moving = preload("res://source/match/units/actions/Moving.gd")
 
@@ -12,8 +14,7 @@ var _feedback_events: Array[Dictionary] = []
 func _ready():
 	var match_instance = MatchScene.instantiate()
 	add_child(match_instance)
-	await get_tree().process_frame
-	await get_tree().process_frame
+	await SmokeTestWarmup.wait_for_units(get_tree(), 3)
 
 	var human = match_instance.get_node("Players/Human")
 	var tank = human.get_node("Tank")
@@ -45,7 +46,7 @@ func _ready():
 	_check(_last_feedback_status("ForceMove") == "Rejected", "点实体的强制移动应拒绝")
 	_check(enemy_building.hp == enemy_hp_before, "拒绝实体目标时不得伤害建筑")
 
-	var ground_for_helicopter := enemy_building.global_position + Vector3(8.0, 0.0, 0.0)
+	var ground_for_helicopter: Vector3 = enemy_building.global_position + Vector3(8.0, 0.0, 0.0)
 	MatchSignals.terrain_targeted.emit(ground_for_helicopter)
 	await get_tree().process_frame
 	_check(controller.get_active_command_targeting() == "", "地面确认后应退出强制移动选目标")
@@ -70,7 +71,7 @@ func _ready():
 	)
 	_check(_last_feedback_status("ForceMove") == "Rejected", "Tank 点实体的强制移动应拒绝")
 
-	var ground_for_tank := enemy_building.global_position + Vector3(-8.0, 0.0, 0.0)
+	var ground_for_tank: Vector3 = enemy_building.global_position + Vector3(-8.0, 0.0, 0.0)
 	MatchSignals.terrain_targeted.emit(ground_for_tank)
 	await get_tree().process_frame
 	_check(_has_force_move_order(tank), "随后右键地面应为 Tank 提交 ForceMove")

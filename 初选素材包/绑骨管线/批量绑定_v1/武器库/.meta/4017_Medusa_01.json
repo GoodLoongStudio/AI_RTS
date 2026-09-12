@@ -1,0 +1,48 @@
+{
+ "file": "怪物_4017\\Medusa_01.glb",
+ "pack": "4017",
+ "pack_name": "幻想怪物 4017",
+ "source_fbx": "4017_幻想怪物\\PolygonFantasyRivals\\Models\\SM_Wep_Medusa_01.fbx",
+ "source_sha256": "a8e10577f2f68334bb8f9dc23e52b854cee307c539b3e95c129c0c8b468365c2",
+ "texture": "FantasyRivals_Texture_01_A.png",
+ "kind_hint": "other",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.1242,
+  0.1485,
+  1.5099
+ ],
+ "dims_m": [
+  0.1242,
+  0.1485,
+  1.5099
+ ],
+ "bbox_min": [
+  -0.0621,
+  -0.0742,
+  -0.951
+ ],
+ "bbox_max": [
+  0.0621,
+  0.0742,
+  0.5589
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 343,
+ "triangles": 678,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}

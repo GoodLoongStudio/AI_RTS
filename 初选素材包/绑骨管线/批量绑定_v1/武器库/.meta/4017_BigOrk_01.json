@@ -1,0 +1,48 @@
+{
+ "file": "怪物_4017\\BigOrk_01.glb",
+ "pack": "4017",
+ "pack_name": "幻想怪物 4017",
+ "source_fbx": "4017_幻想怪物\\PolygonFantasyRivals\\Models\\SM_Wep_BigOrk_01.fbx",
+ "source_sha256": "509fdc7ea82e8f9231f7819df1bc8be899b1143c1ed61fe4a1342550ea273684",
+ "texture": "FantasyRivals_Texture_01_A.png",
+ "kind_hint": "other",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.216,
+  0.6209,
+  1.6231
+ ],
+ "dims_m": [
+  0.216,
+  0.6209,
+  1.6231
+ ],
+ "bbox_min": [
+  -0.108,
+  -0.3843,
+  -0.5775
+ ],
+ "bbox_max": [
+  0.108,
+  0.2366,
+  1.0455
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 645,
+ "triangles": 1286,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}

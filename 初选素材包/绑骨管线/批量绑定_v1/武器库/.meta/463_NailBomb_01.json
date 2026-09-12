@@ -1,0 +1,48 @@
+{
+ "file": "末日_463\\NailBomb_01.glb",
+ "pack": "463",
+ "pack_name": "幸存者与僵尸 463",
+ "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_NailBomb_01.fbx",
+ "source_sha256": "69de0830b3f8b4d457bb9659f4e0d47e18c77a67e8328973d6668418b1a99a24",
+ "texture": "PolygonApocalypse_Texture_01_A.png",
+ "kind_hint": "gun",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.1714,
+  0.1784,
+  0.2211
+ ],
+ "dims_m": [
+  0.1714,
+  0.1784,
+  0.2211
+ ],
+ "bbox_min": [
+  -0.0844,
+  -0.0779,
+  -0.0
+ ],
+ "bbox_max": [
+  0.087,
+  0.1006,
+  0.2211
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 376,
+ "triangles": 654,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}

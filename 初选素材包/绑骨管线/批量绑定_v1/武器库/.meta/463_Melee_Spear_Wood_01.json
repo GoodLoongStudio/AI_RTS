@@ -1,0 +1,48 @@
+{
+ "file": "末日_463\\Melee_Spear_Wood_01.glb",
+ "pack": "463",
+ "pack_name": "幸存者与僵尸 463",
+ "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Melee_Spear_Wood_01.fbx",
+ "source_sha256": "fe58f7547f818b93f7915aeb5fcb368725fff7de0266cb60c21de4f2de26345d",
+ "texture": "PolygonApocalypse_Texture_01_A.png",
+ "kind_hint": "melee",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.1106,
+  2.3378,
+  0.0783
+ ],
+ "dims_m": [
+  0.1106,
+  2.3378,
+  0.0783
+ ],
+ "bbox_min": [
+  -0.0553,
+  -1.4417,
+  -0.0378
+ ],
+ "bbox_max": [
+  0.0553,
+  0.8961,
+  0.0405
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 449,
+ "triangles": 862,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}

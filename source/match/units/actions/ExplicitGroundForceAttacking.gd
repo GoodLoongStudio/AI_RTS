@@ -112,5 +112,10 @@ func _spawn_shot_visual():
 	_projectile_runtime.LaunchGround(_unit, _target_position)
 
 
+## 表现层：本次开火的真实落点（权威端 `Unit._broadcast_fired` 取它发给客户端）。
+func presentation_aim_point() -> Vector3:
+	return _target_position
+
+
 func _simulation_msec() -> int:
 	return _unit.find_parent("Match").get_simulation_msec()

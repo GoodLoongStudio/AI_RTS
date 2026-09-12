@@ -1,5 +1,7 @@
 extends Node
 
+const SmokeTestWarmup = preload("res://tests/automated/SmokeTestWarmup.gd")
+
 const MatchScene = preload("res://tests/manual/TestMultiUnitCommands.tscn")
 
 var _failures := 0
@@ -9,8 +11,7 @@ var _deselected_units: Array = []
 func _ready():
 	var match_instance = MatchScene.instantiate()
 	add_child(match_instance)
-	await get_tree().process_frame
-	await get_tree().process_frame
+	await SmokeTestWarmup.wait_for_units(get_tree(), 1)
 
 	MatchSignals.unit_deselected.connect(func(unit): _deselected_units.append(unit))
 	var human = match_instance.get_node("Players/Human")

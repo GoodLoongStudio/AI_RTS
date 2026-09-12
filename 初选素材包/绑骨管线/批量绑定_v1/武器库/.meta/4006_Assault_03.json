@@ -1,0 +1,48 @@
+{
+ "file": "科幻_4006\\Assault_03.glb",
+ "pack": "4006",
+ "pack_name": "科幻战争 4006",
+ "source_fbx": "4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Wep_Assault_03.fbx",
+ "source_sha256": "240f400ee8e083a80967dd7593cd60edfd1e75c6b52815a97c21547617aee56b",
+ "texture": "PolygonScifiWorlds_Texture_01_A.png",
+ "kind_hint": "other",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.1054,
+  0.9709,
+  0.4496
+ ],
+ "dims_m": [
+  0.1054,
+  0.9709,
+  0.4496
+ ],
+ "bbox_min": [
+  -0.0527,
+  -0.73,
+  -0.2093
+ ],
+ "bbox_max": [
+  0.0527,
+  0.241,
+  0.2403
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 728,
+ "triangles": 1270,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}

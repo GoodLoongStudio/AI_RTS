@@ -28,6 +28,22 @@ const VOLUME_BY_KEY := {
 ## 测试观察用：最近播放的音效键（仅测试断言使用）。
 static var played_log: Array[String] = []
 
+## ---------------------------------------------------------------------------
+## 开火遥测（只读观测，2026-09-11 新增）
+##
+## 为什么需要它：单位会**自动攻击**靠近的敌人，所以"敌我血量变化"既不能证明
+## "副官在指挥交火"，也不能证明"真的开了火"；而交火目前也没有特效/音效可供
+## 肉眼确认。这里给验收/自动化一个**不依赖血条、不依赖视听**的开火证据：
+## 每次真实开火记录 {单位, 位置, 时刻}，只追加、不参与任何玩法结算。
+## 只统计**开火**音效（`FIRE_KEYS`）；命中音挂在受击方身上，不计入开火数。
+## ---------------------------------------------------------------------------
+const FIRE_KEYS := ["rifle_fire", "cannon_fire", "rocket_fire"]
+## 开火总数（单调递增；跨客户端/服务器各自计数）。
+static var fire_total := 0
+## 最近的开火记录（容量有上限，超出丢最早）。
+static var shot_log: Array[Dictionary] = []
+const SHOT_LOG_LIMIT := 256
+
 static var _stream_cache := {}
 
 
@@ -56,6 +72,30 @@ static func play_at(host: Node3D, key: String) -> void:
 	player.play()
 	player.finished.connect(player.queue_free)
 	played_log.append(key)
+	_record_shot(host, key)
+
+
+## 记录一次开火（见 `shot_log` 说明）。宿主就是**开火方**单位本体，
+## 因此可据此判断"哪个单位在什么位置、什么时刻真的打出了子弹"。
+static func _record_shot(host: Node3D, key: String) -> void:
+	if not (key in FIRE_KEYS):
+		return          # 命中音挂在受击方身上，不计入开火数
+	fire_total += 1
+	var position := host.global_position
+	shot_log.append({
+		"key": key,
+		"unit": str(host.name),
+		"pos": [position.x, position.y, position.z],
+		"msec": Time.get_ticks_msec(),
+		"frame": Engine.get_physics_frames(),
+	})
+	if shot_log.size() > SHOT_LOG_LIMIT:
+		shot_log = shot_log.slice(shot_log.size() - SHOT_LOG_LIMIT)
+
+
+static func clear_shot_log() -> void:
+	shot_log.clear()
+	fire_total = 0
 
 
 ## 单位开火音效键；未映射的单位（如工人）返回空串不播放。

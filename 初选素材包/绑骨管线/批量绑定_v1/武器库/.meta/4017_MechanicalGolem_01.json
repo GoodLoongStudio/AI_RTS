@@ -1,0 +1,67 @@
+{
+ "file": "怪物_4017\\MechanicalGolem_01.glb",
+ "pack": "4017",
+ "pack_name": "幻想怪物 4017",
+ "source_fbx": "4017_幻想怪物\\PolygonFantasyRivals\\Models\\SM_Wep_MechanicalGolem_01.fbx",
+ "source_sha256": "4eb9dad5223fbe102531965bdc15d0d0d511e807f4c122a4d72a6dcb8d652751",
+ "texture": "FantasyRivals_Texture_01_A.png",
+ "kind_hint": "other",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.2393,
+  0.4259,
+  1.6465
+ ],
+ "dims_m": [
+  0.2393,
+  0.4259,
+  1.6465
+ ],
+ "bbox_min": [
+  -0.0996,
+  -0.334,
+  -0.179
+ ],
+ "bbox_max": [
+  0.1397,
+  0.0919,
+  1.4674
+ ],
+ "grip_at_origin": [
+  -0.01,
+  0.0,
+  -0.3327
+ ],
+ "source_origin_offset_in_library": [
+  -0.01,
+  0.0,
+  -0.3327
+ ],
+ "vertices": 258,
+ "triangles": 512,
+ "used_by": [],
+ "attach": {
+  "mode": "grip_origin_game_config",
+  "scale_in_game": 1.0,
+  "bone": "Hand_R",
+  "matrix_hand_local": [
+   0.86602485,
+   0.50000095,
+   0.0,
+   0.0,
+   -4e-08,
+   7e-08,
+   1.0,
+   0.0,
+   0.50000095,
+   -0.86602485,
+   8e-08,
+   0.0,
+   -0.0,
+   1e-08,
+   0.0,
+   1.0
+  ],
+  "note": "将本 GLB 作为 Hand_R 子节点并应用 matrix_hand_local（列主序 4x4），任意同源 Synty 骨架复现游戏内持握"
+ }
+}

@@ -610,8 +610,27 @@ func _on_cell_gui_input(event: InputEvent, item: Dictionary):
 		if event.button_index != MOUSE_BUTTON_RIGHT or item.get("place", false):
 			return
 		var stats = _queue_stats(item)
+		# 同类优先；找不到同类就退化为取消"队首"（不限类型）。
+		# 原因：_queue_stats 只匹配同类型的排队项，一旦队列里全是别的单位
+		# （例如副官排了一堆 worker），玩家点"步兵"右键就完全无反应——
+		# 而 UI 却提示"右键可取消排队"，等于给了个用不了的自救手段（2026-09-11 实测）。
 		if stats.last_match != null:
 			stats.last_match.queue.cancel(stats.last_match.element)
+		else:
+			_cancel_head_of_any_queue(item)
+
+
+## 兜底自救：取消该生产建筑队列里的**队首**（不限类型）。
+## 仅当"按同类型找不到"时才会走到这里，正常取消失效路径不受影响。
+func _cancel_head_of_any_queue(item: Dictionary) -> void:
+	for unit in _own_units_by_scene(item.producer):
+		if not ("production_queue" in unit):
+			continue
+		var elements = unit.production_queue.get_elements()
+		if elements.is_empty():
+			continue
+		unit.production_queue.cancel(elements[0])
+		return
 
 
 func _begin_structure_placement(structure_scene):
@@ -654,15 +673,21 @@ func _select_builder_if_needed() -> bool:
 
 
 ## 工人当前是否在建造（含寻路在途）：顶层动作为 Constructing。
+##
+## 必须走 `Unit.presentation_action_name()` 而不是直接读 `action`：
+## 联机客户端是傀儡，`action` **恒为 null**（Unit._set_action 主动丢弃），
+## 于是这条判据在客户端会恒 false → 把"服务器上其实正在建造的工人"当成空闲工人，
+## 派给新的建造任务后**把原来那座建筑的施工顶掉**（2026-09-11 表现层修复）。
+## 权威端在快照里下发了当前动作路径，客户端据此与房主行为保持一致。
 func _is_constructing_builder(unit) -> bool:
-	var action = unit.get("action")
-	if action == null:
-		return false
-	var action_script = action.get_script()
-	return (
-		action_script != null
-		and action_script.resource_path == "res://source/match/units/actions/Constructing.gd"
-	)
+	var resource_path := ""
+	if unit.has_method("presentation_action_name"):
+		resource_path = str(unit.presentation_action_name())
+	if resource_path.is_empty():
+		var action = unit.get("action")
+		if action != null and action.get_script() != null:
+			resource_path = str(action.get_script().resource_path)
+	return resource_path == "res://source/match/units/actions/Constructing.gd"
 
 
 func _is_worker(unit) -> bool:
@@ -675,10 +700,21 @@ func _produce_unit(item: Dictionary):
 		_set_status("没有可用的%s" % str(item.get("producer_caption", "生产建筑")))
 		return
 	var queue_item = producer.production_queue.produce(_packed_scene(item.scene))
-	if queue_item == null:
-		_set_status("%s 的生产队列已满（右键格子可取消排队）" % str(item.get("producer_caption", "生产建筑")))
+	# 联机模式下 produce() **必然返回 null**（命令已转发服务器、结果异步回来，
+	# 见 ProductionQueue.produce 的 PendingAuthority 分支）。此前这里一律当成
+	# "队列已满"，导致格子明明是空的却报满、玩家以为坏了（2026-09-11 实测）。
+	# 改用 get_last_result() 区分"待确认 / 真失败"。
+	var last_result: Dictionary = producer.production_queue.get_last_result()
+	var status := str(last_result.get("status", ""))
+	var caption := str(item.get("producer_caption", "生产建筑"))
+	if queue_item != null:
+		_set_status("%s 已加入%s生产队列" % [str(item.caption), caption])
+	elif status == "PendingAuthority":
+		_set_status("%s 已提交%s生产队列（等待服务器确认）" % [str(item.caption), caption])
+	elif status == "InsufficientResources":
+		_set_status("资源不足，无法生产%s" % str(item.caption))
 	else:
-		_set_status("%s 已加入%s生产队列" % [str(item.caption), str(item.get("producer_caption", "生产建筑"))])
+		_set_status("%s 生产失败（%s）" % [str(item.caption), status if not status.is_empty() else "未知原因"])
 
 
 func _pick_producer(producer_scene):

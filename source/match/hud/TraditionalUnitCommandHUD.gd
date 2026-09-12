@@ -80,6 +80,15 @@ func _apply_ra3_skin():
 	_feedback_label.add_theme_color_override("font_color", Color(0.62, 0.53, 0.28))
 	_selected_info_label.add_theme_font_size_override("font_size", 12)
 	_selected_info_label.add_theme_color_override("font_color", Color(0.95, 0.83, 0.42))
+	# 这两行是**动态长文本**，而本面板被 `Ra3Sidebar.absorb_command_panel` 收编进
+	# 宽度只有 288px 的侧栏。Label 默认把整段文字的宽度算进最小尺寸，于是文字一长，
+	# 命令面板的最小宽度就会超过侧栏 → 侧栏内容整体向右溢出窗口（右侧被裁掉）。
+	# 2026-09-11 实测：选中 3 种单位时面板最小宽度 264→378px；文字再长可达 629px，
+	# 表现为「资金」后的钱数、维修旁的「出售」、卡片第二列、底部提示文字全部被推出屏幕。
+	# 裁断 + 省略号后，面板宽度重新由按钮网格决定，不再被文本撑开。
+	for label in [_selected_info_label, _feedback_label]:
+		label.clip_text = true
+		label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 
 
 func _style_ra3_button(button: Button):

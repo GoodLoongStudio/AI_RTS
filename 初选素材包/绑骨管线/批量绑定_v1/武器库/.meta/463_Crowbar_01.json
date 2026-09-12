@@ -1,0 +1,48 @@
+{
+ "file": "末日_463\\Crowbar_01.glb",
+ "pack": "463",
+ "pack_name": "幸存者与僵尸 463",
+ "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Crowbar_01.fbx",
+ "source_sha256": "db0eb31259206e69004dcdee45b314c1200a01edc3a1e5e73e13f9f71db6541a",
+ "texture": "PolygonApocalypse_Texture_01_A.png",
+ "kind_hint": "melee",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.0613,
+  1.0782,
+  0.2784
+ ],
+ "dims_m": [
+  0.0613,
+  1.0782,
+  0.2784
+ ],
+ "bbox_min": [
+  -0.0307,
+  -0.5945,
+  -0.1996
+ ],
+ "bbox_max": [
+  0.0307,
+  0.4837,
+  0.0788
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 262,
+ "triangles": 520,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}

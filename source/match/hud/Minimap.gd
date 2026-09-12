@@ -9,10 +9,19 @@ const MINIMAP_UI_SIZE = Vector2(176, 176)
 const CAMERA_INDICATOR_COLOR = Color(0.35, 0.93, 1.0, 0.95)
 const CAMERA_FOOTPRINT_COLOR = Color(0.35, 0.93, 1.0, 0.10)
 
+## ---- 副官指令标记（2026-09-10）----
+## 主画面信标可能落在相机视野外（副官常在探索地图边缘），小地图上同时给出
+## 目标点标记 + 受令单位到目标的连线，保证"副官在指挥哪里"始终可见。
+const CommandVisualizerScript = preload("res://source/match/hud/CommandVisualizer.gd")
+const ORDER_MARK_LIFETIME := 8.0
+const ORDER_MARK_SIZE := Vector2(7, 7)
+const ORDER_LINE_WIDTH := 2.0
+
 var _unit_to_corresponding_node_mapping = {}
 var _camera_movement_active = false
 var _camera_footprint: Polygon2D
 var _map_size := Vector2.ZERO
+var _order_marks: Array = []
 
 @onready var _match = find_parent("Match")
 @onready var _camera_indicator = find_child("CameraIndicator") as Line2D
@@ -31,6 +40,7 @@ func _ready():
 	_map_size = _match.find_child("Map").size
 	find_child("MinimapViewport").size = _map_size * MINIMAP_PIXELS_PER_WORLD_METER
 	_texture_rect.gui_input.connect(_on_gui_input)
+	MatchSignals.order_visualized.connect(_on_order_visualized)
 	_update_camera_indicator()
 
 
@@ -67,6 +77,7 @@ func _process(_delta):
 	# Camera movement itself is render-frame smooth, so the minimap footprint should follow it
 	# every rendered frame instead of lagging behind on physics ticks.
 	_update_camera_indicator()
+	_process_order_marks()
 
 
 func _physics_process(_delta):
@@ -234,3 +245,75 @@ func _on_gui_input(event):
 			_issue_movement_action(event.position)
 	elif event is InputEventMouseMotion and _camera_movement_active:
 		_try_teleporting_camera_based_on_local_texture_rect_position(event.position)
+
+
+## -------- 副官指令标记 --------
+
+func _on_order_visualized(payload) -> void:
+	if not (payload is Dictionary):
+		return
+	if str(payload.get("source", "player")) != "adjutant":
+		return
+	var raw = payload.get("target", [])
+	if not (raw is Array) or raw.size() < 2:
+		return
+	var action := str(payload.get("action", "move"))
+	var color: Color = CommandVisualizerScript.ACTION_COLORS.get(action, Color.WHITE)
+	var target_2d := Vector2(float(raw[0]), float(raw[1])) * MINIMAP_PIXELS_PER_WORLD_METER
+	var parent := _viewport_background.get_parent()
+	if parent == null:
+		return
+	var marker := ColorRect.new()
+	marker.name = "AdjutantOrderMark"
+	marker.size = ORDER_MARK_SIZE
+	marker.position = target_2d - ORDER_MARK_SIZE / 2.0
+	marker.color = color
+	marker.rotation_degrees = 45.0
+	marker.z_index = 103
+	parent.add_child(marker)
+	var line := Line2D.new()
+	line.name = "AdjutantOrderLine"
+	line.width = ORDER_LINE_WIDTH
+	line.default_color = Color(color.r, color.g, color.b, 0.75)
+	line.z_index = 102
+	parent.add_child(line)
+	_order_marks.append({
+		"marker": marker,
+		"line": line,
+		"target": target_2d,
+		"units": payload.get("units", []),
+		"color": color,
+		"expire_at": Time.get_ticks_msec() / 1000.0 + ORDER_MARK_LIFETIME,
+	})
+
+
+func _process_order_marks() -> void:
+	if _order_marks.is_empty():
+		return
+	var now := Time.get_ticks_msec() / 1000.0
+	for index in range(_order_marks.size() - 1, -1, -1):
+		var entry: Dictionary = _order_marks[index]
+		var remain := float(entry["expire_at"]) - now
+		if remain <= 0.0:
+			(entry["marker"] as Node).queue_free()
+			(entry["line"] as Node).queue_free()
+			_order_marks.remove_at(index)
+			continue
+		var alpha := clampf(remain / 2.0, 0.0, 1.0)
+		(entry["marker"] as CanvasItem).modulate = Color(1, 1, 1, alpha)
+		(entry["line"] as CanvasItem).modulate = Color(1, 1, 1, alpha)
+		# 连线起点跟随受令单位当前位置（单位在移动，固定起点会误导）。
+		var from_2d := Vector2.ZERO
+		var found := false
+		for unit_name in entry["units"]:
+			for unit in get_tree().get_nodes_in_group("units"):
+				if unit != null and is_instance_valid(unit) and unit.name == str(unit_name):
+					from_2d = Vector2(unit.global_position.x, unit.global_position.z) \
+						* MINIMAP_PIXELS_PER_WORLD_METER
+					found = true
+					break
+			if found:
+				break
+		var line := entry["line"] as Line2D
+		line.points = PackedVector2Array([from_2d, entry["target"]]) if found \
+			else PackedVector2Array()

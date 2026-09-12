@@ -1,0 +1,32 @@
+run_id=e2e_lg_20260910_r5 run_dir=G:\AIRTS\AI_RTS\source\adjutant_coordinator\logs\e2e_lg_20260910_r5
+baseline commit: dc42264ca5ee43519f69cfdd0a529dbbe2a3900f 2026-09-09 21:14:12 +0800 fix(ui): 5 menu panels fit viewport at any resolution (系统性修复)
+  [PASS] 调试端口就绪 | server:24572 client:24570
+  [PASS] DebugControlServer.gd 无解析错误 | 未发现 Parse Error
+  [PASS] 客户端联网（networked=true）
+  [PASS] 开局指令已发出
+  [PASS] 对局已就绪
+  [PASS] 规则视图可导出
+  [PASS] 对局单位已装载且解析到人类玩家
+  [PASS] 存在 worker 与 command_center
+  [PASS] 战略节点采纳计划 | plan_version=e2e-plan:v1
+  [PASS] 战略层本身不下发命令 | sent=0
+  [PASS] 紧急意图被仲裁接受 | accepted=['i-move-1'] dropped=[]
+  [PASS] 权威层接受移动意图（Accepted） | receipt=[{"accepted": true, "action": "move", "command_id": "48fe2cfd-57d4-4064-955e-0d3d67cd7d3c:i-move-1:1", "expires_tick": 772, "generation": 1, "intent_action": "move", "intent_id": "i-move-1", "issued_t
+  [PASS] op=adjutant_leases 可查租约与意图登记 | lease={"active": true, "generation": 1}
+  [PASS] 租约代际与图内控制代际一致 | game=1 graph=1
+  [PASS] 玩家手动命令（旧 op 路径）成功 | status=Accepted
+  [PASS] 玩家接管立即失效旧意图
+  [PASS] 玩家打断使图暂停（LangGraph interrupt 语义）
+  [PASS] 恢复后不补发旧意图 | sent=1
+  [PASS] 权威层拒绝玩家接管后的旧意图 | status=PlayerOverride reason=单位 Unit_2 的控制租约已被玩家手动命令取消；重新接管需要显式 reacquire 授权。
+  [PASS] 显式归还后 reacquire 意图被接受 | accepted=['i-reacquire'] dropped=[]
+  [FAIL] reacquire 被权威层接受（Accepted） | receipt=[{"accepted": false, "command_id": "i-reacquire", "generation": 3, "intent_action": "move", "intent_id": "i-reacquire", "match_id": "48fe2cfd-57d4-4064-955e-0d3d67cd7d3c", "ok": false, "plan_version":
+  [FAIL] 重新接管后租约代际更新 | old=1 new=1
+  [FAIL] 旧代际意图被权威层拒绝（StaleGeneration） | status=PlayerOverride reason=单位 Unit_2 的控制租约已被玩家手动命令取消；重新接管需要显式 reacquire 授权。
+  [PASS] 模型无法绕过规则（CommandCenter 生产 tank 被拒） | status=InvalidProducer reason=按当前动态生产关系，command_center 不能生产 tank。
+  [PASS] checkpoint 已写入（按对局隔离） | {"saved": true, "reason": "", "saved_tick": 541, "path": "G:\\AIRTS\\AI_RTS\\source\\adjutant_coordinator\\logs\\e2e_lg_20260910_r5\\state\\48fe2cfd-57d4-4064-9
+  [PASS] 重启后可从 checkpoint 恢复 | {"restored": true, "reason": "", "pending_requests": [], "active_intents": 0}
+  [FAIL] 恢复后保留计划与活跃意图 | plan=e2e-plan:v1 intents=['i-move-1', 'i-reacquire']
+  [PASS] 恢复后不重复下单 | sent=0 accepted=[]
+summary 自校验通过（results 重算与顶层/counts 一致；SKIP 不计入 PASS）
+=== LangGraph E2E 汇总: PASS=24 FAIL=4 SKIP=0 ===

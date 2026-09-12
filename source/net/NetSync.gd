@@ -5,6 +5,8 @@ extends Node
 const SNAPSHOT_INTERVAL_FRAMES := 6
 # GDScript 的 `is` 右侧不能用局部变量（parse error），用脚本资源等价比较代替。
 const HumanScript := preload("res://source/match/players/human/Human.gd")
+# 命令可视化（纯表现层）：客户端侧动态挂载，画副官指令的信标与路径；专用服不挂载。
+const CommandVisualizerScript := preload("res://source/match/hud/CommandVisualizer.gd")
 
 var _match: Node = null
 var _frame := 0
@@ -33,6 +35,9 @@ var _authoritative_fire_policy_by_path := {}
 
 func _ready() -> void:
 	_match = get_parent()
+	# 表现层挂载点在 is_networked() 早退之前：单机局也能看到命令可视化。
+	if not NetSession.is_dedicated_server():
+		_ensure_order_visualizer()
 	set_physics_process(NetSession.is_networked())
 	if not NetSession.is_networked():
 		return
@@ -64,6 +69,15 @@ func _ensure_hud() -> void:
 	_hud_label.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_hud_label.offset_right = -12.0
 	_hud_label.offset_top = 8.0
+
+
+## 命令可视化器：只在有渲染的角色上挂载（专用服 headless 不建节点）。
+func _ensure_order_visualizer() -> void:
+	if _match == null or _match.get_node_or_null("CommandVisualizer") != null:
+		return
+	var visualizer := CommandVisualizerScript.new()
+	visualizer.name = "CommandVisualizer"
+	_match.add_child(visualizer)
 
 
 func _hud_tick(delta: float) -> void:
@@ -215,7 +229,8 @@ func _on_unit_spawned(unit: Node) -> void:
 		scene_path,
 		str(_match.get_path_to(unit.get_parent())),
 		unit.global_transform,
-		unit.hp if "hp" in unit else 0.0
+		unit.hp if "hp" in unit else 0.0,
+		str(unit.name)
 	)
 
 
@@ -330,6 +345,18 @@ func apply_client_snapshot(
 			_interp_target_yaw[path] = float(item["yaw"])
 		if item.has("hp") and "hp" in unit:
 			unit.hp = item["hp"]
+		if item.has("action") and unit.has_method("apply_presentation_action"):
+			unit.apply_presentation_action(str(item["action"]))
+		# 施工进度：只改外观与进度镜像，**不动 hp**（客户端 hp 由上面的快照结算）。
+		if item.has("construction") and unit.has_method("present_construction"):
+			var report: Array = item["construction"]
+			if report.size() >= 2:
+				unit.present_construction(int(report[0]), int(report[1]))
+		# 生产队列镜像：让客户端 HUD 与服务器一致（增/改/删都在这一个入口收敛）。
+		if item.has("production") and "production_queue" in unit \
+				and unit.production_queue != null \
+				and unit.production_queue.has_method("apply_presentation_snapshot"):
+			unit.production_queue.apply_presentation_snapshot(item["production"])
 	for path in _interp_target.keys():
 		if not seen.has(path):
 			_interp_prev.erase(path)
@@ -354,16 +381,36 @@ func _broadcast_snapshot() -> void:
 	for unit in get_tree().get_nodes_in_group("units"):
 		if unit == null or not is_instance_valid(unit):
 			continue
-		units_payload.append(
-			{
-				"path": str(_match.get_path_to(unit)),
-				"pos": unit.global_position,
-				"yaw": unit.rotation.y,
-				"hp": unit.hp if "hp" in unit else 0,
-				"stance": _authoritative_stance(unit, command_runtime),
-				"fire_policy": _authoritative_fire_policy(unit, command_runtime),
-			}
-		)
+		var entry := {
+			"path": str(_match.get_path_to(unit)),
+			"pos": unit.global_position,
+			"yaw": unit.rotation.y,
+			"hp": unit.hp if "hp" in unit else 0,
+			"stance": _authoritative_stance(unit, command_runtime),
+			"fire_policy": _authoritative_fire_policy(unit, command_runtime),
+		}
+		# 当前动作路径：傀儡本地拿不到 `action`（Unit._set_action 主动丢弃），
+		# 表现层与 UI 需要它来判断"在建造/采集/攻击"（例如建造预览要避开建造中的工人）。
+		if "action" in unit and unit.action != null and unit.action.get_script() != null:
+			entry["action"] = str(unit.action.get_script().resource_path)
+		# 施工进度：建造中的建筑必须让客户端也"看得见在造"。
+		# 为什么走**快照**而不是一次性事件：快照 10Hz、幂等、可自愈 ——
+		# 丢包、事件早于生成、重连都不会让客户端卡在错误外观（2026-09-11）。
+		if unit.has_method("construction_progress_report"):
+			var report: Array = unit.construction_progress_report()
+			if report.size() >= 2 and int(report[1]) > 0:
+				entry["construction"] = report
+		# 生产队列镜像：客户端 HUD（RA3 侧栏）据此显示排队与建造进度动画。
+		# **空数组也必须下发**：客户端的 apply_presentation_snapshot 靠"本次收到的
+		# 集合"收敛增/改/删 —— 字段缺失时它整段跳过，删除分支永不执行，于是服务器
+		# 已经造完、客户端仍永久残留最后一个元素。
+		# 2026-09-11 实测症状：服务器 barracks 队列已空（命令账本 4 条 produce 全
+		# Accepted、场上已出 4 个步兵），客户端 legacy_mirror 仍挂着
+		# `state=Producing completed_work=118/120` → RA3 侧栏步兵卡片卡住不消失。
+		if "production_queue" in unit and unit.production_queue != null \
+				and unit.production_queue.has_method("presentation_snapshot"):
+			entry["production"] = unit.production_queue.presentation_snapshot()
+		units_payload.append(entry)
 	var resources_payload: Array = []
 	var players := get_tree().get_nodes_in_group("players")
 	for i in range(players.size()):
@@ -609,14 +656,16 @@ func _rpc_reconcile(entries: Array) -> void:
 
 
 @rpc("authority", "reliable")
-func _rpc_spawn(scene_path: String, parent_path: String, xf: Transform3D, hp: float) -> void:
+func _rpc_spawn(scene_path: String, parent_path: String, xf: Transform3D, hp: float,
+		unit_name := "") -> void:
 	if NetSession.is_server():
 		return
-	_spawn_unit(scene_path, parent_path, xf, hp)
+	_spawn_unit(scene_path, parent_path, xf, hp, "", unit_name)
 
 
 func _spawn_unit(
-	scene_path: String, parent_path: String, xf: Transform3D, hp: float, forced_path: String = ""
+	scene_path: String, parent_path: String, xf: Transform3D, hp: float,
+	forced_path: String = "", unit_name: String = ""
 ) -> void:
 	var parent := _match.get_node_or_null(NodePath(parent_path))
 	if parent == null or scene_path.is_empty():
@@ -625,10 +674,19 @@ func _spawn_unit(
 	if packed == null:
 		return
 	var unit = packed.instantiate()
-	parent.add_child(unit)
+	# 命名必须与服务器一致：客户端上送的命令路径用本机节点名，服务器按同一路径解析；
+	# 若客户端沿用场景默认名（Barracks）而服务器叫 Unit_N，服务器会解析不到单位并拒绝
+	# （2026-09-10「联机局没法造兵」的根因：produce 拒绝 units=0）。
+	var authoritative_name := ""
 	if forced_path != "":
 		var np := NodePath(forced_path)
-		unit.name = String(np.get_name(np.get_name_count() - 1))
+		authoritative_name = String(np.get_name(np.get_name_count() - 1))
+	elif unit_name != "":
+		authoritative_name = unit_name
+	if authoritative_name != "":
+		unit.name = authoritative_name
+	parent.add_child(unit)
+	if forced_path != "":
 		if str(_match.get_path_to(unit)) != forced_path:
 			push_warning(
 				"联机: 对账生成路径不符 %s（实际 %s），已移除" % [forced_path, _match.get_path_to(unit)]
@@ -680,3 +738,69 @@ func _rpc_match_over(result: String) -> void:
 	print("[对局] 客户端收到结算: ", result, "，3 秒后返回主菜单")
 	await get_tree().create_timer(3.0).timeout
 	get_tree().change_scene_to_file.call_deferred("res://source/main-menu/Main.tscn")
+
+
+## 命令可视化广播（纯表现层，2026-09-10）：权威端把一次命令（含副官指令）广播给表现层，
+## 客户端据此在目标点画信标、从受令单位画路径。不改快照结构、不改任何玩法状态；
+## unreliable 语义不需要——丢一条只少一次视觉指示，故用 reliable 保证指示完整。
+func broadcast_order_visual(payload: Dictionary) -> void:
+	# 【2026-09-11 修正：发起方本机也必须看到指示】
+	# 原实现在"联机 且 非权威端"（正是**玩家客户端**）时直接什么都不做，
+	# 于是"从客户端 DCS 发出的副官命令"在屏幕上**完全没有指示** ——
+	# 用户实测："AI 副官在指挥部队，但看不到任何指挥动画"。
+	# 命令可视化是纯表现层，谁发起谁就该看到，不能依赖"只有房主才广播"。
+	MatchSignals.order_visualized.emit(payload)
+	if not NetSession.is_networked():
+		return
+	if NetSession.is_server():
+		_rpc_order_visual.rpc(payload)
+
+
+@rpc("authority", "reliable")
+func _rpc_order_visual(payload: Dictionary) -> void:
+	if NetSession.is_server():
+		return
+	MatchSignals.order_visualized.emit(payload)
+
+
+## ---------------------------------------------------------------------------
+## 表现事件广播（纯表现层，2026-09-11）
+##
+## 为什么必须补这条通道（用户报"看不到建造动画 / 看不到交火特效与音效 / UI 没进度"）：
+## 联机客户端是**傀儡**——`Unit._set_action` 主动丢弃 action（Unit.gd:529-532），
+## 快照也只带 pos/yaw/hp/stance/fire_policy，于是下列**纯表现**在客户端全部缺失：
+##   - `attack_fired` 只在权威端由 ProjectileRuntime 发（真实创建投射物时）→ 客户端无开火动画/音效；
+##   - 采集火花由本地 Action 驱动（CollectingResourcesWhileInRange）→ 客户端无 Action 即无火花。
+## 这里沿用 `broadcast_order_visual` 的成熟模式：**只广播表现事件**，
+## 不复制第二份权威状态、不改快照结构、不参与任何玩法结算。
+##
+## 只发给客户端：房主/单机本地已有 Action 驱动表现，再补一次会变成"双份音效/动画"。
+## ---------------------------------------------------------------------------
+func broadcast_presentation(kind: String, path: String, payload: Dictionary = {}) -> void:
+	if not NetSession.is_networked() or not NetSession.is_server():
+		return
+	var event := payload.duplicate()
+	event["kind"] = kind
+	event["path"] = path
+	_rpc_presentation.rpc(event)
+
+
+@rpc("authority", "reliable")
+func _rpc_presentation(event: Dictionary) -> void:
+	if NetSession.is_server():
+		return
+	var unit := _match.get_node_or_null(NodePath(str(event.get("path", ""))))
+	if unit == null or not is_instance_valid(unit):
+		# 事件早于生成（可靠 RPC 与生成顺序不保证）：丢弃即可 ——
+		# 施工/生产进度走的是幂等快照，会自动补上；开火/采集是一次性表现，少一帧不致命。
+		return
+	match str(event.get("kind", "")):
+		"fired":
+			if unit.has_method("present_fired"):
+				# 整个 event 传进去：其中可能带权威端算好的 `aim`（真实弹道落点）。
+				unit.present_fired(event)
+		"gather":
+			if unit.has_method("present_gather"):
+				unit.present_gather(bool(event.get("active", false)))
+		_:
+			pass

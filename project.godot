@@ -21,6 +21,10 @@ boot_splash/bg_color=Color(0, 0, 0, 1)
 boot_splash/stretch_mode=0
 boot_splash/image="res://assets/logos/godot_logo_vertical_monochrome_dark_312x357.png"
 config/icon="res://icon.svg"
+; 帧率上限：不设时 max_fps=0（不限帧），低多边形场景会被渲染到 GPU 物理极限
+; （实测利用率 78~85%、功耗接近上限、风扇狂转），设 120 后利用率可降到 10~20%。
+; 需要更高刷新率可调大，但要留意 GPU 占用随之上升。
+run/max_fps=120
 
 [autoload]
 
@@ -49,8 +53,10 @@ gdscript/warnings/integer_division=0
 
 [display]
 
-window/size/viewport_width=1920
+window/size/viewport_width=960
 window/size/viewport_height=1080
+window/size/window_width_override=960
+window/size/window_height_override=1080
 
 [dotnet]
 

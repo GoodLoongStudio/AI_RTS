@@ -1,0 +1,48 @@
+{
+ "file": "怪物_4017\\ForestWitch_01.glb",
+ "pack": "4017",
+ "pack_name": "幻想怪物 4017",
+ "source_fbx": "4017_幻想怪物\\PolygonFantasyRivals\\Models\\SM_Wep_ForestWitch_01.fbx",
+ "source_sha256": "fc88d4a6531f814749b658a1516b07c927862b55eec400ffa3359d35a7f89987",
+ "texture": "FantasyRivals_Texture_01_A.png",
+ "kind_hint": "other",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.0358,
+  0.037,
+  0.5071
+ ],
+ "dims_m": [
+  0.0358,
+  0.037,
+  0.5071
+ ],
+ "bbox_min": [
+  -0.0173,
+  -0.0223,
+  -0.0837
+ ],
+ "bbox_max": [
+  0.0185,
+  0.0147,
+  0.4234
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 86,
+ "triangles": 168,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}

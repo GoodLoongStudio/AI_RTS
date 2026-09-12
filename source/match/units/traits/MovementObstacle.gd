@@ -19,6 +19,7 @@ func _ready():
 
 
 func _exit_tree():
+	remove_from_group(Constants.Match.Navigation.DOMAIN_TO_OBSTACLE_GROUP_MAPPING[domain])
 	if affect_navigation_mesh:
 		remove_from_group(Constants.Match.Navigation.DOMAIN_TO_GROUP_MAPPING[domain])
 		MatchSignals.schedule_navigation_rebake.emit(domain)
@@ -42,5 +43,8 @@ func _align_unit_position_to_navigation():
 
 func _affect_navigation_if_needed():
 	if affect_navigation_mesh:
+		# 持久注册表：供移动侧做"落点是否落在避让圈内"的校验（该组不会被烘焙清空）。
+		add_to_group(Constants.Match.Navigation.DOMAIN_TO_OBSTACLE_GROUP_MAPPING[domain])
+		# 临时输入清单：交给下一次导航网格烘焙。
 		add_to_group(Constants.Match.Navigation.DOMAIN_TO_GROUP_MAPPING[domain])
 		MatchSignals.schedule_navigation_rebake.emit(domain)

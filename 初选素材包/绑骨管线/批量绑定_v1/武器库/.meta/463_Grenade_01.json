@@ -1,0 +1,48 @@
+{
+ "file": "末日_463\\Grenade_01.glb",
+ "pack": "463",
+ "pack_name": "幸存者与僵尸 463",
+ "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Grenade_01.fbx",
+ "source_sha256": "192699c46a6c049e1b4e4d10d860a770b206be6adffc84d1a73ad1faeaec9a48",
+ "texture": "PolygonApocalypse_Texture_01_A.png",
+ "kind_hint": "other",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.0764,
+  0.115,
+  0.1576
+ ],
+ "dims_m": [
+  0.0764,
+  0.115,
+  0.1576
+ ],
+ "bbox_min": [
+  -0.0382,
+  -0.0382,
+  -0.0
+ ],
+ "bbox_max": [
+  0.0382,
+  0.0768,
+  0.1576
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 184,
+ "triangles": 350,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}

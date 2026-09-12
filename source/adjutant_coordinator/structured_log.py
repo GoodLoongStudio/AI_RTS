@@ -46,7 +46,10 @@ class JsonlFileSink:
         self._lock = threading.Lock()
 
     def __call__(self, entry: Dict[str, Any]) -> None:
-        line = json.dumps(entry, ensure_ascii=False, sort_keys=True)
+        # `default=str`：字段里混进 set/dataclass 时降级成字符串，**不要抛异常**。
+        # `GraphServices.log` 会吞掉异常，一旦序列化失败就是**整行日志静默消失** ——
+        # 而这正是"打了点却看不到"这类排查最怕的失败模式（本项目已踩过）。
+        line = json.dumps(entry, ensure_ascii=False, sort_keys=True, default=str)
         with self._lock:
             with open(self.path, "a", encoding="utf-8") as handle:
                 handle.write(line + "\n")

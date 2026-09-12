@@ -1,0 +1,48 @@
+{
+ "file": "末日_463\\Crutch_01.glb",
+ "pack": "463",
+ "pack_name": "幸存者与僵尸 463",
+ "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Crutch_01.fbx",
+ "source_sha256": "44d44fb614b11cbd19a26511cd2e0b8c5306551e72256d67d5264a5e49e3f2ad",
+ "texture": "PolygonApocalypse_Texture_01_A.png",
+ "kind_hint": "melee",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.0677,
+  1.2752,
+  0.2514
+ ],
+ "dims_m": [
+  0.0677,
+  1.2752,
+  0.2514
+ ],
+ "bbox_min": [
+  -0.0338,
+  -1.2081,
+  -0.1257
+ ],
+ "bbox_max": [
+  0.0338,
+  0.0671,
+  0.1257
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 431,
+ "triangles": 834,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}

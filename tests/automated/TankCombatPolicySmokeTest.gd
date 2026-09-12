@@ -1,5 +1,7 @@
 extends Node
 
+const SmokeTestWarmup = preload("res://tests/automated/SmokeTestWarmup.gd")
+
 const MatchScene = preload("res://tests/manual/TestOneUnit.tscn")
 const TankScene = preload("res://source/match/units/Tank.tscn")
 const Player = preload("res://source/match/players/Player.gd")
@@ -10,8 +12,7 @@ var _failures := 0
 func _ready():
 	var match_instance = MatchScene.instantiate()
 	add_child(match_instance)
-	await get_tree().process_frame
-	await get_tree().process_frame
+	await SmokeTestWarmup.wait_for_units(get_tree(), 1)
 
 	var human = match_instance.get_node("Players/Human")
 	var tank = human.get_node("Tank")

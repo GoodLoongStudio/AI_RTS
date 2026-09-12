@@ -9,6 +9,9 @@ const UNDER_CONSTRUCTION_MATERIAL = preload(
 var _construction_progress = 1.0
 var _construction_refund_requested := false
 var _construction_completion_announced := true
+## 权威整数施工工作量的最近一次快照（供 NetSync 下发给客户端；只读留痕）。
+var _construction_completed_work := 0
+var _construction_required_work := 0
 
 ## 维修/出售（2026-09-11，仿红警3）：维修按秒耗资金回血，出售返还半价即毁。
 const REPAIR_RATE_HP_PER_SEC := 6.0
@@ -83,6 +86,7 @@ func mark_as_under_construction():
 	assert(not is_under_construction(), "structure already under construction")
 	_construction_progress = 0.0
 	_construction_completion_announced = false
+	_construction_completed_work = 0
 	_change_geometry_material(UNDER_CONSTRUCTION_MATERIAL)
 	if hp == null:
 		await ready
@@ -96,12 +100,46 @@ func apply_authoritative_construction_work(completed_work: int, required_work: i
 		return false
 	if not is_under_construction() and completed_work < required_work:
 		return false
+	_construction_completed_work = completed_work
+	_construction_required_work = required_work
 	var previous_entitled_hp = 1 + int(_construction_progress * float(hp_max - 1))
 	_construction_progress = float(completed_work) / float(required_work)
 	var current_entitled_hp = 1 + int(_construction_progress * float(hp_max - 1))
 	if current_entitled_hp > previous_entitled_hp:
 		set_hp_without_damage(min(hp_max, hp + current_entitled_hp - previous_entitled_hp))
 	return true
+
+
+## 只读：施工进度上报 `[completed, required]`。
+## `required <= 0` 表示"本节点不是施工中的建筑"（NetSync 据此决定要不要下发）。
+func construction_progress_report() -> Array:
+	return [_construction_completed_work, _construction_required_work]
+
+
+## 客户端表现入口：按权威进度显示"施工中 → 进行中 → 完工"。
+##
+## 为什么客户端需要它：客户端建筑由 `NetSync._spawn_unit` 生成，**从不调用**
+## `mark_as_under_construction`（那是权威端 `Match._setup_and_spawn_unit` 的路径），
+## 于是客户端建筑一出现就是"完工外观"，玩家看不到任何建造过程。
+## 这里只改**外观与进度镜像**，绝不改写 hp（客户端 hp 由快照结算）。
+func present_construction(completed_work: int, required_work: int) -> void:
+	if required_work <= 0 or completed_work < 0 or completed_work > required_work:
+		return
+	_construction_completed_work = completed_work
+	_construction_required_work = required_work
+	var progress := float(completed_work) / float(required_work)
+	if progress >= 1.0:
+		if is_under_construction():
+			_construction_progress = 1.0
+			_finish_construction()
+		return
+	if is_constructed():
+		# 首次得知"其实还在建造中"（例如开工事件早于单位生成而丢失）：补上施工外观。
+		_construction_progress = progress
+		_construction_completion_announced = false
+		_change_geometry_material(UNDER_CONSTRUCTION_MATERIAL)
+		return
+	_construction_progress = progress
 
 
 ## 完成施工表现并只发布一次 Legacy 完成事件；保留施工期间受到的伤害。

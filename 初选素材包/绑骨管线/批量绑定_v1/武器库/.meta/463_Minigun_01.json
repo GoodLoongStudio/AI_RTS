@@ -1,0 +1,48 @@
+{
+ "file": "末日_463\\Minigun_01.glb",
+ "pack": "463",
+ "pack_name": "幸存者与僵尸 463",
+ "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_Minigun_01.fbx",
+ "source_sha256": "284584325b3b96dbfad255cb8d0e29eb5ad8a799c2f46e237baf03a66b92a195",
+ "texture": "PolygonApocalypse_Texture_01_A.png",
+ "kind_hint": "other",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.4681,
+  1.488,
+  0.4538
+ ],
+ "dims_m": [
+  0.4681,
+  1.488,
+  0.4538
+ ],
+ "bbox_min": [
+  -0.2878,
+  -1.4364,
+  -0.313
+ ],
+ "bbox_max": [
+  0.1803,
+  0.0516,
+  0.1407
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 4053,
+ "triangles": 7522,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}

@@ -1,0 +1,359 @@
+{
+  "match_id": "2742aa2f-f558-4fb9-90be-47f4540d604f",
+  "player_id": "Player_0",
+  "rules_version": "fbbbe6fecebba7b439010049f796160c7c0fc6c4a6d6ad2e2442ca634f0ed201",
+  "server_tick": 570,
+  "latest_snapshot_id": 16,
+  "active_plan": {
+    "abort_when": [
+      "base_under_attack"
+    ],
+    "based_on_snapshot": 0,
+    "match_id": "2742aa2f-f558-4fb9-90be-47f4540d604f",
+    "phase_goal": "E2E：工人前压并建立生产",
+    "plan_id": "e2e-plan",
+    "plan_version": 1,
+    "player_id": "Player_0",
+    "rationale": "E2E",
+    "reserves": {},
+    "rules_version": "fbbbe6fecebba7b439010049f796160c7c0fc6c4a6d6ad2e2442ca634f0ed201",
+    "tasks": [
+      {
+        "allowed_actions": [
+          "move"
+        ],
+        "completion": "工人抵达前压点",
+        "priority": 1,
+        "target_type": "",
+        "task_id": "t-move",
+        "unit_constraint": "",
+        "units": [
+          "Unit_2"
+        ]
+      }
+    ],
+    "valid_until_tick": 10000000
+  },
+  "plan_version": "e2e-plan:v1",
+  "plan_adopt_generation": 1,
+  "active_tasks": {
+    "t-move": "unknown"
+  },
+  "active_intents": [
+    {
+      "abort_when": [],
+      "action": "move",
+      "attempts": 1,
+      "based_on_snapshot": 550,
+      "command_id": "2742aa2f-f558-4fb9-90be-47f4540d604f:i-move-1:1",
+      "drop_reason": "receipt_InvalidCommand",
+      "emergency": false,
+      "expires_tick": 790,
+      "generation": 1,
+      "intent_id": "i-move-1",
+      "issued_tick": 550,
+      "plan_version": "e2e-plan:v1",
+      "priority": 2,
+      "rationale": "E2E 移动意图",
+      "reacquire": false,
+      "state": "failed",
+      "target": {
+        "pos": [
+          13.0,
+          16.0
+        ]
+      },
+      "task_id": "t-move",
+      "unit_ids": [
+        "Unit_2"
+      ]
+    },
+    {
+      "abort_when": [],
+      "action": "move",
+      "attempts": 1,
+      "based_on_snapshot": 562,
+      "command_id": "2742aa2f-f558-4fb9-90be-47f4540d604f:i-reacquire:1",
+      "drop_reason": "receipt_InvalidCommand",
+      "emergency": false,
+      "expires_tick": 802,
+      "generation": 3,
+      "intent_id": "i-reacquire",
+      "issued_tick": 562,
+      "plan_version": "e2e-plan:v1",
+      "priority": 2,
+      "rationale": "E2E 移动意图",
+      "reacquire": true,
+      "state": "failed",
+      "target": {
+        "pos": [
+          2.0,
+          13.0
+        ]
+      },
+      "task_id": "t-move",
+      "unit_ids": [
+        "Unit_2"
+      ]
+    }
+  ],
+  "ai_controlled_units": [
+    "Unit_2"
+  ],
+  "player_controlled_units": [],
+  "control_generation": 3,
+  "unit_generations": {
+    "Unit_2": 3
+  },
+  "released_units": [],
+  "pending_events": [],
+  "pending_requests": {},
+  "command_receipts": [
+    {
+      "accepted": false,
+      "action": "move",
+      "command_id": "2742aa2f-f558-4fb9-90be-47f4540d604f:i-move-1:1",
+      "errors": [
+        "based_on_snapshot: 晚于当前已知快照"
+      ],
+      "intent_id": "i-move-1",
+      "reason": "based_on_snapshot: 晚于当前已知快照",
+      "status": "InvalidCommand"
+    },
+    {
+      "accepted": false,
+      "action": "move",
+      "command_id": "2742aa2f-f558-4fb9-90be-47f4540d604f:i-reacquire:1",
+      "errors": [
+        "based_on_snapshot: 晚于当前已知快照"
+      ],
+      "intent_id": "i-reacquire",
+      "reason": "based_on_snapshot: 晚于当前已知快照",
+      "status": "InvalidCommand"
+    }
+  ],
+  "degraded_reason": "",
+  "last_strategy_tick": 550,
+  "last_tactics_tick": 563,
+  "model_errors": 0,
+  "last_model_error_tick": null,
+  "decision_log": [
+    {
+      "event_kinds": [],
+      "kind": "event_classified",
+      "route": "strategic",
+      "server_tick": 550
+    },
+    {
+      "kind": "plan_adopted",
+      "plan_id": "e2e-plan",
+      "plan_version": "e2e-plan:v1",
+      "reason": "adopted generation=1",
+      "server_tick": 550,
+      "tick": 550
+    },
+    {
+      "expired_intents": [],
+      "kind": "observation_ingested",
+      "new_events": 1,
+      "server_tick": 551
+    },
+    {
+      "event_kinds": [
+        "enemy_spotted"
+      ],
+      "kind": "event_classified",
+      "route": "emergency_tactical",
+      "server_tick": 551
+    },
+    {
+      "emergency": true,
+      "intent_ids": [
+        "i-move-1"
+      ],
+      "kind": "tactics_proposed",
+      "server_tick": 551
+    },
+    {
+      "accepted": [
+        "i-move-1"
+      ],
+      "clamped": [],
+      "dropped": [],
+      "kind": "intents_arbitrated",
+      "server_tick": 551,
+      "tick": 551
+    },
+    {
+      "kind": "dispatch_done",
+      "receipts": [
+        {
+          "intent_id": "i-move-1",
+          "status": "InvalidCommand"
+        }
+      ],
+      "server_tick": 551
+    },
+    {
+      "dropped_intents": [],
+      "generation": 2,
+      "kind": "player_override_immediate",
+      "server_tick": 551,
+      "unit_ids": [
+        "Unit_2"
+      ]
+    },
+    {
+      "event_kinds": [
+        "player_override"
+      ],
+      "kind": "event_classified",
+      "route": "player_interrupt",
+      "server_tick": 554
+    },
+    {
+      "handled": [
+        {
+          "kind": "player_override",
+          "units": [
+            "Unit_2"
+          ]
+        }
+      ],
+      "kind": "plan_reconciled",
+      "plan_preserved": true,
+      "server_tick": 554
+    },
+    {
+      "event_kinds": [],
+      "kind": "event_classified",
+      "route": "wait",
+      "server_tick": 555
+    },
+    {
+      "generation": 3,
+      "kind": "player_release_immediate",
+      "server_tick": 555,
+      "unit_ids": [
+        "Unit_2"
+      ]
+    },
+    {
+      "event_kinds": [
+        "player_release"
+      ],
+      "kind": "event_classified",
+      "route": "player_interrupt",
+      "server_tick": 559
+    },
+    {
+      "handled": [
+        {
+          "kind": "player_release",
+          "units": [
+            "Unit_2"
+          ]
+        }
+      ],
+      "kind": "plan_reconciled",
+      "plan_preserved": true,
+      "server_tick": 559
+    },
+    {
+      "event_kinds": [],
+      "kind": "event_classified",
+      "route": "wait",
+      "server_tick": 560
+    },
+    {
+      "expired_intents": [],
+      "kind": "observation_ingested",
+      "new_events": 1,
+      "server_tick": 563
+    },
+    {
+      "event_kinds": [
+        "queue_idle"
+      ],
+      "kind": "event_classified",
+      "route": "tactical",
+      "server_tick": 563
+    },
+    {
+      "emergency": false,
+      "intent_ids": [
+        "i-reacquire"
+      ],
+      "kind": "tactics_proposed",
+      "server_tick": 563
+    },
+    {
+      "accepted": [
+        "i-reacquire"
+      ],
+      "clamped": [],
+      "dropped": [],
+      "kind": "intents_arbitrated",
+      "server_tick": 563,
+      "tick": 563
+    },
+    {
+      "kind": "dispatch_done",
+      "receipts": [
+        {
+          "intent_id": "i-reacquire",
+          "status": "InvalidCommand"
+        }
+      ],
+      "server_tick": 563
+    },
+    {
+      "kind": "runtime_restored",
+      "server_tick": 563,
+      "pending_requests": [],
+      "expired_intents": []
+    },
+    {
+      "kind": "event_classified",
+      "server_tick": 570,
+      "route": "wait",
+      "event_kinds": []
+    }
+  ],
+  "overrides": [
+    {
+      "dropped_intents": [],
+      "generation": 2,
+      "kind": "player_override",
+      "reason": "player_manual_command",
+      "server_tick": 551,
+      "unit_ids": [
+        "Unit_2"
+      ]
+    },
+    {
+      "generation": 3,
+      "kind": "player_release",
+      "reason": "player_release",
+      "server_tick": 558,
+      "unit_ids": [
+        "Unit_2"
+      ]
+    }
+  ],
+  "route": "wait",
+  "paused": false,
+  "candidate_intents": [],
+  "dispatch_pending": [],
+  "intent_arbitration": {
+    "accepted": [],
+    "dropped": [],
+    "clamped": []
+  },
+  "last_checkpoint": {
+    "saved": true,
+    "reason": "",
+    "saved_tick": 570,
+    "path": "G:\\AIRTS\\AI_RTS\\source\\adjutant_coordinator\\logs\\e2e_lg_20260910_r1\\state\\2742aa2f-f558-4fb9-90be-47f4540d604f\\Player_0\\graph_checkpoint.json"
+  }
+}

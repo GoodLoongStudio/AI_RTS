@@ -1,0 +1,48 @@
+{
+ "file": "末日_463\\WoodAxe_01.glb",
+ "pack": "463",
+ "pack_name": "幸存者与僵尸 463",
+ "source_fbx": "463_末日废墟\\PolygonApocalypse\\Models\\SM_Wep_WoodAxe_01.fbx",
+ "source_sha256": "519fcab6ee9124873641fe3c2d215ec3f465e50e0b831fe671045f82cabc823a",
+ "texture": "PolygonApocalypse_Texture_01_A.png",
+ "kind_hint": "melee",
+ "scale_applied": 1.0,
+ "source_dims_m": [
+  0.1214,
+  0.8655,
+  0.2532
+ ],
+ "dims_m": [
+  0.1214,
+  0.8655,
+  0.2532
+ ],
+ "bbox_min": [
+  -0.0607,
+  -0.4792,
+  -0.1714
+ ],
+ "bbox_max": [
+  0.0607,
+  0.3862,
+  0.0818
+ ],
+ "grip_at_origin": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "source_origin_offset_in_library": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "vertices": 742,
+ "triangles": 1468,
+ "used_by": [],
+ "attach": {
+  "mode": "source_pivot",
+  "scale_in_game": 1.0,
+  "note": "原点=源 FBX 轴心（未平移）；朝向与尺寸见预览图，挂载角度自行调整"
+ }
+}
