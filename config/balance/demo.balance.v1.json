@@ -272,6 +272,24 @@
     "apc_autocannon"
    ],
    "canForceFireGround": true
+  },
+  {
+   "id": "heavy_tank",
+   "maxHp": 20.0,
+   "sightRangeMeters": 8.0,
+   "movement": {
+    "domain": "terrain",
+    "speedMetersPerSecond": 2.2,
+    "maxTurnDegreesPerSecond": 200.0,
+    "canReverse": true,
+    "reverseSpeedMultiplier": 0.65,
+    "canFireWhileMoving": true,
+    "movingWeaponArcDegrees": 120.0
+   },
+   "weaponIds": [
+    "tank_cannon"
+   ],
+   "canForceFireGround": true
   }
  ],
  "productions": [
@@ -367,6 +385,20 @@
     {
      "kind": "A",
      "amount": 900
+    }
+   ],
+   "allowedProducerUnitTypeIds": [
+    "vehicle_factory"
+   ]
+  },
+  {
+   "id": "heavy_tank",
+   "productUnitTypeId": "heavy_tank",
+   "requiredWork": 420,
+   "cost": [
+    {
+     "kind": "A",
+     "amount": 1400
     }
    ],
    "allowedProducerUnitTypeIds": [
