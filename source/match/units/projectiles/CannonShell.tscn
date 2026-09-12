@@ -72,7 +72,7 @@ size = Vector2(0.2, 0.2)
 
 [node name="CannonShell" type="Node3D"]
 metadata/impact_reaction = "explosion"
-metadata/flight_seconds = 0.65
+metadata/flight_speed_mps = 12.0
 metadata/arc_height = 0.05
 script = ExtResource("1_hyk5q")
 

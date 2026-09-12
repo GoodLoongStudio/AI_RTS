@@ -140,6 +140,84 @@ class TestBatchAndReceipts(unittest.TestCase):
         self.assertEqual(coordinator.metrics.commands_pending, 1)
 
 
+class BatchTransport(AcceptTransport):
+    """测试桩：记录批量调用；逐项回执，可按 command_id 定制。"""
+
+    def __init__(self, batch_receipts=None, drop=()):
+        super().__init__()
+        self.batch_calls = []
+        self._batch_receipts = batch_receipts or {}
+        self._drop = set(drop)
+
+    def send_batch(self, envelopes):
+        self.batch_calls.append([str(item.get("command_id", "")) for item in envelopes])
+        out = []
+        for item in envelopes:
+            key = str(item.get("command_id", ""))
+            if key in self._drop:
+                continue          # 故意漏回执：验证"漏回执≠成功"
+            out.append(self._batch_receipts.get(key, {
+                "ok": True, "accepted": True, "status": "Accepted",
+                "command_id": key, "result": {}}))
+        return out
+
+
+class TestBatchSubmit(unittest.TestCase):
+    """P1 批量权威闭环（计划 §5）：**批量传输 ≠ 批量成功**，且顺序必须与入参对齐。"""
+
+    def _coordinator(self, transport):
+        coordinator = make_coordinator(transport=transport,
+                                       tactics_script=[[make_command("c-warm")]])
+        coordinator.ingest_snapshot({"snapshot_id": 1, "rules_version": RULES}, {})
+        coordinator.tick(10)
+        return coordinator
+
+    def test_batch_sends_once_and_settles_each_item(self):
+        transport = BatchTransport()
+        coordinator = self._coordinator(transport)
+        commands = [make_command("c-1"), make_command("c-2"), make_command("c-3")]
+        receipts = coordinator.submit_batch(commands, 500)
+        self.assertEqual(len(transport.batch_calls), 1, "三条命令只允许一次 TCP 往返")
+        self.assertEqual(transport.batch_calls[0], ["c-1", "c-2", "c-3"])
+        self.assertEqual([item.command_id for item in receipts], ["c-1", "c-2", "c-3"])
+        self.assertEqual(coordinator.metrics.batches_submitted, 1)
+        self.assertEqual(coordinator.metrics.batched_commands, 3)
+        self.assertEqual(coordinator.metrics.commands_accepted, 1 + 3)
+
+    def test_order_is_preserved_when_one_is_blocked_locally(self):
+        transport = BatchTransport()
+        coordinator = self._coordinator(transport)
+        bad = make_command("c-bad")
+        bad["match_id"] = "别的对局"          # 本地闸门就该拦下，不进批量请求
+        receipts = coordinator.submit_batch([make_command("c-1"), bad, make_command("c-3")], 500)
+        self.assertEqual([item.command_id for item in receipts], ["c-1", "c-bad", "c-3"])
+        self.assertEqual(receipts[1].status, "InvalidCommand")
+        self.assertEqual(transport.batch_calls[0], ["c-1", "c-3"],
+                         "本地拦下的项不得混进批量请求")
+
+    def test_missing_receipt_is_never_treated_as_success(self):
+        transport = BatchTransport(drop=("c-2",))
+        coordinator = self._coordinator(transport)
+        receipts = coordinator.submit_batch([make_command("c-1"), make_command("c-2")], 500)
+        self.assertTrue(receipts[0].accepted)
+        self.assertFalse(receipts[1].accepted, "权威端没给回执时不得按成功处理")
+
+    def test_single_command_keeps_the_simple_path(self):
+        transport = BatchTransport()
+        coordinator = self._coordinator(transport)
+        coordinator.submit_batch([make_command("c-1")], 500)
+        self.assertEqual(transport.batch_calls, [], "只有一条时不该走批量")
+
+    def test_player_override_still_blocks_inside_a_batch(self):
+        """批量不得绕过玩家优先权（本地闸门与单条完全同一套）。"""
+        transport = BatchTransport()
+        coordinator = self._coordinator(transport)
+        coordinator.notify_player_override(["Unit_1"])
+        receipts = coordinator.submit_batch([make_command("c-1"), make_command("c-2")], 600)
+        self.assertEqual({item.status for item in receipts}, {"PlayerOverride"})
+        self.assertEqual(transport.batch_calls, [])
+
+
 class TestPlayerPriority(unittest.TestCase):
 
     def test_player_override_blocks_then_reacquire(self):

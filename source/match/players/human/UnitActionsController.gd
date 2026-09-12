@@ -892,12 +892,33 @@ func _apply_structure_target_mode(unit, mode: String):
 	if not ok:
 		_emit_command_feedback(mode, 0, 1)
 		return
+	# 联机傀儡端（2026-09-12）：维修/出售必须**转发给权威端执行**。
+	# 此前这里直接本地 `set_repairing()/sell()`：客户端 hp 与资源由 10Hz 快照结算，
+	# 本地改动下一帧就被覆盖 → 玩家看到"点了维修没反应、建筑也删不掉"。
+	# 单机/权威端仍走本地直执行（体验与以前一致）。
+	var op := "repair_structure" if mode == "Repair" else "sell_structure"
+	if NetSession.should_forward_commands():
+		if _forward_structure_command(op, unit):
+			_emit_command_feedback(mode, 1, 0)
+		else:
+			_emit_command_feedback(mode, 0, 1)
+		return
 	if mode == "Repair":
 		unit.set_repairing(not unit.is_repairing())
 		_emit_command_feedback("Repair", 1, 0)
 	else:
 		unit.sell()
 		_emit_command_feedback("Sell", 1, 0)
+
+
+## 把建筑命令转发到权威端（与 StructurePlacementHandler 的 place_structure 同一条通道）。
+func _forward_structure_command(op: String, unit) -> bool:
+	var match_node = find_parent("Match")
+	var sync = match_node.get_node_or_null("NetSync") if match_node != null else null
+	if sync == null or not sync.has_method("forward_command"):
+		return false
+	sync.forward_command(op, [unit], Vector3.ZERO, null, get_parent())
+	return true
 
 
 ## 运输车登车令：把当前选中的己方地面士兵标记为"前往该车登车"。

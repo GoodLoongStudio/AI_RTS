@@ -28,7 +28,14 @@ func _process(_delta):
 	for unit in get_tree().get_nodes_in_group("controlled_units"):
 		if _passengers.size() >= capacity:
 			break
-		if not is_instance_valid(unit) or unit.get_meta(BOARDING_META, null) != _transport:
+		# ⚠️ 不要写成 `unit.get_meta(BOARDING_META, null)`：Godot 4.7 把显式 null 默认值
+		# 当作"未提供 default"，于是**每个没有该 meta 的单位每帧都报一次错**并附加堆栈——
+		# 运输车是全游戏唯一带 CargoHold 的单位，实测客户端日志 40 秒涨到 10.8MB
+		# （42604 条 `ERROR: ... does not have any 'meta' values with the key 'boarding_transport'`），
+		# 帧率从 120 掉到 7~11。必须先 has_meta 再取（同 BuildingOcclusionFade.gd 的已知坑）。
+		if not is_instance_valid(unit) or not unit.has_meta(BOARDING_META):
+			continue
+		if unit.get_meta(BOARDING_META) != _transport:
 			continue
 		if not _is_loadable_infantry(unit):
 			continue

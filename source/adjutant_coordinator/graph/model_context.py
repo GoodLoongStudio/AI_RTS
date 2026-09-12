@@ -138,6 +138,23 @@ def summarize_events(events: Optional[Iterable[Dict[str, Any]]],
     return ordered[:max(1, int(max_kinds))]
 
 
+def campaign_view(state) -> Dict[str, Any]:
+    """`campaign_state` → 模型可见的整局主线上下文（唯一实现：`campaign.context_view`）。
+
+    纠偏 §7 要求两条模型链路都必须看到"当前阶段 / 主线目标 / 已完成与阻塞里程碑 /
+    四条线 / 下一前沿 / 可选决策地图节点及其前置条件"，因此统一从这里取，
+    避免四列链路与 legacy 链路各推一份（那必然迟早分叉）。
+    """
+    campaign = getattr(state, "campaign_state", None)
+    if not isinstance(campaign, dict) or not campaign.get("milestones"):
+        return {}
+    try:
+        from . import campaign as campaign_mod
+        return campaign_mod.context_view(campaign)
+    except Exception:  # noqa: BLE001 —— 上下文渲染失败不影响决策链
+        return {}
+
+
 def build_strategy_context(
     state,
     *,
@@ -173,6 +190,8 @@ def build_strategy_context(
         "strategic_summary": strategic if isinstance(strategic, dict) else None,
         "strategic_summary_available": isinstance(strategic, dict) and not strategic.get("error"),
         "rules_available": bool(rules_scene_paths(rules)),
+        # 整局主线（阶段/里程碑/四线/前沿/决策地图候选）：战略层必须知道"现在在哪一步"。
+        "campaign": campaign_view(state),
         "hint": "只输出 StrategicPlan；不要输出单位命令；不能引用观测之外的目标。",
     }
     context.update(config or {})
@@ -307,6 +326,9 @@ def build_tactics_context(
             for item in (rules or {}).get("productions", []) or []
         ] if isinstance(rules, dict) else [],
         "strategic_summary": strategic if isinstance(strategic, dict) else None,
+        # 整局主线（纠偏 §7）：当前阶段、主线目标、已完成/阻塞里程碑、四条线、
+        # 下一前沿、可选决策地图节点及其前置条件。
+        "campaign": campaign_view(state),
     }
     # 【关键】战术上下文的 hint 必须与 TACTICS_SYSTEM_PROMPT 的 DirectiveBatch 契约一致。
     # 旧版这里写的是"只输出 IntentBatch；plan_version 必须等于…；expires_tick…；
@@ -350,6 +372,21 @@ def build_tactics_context(
             "player_controlled_units 里的单位已被玩家亲自指挥，"
             "**绝对不要**出现在 directives 里，也不要算作可派活的空闲单位。")
     hint_parts.append("只有确实不存在任何可执行动作时才给 {\"directives\": []}。")
+    campaign = context.get("campaign") or {}
+    if isinstance(campaign, dict) and campaign.get("phase"):
+        # 整局主线：模型必须知道"现在在哪一步、下一步该推什么"，否则每轮都会重新
+        # 发明整局计划（那正是"会插队、不会发展"的成因之一）。
+        routes = " ".join(str(x) for x in (campaign.get("available_routes") or [])[:4])
+        hint_parts.append(
+            "本局主线：阶段=%s，下一前沿=%s(%s)，已完成=%s，阻塞=%s。"
+            "可选的决策地图路线 ref：%s（只能从这些 ref 里选，不能自造）。"
+            "你的任务是**在主线之下**给执行者派活，不要推翻主线。"
+            % (str(campaign.get("phase", "")),
+               str(campaign.get("frontier", "")),
+               str(campaign.get("frontier_name", "")),
+               ",".join(str(x) for x in (campaign.get("done") or [])[:4]) or "无",
+               ",".join(str(x) for x in (campaign.get("blocked") or [])[:2]) or "无",
+               routes or "无"))
     context["hint"] = "".join(hint_parts)
     return context
 

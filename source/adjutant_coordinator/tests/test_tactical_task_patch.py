@@ -307,8 +307,13 @@ class LangGraphPatchChannelTest(unittest.TestCase):
         sent_after_apply = len(transport.sent)
         self.assertGreaterEqual(sent_after_apply, 1)
 
-        # 第 3 轮：没有新结果 → 不得重放旧结果，且新一轮提交继续发生
+        # 第 3 轮：没有新结果 → 不得重放旧结果。
+        # （曾短暂允许"落地轮顺带提交下一轮"的流水线，它会让同一 intent_id 下发两次，
+        #  已被本用例拦下并回退 —— 这条断言就是那道防线，别放宽。）
         runtime.tick(1002, observation(1002, events=_events(1002)))
+        sent_ids = [str(item.get("intent_id", "")) for item in transport.sent]
+        self.assertEqual(len(sent_ids), len(set(sent_ids)),
+                         "同一个意图不得被重复下发（说明旧结果被重放）：%s" % (sent_ids,))
         self.assertEqual(len(transport.sent), sent_after_apply)
         self.assertEqual(scheduler.stats()["submitted"], 2)
         applied_kinds = [e.get("kind") for e in runtime.state.decision_log

@@ -124,6 +124,29 @@ class AdjutantGraphState:
     # 观测驱动的任务进度快照（方案 §4）：供 HUD 展示真实进展，与命令回执分离。
     task_progress: Dict[str, Any] = field(default_factory=dict)
 
+    # 整局主线（2026-09-12 纠偏）：阶段 / 里程碑 / 四条 track / next_frontier /
+    # interrupt_stack。**必须是显式字段**，否则 to_dict/from_dict 会把它丢掉 ——
+    # "跨 tick / 跨 checkpoint 保留整局主线"就无从谈起（这正是纠偏要修的病根）。
+    campaign_state: Dict[str, Any] = field(default_factory=dict)
+
+    # ---------- 高频链路与五线路（2026-09-12 计划 P0/P1） ----------
+    # 【必须是显式字段】`to_dict/from_dict` 是**显式字段表**：任何没写进来的键
+    # 每轮都会被静默丢掉（同一类坑在本文件已经踩过一次，见上面两条注释）。
+    # 这三个键若被丢掉：`fast_event_seq` 会让增量事件游标每轮归零；
+    # `lane_cursor` 会让五线路轮转永远从第一条线开始；
+    # `lanes_last_served` 会让"饿死保护"永远算不出饿死 —— 全是"功能在但不生效"。
+    fast_event_seq: int = -1
+    lane_cursor: int = 0
+    lanes_last_served: Dict[str, int] = field(default_factory=dict)
+    #: 每条线路的当前任务数/下次到期/最后处理 tick（只读诊断视图，供日志与验收）。
+    lanes: Dict[str, Any] = field(default_factory=dict)
+    #: 安全移动（计划 §7）：导航网格版本 + 每单位路线记录 + 闸门统计 + 紧急事件。
+    #: 同样**必须是显式字段**（漏了就是"闸门看着在工作、记录每轮清空"）。
+    nav_revision: int = -1
+    routes: Dict[str, Any] = field(default_factory=dict)
+    movement_stats: Dict[str, Any] = field(default_factory=dict)
+    movement_urgent: List[Dict[str, Any]] = field(default_factory=list)
+
     # ---------- 代际与租约 ----------
 
     def next_generation(self) -> int:
@@ -374,8 +397,9 @@ class AdjutantGraphState:
             if task_id and self.task_state(task_id) in (TASK_RUNNING, TASK_PENDING, TASK_UNKNOWN):
                 self.set_task_state(task_id, TASK_UNKNOWN)
 
-    def decide(self, kind: str, **payload: Any) -> Dict[str, Any]:
-        entry = {"kind": kind, "server_tick": int(self.server_tick), **payload}
+    def decide(self, kind: str, /, **payload: Any) -> Dict[str, Any]:
+        """写一条决策日志（`kind` 位置专用，见 `nodes._decide` 的加固说明）。"""
+        entry = {**payload, "kind": kind, "server_tick": int(self.server_tick)}
         self.decision_log.append(entry)
         while len(self.decision_log) > MAX_DECISION_LOG:
             self.decision_log.pop(0)
@@ -429,6 +453,17 @@ class AdjutantGraphState:
             "reserves_initialized": bool(self.reserves_initialized),
             "reserves_percent": int(self.reserves_percent),
             "task_progress": dict(self.task_progress),
+            "campaign_state": dict(self.campaign_state),
+            "fast_event_seq": int(self.fast_event_seq),
+            "lane_cursor": int(self.lane_cursor),
+            "lanes_last_served": dict(self.lanes_last_served),
+            "lanes": {str(key): dict(value) if isinstance(value, dict) else value
+                      for key, value in (self.lanes or {}).items()},
+            "nav_revision": int(self.nav_revision),
+            "routes": {str(key): dict(value) if isinstance(value, dict) else value
+                       for key, value in (self.routes or {}).items()},
+            "movement_stats": dict(self.movement_stats),
+            "movement_urgent": list(self.movement_urgent),
         })
 
     @classmethod
@@ -472,6 +507,17 @@ class AdjutantGraphState:
         state.reserves_initialized = bool(data.get("reserves_initialized", False))
         state.reserves_percent = int(data.get("reserves_percent", 0) or 0)
         state.task_progress = dict(data.get("task_progress") or {})
+        state.campaign_state = dict(data.get("campaign_state") or {})
+        state.fast_event_seq = int(data.get("fast_event_seq", -1) or -1)
+        state.lane_cursor = int(data.get("lane_cursor", 0) or 0)
+        state.lanes_last_served = {str(key): int(value) for key, value
+                                   in (data.get("lanes_last_served") or {}).items()}
+        state.lanes = dict(data.get("lanes") or {})
+        state.nav_revision = int(data.get("nav_revision", -1) or -1)
+        state.routes = dict(data.get("routes") or {})
+        state.movement_stats = dict(data.get("movement_stats") or {})
+        state.movement_urgent = [dict(item) for item in (data.get("movement_urgent") or [])
+                                 if isinstance(item, dict)]
         return state
 
     @classmethod
@@ -503,4 +549,22 @@ class AdjutantGraphState:
             "degraded_reason": self.degraded_reason,
             "route": self.route,
             "paused": self.paused,
+            # 五条线路账（计划 §5）：runner 的 tick 日志与验收都读这里。
+            "lanes": dict(self.lanes),
+            "lane_cursor": int(self.lane_cursor),
+            # 安全移动（计划 §7）：闸门统计与网格版本，供验收读"无路径移动数/越界数"。
+            "movement_stats": dict(self.movement_stats),
+            "nav_revision": int(self.nav_revision),
+            # 整局主线（诊断/HUD/验收共用一份口径，避免两处各算一套）。
+            # 迟导入避免模块加载顺序耦合（campaign 只依赖 observation_view/placement）。
+            "campaign": self._campaign_summary(),
         }
+
+    def _campaign_summary(self) -> Dict[str, Any]:
+        if not isinstance(self.campaign_state, dict) or not self.campaign_state:
+            return {}
+        try:
+            from . import campaign as campaign_mod
+            return campaign_mod.summary(self.campaign_state)
+        except Exception:  # noqa: BLE001 —— 诊断视图失败绝不影响主链路
+            return {}

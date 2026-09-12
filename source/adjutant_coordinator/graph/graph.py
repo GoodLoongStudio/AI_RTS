@@ -18,11 +18,13 @@ from typing import Any, Callable, Dict, List, Optional, TypedDict
 
 from . import interrupts as itr
 from .nodes import (
-    NODE_ARBITRATE, NODE_CLASSIFY, NODE_DISPATCH, NODE_INGEST, NODE_OBSERVE,
-    NODE_PERSIST, NODE_RECONCILE, NODE_STRATEGIC, NODE_TACTICAL, NODE_WAIT,
-    GraphServices, node_arbitrate_intent, node_classify, node_dispatch_to_godot,
-    node_ingest, node_observe_receipt, node_persist_checkpoint, node_reconcile_plan,
-    node_strategic_agent, node_tactical_agent, node_wait,
+    NODE_ADVANCE, NODE_ARBITRATE, NODE_CAMPAIGN, NODE_CLASSIFY, NODE_DISPATCH,
+    NODE_INGEST, NODE_OBSERVE, NODE_PERSIST, NODE_RECONCILE, NODE_STRATEGIC,
+    NODE_TACTICAL, NODE_WAIT,
+    GraphServices, node_advance_milestones, node_arbitrate_intent, node_classify,
+    node_dispatch_to_godot, node_ingest, node_observe_receipt, node_persist_checkpoint,
+    node_reconcile_plan, node_strategic_agent, node_tactical_agent,
+    node_update_campaign, node_wait,
 )
 
 ENGINE_LANGGRAPH = "langgraph"
@@ -64,16 +66,51 @@ class GraphStateDict(TypedDict, total=False):
     # plan_version_history = 被替换计划版本（漏声明 → 旧版本回显防护失效）；
     # reserves* = 玩家资源预留（漏声明 → 预留额度不跨节点）；task_progress = HUD 进度。
     patch_ready: Optional[Dict[str, Any]]
+    #: 规则中台本轮已生成 baseline 的 tick（`_ensure_baseline` 的幂等闸）：
+    #: 漏声明会被 LangGraph 在图入口过滤掉 → 同一 tick 可能重复生成，或反过来
+    #: 直接调用战术节点时拿不到地板。
+    baseline_tick: int
+    #: 地图边界 `[size_x, size_z]`（来自 `op=strategic` 的 `map_bounds`）。
+    #: 规则层的**任何坐标产出**（建造落点/侦察航点/前压点）都必须知道它：
+    #: 实测 160/169 条 build 回执是 `OutOfBounds`（落点 z=1.3 越过地图下边界），
+    #: 阶梯被同两个坏点反复重试，整局发展停摆。
+    map_bounds: List[float]
     plan_version_history: List[str]
     reserves: Dict[str, int]
     reserves_initialized: bool
     reserves_percent: int
     task_progress: Dict[str, Any]
+    #: 整局主线（阶段/里程碑/四条 track/next_frontier/interrupt_stack）。
+    #: **必须声明为通道**：漏声明会被 LangGraph 在图入口 `_cleaned` 处过滤掉 →
+    #: 状态每轮"从零开始"（里程碑永远重来、中断栈永远为空），正是纠偏要修的病根。
+    campaign_state: Dict[str, Any]
+    #: 高频链路与五线路（计划 P0/P1，2026-09-12）。**必须声明为通道**：
+    #: 漏声明就与上面 `campaign_state` 完全同病 —— 键在图入口被 `_cleaned` 静默过滤，
+    #: 表现为"功能写了、单测也过，真机上每轮归零"：
+    #: `fast_event_seq` = 增量事件游标；`lane_cursor`/`lanes_last_served` = 五线路
+    #: 轮转与饿死账；`lanes` = 各线路任务数/到期/最后处理 tick（验收要读它）。
+    fast_event_seq: int
+    lane_cursor: int
+    lanes_last_served: Dict[str, int]
+    lanes: Dict[str, Any]
+    #: 安全移动（计划 §7）：`nav_revision` = 当前导航网格版本（来自 fast_state）；
+    #: `routes` = 每个单位最近一次安全路线记录（route_id/nav_revision/waypoints/
+    #: threat_score/scout_confirmation/retreat_point/last_replan_tick）；
+    #: `movement_stats` = 闸门统计（allowed/blocked_reasons/ungated/scout_first_coverage…）；
+    #: `movement_urgent` = 遇敌/路径失败要送紧急线的事件。
+    nav_revision: int
+    routes: Dict[str, Any]
+    movement_stats: Dict[str, Any]
+    movement_urgent: List[Dict[str, Any]]
     decision_log: List[Dict[str, Any]]
     overrides: List[Dict[str, Any]]
     route: str
     paused: bool
     candidate_intents: List[Dict[str, Any]]
+    #: 意图来源旁路账本 `{intent_id: baseline|behavior_tree|model}`（纠偏 §二要求可区分）。
+    #: 必须声明为通道：漏声明会被 LangGraph 在图入口过滤 → 每轮都退回"无来源信息"，
+    #: 于是"哪些是模型改的、哪些是规则跑的"在日志与指标里分不开。
+    intent_origin: Dict[str, str]
     dispatch_pending: List[str]
     intent_arbitration: Dict[str, Any]
     last_checkpoint: Dict[str, Any]
@@ -164,6 +201,8 @@ class FallbackRunner(GraphRunner):
         self._ctx.tick = int(tick if tick is not None else state.get("server_tick", 0))
         self.executed = []
         state = self._node(NODE_INGEST, node_ingest, state)
+        # 整局主线推进必须在路由/微操之前：阶梯顺序、里程碑证据、中断栈都由它决定。
+        state = self._node(NODE_CAMPAIGN, node_update_campaign, state)
         state = self._node(NODE_CLASSIFY, node_classify, state)
         route = str(state.get("route", itr.ROUTE_WAIT))
         if route == itr.ROUTE_PLAYER_INTERRUPT:
@@ -194,6 +233,9 @@ class FallbackRunner(GraphRunner):
         state = self._node(NODE_ARBITRATE, node_arbitrate_intent, state)
         state = self._node(NODE_DISPATCH, node_dispatch_to_godot, state)
         state = self._node(NODE_OBSERVE, node_observe_receipt, state)
+        # 回执结算之后再判一次里程碑/中断恢复：本轮下发的命令产生的回执证据
+        # 必须**当轮**生效，否则"完成"永远晚一轮（对局快节奏时表现为"反应迟钝"）。
+        state = self._node(NODE_ADVANCE, node_advance_milestones, state)
         state = self._node(NODE_PERSIST, node_persist_checkpoint, state)
         state["paused"] = False
         return state
@@ -224,6 +266,8 @@ class LangGraphRunner(GraphRunner):
 
         builder = StateGraph(GraphStateDict)
         builder.add_node(NODE_INGEST, self._wrap(node_ingest))
+        builder.add_node(NODE_CAMPAIGN, self._wrap(node_update_campaign))
+        builder.add_node(NODE_ADVANCE, self._wrap(node_advance_milestones))
         builder.add_node(NODE_CLASSIFY, self._wrap(node_classify))
         builder.add_node(NODE_RECONCILE, self._wrap(node_reconcile_plan))
         builder.add_node(NODE_STRATEGIC, self._wrap(node_strategic_agent))
@@ -235,7 +279,8 @@ class LangGraphRunner(GraphRunner):
         builder.add_node(NODE_PERSIST, self._wrap(node_persist_checkpoint))
 
         builder.set_entry_point(NODE_INGEST)
-        builder.add_edge(NODE_INGEST, NODE_CLASSIFY)
+        builder.add_edge(NODE_INGEST, NODE_CAMPAIGN)
+        builder.add_edge(NODE_CAMPAIGN, NODE_CLASSIFY)
         builder.add_conditional_edges(NODE_CLASSIFY, route_after_classify, {
             NODE_RECONCILE: NODE_RECONCILE,
             NODE_STRATEGIC: NODE_STRATEGIC,
@@ -250,7 +295,8 @@ class LangGraphRunner(GraphRunner):
             builder.add_edge(node, NODE_ARBITRATE)
         builder.add_edge(NODE_ARBITRATE, NODE_DISPATCH)
         builder.add_edge(NODE_DISPATCH, NODE_OBSERVE)
-        builder.add_edge(NODE_OBSERVE, NODE_PERSIST)
+        builder.add_edge(NODE_OBSERVE, NODE_ADVANCE)
+        builder.add_edge(NODE_ADVANCE, NODE_PERSIST)
         builder.add_edge(NODE_PERSIST, END)
 
         self.thread_id = thread_id

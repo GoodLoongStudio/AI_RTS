@@ -27,7 +27,21 @@ const LIVENESS_FRESH_SECONDS := 90.0
 ## 本机副官权威通道：DebugControlServer 的**裸 TCP + 一行 JSON** 协议
 ## （注意不是 HTTP，所以不能用 HTTPRequest；见 DebugControlServer._dispatch）。
 const AUTHORITY_HOST := "127.0.0.1"
+## 兜底端口：**只在"本进程没有 DCS"且配置里也没写时才用**（见 `_ensure_authority_port`）。
+## 历史上这里被当成"唯一真理"，结果是：面板固定连 24579，而用
+## `restart_local.py`（默认基端口 24569）起的局权威口是 24572 →
+## **面板永远连不上眼前这局**，玩家看到的就是"副官尚未启动 / 端口不响应"。
 const AUTHORITY_PORT := 24579
+## 端口口径表（**全仓唯一**）：`res://config/dev_ports.json`。
+## 面板要的候选顺序从这张表的 `panel.authority_candidates` 读 —— 不许在这里再抄一份
+## （这正是 2026-09-13 出事的形态：面板、runner、验收各写一份端口，互相撞车）。
+const PORT_REGISTRY_PATH := "res://config/dev_ports.json"
+## 读不到口径表时的兜底候选（覆盖本机常见起局约定）。
+## 顺序原则：**本进程没有 DCS 时才轮到这里**，所以它只是"探测顺序"，不是事实来源。
+const AUTHORITY_PORT_FALLBACK_CANDIDATES: Array = [24568, 24572, 24570, 24580, 24582,
+	24590, 24592, 24579, 24589]
+## 已解析出的本机权威端口（0 = 还没解析）。**缓存**：解析要发一次探测请求，不能每轮都试。
+var _authority_port := 0
 ## 预留调整步长（按资源类型的绝对额度）。
 const RESERVE_STEP := {"A": 100, "B": 10}
 
@@ -67,6 +81,12 @@ const RESULT_LABELS := {
 
 const PANEL_UNKNOWN := "副官正在整理战况"
 const PANEL_IDLE := "副官尚未启动"
+## 外部副官（测试/别的会话起的 runner）在指挥本局：权威端有租约/意图登记，
+## 但它的日志不在本面板目录里 → 只能说清"有人在指挥"，不能说"尚未启动"。
+const PANEL_EXTERNAL := "副官正在指挥（外部进程）"
+## 本机**没有任何权威口在响应**（通常是联机局：权威端在服端进程里）。
+## 这时说"副官尚未启动"会让人以为本地该有副官 —— 如实说"本机看不到"更清楚。
+const PANEL_NO_LOCAL_AUTHORITY := "本机没有权威端（副官应在服端）"
 const PANEL_CONNECTING := "正在连接战场"
 const PANEL_DASH := "—"
 
@@ -273,6 +293,11 @@ var _runner_pid := -1
 ## 该 pid 是否**由本按钮创建**（`OS.create_process`）。认领来的外部 runner 为 false：
 ## 退出对局时不杀它，但玩家点"停止"仍会尽力杀（那是明确指令）。
 var _runner_owned := false
+## 本机**没有**可认领的 runner，但**权威端说这局确实有副官在指挥**（外部/测试进程）。
+## 用途：面板必须如实显示"有人在指挥这局"，哪怕那个人不是本面板起的
+## （2026-09-13 用户实测："AI 副官没有开启怎么也在控制" —— 屏幕上下着命令、
+## 面板却说"尚未启动"，两个真相互相打脸）。
+var _external_runner := false
 
 
 ## 读本机 runner 配置：user://adjutant_local.cfg（结构化，便于换机器/换路径）；
@@ -321,11 +346,17 @@ func _start_local_runner() -> void:
 		push_warning("[ADJ] 未找到本机 runner 配置（user://adjutant_local.cfg 或仓库约定布局）")
 		_set_panel_texts("未配置本机 runner", PANEL_DASH, PANEL_DASH, PANEL_DASH)
 		return
+	# 【端口必须先解析再起 runner】用配置里那个死值起 runner，是"面板连对了、副官却在
+	# 指挥另一局/连不上"的根因：面板和 runner 必须**对准同一个权威口**。
+	var authority_port := await _ensure_authority_port()
+	if authority_port <= 0:
+		authority_port = int(cfg["authority_port"])
+		push_warning("[ADJ] 没探测到在跑的权威端，按配置端口 %d 启动 runner" % authority_port)
 	var log_dir := ProjectSettings.globalize_path(RUNNER_LOG_DIR)
 	DirAccess.make_dir_recursive_absolute(log_dir)
 	var args: PackedStringArray = [
 		"-m", "adjutant_coordinator.deploy.agent_runner",
-		"--authority-port", str(cfg["authority_port"]),
+		"--authority-port", str(authority_port),
 		"--provider", "real",
 		"--state-dir", log_dir,
 		"--log-dir", log_dir,
@@ -395,11 +426,11 @@ func _on_test_pressed() -> void:
 	# 权威端口是加分项、不是必需项：runner 可能在别的端口，或对局尚未就绪。
 	var payload: Dictionary = await _authority_call({"op": "status", "lite": true})
 	if payload.is_empty() or payload.has("error"):
-		_show_test_result(true, "✓ runner 在跑（pid=%d）；权威端口 %d 未响应（本机测试常见，不影响副官）"
-			% [pid, AUTHORITY_PORT], Color(0.95, 0.9, 0.5))
+		_show_test_result(true, "✓ runner 在跑（pid=%d）；权威端口未响应（已试过本进程 DCS 与候选端口）"
+			% pid, Color(0.95, 0.9, 0.5))
 		return
-	_show_test_result(true, "✓ 本机链路正常 · pid=%d · 对局=%s"
-		% [pid, str(payload.get("match", false))], Color(0.5, 1.0, 0.5))
+	_show_test_result(true, "✓ 本机链路正常 · pid=%d · 权威口=%d · 对局=%s"
+		% [pid, _authority_port, str(payload.get("match", false))], Color(0.5, 1.0, 0.5))
 
 
 func _show_test_result(good: bool, text: String, color: Color) -> void:
@@ -426,7 +457,17 @@ func _poll_tail() -> void:
 	if _panel == null or not is_instance_valid(_panel):
 		return
 	if not _active:
-		_set_panel_texts(PANEL_IDLE, PANEL_DASH, PANEL_DASH, PANEL_DASH)
+		# 没看到副官时要说清"看的是哪儿"：联机局权威端在服端进程，本机面板根本看不到它，
+		# 那时显示"尚未启动"会让人以为本地该有副官（用户 2026-09-13 的困惑来源之一）。
+		var idle_text := PANEL_IDLE
+		if await _ensure_authority_port() <= 0:
+			idle_text = PANEL_NO_LOCAL_AUTHORITY
+		_set_panel_texts(idle_text, PANEL_DASH, PANEL_DASH, PANEL_DASH)
+		return
+	if _external_runner:
+		# 外部副官在指挥，但它的日志不在本面板的目录里（隔离要求）→ 如实说清，
+		# 不要显示"副官尚未启动"（那会与屏幕上正在发生的指挥自相矛盾）。
+		_set_panel_texts(PANEL_EXTERNAL, PANEL_DASH, PANEL_DASH, "本局由外部副官进程指挥")
 		return
 	var status := _read_hud_status()
 	if status.is_empty():
@@ -650,6 +691,13 @@ func _query_status() -> void:
 	var alive := false
 	if _runner_pid > 0:
 		alive = OS.is_process_running(_runner_pid) or _runner_heartbeat_fresh()
+	_external_runner = false
+	if not alive:
+		# 【本机握手文件不在我们这一份 → 问权威端】外部/测试/别的会话起的 runner，
+		# 按隔离要求不会写本面板的 pidfile，会在本机日志里看不见；但**它确实在指挥这局**。
+		# 权威端按 match|player 记着租约与意图登记，那是"有没有副官挂在当局上"的硬证据。
+		alive = await _authority_reports_attachment()
+		_external_runner = alive
 	if alive != _active:
 		_active = alive
 		_restore_button()
@@ -659,6 +707,46 @@ func _query_status() -> void:
 		_update_status_line()
 	if not alive:
 		_runner_pid = -1
+
+
+## 权威端是否报告"**本局**有副官挂上了"（不看本机 pidfile）。
+##
+## 判据：某个权威口上 `op=adjutant_leases` 报出的租约/意图登记非空，**且它的 match_id
+## 与面板这局的 match_id 相同**（两边都必须非空才比）。
+##
+## ⚠️ 已知边界（2026-09-13 实测，**不许含糊**）：在"专用服 + 客户端"两进程拓扑下
+## `match_id` **两边不一致**（客户端 7ed42f6c… / 服端 5e05db68…）——它是
+## `EconomyRuntime.MatchId`（服端权威），客户端拿到的是本地值。此时本函数**返回 false
+## （不声称）**：证明不了 ≠ 没有，更 ≠ 有。面板宁可说"本机没看到"，也不许再出现
+## "说没启动、命令却在飞"的自相矛盾。要覆盖那个拓扑，得先让对局身份跨进程一致
+## （或在 status 里暴露服端权威口）——那是 Match/Net 侧改动，不在面板职责内。
+func _authority_reports_attachment() -> bool:
+	var own_match := await _own_match_id()
+	if own_match.is_empty():
+		return false
+	var tried: Array = []
+	for port in _candidate_ports():
+		if tried.has(port):
+			continue
+		tried.append(port)
+		var payload := await _tcp_json(int(port), {"op": "adjutant_leases",
+			"as_player": _local_player_name()})
+		if payload.is_empty() or payload.has("error") or not bool(payload.get("ok", false)):
+			continue
+		if str(payload.get("match_id", "")) != own_match:
+			continue
+		var leases = payload.get("leases")
+		var intents = payload.get("intents")
+		if (leases is Dictionary and not (leases as Dictionary).is_empty()) \
+				or (intents is Dictionary and not (intents as Dictionary).is_empty()):
+			return true
+	return false
+
+
+## 面板自己这局的 match_id（问已解析的权威口；拿不到返回空串 = 不比对、不声称）。
+func _own_match_id() -> String:
+	var payload: Dictionary = await _authority_call({"op": "status", "lite": true})
+	return str(payload.get("match_id", ""))
 
 
 ## 读取本机 runner 的 pidfile（runner 启动时由 `--pidfile` 写入）。
@@ -734,7 +822,10 @@ func _update_status_line() -> void:
 		return
 	var engine_label: String = {"langgraph": "LangGraph", "hermes": "Hermes"}.get(_engine, _engine)
 	var state := "运行中" if _active else "已停止"
-	if _active and not _engine.is_empty():
+	if _active and _external_runner:
+		# 如实说明"在跑的不是本面板起的那个"：玩家看到命令在下、面板却不该撒谎说"没启动"。
+		state = "运行中（外部进程）"
+	elif _active and not _engine.is_empty():
 		state += "（%s）" % engine_label
 	_title_label.text = "🔹 AI 副官 · %s" % state
 
@@ -950,11 +1041,94 @@ func _local_player_name() -> String:
 	return ""
 
 
+## 解析本机权威端口（**唯一入口**）。顺序刻意如此：
+##
+## 1. **本进程自己的 DebugControlServer** —— 面板就长在游戏进程里，这是唯一
+##    "不需要猜"的来源：游戏带 `--debugport N` 启动，DCS 就在本进程监听 N；
+## 2. 配置里写的端口（`user://adjutant_local.cfg`，含上一次发现后记下的值）；
+## 3. 候选端口探测（`AUTHORITY_PORT_CANDIDATES`，用 `op=status` 问一句谁在）。
+##
+## 为什么不能只写死一个端口：**权威口取决于这局是怎么起的**
+## （面板约定 24579、验收 24582/24592、restart_local 默认 24572…）。写死就等于
+## "换一种起局方式面板就瞎了"，而玩家只会以为"副官坏了"。
+func _ensure_authority_port() -> int:
+	if _authority_port > 0:
+		return _authority_port
+	var dcs := get_node_or_null("/root/DebugControlServer")
+	if dcs != null and dcs.has_method("port"):
+		var own := int(dcs.call("port"))
+		if own > 0:
+			_authority_port = own
+			return own
+	for port in _candidate_ports():
+		if await _port_answers(port):
+			_authority_port = port
+			_remember_authority_port(port)
+			return port
+	return 0
+
+
+## 候选端口：配置里的那个排最前，其余按**端口口径表**去重（表丢了才用兜底常量）。
+func _candidate_ports() -> Array:
+	var configured := int(_load_runner_config().get("authority_port", AUTHORITY_PORT))
+	var ports: Array = []
+	if configured > 0:
+		ports.append(configured)
+	for port in _registry_authority_candidates():
+		if int(port) > 0 and not ports.has(int(port)):
+			ports.append(int(port))
+	return ports
+
+
+## 从 `res://config/dev_ports.json` 读候选端口（读不到/解析失败 → 兜底常量）。
+## 只用 `FileAccess` 读原文再自己解析：不依赖 Godot 的 JSON 资源导入状态
+## （.json 在 res:// 下是否被导入取决于导入设置，走 FileAccess 最稳）。
+func _registry_authority_candidates() -> Array:
+	var text := ""
+	if FileAccess.file_exists(PORT_REGISTRY_PATH):
+		var handle := FileAccess.open(PORT_REGISTRY_PATH, FileAccess.READ)
+		if handle != null:
+			text = handle.get_as_text()
+	var parsed = JSON.parse_string(text) if not text.is_empty() else null
+	if parsed is Dictionary:
+		var panel_section = (parsed as Dictionary).get("panel")
+		if panel_section is Dictionary:
+			var listed = (panel_section as Dictionary).get("authority_candidates")
+			if listed is Array and not (listed as Array).is_empty():
+				return listed
+	return AUTHORITY_PORT_FALLBACK_CANDIDATES
+
+
+## 该端口上是不是一个在跑的权威端（问一句 `op=status lite`）。
+func _port_answers(port: int) -> bool:
+	var payload := await _tcp_json(port, {"op": "status", "lite": true})
+	return not payload.is_empty() and not payload.has("error")
+
+
+## 把发现到的端口记进配置：**必须记**，因为 runner 是拿同一份配置里的端口启动的
+## （只改面板不改 runner = 面板连对了、副官却指挥另一局）。已有的其它键原样保留。
+func _remember_authority_port(port: int) -> void:
+	var cfg := ConfigFile.new()
+	cfg.load(RUNNER_CFG_PATH)
+	if int(cfg.get_value("runner", "authority_port", 0)) == port:
+		return
+	cfg.set_value("runner", "authority_port", port)
+	cfg.save(RUNNER_CFG_PATH)
+
+
 ## 与游戏权威端（DebugControlServer）通信：**裸 TCP + 一行 JSON**，不是 HTTP。
 ## 短连接 + 有界等待（本机往返 <10ms）；超时即放弃，不阻塞对局主循环。
 func _authority_call(payload: Dictionary) -> Dictionary:
+	var port := await _ensure_authority_port()
+	if port <= 0:
+		return {}
+	return await _tcp_json(port, payload)
+
+
+## 裸 TCP 一问一答（带端口参数）。`_authority_call` 解析完端口后走这里。
+func _tcp_json(port: int, payload: Dictionary) -> Dictionary:
 	var peer := StreamPeerTCP.new()
-	if peer.connect_to_host(AUTHORITY_HOST, AUTHORITY_PORT) != OK:
+	if peer.connect_to_host(AUTHORITY_HOST, port) != OK:
 		return {}
 	var waited := 0.0
 	while waited < 0.5:

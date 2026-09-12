@@ -24,6 +24,7 @@
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
@@ -31,10 +32,16 @@ from . import interrupts as itr
 from .arbitration import arbitrate_intents
 from .checkpoint import CheckpointStore, NullCheckpointStore
 from .contracts import (
-    ACTION_RETREAT, ContractError, IntentBatch, StrategicPlan,
-    intent_to_command_envelope, parse_intent_batch, parse_strategic_plan,
+    ACTION_ATTACK_MOVE, ACTION_MOVE, ACTION_RETREAT, ACTION_SCOUT, ContractError,
+    IntentBatch, StrategicPlan, intent_to_command_envelope, parse_intent_batch,
+    parse_strategic_plan,
 )
 from . import behavior_tree
+from . import campaign as campaign_mod
+from . import lanes as lanes_mod
+from . import movement as movement_mod
+from . import decision_map
+from . import placement
 from . import rules_fallback
 from . import task_patch_bridge
 from .async_scheduler import KIND_EMERGENCY, KIND_NORMAL, STATUS_ERROR, STATUS_OK
@@ -52,6 +59,10 @@ from .state import (
 
 # 路由名称（与 graph.py 的条件边一致）。
 NODE_INGEST = "ingest_observation"
+#: 整局主线推进（观测之后、路由/微操之前）：阶段、里程碑、四条 track、中断栈。
+NODE_CAMPAIGN = "update_campaign_state"
+#: 里程碑推进（回执结算之后）：让本轮回执证据**当轮**生效，并弹出已处理的中断。
+NODE_ADVANCE = "advance_milestones"
 NODE_CLASSIFY = "classify_event"
 NODE_RECONCILE = "reconcile_plan"
 NODE_STRATEGIC = "strategic_agent"
@@ -90,6 +101,11 @@ class GraphServices:
     tactics_scheduler: Any = None
     dispatch: Optional[Callable[[List[Dict[str, Any]]], List[Dict[str, Any]]]] = None
     recheck: Optional[Callable[[str], Optional[Dict[str, Any]]]] = None
+    #: **权威路径查询**（计划 §7）：`nav_query(unit, target) -> {ok, reachable, nav_revision,
+    #: waypoints, route_length, end_clamped, reason}`，由宿主接到游戏侧
+    #: `op=adjutant_nav_path`。为 None 时**所有主力移动都被闸门拒绝**（拿不到路径就不走，
+    #: 而不是"退化成直线"）—— 这是刻意选的失败方向。
+    nav_query: Optional[Callable[[str, Any], Dict[str, Any]]] = None
     adoption: Optional[Callable[[Dict[str, Any], int], Tuple[bool, str]]] = None
     player_event_hook: Optional[Callable[[Dict[str, Any]], None]] = None
     checkpoint_store: CheckpointStore = field(default_factory=NullCheckpointStore)
@@ -203,8 +219,18 @@ def _consume_events(state: Dict[str, Any], kinds: Optional[tuple] = None) -> int
     return consumed
 
 
-def _decide(state: Dict[str, Any], kind: str, **payload: Any) -> Dict[str, Any]:
-    entry = {"kind": kind, "server_tick": int(state.get("server_tick", 0)), **payload}
+def _decide(state: Dict[str, Any], kind: str, /, **payload: Any) -> Dict[str, Any]:
+    """写一条决策日志。
+
+    【`kind` 必须是**位置专用参数**（`/` 之后才是 `**payload`）】
+    2026-09-12 真机踩过：`_decide(state, "campaign_interrupt_resolved", **item)`，
+    而 `item` 里恰好带 `kind` 字段 → 调用时撞名 → `TypeError: got multiple values for
+    argument 'kind'` → **整个 tick 抛异常** → 连续 20 轮后 runner 自杀退出
+    （`--model on` 5 分钟对局跑到第 90 秒整条指挥链断掉，采样却在继续跑，很容易被误读成"发展慢"）。
+    位置专用参数让"payload 里带 kind"从**致命错误**变成**无害数据**：
+    规范 kind 永远以第一个参数为准（payload 里的同名字段不会覆盖它）。
+    """
+    entry = {**payload, "kind": kind, "server_tick": int(state.get("server_tick", 0))}
     log = state.setdefault("decision_log", [])
     log.append(entry)
     while len(log) > MAX_DECISION_LOG:
@@ -254,6 +280,88 @@ def _sync_lease_generations(state: Dict[str, Any], ctx: NodeContext) -> None:
     _decide(state, "lease_generation_synced", corrected=corrected)
 
 
+#: 快速事件 → 能证明"命令已生效"的映射（**故意保守**）。
+#:
+#: 【2026-09-13 补 `arrival`】以前移动没有到达证据（权威端不产该事件），只能标"未证明"；
+#: 现在 `arrival` 由权威导航代理采样产出（`DebugControlServer._fast_sample_movement`），
+#: 移动**终于有到达证据**。但纪律不变：到达只表示**移动段**完成，
+#: 不自动表示侦察/防守/攻击任务完成（计划 §7 末句）。
+#: 采集仍不在表里：工人采集不产生事件，宁可标"未证明"，也不把"发了命令"当"已生效"。
+FAST_EFFECT_EVENTS: Dict[str, Tuple[str, ...]] = {
+    "produce": ("production_started",),
+    "build": ("construction_done",),
+    "attack": ("damage",),
+    "move": ("arrival",),
+    "attack_move": ("arrival",),
+    "scout": ("arrival",),
+}
+
+
+def _consume_fast_events(state: Dict[str, Any], ctx: NodeContext) -> None:
+    """消费 10Hz 扫描层的增量事件（计划 §3.1/§4：runner 保存 event_seq，只消费新增）。
+
+    两件事：
+
+    1. **三级时间戳的第三级**：把"能证明命令生效"的事件盖到对应意图上
+       （`effective_tick`）。`generated`/`received` 已有；缺了 `effective` 时，
+       "命令发出去没生效 / 生效很慢"只能靠感觉猜。
+    2. 留痕：按 `kind` 汇总计数进 decision_log（不逐条写，避免日志爆炸）。
+
+    去重口径：事件自带全局递增 `seq`，消费游标只增不减 —— 重复投递不会重复计数。
+    """
+    events = (ctx.observation or {}).get("fast_events") or []
+    if not events:
+        return
+    cursor = int(state.get("fast_event_seq", -1) or -1)
+    fresh = [event for event in events
+             if isinstance(event, dict) and int(event.get("seq", 0) or 0) > cursor]
+    if not fresh:
+        return
+    state["fast_event_seq"] = max(int(event.get("seq", 0) or 0) for event in fresh)
+    counts: Dict[str, int] = {}
+    stamped: List[str] = []
+    intents = state.get("active_intents") or []
+    for event in fresh:
+        kind = str(event.get("kind", ""))
+        counts[kind] = counts.get(kind, 0) + 1
+        unit = str(event.get("unit", ""))
+        # 【P2 闭环：到达 / 路径失败】这两类事实以前**拿不到**（权威端不产出，被显式声明
+        # 为"不支持"），于是"到达后重观测""路径失败停止推进"都只是写进注释的口号。
+        # 现在 10Hz 采样能给出它们（见 `DebugControlServer._fast_sample_movement`），
+        # 这里必须**用起来**：到达 → 作废路线逼出下一跳重规划；路径失败 → 停止推进 + 进紧急线。
+        if unit and kind == "path_failed":
+            movement_mod.invalidate_route(state, unit, reason="path_failed")
+            _raise_movement_urgent(state, ctx, "path_failed", unit,
+                                   int(state.get("server_tick", 0) or 0))
+        elif unit and kind == "arrival":
+            movement_mod.note_arrival(state, unit, int(state.get("server_tick", 0) or 0))
+        if not unit:
+            continue
+        for record in intents:
+            if not isinstance(record, dict) or record.get("effective_tick"):
+                continue
+            action = str(record.get("action", ""))
+            if kind not in FAST_EFFECT_EVENTS.get(action, ()):
+                continue
+            # 事件里的单位可能**不是**受令单位：`construction_done` 报的是**建筑**名，
+            # 而建造意图的 `unit_ids` 是**工人**。所以候选名要包含意图的全部角色
+            # （受令单位 + 目标里的实体/生产者/工地）——否则一类事件永远匹配不上，
+            # 表现就是"能证明生效的证据一条都没盖上"（实测：effective 恒为 0）。
+            names = {str(u) for u in (record.get("unit_ids") or [])}
+            target = record.get("target")
+            if isinstance(target, dict):
+                for key in ("entity_id", "producer", "site", "building"):
+                    value = target.get(key)
+                    if value:
+                        names.add(str(value))
+            if unit not in names:
+                continue
+            record["effective_tick"] = int(event.get("server_tick", 0) or 0)
+            stamped.append(str(record.get("intent_id", "")))
+    _decide(state, "fast_events_consumed", count=len(fresh), kinds=counts,
+            effective=stamped[:8])
+
+
 def node_ingest(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, Any]:
     """消费观测包头与事件：校验身份漂移，推进 tick/snapshot，入队事件，过期清理。
 
@@ -280,6 +388,27 @@ def node_ingest(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, Any]:
         _log(ctx, state, "graph_identity_drift", drift=str(drift))
         return state
 
+    # 10Hz 扫描层的增量事件：先消费，后续节点（含回执结算与进度）都看到最新证据。
+    _consume_fast_events(state, ctx)
+    # 导航网格版本（P2 安全移动）：路线记录必须绑定"当时是哪一版网格"，
+    # 重烘之后旧路径一律作废。缺失/非法时**保持 -1（未知）**，不猜。
+    fast_state = ctx.observation.get("fast_state")
+    if isinstance(fast_state, dict) and fast_state.get("nav_revision") is not None:
+        try:
+            state["nav_revision"] = int(fast_state["nav_revision"])
+        except (TypeError, ValueError):
+            pass
+
+    # 地图边界（`op=strategic` 提供，形如 `[size_x, size_z]`，原点在角上）：
+    # 规则层产出的坐标必须**留在地图内**，否则权威端判 `OutOfBounds`。
+    # 只进不出的"最后已知"语义：战略视图缺省时沿用上一轮的值，绝不猜。
+    strategic = ctx.observation.get("strategic")
+    bounds = strategic.get("map_bounds") if isinstance(strategic, dict) else None
+    if isinstance(bounds, (list, tuple)) and len(bounds) >= 2:
+        try:
+            state["map_bounds"] = [float(bounds[0]), float(bounds[1])]
+        except (TypeError, ValueError):
+            pass
     state["server_tick"] = max(int(state.get("server_tick", 0)), int(header.get("server_tick", 0)))
     state["latest_snapshot_id"] = max(int(state.get("latest_snapshot_id", 0)),
                                       int(header.get("snapshot_id", 0)))
@@ -325,6 +454,57 @@ def node_ingest(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, Any]:
         _decide(state, "observation_ingested", new_events=accepted, expired_intents=expired)
     _log(ctx, state, "graph_observation", snapshot_id=state.get("latest_snapshot_id", 0),
          new_events=accepted, expired_intents=expired)
+    return state
+
+
+# ---------------- 整局主线（campaign_state） ----------------
+#
+# 纠偏文档要求图的长期状态**跨 tick / checkpoint 保留整局主线**，而不是只保留
+# 最后一批意图。这两个节点就是"主线"的读写口：
+#   `update_campaign_state`  —— 观测之后（微操之前）推进阶段/里程碑/中断栈；
+#   `advance_milestones`     —— 回执结算之后再判一次（本轮回执证据当轮生效）。
+# 二者调用同一实现（`campaign.update`），并且按 tick 幂等，重复调用不会重复计数。
+
+def _run_campaign_stage(state: Dict[str, Any], ctx: NodeContext, stage: str) -> None:
+    tick = int(state.get("server_tick", 0))
+    try:
+        campaign = campaign_mod.update(state, ctx.observation, tick)
+    except Exception as exc:  # noqa: BLE001 —— 主线推进异常绝不允许拖垮指挥链
+        _log(ctx, state, "campaign_error", stage=stage, error=repr(exc)[:200])
+        # 至少保证"主线存在"：缺了它，规则阶梯会退回默认顺序（不是致命，但会丢主线语义）。
+        campaign = campaign_mod.ensure_campaign(state, tick)
+        return
+    for event in campaign.get("new_transitions") or []:
+        payload = {key: value for key, value in event.items() if key != "kind"}
+        _decide(state, "campaign_%s" % str(event.get("kind", "transition")), **payload)
+    for item in campaign.get("resolved_interrupts") or []:
+        # 中断条目自带 `kind`（事件类型）：这里显式改名，避免与决策 kind 混淆
+        # （`_decide` 已按位置专用参数加固，但日志字段也该干净可读）。
+        payload = {key: value for key, value in item.items() if key != "kind"}
+        payload["interrupt_kind"] = str(item.get("kind", ""))
+        _decide(state, "campaign_interrupt_resolved", **payload)
+    summary = campaign_mod.summary(campaign)
+    # 结构化日志每轮一条（复盘用），决策日志只记变迁（面板/验收用）。
+    _log(ctx, state, "campaign", stage=stage, phase=summary.get("phase"),
+         frontier=summary.get("frontier"), frontier_name=summary.get("frontier_name"),
+         done=",".join(summary.get("done") or []),
+         blocked=",".join(item.get("id", "") for item in summary.get("blocked") or []),
+         tracks=",".join("%s=%s" % (k, v) for k, v in
+                         (summary.get("tracks") or {}).items()),
+         interrupts=summary.get("interrupts"),
+         expansion=",".join(str(item) for item in
+                            (summary.get("expansion_candidates") or [])[:1]))
+
+
+def node_update_campaign(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, Any]:
+    """整局主线推进：阶段 / 里程碑 / 四条 track / next_frontier / interrupt_stack。"""
+    _run_campaign_stage(state, ctx, "update")
+    return state
+
+
+def node_advance_milestones(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, Any]:
+    """里程碑推进（回执结算后）：权威证据当轮生效 + 中断恢复。"""
+    _run_campaign_stage(state, ctx, "advance")
     return state
 
 
@@ -376,7 +556,13 @@ def _intake_patch_outcome(state: Dict[str, Any], ctx: NodeContext) -> bool:
         return False
     if outcome.status == STATUS_OK:
         state["patch_ready"] = {
-            "value": outcome.value, "decode": outcome.decode,
+            # `value` 是 pydantic `TaskPatchBatch`（LangGraph 可序列化）；
+            # `decode` 必须**先摘要成 dict**：DecodeResult 是 dataclass，放进
+            # LangGraph state 会在 checkpoint 的 msgpack 序列化处抛
+            # `TypeError: Type is not msgpack serializable: DecodeResult`，
+            # 从而每若干个 tick 就整轮异常（回执结算、下发全部丢失）。
+            "value": outcome.value,
+            "decode": task_patch_bridge.summarize_decode(outcome.decode),
             "request_id": outcome.request_id, "latency_ms": outcome.latency_ms,
             "waited_ms": outcome.waited_ms, "merged": outcome.merged,
         }
@@ -407,11 +593,12 @@ def node_classify(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, Any]:
     _decide(state, "event_classified", route=route, event_kinds=[
         str(e.get("kind", "")) for e in events])
     _log(ctx, state, "graph_route", route=route, event_count=len(events))
-    # 【微操与模型解耦】非战术轮也要跑微操（见 `_run_micro_layer` 的实测依据）。
-    # 战术轮由 `node_tactical_agent` 自带那段（它还要和本轮模型意图比优先级），
-    # 所以这里只补**非战术轮**，避免同一轮跑两遍。
-    if route not in (itr.ROUTE_TACTICAL, itr.ROUTE_EMERGENCY_TACTICAL):
-        _run_micro_layer(state, ctx)
+    # 【规则中台常驻】**无条件**跑一轮 baseline（纠偏 §三-3：route 是模型调度节拍，
+    # 不能成为规则/行为树的运行门控）。此前它被 `if route not in (tactical, ...)`
+    # 与 `node_tactical_agent` 内的模型分支切成两半 → 两条路径的语义还不一致，
+    # 且模型在途时那一半直接 `return` 掉，整轮没有 baseline。
+    # 现在单点生成：每 tick 恰好生成一次，后续节点只做"模型稀疏覆盖"。
+    _run_micro_layer(state, ctx)
     return state
 
 
@@ -485,6 +672,12 @@ def node_reconcile_plan(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, An
                 "generation": int(state.get("control_generation", 0)),
                 "dropped_intents": [],
             })
+            campaign = campaign_mod.ensure_campaign(state, tick)
+            if kind == itr.EVT_PLAYER_OVERRIDE:
+                campaign_mod.note_player_override(campaign, units, tick,
+                                                  str(payload.get("reason", "")))
+            else:
+                campaign_mod.note_player_release(campaign, units, tick)
             continue
         if kind == itr.EVT_PLAYER_OVERRIDE:
             record = _apply_override(state, units, tick, str(payload.get("reason", "")))
@@ -498,11 +691,20 @@ def node_reconcile_plan(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, An
                 _log(ctx, state, "player_event_hook_failed", kind=kind)
     state["pending_events"] = [e for e in events if e not in control_events]
     state["paused"] = bool(ctx.config.pause_on_player_interrupt and handled_records)
+    campaign = campaign_mod.ensure_campaign(state, tick)
+    campaign_summary = campaign_mod.summary(campaign)
     _decide(state, "plan_reconciled",
             handled=[{"kind": r["kind"], "units": r["unit_ids"]} for r in handled_records],
-            plan_preserved=state.get("active_plan") is not None)
+            plan_preserved=state.get("active_plan") is not None,
+            # 【主线未被清空】的显式证据：玩家局部接管后，阶段/前沿/里程碑原样保留。
+            campaign_preserved=bool(campaign_summary),
+            campaign_phase=campaign_summary.get("phase", ""),
+            campaign_frontier=campaign_summary.get("frontier", ""),
+            campaign_suspended=campaign_summary.get("suspended_objects", []))
     _log(ctx, state, "graph_reconcile", handled=len(handled_records),
-         player_units=state.get("player_controlled_units", []))
+         player_units=state.get("player_controlled_units", []),
+         campaign_frontier=campaign_summary.get("frontier", ""),
+         campaign_suspended=len(campaign_summary.get("suspended_objects") or []))
     return state
 
 
@@ -547,6 +749,13 @@ def _apply_override(state: Dict[str, Any], units: List[str], tick: int,
         state["pending_requests"].pop(intent_id, None)
     _mark_tasks_for_units(state, units, "partially_overridden")
     state.setdefault("overrides", []).append(record)
+    # 【主线纪律】玩家局部接管**只暂停受影响对象**，不清空主线：
+    # 里程碑状态、next_frontier、四条 track 的当前任务一律保留（纠偏 §紧急事件/接管语义）。
+    campaign = campaign_mod.ensure_campaign(state, tick)
+    campaign_mod.note_player_override(campaign, units, tick, reason)
+    _decide(state, "campaign_player_override", units=[str(u) for u in units],
+            suspended=len(campaign.get("suspended_objects") or []),
+            frontier=str(campaign.get("next_frontier", "")))
     return record
 
 
@@ -572,6 +781,11 @@ def _apply_release(state: Dict[str, Any], units: List[str], tick: int,
         if value in ("waiting_for_player", "partially_overridden"):
             state["active_tasks"][task_id] = TASK_RUNNING
     state.setdefault("overrides", []).append(record)
+    campaign = campaign_mod.ensure_campaign(state, tick)
+    campaign_mod.note_player_release(campaign, units, tick)
+    _decide(state, "campaign_player_release", units=[str(u) for u in units],
+            suspended=len(campaign.get("suspended_objects") or []),
+            frontier=str(campaign.get("next_frontier", "")))
     return record
 
 
@@ -604,11 +818,12 @@ def node_strategic_agent(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, A
         # 恒真，路由会卡死在 strategic，战术节点永远轮不到（实测 0 下发）。覆盖两类
         # 场景：--strategy-mode off，以及配置为 plan 但模型装配失败/从旧 checkpoint 恢复。
         state["strategy_disabled"] = True
-        state["candidate_intents"] = []
+        # 保留本轮 baseline（纠偏 §三-2/3）：战略模型缺席不是"这轮谁都不动"的理由。
+        _keep_baseline(state)
         return state
     if not model_calls_allowed(state, ctx, "strategy"):
         _decide(state, "strategy_skipped", reason="model_cooldown")
-        state["candidate_intents"] = []
+        _keep_baseline(state)
         return state
     tick = int(state.get("server_tick", 0))
     context = build_strategy_context(
@@ -622,11 +837,11 @@ def node_strategic_agent(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, A
         plan = ctx.services.strategy_model.propose_plan(context)
     except (ModelTimeout, ModelUnavailable, ModelInvalidOutput) as exc:
         _on_model_failure(state, ctx, "strategy", exc)
-        state["candidate_intents"] = []
+        _keep_baseline(state)
         return state
     except Exception as exc:  # noqa: BLE001 —— 未知异常也归入降级，不炸图。
         _on_model_failure(state, ctx, "strategy", exc)
-        state["candidate_intents"] = []
+        _keep_baseline(state)
         return state
 
     if plan is None:
@@ -634,19 +849,19 @@ def node_strategic_agent(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, A
         state["model_errors"] = 0
         _consume_events(state, itr.STRATEGIC_EVENT_KINDS)
         _decide(state, "strategy_empty", tick=tick)
-        state["candidate_intents"] = []
+        _keep_baseline(state)
         return state
     try:
         parsed: StrategicPlan = parse_strategic_plan(plan)
     except ContractError as exc:
         _on_model_failure(state, ctx, "strategy", ModelInvalidOutput("; ".join(exc.errors)))
-        state["candidate_intents"] = []
+        _keep_baseline(state)
         return state
     if str(parsed.match_id) != str(state.get("match_id", "")) or \
             str(parsed.player_id) != str(state.get("player_id", "")):
         _on_model_failure(state, ctx, "strategy",
                           ModelInvalidOutput("计划身份与当前对局不一致"))
-        state["candidate_intents"] = []
+        _keep_baseline(state)
         return state
 
     plan_dict = parsed.to_plan_dict()
@@ -659,7 +874,7 @@ def node_strategic_agent(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, A
         state["degraded_reason"] = "plan_rejected:%s" % reason
         _decide(state, "plan_rejected", reason=reason, tick=tick)
         _log(ctx, state, "plan_adoption", status="rejected", reason=reason)
-        state["candidate_intents"] = []
+        _keep_baseline(state)
         return state
 
     previous_version = str(state.get("plan_version", "") or "")
@@ -689,7 +904,7 @@ def node_strategic_agent(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, A
     _decide(state, "plan_adopted", plan_id=parsed.plan_id,
             plan_version=state["plan_version"], reason=reason, tick=tick)
     _log(ctx, state, "plan_adoption", status="adopted", plan_version=state["plan_version"])
-    state["candidate_intents"] = []
+    _keep_baseline(state)
     return state
 
 
@@ -785,8 +1000,129 @@ def _may_displace(action: str, from_ladder: bool,
                for c in conflicts)
 
 
+#: 候选来源标记。纠偏 §二 要求 `origin=baseline / model / behavior_tree` 可区分 ——
+#: 日志与指标必须能分开统计"规则中台做的"和"模型改的"，否则无法证明模型增量。
+ORIGIN_BASELINE = "baseline"
+ORIGIN_BEHAVIOR_TREE = "behavior_tree"
+ORIGIN_MODEL = "model"
+BASELINE_ORIGINS = (ORIGIN_BASELINE, ORIGIN_BEHAVIOR_TREE)
+#: 来源**旁路账本**：`{intent_id: origin}`。
+#: 为什么不能把 `origin` 直接写进意图 dict（2026-09-12 实测）：
+#: 意图契约是 `extra=forbid` 的严格模型，多一个字段整条意图就被判
+#: `contract_invalid: origin: Extra inputs are not permitted` → 模型意图**全军覆没**。
+#: 所以来源只在这里记账，下发/仲裁的载荷保持干净（纠偏 §二 只要求"可区分"，
+#: 不要求把它塞进协议）。
+ORIGIN_KEY = "intent_origin"
+
+
+def _origin_of(state: Dict[str, Any], item: Dict[str, Any]) -> str:
+    return str((state.get(ORIGIN_KEY) or {}).get(str(item.get("intent_id", "")), ""))
+
+
+def _strip_origin(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """去掉意图里的内部字段（`origin`），保证送进契约校验的载荷是干净的。"""
+    return [{key: value for key, value in item.items() if key != "origin"}
+            for item in items]
+
+
+def _record_origins(state: Dict[str, Any], items: List[Dict[str, Any]]) -> None:
+    table = state.setdefault(ORIGIN_KEY, {})
+    for item in items:
+        origin = str(item.get("origin", "") or "")
+        key = str(item.get("intent_id", "") or "")
+        if origin and key:
+            table[key] = origin
+
+
+def _baseline_only(state: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """只保留规则中台/行为树产出的候选（丢掉上一轮残留的临时模型候选）。"""
+    return [dict(item) for item in (state.get("candidate_intents") or [])
+            if isinstance(item, dict)
+            and _origin_of(state, item) in BASELINE_ORIGINS]
+
+
+def _ensure_baseline(state: Dict[str, Any], ctx: NodeContext) -> List[Dict[str, Any]]:
+    """保证**本轮** baseline 已生成，并返回它（幂等：同一 tick 只生成一次）。
+
+    为什么要有这一层而不是直接依赖 `node_classify` 先跑：真实图里 classify 一定在
+    战术节点之前，所以"每 tick 一次"是自然成立的；但集成测试/回放会**直接调用**
+    战术节点，若此时 baseline 为空，模型候选就会在"没有地板"的真空里被合并 ——
+    表现成"规则层又变成可选"。用 `baseline_tick` 做周期闸，既保证兜底，又保证
+    同一周期不重复生成（纠偏 §五-4）。
+    """
+    tick = int(state.get("server_tick", 0))
+    if int(state.get("baseline_tick", -1) or -1) != tick:
+        _run_micro_layer(state, ctx)
+    return _baseline_only(state)
+
+
+def _keep_baseline(state: Dict[str, Any]) -> None:
+    """模型路径提前退出时**保留**本轮规则候选，而不是清空。
+
+    纠偏 §三-2 明确要求：模型缺失、冷却、超时、异常或非法输出**不得吞掉**本轮合法
+    baseline 候选。此前这些分支一律 `state["candidate_intents"] = []`，于是
+    "模型一有状况 → 本轮谁都不动"（外部表现就是整局零发展）。
+    """
+    state["candidate_intents"] = _baseline_only(state)
+
+
+def _protected_baseline(origin: str, action: str) -> bool:
+    """该 baseline 动作是否**受保护**（模型不能把它挤掉）。
+
+    按**来源**区分，而不是只看动作名 —— 这一点被三条既有回归用例同时钉死：
+    - `retreat`：任何来源都是求生，模型不得顶掉
+      （`test_outnumbered_retreat_preempts_model_attack`）；
+    - **阶梯**（`origin=baseline`）的 `build/produce/attack`：这是"程序自己的发展骨架"，
+      模型"每轮只回 gather"时**不得**把发展饿死
+      （`test_ladder_build_preempts_model_gather_on_same_worker`，
+       = 纠偏 §一"不得让模型一条采集永远饿死建设"）；
+    - **行为树**（`origin=behavior_tree`）的交火/采集/侦察/集结：只是"默认打杂"，
+      模型一旦显式指定该执行者就得让位 —— 否则"模型下发 move 必须被接受"这条金标准
+      会被地板的"就近交火"顶掉（`replay_player_takeover` 明确钉住）。
+    """
+    if action == ACTION_RETREAT:
+        return True
+    return origin == ORIGIN_BASELINE and action in rules_fallback.DEVELOPMENT_ACTIONS
+
+
+def _merge_model_over_baseline(
+        baseline: List[Dict[str, Any]], model_items: List[Dict[str, Any]],
+        origins: Dict[str, str],
+) -> Tuple[List[Dict[str, Any]], List[str]]:
+    """模型候选**稀疏覆盖** baseline：只动它显式指定的执行者。
+
+    返回 `(合并结果, 被顶掉的 baseline intent_id)`。
+    纪律（纠偏 §四）：模型没提到的单位继续跑 baseline 或既有任务；模型显式指定的执行者，
+    除受保护的地板动作（见 `_protected_baseline`）外一律以模型为准。
+    """
+    out = list(baseline)
+    displaced: List[str] = []
+    for item in model_items:
+        units = {str(u) for u in (item.get("unit_ids") or [])}
+        # **只和地板冲突**：模型内部两条同单位的候选（例如"打旧目标"+"转移位置"）
+        # 属于同一批 patch 内部的问题，必须留给**仲裁层**逐条判定并给出拒绝原因
+        # （`replay_target_dead` 明确钉住 `dropped[i-attack-stale]=entity_not_in_observation`）。
+        # 合并层若顺手把它们互相顶掉，那些拒绝原因就永远消失了。
+        conflicts = [c for c in out
+                     if units & {str(u) for u in (c.get("unit_ids") or [])}
+                     and str(origins.get(str(c.get("intent_id", "")), ""))
+                     in BASELINE_ORIGINS]
+        item_rank = rules_fallback.action_rank(str(item.get("action", "")))
+        if any(_protected_baseline(
+                   str(origins.get(str(c.get("intent_id", "")), "")),
+                   str(c.get("action", "")))
+               and rules_fallback.action_rank(str(c.get("action", ""))) >= item_rank
+               for c in conflicts):
+            continue
+        for conflict in conflicts:
+            out.remove(conflict)
+            displaced.append(str(conflict.get("intent_id", "")))
+        out.append(item)
+    return out, displaced
+
+
 def _run_micro_layer(state: Dict[str, Any], ctx: NodeContext) -> None:
-    """微操层独立跑一轮：发展阶梯 + 行为树 → 候选意图（**每轮都跑**）。
+    """**规则中台常驻一轮**：发展阶梯 + 行为树 → baseline 候选（每 tick 都跑）。
 
     ## 为什么必须独立出来（2026-09-11 实测，用户反馈"没看到副官批量指挥部队"）
 
@@ -795,18 +1131,26 @@ def _run_micro_layer(state: Dict[str, Any], ctx: NodeContext) -> None:
     却有 18~28 次）→ 微操跟着被饿死：整局 0 生产、屏幕上几乎看不到任何批量指挥。
     用户方针本来就是"微操靠行为树、LLM 慢不要紧"，所以微操必须每轮都跑。
 
-    ## 与 `node_tactical_agent` 里那段的语义差别（有意为之）
+    ## 调用位置（2026-09-12 晚 架构纠偏后）
 
-    - 战术轮**有**本轮模型意图：那里按"模型已产出的类别"过滤阶梯，并按 `_may_displace`
-      与模型意图比优先级；
-    - 这里**没有**本轮模型意图（战略轮/等待轮）：阶梯补它缺的全部类别、行为树补它负责的单位。
-      重复下发由仲裁层的"单位级活跃判重"（`arbitration.live_unit_orders`）拦住 ——
-      同一单位 + 同动作 + 同目标在活跃期内不会重发，所以每轮跑不会造成抖动。
+    由 `node_classify` **无条件**调用：`route` 只是"模型调度节拍"，不能成为规则与
+    行为树的运行门控（纠偏 §三-3）。模型在途 / 缺失 / 冷却 / 超时 / 空批次 / 非法输出
+    都不影响本函数 —— 本轮 baseline 候选永远由本函数独立重建。
 
-    异常一律吞掉并留痕：微操失败绝不允许拖垮指挥链。
+    模型侧的职责只是**在 baseline 之上做稀疏覆盖**（见 `_merge_model_over_baseline`）：
+    它没提到的执行者继续按 baseline 跑。**不再**存在"模型成功时按缺口过滤阶梯"那套
+    被动语义 —— 那正是"规则退化成 fallback"的根源。
+
+    来源标记：阶梯（经济/建造/生产/进攻骨架）→ `origin=baseline`；
+    行为树的单位级动作（采集兜底/侦察/集结/就近交火/撤离）→ `origin=behavior_tree`。
+
+    重复下发由三层拦住：① "最近下发窗口"（`_repeat_suppressed`）；
+    ② 活跃意图守卫（正在执行且未终止的任务不被无条件重下）；③ 仲裁层单位级判重。
+
+    异常一律吞掉并留痕：规则中台失败绝不允许拖垮指挥链。
     """
     tick = int(state.get("server_tick", 0))
-    candidates = list(state.get("candidate_intents") or [])
+    candidates = _baseline_only(state)
     try:
         ladder_extras, tree_extras = behavior_tree.micro_parts(
             state, tactical=ctx.observation.get("tactical"),
@@ -858,13 +1202,73 @@ def _run_micro_layer(state: Dict[str, Any], ctx: NodeContext) -> None:
             continue
         for conflict in conflicts:
             candidates.remove(conflict)
-        candidates.append(item)
-        added.append(str(item.get("intent_id", "")))
+        entry = dict(item)
+        # 来源标记（纠偏 §二）：阶梯 = 规则中台的基础策略；行为树 = 单位级持续执行。
+        # 只进**旁路账本**，不进意图载荷（见 ORIGIN_KEY 说明）。
+        entry["origin"] = (ORIGIN_BASELINE if from_ladder
+                           else ORIGIN_BEHAVIOR_TREE)
+        _record_origins(state, [entry])
+        candidates.append(_strip_origin([entry])[0])
+        added.append(str(entry.get("intent_id", "")))
+    # **无条件回写**：即使本轮没新增，也要把"上一轮残留的模型候选"清掉，
+    # 保证后续节点看到的候选集 = 纯 baseline（模型候选只能由本轮模型结果重新引入）。
+    state["candidate_intents"] = _strip_origin(candidates)
+    # 来源账本剪枝：只保留仍在"本轮候选 ∪ 活跃意图"里的 id，避免无限增长。
+    keep = {str(c.get("intent_id", "")) for c in state["candidate_intents"]}
+    keep |= {str(i.get("intent_id", ""))
+             for i in (state.get("active_intents") or [])}
+    state[ORIGIN_KEY] = {key: value
+                         for key, value in (state.get(ORIGIN_KEY) or {}).items()
+                         if key in keep}
+    state["baseline_tick"] = tick
+    try:
+        ladder_diag = rules_fallback.ladder_inputs(
+            state, tactical=ctx.observation.get("tactical"),
+            rules=ctx.observation.get("rules"))
+    except Exception as exc:  # noqa: BLE001
+        ladder_diag = {"error": str(exc)[:200]}
+    _log(ctx, state, "rule_floor", interface="task_patch", tick=tick,
+         route=str(state.get("route", "")), produced=len(added),
+         suppressed=suppressed,
+         baseline=sum(1 for c in candidates
+                      if str(c.get("origin")) == ORIGIN_BASELINE),
+         behavior_tree=sum(1 for c in candidates
+                           if str(c.get("origin")) == ORIGIN_BEHAVIOR_TREE),
+         **ladder_diag)
     if added:
-        state["candidate_intents"] = candidates
-        _decide(state, "micro_control_added", intents=added, tick=tick)
+        _decide(state, "micro_control_added", intents=added, tick=tick,
+                origin="baseline_policy")
         _log(ctx, state, "micro_control", added=len(added), suppressed=suppressed,
              route=str(state.get("route", "")))
+
+
+def _apply_model_branch(state: Dict[str, Any], ctx: NodeContext, decode: Any,
+                        tick: int) -> None:
+    """模型用四列输出的 `g` 字段选择**主线分支**（低频、可校验）。
+
+    纪律（纠偏 §"小模型只选择主线分支和参数，不负责重新生成整张任务表"）：
+    模型没给 `g` / 给的条件不满足 / 给的是不存在的分支 → **沿用当前主线**，
+    不做任何清空（空输出绝不解释成"无战略"）。
+    """
+    ref = ""
+    if isinstance(decode, dict):
+        ref = str(decode.get("goal_ref", "") or "")
+    elif decode is not None:
+        ref = str(getattr(decode, "goal_ref", "") or "")
+    if not ref:
+        return
+    try:
+        result = campaign_mod.note_model_branch(state, ref, tick)
+    except Exception as exc:  # noqa: BLE001 —— 分支选择失败不影响本轮任务落地
+        _decide(state, "campaign_branch_ignored", ref=ref, reason="error:%s" % str(exc)[:60])
+        return
+    if bool(result.get("accepted")):
+        payload = {key: value for key, value in result.items() if key != "reason"}
+        _decide(state, "campaign_branch_adopted", ref=ref, **payload)
+    else:
+        _decide(state, "campaign_branch_ignored", ref=ref, reason=result.get("reason"))
+    _log(ctx, state, "campaign_branch", ref=ref, accepted=bool(result.get("accepted")),
+         reason=result.get("reason", ""))
 
 
 def _model_missing(model: Any) -> bool:
@@ -886,19 +1290,26 @@ def _live_generations(state: Dict[str, Any]) -> Dict[str, int]:
 def _tactical_via_task_patch(state: Dict[str, Any], ctx: NodeContext,
                              events: List[Dict[str, Any]], tick: int,
                              emergency: bool) -> Dict[str, Any]:
-    """四列接口路径：模型只做"任务修改"，程序展开并复用既有权威链。
+    """四列接口路径：模型对 baseline 候选表做**稀疏 patch**；程序展开并复用既有权威链。
 
-    与旧路径的关键差别（设计 §2.2/§7.2、§8.8）：
-    - `StrategicPlan` **不再**是下令前置：任务由模型选中的模板展开，身份/版本由程序给；
-    - 模型正常时，程序**不**补任何它没选的战略任务（旧"发展阶梯"退到只在降级路径使用），
-      避免出现"两个互相抢控制权的指挥中心"；
-    - 逐行解码结果（接受/拒绝原因）落进结构化日志，供逐项回执与验收核对。
+    与旧语义的关键差别（2026-09-12 晚 架构纠偏 §三/§四）：
+    - baseline（规则中台 + 行为树）由 `node_classify` **每 tick 无条件**生成，本函数
+      **不再**是规则的运行门控：模型在途 / 缺失 / 冷却 / 超时 / 空批次 / 非法输出
+      一律**保留** baseline 候选（此前一律 `candidate_intents = []` → 整轮谁都不动）；
+    - 模型只覆盖它**显式指定且有权限**的执行者（`_merge_model_over_baseline`），
+      没提到的单位继续跑 baseline 或既有任务；
+    - 程序拒绝非法/过期/冲突/预算不足的 patch，但**不因拒绝一个 patch 而清掉 baseline**；
+    - 不再有"模型成功时按缺口补骨架"那套被动语义 —— 那是"规则退化成 fallback"的根源。
     """
     mode = str(getattr(ctx.services.tactics_model, "mode", MODE_FAST) or MODE_FAST)
     scheduler = getattr(ctx.services, "tactics_scheduler", None)
     fallback_used = ""
     batch = None
     decode = None
+    # 本轮 baseline 由 `node_classify` **无条件**生成（`origin=baseline/behavior_tree`）；
+    # `_ensure_baseline` 只做"同一 tick 幂等"兜底（集成测试/回放会直接调用本函数）。
+    # 这里只负责"把模型的稀疏 patch 叠上去"，任何提前退出都必须把它**原样保留**。
+    baseline = _ensure_baseline(state, ctx)
     if scheduler is not None:
         # ---- 有界异步路径（默认）----
         # 结果由 `node_classify` 每轮即时收取（`patch_ready`），这里只负责落地或提交新请求。
@@ -912,6 +1323,14 @@ def _tactical_via_task_patch(state: Dict[str, Any], ctx: NodeContext,
                  merged=ready.get("merged"))
             _decide(state, "task_patch_applied", request_id=ready.get("request_id"),
                     latency_ms=ready.get("latency_ms"), tick=tick)
+            # 模型若在 `g` 里选了主线分支，这里落地（校验前置条件，不满足则沿用主线）。
+            _apply_model_branch(state, ctx, decode, tick)
+            # 【曾试过"落地轮顺便提交下一轮"的流水线，已回退】它能把思考间隔从
+            # 2.6 秒压到 1 秒级，但会让**同一个 intent_id 被下发两次**
+            # （`test_result_applied_once_then_fresh_submissions_continue` 抓到：
+            # 单调的 stub 模型回同一批 → 第二次结果又走一遍下发）。
+            # 纪律：宁可慢一点，也不能重新引入"重复命令"——那正是用户此前明确否定的。
+            # 真要做流水线，必须先在**下发前**按 `intent_id + (执行者,动作,目标)` 去重。
         else:
             frame = task_patch_bridge.frame_from_state(state, ctx.observation, mode=mode)
             accepted, why = scheduler.submit(
@@ -924,8 +1343,9 @@ def _tactical_via_task_patch(state: Dict[str, Any], ctx: NodeContext,
             # 同时写进状态决策日志：面板与验收都从这里读（结构化日志只落 runner jsonl）。
             _decide(state, "task_patch_submitted", accepted=accepted, reason=why,
                     tick=tick, emergency=emergency)
-            # 没有新结果：**相关单位继续执行既有任务**（不清空活跃任务，不推断状态）。
-            state["candidate_intents"] = []
+            # 【纠偏 §三-1】模型在途**不得**跳过本轮规则地板，也不得清空候选：
+            # 相关单位继续执行既有任务，baseline 候选照常进仲裁。
+            state["candidate_intents"] = baseline
             state["last_tactics_tick"] = tick
             _consume_events(state)
             return state
@@ -944,6 +1364,7 @@ def _tactical_via_task_patch(state: Dict[str, Any], ctx: NodeContext,
             _on_model_failure(state, ctx, "tactics", exc)
             fallback_used = "rules_fallback"
         decode = getattr(ctx.services.tactics_model, "last_decode", None)
+        _apply_model_branch(state, ctx, decode, tick)
     # 审计：把"模型原始输出"一起落盘。此前只落解码摘要，而异步路径的 decode 恒为 None
     # （调度器只带 IntentBatch），于是日志打出误导性的 rows=0/0/0，谁也看不出"模型回了空"。
     _log(ctx, state, "task_patch", mode=mode, fallback=fallback_used,
@@ -951,26 +1372,36 @@ def _tactical_via_task_patch(state: Dict[str, Any], ctx: NodeContext,
          **task_patch_bridge.summarize_decode(decode))
     if batch is None and not fallback_used:
         _decide(state, "tactics_empty", tick=tick)
-        fallback_used = "rules_fallback_empty"
-    if fallback_used:
-        # 只有降级时才用确定性兜底（保守降级，明确标记，供验收区分模型/规则）。
-        batch = _rules_fallback_batch(state, ctx)
+        fallback_used = "model_empty"
+    if batch is None:
+        # 空批次 / 降级：baseline 照常执行。**不再**回头再跑一次规则层 ——
+        # 它已经在 `node_classify` 跑过，这里再跑就是同一周期的重复生成
+        # （纠偏 §五-4 明确要求"同一周期不重复生成"）。
+        # 但必须**明确留痕**这一轮是规则在扛：否则事后无法区分
+        # "模型给了空批次" 与 "模型根本没跑"（纠偏 §五-4 要求的可审计性）。
+        _decide(state, "tactics_rules_fallback_used",
+                reason=fallback_used or "model_empty",
+                intents=0, origin=ORIGIN_BASELINE)
+        state["candidate_intents"] = baseline
+        state["last_tactics_tick"] = tick
+        _consume_events(state)
+        return state
     try:
         parsed: IntentBatch = parse_intent_batch(batch)
     except ContractError as exc:
         _on_model_failure(state, ctx, "tactics", ModelInvalidOutput("; ".join(exc.errors)))
-        state["candidate_intents"] = []
+        state["candidate_intents"] = baseline
         return state
     if (parsed.match_id and str(parsed.match_id) != str(state.get("match_id", ""))) or \
             (parsed.player_id and str(parsed.player_id) != str(state.get("player_id", ""))):
         _on_model_failure(state, ctx, "tactics",
                           ModelInvalidOutput("意图批次身份与当前对局不一致"))
-        state["candidate_intents"] = []
+        state["candidate_intents"] = baseline
         return state
     parsed.match_id = str(state.get("match_id", ""))
     parsed.player_id = str(state.get("player_id", ""))
     parsed.plan_version = parsed.plan_version or str(state.get("plan_version", ""))
-    candidates: List[Dict[str, Any]] = []
+    model_items: List[Dict[str, Any]] = []
     for intent in parsed.intents:
         item = intent.to_dict()
         # 模型可能复述"我上次发过的任务"（它没有记忆）：与最近下发窗口比对拦下来。
@@ -981,92 +1412,23 @@ def _tactical_via_task_patch(state: Dict[str, Any], ctx: NodeContext,
                     intent_id=str(item.get("intent_id", "")),
                     action=str(item.get("action", "")), tick=tick)
             continue
-        candidates.append(item)
-    if fallback_used:
-        # 降级路径：用发展阶梯/行为树的骨架补明显缺口（模型没产出时的保命手段）。
-        try:
-            ladder_extras, tree_extras = behavior_tree.micro_parts(
-                state, tactical=ctx.observation.get("tactical"),
-                rules=ctx.observation.get("rules"),
-                ttl_ticks=int(ctx.config.intent_ttl_ticks), server_tick=tick,
-                snapshot_id=int(state.get("latest_snapshot_id", 0) or 0))
-        except Exception as exc:  # noqa: BLE001
-            ladder_extras, tree_extras = [], []
-            _log(ctx, state, "micro_error", error=repr(exc)[:200])
-        added: List[str] = []
-        for item, from_ladder in ([(it, True) for it in ladder_extras]
-                                  + [(it, False) for it in tree_extras]):
-            units = {str(u) for u in (item.get("unit_ids") or [])}
-            conflicts = [c for c in candidates
-                         if units & {str(u) for u in (c.get("unit_ids") or [])}]
-            if not _may_displace(str(item.get("action", "")), from_ladder, conflicts):
-                continue
-            for conflict in conflicts:
-                candidates.remove(conflict)
-            candidates.append(item)
-            added.append(str(item.get("intent_id", "")))
-        if added:
-            _decide(state, "behavior_tree_added", intents=added, degraded=True)
-    else:
-        # 【结果层缺口修正 2026-09-12】**模型成功时也必须补骨架**。
-        #
-        # 用户提的问题是从结果反推的："过去半分钟了副官还没发展，只让工人采矿，不反常吗？"
-        # 证据：`runner.out` 里**一条 `micro_ladder` 打点都没有** → 说明"按类别补骨架"
-        # 的那段代码在四列路径下**从未执行过**（它只挂在降级分支）。后果就是：
-        # 2B 每轮"成功返回"一条采集（它确实成功了），程序就不再补任何发展动作 →
-        # 有钱、有闲工人、缺关键建筑，整局零发展。
-        #
-        # 语义与旧路径保持一致（逐类别判断 + 优先级抢占 + 不抢模型已批准任务的单位），
-        # 但对骨架动作打 `origin=skeleton`，验收时可把"模型决策"与"程序骨架"分开统计。
-        # 边界：只补**事实可判定**的骨架（缺什么/谁能造/买得起），不做目标推理、不换兵种、
-        # 不改全局战略；预留由下游 `reserves.apply_budget` 统一拦。
-        missing = set(rules_fallback.DEVELOPMENT_ACTIONS) - {
-            str(item.get("action", "")) for item in candidates}
-        if missing:
-            try:
-                ladder_extras, tree_extras = behavior_tree.micro_parts(
-                    state, tactical=ctx.observation.get("tactical"),
-                    rules=ctx.observation.get("rules"),
-                    ttl_ticks=int(ctx.config.intent_ttl_ticks), server_tick=tick,
-                    snapshot_id=int(state.get("latest_snapshot_id", 0) or 0))
-            except Exception as exc:  # noqa: BLE001
-                ladder_extras, tree_extras = [], []
-                _log(ctx, state, "micro_error", error=repr(exc)[:200])
-            # 诊断打点：把"喂给阶梯的输入"与"它产出什么"一起落盘 ——
-            # 没有这行，就只能对着"为什么不发展"反复猜（本次就是这么绕出来的）。
-            try:
-                ladder_diag = rules_fallback.ladder_inputs(
-                    state, tactical=ctx.observation.get("tactical"),
-                    rules=ctx.observation.get("rules"))
-            except Exception as exc:  # noqa: BLE001
-                ladder_diag = {"error": str(exc)[:200]}
-            _log(ctx, state, "micro_ladder", interface="task_patch",
-                 missing=sorted(missing),
-                 produced=[str(i.get("action", ""))
-                           for i in (list(ladder_extras) + list(tree_extras))],
-                 **ladder_diag)
-            added = []
-            for item, from_ladder in ([(it, True) for it in ladder_extras]
-                                      + [(it, False) for it in tree_extras]):
-                act = str(item.get("action", ""))
-                if act in rules_fallback.DEVELOPMENT_ACTIONS and act not in missing:
-                    continue
-                units = {str(u) for u in (item.get("unit_ids") or [])}
-                conflicts = [c for c in candidates
-                             if units & {str(u) for u in (c.get("unit_ids") or [])}]
-                if not _may_displace(act, from_ladder, conflicts):
-                    continue
-                for conflict in conflicts:
-                    candidates.remove(conflict)
-                item = dict(item)
-                item["origin"] = "skeleton"
-                candidates.append(item)
-                added.append(str(item.get("intent_id", "")))
-            if added:
-                _decide(state, "development_skeleton_added", intents=added,
-                        missing=sorted(missing))
-    state["candidate_intents"] = candidates
-    state["candidate_intents"] = candidates
+        item["origin"] = ORIGIN_MODEL
+        model_items.append(item)
+    # 【模型稀疏覆盖 baseline】(纠偏 §四)：模型只动它**显式指定且有权限**的执行者，
+    # 没提到的单位继续跑 baseline 或既有任务；抢占序更高的 baseline 动作（求生 retreat）
+    # 不被一条模型 gather 顶掉。
+    # 这里**不再**回头调用规则层 —— baseline 已由 `node_classify` 每 tick 生成一次，
+    # 本函数再生成就是"同一周期重复生成"（纠偏 §五-4 明令禁止）。
+    _record_origins(state, model_items)
+    merged, displaced = _merge_model_over_baseline(
+        baseline, model_items, state.get(ORIGIN_KEY) or {})
+    _log(ctx, state, "task_patch_merge", interface="task_patch",
+         model=len(model_items), baseline=len(baseline),
+         merged=len(merged), displaced=displaced)
+    if displaced:
+        _decide(state, "baseline_displaced_by_model", intents=displaced,
+                model_intents=len(model_items))
+    state["candidate_intents"] = _strip_origin(merged)
     state["last_tactics_tick"] = tick
     _consume_events(state)
     if not fallback_used:
@@ -1091,12 +1453,13 @@ def node_tactical_agent(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, An
         if preempted:
             _log(ctx, state, "emergency_preempted", intents=preempted)
     if _model_missing(ctx.services.tactics_model):
+        # 【纠偏 §三-2】模型关掉/缺席**不得**吞掉本轮 baseline：保留候选继续进仲裁。
         _decide(state, "tactics_skipped", reason="no_tactics_model")
-        state["candidate_intents"] = []
+        _keep_baseline(state)
         return state
     if not model_calls_allowed(state, ctx, "tactics"):
         _decide(state, "tactics_skipped", reason="model_cooldown")
-        state["candidate_intents"] = []
+        _keep_baseline(state)
         return state
     # 决策接口选择（设计 §2「合并为一个模型决策入口」）：
     # agent 暴露 `propose_task_patch` 即走四列接口（默认）；旧 DirectiveBatch 路径保留，
@@ -1115,114 +1478,66 @@ def node_tactical_agent(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, An
                      match_id=state.get("match_id", ""), server_tick=tick,
                      emergency=emergency)
     fallback_used = ""
+    baseline = _ensure_baseline(state, ctx)
+    batch = None
     try:
         batch = ctx.services.tactics_model.propose_intents(context)
     except (ModelTimeout, ModelUnavailable, ModelInvalidOutput) as exc:
         _on_model_failure(state, ctx, "tactics", exc)
-        # 模型不可用不能让部队空转：改用确定性兜底（工人采集 + 基地补工人）。
-        # 兜底只做事实可判定的事，目标推理仍归模型（见 rules_fallback 模块说明）。
-        batch = _rules_fallback_batch(state, ctx)
-        fallback_used = "rules_fallback"
+        fallback_used = "model_error"
     except Exception as exc:  # noqa: BLE001
         _on_model_failure(state, ctx, "tactics", exc)
-        batch = _rules_fallback_batch(state, ctx)
-        fallback_used = "rules_fallback"
+        fallback_used = "model_error"
 
     if batch is None:
-        # 模型给了空响应（非致命）：同样不能让部队空转，改走确定性兜底，
-        # 并继续走下面的回声补齐 / 契约校验 / 仲裁流程。
-        _decide(state, "tactics_empty", tick=tick)
-        batch = _rules_fallback_batch(state, ctx)
-        fallback_used = "rules_fallback_empty"
+        # 空响应 / 模型失败：**baseline 照常执行**（已在 `node_classify` 生成一次）。
+        # 不再走 `_rules_fallback_batch` —— 那是同一周期里的第二次规则生成，
+        # 违反"同一周期不重复生成"（纠偏 §五-4），且来源标记会与 baseline 混淆。
+        _decide(state, "tactics_empty", tick=tick, degraded=fallback_used)
+        _decide(state, "tactics_rules_fallback_used",
+                reason=fallback_used or "model_empty",
+                intents=0, origin=ORIGIN_BASELINE)
+        state["candidate_intents"] = baseline
+        state["last_tactics_tick"] = tick
+        _consume_events(state)
+        return state
     # 模型可以省略/留空“回声字段”，由系统按上下文补齐；给出非空值时仍必须一致（下方校验）。
     batch = _fill_batch_echo(batch, state, ctx.config.intent_ttl_ticks)
     try:
         parsed: IntentBatch = parse_intent_batch(batch)
     except ContractError as exc:
         _on_model_failure(state, ctx, "tactics", ModelInvalidOutput("; ".join(exc.errors)))
-        state["candidate_intents"] = []
+        _keep_baseline(state)
         return state
     if (parsed.match_id and str(parsed.match_id) != str(state.get("match_id", ""))) or \
             (parsed.player_id and str(parsed.player_id) != str(state.get("player_id", ""))):
         # 意图批次身份与当前对局不一致：拒绝（绝不把意图下进别的对局）。
         _on_model_failure(state, ctx, "tactics",
                           ModelInvalidOutput("意图批次身份与当前对局不一致"))
-        state["candidate_intents"] = []
+        _keep_baseline(state)
         return state
     parsed.match_id = str(state.get("match_id", ""))
     parsed.player_id = str(state.get("player_id", ""))
     parsed.plan_version = parsed.plan_version or str(state.get("plan_version", ""))
-    candidates = [intent.to_dict() for intent in parsed.intents]
-    # 发展阶梯（决策手册 BLD-01）：模型这一批若**不含任何发展动作**
-    # （build / produce / attack），而事实是"缺建筑 / 有闲产能 / 已可出击"，
-    # 则由确定性阶梯补上骨架。
-    # 为什么必须在这里补（实测）：worker 全被派去采集后，2B 模型每轮只回 gather，
-    # 整局不造建筑、不出兵、不打仗；而 rules_fallback 只在**模型失败**时触发，
-    # 模型"成功但只回 gather"时兜底根本不会被调用。
-    # 边界：只补事实可判定的骨架，目标推理仍归模型；费用与预留由下游
-    # reserves.apply_budget 统一拦；玩家接管单位不在 ai_units 里，天然不会出现。
-    # 注意：**两条路径都要补**。实测最常见的是"模型超时 → 走兜底"，
-    # 而兜底 `batch_from_rules` 按设计只做采集/补工人；若只挂在"模型成功"分支，
-    # 阶梯在最需要它的场景下根本不会触发（第一次闭环验证就是这么失败的）。
-    actions = {str(item.action) for item in parsed.intents}
-    # 【关键修正 2026-09-11】按**类别**补齐，不能用并集判据。
-    # 旧写法 `if not actions & set(DEVELOPMENT_ACTIONS)` 是并集判断：
-    # 只要这批出现了 build/produce/attack 中**任意一个**，整条阶梯就被跳过。
-    # 后果（实测）：模型一旦正常返回 `produce`（造兵），**建造阶梯就永远不触发** ——
-    # 整局只有兵没有兵营。而上次能建出兵营，恰恰是因为当时模型在失败、走的是兜底路径。
-    # 也就是说：**模型修好反而把建造饿死了**。改成逐类别判断后，
-    # 模型产它的兵，阶梯同时补它缺的建筑，二者互不阻塞。
-    missing = set(rules_fallback.DEVELOPMENT_ACTIONS) - actions
-    if missing:
-        # 阶梯与行为树**分开取**：两段的合并语义不同（见 behavior_tree.micro_parts）。
-        ladder_extras, tree_extras = behavior_tree.micro_parts(
-            state, tactical=ctx.observation.get("tactical"),
-            rules=ctx.observation.get("rules"),
-            ttl_ticks=int(ctx.config.intent_ttl_ticks), server_tick=tick,
-            snapshot_id=int(state.get("latest_snapshot_id", 0) or 0),
-        )
-        extras = list(ladder_extras) + list(tree_extras)
-        # 诊断打点（**每轮都打，不是只在空产出时打**）：
-        # 交接时的血泪教训是"阶梯离线能产出 barracks build，运行时却一条 build
-        # 都到不了游戏"，断点在**喂给阶梯的 state**，不在算法。
-        # 只有把输入与产出一起落盘，才能用日志判定是
-        #   (a) 压根没生成（输入不对，如 idle_builders 为空）
-        #   (b) 生成了但被仲裁丢弃 / 已过期（见同 tick 的 intent_arbitration）
-        # 而不是继续猜（此前已经因为没打点绕了三圈）。
-        # 注意用 try：打点失败绝不允许影响指挥链（`_log` 的 sink 会吞异常，
-        # 但计算输入本身也可能抛）。
-        try:
-            ladder_diag = rules_fallback.ladder_inputs(
-                state, tactical=ctx.observation.get("tactical"),
-                rules=ctx.observation.get("rules"))
-        except Exception as exc:  # noqa: BLE001
-            ladder_diag = {"error": str(exc)[:200]}
-        _log(ctx, state, "micro_ladder", missing=sorted(missing),
-             produced=[str(item.get("action", "")) for item in (extras or [])],
-             **ladder_diag)
-        if extras:
-            added: List[str] = []
-            for item, from_ladder in ([(it, True) for it in ladder_extras]
-                                      + [(it, False) for it in tree_extras]):
-                act = str(item.get("action", ""))
-                # 模型已经产出的类别不再重复补，避免两套决策打架。
-                if act in rules_fallback.DEVELOPMENT_ACTIONS and act not in missing:
-                    continue
-                units = {str(u) for u in (item.get("unit_ids") or [])}
-                conflicts = [c for c in candidates
-                             if units & {str(u) for u in (c.get("unit_ids") or [])}]
-                # "一个单位同一批只出现一次"仍是结构性保证：这里要么**整组替换**，
-                # 要么**整组放弃**，不会出现一个单位两条意图。
-                if not _may_displace(act, from_ladder, conflicts):
-                    continue
-                for conflict in conflicts:
-                    candidates.remove(conflict)
-                candidates.append(item)
-                added.append(str(item.get("intent_id", "")))
-            if added:
-                _decide(state, "behavior_tree_added", intents=added,
-                        missing=sorted(missing))
-    state["candidate_intents"] = candidates
+    # legacy 路径这里只可能拿到模型批次（模型失败/空响应已在上方提前返回）。
+    candidates = [dict(intent.to_dict(), origin=ORIGIN_MODEL)
+                  for intent in parsed.intents]
+    # 【模型稀疏覆盖 baseline】(纠偏 §四)：与四列路径**同一语义** —— baseline 常驻，
+    # 模型只覆盖它显式指定且有权限的执行者，没提到的单位继续跑 baseline 或既有任务。
+    # 这里**删除了**旧的"按 DEVELOPMENT_ACTIONS 缺口补骨架"逻辑：
+    #   ① 它只在"模型这批恰好缺某个动作名"时才触发 —— 被动 fallback，正是纠偏要废弃的形态；
+    #   ② 它会**第二次**调用 `behavior_tree.micro_parts`，与 `node_classify` 的常驻生成
+    #      重复，违反"同一周期不重复生成"（纠偏 §五-4）。
+    _record_origins(state, candidates)
+    merged, displaced = _merge_model_over_baseline(
+        baseline, candidates, state.get(ORIGIN_KEY) or {})
+    _log(ctx, state, "task_patch_merge", interface="legacy",
+         model=len(candidates), baseline=len(baseline),
+         merged=len(merged), displaced=displaced, fallback=fallback_used)
+    if displaced:
+        _decide(state, "baseline_displaced_by_model", intents=displaced,
+                model_intents=len(candidates))
+    state["candidate_intents"] = _strip_origin(merged)
     state["last_tactics_tick"] = tick
     _consume_events(state)
     if not fallback_used:
@@ -1261,11 +1576,208 @@ def _preempt_for_emergency(state: Dict[str, Any], events: List[Dict[str, Any]],
 
 # ---------------- 仲裁 / 下发 / 回执 / 持久化 ----------------
 
+#: 需要过安全闸门的动作（"在野外移动"这一类）。其它动作不走这条路：
+#: 采集/建造在基地附近、生产在建筑里，都不涉及野外行军。
+GATED_MOVE_ACTIONS = (ACTION_ATTACK_MOVE, ACTION_MOVE, ACTION_SCOUT)
+
+#: `movement_urgent` 保留条数（有界，避免长局无限增长）。
+MOVEMENT_URGENT_LIMIT = 32
+#: 同一单位同一种紧急事件的抑制窗口（tick）：避免"一直走不通"每轮刷一条。
+MOVEMENT_URGENT_SUPPRESS_TICKS = 600
+
+
+def _raise_movement_urgent(state: Dict[str, Any], ctx: NodeContext, kind: str,
+                           unit: str, tick: int) -> None:
+    """把"遇敌 / 受阻 / 路径失败"送进**紧急线**（计划 §7）。
+
+    两件事都要做，缺一不可：
+
+    1. 记进 `state["movement_urgent"]`（有界，供验收读"遇敌停止/重规划延迟"）；
+    2. 推进 `state["pending_events"]` —— 这样 `has_emergency_event` 才会为真、
+       图才会路由到紧急战术分支。**只记不推事件等于没进紧急线**（这条踩过：
+       `path_failed` 原本只是个词表常量，不在紧急集合里，所以"路走不通"永远不打断推进）。
+    """
+    entry = {"kind": str(kind), "unit": str(unit), "tick": int(tick)}
+    items = state.setdefault("movement_urgent", [])
+    items.append(entry)
+    if len(items) > MOVEMENT_URGENT_LIMIT:
+        del items[:-MOVEMENT_URGENT_LIMIT]
+    # 抑制窗口：同一单位同一类事件在窗口内只推一次（否则每轮一条 → 事件风暴）。
+    for old in items[:-1]:
+        if (str(old.get("kind")) == str(kind) and str(old.get("unit")) == str(unit)
+                and int(tick) - int(old.get("tick", 0)) < MOVEMENT_URGENT_SUPPRESS_TICKS):
+            return
+    state.setdefault("pending_events", []).append({
+        "event_id": "movement-%s-%s-%d" % (kind, unit, tick),
+        "kind": str(kind),
+        "match_id": str(state.get("match_id", "")),
+        "player_id": str(state.get("player_id", "")),
+        "server_tick": int(tick),
+        "payload": {"subject": str(unit), "source": "movement_gate"},
+    })
+    _decide(state, "movement_urgent", tick=int(tick), kind=str(kind), unit=str(unit))
+
+
+def _gate_movement(state: Dict[str, Any], ctx: NodeContext,
+                   candidates: List[Dict[str, Any]]
+                   ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """**安全移动硬闸门**（计划 §7）：候选里的野外移动意图逐条过闸门。
+
+    通过 → 目标被改写成**安全中继点**（一跳），路线证据落在 `state["routes"]`；
+    不通过 → 直接从候选里摘掉，给出可统计的原因 `movement_gated:<reason>`。
+
+    这就是"**没有有效路径的主力移动数为 0**"的实现方式：不是事后统计发现，
+    而是**结构上**根本没有未经验证的移动意图能走到下发（同一处收口，无法绕过）。
+
+    为什么放在仲裁前：仲裁是通往下发的**唯一咽喉**（`candidates → arbitrate → dispatch`），
+    闸门放这里就不必给每个生产者各写一遍（写多份必然漏，本项目已有先例）。
+    """
+    if not candidates:
+        return candidates, []
+    nav_query = getattr(getattr(ctx, "services", None), "nav_query", None)
+    tactical = ctx.observation.get("tactical")
+    tick = int(state.get("server_tick", 0))
+    if nav_query is None:
+        # 【宿主没接权威寻路时的显式降级】生产环境由 runner 接 `op=adjutant_nav_path`；
+        # 没接时闸门**无法判定**，此时不静默放行、也不硬拦（硬拦会让所有离线回放全挂），
+        # 而是：原样放行 + **显式计数** `ungated` + 留一条决策日志。
+        # 这样"无路径移动数"这个验收指标依然诚实：凡是没经过验证的移动都会被计上。
+        movable = [item for item in candidates
+                   if str(item.get("action", "")) in GATED_MOVE_ACTIONS]
+        if movable:
+            stats = state.setdefault("movement_stats", {})
+            stats["ungated"] = int(stats.get("ungated", 0)) + len(movable)
+            _decide(state, "movement_gate_unavailable", tick=tick,
+                    ungated=len(movable),
+                    note="未接入权威寻路，移动意图未经安全闸门（生产必须接上）")
+        return candidates, []
+    kept: List[Dict[str, Any]] = []
+    blocked: List[Dict[str, Any]] = []
+    queries = 0
+    for intent in candidates:
+        action = str(intent.get("action", ""))
+        target = intent.get("target")
+        position = (target or {}).get("pos") if isinstance(target, dict) else None
+        if action not in GATED_MOVE_ACTIONS or not isinstance(position, (list, tuple)) \
+                or len(position) < 2:
+            kept.append(intent)
+            continue
+        units = [str(item) for item in (intent.get("unit_ids") or [])]
+        if not units:
+            kept.append(intent)
+            continue
+        # 角色按**单位类型**判，而不是按动作名/意图 id：
+        # 专职侦察单位（drone/scout）本来就要走进未探区扩大视野，用主力的
+        # "中继点必须在己方视野内"去卡它，等于永远不许它出门 ——
+        # 实测后果：扩张前探被 `movement_gated:no_relay` 卡死 → `expansion_candidate` 变 False
+        # （M04 直接走不过去）。主力（士兵/坦克）才需要中继点 + 侦察确认。
+        # 编队里**只要有一个主力**，整队按主力规则处理（保守优先）。
+        by_name = movement_mod._by_name(tactical)
+        role = (movement_mod.ROLE_SCOUT
+                if all(str((by_name.get(member) or {}).get("type", ""))
+                       in rules_fallback.PROBE_TYPES for member in units)
+                and action != ACTION_MOVE
+                else movement_mod.ROLE_MAIN)
+        if action == ACTION_SCOUT:
+            role = movement_mod.ROLE_SCOUT
+        goal = [float(position[0]), float(position[1])]
+        revision = int((state.get("nav_revision", -1) if state.get("nav_revision")
+                        is not None else -1))
+        # 【小队语义】每个成员都要有**自己**的合法路线：不许"能走的先走、剩下的留在原地"。
+        squad_plans: List[Any] = []
+        member_block: Optional[Dict[str, Any]] = None
+        for member in units:
+            cached = movement_mod.previous_route(state, member)
+            reuse = (bool(cached.get("ok"))
+                     and not movement_mod.needs_replan(state, member, goal, revision, tick)
+                     and len(cached.get("relay_point") or []) >= 2)
+            if reuse:
+                relay = cached.get("relay_point") or []
+                plan = movement_mod.RoutePlan(
+                    ok=True, unit=member, squad=list(units),
+                    route_id=str(cached.get("route_id", "")),
+                    nav_revision=int(cached.get("nav_revision", -1) or -1),
+                    relay_point=[float(relay[0]), float(relay[1])])
+            elif queries + 1 > movement_mod.NAV_QUERIES_PER_TICK:
+                # 配额不够验证**整队** → 本轮不推进（"验了一半就走"比不走更危险）。
+                member_block = {"intent_id": str(intent.get("intent_id", "")),
+                                "reason": "movement_gated:%s" % movement_mod.REJECT_SQUAD_UNVERIFIED,
+                                "unit": member, "squad": list(units)}
+                break
+            else:
+                queries += 1
+                plan = movement_mod.plan_safe_route(
+                    state, tactical, unit=member, target=goal, tick=tick,
+                    nav_query=nav_query, role=role)
+                plan.squad = list(units)
+                movement_mod.record_route(state, plan)
+                if not plan.ok:
+                    # 单人意图照旧报它自己的原因（统计口径稳定）；多人才标 `squad_blocked`：
+                    # 语义是"**队里有人走不通 → 全队不走**"，而不是这人自己有问题。
+                    blocked_reason = (plan.reason if len(units) == 1
+                                      else "%s:%s" % (movement_mod.REJECT_SQUAD_BLOCKED,
+                                                      plan.reason))
+                    member_block = {
+                        "intent_id": str(intent.get("intent_id", "")),
+                        "reason": "movement_gated:%s" % blocked_reason,
+                        "unit": member, "squad": list(units)}
+                    if plan.urgent_event:
+                        _raise_movement_urgent(state, ctx, plan.urgent_event, member, tick)
+                    break
+            squad_plans.append(plan)
+        if member_block is not None:
+            blocked.append(member_block)
+            continue
+        # 全队只认**一个**中继点 = 各成员中最保守的那一跳；队形散了就先集结。
+        positions = {member: movement_mod._pos2d(by_name.get(member) or {}) or []
+                     for member in units}
+        relay, scatter = movement_mod.squad_hop(squad_plans, positions)
+        if scatter:
+            blocked.append({"intent_id": str(intent.get("intent_id", "")),
+                            "reason": "movement_gated:%s" % scatter,
+                            "unit": units[0], "squad": list(units)})
+            continue
+        target["pos"] = list(relay)
+        # 小队路线留痕（供验收读"小队推进"，不占新的状态键：挂在 `routes` 下加前缀）。
+        state.setdefault("routes", {})["squad|%s" % "|".join(sorted(units))] = {
+            "ok": True, "squad": list(units), "relay_point": list(relay),
+            "nav_revision": revision, "last_replan_tick": tick,
+            "route_id": str(squad_plans[0].route_id if squad_plans else ""),
+            "target": list(goal),
+        }
+        squad_stats = state.setdefault("movement_stats", {})
+        squad_stats["squad_advances"] = int(squad_stats.get("squad_advances", 0)) + 1
+        if len(units) > 1:
+            squad_stats["squad_multi"] = int(squad_stats.get("squad_multi", 0)) + 1
+        kept.append(intent)
+    if blocked or queries:
+        _decide(state, "movement_gate", tick=tick, planned=queries,
+                kept=len(kept), blocked=blocked[:6],
+                stats=movement_mod.movement_stats(state))
+    return kept, blocked
+
+
 def node_arbitrate_intent(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, Any]:
     """意图仲裁：校验、去重、TTL 夹紧、批大小截断，并把结果写入状态。"""
     tick = int(state.get("server_tick", 0))
     candidates = list(state.get("candidate_intents") or [])
     state["candidate_intents"] = []
+    # 【五条线路账】必须在"本轮无候选"的提前返回**之前**刷新：否则没有新意图的那些轮
+    # 会让 `lanes` 停在旧值/空值，验收时"某条线多久没被服务"就看不到（实测踩过）。
+    lane_view = lanes_mod.lane_snapshot(
+        list(state.get("active_intents") or []), tick=tick,
+        last_served=state.get("lanes_last_served") or {},
+        # 饿死判据用**本轮候选**（见 `lane_snapshot` 注释：用"活跃意图数"会假报）。
+        pending=lanes_mod.count_by_lane(candidates))
+    state["lanes"] = {key: value for key, value in lane_view.items() if key != "starved"}
+    if lane_view.get("starved"):
+        _decide(state, "lane_starved", tick=tick, starved=lane_view["starved"])
+    if not candidates:
+        return state
+    # 【安全移动硬闸门】任何野外移动意图都必须在这里过审：通过 → 目标改写成安全中继点；
+    # 不通过 → 直接摘掉（`movement_gated:<reason>`）。这是"没有有效路径的主力移动数 = 0"
+    # 的实现位置：仲裁是通往下发的唯一咽喉，绕过它就没有别的路能发出移动命令。
+    candidates, _gated = _gate_movement(state, ctx, candidates)
     if not candidates:
         return state
     tactical = ctx.observation.get("tactical")
@@ -1289,7 +1801,15 @@ def node_arbitrate_intent(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, 
         scene_paths=scenes, allowed_units=allowed, max_batch=ctx.config.max_batch,
         intent_ttl_ticks=ttl,
         expected_plan_version=str(state.get("plan_version", "")),
+        lane_cursor=int(state.get("lane_cursor", 0) or 0),
     )
+    # 【五条线路账】（计划 §5）：轮转起点 + 本轮服务到的线路 + 饿死判据。
+    # 只在这里写状态（单写者），仲裁层保持纯函数。
+    state["lane_cursor"] = int(result.lane_trace.get("next_cursor", 0) or 0)
+    served_lanes = lanes_mod.lanes_of(result.accepted)
+    state["lanes_last_served"] = lanes_mod.mark_served(
+        state.get("lanes_last_served") or {}, served_lanes, tick)
+    state["lanes_served_this_tick"] = served_lanes
     # 玩家资源预留（方案 §6）：权威端在**采纳前**检查余额、预留与已承诺成本。
     # 预留是玩家设定（首次开启时为余额的 20%，之后玩家可改），不是模型 plan.reserves。
     # 只拦"确有成本且超出可花费额度"的意图；规则里查不到成本时一律放行（不猜数值、不误杀）。
@@ -1322,10 +1842,18 @@ def node_arbitrate_intent(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, 
         _decide(state, "intent_dropped", intent_id=item.get("intent_id"),
                 reason=item.get("reason"), errors=item.get("errors"))
         dispatched.append({"intent_id": item.get("intent_id"), "reason": item.get("reason")})
+    # 来源可区分（纠偏 §二）：被采纳的命令要能追到"规则跑的 / 行为树跑的 / 模型改的"，
+    # 否则"模型增量"与"地板保底"在指标里分不开。
+    origin_table = state.get(ORIGIN_KEY) or {}
+    origins = {str(item["intent_id"]): str(origin_table.get(str(item["intent_id"]), ""))
+               for item in result.accepted}
     state["intent_arbitration"] = {
         "accepted": [item["intent_id"] for item in result.accepted],
         "dropped": dispatched,
         "clamped": [item["intent_id"] for item in result.clamped],
+        "origins": origins,
+        "origin_counts": {name: sum(1 for value in origins.values() if value == name)
+                          for name in sorted(set(origins.values())) if name},
     }
     state["dispatch_pending"] = [intent["intent_id"] for intent in result.accepted]
     _log(ctx, state, "intent_arbitration", **state["intent_arbitration"])
@@ -1390,7 +1918,7 @@ def node_dispatch_to_godot(state: Dict[str, Any], ctx: NodeContext) -> Dict[str,
         if record is not None:
             # 记下"已下发指纹"：微操层下一轮再想发同一条会被窗口挡住（治重复命令）。
             _remember_order(state, record, int(state.get("server_tick", 0)))
-        _apply_receipt_to_state(state, intent_id, receipt)
+        _apply_receipt_to_state(state, intent_id, receipt, ctx)
     _decide(state, "dispatch_done", receipts=[
         {"intent_id": str(e["intent_id"]), "status": str(r.get("status", ""))}
         for e, r in zip(envelopes, receipts)])
@@ -1425,7 +1953,8 @@ def _find_intent(state: Dict[str, Any], intent_id: str) -> Optional[Dict[str, An
 
 
 def _apply_receipt_to_state(state: Dict[str, Any], intent_id: str,
-                            receipt: Dict[str, Any]) -> None:
+                            receipt: Dict[str, Any],
+                            ctx: Optional[NodeContext] = None) -> None:
     record = _find_intent(state, intent_id)
     if record is None:
         return
@@ -1454,10 +1983,21 @@ def _apply_receipt_to_state(state: Dict[str, Any], intent_id: str,
     if not record.get("received_tick"):
         record["received_tick"] = tick_now
         record["received_ts"] = time.time()
-        _log(ctx, state, "command_timing", intent_id=intent_id,
-             generated_tick=int(record.get("issued_tick", 0) or 0),
-             received_tick=tick_now, action=str(record.get("action", "")),
-             status=str(status))
+        # `ctx` 是可选入参：脱离图直接调用（单测/离线回放）时没有 NodeContext，
+        # 此时落到 `state.decision_log`（runner 的 `_log_decision_delta` 会捞出来），
+        # 而不是引用一个不存在的名字把整条回执结算路径打断
+        # （2026-09-12 实测：`_log(ctx, …)` 里的 `ctx` 未定义 → 每 tick NameError →
+        #  回执永远结算不了 → 任务状态/占用全部停在提交瞬间）。
+        if ctx is not None:
+            _log(ctx, state, "command_timing", intent_id=intent_id,
+                 generated_tick=int(record.get("issued_tick", 0) or 0),
+                 received_tick=tick_now, action=str(record.get("action", "")),
+                 status=str(status))
+        else:
+            _decide(state, "command_timing", intent_id=intent_id,
+                    generated_tick=int(record.get("issued_tick", 0) or 0),
+                    received_tick=tick_now, action=str(record.get("action", "")),
+                    status=str(status))
     if accepted:
         # 建造成功 → 清空连续失败计数（退避只针对"连续被拒"）。
         if str(record.get("action", "")) == "build":
@@ -1497,31 +2037,52 @@ def _apply_receipt_to_state(state: Dict[str, Any], intent_id: str,
         record["state"] = INTENT_DROPPED if status == "StaleGeneration" else "expired"
     else:
         record["state"] = "failed"
-    # 建造落点被拒 → **记住这个点，下一轮换位置**。
-    # 依据：GPT 在 Q6 明确要求"不得用无限重试掩盖 Rejected/Occupied"；
-    # 实测 2026-09-12 同一落点被连续拒 31 次（原因全 NotVisible），缺换点机制是直接原因之一。
-    if str(record.get("action", "")) == "build":
-        reason_text = "%s %s" % (status, receipt.get("reason", ""))
-        if any(key in reason_text for key in ("NotVisible", "Occupied", "OutOfBounds",
-                                              "SurfaceNotBuildable", "NotBuildable")):
-            pos = (record.get("target") or {}).get("pos")
-            if isinstance(pos, (list, tuple)) and len(pos) >= 2:
-                blocked = state.setdefault("blocked_build_spots", [])
-                point = [round(float(pos[0]), 1), round(float(pos[1]), 1)]
-                if point not in blocked:
-                    blocked.append(point)
-                    del blocked[:-8]        # 有界：只记最近 8 个坏点
-                _decide(state, "build_spot_blocked", pos=point, status=str(status),
-                        reason=str(receipt.get("reason", ""))[:40])
-            # **连续失败退避**：建造被连续拒绝 3 次后，停止尝试 15 秒（900 tick），
-            # 只保留生产/采集等其它骨架（GPT Q6：不得用无限重试掩盖 Rejected）。
-            # 实测 2026-09-12：同一类落点被连拒 58 次，纯噪音且占满权威账本。
-            streak = int(state.get("build_reject_streak", 0)) + 1
-            state["build_reject_streak"] = streak
-            if streak >= 3:
-                state["build_backoff_until_tick"] = int(state.get("server_tick", 0)) + 900
-                state["build_reject_streak"] = 0
-                _decide(state, "build_backoff", until_tick=state["build_backoff_until_tick"])
+    # 拒绝反馈 → **有限类别** → **按类修正维度**（归类入口唯一：`placement`）。
+    #
+    # 为什么不再"匹配几个字符串就存点"（2026-09-12 同类问题反复换皮的根因）：
+    #   - 几何/视野/占用类（`OutOfBounds`/`NotVisible`/`Occupied`）：**换个点就能解决**
+    #     → 只拉黑**这个点**（旧实现是全局 `build_backoff`：一个坏点让整局建造停 15 秒，
+    #     实测把"改完落点后本该继续发展"的局也一起停住了）；
+    #   - 契约/能力类（scene 不对 / 单位没这个能力）：**换点换单位都没用**
+    #     → 拉黑**意图前缀**（如 `rule-produce-worker`），从源头停止产出这一类
+    #     （否则就是同一条坏命令刷屏 976 次）；
+    #   - 过期/代际类：链路问题，由上面的状态机处理，不入账本。
+    reason_text = "%s %s" % (status, receipt.get("reason", ""))
+    reject_kind = placement.classify_rejection(reason_text)
+    tick_now = int(state.get("server_tick", 0) or 0)
+    ledger = placement.ledger_from_state(state)
+    if reject_kind in placement.GEOMETRY_KINDS:
+        pair = placement.plane_point((record.get("target") or {}).get("pos"))
+        if pair is not None:
+            point = [round(pair[0], 1), round(pair[1], 1)]
+            count = ledger.add(reject_kind, placement.spot_key(pair), tick_now)
+            # 兼容镜像：诊断与旧调用仍能看到"坏点"（有界，只留最近 8 个）。
+            blocked = state.setdefault("blocked_build_spots", [])
+            if point not in blocked:
+                blocked.append(point)
+                del blocked[:-8]
+            _decide(state, "spot_rejected", pos=point, kind=reject_kind,
+                    status=str(status), count=count,
+                    reason=str(receipt.get("reason", ""))[:40])
+    elif reject_kind in placement.PREFIX_BAN_KINDS:
+        # 含 `REJECT_UNSPECIFIED`（只有 status、没有原因）：链路没给信息时，
+        # 重发同一条命令是纯噪音 → 同样按前缀停发（但**不触发全局退避**：
+        # 全局冻结留给"确知的内容类错误"，不让一个说不清原因的拒绝停住整局建造）。
+        prefix = placement.intent_prefix(record.get("intent_id", ""))
+        if prefix:
+            count = ledger.add(reject_kind, prefix, tick_now)
+            _decide(state, "intent_kind_rejected", intent_prefix=prefix,
+                    kind=reject_kind, count=count,
+                    reason=str(receipt.get("reason", ""))[:40])
+        # 内容类问题会影响所有意图 → 保留**全局退避**这个安全阀
+        # （GPT Q6：不得用无限重试掩盖 Rejected）。几何类不走这条路（已按点自愈）。
+        streak = int(state.get("build_reject_streak", 0)) + 1
+        state["build_reject_streak"] = streak
+        if streak >= 3:
+            state["build_backoff_until_tick"] = tick_now + 900
+            state["build_reject_streak"] = 0
+            _decide(state, "build_backoff", until_tick=state["build_backoff_until_tick"])
+    placement.ledger_to_state(ledger, state)
     task_id = str(record.get("task_id", ""))
     if task_id and state.get("active_tasks", {}).get(task_id) in ("running", "pending", "unknown"):
         state["active_tasks"][task_id] = TASK_UNKNOWN
@@ -1559,7 +2120,7 @@ def node_observe_receipt(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, A
                 receipt = None
             if receipt:
                 state.setdefault("command_receipts", []).append(dict(receipt))
-                _apply_receipt_to_state(state, intent_id, receipt)
+                _apply_receipt_to_state(state, intent_id, receipt, ctx)
                 _decide(state, "pending_resolved", intent_id=intent_id,
                         status=str(receipt.get("status", "")))
                 continue

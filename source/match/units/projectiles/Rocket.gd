@@ -5,6 +5,17 @@ var projectile_runtime = null
 var launch_transform := Transform3D.IDENTITY
 var visible_snapshot := true
 
+## 火箭飞行速度（米/秒）。与炮弹同理：**必须与射击距离无关**
+## （用户 2026-09-12 报"不同射击距离炮弹的飞行速度不一样，这是不允许的"）。
+## 本场景动画原本固定 1.5s（`length = 1.5`）→ 距离越远速度越快。
+## 这里按 "实际距离 / 固定速度" 反推时长，再用 `speed_scale` 压缩/拉伸动画。
+## 取 5.33 m/s 正好等于原先"对空炮塔 8m 射程 / 1.5s"：对空手感完全不变，
+## 直升机火箭（5m）与更近距离则按同一速度自然变快。
+## 场景可用 metadata `flight_speed_mps` 覆盖。
+const FLIGHT_SPEED_MPS := 5.33
+## 时长下限：贴脸发射时避免 speed_scale 爆掉。
+const MIN_FLIGHT_SECONDS := 0.2
+
 @onready var _visuals = find_child("Visuals")
 @onready var _path = find_child("Path3D")
 @onready var _animation_player = find_child("AnimationPlayer")
@@ -21,9 +32,27 @@ func _ready():
 	_particles.hide()
 	_animation_player.animation_finished.connect(func(_animation): queue_free())
 	_setup_path()
+	_apply_constant_flight_speed()
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	_animation_player.play("animate")
+
+
+## 把动画时长改成"实际发射距离 / 固定速度"，消灭"距离越远飞得越快"。
+func _apply_constant_flight_speed():
+	var animation := _animation_player.get_animation("animate")
+	if animation == null or animation.length <= 0.0:
+		return
+	var aim_point: Vector3 = projectile_runtime.GetAimPoint(attack_id)
+	if not aim_point.is_finite():
+		return
+	var speed := float(get_meta("flight_speed_mps", FLIGHT_SPEED_MPS))
+	if not is_finite(speed) or speed <= 0.0:
+		return
+	var duration := maxf(
+		launch_transform.origin.distance_to(aim_point) / speed, MIN_FLIGHT_SECONDS
+	)
+	_animation_player.speed_scale = animation.length / duration
 
 
 ## 在目标有效时刷新瞄准点；目标失效后运行时返回最后已知位置。

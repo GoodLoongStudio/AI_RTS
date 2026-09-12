@@ -34,6 +34,11 @@ NEW_SYSTEM_PROMPT = (
     "每个执行者本轮最多出现一行，重复出现会被拒绝；空闲的执行者都应该派上活。"
     "已经在执行的任务不要重复输出（看「当前任务」那行）：行为树会自己把已批准的任务"
     "循环执行下去，不要重下。\n"
+    "「主线」那行是本局的大目标（阶段 / 下一前沿 / 已完成 / 阻塞）与四条线的状态；"
+    "「可选路线」是程序按当前局势筛出的可选分支。要改主线分支就在 g 里写路线 ref"
+    '（例如 {"g":"D3","u":[]}）；不改分支就把 g 留空或写 ""。'
+    "路线的前置条件由程序判定：不满足的选择会被忽略，主线照常推进，所以不要为了凑分支"
+    "而输出非法 ref。\n"
     "【发展候选】是程序按当前局势筛出的可做发展动作（含「维持现有任务」）。"
     "要做发展就从里面**整条照抄**成一行，例如候选写了 W1造V1(aircraft_factory)，"
     "就输出 [\"W1\",\"BLD\",\"V1\",\"P0\"]（落点与数量已由程序算好，不要自己改坐标）；"
@@ -78,6 +83,43 @@ def normalize_json_text(text: str) -> str:
     if start >= 0 and end > start:
         return cleaned[start:end + 1]
     return cleaned
+
+
+def _campaign_text(campaign: Optional[Dict[str, Any]]) -> str:
+    """把整局主线上下文渲染成**一到三行**紧凑文本（纠偏 §7 的硬要求逐项落位）。
+
+    包含：当前阶段、主线目标、已完成/阻塞里程碑、四条线任务、下一前沿、
+    可选决策地图节点及其前置条件。**不渲染 Markdown 原文**（那是被纠偏明确禁止的）。
+    """
+    if not isinstance(campaign, dict) or not campaign:
+        return ""
+    phase = str(campaign.get("phase", "") or "")
+    frontier = str(campaign.get("frontier", "") or "")
+    frontier_name = str(campaign.get("frontier_name", "") or "")
+    expects = str(campaign.get("frontier_expects", "") or "")
+    done = [str(x) for x in (campaign.get("done_names") or []) if str(x)]
+    blocked = campaign.get("blocked") or []
+    parts = ["主线: 阶段=%s 前沿=%s%s" % (phase or "?", frontier or "?", frontier_name)]
+    if done:
+        parts.append("已完成=" + ",".join(done[:4]))
+    if blocked:
+        parts.append("阻塞=" + ",".join(
+            "%s(%s)" % (str(item.get("name", "")), str(item.get("reason", ""))[:12])
+            for item in blocked[:2]))
+    if expects:
+        parts.append("完成判据=" + expects[:24])
+    tracks = campaign.get("tracks") or {}
+    if tracks:
+        parts.append("四线=" + " ".join(
+            "%s:%s" % (name, str((tracks.get(name) or {}).get("task") or "维持"))
+            for name in ("economy", "build", "scout", "military")))
+    lines = [" ".join(parts)]
+    decision_lines = [str(x) for x in (campaign.get("decision_lines") or []) if str(x)]
+    lines.extend(decision_lines[:2])
+    suspended = [str(x) for x in (campaign.get("suspended") or []) if str(x)]
+    if suspended:
+        lines.append("玩家已接管（不要派活）: " + ",".join(suspended[:6]))
+    return "\n".join(lines)
 
 
 def render_compact_text(frame, *, balance: Optional[Dict[str, Any]] = None,
@@ -227,7 +269,14 @@ def render_compact_text(frame, *, balance: Optional[Dict[str, Any]] = None,
     # 【置顶】(2026-09-12 结果层修正)：实测 2B 只盯输入表最前面的行，把"发展"放在
     # 中后段时它整局只回采集。菜单插到「执行者」之后的第 2 行，让它成为最显眼的可选项。
     menu = candidates[:3] + ["维持现有任务"]
-    lines.insert(1, "本轮发展骨架（优先照抄一行，或选维持）: " + " | ".join(menu))
+    # 【整局主线】放在最前面（仅次于执行者表）：2B 只盯最前面的行，而"当前阶段 /
+    # 下一前沿 / 已完成里程碑 / 四条线"是它做分支选择与参数选择**唯一**的依据。
+    # 内容全部来自 `campaign.context_view()`（`frame.campaign`），本函数只排版。
+    campaign_line = _campaign_text(getattr(frame, "campaign", None))
+    if campaign_line:
+        lines.insert(1, campaign_line)
+    lines.insert(2 if campaign_line else 1,
+                 "本轮发展骨架（优先照抄一行，或选维持）: " + " | ".join(menu))
     if builders:
         lines.append("能建造的执行者: " + ",".join(sorted(builders)))
     lines.append("已有建筑: " + (",".join(have) if have else "无"))

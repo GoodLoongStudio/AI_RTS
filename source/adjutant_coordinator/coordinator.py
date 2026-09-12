@@ -108,6 +108,10 @@ class CoordinatorMetrics:
     commands_accepted: int = 0
     commands_rejected: int = 0
     commands_pending: int = 0
+    #: 批量提交效果（计划 §9 要"批量提交效果"这一项）：批次数 / 批内命令总数。
+    #: 用它算"平均每批几条"，直接对比"逐条 TCP"降到多少往返。
+    batches_submitted: int = 0
+    batched_commands: int = 0
     budget_rejected: int = 0
     degraded_ticks: int = 0
     started_at: float = field(default_factory=time.time)
@@ -339,9 +343,13 @@ class AdjutantCoordinator:
 
     # ---------- 命令提交 ----------
 
-    def submit_command(self, command: Dict[str, Any], current_tick: int) -> Receipt:
-        """逐条提交命令；返回规范化回执（明确非原子，调用方逐条处理）。"""
-        self.metrics.commands_submitted += 1
+    def _local_gate(self, command: Dict[str, Any],
+                    current_tick: int) -> Optional[Receipt]:
+        """提交前的**本地闸门**（协议校验 / 玩家接管 / 资源预留）。
+
+        抽出来的原因：批量与单条必须走**同一套**闸门 —— 否则"批量为了省往返"
+        会顺手绕开玩家优先权或预算约束。返回 None 表示放行。
+        """
         errors = validate_command_envelope(command, self._validation_context(current_tick))
         task_id = str(command.get("task_id", ""))
         if errors:
@@ -375,8 +383,11 @@ class AdjutantCoordinator:
                            status="BudgetExceeded", accepted=False,
                            reason="资源预留约束：剩余预算不足以支付该命令",
                            raw={})
+        return None
 
-        receipt = Receipt.from_json(self._transport(command))
+    def _settle(self, command: Dict[str, Any], receipt: Receipt, unit_ids: List[str],
+                task_id: str, current_tick: int) -> Receipt:
+        """回执结算（租约 / 预算承诺 / 任务状态 / 指标）—— **唯一实现**，单条与批量共用。"""
         if receipt.accepted:
             self.metrics.commands_accepted += 1
             self.leases.acquire(unit_ids)
@@ -396,6 +407,55 @@ class AdjutantCoordinator:
             "accepted": receipt.accepted, "tick": current_tick,
         })
         return receipt
+
+    def submit_command(self, command: Dict[str, Any], current_tick: int) -> Receipt:
+        """逐条提交命令；返回规范化回执（明确非原子，调用方逐条处理）。"""
+        self.metrics.commands_submitted += 1
+        blocked = self._local_gate(command, current_tick)
+        if blocked is not None:
+            return blocked
+        unit_ids = list((command.get("params", {}) or {}).get("units", []) or [])
+        task_id = str(command.get("task_id", ""))
+        receipt = Receipt.from_json(self._transport(command))
+        return self._settle(command, receipt, unit_ids, task_id, current_tick)
+
+    def submit_batch(self, commands: List[Dict[str, Any]],
+                     current_tick: int) -> List[Receipt]:
+        """**批量提交**：本地逐条过闸门 → 一次 TCP 批量下发 → 逐项结算（计划 §5）。
+
+        两条纪律：
+
+        1. **批量传输 ≠ 批量成功**：权威端逐项回执，这里逐项 `_settle`；
+           本地就拦下的项（协议/接管/预算）不进批量请求，直接按原顺序返回。
+        2. **顺序必须与入参对齐**：调用方按 `envelopes` 的顺序读回执，
+           所以这里用下标回填，而不是"过滤掉 None 再拼接"。
+        """
+        items = [item for item in (commands or []) if isinstance(item, dict)]
+        if len(items) < 2 or not hasattr(self._transport, "send_batch"):
+            return [self.submit_command(item, current_tick) for item in items]
+        results: List[Optional[Receipt]] = [None] * len(items)
+        prepared: List[Dict[str, Any]] = []
+        prepared_index: List[int] = []
+        for index, command in enumerate(items):
+            self.metrics.commands_submitted += 1
+            blocked = self._local_gate(command, current_tick)
+            if blocked is not None:
+                results[index] = blocked
+                continue
+            prepared.append(command)
+            prepared_index.append(index)
+        if prepared:
+            self.metrics.batches_submitted += 1
+            self.metrics.batched_commands += len(prepared)
+            raw_receipts = self._transport.send_batch(prepared)
+            for position, index in enumerate(prepared_index):
+                command = items[index]
+                raw = raw_receipts[position] if position < len(raw_receipts) else {}
+                unit_ids = list((command.get("params", {}) or {}).get("units", []) or [])
+                task_id = str(command.get("task_id", ""))
+                results[index] = self._settle(command, Receipt.from_json(raw), unit_ids,
+                                              task_id, current_tick)
+        return [item for item in results if item is not None]
 
     # ---------- 资源预留 ----------
 

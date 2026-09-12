@@ -56,5 +56,5 @@ size = Vector2(110, 10)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
 radius = 0.6
 
-[node name="RotateRandomlyWhenLookingForTargetsIdle" parent="." instance=ExtResource("8_hqxqv")]
+[node name="RotateRandomlyWhenLookingForTargets" parent="." instance=ExtResource("8_hqxqv")]
 node_to_rotate = NodePath("../DetachTransform/Geometry/SM_Veh_Turret_Medium_01")

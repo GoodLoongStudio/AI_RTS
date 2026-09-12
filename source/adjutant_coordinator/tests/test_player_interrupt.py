@@ -152,13 +152,23 @@ class RouteClassificationTest(unittest.TestCase):
         data = node_classify(data, make_ctx(tick=5))
         self.assertEqual(data["route"], itr.ROUTE_STRATEGIC)
 
-    def test_pending_authority_suppresses_tactics_trigger(self):
+    def test_pending_authority_does_not_block_tactics_route(self):
+        """在途命令**不得**全局压制战术决策（2026-09-12 晚契约变更）。
+
+        旧契约（本用例原本断言 `route == wait`）的实测后果：主循环 0.58 秒/轮，
+        但模型每 **4.7 秒**才被问一次（`produce`/`attack_move` 先回 PendingAuthority，
+        期间路由恒为 wait）—— 用户质问"既然每秒一次思考，为什么没看到持续下命令"。
+
+        新契约：路由照常进战术分支；"不对同一单位重复下发"由**仲裁层**负责
+        （`pending_authority_unresolved` 指纹去重 + `duplicate_of_live_intent`），
+        它是单位级语义，不该由一条在途命令代表全队把决策掐掉。
+        """
         state = make_state()
         state.pending_requests["i-u1"] = {"intent_id": "i-u1", "command_id": "cmd"}
         data = state.to_dict()
         data["pending_events"] = [events_for("queue_idle", ["Unit_1"], 5)]
         data = node_classify(data, make_ctx(tick=6))
-        self.assertEqual(data["route"], itr.ROUTE_WAIT)
+        self.assertEqual(data["route"], itr.ROUTE_TACTICAL)
 
 
 if __name__ == "__main__":

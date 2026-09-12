@@ -108,7 +108,12 @@ func _ready():
 	var hidden_count := 0
 	for soldier in soldiers:
 		if is_instance_valid(soldier):
-			var meta = soldier.get_meta("boarding_transport", null)
+			# 注意：不能写 get_meta(key, null)（Godot 4.7 视为"未给默认值"→ 每次调用报错）
+			var meta = (
+				soldier.get_meta("boarding_transport")
+				if soldier.has_meta("boarding_transport")
+				else null
+			)
 			print("[TT-DBG] %s visible=%s meta=%s pos=%s" % [soldier.name, soldier.visible, "有" if meta != null else "无", str(soldier.global_position)])
 			if soldier.global_position.y < -10 or not soldier.visible:
 				hidden_count += 1

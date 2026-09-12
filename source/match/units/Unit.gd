@@ -142,12 +142,87 @@ func _broadcast_fired() -> void:
 ## （用户报"子弹落点不对"）。带上 aim 后客户端弹道终点与权威端一致。
 ## 取不到（无 Action / 目标已失效）时返回空字典，客户端退回原有近似。
 func _fired_aim_payload() -> Dictionary:
-	if action == null or not action.has_method("presentation_aim_point"):
-		return {}
-	var aim: Vector3 = action.presentation_aim_point()
+	# 朝向必须一并下发（2026-09-12 用户报"坦克没瞄准好就开火"）：
+	# 客户端傀儡的车体朝向走 NetSync 的 lerp_angle 插值（快照 ≈10Hz），而开火表现事件
+	# 一到就立刻播炮口火光/弹道 —— 画面上炮口还在追，看起来就是"没瞄准就开火"。
+	# 权威端走到这里时**必定已满足 10° 瞄准门槛**（AttackingWhileInRange._hit_target），
+	# 所以把权威 yaw 一起带上，客户端收到后直接对齐即可。
+	var payload := {"yaw": rotation.y}
+	var aim_source = _firing_aim_source()
+	if aim_source == null:
+		return payload
+	var aim: Vector3 = aim_source.presentation_aim_point()
 	if not aim.is_finite():
-		return {}
-	return {"aim": aim}
+		return payload
+	payload["aim"] = aim
+	return payload
+
+
+## 找出"本次开火真正携带瞄准点"的动作节点。
+## 为什么不能只看 `action`：**炮塔类建筑的顶层动作是 `WaitingForTargets`**（其 `_set_action`
+## 恒拒替换，见 09-07 强制攻击提交），真正开火并带瞄准点的是它挂载的**子动作**
+## （如 `AttackingWhileInRange`）。只看顶层会拿不到 aim → 客户端退回"炮口前方
+## attack_range 米"的近似 —— 而那个近似的轴向原先还写反了 →
+## 用户报"炮管朝着目标，炮弹却往反方向飞"（2026-09-12）。
+func _firing_aim_source():
+	if action == null:
+		return null
+	if action.has_method("presentation_aim_point"):
+		return action
+	# 顶层动作常常是 `WaitingForTargets`（炮塔与坦克/步兵自动交战都走它，
+	# 真正带瞄准点的是它的**子动作**：`AttackingWhileInRange` / `AutoAttacking`），
+	# 所以必须**递归**找。同时跳过 `is_queued_for_deletion()` 的节点：
+	# 换目标时 `WaitingForTargets` 是先 `queue_free` 旧的、再加新的（延迟释放），
+	# 这段时间里同时存在两个，挑到将死的那个会拿到**过期目标**的坐标
+	# （2026-09-12 用户报"爆炸落点根本不对"）。取最后加进来的那个。
+	var candidates: Array = []
+	_collect_aim_sources(action, candidates)
+	return candidates[-1] if not candidates.is_empty() else null
+
+
+func _collect_aim_sources(node: Node, out: Array) -> void:
+	for child in node.get_children():
+		if child.is_queued_for_deletion():
+			continue
+		if child.has_method("presentation_aim_point"):
+			out.append(child)
+		_collect_aim_sources(child, out)
+
+
+## 傀儡端把车体朝向直接对齐权威值，并让 NetSync 从新值继续插值。
+## 为什么必须同时重置插值锚点：NetSync 每帧 `rotation.y = lerp_angle(prev, target, t)`，
+## 只改 rotation.y 的话下一帧会被旧 prev 拉回去，出现"开火瞬间归位、随即弹回"的抖动。
+func _snap_presentation_yaw(yaw: float) -> void:
+	rotation.y = yaw
+	if _match == null:
+		return
+	var sync = _match.get_node_or_null("NetSync")
+	if sync != null and sync.has_method("reset_presentation_yaw"):
+		sync.reset_presentation_yaw(str(_match.get_path_to(self)), yaw)
+
+
+## 炮塔类建筑的**炮管节点**（与权威端 `AttackingWhileInRange._find_stationary_aim_node`
+## 同一套定位规则：待机扫描 trait 的 `node_to_rotate`，相对 trait 解析）。
+## 为什么客户端也要能解析它：权威端转的是这个炮管节点，而快照只下发**根节点** yaw，
+## 于是客户端炮塔的炮管永远停在出厂角度（"联机看到的炮口和本地不一样"）。
+func presentation_aim_node() -> Node3D:
+	var idle_trait = find_child("RotateRandomlyWhenLookingForTargets", false, false)
+	if idle_trait == null:
+		return null
+	var node_path: NodePath = idle_trait.get("node_to_rotate")
+	if node_path.is_empty():
+		return null
+	var node = idle_trait.get_node_or_null(node_path)
+	return node if node is Node3D else null
+
+
+## 傀儡端按权威值设置炮管朝向（快照里的 `barrel_yaw`）。
+## 直接赋值而不是插值：炮塔战斗转速 90°/s、快照 10Hz → 每帧 9°，
+## 与权威端保持逐值一致（先求"和本地一样"，观感再按需加平滑）。
+func apply_presentation_barrel_yaw(yaw: float) -> void:
+	var aim_node := presentation_aim_node()
+	if aim_node != null:
+		aim_node.global_rotation.y = yaw
 
 
 ## 表现事件广播入口（权威端调用；客户端傀儡上 `broadcast_presentation` 会自行忽略）。
@@ -167,6 +242,10 @@ func broadcast_presentation(kind: String, payload: Dictionary = {}) -> void:
 func present_fired(payload: Dictionary = {}) -> void:
 	if not is_inside_tree():
 		return
+	# 先对齐炮口朝向再播表现：炮口火光、弹道起点、开火动画都与权威端一致，
+	# 否则会出现"炮管还没转过来就冒火/弹道"（用户报"没瞄准好就开火"）。
+	if payload.has("yaw"):
+		_snap_presentation_yaw(float(payload["yaw"]))
 	attack_fired.emit()
 	PROJECTILE_VISUALS.present(self, payload.get("aim", Vector3.INF))
 

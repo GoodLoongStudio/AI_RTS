@@ -19,6 +19,7 @@ from __future__ import annotations
 import math
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
+from . import placement
 from .task_patch import (
     ACTOR_FACILITY, ACTOR_SQUAD, ACTOR_WORKER, KEEP_PARAMS, MODE_FAST, MODE_LIMITS,
     NO_TARGET, PARAM_PRESETS, DecisionFrame, SKILL_ORDER,
@@ -31,12 +32,20 @@ CLUSTER_SIZE = 20.0
 #: 单个执行者最多包含的单位数（设计 §3：默认约 12-20 个作战单位）。
 MAX_UNITS_PER_ACTOR = 20
 
-#: 建造落点候选：**两圈**（内圈/外圈）绕着基地，槽位在圈上均布并互相错开。
-#: 实测依据（2026-09-12 用户反馈）：从前只有 12m 一圈 4 个点 → 建筑全挤在指挥中心
-#: 5m 内，3 个工人被堵在 1.5m 的小口袋里（"位置太紧把部队挡住了"）。
-#: 现在给出 16 个候选（内圈 20m / 外圈 32m，各 8 槽且错开 22.5°），
-#: 由 `decode_task_patch._build_placement` 按"离已占用点最远"挑（含净空排序）。
-BUILD_PLACEMENT_RADII: Tuple[float, ...] = (20.0, 32.0)
+#: 建造落点距地图边缘的最小余量（米）；**唯一口径在 `placement`**（此处只是别名）。
+BUILD_BOUND_MARGIN_M = placement.BUILD_BOUND_MARGIN_M
+#: 落点必须落在己方视野安全半径内（米）：**唯一口径在 `placement`**。
+VISION_SAFE_RADIUS_M = placement.VISION_SAFE_RADIUS_M
+#: 建造落点候选：**三圈（4/6/8m）**绕基地，槽位在圈上均布并互相错开。
+#:
+#: 实测依据（2026-09-12 晚，`model=on` 5 分钟真实局）：模型侧落点原本是 **20/32m**，
+#: 结果是 213 条命令里 **172 条 `build` 被 `NotVisible` 拒** —— 权威端只接受"己方
+#: 视野内的落点"，而视野半径是 **5m 量级**（历史事实：旧的"基地+5m"能成功建出兵营，
+#: 8/12/16m 全被拒）。
+#: 所以候选半径必须**收进视野**（与地板 `rules_fallback.pick_build_spot` 的 4/6/8 同口径）；
+#: "别把部队挡住"这件事改由 `decode_task_patch._build_placement` 的**净空排序**
+#: （离已占用点最远）解决，而不是靠把落点推到视野外 —— 那只会换来清一色 NotVisible。
+BUILD_PLACEMENT_RADII: Tuple[float, ...] = (4.0, 6.0, 8.0)
 #: 每圈槽位数（8 → 每 45° 一个）。
 BUILD_PLACEMENT_SLOTS = 8
 #: 兼容旧引用（旧名仍表示"最内圈半径"）。
@@ -245,16 +254,53 @@ def _product_options(rules: Optional[Dict[str, Any]],
 
 def _build_options(rules: Optional[Dict[str, Any]],
                    worker_units: Set[str]) -> List[Dict[str, Any]]:
+    """建造候选：**每座建筑只挂给一个工人**（其余工人留在地里继续采矿）。
+
+    为什么必须收窄（2026-09-12 晚用户反馈："建造 1 个建筑就让一堆工人上，那矿不采了？"）：
+    旧实现是 `for building: for unit in workers:` —— 同一集群里 N 个工人**都**拿到
+    同一座建筑的候选，模型据此发 N 条 `BLD` 是**完全合理**的（候选即允许），
+    结果全队停工去盖房子、采集线停摆。手册要求四条线**同时推进**，
+    所以分工纪律是：**一个工地 ≤1 个建造者**，剩下的人干本职。
+    这里按"建筑序号轮转"分配建造者，天然错开（第 i 座给第 i%N 个工人），
+    避免所有建筑都压在同一个人身上。
+    """
     options: List[Dict[str, Any]] = []
     if not isinstance(rules, dict):
         return options
-    for item in rules.get("constructions", []) or []:
+    ordered = sorted(worker_units)
+    if not ordered:
+        return options
+    for index, item in enumerate(rules.get("constructions", []) or []):
         building = str(item.get("id", ""))
         if not building:
             continue
-        for unit in sorted(worker_units):
-            options.append({"builder": unit, "building": building})
+        options.append({"builder": ordered[index % len(ordered)], "building": building})
     return options
+
+
+def _in_map_bounds(spot, map_bounds) -> bool:
+    """点是否在地图内（委派 `placement.in_bounds`，全项目唯一口径）。"""
+    return placement.in_bounds(spot, map_bounds, BUILD_BOUND_MARGIN_M)
+
+
+def _placement_radii(base_x: float, base_z: float,
+                     map_bounds: Optional[Sequence[float]]) -> Tuple[float, ...]:
+    """落点半径环 = **配置的环**（`BUILD_PLACEMENT_RADII`，已收在视野安全半径内）。
+
+    **刻意不做"按锚点到边的距离统一收缩"**（曾经这么写过，是错的）：
+    统一收缩会把"朝地图内侧、本来完全合法"的候选一起杀掉 —— 基地贴边时
+    `usable` 会缩到 2m，而 2m 又低于最小净空，于是**整圈候选全被清空**，
+    表现成"基地一贴边就再也建不出东西"。
+    越界与否是**每个点各自的事**，交给 `placement.candidate_spots` 逐点筛
+    （配合同一个账本，被拒的点会被拉黑并自动换点）。
+
+    `map_bounds` 保留在签名里：调用方与既有测试都按这个契约传，且它决定了
+    "哪些方位的候选能活下来"（逐点判定的输入）。
+    """
+    if not placement.has_bounds(map_bounds):
+        return BUILD_PLACEMENT_RADII        # 没有地图尺寸：按配置环给，逐点再筛
+    # 视野是硬上限：候选不得超出 `VISION_SAFE_RADIUS_M`（超出必被 NotVisible 拒）。
+    return tuple(min(radius, VISION_SAFE_RADIUS_M) for radius in BUILD_PLACEMENT_RADII)
 
 
 def build_decision_frame(
@@ -278,6 +324,8 @@ def build_decision_frame(
     emergency_intent_ttl_ticks: int = 1200,
     created_monotonic: Optional[float] = None,
     deadline_seconds: Optional[float] = None,
+    map_bounds: Optional[Sequence[float]] = None,
+    campaign: Optional[Dict[str, Any]] = None,
 ) -> DecisionFrame:
     """观测 → `DecisionFrame`（含 actor/skill/target/params 四张引用表）。"""
     squads = derive_squads(tactical, authorized=authorized_units,
@@ -380,17 +428,34 @@ def build_decision_frame(
                           "cn": "据点%d外侧" % index})
     build_spots: List[Tuple[float, float]] = []
     spot_index = 0
-    for radius_index, radius in enumerate(BUILD_PLACEMENT_RADII):
-        # 交错半格：外圈相对内圈转 22.5°，避免两圈落在同一条辐射线上互相遮挡。
-        offset = math.pi / BUILD_PLACEMENT_SLOTS * radius_index
-        for slot in range(BUILD_PLACEMENT_SLOTS):
-            angle = 2 * math.pi / BUILD_PLACEMENT_SLOTS * slot + offset
-            spot = (round(base_x + math.cos(angle) * radius, 1),
-                    round(base_z + math.sin(angle) * radius, 1))
-            build_spots.append(spot)
-            spot_index += 1
-            locations.append({"kind": TARGET_LOCATION, "pos": [spot[0], spot[1]],
-                              "cn": "建造落点%d" % spot_index})
+    own_points = [_pos_of(entity) for entity in _self_entities(tactical)]
+    # 候选生成走**唯一事实来源** `placement.candidate_spots`：返回的每个点都满足
+    # 「界内 ∧ 视野内（离己方实体 ≤ VISION_SAFE_RADIUS_M）∧ 有净空 ∧ 未被拉黑」，
+    # 已按 净空→近半径→槽位序 排好（确定性）。
+    # 这里是**唯一**生成建造落点的地方：模型侧与地板侧的几何口径由此统一，
+    # 不再出现"一边 4/6/8m 能建成、另一边 20/32m 清一色 NotVisible"的割裂。
+    for spot in placement.candidate_spots(
+            base_x, base_z,
+            bounds=map_bounds,
+            own_points=own_points,
+            radii=_placement_radii(base_x, base_z, map_bounds),
+            slots=BUILD_PLACEMENT_SLOTS):
+        if spot in build_spots:      # 贴边时多圈会退化到同一半径 → 去重
+            continue
+        build_spots.append(spot)
+        spot_index += 1
+        locations.append({"kind": TARGET_LOCATION, "pos": [spot[0], spot[1]],
+                          "cn": "建造落点%d" % spot_index})
+    if not build_spots:
+        # 极端情况（基地几乎贴角 / 候选全被拉黑）：至少给一个**夹进地图**的落点，
+        # 不留空菜单（模型没有落点可选 = 整局无法建造）。
+        fallback = placement.retreat_spot(base_x, base_z, bounds=map_bounds,
+                                          own_points=own_points)
+        if fallback is None:
+            fallback = placement.clamp_into_bounds((base_x, base_z), map_bounds)
+        build_spots.append((fallback[0], fallback[1]))
+        locations.append({"kind": TARGET_LOCATION, "pos": [fallback[0], fallback[1]],
+                          "cn": "建造落点1"})
     for index, item in enumerate(locations, start=1):
         targets["L%d" % index] = dict(item, ref="L%d" % index)
 
@@ -478,6 +543,9 @@ def build_decision_frame(
         occupied_points=tuple(occupied),
         balance=balance,
         current_tasks=resolved_current,
+        # 整局主线上下文（阶段/前沿/里程碑/四线/决策地图候选）：由 `frame_from_state`
+        # 从 campaign_state 取 `context_view()`，本函数只透传（不自行推导）。
+        campaign=dict(campaign or {}),
     )
 
 

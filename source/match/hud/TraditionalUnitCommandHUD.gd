@@ -36,11 +36,30 @@ const _UNIT_DISPLAY_NAMES := {
 	"drone": "无人机",
 	"anti_ground_turret": "对地炮",
 	"anti_air_turret": "对空炮",
+	# 2026-09-12：`UnitRegistrationConsistencySmokeTest` 检出的漏登记（选中摘要会显示英文 id）。
+	"soldier": "士兵",
+	"barracks": "兵营",
+	"transport_truck": "运输车",
+	"apc": "装甲车",
+	"heavy_tank": "重型坦克",
 }
 
 
 func _ready():
-	assert(actions_controller != null, "TraditionalUnitCommandHUD requires UnitActionsController")
+	if actions_controller == null:
+		# 降级路径：联机客户端（画面端）本地玩家没有 UnitActionsController。
+		# 以前这里是 assert —— 断言一失败，_ready 从这里直接中断，于是
+		# _apply_ra3_skin()（面板描边+按钮皮肤，也就是玩家看到的"框"）、
+		# 11 个按钮的信号绑定、_refresh_availability() 全都不执行：
+		# 面板没框、按钮亮着但点了没反应、"未选中单位"永不刷新，
+		# 与权威端/单机的 UI 明显不一致（2026-09-12 实测）。
+		# 现在改成显式降级：皮肤照上（保证观感一致），按钮一律禁用。
+		_apply_ra3_skin()
+		_selected_info_label.text = "未选中单位"
+		_feedback_label.text = "指令控制器未就绪"
+		for button in find_children("", "Button", true, false):
+			button.disabled = true
+		return
 	_force_move_button.pressed.connect(_on_force_move_pressed)
 	_force_attack_button.pressed.connect(_on_force_attack_pressed)
 	_tactical_withdraw_button.pressed.connect(_on_tactical_withdraw_pressed)

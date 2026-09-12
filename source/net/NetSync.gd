@@ -282,6 +282,20 @@ func _client_interp_tick() -> void:
 			unit.rotation.y = lerp_angle(prev_yaw, target_yaw, t)
 
 
+## 表现事件（目前是开火）要求把某个傀儡的朝向**立刻**对齐权威值：
+## 同时改写两个插值锚点，使后续帧从新值继续平滑，而不是被旧 prev 拉回去
+## （只改 unit.rotation.y 会出现"对齐一帧、下一帧弹回"）。
+## 只动朝向：位置插值、快照结算都不受影响。见 `Unit._snap_presentation_yaw`。
+func reset_presentation_yaw(path: String, yaw: float) -> void:
+	if not _interp_target_yaw.has(path):
+		return
+	_interp_prev_yaw[path] = yaw
+	_interp_target_yaw[path] = yaw
+	var unit := _match.get_node_or_null(NodePath(path))
+	if unit != null and is_instance_valid(unit):
+		unit.rotation.y = yaw
+
+
 func forward_command(
 	op: String,
 	unit_nodes: Array,
@@ -352,6 +366,9 @@ func apply_client_snapshot(
 			var report: Array = item["construction"]
 			if report.size() >= 2:
 				unit.present_construction(int(report[0]), int(report[1]))
+		# 炮管朝向镜像：让客户端炮塔的炮口与权威端一致（联机 ≠ 本地的老问题之一）。
+		if item.has("barrel_yaw") and unit.has_method("apply_presentation_barrel_yaw"):
+			unit.apply_presentation_barrel_yaw(float(item["barrel_yaw"]))
 		# 生产队列镜像：让客户端 HUD 与服务器一致（增/改/删都在这一个入口收敛）。
 		if item.has("production") and "production_queue" in unit \
 				and unit.production_queue != null \
@@ -400,6 +417,13 @@ func _broadcast_snapshot() -> void:
 			var report: Array = unit.construction_progress_report()
 			if report.size() >= 2 and int(report[1]) > 0:
 				entry["construction"] = report
+		# 炮塔炮管朝向（2026-09-12）：上面只下发**根节点** yaw，而权威端转的是炮管节点
+		# （待机扫描 / 战斗瞄准都作用于 `node_to_rotate`）→ 客户端炮塔的炮管永远停在
+		# 出厂角度。这里把炮管全局 yaw 一并下发（坦克等机动单位靠车体朝向，无需此项）。
+		if unit.has_method("presentation_aim_node"):
+			var aim_node = unit.presentation_aim_node()
+			if aim_node != null:
+				entry["barrel_yaw"] = aim_node.global_rotation.y
 		# 生产队列镜像：客户端 HUD（RA3 侧栏）据此显示排队与建造进度动画。
 		# **空数组也必须下发**：客户端的 apply_presentation_snapshot 靠"本次收到的
 		# 集合"收敛增/改/删 —— 字段缺失时它整段跳过，删除分支永不执行，于是服务器
@@ -528,6 +552,34 @@ func _rpc_command(
 			"Accepted" if place_ok else "Rejected",
 			str(place_result.get("primary_issue", "")),
 			str(structure_node.name) if structure_node != null and is_instance_valid(structure_node) else "")
+		return
+	if op == "repair_structure":
+		# 联机客户端的"维修"必须由**权威端**执行（2026-09-12）：
+		# 此前客户端只本地 `set_repairing`，而 Structure._process 的按秒回血/扣费
+		# 需要 `player._economy_runtime`（客户端由快照结算），且 10Hz 快照立刻把 hp
+		# 覆盖回去 → 玩家看到的就是"点了维修没反应"。权威端置位后，
+		# 回血与扣费本来就走 Structure._process，客户端从快照看到 hp 上涨。
+		var affected := 0
+		for unit in units:
+			if unit.has_method("is_repairing") and unit.has_method("set_repairing"):
+				unit.set_repairing(not unit.is_repairing())
+				affected += 1
+				print("[CMD][服务器] repair_structure %s -> %s" % [
+					unit.name, "维修中" if unit.is_repairing() else "已停止"])
+		if affected == 0:
+			print("[CMD][服务器] repair_structure 拒绝: 无可用建筑")
+		return
+	if op == "sell_structure":
+		# 同 repair：出售必须由权威端拆毁并退款（返还半价走 ConstructionRefund）。
+		var sold := 0
+		for unit in units:
+			if unit.has_method("sell"):
+				unit.sell()
+				sold += 1
+		if sold == 0:
+			print("[CMD][服务器] sell_structure 拒绝: 无可用建筑")
+		else:
+			print("[CMD][服务器] sell_structure 出售 %d 座建筑" % sold)
 		return
 	if units.is_empty():
 		print("[CMD][服务器] 拒绝: 单位解析为空 op=%s paths=%s" % [op, paths])

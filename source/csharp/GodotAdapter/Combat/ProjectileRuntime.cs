@@ -328,9 +328,32 @@ public partial class ProjectileRuntime : Node
     }
 
     /// <summary>读取炮口的世界变换；没有显式炮口时使用单位自身变换。</summary>
+    /// <remarks>
+    /// 多炮管单位（如对地炮塔）按 <c>MuzzleL</c> / <c>MuzzleR</c> **交替**取用，
+    /// 与 GDScript 侧 <c>ProjectileVisuals.muzzle_transform</c> 同一条规则
+    /// （2026-09-12 用户要求"两根炮管交替发射，不要从中间出来"）。
+    /// 计数放在单位 meta <c>muzzle_next_left</c> 上；两端各自计数，
+    /// 但客户端逐发回放权威端开火事件，顺序天然同相。
+    /// </remarks>
     private static Transform3D GetLaunchTransform(Node3D source) =>
-        source.FindChild("ProjectileOrigin", true, false) is Node3D origin ?
-            origin.GlobalTransform : source.GlobalTransform;
+        (NextAlternatingMuzzle(source) ??
+            source.FindChild("ProjectileOrigin", true, false)) is Node3D muzzle ?
+            muzzle.GlobalTransform : source.GlobalTransform;
+
+    /// <summary>多炮管交替：返回本发应使用的炮口节点；该单位没有多炮口挂点时返回 null。</summary>
+    private static Node? NextAlternatingMuzzle(Node3D source)
+    {
+        var left = source.FindChild("MuzzleL", true, false);
+        var right = source.FindChild("MuzzleR", true, false);
+        if (left is not Node3D || right is not Node3D)
+        {
+            return null;
+        }
+        var nextLeft = !source.HasMeta("muzzle_next_left") ||
+            source.GetMeta("muzzle_next_left").AsBool();
+        source.SetMeta("muzzle_next_left", !nextLeft);
+        return nextLeft ? left : right;
+    }
 
     /// <summary>要求传入对象是可提供世界坐标的 3D 节点。</summary>
     private static Node3D RequireSpatial(Node node, string parameterName) =>

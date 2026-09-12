@@ -30,6 +30,12 @@ update_scale = false
 [node name="ProjectileOrigin" type="Marker3D" parent="DetachTransform/Geometry/SM_Veh_Turret_Large_01"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0.9)
 
+[node name="MuzzleL" type="Marker3D" parent="DetachTransform/Geometry/SM_Veh_Turret_Large_01"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2259, 0.0036, 3.691)
+
+[node name="MuzzleR" type="Marker3D" parent="DetachTransform/Geometry/SM_Veh_Turret_Large_01"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.2259, 0.0036, 3.691)
+
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
 shape = SubResource("CylinderShape3D_7usmv")

@@ -10,11 +10,18 @@ const SFX_DIR := "res://assets/sfx/combat/"
 const FIRE_SOUND_BY_SCENE := {
 	"res://source/match/units/Infantry.tscn": "rifle_fire",
 	"res://source/match/units/Tank.tscn": "cannon_fire",
+	# 新增单位必须同步登记，否则 fire_key_for() 返回空串 → **开火完全没声音**
+	# （2026-09-12 用户报"重型坦克开火没有动画和声音"；装甲车同批漏登记）。
+	"res://source/match/units/HeavyTank.tscn": "cannon_fire",
+	"res://source/match/units/APC.tscn": "rifle_fire",
 	"res://source/match/units/AntiGroundTurret.tscn": "cannon_fire",
 	"res://source/match/units/AntiAirTurret.tscn": "rocket_fire",
 	"res://source/match/units/Helicopter.tscn": "rocket_fire",
 	"res://source/match/units/Drone.tscn": "rocket_fire",
 }
+
+## 漏登记报错去重（每个场景只报一次），见 fire_key_for()。
+static var _missing_fire_sound_reported := {}
 
 const VOLUME_BY_KEY := {
 	"rifle_fire": -4.0,
@@ -100,7 +107,14 @@ static func clear_shot_log() -> void:
 
 ## 单位开火音效键；未映射的单位（如工人）返回空串不播放。
 static func fire_key_for(unit: Node3D) -> String:
-	return str(FIRE_SOUND_BY_SCENE.get(str(unit.scene_file_path), ""))
+	var scene := str(unit.scene_file_path)
+	var key := str(FIRE_SOUND_BY_SCENE.get(scene, ""))
+	# 静默改响亮（2026-09-12）：漏登记已经咬过两次（装甲车/重型坦克都是"能打但没声音"）。
+	# 每个场景只报一次，避免退化成刷屏。
+	if key.is_empty() and not _missing_fire_sound_reported.has(scene):
+		_missing_fire_sound_reported[scene] = true
+		push_error("[SFX] 单位未登记开火音效（CombatSfx.FIRE_SOUND_BY_SCENE）: %s" % scene)
+	return key
 
 
 ## 命中音效键：武器反应类别 × 受击面（步兵=软体；金属受击不出声——钢板音已按用户要求移除）。

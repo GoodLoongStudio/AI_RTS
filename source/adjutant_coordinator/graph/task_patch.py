@@ -37,11 +37,11 @@ MODE_FAST = "fast"
 MODE_DEEP = "deep"
 MODES = (MODE_FAST, MODE_DEEP)
 
-#: 同一个资源点最多派几个工人（**分配层**的保守常量，`rules_fallback` 与本模块共用）。
-#: 实测（2026-09-12 用户截图）：3 个工人全挤在一个矿点上、互相卡住、部队被堵、有人闲置——
-#: 因为所有路径都"各自取最近的矿点"，**没有任何分配层**。资源点没有容量字段，
-#: 先用该常量去冲突；等观测提供矿量/容量后再改为按容量分配。
-RESOURCE_WORKERS_PER_NODE = 2
+#: 同一个资源点最多派几个工人 —— **唯一实现在 `resource_allocation`**，这里只引用（不许再写一份）。
+#: 【2026-09-12 结构性整改】原先本模块与 `rules_fallback` 各定义一份同值常量，
+#: 改一处不会同步到另一处。另外记住分工：这里只做"**一行/一组里最多几个工人同目标**"的截断，
+#: 真正的**跨矿点分散**归 `resource_allocation`（它管在途占用账 + 去冲突 + 自愈再平衡）。
+from .resource_allocation import RESOURCE_WORKERS_PER_NODE as RESOURCE_WORKERS_PER_NODE  # noqa: E402
 
 #: 计划 §2 的容量与期限（实施起点；**容量按实测证据调整过一次**）。
 #:
@@ -208,7 +208,8 @@ class TaskPatchBatch(BaseModel):
         default_factory=list,
         description="任务修改行；每行 [actor_ref, skill_ref, target_ref, params_ref]，"
                     "四列都是字符串；没有修改时给空数组")
-    g: str = Field(default="", description="可选：阶段目标 ID；不需改动时留空")
+    g: str = Field(default="", description="可选：主线分支 ID（取「可选路线」的 ref，"
+                                          "如 D3）；不改分支时留空")
 
     @model_validator(mode="before")
     @classmethod
@@ -278,6 +279,11 @@ class DecisionFrame:
     #: 用途有两个：① 渲染给模型看（已在执行的任务不要重复输出）；② 解码时判定"这行等于现状"
     #: → 记为 `unchanged`，**不下发新命令**（计划 §4.1：模型只发"任务修改"，未提及的继续执行）。
     current_tasks: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    #: **整局主线上下文**（纠偏 §7 的硬要求）。必须包含：当前阶段、主线目标、
+    #: 已完成/阻塞里程碑、四条线任务、下一前沿、可选决策地图节点及其前置条件。
+    #: 这里的每个字段都来自 `campaign.context_view()`（唯一实现），
+    #: 渲染层只负责排版，不自行推导主线状态。
+    campaign: Dict[str, Any] = field(default_factory=dict)
 
     @property
     def deadline_monotonic(self) -> float:
@@ -311,6 +317,7 @@ class DecisionFrame:
             "params": [dict(item) for item in self.params.values()],
             "no_target": NO_TARGET,
             "keep_params": KEEP_PARAMS,
+            "campaign": dict(self.campaign or {}),
         }
 
 
@@ -405,6 +412,8 @@ def decode_task_patch(batch: Any, frame: DecisionFrame,
     rows = _coerce_rows(batch)
     result.goal_ref = str(getattr(batch, "g", "") or "")
     seen_actors: set = set()
+    #: 本轮已承接建造的执行者（工地 → 执行者）；见下方"一个工地一个建造者"守卫。
+    seen_build_sites: Dict[str, str] = {}
     for index, row in enumerate(rows):
         if index >= limit:
             result.rejections.append(RowRejection(
@@ -422,6 +431,20 @@ def decode_task_patch(batch: Any, frame: DecisionFrame,
                 index, row, "duplicate_actor",
                 "%s 本轮已有任务" % modification.actor_ref))
             continue
+        # 【一个工地一个建造者】同一轮里同一座建筑只允许 1 个执行者。
+        # 实测依据（2026-09-12 晚用户反馈"建造 1 个建筑就让一堆工人上，那矿不采了？"）：
+        # 候选表里同一集群的 N 个工人都能选到同一座建筑 → 模型发 N 条 BLD 完全合理 →
+        # 全队停工去盖房子、采集线停摆（违反手册 01 §3"四条线同时推进"）。
+        # 这条守卫在**任何**候选生成方式（含集群划分变化）下都成立。
+        if modification.skill == SKILL_BUILD:
+            site = str((modification.target or {}).get("scene", ""))
+            if site and site in seen_build_sites:
+                result.rejections.append(RowRejection(
+                    index, row, "duplicate_build_site",
+                    "同一工地本轮只派 1 个建造者（%s 已由 %s 承接）"
+                    % (site, seen_build_sites[site])))
+                continue
+            seen_build_sites[site] = modification.actor_ref
         seen_actors.add(modification.actor_ref)
         result.modifications.append(modification)
     return result
@@ -665,11 +688,19 @@ def modifications_to_intents(result: DecodeResult, frame: DecisionFrame) -> Inte
                 target["resource"] = entity
         generation = max([modification.generations.get(u, 0) for u in modification.units]
                          or [0])
+        # 【一个工地一个建造者】建造只派 **1 个**工人。
+        # 为什么（2026-09-12 晚用户反馈："建造 1 个建筑就让一堆工人上，那矿不采了？"）：
+        # 工人执行者是**集群**（`derive_squads` 按位置聚合，最多 `MAX_UNITS_PER_ACTOR` 个），
+        # `unit_ids` 直接取整个集群 → 一条 `BLD` 就等于"全队上工地"，采集线当场停摆，
+        # 违反决策手册 01 §3"四条线同时推进"。生产/采集/作战不受影响（那些本来就该整组动）。
+        builder_units = list(modification.units)
+        if action == ACTION_BUILD and builder_units:
+            builder_units = builder_units[:1]
         intents.append(TacticalIntent(
             intent_id=modification.intent_id,
             plan_version=frame.plan_version,
             task_id=modification.task_id,
-            unit_ids=list(modification.units),
+            unit_ids=builder_units,
             action=action,
             target=target,
             based_on_snapshot=int(frame.snapshot_id),
@@ -713,6 +744,13 @@ def parse_task_patch(raw: Any) -> TaskPatchBatch:
     """解析入口：结构非法抛 ContractError（与旧契约一致的错误风格）。"""
     if isinstance(raw, TaskPatchBatch):
         return raw
+    # 宽容一条**实测高频**的形态：模型把外层 `{"u": …}` 省了，直接回裸行数组
+    # （模型输出 `[["W1","GAT","R5","P0"]]`）。语义完全等价（那正是 `u` 的值），
+    # 整批打回只会换来一次无谓的降级——2026-09-12 真机实测：
+    # `ContractError: task_patch: $: Input should be a valid dictionary or instance of
+    # TaskPatchBatch` 在 100 秒里出现 16 次，每次都把战术模型降级成规则。
+    if isinstance(raw, (list, tuple)):
+        raw = {"u": list(raw)}
     from pydantic import ValidationError
 
     try:

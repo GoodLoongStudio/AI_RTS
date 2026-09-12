@@ -81,16 +81,20 @@ class FallbackTest(unittest.TestCase):
         self.assertEqual(target["producer"], "Unit_0")
 
     def test_worker_sufficient_skips_training(self):
-        # 工人数量以**观测**为准：观测里必须有 4 个 worker 才判定"够用"。
+        # 工人数量以**观测**为准：观测里必须有 `WORKER_TARGET_6` 个 worker 才判定"够用"。
+        # 【2026-09-12 晚改】目标从 4 提到 6（对齐传统 AI `workers_per_command_center`），
+        # 所以这里必须给到 6 个 —— 否则测的就不是"够用后停手"，而是"还没够"。
         tactical = {"entities": TACTICAL["entities"] + [
-            {"kind": "unit_self", "name": "Unit_4", "unit_type": "worker",
-             "pos": [11.0, 0.0, 11.0], "gather": True, "movement": True},
-            {"kind": "unit_self", "name": "Unit_5", "unit_type": "worker",
-             "pos": [9.0, 0.0, 11.0], "gather": True, "movement": True},
+            {"kind": "unit_self", "name": "Unit_%d" % index, "unit_type": "worker",
+             "pos": [11.0 - index, 0.0, 11.0], "gather": True, "movement": True}
+            for index in range(6, 10)
         ]}
-        state = _state(units=("Unit_0", "Unit_2", "Unit_3", "Unit_4", "Unit_5"))
+        state = _state(units=("Unit_0", "Unit_2", "Unit_3", "Unit_6", "Unit_7",
+                              "Unit_8", "Unit_9"))
         batch = _batch(state, tactical=tactical)
-        self.assertEqual(len([i for i in batch["intents"] if i["action"] == "gather"]), 4)
+        # `MAX_GATHER_INTENTS` 同步提到 8（工人目标 6/基地后，4 条配额会让第 5 个
+        # 以后的工人长期没有采集意图）→ 6 个工人应全部拿到采集命令。
+        self.assertEqual(len([i for i in batch["intents"] if i["action"] == "gather"]), 6)
         self.assertFalse([i for i in batch["intents"] if i["action"] == "produce"])
 
     def test_no_resource_yields_no_intents(self):

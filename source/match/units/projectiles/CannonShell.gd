@@ -5,7 +5,17 @@ var projectile_runtime = null
 var launch_transform := Transform3D.IDENTITY
 var visible_snapshot := true
 
+## 弹体飞行速度（米/秒）。**必须与射击距离无关**：用户 2026-09-12 报
+## "不同射击距离炮弹的飞行速度不一样" —— 根因是原先按**固定飞行时长**建模
+## （`flight_seconds` = 0.65），速度 = 距离 / 时长 → 距离越远飞得越快。
+## 现在改成固定速度：飞行时长 = 实际距离 / 速度，任何射击距离上速度都一致。
+## 不同武器想要不同速度，由场景 metadata `flight_speed_mps` 覆盖
+## （炮弹 12 m/s ≈ 原先 7.5m 处的手感；步枪曳光 45 m/s）。
+const FLIGHT_SPEED_MPS := 12.0
+## 兜底飞行时长：只在取不到有效瞄准点（拿不到距离）时才用，正常路径不会走到。
 const FLIGHT_SECONDS := 0.5
+## 飞行时长下限：贴脸射击距离≈0 时避免出现 0/负时长。
+const MIN_FLIGHT_SECONDS := 1.0 / 120.0
 const ARC_HEIGHT := 0.45
 const EXPLOSION_SCENE := preload(
 	"res://source/match/units/projectiles/ShellExplosion.tscn"
@@ -27,7 +37,16 @@ func _ready():
 	assert(projectile_runtime != null, "projectile runtime was not provided")
 	visible = visible_snapshot
 	global_position = launch_transform.origin
-	_flight_seconds = float(get_meta("flight_seconds", FLIGHT_SECONDS))
+	# 固定速度模型：飞行时长由**真实发射距离**反推，保证同一武器在任何射击距离上速度一致。
+	var speed := float(get_meta("flight_speed_mps", FLIGHT_SPEED_MPS))
+	var launch_aim: Vector3 = projectile_runtime.GetAimPoint(attack_id)
+	if is_finite(speed) and speed > 0.0 and launch_aim.is_finite():
+		_flight_seconds = maxf(
+			launch_transform.origin.distance_to(launch_aim) / speed, MIN_FLIGHT_SECONDS
+		)
+	else:
+		# 取不到瞄准点时退回旧的固定时长口径（正常路径不会走到）。
+		_flight_seconds = float(get_meta("flight_seconds", FLIGHT_SECONDS))
 	_arc_height = float(get_meta("arc_height", ARC_HEIGHT))
 	# 步枪等轻武器命中不炸出火光，只有炮弹类落点爆炸。
 	_show_impact_explosion = bool(get_meta("impact_explosion", true))

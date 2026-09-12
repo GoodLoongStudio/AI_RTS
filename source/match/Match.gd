@@ -210,7 +210,12 @@ func _setup_traditional_unit_command_hud():
 	if human_player == null:
 		return
 	var command_hud = TraditionalUnitCommandHUD.instantiate()
-	command_hud.actions_controller = human_player.get_node("UnitActionsController")
+	# 联机（客户端-服务器）下本地玩家身上**可能没有** UnitActionsController
+	# （只有权威端的 Human 才有，客户端是画面端）——此前这里硬 get_node，
+	# 取不到就刷 `ERROR: Node not found` 并把 null 塞给面板，面板 _ready 里的
+	# assert 随即中断整个初始化（皮肤/框、按钮信号、可用性刷新全不执行）。
+	# 2026-09-12 实测：客户端面板"没框"、按钮看着能点却全无反应，就是这个原因。
+	command_hud.actions_controller = human_player.get_node_or_null("UnitActionsController")
 	# RA3 布局：命令面板收编进右侧指挥侧栏的下部命令区（无侧栏时退回自由挂载）。
 	if _ra3_sidebar != null:
 		_ra3_sidebar.absorb_command_panel(command_hud)
@@ -285,6 +290,34 @@ func _setup_players():
 		if node is Player:
 			node.add_to_group("players")
 			node.setup_resource_account($EconomyRuntime)
+	_ensure_local_player_has_actions_controller()
+
+
+## 保证"本地玩家"一定有指令控制器（2026-09-12）。
+##
+## 背景：客户端本地玩家节点不一定来自 `Human.tscn`（联机空槽/场景占位/A-B 基线把槽位
+## 交给规则 AI 等），于是没有 `UnitActionsController` —— 命令面板会在 `_ready` 断言中断
+## （皮肤/边框都上不去、按钮看着能点却没反应），维修与出售也进不了指定模式。
+## 这里兜底补挂一个：控制器 `_is_local_controller()` 只在"父节点 == 本地玩家"时启用自己，
+## 所以不会出现双控制器；专用服/无本地玩家（`get_local_player()` 为 null）不受影响。
+func _ensure_local_player_has_actions_controller():
+	var local_player = get_local_player()
+	if local_player == null or not is_instance_valid(local_player):
+		return
+	# ⚠️ 必须用**递归**查找：控制器不一定挂在本地玩家的直接子节点下
+	# （`Match.gd` 里命令面板那句 `get_node("UnitActionsController")` 会因此报
+	#  `Node not found`，而侧栏用 `find_child(...)` 却能找到 —— 两者不一致正是
+	#  2026-09-12 面板拿不到控制器的根因）。若这里也用 get_node_or_null，
+	#  就会在"控制器存在但不在直接子节点"时**误判为缺失并再补挂一个 → 双控制器抢输入**。
+	if local_player.find_child("UnitActionsController", true, false) != null:
+		return
+	var controller_script: Script = load("res://source/match/players/human/UnitActionsController.gd")
+	if controller_script == null:
+		return
+	var controller: Node = controller_script.new()
+	controller.name = "UnitActionsController"
+	local_player.add_child(controller)
+	print("[INPUT] 本地玩家无指令控制器，已补挂 player=", local_player.name)
 
 
 func _create_players_from_settings():

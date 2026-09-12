@@ -110,6 +110,9 @@ class AdjutantGraphRuntime:
         recheck_fn: Optional[Callable[[str], Optional[Dict[str, Any]]]] = None,
         tick_provider: Optional[Callable[[], Optional[Dict[str, int]]]] = None,
         tactics_scheduler: Any = None,
+        #: 权威路径查询（计划 §7 安全移动硬闸门）：`nav_query(unit, target) -> dict`。
+        #: 由宿主接到游戏侧 `op=adjutant_nav_path`；None = 闸门无法判定（记 `ungated`）。
+        nav_query: Optional[Callable[[str, Any], Dict[str, Any]]] = None,
     ) -> None:
         if coordinator is None and transport is None:
             raise ValueError("必须提供 transport 或 coordinator（禁止无通道的静默空转）")
@@ -145,6 +148,9 @@ class AdjutantGraphRuntime:
             checkpoint_store=checkpoint_store or NullCheckpointStore(),
             config=self.config.to_graph_config(),
             logger=logger,
+            # 【安全移动硬闸门】权威路径查询（计划 §7）。宿主必须接上游戏侧
+            # `op=adjutant_nav_path`；没接时闸门会显式记 `ungated` 而不是假装通过。
+            nav_query=nav_query,
         )
         self.runner: GraphRunner = build_runner(
             self.services, engine=self.config.engine,
@@ -220,11 +226,20 @@ class AdjutantGraphRuntime:
         return self._current_tick
 
     def _dispatch(self, envelopes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """经既有协调器逐条提交（协议校验 + 玩家优先权 + 预算），返回结构化回执。"""
+        """经既有协调器提交（协议校验 + 玩家优先权 + 预算），返回结构化回执。
+
+        【批量下发，计划 §5】多条时走 `coordinator.submit_batch`：本地闸门仍是逐条，
+        但**一次 TCP** 把整批意图交给权威端，权威端逐项回执后再逐项结算。
+        改造前是"每条命令一次 TCP 往返"，这是"每秒 ≥1 次操作"落地时的往返瓶颈。
+        """
         self._refresh_observation_clock(envelopes)
+        if len(envelopes) > 1 and hasattr(self.coordinator, "submit_batch"):
+            settled = self.coordinator.submit_batch(envelopes, self._current_tick)
+        else:
+            settled = [self.coordinator.submit_command(envelope, self._current_tick)
+                       for envelope in envelopes]
         receipts: List[Dict[str, Any]] = []
-        for envelope in envelopes:
-            receipt = self.coordinator.submit_command(envelope, self._current_tick)
+        for envelope, receipt in zip(envelopes, settled):
             data = self._receipt_to_dict(receipt, envelope)
             self.dispatched.append({"envelope": envelope, "receipt": data})
             receipts.append(data)
@@ -349,6 +364,18 @@ class AdjutantGraphRuntime:
         header = observation.get("header") or {}
         if header:
             self.coordinator.ingest_snapshot(header, {})
+        # 【2026-09-12 实机锁死修复】活跃意图的 TTL 复核必须在**每一轮**做。
+        # 原先只有 `restore()`（checkpoint 恢复）里调一次 `expire_intents`，于是
+        # "运行过程中才变成 active_unknown（回执未知）"的意图**永远不会过期**：
+        # 实测其 `expires_tick` 已过去 26000+ tick 仍在压制新命令（副官整局 0 指令，
+        # 面板显示"一切正常"，只是看不到任何指挥信标）。过期即标记 expired，
+        # 之后仲裁、微操守卫、任务表都不会再把它当成"执行者仍在忙"。
+        expired_intents = self.state.expire_intents(self._current_tick)
+        if expired_intents:
+            self.state.decide(
+                "runtime_intents_expired", tick=self._current_tick,
+                count=len(expired_intents),
+                intent_ids=[item.get("intent_id") for item in expired_intents[:8]])
         state_dict = self.state.to_dict()
         state_dict["server_tick"] = max(int(state_dict.get("server_tick", 0)), self._current_tick)
         receipt_start = len(state_dict.get("command_receipts", []))

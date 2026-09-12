@@ -456,6 +456,13 @@
                             "category":  "queries",
                             "scene":  "res://tests/automated/WorldQueryRuntimeSmokeTest.tscn",
                             "id":  "world-query-runtime"
+                        },
+                        {
+                            "expected_marker":  "Attack range indicator smoke test completed: 0 failure(s)",
+                            "timeout_seconds":  120,
+                            "category":  "hud",
+                            "scene":  "res://tests/automated/AttackRangeIndicatorSmokeTest.tscn",
+                            "id":  "attack-range-indicator"
                         }
                     ]
 }

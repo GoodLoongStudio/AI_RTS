@@ -219,6 +219,33 @@ class ArbitrationTest(unittest.TestCase):
         result = arbitrate(state, [again])
         self.assertEqual(result.dropped_reasons["i-2"], "duplicate_of_live_intent:i-1")
 
+    def test_expired_live_intent_does_not_block_new_order(self):
+        """过期（TTL 已过）的在途意图不得再压制同目标的新意图。
+
+        2026-09-12 实机回归：`active_unknown`（已送达但权威端未确认）的记录若
+        `expires_tick` 早已过去，仍被当成"仍在途"，于是行为树每轮产出的同目标命令
+        全被判 `duplicate_of_live_intent` 丢弃 —— 整局副官 0 命令（画面上表现为
+        "看不到 AI 副官指挥部队的信标"），副官面板却显示"一切正常"；
+        且这些记录随 graph_checkpoint.json 持久化，重启 runner 也无法自愈。
+        """
+        state = make_state()
+        stale = make_intent("i-stale", units=["Unit_1"], expires_tick=20)
+        state.add_intent(stale, "active_unknown")
+        fresh = make_intent("i-fresh", units=["Unit_1"], expires_tick=100)
+        # 当前 tick 已超过 i-stale 的 expires_tick（20）：它不再算在途。
+        result = arbitrate(state, [fresh], tick=50)
+        self.assertNotIn("i-fresh", result.dropped_reasons)
+        self.assertEqual([item["intent_id"] for item in result.accepted], ["i-fresh"])
+
+    def test_unexpired_live_intent_still_blocks_duplicate(self):
+        """反向保护：还在 TTL 内的在途意图必须继续抑制重复下单（防抖）。"""
+        state = make_state()
+        live = make_intent("i-live", units=["Unit_1"], expires_tick=100)
+        state.add_intent(live, "active_unknown")
+        again = make_intent("i-again", units=["Unit_1"], expires_tick=100)
+        result = arbitrate(state, [again], tick=50)
+        self.assertEqual(result.dropped_reasons["i-again"], "duplicate_of_live_intent:i-live")
+
     def test_decision_log_records_arbitration(self):
         state = make_state()
         arbitrate(state, [make_intent("i-1", expires_tick=100)])

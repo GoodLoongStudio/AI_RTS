@@ -133,23 +133,57 @@ class MicroTreeTest(unittest.TestCase):
         self.assertEqual(behavior_tree.micro_intents(self.state, tactical=tac), [])
 
     # -- 降级纪律：不做无依据的动作 ---------------------------------------
-    def test_idle_combat_unit_is_silent_by_default(self):
-        """默认**不**做空闲集结：v1 没有探索/威胁模型，凭空游走比闲置更差。"""
-        self.state["ai_controlled_units"] = ["U_s1"]
-        tac = _tactical([_entity("unit_self", "U_s1", "soldier")])
-        self.assertEqual(behavior_tree.micro_intents(self.state, tactical=tac), [])
+    def test_idle_combat_unit_pushes_forward_by_default(self):
+        """无可见敌人时作战单位**前压探索**（不再原地待命/只回基地）。
 
-    def test_idle_regroup_only_when_explicitly_enabled(self):
+        契约变更依据（2026-09-12 晚，用户带截图质问"部队为什么只会停下来等待，
+        40000 块不派兵去探索"）：决策手册 01 §3 军事线要求"集结 → **前压** → 进攻"
+        持续推进；传统 AI 铁律"兜底推进绝不站桩"。
+        旧行为（本用例曾断言"空闲即静默"）导致 13 个单位、46800 余额全部杵在基地。
+        """
+        self.state["ai_controlled_units"] = ["U_s1"]
+        tac = _tactical([
+            _entity("unit_self", "U_s1", "soldier", pos=(50, 0, 50)),
+            _entity("unit_self", "U_cc", "command_center", pos=(0, 0, 0)),
+        ])
+        intents = behavior_tree.micro_intents(self.state, tactical=tac)
+        self.assertEqual(len(intents), 1)
+        self.assertEqual(intents[0]["action"], "attack_move")
+        point = intents[0]["target"]["pos"]
+        self.assertEqual(len(point), 2)
+        self.assertGreater(max(abs(point[0]), abs(point[1])), 0.0,
+                           "前压航点必须离开基地（不能原地不动）")
+
+    def test_forward_advance_is_deterministic(self):
+        """同一 tick 必然得到同一航点（可复现、可单测；不是凭空游走）。"""
+        self.state["ai_controlled_units"] = ["U_s1"]
+        tac = _tactical([
+            _entity("unit_self", "U_s1", "soldier", pos=(50, 0, 50)),
+            _entity("unit_self", "U_cc", "command_center", pos=(0, 0, 0)),
+        ])
+        first = behavior_tree.micro_intents(self.state, tactical=tac)[0]["target"]["pos"]
+        second = behavior_tree.micro_intents(self.state, tactical=tac)[0]["target"]["pos"]
+        self.assertEqual(first, second)
+
+    def test_forward_advance_disabled_falls_back_to_regroup(self):
+        """关掉前压后仍可回退到"空闲集结"（旧行为保留给回放/特定对局）。"""
         self.state["ai_controlled_units"] = ["U_s1"]
         tac = _tactical([
             _entity("unit_self", "U_s1", "soldier", pos=(50, 0, 50)),
             _entity("unit_self", "U_cc", "command_center", pos=(0, 0, 0)),
         ])
         intents = behavior_tree.micro_intents(
-            self.state, tactical=tac, config={"allow_idle_regroup": True})
+            self.state, tactical=tac,
+            config={"allow_forward_advance": False, "allow_idle_regroup": True})
         self.assertEqual(len(intents), 1)
         self.assertEqual(intents[0]["action"], "regroup")
         self.assertEqual(intents[0]["target"]["pos"], [0.0, 0.0])
+
+    def test_combat_unit_has_no_enemy_but_no_anchor_stays_silent(self):
+        """拿不到基地锚点时不动作（宁可不发，不能凭空造坐标）。"""
+        self.state["ai_controlled_units"] = ["U_s1"]
+        tac = _tactical([_entity("unit_self", "U_s1", "soldier")])
+        self.assertEqual(behavior_tree.micro_intents(self.state, tactical=tac), [])
 
     def test_scout_is_never_emitted(self):
         """回归守卫：任何情况下都不得再出现凭空坐标的 scout。"""
@@ -277,11 +311,14 @@ class ScoutTest(unittest.TestCase):
         tac = _tactical([_entity("unit_self", "U_d1", "drone", pos=(40, 0, 40))])
         self.assertEqual(behavior_tree.micro_intents(self.state, tactical=tac), [])
 
-    def test_combat_unit_is_not_sent_scouting(self):
-        """作战单位不许被派去侦察：让坦克满地图跑是无依据的战场动作。
+    def test_combat_unit_pushes_forward_not_scouting(self):
+        """作战单位不占用**专职侦察**分支，而是走"前压探索"（`attack_move`）。
 
-        注（2026-09-11）：空闲集结默认开启后，作战单位会收到 `regroup`（回基地），
-        所以这里断言的是"**动作绝不是 scout**"，而不是"没有任何意图"。
+        契约变更（2026-09-12 晚，用户要求"有钱就该派兵去探索"）：
+        旧断言是"作战单位只能 regroup 回基地" —— 那正是"部队只会停下来等待"的来源；
+        现在无可见敌人时它们必须向外前压。这里钉住两点：
+        ① 不能用 `scout`（专职侦察航点是给无人机的，半径小、绕圈）；
+        ② 必须真的给出一条向外推进的移动命令。
         """
         self.state["ai_controlled_units"] = ["U_s1"]
         tac = _tactical([
@@ -289,7 +326,7 @@ class ScoutTest(unittest.TestCase):
             _entity("unit_self", "U_cc", "command_center", pos=(10, 0, 10)),
         ])
         intents = behavior_tree.micro_intents(self.state, tactical=tac)
-        self.assertEqual({item["action"] for item in intents}, {"regroup"})
+        self.assertEqual({item["action"] for item in intents}, {"attack_move"})
 
 
 class RegroupTest(unittest.TestCase):
@@ -316,8 +353,15 @@ class RegroupTest(unittest.TestCase):
             _entity("unit_self", "U_cc", "command_center", pos=(10, 0, 10)),
         ])
 
-    def test_combat_units_regroup_to_same_target_by_default(self):
-        intents = behavior_tree.micro_intents(self.state, tactical=self._tac())
+    def test_combat_units_regroup_to_same_target_when_advance_disabled(self):
+        """关掉"前压探索"后，空闲作战单位按旧纪律回基地集结（同一目标便于批量指挥）。
+
+        `allow_forward_advance` 默认 True（2026-09-12 晚起），所以这里显式关掉
+        才能真正走到集结分支。
+        """
+        intents = behavior_tree.micro_intents(
+            self.state, tactical=self._tac(),
+            config={"allow_forward_advance": False})
         self.assertEqual(len(intents), 3)
         self.assertEqual({item["action"] for item in intents}, {"regroup"})
         targets = [item["target"] for item in intents]
@@ -328,8 +372,9 @@ class RegroupTest(unittest.TestCase):
 
     def test_can_be_disabled_explicitly(self):
         intents = behavior_tree.micro_intents(
-            self.state, tactical=self._tac(), config={"allow_idle_regroup": False})
-        self.assertEqual(intents, [], "显式关闭后空闲作战单位不下发任何命令")
+            self.state, tactical=self._tac(),
+            config={"allow_forward_advance": False, "allow_idle_regroup": False})
+        self.assertEqual(intents, [], "两个兜底都显式关闭后，空闲作战单位不下发任何命令")
 
     def test_no_base_anchor_means_no_regroup(self):
         """拿不到基地锚点就不动作（宁可不发）：这也是金标准用例 replay_model_timeout 的安全网。"""

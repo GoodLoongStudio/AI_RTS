@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://3c1h14nqdumt"]
+[gd_scene load_steps=4 format=3 uid="uid://3c1h14nqdumt"]
 
 [ext_resource type="Script" path="res://source/match/units/traits/Selection.gd" id="1_be1f2"]
 [ext_resource type="PackedScene" uid="uid://ct3aeixgpxl65" path="res://source/generic-scenes-and-nodes/3d/FadedCircle3D.tscn" id="1_fvq0j"]
+[ext_resource type="Script" path="res://source/match/units/traits/AttackRangeIndicator.gd" id="2_ari"]
 
 [node name="Selection" type="Node3D"]
 script = ExtResource("1_be1f2")
@@ -9,3 +10,9 @@ script = ExtResource("1_be1f2")
 [node name="FadedCircle3D" parent="." instance=ExtResource("1_fvq0j")]
 inner_edge_width = 10.0
 render_priority = 10
+
+[node name="AttackRangeIndicator" type="Node3D" parent="."]
+script = ExtResource("2_ari")
+
+[node name="RangeCircle" parent="AttackRangeIndicator" instance=ExtResource("1_fvq0j")]
+render_priority = 5

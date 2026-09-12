@@ -25,6 +25,17 @@ static func is_applicable(source_unit, target_unit):
 	)
 
 
+## 表现层：本次开火的真实瞄准点（权威端 `Unit._broadcast_fired` 取它发给客户端）。
+## 与 `AttackingWhileInRange.presentation_aim_point()` **同口径**。
+## 为什么必须有：坦克/步兵自动交战时顶层动作是 `WaitingForTargets`、真正开火的是本类，
+## 少了这个接口客户端就只能按"炮口前方 attack_range 米"猜弹道终点，
+## 敌人比射程近/远时落点都不对 —— 用户报"爆炸落点根本不对"（2026-09-12）。
+func presentation_aim_point() -> Vector3:
+	if _target_unit != null and is_instance_valid(_target_unit):
+		return _target_unit.global_position
+	return Vector3.INF
+
+
 func _init(target_unit):
 	_target_unit = target_unit
 

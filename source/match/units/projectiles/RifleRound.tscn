@@ -14,7 +14,7 @@ height = 0.6
 
 [node name="RifleRound" instance=ExtResource("1_base")]
 metadata/impact_reaction = "bullet"
-metadata/flight_seconds = 0.14
+metadata/flight_speed_mps = 45.0
 metadata/arc_height = 0.04
 metadata/impact_explosion = false
 

@@ -72,6 +72,9 @@ func sell():
 				refund = int(int(cost.get("resource_a", 0)) * SELL_REFUND_RATIO)
 	set_repairing(false)
 	var player = get_parent()
+	# 退款条件（查得到造价 + 有权威经济账户）与"是否拆毁"必须分开：
+	# 此前 hp = 0 嵌在退款分支内，于是**查不到造价或没有权威账户时建筑根本删不掉**
+	# （用户报"不能删除建筑"；联机客户端更是必中）。现在退款失败也照样拆。
 	if refund > 0 and player != null and player.get("_economy_runtime") != null:
 		player.add_resources({"resource_a": refund}, "ConstructionRefund", self)
 	MatchSignals.deselect_all_units.emit()

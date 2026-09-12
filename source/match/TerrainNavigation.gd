@@ -4,6 +4,11 @@ const DOMAIN = Constants.Match.Navigation.Domain.TERRAIN
 
 static var server_busy := false
 
+## 导航烘焙版本号（副官 P0 要求）：**每次成功换入**新网格 +1。
+## 用途：副官侧判断"路径查询用的网格是哪一版"，避免把旧网格算出的路径当成当前可用
+## （计划 §7：移动任务必须记录 `nav_revision`）。没有它就只能靠猜，而计划禁止猜。
+var bake_revision := 0
+
 var _earliest_frame_to_perform_next_rebake = null
 var _is_baking = false
 var _rebake_queued := false
@@ -147,6 +152,7 @@ func _exit_tree():
 func _on_schedule_navigation_rebake(domain):
 	if domain != DOMAIN or not is_inside_tree() or not FeatureFlags.allow_navigation_rebaking:
 		return
+	# （保留原有排队语义，未改动）
 	if _is_baking or server_busy:
 		_rebake_queued = true
 		return
@@ -162,6 +168,10 @@ func _on_bake_finished():
 		# 原子换入新烘焙的网格：换入前的这一刻，region 仍在提供旧的可用网格。
 		_navigation_region.navigation_mesh = _pending_navmesh
 		_pending_navmesh = null
+		# 烘焙版本 +1：**换入这一刻**才算新网格生效。
+		# 副官侧据此判断"这次路径查询用的是哪一版网格"，避免把旧网格算出来的路径
+		# 当成当前可用路径（计划 §7 要求记录 nav_revision）。
+		bake_revision += 1
 	_sync_navmesh_changes()
 	_is_baking = false
 	if _rebake_queued:

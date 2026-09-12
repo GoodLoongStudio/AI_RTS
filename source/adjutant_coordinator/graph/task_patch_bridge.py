@@ -5,7 +5,8 @@
 - 元数据只能取自**发起请求时**的 `DecisionFrame`（不可在结果到达时换成最新代际）；
 - 旧 `StrategicPlan` 不再是模型必须先生成成功才能下令的前置条件：模型选中的任务
   由程序展开成内部兼容计划/意图，身份与版本由程序给；
-- 程序**不**补充模型未选择的战略任务（旧"发展阶梯"只允许在降级路径使用）。
+- 规则中台（behavior_tree + 发展阶梯）**每 tick 常驻**产出 baseline；
+  模型只是在同一张候选表上做稀疏覆盖（纠偏 §三/§四，2026-09-12 晚定版）。
 
 本模块只做转换，不做调度（调度在 runner 与图节点）。
 """
@@ -14,6 +15,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+from . import campaign as campaign_mod
 from .squads import build_decision_frame
 from .task_patch import (
     ACTION_TO_SKILL, MODE_FAST, DecisionFrame, DecodeResult, TaskPatchBatch,
@@ -67,7 +69,24 @@ def frame_from_state(state: Any, observation: Dict[str, Any],
         intent_ttl_ticks=int(_get(state, "intent_ttl_ticks") or _DEFAULT_TTL),
         emergency_intent_ttl_ticks=int(
             _get(state, "emergency_intent_ttl_ticks") or _DEFAULT_EMERGENCY_TTL),
+        # 地图边界：建造落点必须收在地图内，否则权威端一律 `OutOfBounds`
+        # （实测 160/169 条 build 回执；见 `squads._placement_radii`）。
+        map_bounds=_get(state, "map_bounds"),
+        # 整局主线上下文（纠偏 §7 硬要求）：阶段/主线目标/已完成与阻塞里程碑/
+        # 四条线/下一前沿/可选决策地图节点及其前置条件。
+        campaign=_campaign_view(state),
     )
+
+
+def _campaign_view(state: Any) -> Dict[str, Any]:
+    """`campaign_state` → 模型可见的主线上下文（唯一实现：`campaign.context_view`）。"""
+    campaign = _get(state, "campaign_state")
+    if not isinstance(campaign, dict) or not campaign.get("milestones"):
+        return {}
+    try:
+        return campaign_mod.context_view(campaign)
+    except Exception:  # noqa: BLE001 —— 上下文渲染失败不影响任务落地
+        return {}
 
 
 #: 视为"已结束"的意图状态（不再算作执行者正在执行的任务）。
@@ -113,9 +132,18 @@ def patch_to_intent_dicts(intent_batch: Any) -> List[Dict[str, Any]]:
 
 
 def summarize_decode(result: Optional[DecodeResult]) -> Dict[str, Any]:
-    """给日志/面板用的一句摘要（不含隐藏推理，只含可复核字段）。"""
+    """给日志/面板用的一句摘要（不含隐藏推理，只含可复核字段）。
+
+    允许直接传**已摘要过的 dict**：异步调度要把结果跨 tick 存进 LangGraph state，
+    而 LangGraph 的 checkpoint 用 msgpack 序列化，`DecodeResult` 这个 dataclass
+    不可序列化 —— 实测每 7 个 tick 就抛一次
+    `TypeError: Type is not msgpack serializable: DecodeResult`，把整个 tick
+    （含本轮回执结算）打断。所以 intake 处只落这个 dict，这里保持幂等。
+    """
     if result is None:
         return {"rows": 0, "accepted": 0, "rejected": 0, "reject_reasons": []}
+    if isinstance(result, dict):
+        return dict(result)
     return {
         "rows": len(result.modifications) + len(result.rejections),
         "accepted": len(result.modifications),

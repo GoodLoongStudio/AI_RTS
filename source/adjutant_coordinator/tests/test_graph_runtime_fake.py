@@ -266,11 +266,14 @@ class PendingAuthorityTest(unittest.TestCase):
         self.assertIn("i-1", fixture.runtime.state.pending_requests)
         self.assertEqual(len(transport.sent), 1)
 
-        # 在途未复核：本轮不触发战术（更不会重复下单）。
-        waiting = fixture.tick(6, events=[events_for("queue_idle", ["Unit_1"], 6)])
-        self.assertEqual(waiting.route, "wait")
-        self.assertEqual(len(transport.sent), 1)
-        self.assertEqual(fixture.tactics.call_count, 1)
+        # 在途未复核：**路由不再被全局压制**（2026-09-12 晚修正：原来这里断言
+        # route=="wait"、tactics 只调 1 次，导致主循环 0.58 秒/轮却每 4.7 秒才思考一次），
+        # 但"不对同一单位重复下单"这条保证仍然成立 —— 由仲裁层的
+        # `pending_authority_unresolved` 指纹去重拦下，**发送计数不变**。
+        again = fixture.tick(6, events=[events_for("queue_idle", ["Unit_1"], 6)])
+        self.assertGreaterEqual(again.server_tick, 6)
+        self.assertEqual(len(transport.sent), 1,
+                         "在途未复核的命令不得重复下发（仲裁层应拦下同一指纹）")
 
         # 复核终态：pending 结算，意图进入 active，不需要重下单。
         resolved = fixture.tick(7)

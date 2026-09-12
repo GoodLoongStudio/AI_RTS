@@ -19,6 +19,7 @@ const DEFAULT_PORT := 24568
 const ADJUTANT_PORT := 24579
 const ADJUTANT_OPS := [
 	"status", "tactical", "strategic", "rules", "commands",
+	"adjutant_fast_state", "adjutant_nav_path",
 	"adjutant_intent", "adjutant_batch", "adjutant_leases", "adjutant_reserves",
 ]
 var _adjutant_only := false
@@ -67,6 +68,19 @@ var _adjutant_reserves := {}
 const ADJUTANT_RESERVE_PERCENT := 20
 
 
+## 本进程**实际监听**的权威端口（0 = 未启用/监听失败）。只读访问器。
+##
+## 为什么需要它：游戏内面板（`AdjutantButton.gd`）就跑在**同一个进程里**，
+## 与其去"猜"权威口（历史上写死 24579，于是用 `--debugport` 起的测试局永远连不上，
+## 玩家看到的是"副官尚未启动 / 端口不响应"），不如直接问本进程。
+##
+## 口径（与 `config/dev_ports.json` 一致）：
+## - 正常游玩（不带 `--debugport`）→ 受限副官服务监听 `ADJUTANT_PORT`（24579）；
+## - 带 `--debugport N`（自动化/测试）→ 监听 N。
+func port() -> int:
+	return _port if _server.is_listening() else 0
+
+
 func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
 	var port_index := args.find("--debugport")
@@ -108,6 +122,9 @@ func _mount_adjutant_observation() -> void:
 
 
 func _process(_delta: float) -> void:
+	# 10Hz 缓存采样：与请求无关地先把场景事实存起来。
+	# 这样 `op=adjutant_fast_state` 才可能"读缓存"而不是"每次重扫场景"（计划 §3.1/§4）。
+	_fast_sample_tick()
 	if _server.is_connection_available():
 		var client := _server.take_connection()
 		_clients.append(client)
@@ -200,6 +217,10 @@ func _dispatch(line: String) -> String:
 			return JSON.stringify(_op_adjutant_intent(match_node, parsed))
 		"adjutant_leases":
 			return JSON.stringify(_op_adjutant_leases(match_node, parsed))
+		"adjutant_fast_state":
+			return JSON.stringify(_op_adjutant_fast_state(match_node, parsed))
+		"adjutant_nav_path":
+			return JSON.stringify(_op_adjutant_nav_path(match_node, parsed))
 		"adjutant_reserves":
 			return JSON.stringify(_op_adjutant_reserves(match_node, parsed))
 		"lobby":
@@ -599,26 +620,23 @@ func _construct_on_existing_site(player, builders: Array, site, scene_path: Stri
 			"reason": "权威端缺少命令网关，无法下达续建。", "error": "no gateway",
 		})
 	var result: Dictionary = gateway.ConstructUnits(builders, site, player)
-	var accepted := bool(result.get("accepted", false))
-	var reason := ""
-	if not accepted:
-		# GDScript 不能用 `a or b` 做字符串回退（`or` 是布尔运算符）——
-		# 写成那样会编译失败，导致整个 DebugControlServer 加载不了、对局起不来（2026-09-12 踩过）。
-		reason = str(result.get("error_code", ""))
-		if reason.is_empty():
-			reason = str(result.get("reason", ""))
-	var command_id := _new_command_id()
+	# 【必须走统一回执，不许自己读 accepted】`ConstructUnits` 返回的是 `CommandResult`
+	# （`{command_id, status, unit_results[]}`），**根本没有顶层 `accepted` 字段**。
+	# 这里曾经手写 `bool(result.get("accepted", false))` → 恒 false → 每一条"续建"都被回报成
+	# `Rejected` 且 `reason` 为空：协调器既拿不到原因也无法归类退避，只能一遍遍重发同一条命令
+	# （2026-09-12 真机 5 分钟：`rule-finish-site` 30 条全部如此，占该局全部命令的 26%）。
+	# 实测同一份日志：外层 `status=Rejected / reason=""`，而内层 `result.status="Accepted"`、
+	# `unit_results[0].accepted=true` —— 工人其实早就接到续建命令了。
+	# 纪律：网关结果的成败与原因**只有 `_unified_receipt()` 一处判据**（见同文件 1033 行注释）。
+	var receipt := _unified_receipt(result, {"site": str(site.name)})
+	var command_id := str(receipt.get("command_id", ""))
+	if command_id.is_empty():
+		command_id = _new_command_id()
+		receipt["command_id"] = command_id
 	record_command(command_id, "construct", str(player.name),
 		"|".join(builders.map(func(n): return str(n.name))), scene_path,
-		"Accepted" if accepted else "Rejected", reason, str(site.name))
-	return JSON.stringify({
-		"ok": accepted, "accepted": accepted,
-		"status": "Accepted" if accepted else "Rejected",
-		"reason": reason,
-		"command_id": command_id,
-		"site": str(site.name),
-		"result": result,
-	})
+		str(receipt.get("status", "")), str(receipt.get("reason", "")), str(site.name))
+	return JSON.stringify(receipt)
 
 
 func _op_produce(match_node, parsed) -> String:
@@ -845,6 +863,11 @@ func _collect_status(match_node, parsed = null) -> Dictionary:
 		return out
 	var player = _resolve_player(match_node, parsed if parsed != null else {})
 	out["match"] = true
+	# 对局身份（只读，lite 与全量都给）。**面板必需**：副官 runner 可能挂在**专用服的**
+	# 权威口上（而面板长在客户端进程里），此时客户端口看到的租约是空的 ——
+	# 面板必须能按 match_id 把"某个口上的副官"与"本局"对齐，否则会出现
+	# "屏幕上副官在指挥、面板却显示尚未启动"（2026-09-13 用户实测截图）。
+	out["match_id"] = _adjutant_match_id(match_node)
 	var settings_node = match_node.get_node_or_null("FogOfWar")
 	var fog_active: bool = settings_node != null and bool(settings_node.visible)
 	var full_vision: bool = bool((parsed if parsed != null else {}).get("full_vision", false)) \
@@ -947,6 +970,12 @@ func _append_unit_entries(out: Dictionary, _match_node, player, full_vision := f
 			entry["action"] = str(unit.action.get_script().resource_path) if unit.action.get_script() != null else str(unit.action)
 		if "is_constructed" in unit:
 			entry["constructed"] = bool(unit.is_constructed())
+		# 炮管朝向（只读）：客户端傀儡上只能来自 NetSync 快照的 `barrel_yaw`，
+		# 所以在客户端查 op=status 就能与权威端数值比对，判定"炮塔朝向同步是否生效"。
+		if unit.has_method("presentation_aim_node"):
+			var aim_node = unit.presentation_aim_node()
+			if aim_node != null:
+				entry["barrel_yaw"] = aim_node.global_rotation.y
 		if camera != null:
 			var screen: Vector2 = camera.unproject_position(unit.global_position)
 			entry["screen"] = [screen.x, screen.y]
@@ -1113,6 +1142,10 @@ func record_command(command_id: String, op: String, player_name: String,
 			entry["reason"] = reason
 			if not artifact_id.is_empty():
 				entry["artifact_id"] = artifact_id
+			# 命令终态同时进**增量事件流**：副官靠它做"回执增量消费"，
+			# 不必再每轮 `op=commands&command_id=` 逐条复核（计划 §4/§5）。
+			_fast_emit("receipt", {"command_id": command_id, "op": op,
+				"player": player_name, "status": status, "reason": reason})
 			return
 	_command_log.append({
 		"command_id": command_id,
@@ -1124,6 +1157,8 @@ func record_command(command_id: String, op: String, player_name: String,
 		"reason": reason,
 		"artifact_id": artifact_id,
 	})
+	_fast_emit("receipt", {"command_id": command_id, "op": op,
+		"player": player_name, "status": status, "reason": reason})
 	if _command_log.size() > COMMAND_LOG_LIMIT:
 		_command_log = _command_log.slice(_command_log.size() - COMMAND_LOG_LIMIT)
 
@@ -1524,6 +1559,12 @@ func _tactical_self_entry(unit) -> Dictionary:
 	# 不必靠肉眼看画面（2026-09-11 用户指出交火/建造缺可视反馈）。
 	if unit.has_method("construction_progress_report"):
 		entry["construction_work"] = unit.construction_progress_report()
+	# 炮管朝向（只读）：客户端傀儡上这个值只能来自 NetSync 快照的 `barrel_yaw` 字段，
+	# 于是**在客户端查 op=status 就能判定"炮塔朝向同步是否生效"**（与权威端比对数值即可）。
+	if unit.has_method("presentation_aim_node"):
+		var aim_node = unit.presentation_aim_node()
+		if aim_node != null:
+			entry["barrel_yaw"] = aim_node.global_rotation.y
 	if "action" in unit and unit.action != null and is_instance_valid(unit.action):
 		entry["action"] = str(unit.action.get_script().resource_path) if unit.action.get_script() != null else str(unit.action)
 	return entry
@@ -1727,12 +1768,18 @@ func _op_adjutant_batch(match_node, parsed) -> Dictionary:
 	var receipts: Array = []
 	var accepted_count := 0
 	var rejected_count := 0
+	# `mode=intent`（2026-09-12 新增，副官 P1）：批次元素是**意图包**（与 `op=adjutant_intent`
+	# 同形状），逐条走意图入口 —— 含意图幂等登记、动作翻译（scout/regroup→move）、代际守卫。
+	# 默认 `mode=command` 保持既有语义**完全不变**。协调器下发的是**意图**；为了批量而直接走
+	# `_op_adjutant_command` 会让两条入口行为不一致（绕过意图登记与动作翻译）。
+	var mode := str(parsed.get("mode", "command"))
 	for command in commands:
 		if not (command is Dictionary):
 			rejected_count += 1
 			receipts.append({"ok": false, "status": "InvalidCommand", "reason": "批次元素必须是命令包对象。"})
 			continue
-		var receipt := _op_adjutant_command(match_node, command)
+		var receipt := (_op_adjutant_intent(match_node, command) if mode == "intent"
+			else _op_adjutant_command(match_node, command))
 		receipts.append(receipt)
 		if bool(receipt.get("accepted", false)):
 			accepted_count += 1
@@ -2132,6 +2179,454 @@ func _op_adjutant_reserves(match_node, parsed) -> Dictionary:
 		"reserves": reserve_state.get("values", {}),
 		"percent": int(reserve_state.get("percent", ADJUTANT_RESERVE_PERCENT)),
 	}
+
+
+# ---------- 副官高频扫描（P0，2026-09-12） ----------
+## 计划 §3.1/§4：10Hz 读**缓存型**快速状态 + 增量事件，禁止每次请求重扫完整场景。
+## 改造前的事实（这就是"操作频率上不去"的底层原因之一）：
+##   `op=tactical` 每次请求全扫 `units` 两遍，并对**每个敌人**再全扫一次（O(敌×我)）；
+##   于是 10Hz 拉取会拖死主线程，runner 只能 0.5s 轮询一次。
+## 这里把"采样"和"读取"分开：
+##   - 采样：本节点 `_process` 里按固定节拍扫一次，写缓存（10Hz）；
+##   - 读取：`op=adjutant_fast_state` 直接**投影缓存**（O(己方单位)），并可带
+##     `since_event_seq` 只取增量事件。
+const FAST_SAMPLE_INTERVAL_MS := 100
+## 事件环形缓冲上限：满了丢最旧的（增量消费方按 seq 去重，丢旧不丢新）。
+const FAST_EVENT_LIMIT := 256
+## 单次采样最多收录多少单位（防御性上限，避免异常场景把快照撑爆）。
+const FAST_UNIT_LIMIT := 256
+## 单个生产队列最多收录多少项。
+const FAST_QUEUE_LIMIT := 8
+## 事件序号从 1 开始；0 表示"尚无事件"。
+var _fast_event_seq := 0
+var _fast_snapshot_seq := 0
+var _fast_last_sample_ms := -1
+## 最近一次采样的场景级事实（与玩家无关的部分只采一次）。
+var _fast_state := {}
+## 事件环形缓冲（元素含 seq/kind/server_tick/sampled_at/...）。
+var _fast_events: Array = []
+## 差分基线：unit_name -> {"hp": float, "constructed": bool}。
+var _fast_prev_units := {}
+## 差分基线：unit_name -> {item_id: completed_work}。
+var _fast_prev_production := {}
+## 尚未产出的事件类型：**显式声明"未知"**，不允许让消费方以为"没事件=没发生"。
+## 计划 §4 允许"暂时无法实现所有事件"，但要求缺失项必须明确标记。
+##
+## 【2026-09-13 更新】`arrival` 与 `path_failed` 已实现（见 `_fast_sample_movement`：
+## 从权威导航代理 `is_navigation_finished` / `is_target_reachable` 采样），故移出本表。
+## 仍缺失：`task_deltas`（任务进度增量）—— 任务生命周期目前在 Python 侧
+## `track_task_progress` 按回执/生产事件推断，权威端没有独立的任务节点可采样，
+## 所以维持"未知"声明，**不伪造**。
+var _fast_unsupported := ["task_deltas"]
+
+
+## 采样节拍（由 `_process` 调用；与请求无关，所以 10Hz 读的是**缓存**）。
+func _fast_sample_tick() -> void:
+	if _adjutant_observation == null:
+		return
+	var now_ms := Time.get_ticks_msec()
+	if _fast_last_sample_ms >= 0 and now_ms - _fast_last_sample_ms < FAST_SAMPLE_INTERVAL_MS:
+		return
+	_fast_last_sample_ms = now_ms
+	_fast_sample(now_ms)
+
+
+## 记一条增量事件（**唯一入口**：所有事件都带全局递增 seq，消费方据此去重）。
+func _fast_emit(kind: String, payload: Dictionary) -> void:
+	_fast_event_seq += 1
+	var event := payload.duplicate()
+	event["seq"] = _fast_event_seq
+	event["kind"] = kind
+	# tick 取"当前权威 tick"，而不是上一次采样的值 —— 事件可能发生在两次采样之间
+	# （命令回执就是这种：`record_command` 由请求线程同步触发）。
+	var tick := 0
+	if _adjutant_observation != null:
+		tick = int(_adjutant_observation.CurrentServerTick())
+	event["server_tick"] = tick
+	# 与 `_fast_state["sampled_at"]` 同口径：epoch 秒，供 Python 侧算事件延迟。
+	event["sampled_at"] = Time.get_unix_time_from_system()
+	_fast_events.append(event)
+	if _fast_events.size() > FAST_EVENT_LIMIT:
+		_fast_events = _fast_events.slice(_fast_events.size() - FAST_EVENT_LIMIT)
+
+
+## 场景级采样：一次遍历拿到所有单位/建筑/生产队列，并与上次采样做差分成事件。
+func _fast_sample(now_ms: int) -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+	var match_node = tree.current_scene
+	if match_node == null or not match_node.has_method("get_local_player"):
+		return
+	_fast_snapshot_seq += 1
+	var units: Array = []
+	var production: Array = []
+	var seen := {}
+	var server_tick := int(_adjutant_observation.CurrentServerTick())
+	for unit in tree.get_nodes_in_group("units"):
+		if not _is_real_unit(unit) or units.size() >= FAST_UNIT_LIMIT:
+			continue
+		var unit_name := str(unit.name)
+		seen[unit_name] = true
+		var pos: Vector3 = unit.global_position
+		var hp := float(unit.hp) if "hp" in unit and unit.hp != null else 0.0
+		var hp_max := float(unit.hp_max) if "hp_max" in unit and unit.hp_max != null else 0.0
+		var owner_name := ""
+		var parent := unit.get_parent()
+		if parent != null and parent.is_in_group("players"):
+			owner_name = str(parent.name)
+		var constructed = null
+		if unit.has_method("is_constructed"):
+			constructed = bool(unit.is_constructed())
+		units.append({
+			"name": unit_name, "owner": owner_name,
+			"unit_type": str(unit.get("unit_type_id")) if "unit_type_id" in unit else "",
+			"pos": [pos.x, pos.y, pos.z], "hp": hp, "hp_max": hp_max,
+			"constructed": constructed,
+		})
+		# 【到达 / 路径失败 —— 计划 §7 的"到达由观测确认"与"路径失败进紧急线"】
+		# 以前这两类事件被显式列为"不支持"（`_fast_unsupported`），于是 Python 侧既拿不到
+		# 到达证据、也拿不到"走不通"的事实，只能拿 Accepted 当完成 —— 正是被明令禁止的
+		# "把 Accepted 当 Completed"。现在改从**权威导航代理**读（10Hz 采样里顺带问一次）：
+		# - arrival     = `is_navigation_finished()` 或已进入终点容差；
+		# - path_failed = 目标**连续两次采样**不可达（单次判会撞上"重烘期间的瞬时不可达"）。
+		# 同一个目标只报一次；换目标后重新允许上报（由 `_fast_move_key` 去重）。
+		_fast_sample_movement(unit, unit_name, pos)
+		var queue := unit.find_child("ProductionQueue", false, false)
+		if queue != null:
+			var items: Array = []
+			var snapshot = _production_snapshot(match_node, unit)
+			# 【形状必须与 `_production_snapshot` 一致】它返回的是 **Dictionary**
+			# （`{producer, queue_size, items: [...]}`），**不是** Array。
+			# 按 Array 判的后果：`items` 恒空 → `production_started/finished` 事件
+			# 永远不产生 → "命令是否真的生效"少了一整类证据（实测 fast_production_items=0）。
+			if snapshot is Dictionary:
+				# ⚠ GDScript 的 `or` 是**布尔运算符**：`snapshot.get("items") or []` 求值成 bool，
+				# 迭代它就是 "Unable to iterate on object of type 'bool'"（本次实测报错行）。
+				# 回退必须写成显式判空，不能用 `a or b`（这条坑项目里记过，别再犯第三次）。
+				var raw_items = snapshot.get("items")
+				if raw_items is Array:
+					for item in raw_items:
+						if items.size() >= FAST_QUEUE_LIMIT:
+							break
+						items.append({"item_id": str(item.get("item_id", "")),
+							"definition_id": str(item.get("definition_id", "")),
+							"state": str(item.get("state", "")),
+							"completed_work": int(item.get("completed_work", 0)),
+							"required_work": int(item.get("required_work", 0))})
+			production.append({"unit": unit_name, "items": items})
+	_fast_state = {
+		"server_tick": server_tick,
+		# **必须是 epoch 秒**（不是 `Time.get_ticks_msec()` 的"引擎运行时长"）。
+		# Python 侧用 `time.time()`（epoch）算"快照年龄"，两边口径不同会算出 1.7e9 秒的
+		# 假年龄（实测踩过：age_p50 = 1789227830s）。引擎运行时长只用于**本地节拍**。
+		"sampled_at": Time.get_unix_time_from_system(),
+		"snapshot_id": _fast_snapshot_seq,
+		"event_seq": _fast_event_seq,
+		"map_bounds": _fast_map_bounds(match_node),
+		"nav_revision": _fast_nav_revision(match_node),
+		"units": units,
+		"production": production,
+		"sample_ms": Time.get_ticks_msec() - now_ms,
+		"unsupported": _fast_unsupported,
+	}
+	_fast_diff_units(units)
+	_fast_diff_production(production)
+
+
+## 到达 / 路径失败的采样（由 `_fast_sample` 对每个单位调用一次）。
+## 到达终点容差（米）：单位自己的 `path_max_distance` 是 0.3~0.51，取 1.5 米够宽松 ——
+## 宁可早一点点报到达（会触发"重观测再规划"），也不要漏报（漏报 = 永远不知道到没到）。
+const ARRIVAL_EPS_M := 1.5
+## 判定"目标不可达"所需的**连续采样次数**（2 次 = 200ms）。
+## 为什么不是 1 次：导航网格重烘期间 `is_target_reachable()` 会瞬时返回 false，
+## 单次判会把"正在重烘"误报成"走不通"（副官会不必要地停止推进）。
+const UNREACHABLE_SAMPLES_NEEDED := 2
+
+var _fast_move_key := {}        # unit -> 当前目标键（换目标就允许重新上报）
+var _fast_move_reported := {}   # unit -> 该目标是否已上报过
+var _fast_unreachable := {}     # unit -> 连续不可达采样次数
+
+
+func _fast_sample_movement(unit, unit_name: String, pos: Vector3) -> void:
+	var agent = _nav_agent_of(unit)
+	if agent == null:
+		return
+	var target: Vector3 = agent.target_position
+	# `Vector3.INF` = 没有目标（游戏侧完成移动后会置 INF）；全 0 视为"未设置"。
+	if target == Vector3.INF or target == Vector3.ZERO:
+		_fast_move_key.erase(unit_name)
+		_fast_move_reported.erase(unit_name)
+		_fast_unreachable.erase(unit_name)
+		return
+	var key := "%s|%.1f,%.1f" % [unit_name, target.x, target.z]
+	if str(_fast_move_key.get(unit_name, "")) != key:
+		_fast_move_key[unit_name] = key
+		_fast_move_reported.erase(unit_name)
+		_fast_unreachable.erase(unit_name)
+	if bool(_fast_move_reported.get(unit_name, false)):
+		return
+	var finished := bool(agent.is_navigation_finished())
+	var distance := Vector2(pos.x - target.x, pos.z - target.z).length()
+	if finished or distance <= ARRIVAL_EPS_M:
+		_fast_move_reported[unit_name] = true
+		_fast_emit("arrival", {"unit": unit_name,
+			"target": [_round2(target.x), _round2(target.z)],
+			"pos": [_round2(pos.x), _round2(pos.z)],
+			"distance": _round2(distance),
+			"navigation_finished": finished})
+		return
+	if not bool(agent.is_target_reachable()):
+		var streak := int(_fast_unreachable.get(unit_name, 0)) + 1
+		_fast_unreachable[unit_name] = streak
+		if streak >= UNREACHABLE_SAMPLES_NEEDED:
+			_fast_move_reported[unit_name] = true
+			_fast_emit("path_failed", {"unit": unit_name,
+				"target": [_round2(target.x), _round2(target.z)],
+				"pos": [_round2(pos.x), _round2(pos.z)],
+				"samples": streak})
+		return
+	_fast_unreachable.erase(unit_name)
+
+
+## 单位差分：受击 / 死亡 / 新增 / 建成。**这些是 10Hz 才看得到的事实**。
+func _fast_diff_units(units: Array) -> void:
+	var current := {}
+	for entry in units:
+		var unit_name := str(entry["name"])
+		var hp := float(entry["hp"])
+		var constructed = entry.get("constructed")
+		current[unit_name] = {"hp": hp, "constructed": constructed}
+		var previous = _fast_prev_units.get(unit_name)
+		if previous == null:
+			_fast_emit("unit_spawned", {"unit": unit_name, "unit_type": str(entry["unit_type"]),
+				"owner": str(entry["owner"])})
+			continue
+		if hp < float(previous["hp"]) - 0.01:
+			_fast_emit("damage", {"unit": unit_name, "hp": hp,
+				"hp_max": float(entry["hp_max"]),
+				"delta": hp - float(previous["hp"])})
+		if previous.get("constructed") == false and constructed == true:
+			_fast_emit("construction_done", {"unit": unit_name,
+				"unit_type": str(entry["unit_type"])})
+	for unit_name in _fast_prev_units.keys():
+		if not current.has(unit_name):
+			var previous: Dictionary = _fast_prev_units[unit_name]
+			if float(previous.get("hp", 0.0)) <= 0.0:
+				_fast_emit("unit_dead", {"unit": unit_name})
+			else:
+				_fast_emit("unit_lost", {"unit": unit_name})
+	_fast_prev_units = current
+
+
+## 生产差分：队列项完成/新入队/进度推进。
+func _fast_diff_production(production: Array) -> void:
+	var current := {}
+	for entry in production:
+		var unit_name := str(entry["unit"])
+		var items := {}
+		for item in (entry["items"] as Array):
+			items[str(item["item_id"])] = int(item["completed_work"])
+		current[unit_name] = items
+		var previous: Dictionary = _fast_prev_production.get(unit_name, {})
+		for item_id in items.keys():
+			if not previous.has(item_id):
+				_fast_emit("production_started", {"unit": unit_name, "item_id": item_id})
+		for item_id in previous.keys():
+			if not items.has(item_id):
+				_fast_emit("production_finished", {"unit": unit_name, "item_id": item_id})
+	_fast_prev_production = current
+
+
+## 地图尺寸（权威端）：拿不到就返回**空数组**表示未知，绝不用猜测值顶替。
+func _fast_map_bounds(match_node) -> Array:
+	if match_node == null or match_node.map == null:
+		return []
+	var size = match_node.map.size
+	if size == null or not (size is Vector2):
+		return []
+	if size.x <= 0.0 or size.y <= 0.0:
+		return []
+	return [float(size.x), float(size.y)]
+
+
+## 导航烘焙版本：来自 `TerrainNavigation.bake_revision`；拿不到返回 **-1（未知）**。
+##
+## 为什么按"谁有这个属性"找而不是按名字找：场景里脚本挂在 `Navigation/Terrain` 这类
+## 节点上（不是 `TerrainNavigation`），按名字写死会**永远取不到**（实测 nav_revision 恒 -1）。
+## 节点引用缓存起来：只在失效（换场景）时重扫一次，10Hz 采样里不重复遍历。
+var _fast_terrain_nav: Node = null
+
+
+func _fast_nav_revision(match_node) -> int:
+	if match_node == null:
+		return -1
+	if _fast_terrain_nav == null or not is_instance_valid(_fast_terrain_nav):
+		_fast_terrain_nav = null
+		for node in match_node.find_children("*", "Node", true, false):
+			if "bake_revision" in node:
+				_fast_terrain_nav = node
+				break
+	if _fast_terrain_nav == null:
+		return -1
+	return int(_fast_terrain_nav.get("bake_revision"))
+
+
+## 事件增量的**唯一出口**：只返回 seq 大于 `since_seq` 的事件（按 seq 升序）。
+func _fast_events_since(since_seq: int) -> Array:
+	var out: Array = []
+	for event in _fast_events:
+		if int(event.get("seq", 0)) > since_seq:
+			out.append(event.duplicate(true))
+	return out
+
+
+## op=adjutant_fast_state：投影缓存（**不重扫场景**）+ 增量事件。
+## 参数：`as_player`（必需，决定 units/visible_enemies 是"谁的"）、
+##      `since_event_seq`（可选，缺省 -1 = 要全量缓冲）。
+func _op_adjutant_fast_state(match_node, parsed) -> Dictionary:
+	var guard := _adjutant_require_observation()
+	if not guard.is_empty():
+		return guard
+	var player = _adjutant_resolve_player(str(parsed.get("as_player", "")))
+	if player == null:
+		return {"error": "player not found", "reason": "as_player 必须是对局中存在的玩家节点名。"}
+	var match_id := _adjutant_match_id(match_node)
+	var view_key := "%s|%s" % [match_id, str(player.name)]
+	var my_units: Array = []
+	for entry in (_fast_state.get("units", []) as Array):
+		if str(entry.get("owner", "")) == str(player.name):
+			my_units.append(entry)
+	var my_production: Array = []
+	var my_names := {}
+	for entry in my_units:
+		my_names[str(entry["name"])] = true
+	for entry in (_fast_state.get("production", []) as Array):
+		if my_names.has(str(entry.get("unit", ""))):
+			my_production.append(entry)
+	# visible_enemies 只给**本玩家情报表里已被确认看到过**的敌情（迷雾公平性：
+	# 不读全局可见组）。情报表由低频 `op=tactical` 维护，这里只投影。
+	var enemies: Array = []
+	for unit_name in _adjutant_intel.get(view_key, {}).keys():
+		var intel: Dictionary = _adjutant_intel[view_key][unit_name]
+		enemies.append({"name": unit_name, "unit_type": str(intel.get("unit_type", "")),
+			"pos": intel.get("pos", []), "hp": float(intel.get("hp", 0.0)),
+			"last_seen_tick": int(intel.get("last_seen_tick", 0))})
+	var state := _fast_state.duplicate(true)
+	state["units"] = my_units
+	state["production"] = my_production
+	state["visible_enemies"] = enemies
+	state["intel_source"] = "op=tactical intel table"
+	return {
+		"ok": true,
+		"state": state,
+		"events": _fast_events_since(int(parsed.get("since_event_seq", -1))),
+		"next_event_seq": _fast_event_seq,
+	}
+
+
+## op=adjutant_nav_path：**只读**权威寻路查询（计划 §7「安全移动硬闸门」）。
+##
+## 为什么必须在游戏侧查：计划明令「必要时增加只读路径查询，**不在 Python 伪造"安全路线"**」。
+## 路径只能由权威导航网格给出，Python 侧拿到的必须是**事实**（含"查不到路"这个事实）。
+##
+## 返回字段的用意：
+## - `nav_revision`：这条路径挂在**哪一版**网格上。烘焙换入后版本 +1，旧路径即失效
+##   （烘焙期间查询会返回空路径 —— 双缓冲注释里记过"全地图单位查不到路径 → 集体站桩"）；
+## - `reachable`：路径点数 < 2 直接判**不可达**（计划："路径结果 ≠ 到达"，但"没路径"必须能被拒绝）；
+## - `start_clamped/end_clamped`：端点不在网格上时会被吸附，必须显式告诉调用方；
+## - `reason`：查不到路时给**可归类**的原因（`navmesh_unavailable` / `no_path`），
+##   不允许让调用方拿到一个"空数组"自己猜。
+##
+## 参数：`from`/`to` = `[x, z]`（缺 `y` 也接受，按导航网格高度处理）；
+##      `unit` = 可选单位名 —— 给了就**按该单位自己的导航代理**取地图（域不用猜）；
+##      `domain` = `terrain`（默认）/ `air`，仅在没给 `unit` 时生效。
+func _op_adjutant_nav_path(match_node, parsed) -> Dictionary:
+	var guard := _adjutant_require_observation()
+	if not guard.is_empty():
+		return guard
+	var from_raw: Array = parsed.get("from", []) if parsed.get("from") is Array else []
+	var to_raw: Array = parsed.get("to", []) if parsed.get("to") is Array else []
+	if from_raw.size() < 2 or to_raw.size() < 2:
+		return {"ok": false, "reason": "bad_request",
+			"detail": "from/to 必须是 [x, z] 两元素数组。"}
+	var domain := str(parsed.get("domain", "terrain"))
+	var map_rid := RID()
+	# 优先按**单位自己的导航代理**取地图：域映射只有一处（游戏侧），Python 不必抄一份。
+	var unit_name := str(parsed.get("unit", ""))
+	if not unit_name.is_empty():
+		for unit in get_tree().get_nodes_in_group("units"):
+			if str(unit.name) != unit_name or not _is_real_unit(unit):
+				continue
+			var agent = _nav_agent_of(unit)
+			if agent != null:
+				map_rid = agent.get_navigation_map()
+			break
+	if not map_rid.is_valid():
+		var nav_node = match_node.find_child("Navigation", true, false)
+		if nav_node != null and nav_node.has_method("get_navigation_map_rid_by_domain"):
+			var domain_value = (Constants.Match.Navigation.Domain.AIR if domain == "air"
+				else Constants.Match.Navigation.Domain.TERRAIN)
+			map_rid = nav_node.get_navigation_map_rid_by_domain(domain_value)
+	var nav_revision := _fast_nav_revision(match_node)
+	if not map_rid.is_valid():
+		return {"ok": false, "reason": "navmesh_unavailable", "nav_revision": nav_revision,
+			"detail": "导航地图 RID 无效（导航未初始化）。"}
+	var start := Vector3(float(from_raw[0]), 0.0, float(from_raw[1]))
+	var goal := Vector3(float(to_raw[0]), 0.0, float(to_raw[1]))
+	# 网格是否可用：`map_get_closest_point_owner` 无效 = 网格退化/正在重烘。
+	var owner_rid := NavigationServer3D.map_get_closest_point_owner(map_rid, start)
+	if not owner_rid.is_valid():
+		return {"ok": false, "reason": "navmesh_unavailable", "nav_revision": nav_revision,
+			"detail": "导航网格当前不可用（可能正在烘焙）。"}
+	var start_point := NavigationServer3D.map_get_closest_point(map_rid, start)
+	var end_point := NavigationServer3D.map_get_closest_point(map_rid, goal)
+	var path := NavigationServer3D.map_get_path(map_rid, start_point, end_point, true)
+	if path.size() < 2:
+		return {"ok": false, "reason": "no_path", "nav_revision": nav_revision,
+			"reachable": false, "waypoints": [],
+			"start_clamped": _nav_clamped(start, start_point),
+			"end_clamped": _nav_clamped(goal, end_point)}
+	var waypoints: Array = []
+	var route_length := 0.0
+	var previous := start_point
+	for point in path:
+		waypoints.append([_round2(point.x), _round2(point.z)])
+		route_length += Vector2(point.x - previous.x, point.z - previous.z).length()
+		previous = point
+	return {
+		"ok": true, "reachable": true, "domain": domain,
+		"nav_revision": nav_revision,
+		"waypoints": waypoints,
+		"route_length": _round2(route_length),
+		"start_clamped": _nav_clamped(start, start_point),
+		"end_clamped": _nav_clamped(goal, end_point),
+		"start": [_round2(start_point.x), _round2(start_point.z)],
+		"goal": [_round2(end_point.x), _round2(end_point.z)],
+	}
+
+
+## 保留两位小数。**不能用 `round(x, 2)`** —— GDScript 的 `round()` 只接受 1 个参数
+## （Python 习惯写法在这里是**解析期错误**，会让整个 DebugControlServer 加载不了、
+## 对局根本起不来：实测 2026-09-13 专用服 `专用服就绪: False` + 6 行 Parse Error）。
+func _round2(value: float) -> float:
+	return float(int(round(value * 100.0))) / 100.0
+
+
+## 该单位的导航代理（`Movement.gd extends NavigationAgent3D`）；没有就返回 null。
+func _nav_agent_of(unit):
+	var movement = unit.find_child("Movement", false, false)
+	if movement != null and movement is NavigationAgent3D:
+		return movement
+	return null
+
+
+## 端点是否被吸附到网格上（距离超过阈值即视为"原本不在网格上"）。
+const NAV_CLAMP_TOLERANCE_M := 0.5
+
+
+func _nav_clamped(requested: Vector3, snapped: Vector3) -> bool:
+	return Vector2(requested.x - snapped.x, requested.z - snapped.z).length() > NAV_CLAMP_TOLERANCE_M
 
 
 ## op=adjutant_leases：只读查询当前租约代际与意图登记（验收/诊断；不改玩法）。

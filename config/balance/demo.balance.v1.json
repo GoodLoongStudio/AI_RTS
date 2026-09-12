@@ -17,6 +17,12 @@
    "impactSelectionMode": "intendedTargetOnly",
    "radiusMeters": 0.0,
    "friendlyFireDamageMultiplier": 0.5
+  },
+  {
+   "id": "cannon_splash",
+   "impactSelectionMode": "area",
+   "radiusMeters": 2.5,
+   "friendlyFireDamageMultiplier": 0.5
   }
  ],
  "weapons": [
@@ -41,7 +47,7 @@
    "targetDomains": [
     "terrain"
    ],
-   "warheadId": "direct_full_damage"
+   "warheadId": "cannon_splash"
   },
   {
    "id": "infantry_rifle",
@@ -63,7 +69,7 @@
    "targetDomains": [
     "terrain"
    ],
-   "warheadId": "direct_full_damage"
+   "warheadId": "cannon_splash"
   },
   {
    "id": "anti_air_turret_rocket",

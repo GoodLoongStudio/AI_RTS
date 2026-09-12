@@ -38,6 +38,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(HERE)))
 sys.path.insert(0, HERE)
 
 from env_file import load_env_file  # noqa: E402
+from fast_scan import FastScanner  # noqa: E402  （10Hz 缓存型扫描层，计划 §3.1）
 from adjutant_coordinator.graph.checkpoint import JsonCheckpointStore  # noqa: E402
 from adjutant_coordinator.graph.graph import langgraph_available  # noqa: E402
 from adjutant_coordinator.graph.pydantic_agents import (  # noqa: E402
@@ -58,6 +59,28 @@ AUTHORITY_PORT = 24571
 TEST_PORTS = {24569, 24570, 24572}
 #: 单次 TCP 请求默认超时（秒）。
 DEFAULT_TCP_TIMEOUT = 30.0
+
+
+class FaultTacticsModel:
+    """**故障注入档**（验收专用）：`timeout` / `empty` / `invalid` 三选一。
+
+    为什么必须有它（纠偏 §五-2）："注入 timeout/empty/invalid 时，经济、建造、生产和
+    已有战斗任务继续推进"是硬验收项；如果只能靠改代码/断网/拔网线来制造这些状态，
+    验收就不可复现、也没法在同一局里逐档对比。这里把三档做成 runner 开关，
+    与真实模型共用同一条调用路径（`propose_task_patch`），因此测的就是生产代码路径。
+    """
+
+    mode = "fast"
+
+    def __init__(self, kind: str) -> None:
+        self.kind = str(kind)
+
+    def propose_task_patch(self, frame):  # noqa: ANN001 - 与真实 Agent 同签名
+        if self.kind == "timeout":
+            raise ModelTimeout("fault-injection: timeout")
+        if self.kind == "invalid":
+            raise ModelInvalidOutput("fault-injection: invalid")
+        return None          # "empty"：成功但空批次
 
 
 class RunnerError(RuntimeError):
@@ -126,9 +149,31 @@ def pick_human_player(port: int) -> str:
     return ""
 
 
+#: 只有 `op=status` 才会出现的字段（用于识别"这确实是一个 status 响应"）。
+#: `balance`/`server_tick` 之类**不能**用：战术视图也有。
+_STATUS_ONLY_FIELDS = ("players", "is_server", "camera", "full_vision",
+                       "all_balances", "fog_debug", "fog_visible",
+                       "local_player_name", "viewport_size")
+
+
 def match_active(port: int) -> bool:
+    """对局是否仍在进行（决定 runner 是否继续常驻）。
+
+    【为什么不能只看 `match` 是否存在】DCS 是"裸 TCP + 一行 JSON"，同机并发查询时
+    可能收到**串台/异常载荷**：2026-09-12 实测 runner 连续 6 次读到没有 `match` 键的
+    响应 → 判 `match_active=false` → 以 `no_active_match` **正常退出**，
+    而同一个对局几十秒后仍然 `match=True`；表现出来就是"这一局只发展到 M02"
+    （很容易被当成规则退化）。纪律：**异常响应不等于事实**——
+    只有"看起来确实是 status 响应、且其中没有 match"才允许判定对局结束。
+    """
     status = tcp_json(port, {"op": "status"})
-    return bool(status.get("match"))
+    if not isinstance(status, dict):
+        return True                    # 响应形态不对 → 未知，不据此结束对局
+    if "match" in status:
+        return bool(status["match"])
+    if any(key in status for key in _STATUS_ONLY_FIELDS):
+        return False                   # 确实是 status 且没有 match → 对局结束
+    return True                        # 串台/异常载荷 → 保持常驻（下一轮再判）
 
 
 def own_unit_ids(tactical: Dict[str, Any]) -> List[str]:
@@ -171,6 +216,9 @@ class AuthorityIntentTransport:
         self.lease_ttl_s = lease_ttl_s
         self.sent_count = 0
         self.errors: List[str] = []
+        #: 批量提交统计（计划 §9 要"批量提交效果"）：批次数 / 批内命令数。
+        self.batch_count = 0
+        self.batch_commands = 0
         self.lease_translated = 0
         self._lease_cache: Dict[str, int] = {}
         self._lease_cache_player = ""
@@ -225,6 +273,56 @@ class AuthorityIntentTransport:
         receipt.setdefault("intent_id", str(envelope.get("intent_id", "")))
         receipt.setdefault("result", {})
         return receipt
+
+    def send_batch(self, envelopes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """一次 TCP 提交多条意图（计划 §5：优先使用批量意图接口）。
+
+        **批量传输 ≠ 批量成功**：权威端逐项回执，这里按 `intent_id` 把回执对回原意图；
+        对不上的那一项显式标 `BadReceipt`（绝不允许"没收到回执"被当成成功）。
+
+        单条时直接走 `send_command`（批量只有一条没有收益，且少一层解析）。
+        """
+        items = [item for item in (envelopes or []) if isinstance(item, dict)]
+        if not items:
+            return []
+        if len(items) == 1:
+            return [self.send_command(items[0])]
+        commands: List[Dict[str, Any]] = []
+        for envelope in items:
+            payload = dict(envelope)
+            payload.pop("op", None)
+            commands.append(payload)
+        self.batch_count += 1
+        self.batch_commands += len(commands)
+        try:
+            response = tcp_json(self.port, {"op": "adjutant_batch", "mode": "intent",
+                                            "commands": commands}, timeout=self.timeout)
+        except OSError as exc:
+            self.errors.append(str(exc))
+            self.errors = self.errors[-20:]
+            return [{"ok": False, "accepted": False, "status": "TransportError",
+                     "reason": str(exc),
+                     "command_id": str(item.get("command_id", "")),
+                     "intent_id": str(item.get("intent_id", "")), "result": {}}
+                    for item in items]
+        receipts = (response or {}).get("receipts") or []
+        by_intent = {str(item.get("intent_id", "")): item
+                     for item in receipts if isinstance(item, dict)}
+        out: List[Dict[str, Any]] = []
+        for item in items:
+            intent_id = str(item.get("intent_id", ""))
+            receipt = by_intent.get(intent_id)
+            if not isinstance(receipt, dict):
+                receipt = {"ok": False, "accepted": False, "status": "BadReceipt",
+                           "reason": "批量回执里没有这一条（不按成功处理）",
+                           "command_id": str(item.get("command_id", "")),
+                           "intent_id": intent_id, "result": {}}
+            receipt.setdefault("command_id", str(item.get("command_id", "")))
+            receipt.setdefault("intent_id", intent_id)
+            receipt.setdefault("result", {})
+            out.append(receipt)
+        self.sent_count += len(out)
+        return out
 
     def heartbeat(self) -> bool:
         return True
@@ -355,6 +453,13 @@ class AgentRunner:
 
         strategy_model, tactics_model = self._build_models()
         self.transport = AuthorityIntentTransport(self.port)
+        # 【10Hz 扫描层】只读缓存型快速状态 + 增量事件；线程只写有界队列，
+        # 不碰 LangGraph 状态（单写者 = 协调线程，见计划 §3.1/§3.2）。
+        if str(getattr(self.args, "scan", "on")) == "on":
+            self.scanner = FastScanner(
+                self.port, self.player, tcp_json=tcp_json,
+                interval=float(getattr(self.args, "scan_interval", 0.1)))
+            self.scanner.start()
         # 有界异步调度（计划 §7.C）：模型调用在工作线程里跑，主循环不再被 1~15s 的
         # 推理阻塞；结果到达时按"本地接收期限 / 观测推进 / 逐对象代际"判定接受或拒绝。
         scheduler = self._build_scheduler(tactics_model)
@@ -376,7 +481,9 @@ class AgentRunner:
                 pause_on_player_interrupt=True,
                 engine=str(self.args.engine)),
             recheck_fn=self._recheck,
-            tick_provider=self._tick_provider)
+            tick_provider=self._tick_provider,
+            # 安全移动硬闸门的权威路径来源（必须在 `setup` 之前定义好，见 run()）。
+            nav_query=self._nav_query)
         restore = self.runtime.restore(expect_rules_version=self.rules_version)
         # 控制权交接（点"接管"= 玩家把部队交给副官）：只登记 AI 托管代际。
         # 注意**不能**用 release_units —— 它会把单位写进 released_units，而 node_ingest
@@ -425,6 +532,18 @@ class AgentRunner:
         return scheduler
 
     def _build_models(self):
+        # 【验收档】`--model off|timeout|empty|invalid`：纠偏 §五要求"模型关闭/超时/空/
+        # 非法时副官仍靠规则中台持续运营"。off 必须能在**没有凭据**的机器上直接起，
+        # 否则验收根本执行不了（真实 Provider 缺 key 会在装配期直接 RunnerError）。
+        model_mode = str(getattr(self.args, "model", "on") or "on")
+        if model_mode == "off":
+            print("[runner] 决策模型=off：仅规则中台 + 行为树（baseline 验收档）")
+            return None, None
+        if model_mode in ("timeout", "empty", "invalid"):
+            print("[runner] 决策模型=故障注入档(%s)：走真实调用路径，按档抛错/回空"
+                  % model_mode)
+            return None, MeteredModel("tactics", FaultTacticsModel(model_mode),
+                                      self.model_sink)
         # 战略层默认关闭：计划 §6 阶段 A 允许"省略高层的单一模型决策入口，并在状态里标注
         # 高层意图缺省"。实测依据（2026-09-12）：战略模型在真实对局里 18 次
         # `ModelInvalidOutput: Exceeded maximum retries`，每次重试都是**同步阻塞**调用，
@@ -472,7 +591,71 @@ class AgentRunner:
 
     # ---------- 下发前/复核钩子 ----------
 
+    def _nav_query(self, unit: str, target) -> Dict[str, Any]:
+        """权威路径查询（计划 §7）：接到游戏侧 `op=adjutant_nav_path`。
+
+        起点取**单位当前位置**（从 10Hz 缓存快照读，不额外往返）——不能拿目标点当起点：
+        实测基地坐标 (10,7) 不在网格上，会被吸附到 (7.96,7.26)，起点错了路径就没意义。
+
+        纪律：查不到路就返回 `ok=false`，**绝不**在 Python 侧伪造直线
+        （计划明令"不在 Python 伪造安全路线"）。异常同样按 `no_path` 处理。
+        """
+        goal = ([float(target[0]), float(target[1])]
+                if isinstance(target, (list, tuple)) and len(target) >= 2 else [0.0, 0.0])
+        start = self._unit_position(unit) or [0.0, 0.0]
+        try:
+            reply = tcp_json(self.port, {"op": "adjutant_nav_path", "as_player": self.player,
+                                         "unit": str(unit), "from": start, "to": goal},
+                             timeout=8)
+        except OSError as exc:
+            return {"ok": False, "reason": "transport_error", "detail": str(exc)[:120]}
+        return reply if isinstance(reply, dict) else {"ok": False, "reason": "bad_reply"}
+
+    def _unit_position(self, unit: str) -> Optional[List[float]]:
+        """从 10Hz 快照里取单位当前位置（`[x, z]`）；拿不到返回 None。"""
+        if self.scanner is None:
+            return None
+        snapshot = self.scanner.latest() or {}
+        for entry in snapshot.get("units") or []:
+            if str(entry.get("name")) != str(unit):
+                continue
+            position = entry.get("pos") or []
+            if len(position) >= 3:
+                return [float(position[0]), float(position[2])]
+            if len(position) == 2:
+                return [float(position[0]), float(position[1])]
+        return None
+
+    def _match_alive(self) -> Optional[bool]:
+        """**廉价**存活探针（计划 P0：协调层不该每轮拉一次全量 status）。
+
+        `op=status` 会全扫单位并逐单位做相机投影 —— 实测单位涨到 32 个时，
+        它是主循环被拖慢到 0.75Hz 的头号成本。这里优先用 10Hz 扫描层的缓存快照
+        （2ms）判断"对局还活着"；只有当快照过期（= DCS 不再响应）时才退化到
+        昂贵的 `match_active`，**保持原有判据不变**（异常响应不等于事实）。
+        """
+        if self.scanner is not None:
+            latest = self.scanner.latest()
+            if latest:
+                try:
+                    age = time.time() - float(latest.get("sampled_at") or 0)
+                except (TypeError, ValueError):
+                    age = 99.0
+                if 0.0 <= age <= 3.0:
+                    return True
+        return match_active(self.port)
+
     def _tick_provider(self) -> Optional[Dict[str, int]]:
+        # 【先走 10Hz 快照】它带权威端的 `server_tick`/`snapshot_id`，且读取免费。
+        # 改造前这里每轮都发一次 `op=tactical&limit=1`（仍要全扫场景）—— 纯粹重复往返。
+        if self.scanner is not None:
+            latest = self.scanner.latest()
+            if latest:
+                cached_tick = int(latest.get("server_tick", 0) or 0)
+                if cached_tick > 0:
+                    return {"server_tick": cached_tick,
+                            "snapshot_id": int(latest.get("snapshot_id", cached_tick)
+                                               or cached_tick)}
         snapshot = tcp_json(self.port, {"op": "tactical", "as_player": self.player,
                                         "limit": 1}, timeout=15)
         tick = int(snapshot.get("server_tick", 0) or 0)
@@ -500,17 +683,34 @@ class AgentRunner:
     # ---------- 主循环 ----------
 
     def run(self) -> int:
+        self.scanner: Optional[FastScanner] = None
+        #: 完整视图缓存（`op=strategic`/`op=tactical`）：按 `--full-view-interval` 刷新。
+        self._full_views: Dict[str, Any] = {}
+        #: 协调轮次时间戳（有界，120 个）：用来算真实的**协调频率**（`coord_hz`）。
+        self._coord_stamps: List[float] = []
+        # 【一对一硬约束】必须在 `setup()` **之前**判定：否则"对局没跑起来"这类
+        # setup 失败会先返回 3，被重复启动的那个 runner 反而不被判重复（实测踩到）。
+        occupant = self._acquire_single_instance()
+        if occupant != 0:
+            print("[runner] 本局已有 runner 在跑（pid=%s，authority_port=%s player=%s），"
+                  "拒绝启动第二个。" % (occupant, self.port, self.player), file=sys.stderr)
+            self._log({"kind": "single_instance_rejected", "occupant_pid": occupant,
+                       "authority_port": self.port, "player": self.player})
+            self._close_log()
+            return 4
         try:
             self.setup()
         except RunnerError as exc:
             print("[runner] 启动失败：%s" % exc, file=sys.stderr)
             self._log({"kind": "setup_failed", "error": str(exc)})
             self._close_log()
+            self._release_single_instance()
             return 3
         except Exception as exc:  # noqa: BLE001 —— 装配期异常统一留痕后退出
             print("[runner] 装配异常：%r" % exc, file=sys.stderr)
             self._log({"kind": "setup_error", "error": repr(exc)})
             self._close_log()
+            self._release_single_instance()
             return 3
 
         self._install_signal_handlers()
@@ -521,14 +721,38 @@ class AgentRunner:
         try:
             while not self._stopping:
                 try:
+                    loop_started = time.time()
+                    observe_started = time.time()
                     tick_value, obs = self._observe()
+                    observe_ms = int((time.time() - observe_started) * 1000)
                     self._sync_control(obs.get("tactical") or {})
+                    # 【增量事件消费】把扫描层攒下的新事件交给本轮（按 seq 去重，只消费新增）。
+                    # 事件带"游戏内真实发生的事"（回执/受击/建成/生产开始…），
+                    # 协调层据此更新进度，而不是靠每轮重拉全量视图去猜。
+                    if self.scanner is not None:
+                        fast_events = self.scanner.drain_events()
+                        if fast_events:
+                            obs["fast_events"] = fast_events
+                        latest = self.scanner.latest()
+                        if latest:
+                            obs["fast_state"] = latest
                     started = time.time()
                     result = self.runtime.tick(tick_value, obs)
                     elapsed_ms = int((time.time() - started) * 1000)
                     bad_ticks = 0
+                    # 【协调频率与观测开销】计划 §9 要报"协调频率"与耗时。
+                    # 只有 `elapsed_ms`（协调本身）看不出"为什么到不了 2Hz" ——
+                    # 实测瓶颈在 `_observe`（全量视图），所以观测耗时必须单列（2026-09-13）。
+                    self._coord_stamps.append(time.time())
+                    if len(self._coord_stamps) > 120:
+                        self._coord_stamps.pop(0)
+                    coord_hz = 0.0
+                    if len(self._coord_stamps) >= 2:
+                        span = self._coord_stamps[-1] - self._coord_stamps[0]
+                        coord_hz = round((len(self._coord_stamps) - 1) / max(0.001, span), 2)
                     self._log({
                         "kind": "tick", "server_tick": tick_value, "elapsed_ms": elapsed_ms,
+                        "coord_hz": coord_hz, "observe_ms": observe_ms,
                         "route": result.route, "paused": bool(getattr(result, "paused", False)),
                         "accepted": list(result.accepted_intents),
                         "dropped": list(result.dropped_intents),
@@ -537,7 +761,34 @@ class AgentRunner:
                             self.runtime.state.server_tick),
                         "model_calls": len(self.model_sink),
                         "sent": self.transport.sent_count,
+                        # 【P1 验收指标】五条线路的处理次数/饿死账 + 批量提交效果。
+                        "lanes": dict(result.state.get("lanes") or {}),
+                        # 【P2 验收指标】安全移动：allowed / blocked_reasons / ungated /
+                        # scout_first_coverage / bound_clamped。`ungated` 必须为 0
+                        # （非 0 = 有移动意图没经过权威寻路闸门）。
+                        "movement": dict(result.state.get("movement_stats") or {}),
+                        "nav_revision": int(result.state.get("nav_revision", -1) or -1),
+                        "batch": {
+                            "calls": int(getattr(self.transport, "batch_count", 0)),
+                            "commands": int(getattr(self.transport, "batch_commands", 0)),
+                            "batches_submitted": int(getattr(
+                                self.runtime.coordinator.metrics, "batches_submitted", 0)),
+                        },
                     })
+                    # 扫描层指标（计划 §9：快照年龄 p50/p95/max、扫描频率、事件延迟）。
+                    if self.scanner is not None:
+                        snapshot = self.scanner.latest() or {}
+                        production = snapshot.get("production") or []
+                        self._log({"kind": "fast_scan", "server_tick": tick_value,
+                                   # 生产增量链路的自证：这两个数为 0 说明
+                                   # "production_*" 事件永远不会产生（不能靠猜）。
+                                   "fast_units": len(snapshot.get("units") or []),
+                                   "fast_production_units": len(production),
+                                   "fast_production_items": sum(
+                                       len(entry.get("items") or [])
+                                       for entry in production if isinstance(entry, dict)),
+                                   "fast_nav_revision": snapshot.get("nav_revision"),
+                                   **self.scanner.stats()})
                     self._log_decision_delta(tick_value)
                     # 游戏内面板的"思考"内容：由 runner 直接给结论，HUD 只渲染。
                     self._log_hud_status(tick_value, result)
@@ -556,7 +807,7 @@ class AgentRunner:
                 if self._stopping:
                     break
                 # 对局结束（或权威端点消失）→ 正常退出，交给 daemon 判定是否重启。
-                if not match_active(self.port):
+                if not self._match_alive():
                     idle_checks += 1
                     self._log({"kind": "idle", "consecutive": idle_checks,
                                "note": "match_active=false"})
@@ -565,14 +816,23 @@ class AgentRunner:
                         break
                 else:
                     idle_checks = 0
-                self._sleep(float(self.args.tick_interval))
+                # 【固定**节奏**而不是固定 sleep】原来每轮固定睡 `tick_interval`，
+                # 处理耗时（观测 + 协调 + 写日志 + 扫描线程的 GIL 争用）被**叠加**上去：
+                # 实测 tick_interval=0.5s 时实际只有 1.47~1.75Hz（计划要 2Hz）。
+                # 改成"睡掉本轮剩余时间"，协调频率才真正等于 1/tick_interval。
+                spent = time.time() - loop_started
+                self._sleep(max(0.0, float(self.args.tick_interval) - spent))
         finally:
+            if self.scanner is not None:
+                self.scanner.stop()
+                self._log({"kind": "fast_scan_final", **self.scanner.stats()})
             try:
                 if self.runtime is not None:
                     self.runtime.checkpoint()
             except Exception as exc:  # noqa: BLE001
                 self._log({"kind": "checkpoint_error", "error": repr(exc)})
             self._remove_pidfile()
+            self._release_single_instance()
             self._log({"kind": "exit", "code": exit_code, "reason": self._stop_reason,
                        "sent": self.transport.sent_count if self.transport else 0,
                        "model_calls": len(self.model_sink)})
@@ -580,7 +840,24 @@ class AgentRunner:
         return exit_code
 
     def _observe(self):
-        views = fetch_views(self.port, self.player, self.rules_cache)
+        """取本轮观测：**完整视图按需刷新**，不每轮重拉（计划 §3.2 "按需读取"）。
+
+        实测依据（2026-09-13，32 单位）：`op=tactical` + `op=strategic` 都是全场景扫描
+        （tactical 还要对每个敌人再全扫一遍 = O(敌×我)），两者合计把协调主循环拖到
+        **0.85Hz**，而 coordination 自身的处理只要 **70ms**。
+        计划 P0 的完成条件是"协调平均频率接近 2Hz"，所以贵的那部分必须**按间隔刷新**：
+        中间轮次复用上一份完整视图（它们仍然会被 `fast_state` 的新鲜事实覆盖——
+        `node_ingest` 会先用扫描层的增量事件与 `nav_revision` 更新状态）。
+        """
+        now = time.time()
+        cached = self._full_views
+        fresh = (cached and now - float(cached.get("at", 0.0))
+                 < float(getattr(self.args, "full_view_interval", 1.0) or 1.0))
+        if fresh:
+            views = cached["views"]
+        else:
+            views = fetch_views(self.port, self.player, self.rules_cache)
+            self._full_views = {"at": now, "views": views}
         tactical = views["tactical"] or {}
         tick = int(tactical.get("server_tick", 0) or 0)
         header = {
@@ -660,6 +937,86 @@ class AgentRunner:
         except OSError:
             pass
 
+    # ---------- 一对一硬约束（同一局只允许一个 runner） ----------
+
+    @staticmethod
+    def _pid_alive(pid: int) -> bool:
+        """进程是否还活着（Windows 用 OpenProcess/GetExitCodeProcess）。"""
+        if int(pid) <= 0:
+            return False
+        if os.name == "nt":
+            import ctypes
+            handle = ctypes.windll.kernel32.OpenProcess(0x1000, False, int(pid))
+            if not handle:
+                return False
+            try:
+                code = ctypes.c_ulong()
+                ok = ctypes.windll.kernel32.GetExitCodeProcess(handle, ctypes.byref(code))
+                return bool(ok) and code.value == 259      # STILL_ACTIVE
+            finally:
+                ctypes.windll.kernel32.CloseHandle(handle)
+        try:
+            os.kill(int(pid), 0)
+        except OSError:
+            return False
+        return True
+
+    def _single_instance_file(self) -> str:
+        """本局 runner 的一对一锁文件（键 = authority_port + player）。
+
+        与 `--pidfile` 分开：pidfile 是给游戏里"停止按钮"用的**固定路径**，
+        而锁必须按**局**区分（不同端口/玩家互不影响）。
+        """
+        name = "agent_runner_%s_%s.lock" % (int(self.port), str(self.player or "auto"))
+        return os.path.join(self.args.log_dir, name)
+
+    def _acquire_single_instance(self) -> int:
+        """抢本局唯一 runner 的锁：0 = 拿到；>0 = 已在跑的 runner 的 pid。
+
+        为什么必须做（用户 2026-09-12 晚指出"一个对局会启动多个 runner"）：
+        两个 runner 同时指挥同一局会 ① 对同一批单位下发**互相冲突**的命令
+        （各自以为自己在执行计划）；② 在单并发的本地模型上互相排队 ——
+        实测把"一次思考 0.7 秒"拖到 **4.7 秒**（当时的节拍测量就是这么被污染的）。
+        陈旧锁（进程已死）会被自动接管，不会把下一次启动锁死。
+        """
+        path = self._single_instance_file()
+        try:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+        except OSError:
+            pass
+        try:
+            handle = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except FileExistsError:
+            occupant = 0
+            try:
+                with open(path, encoding="utf-8") as existing:
+                    occupant = int((existing.read() or "0").strip() or "0")
+            except (OSError, ValueError):
+                occupant = 0
+            if self._pid_alive(occupant):
+                return occupant or -1
+            try:                      # 陈旧锁：接管
+                os.unlink(path)
+            except OSError:
+                return -1
+            try:
+                handle = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            except OSError:
+                return -1
+        except OSError:
+            # 拿不到锁文件（权限/路径异常）不该把 runner 卡死：放行但留痕。
+            self._log({"kind": "single_instance_unavailable", "path": path})
+            return 0
+        with os.fdopen(handle, "w", encoding="utf-8") as target:
+            target.write(str(os.getpid()))
+        return 0
+
+    def _release_single_instance(self) -> None:
+        try:
+            os.unlink(self._single_instance_file())
+        except OSError:
+            pass
+
     # ---------- 日志 ----------
 
     def _open_log(self) -> None:
@@ -708,11 +1065,72 @@ class AgentRunner:
         "attack_move": "攻击移动", "move": "移动", "scout": "侦察", "retreat": "撤离",
         "defend": "防守", "hold": "待命", "stop": "停止", "regroup": "集结",
     }
+    #: 面板专用措辞（比 ACTION_CN 的动作名更贴玩家看的"在干什么"）。
+    LANE_CN = {"attack_move": "前压探索"}
+
+    def _lane_summary(self) -> str:
+        """把"四条线此刻各在干什么"压成一句面板文案（事实来自活跃意图）。
+
+        用户 2026-09-12 晚："有这么多钱还在想着等待时机" —— 旧兜底文案在
+        "规则中台正在维持采集/建造/生产/前压、本轮只是没有变化"时会被读成
+        "AI 在发呆"。面板必须陈述事实，而不是给一句情绪化的空话。
+        """
+        try:
+            intents = list(getattr(self.runtime.state, "active_intents", []) or [])
+        except Exception:  # noqa: BLE001 —— 面板文案失败绝不影响指挥链
+            return "正在维持既有任务"
+        counted: Dict[str, int] = {}
+        for intent in intents:
+            if not isinstance(intent, dict):
+                continue
+            if str(intent.get("state", "")) not in ("active", "pending_authority",
+                                                    "retry_wait", "active_unknown"):
+                continue
+            action = str(intent.get("action", ""))
+            counted[action] = counted.get(action, 0) + max(
+                1, len(intent.get("unit_ids") or []))
+        if not counted:
+            return "正在维持既有任务"
+        parts = ["%s×%d" % (self.LANE_CN.get(action, self.ACTION_CN.get(action, action)),
+                            number)
+                 for action, number in sorted(counted.items(), key=lambda item: -item[1])[:4]]
+        return "正在维持：" + "、".join(parts)
+
     #: 降级原因前缀 → 玩家能看懂的一句话（不暴露模型名/校验细节）。
     DEGRADE_CN = {
         "strategy_model_": "战略思考这一轮没成功，先用规则顶住",
         "tactics_model_": "战术思考这一轮没成功，先用规则顶住",
     }
+    #: 仲裁丢弃原因前缀 → 面板中文标签（顺序即匹配优先级，长前缀在前）。
+    #: 【2026-09-12 实机教训】副官"一条命令都发不出去"时，面板过去只写"本轮没有新命令"，
+    #: 看上去像"一切正常"——用户当时报的是"看不到 AI 副官指挥部队的信标"，
+    #: 实际原因却是全部被判重丢弃（`duplicate_of_live_intent`）卡死。丢弃原因不该只躺在日志里。
+    DROP_CN = (
+        ("duplicate_of_live_intent", "重复在途"),
+        ("pending_authority_unresolved", "等待权威确认"),
+        ("duplicate_intent_id_in_batch", "批次内重复"),
+        ("duplicate_of", "重复批次"),
+        ("lease_owner_player", "玩家已接管"),
+        ("generation_mismatch", "控制代际过期"),
+        ("reacquire_not_authorized", "未获重新接管授权"),
+        ("batch_limit_exceeded", "超出本轮配额"),
+        ("contract_invalid", "模型输出不合法"),
+        ("intent_already_tracked", "已在执行"),
+    )
+
+    @classmethod
+    def _dropped_reason_counts(cls, dropped: Any) -> Dict[str, int]:
+        """把本轮丢弃原因聚合成 `{中文标签: 条数}`（键顺序 = 首次出现顺序）。"""
+        counts: Dict[str, int] = {}
+        for item in dropped or []:
+            reason = str((item or {}).get("reason", "") or "").strip()
+            label = "其他"
+            for prefix, text in cls.DROP_CN:
+                if reason.startswith(prefix):
+                    label = text
+                    break
+            counts[label] = counts.get(label, 0) + 1
+        return counts
 
     def _write_hud_status_file(self, payload: Dict[str, Any]) -> None:
         """把最新一条状态**覆盖**写入 `<log-dir>/hud_status.json`。
@@ -767,7 +1185,11 @@ class AgentRunner:
                     thinking = text
                     break
             if not thinking:
-                thinking = ("正在执行：%s" % "、".join(actions)) if actions else "正在观察战况，等待时机"
+                # 【不许再写"等待时机"】2026-09-12 晚用户质问："有这么多钱还在想着等待时机"。
+                # 这句话在"规则中台正维持四条线、本轮只是没有**变化**"时会被读成"AI 在发呆"。
+                # 面板要陈述事实：各条线此刻各有多少单位在执行什么。
+                thinking = (("正在执行：%s" % "、".join(actions)) if actions
+                            else self._lane_summary())
             degraded = str(getattr(result, "degraded_reason", "") or "")
             why = "一切正常"
             for prefix, text in self.DEGRADE_CN.items():
@@ -779,6 +1201,17 @@ class AgentRunner:
                     why = "本轮有点状况，副官已自动兜底"
             result_text = ("下发 %d 条：%s" % (len(accepted), "、".join(actions))
                            if actions else "本轮没有新命令")
+            # 2026-09-12：把"为什么没有（或少了）命令"一并写上面板。
+            # 原先丢弃原因只进日志，面板仍显示"一切正常"，于是整局停摆只能靠
+            # "看不到指挥信标"来猜 —— 这类静默失效必须在面板上直接可见。
+            dropped_counts = self._dropped_reason_counts(
+                getattr(result, "dropped_intents", None))
+            if dropped_counts:
+                result_text += "（丢弃 %d 条：%s）" % (
+                    sum(dropped_counts.values()),
+                    "、".join("%s×%d" % (label, count)
+                              for label, count in dropped_counts.items()))
+            mainline = self._mainline_text(state)
             payload = {
                 "server_tick": int(tick_value),
                 "phase": phase,
@@ -786,7 +1219,11 @@ class AgentRunner:
                 "why": why[:60],
                 "result": result_text[:80],
                 # 战略阶段目标由模型产出（本来就是中文），给玩家一个"大方向"。
-                "goal": str((state.active_plan or {}).get("phase_goal", ""))[:60],
+                # 整局主线（阶段 + 下一目标）优先，因为它**一定存在**（程序建立），
+                # 而战略层默认是关闭的（`active_plan` 恒空 → 面板那一行永远是空的）。
+                "goal": (mainline or str((state.active_plan or {}).get("phase_goal", "")))[:60],
+                # 额外字段：HUD 不认识就忽略（旧面板不受影响），排查/验收直接读。
+                "mainline": mainline[:60],
                 "units": len(getattr(state, "ai_controlled_units", None) or []),
             }
             # 事件日志：字段是给机器/排查用的（保留英文 key 便于检索）。
@@ -801,6 +1238,31 @@ class AgentRunner:
             self._write_hud_status_file(payload)
         except Exception:  # noqa: BLE001 —— 状态写失败绝不允许影响指挥链
             pass
+
+    @staticmethod
+    def _mainline_text(state: Any) -> str:
+        """整局主线的一句话（中文人话）：`阶段：扩张 · 下一目标：分基地/分矿`。
+
+        为什么由 runner 生成：面板只渲染 `hud_status.json`（副官侧），游戏侧不改；
+        而"这一局打到哪一步了"是玩家最该看到的一条信息（此前面板完全没有）。
+        """
+        campaign = getattr(state, "campaign_state", None) or {}
+        if not isinstance(campaign, dict) or not campaign.get("milestones"):
+            return ""
+        try:
+            from ..graph import campaign as campaign_mod
+            summary = campaign_mod.summary(campaign)
+        except Exception:  # noqa: BLE001 —— 表现层失败不影响指挥链
+            return ""
+        phase = str(summary.get("phase", "") or "")
+        frontier = str(summary.get("frontier_name", "") or "")
+        text = "阶段：%s" % (phase or "进行中")
+        if frontier:
+            text += " · 下一目标：%s" % frontier
+        blocked = summary.get("blocked") or []
+        if blocked:
+            text += " · 受阻：%d 项" % len(blocked)
+        return text
 
     def _humanize_rationale(self, text: Any) -> str:
         """把决策理由洗成**玩家能看懂的中文**。
@@ -873,6 +1335,10 @@ def build_parser() -> argparse.ArgumentParser:
                         help="自测用：允许连非权威端口（隔离测试端口）")
     parser.add_argument("--player", default="", help="被指挥的真人玩家名（默认自动发现）")
     parser.add_argument("--provider", choices=("real", "fake"), default="real")
+    parser.add_argument("--model", choices=("on", "off", "timeout", "empty", "invalid"),
+                        default="on",
+                        help="决策模型档位：on=真实/假模型（默认）；off=只跑规则中台+行为树；"
+                             "timeout/empty/invalid=故障注入（验收混合架构的抗打断性）")
     parser.add_argument("--interface", choices=("four-col", "legacy"), default="four-col",
                         help="决策接口：four-col=四列任务修改（默认，唯一决策入口）；"
                              "legacy=旧极简 DirectiveBatch（保留用于 A/B 与回退）")
@@ -892,8 +1358,11 @@ def build_parser() -> argparse.ArgumentParser:
                              "tactics_request 只剩 **2** 次 → 微操层（发展阶梯+行为树）被饿死、"
                              "整局 0 生产、看不到任何批量指挥。战略层是低频慢层，"
                              "提速要靠微操高频跑（见 --tactics-interval / --event-interval）。")
-    parser.add_argument("--tactics-interval", type=int, default=120,
-                        help="战术模型最小间隔（tick，默认 120≈2s）")
+    parser.add_argument("--tactics-interval", type=int, default=60,
+                        help="战术决策最小间隔（tick，默认 60≈1s）。"
+                             "【用户硬要求 2026-09-12 晚】副官下发节拍**不得低于 1 次/秒**；"
+                             "原默认 120(≈2s) 被用户判定为\"命令频率太低\"。地板（规则中台+"
+                             "行为树）按同一节拍重新决策，所以这个值就是\"AI 反应速度\"。")
     parser.add_argument("--emergency-interval", type=int, default=60,
                         help="紧急事件最小间隔（tick，默认 60≈1s）")
     parser.add_argument("--ttl", type=int, default=3600,
@@ -903,9 +1372,21 @@ def build_parser() -> argparse.ArgumentParser:
                         help="紧急意图有效期（tick，默认 1200≈20s）")
     parser.add_argument("--tick-interval", type=float, default=0.5,
                         help="循环节奏（秒；模型本身耗时不受此限制）")
-    parser.add_argument("--event-interval", type=int, default=120,
-                        help="观测事件节流（tick；图需事件才会走战术分支，默认 120≈2s，"
-                             "应不大于 --tactics-interval）")
+    parser.add_argument("--full-view-interval", type=float, default=1.0,
+                        help="完整 tactical/strategic 视图的刷新间隔（秒，默认 1.0）。"
+                             "两者都是全场景扫描（tactical 还是 O(敌×我)），每轮重拉会把"
+                             "协调主循环拖到 0.85Hz（实测 32 单位）；中间轮次复用缓存，"
+                             "新鲜事实由 10Hz 扫描层的增量事件补上。")
+    parser.add_argument("--scan-interval", type=float, default=0.1,
+                        help="高频扫描节拍（秒，默认 0.1=10Hz；计划 §3.1 要求扫描约 10Hz）。"
+                             "扫描走 op=adjutant_fast_state（读游戏侧缓存），不再全量重拉场景。")
+    parser.add_argument("--scan", default="on", choices=("on", "off"),
+                        help="是否启用 10Hz 缓存型扫描层（off = 退回旧的 0.5s 全量轮询，"
+                             "用于对照与排障）")
+    parser.add_argument("--event-interval", type=int, default=60,
+                        help="观测事件节流（tick；图需事件才会走战术分支，默认 60≈1s，"
+                             "应不大于 --tactics-interval）。与 --tactics-interval 一起决定"
+                             "副官的下发节拍（用户要求 ≥1 次/秒）。")
     parser.add_argument("--max-batch", type=int, default=24,
                         help="每轮最多下发多少条意图（默认 24，原为 8）。"
                              "实测默认 8 在对局激烈时大量触发 batch_limit_exceeded"

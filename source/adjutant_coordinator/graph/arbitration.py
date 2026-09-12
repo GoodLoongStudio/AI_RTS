@@ -15,6 +15,7 @@ import json
 from dataclasses import dataclass, field
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
+from . import lanes as lanes_mod
 from .contracts import ContractError, parse_tactical_intent
 from .model_context import validate_intent_references
 from .state import INTENT_LIVE_STATES
@@ -27,6 +28,8 @@ class ArbitrationResult:
     accepted: List[Dict[str, Any]] = field(default_factory=list)
     dropped: List[Dict[str, Any]] = field(default_factory=list)
     clamped: List[Dict[str, Any]] = field(default_factory=list)
+    #: 五条线路的轮转痕迹（计划 §5）：`{cursor,next_cursor,rotation,pending,total}`。
+    lane_trace: Dict[str, Any] = field(default_factory=dict)
 
     @property
     def dropped_reasons(self) -> Dict[str, str]:
@@ -153,8 +156,9 @@ def arbitrate_intents(
     max_batch: int = 8,
     intent_ttl_ticks: int = 600,
     expected_plan_version: str = "",
+    lane_cursor: int = 0,
 ) -> ArbitrationResult:
-    """校验 + 去重 + 排序 + 截断；返回可提交意图与全部丢弃原因。"""
+    """校验 + 去重 + **五线路轮转排序** + 截断；返回可提交意图与全部丢弃原因。"""
     result = ArbitrationResult()
     current_tick = int(current_tick)
     units_scope = allowed_units if allowed_units is not None else known_entities
@@ -173,9 +177,14 @@ def arbitrate_intents(
     # 单位不停重下移动/采集、原地抖。改为按"单位 + 动作 + 目标"判重后，
     # 无论活跃记录是单单位还是合并意图，都能正确抑制重复下单。
     live_unit_orders: Dict[Tuple[str, str, str], str] = {}
-    for record in state.active_intents:
-        if record.get("state") not in INTENT_LIVE_STATES:
-            continue
+    # 【2026-09-12 实机锁死修复】这里必须走 `state.live_intents(current_tick)`：
+    # 它除了判状态，还会按 `expires_tick` 过滤。此前直接遍历 `state.active_intents`
+    # 只判状态，于是**早已过期的 `active_unknown`**（回执未知）记录被永久当成"仍在途"：
+    # 同目标的新命令每一轮都被判 `duplicate_of_live_intent` 丢弃 —— 实测整局副官 0 命令
+    # （画面上就是"看不到指挥信标"，而副官面板仍显示"一切正常"），
+    # 且重启 runner 无效（这些记录随 graph_checkpoint.json 一起恢复）。
+    # `AdjutantGraphState.live_intents` 与 `nodes._StateView.live_intents` 同口径，两处都覆盖。
+    for record in state.live_intents(current_tick):
         live_fingerprints[_order_fingerprint(record)] = str(record.get("intent_id", ""))
         order_key = json.dumps(record.get("target") or {}, ensure_ascii=False, sort_keys=True)
         for unit_id in record.get("unit_ids", []):
@@ -311,12 +320,12 @@ def arbitrate_intents(
         seen_fingerprints[fingerprint] = intent_id
         candidates.append(intent)
 
-    candidates.sort(key=lambda item: (
-        0 if item.get("emergency") else 1,
-        -int(item.get("priority", 0)),
-        int(item.get("issued_tick", 0)),
-        str(item.get("intent_id", "")),
-    ))
+    # 【五条线路轮转，取代"一次全局排序"】计划 §5：紧急线可抢占，但**每轮都要走完
+    # 其余四条线**，且每条线路每周期至少有一次处理机会。全局排序的问题在真机可见：
+    # 建造/交战意图一多，采集与侦察会在 `max_batch` 截断处**整条线路**消失，
+    # 而日志只有一句 `batch_limit_exceeded`，看不出谁被饿死。
+    candidates, lane_trace = lanes_mod.interleave(candidates, cursor=lane_cursor)
+    result.lane_trace = lane_trace
     limit = max(1, int(max_batch))
     # 【2026-09-11】合并同动作同目标的意图：一条命令带多个单位。
     # 位置很关键：在**校验与去重之后、批量截断之前** ——
@@ -333,6 +342,10 @@ def arbitrate_intents(
                     for item in result.dropped],
         "clamped": [item["intent_id"] for item in result.clamped],
         "merged": merge_traces,
+        # 五条线路的轮转起点与各线候选数（验收要"每条线路都有处理机会"的证据）。
+        "lanes": {"next_cursor": lane_trace.get("next_cursor"),
+                  "rotation": lane_trace.get("rotation"),
+                  "pending": lane_trace.get("pending")},
     })
     return result
 

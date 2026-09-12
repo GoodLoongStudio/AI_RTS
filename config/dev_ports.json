@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "_readme": [
+    "本机端口【唯一口径】。所有使用方都必须从这里读，不许各写一份：",
+    "  - 游戏内面板 source/ui/AdjutantButton.gd（读 res://config/dev_ports.json）",
+    "  - 副官 runner 启停 G:\\AIRTS\\tmp_logs\\langgraph_recon\\runner_ctl.py",
+    "  - 本地对局起停 restart_local.py / 验收 campaign_accept.py",
+    "  - 权威端本身 source/net/DebugControlServer.gd（DEFAULT_PORT / ADJUTANT_PORT）",
+    "守门测试：source/adjutant_coordinator/tests/test_port_registry.py（任何一处漂移即红灯）。",
+    "",
+    "【为什么要有这张表】2026-09-13 血案：验收脚本用 24579/24582（= 面板约定的权威口），",
+    "又把 pidfile 写进了面板的 user://adjutant_logs → 面板认领了验收的 runner、面板的 runner",
+    "连到了验收的对局，验收收尾按端口清理时把面板的 runner 一起杀了。",
+    "玩家屏幕上看到的是『runner 心跳超时』= 以为副官坏了。根因就是『端口各写一份、互相撞车』。"
+  ],
+
+  "reserved_blocks": {
+    "player_prod": [24567, 24572],
+    "panel_local_test": [24579, 24582],
+    "acceptance_only": [24589, 24592]
+  },
+
+  "roles": {
+    "game_default_dcs": 24568,
+    "player_udp": 24567,
+    "player_tcp": 24571,
+    "cloud_test_udp": 24569,
+    "cloud_test_tcp": 24572,
+    "panel_test_game_udp": 24579,
+    "panel_test_client_dcs": 24580,
+    "panel_test_server_dcs": 24582,
+    "accept_game_udp": 24589,
+    "accept_client_dcs": 24590,
+    "accept_server_dcs": 24592
+  },
+
+  "panel": {
+    "_note": "面板探测权威口的候选顺序：本进程 DCS 永远优先（不用猜），然后才是这个列表。",
+    "authority_candidates": [24568, 24572, 24570, 24580, 24582, 24590, 24592, 24579, 24589, 24569]
+  },
+
+  "acceptance": {
+    "_note": "验收【只许】用这一段。starter 脚本必须在启动前校验，越界直接拒跑。",
+    "base": 24589,
+    "env_var": "AIRTS_TEST_BASE",
+    "hud_env_var": "AIRTS_RUNNER_HUD",
+    "_hud_note": "验收的 pidfile/日志必须写这里，绝不许碰面板的 user://adjutant_logs。"
+  },
+
+  "forbidden_for_acceptance": [24567, 24568, 24571, 24579, 24580, 24582]
+}

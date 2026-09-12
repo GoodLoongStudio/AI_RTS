@@ -40,6 +40,13 @@ EVENT_KINDS = (
 )
 
 # 紧急战术事件：可以打断普通战略任务（但永远不能打断玩家）。
+#
+# 【2026-09-13 试过把 `path_failed` 也放进来，已撤回】金标准回放
+# `fixtures/replay_path_failed.jsonl` 钉死的是另一套语义：
+# 「路径失败**不取消**在途意图（同目标重复下单被拦、**改目标的重规划才放行**）」。
+# 把它接进紧急路由会让图立刻丢弃在途意图（金标准 4 条断言同时红）。
+# 计划 §7 的"送入 `urgent`"按 §5 的线路定义执行 = 送进 **urgent 线路**
+# （见 `nodes._raise_movement_urgent`），不改变图的紧急路由。
 EMERGENCY_EVENT_KINDS = (EVT_BASE_UNDER_ATTACK, EVT_ENEMY_SPOTTED)
 # 玩家控制事件：最高优先级。
 CONTROL_EVENT_KINDS = (EVT_PLAYER_OVERRIDE, EVT_PLAYER_RELEASE)
@@ -135,10 +142,20 @@ def plan_expired(state, current_tick: int) -> bool:
 
 
 def is_tactics_due(state, current_tick: int, events: Iterable[Dict[str, Any]],
-                   config: Dict[str, Any], pending_authority: bool) -> bool:
-    """战术触发：事件驱动；PendingAuthority 未复核时不再对该单位重复触发。"""
-    if pending_authority:
-        return False
+                   config: Dict[str, Any], pending_authority: bool = False) -> bool:
+    """战术触发：事件驱动（`tactics_interval_ticks` 节流 + 有事件）。
+
+    【2026-09-12 晚修：取消"全局 PendingAuthority 压制"】
+    原实现是 `if pending_authority: return False` —— 只要**任意一个**请求在等权威确认
+    （`state.pending_requests` 非空），**整轮战术决策就被跳过**。实测后果（用户质问
+    "既然每秒一次思考，为什么没看到副官持续下命令"）：
+      主循环 0.58 秒/轮，而模型实际每 **4.7 秒**才被问一次 —— 因为 `produce`/`attack_move`
+      这类命令会先回 `PendingAuthority`（等 `op=commands` 账本复核），期间路由恒为 `wait`。
+    "不要对同一单位重复下发"是**仲裁层**的职责（`pending_authority_unresolved` 指纹去重
+    + `duplicate_of_live_intent`），不需要在路由层再全局掐一次；而且它是**单位级**语义，
+    不该由一条在途命令代表全队。
+    参数 `pending_authority` 保留（调用方兼容），只作诊断用，不再参与判定。
+    """
     interval = int(config.get("tactics_interval_ticks", 30))
     if last_gap_ok(state, current_tick, interval) is False:
         return False

@@ -2,6 +2,9 @@ const OWNED_PLAYER_CIRCLE_COLOR = Color.GREEN
 const ADVERSARY_PLAYER_CIRCLE_COLOR = Color.RED
 const RESOURCE_CIRCLE_COLOR = Color.YELLOW
 const DEFAULT_CIRCLE_COLOR = Color.WHITE
+# 选中单位/建筑时显示的攻击范围圈（2026-09-12 用户要求"点击炮塔和单位要显示其攻击范围"）。
+# 刻意不用绿色：绿色在语义上已经是"选中圈"，两圈同心时必须一眼分得开。
+const ATTACK_RANGE_CIRCLE_COLOR = Color(0.55, 0.85, 1.0)
 const MAPS = {
 	"res://source/match/maps/PlainAndSimple.tscn":
 	{

@@ -31,6 +31,10 @@ const RocketScene := "res://source/match/units/projectiles/Rocket.tscn"
 const PROJECTILE_BY_UNIT_SCENE := {
 	"res://source/match/units/Infantry.tscn": RifleRoundScene,
 	"res://source/match/units/Tank.tscn": CannonShellScene,
+	# 同 CombatSfx.FIRE_SOUND_BY_SCENE：新单位漏登记 → 客户端**看不到任何弹道/开火表现**
+	# （权威端照常发射，只是傀儡端没有可回放的弹道视觉）。
+	"res://source/match/units/HeavyTank.tscn": CannonShellScene,
+	"res://source/match/units/APC.tscn": RifleRoundScene,
 	"res://source/match/units/AntiGroundTurret.tscn": CannonShellScene,
 	"res://source/match/units/AntiAirTurret.tscn": RocketScene,
 	"res://source/match/units/Helicopter.tscn": RocketScene,
@@ -49,17 +53,49 @@ class PresentationRuntime extends RefCounted:
 		pass
 
 
+## 漏登记报错去重（每个场景只报一次），见 scene_path_for()。
+static var _missing_projectile_reported := {}
+
+
 static func scene_path_for(unit) -> String:
-	return str(PROJECTILE_BY_UNIT_SCENE.get(str(unit.scene_file_path), ""))
+	var scene := str(unit.scene_file_path)
+	var path := str(PROJECTILE_BY_UNIT_SCENE.get(scene, ""))
+	# 同 CombatSfx.fire_key_for：漏登记过去是静默的（客户端"看不到弹道"），
+	# 这里补一条明确报错，每个场景只报一次。
+	if path.is_empty() and not _missing_projectile_reported.has(scene):
+		_missing_projectile_reported[scene] = true
+		push_error("[VFX] 单位未登记弹道表现（ProjectileVisuals.PROJECTILE_BY_UNIT_SCENE）: %s" % scene)
+	return path
 
 
 ## 炮口变换：与权威端 `ProjectileRuntime.GetLaunchTransform` 同口径
 ## （有 `ProjectileOrigin` 子节点就用它，否则用单位自身变换）。
 static func muzzle_transform(unit) -> Transform3D:
+	var alternating = _alternating_muzzle(unit)
+	if alternating is Node3D:
+		return (alternating as Node3D).global_transform
 	var origin = unit.find_child("ProjectileOrigin", true, false)
 	if origin is Node3D:
 		return (origin as Node3D).global_transform
 	return unit.global_transform
+
+
+## 多炮管单位的**交替炮口**：按 `MuzzleL` / `MuzzleR` 逐发轮换
+## （2026-09-12 用户要求"两根炮管交替发射，不要从中间出来"）。
+## 计数放在**单位自身的 meta** 上（键 `muzzle_next_left`）：
+## 两端各自独立计数，但客户端是逐发回放权威端的开火事件，
+## 所以顺序天然同相 —— 第 1 发两端都走左、第 2 发都走右。
+## 没有这两个挂点的单位返回 null，退回原来的 `ProjectileOrigin` 口径。
+static func _alternating_muzzle(unit):
+	var left = unit.find_child("MuzzleL", true, false)
+	var right = unit.find_child("MuzzleR", true, false)
+	if not (left is Node3D) or not (right is Node3D):
+		return null
+	var next_left := true
+	if unit.has_meta("muzzle_next_left"):
+		next_left = bool(unit.get_meta("muzzle_next_left"))
+	unit.set_meta("muzzle_next_left", not next_left)
+	return left if next_left else right
 
 
 ## 在客户端回放一次发射。**只影响画面**；非傀儡端直接返回（权威端有自己的真实弹道）。
@@ -86,7 +122,15 @@ static func present(unit, authoritative_aim: Vector3 = Vector3.INF) -> void:
 		return
 
 	var muzzle := muzzle_transform(unit)
-	var forward: Vector3 = (-muzzle.basis.z)
+	# 轴向约定必须与单位类型一致（2026-09-12 用户报"炮管朝着目标、炮弹却往反方向飞"）：
+	# 机动单位（坦克/步兵/飞机）车体正前方是 **-Z**；
+	# 而炮塔类建筑的炮管正前方是 **+Z**（见 AttackingWhileInRange._turret_aim_error_degrees
+	# 与炮塔瞄准旋转）。原先这里统一取 -Z，炮塔在没有权威落点时就会朝反方向打。
+	var forward: Vector3
+	if unit.has_method("presentation_aim_node") and unit.presentation_aim_node() != null:
+		forward = muzzle.basis.z
+	else:
+		forward = -muzzle.basis.z
 	forward.y = 0.0
 	if forward.length() < 0.01:
 		forward = Vector3(0.0, 0.0, -1.0)

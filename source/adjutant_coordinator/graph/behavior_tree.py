@@ -263,6 +263,15 @@ def _is_combat(bb: Blackboard) -> bool:
     return bool(info.get("type") in (bb.get("combat_types") or ()))
 
 
+def _no_visible_enemy(bb: Blackboard) -> bool:
+    """当前**没有可见敌人**（"前压探索"分支的前置条件）。
+
+    与 `_engage_nearest` 的失败条件同源：`visible_enemies` 为空时该分支直接 FAILURE，
+    所以要显式写成一个条件节点，"无敌人 → 主动前压"的意图才表达得出来。
+    """
+    return not (bb.get("visible_enemies") or ())
+
+
 def _outnumbered(bb: Blackboard) -> bool:
     """可见敌人数 **多于** 我方作战单位数 → 劣势。
 
@@ -282,6 +291,44 @@ def _retreat(bb: Blackboard) -> str:
     home = bb.get("home_pos") or [0.0, 0.0]
     return bb.emit("retreat", {"pos": [round(float(home[0]), 1), round(float(home[1]), 1)]},
                    priority=95, rationale="可见敌人数多于我方作战单位，撤离保存战力")
+
+
+#: 基地回防的**作用半径**（米）：只调动基地附近的作战单位（手册 DEF-01：
+#: "仅基地附近单位；远处部队继续原任务（不全军回防）"）。
+DEFENSE_RADIUS_M = 40.0
+
+
+def _under_attack(bb: Blackboard) -> bool:
+    """基地是否处于受袭状态（由整局主线的 `interrupt_stack` 推导，见 `_adapt`）。
+
+    刻意**不用"看到敌人"**当判据：那样会把"路上偶遇"也当成基地受袭，
+    从而把前压/侦察中的部队全部拉回来（= 变相的"全军回防"）。
+    """
+    point = bb.get("defend_pos")
+    return bool(point) and len(point) >= 2
+
+
+def _near_base(bb: Blackboard) -> bool:
+    point = bb.get("defend_pos") or []
+    pos = bb.get("unit_pos") or []
+    if len(point) < 2 or len(pos) < 2:
+        return False
+    try:
+        distance2 = ((float(pos[0]) - float(point[0])) ** 2
+                     + (float(pos[1]) - float(point[1])) ** 2)
+    except (TypeError, ValueError):
+        return False
+    return distance2 <= DEFENSE_RADIUS_M ** 2
+
+
+def _defend_base(bb: Blackboard) -> str:
+    point = bb.get("defend_pos") or []
+    if len(point) < 2:
+        return Status.FAILURE
+    return bb.emit("defend",
+                   {"pos": [round(float(point[0]), 1), round(float(point[1]), 1)]},
+                   priority=92,
+                   rationale="基地受袭：基地附近的作战单位回防（远处部队继续原任务）")
 
 
 def _has_assigned_target(bb: Blackboard) -> bool:
@@ -331,6 +378,20 @@ def _gather(bb: Blackboard) -> str:
         "entity_id": str(res.get("entity_id") or ""),
         "pos": [round(float(rp[0]), 1), round(float(rp[1]), 1)],
     }, priority=50, rationale="工人采集最近的可见资源（经济优先）")
+
+
+def _should_advance(bb: Blackboard) -> bool:
+    """是否允许"无可见敌人时前压探索"（**默认开启**；`allow_forward_advance=false` 可关）。
+
+    默认开启的依据（2026-09-12 晚，用户带截图质问"部队为什么只会停下来等待"）：
+    - 决策手册 `01 §3`：军事线必须"零散 → 集结 → **防守/前压** → 进攻"持续推进，
+      四条线同时存在，禁止"等待时机"式的不作为；
+    - 传统 AI 优点清单 #7：**兜底推进绝不站桩**（无可见敌 → 向敌方方向推进）；
+    - 实测：13 个单位、余额 46800，全部堆在基地周围 —— 因为旧树在无敌人时只剩
+      "空闲集结（默认开启）"，等于把部队钉在基地上不动。
+    航点必须有 `home_anchor` 才发（拿不到就不动作，宁可不发）。
+    """
+    return bool(bb.get("allow_forward_advance", True)) and bool(bb.get("home_anchor"))
 
 
 def _should_regroup(bb: Blackboard) -> bool:
@@ -387,8 +448,18 @@ def _scout_waypoint(bb: Blackboard):
     **观测到的主基地位置**（`home_anchor`，真实读自 `op=tactical`）
     加确定性方位/圈数推出 —— 同一 tick 必然得到同一点，可复现、可单测，
     因此不违反"不许做无依据的战场动作"这条纪律。
+
+    【整局主线】当主线处于"扩张选址"（M04）时，侦察单位改去**程序指定的前探点**
+    （远端矿点方向 / 地图内侧）：绕圈侦察靠"碰巧飘到"永远打不开分基地链，
+    而 SCT-01/SCT-02 本来就要求"朝未探索方向 / 资源富集侧"定向侦察。
     """
     home = bb.get("home_anchor")
+    directive = bb.get("scout_directive")
+    if isinstance(directive, (list, tuple)) and len(directive) >= 2:
+        try:
+            return [round(float(directive[0]), 1), round(float(directive[1]), 1)]
+        except (TypeError, ValueError):
+            pass
     if not home:
         return None
     slot = _scout_slot(bb)
@@ -418,6 +489,74 @@ def _scout(bb: Blackboard) -> str:
                    rationale="专职侦察按确定性航点前压 %s（基地位置+方位/圈数推出）" % (point,))
 
 
+#: 前压/探索航点：半径步长比侦察更大（作战单位是往外推，不是绕圈）。
+ADVANCE_RING_STEP = 25.0
+#: 前压半径的**配置上限**（米）。注意：这只是"用户可调的上限"，
+#: **真正的安全上限在 `rules_fallback.ADVANCE_SAFE_RADIUS_M`（40m）** ——
+#: 两者取小。旧默认 120m 会把部队送到地图边缘（2026-09-12 用户实测问题），
+#: 保留这个键只为兼容既有配置，不再单独决定射程。
+ADVANCE_MAX_RADIUS = 120.0
+#: 单个前压航点的停留时长（tick，默认 900≈15s）：比侦察更久，避免半路改目标来回抖。
+ADVANCE_HOLD_TICKS = 900
+
+
+def _advance_slot(bb: Blackboard) -> int:
+    hold = max(1, int(bb.get("advance_hold_ticks") or ADVANCE_HOLD_TICKS))
+    return int(bb.get("server_tick") or 0) // hold
+
+
+def _advance_waypoint(bb: Blackboard):
+    """无可见敌人时作战单位的**前压/探索航点**（确定性、可复核）。
+
+    为什么必须有这一支（2026-09-12 晚，用户带着截图质问"部队为什么只会停下来等待"）：
+    - 决策手册 `01 §3` 军事线是"零散 → **集结** → **防守/前压** → 进攻 → 撤退"，
+      且明确要求四条线**同时推进**、禁止"等待时机"式的不作为；
+    - 传统 AI 优点 #7：**兜底推进绝不站桩**（无可见敌也要向敌方方向推进）；
+    - 实测：13 个单位、余额 46800，全部停在基地周围 —— 因为微操树在"无可见敌人"时
+      **没有任何分支命中**（工人分支不适用、专职侦察只认 drone、空闲集结默认关闭），
+      于是这些单位整局一条命令都拿不到，HUD 就显示"正在观察战况，等待时机"。
+
+    与 `_scout_waypoint` 同源（都用**观测到的** `home_anchor` + 罗盘方位 + 逐圈外扩，
+    同一 tick 必然同一点，可复现可单测）；差别：半径步长更大、停留更久，
+    且**按单位名散开相位** —— 否则同一 tick 里所有单位会收到同一个点、挤成一团。
+    """
+    home = bb.get("home_anchor")
+    if not home:
+        return None
+    from . import rules_fallback as rf
+    slot = _advance_slot(bb)
+    seed = 0
+    for char in str(bb.unit or ""):
+        seed = (seed * 31 + ord(char)) % 997
+    # 【2026-09-12 用户实测修正：不再"罗盘均匀往外撒"】
+    # 旧实现按方位一圈圈外扩（步长 25m、上限 120m）—— 实际就是把部队送到**地图边缘**，
+    # 实战中途遇敌被逐个击破。方向与半径的判据现在**只有一处**（`rf.military_waypoint`）：
+    # 朝已知敌情 / 地图内侧，且不超过"基地到最近地图边"的一半。这里只负责
+    # "同一 tick 必然同一点"的可复现性与按单位错相位。
+    bearing = SCOUT_BEARINGS[(slot + seed) % len(SCOUT_BEARINGS)]
+    ring = 1 + (slot + seed) // len(SCOUT_BEARINGS)
+    return rf.military_waypoint(home, bounds=bb.get("map_bounds"), ring=ring,
+                                bearing=bearing,
+                                max_radius=float(bb.get("advance_max_radius")
+                                                 or ADVANCE_MAX_RADIUS))
+
+
+def _advance(bb: Blackboard) -> str:
+    """作战单位在**无可见敌人**时向外前压探索（而不是原地待命）。
+
+    `attack_move` 而不是 `move`：一路上遇到敌人就地交火，不需要再等一轮决策
+    （手册"不添油"指的是不要零散投入，不是"遇敌不动手"）。
+    """
+    if not _is_combat(bb):
+        return Status.FAILURE
+    point = _advance_waypoint(bb)
+    if not point:
+        return Status.FAILURE
+    return bb.emit("attack_move", {"pos": point}, priority=25,
+                   id_tick=_advance_slot(bb),
+                   rationale="无可见敌人：向外前压探索 %s（不停下等待）" % (point,))
+
+
 def _engage_nearest(bb: Blackboard) -> str:
     enemies = bb.get("visible_enemies") or []
     if not enemies:
@@ -443,13 +582,15 @@ def build_micro_tree() -> Node:
     """构造微操行为树（每单位一棵，顺序即纪律）。
 
     优先级（高 → 低）：
-      1. 玩家接管 → 让权（**安全边界，必须最前**）
-      2. 劣势 → 撤离（求生优先于一切军事行动）
-      3. 有已分派目标 → 攻击该目标（执行 LLM/阶梯意图）
-      4. 作战单位 → 打最近的可见敌人
-      5. 工人 → 采集（兜底，**可被阶梯的建造/生产抢占** —— 见 `micro_intents` 分工说明）
-      6. 专职侦察 → 向确定性航点前压（无人机等；有据可依，见 `_scout_waypoint`）
-      7. 否则 → 空闲集结（**默认关闭**，见 `_should_regroup`）
+     1. 玩家接管 → 让权（**安全边界，必须最前**）
+     2. 劣势 → 撤离（求生优先于一切军事行动）
+     3. **基地受袭 + 在基地附近 → 回防**（整局主线的紧急中断，见 `_defend_base`）
+     4. 有已分派目标 → 攻击该目标（执行 LLM/阶梯意图）
+     5. 作战单位 → 打最近的可见敌人
+     6. 工人 → 采集（兜底，**可被阶梯的建造/生产抢占** —— 见 `micro_intents` 分工说明）
+     7. 专职侦察 → 向确定性航点前压（无人机等；有据可依，见 `_scout_waypoint`）
+     8. **作战单位 + 无可见敌人 → 前压探索**（见 `_advance`；2026-09-12 晚新增）
+     9. 否则 → 空闲集结（**默认关闭**，见 `_should_regroup`）
 
     **建造/生产不在本树内**：由 `rules_fallback.development_intents` 决定"造什么/产什么"
     并优先认领单位，本树只处理剩余单位。这样避免"工人先命中采集就永远轮不到建造"
@@ -465,7 +606,16 @@ def build_micro_tree() -> Node:
                  Condition(_outnumbered, "敌多于我"),
                  Action(_retreat, "撤离"), name="劣势撤离"),
 
-        # 3. 执行上层分派的交战目标。
+        # 3. 基地受袭（整局主线的紧急中断）→ 基地**附近**的作战单位回防。
+        # 【2026-09-12 主线纠偏】紧急事件只压进 `campaign.interrupt_stack`，
+        # 这里只负责"让受影响的单位真的动起来"；`defend_pos` 缺席时整支 FAILURE，
+        # 既有行为完全不变（回放/单测不受影响）。
+        Sequence(Condition(_under_attack, "基地受袭"),
+                 Condition(_is_combat, "是作战单位"),
+                 Condition(_near_base, "在基地附近"),
+                 Action(_defend_base, "回防"), name="基地回防"),
+
+        # 4. 执行上层分派的交战目标。
         Sequence(Condition(_has_assigned_target, "有分派目标"),
                  Action(_attack_assigned, "攻击目标"), name="执行交战"),
 
@@ -484,7 +634,18 @@ def build_micro_tree() -> Node:
         Sequence(Condition(_is_scout, "是专职侦察"),
                  Action(_scout, "侦察"), name="专职侦察"),
 
-        # 7. 兜底：空闲作战单位向基地靠拢（默认关闭，见 _should_regroup）。
+        # 7. 无可见敌人时作战单位**前压探索**（不是原地待命/只回基地）。
+        # 【2026-09-12 晚新增，用户带截图质问"部队为什么只会停下来等待"】
+        # 此前这一档是空的：工人分支不适用、专职侦察只认 drone、空闲集结默认关闭
+        # → 作战单位整局拿不到任何命令（13 个单位、46800 余额全部杵在基地）。
+        # 手册 01 §3 军事线要求"集结 → **前压** → 进攻"持续推进；传统 AI 铁律是
+        # "兜底推进绝不站桩"。航点由**观测到的基地位置**推出，不是凭空游走。
+        Sequence(Condition(_should_advance, "允许前压"),
+                 Condition(_is_combat, "是作战单位"),
+                 Condition(_no_visible_enemy, "无可见敌人"),
+                 Action(_advance, "前压探索"), name="前压探索"),
+
+        # 8. 兜底：空闲作战单位向基地靠拢（默认关闭，见 _should_regroup）。
         Sequence(Condition(_should_regroup, "允许空闲集结"),
                  Action(_regroup, "集结"), name="空闲集结"),
 
@@ -517,8 +678,35 @@ def _adapt(
     enemies = rf._living_enemies(tactical)
     ai_units = [str(u) for u in ((state or {}).get("ai_controlled_units") or [])]
 
+    # 基地受袭（整局主线的紧急中断）→ 回防点。纪律：只有**中断栈里真有活跃的
+    # base_under_attack** 时才给点，别的紧急类型（enemy_spotted 等）不触发回防 ——
+    # 否则"偶遇敌人"会被当成基地受袭，等于变相"全军回防"。
+    defend_pos = None
+    scout_directive = None
+    campaign = (state or {}).get("campaign_state")
+    if isinstance(campaign, dict):
+        # 扩张选址阶段的定向侦察点（纯程序产出，不是凭空游走）。
+        directive = campaign.get("expansion_probe") or []
+        if len(directive) >= 2:
+            try:
+                scout_directive = [float(directive[0]), float(directive[1])]
+            except (TypeError, ValueError):
+                scout_directive = None
+        for entry in campaign.get("interrupt_stack") or []:
+            if not isinstance(entry, dict):
+                continue
+            if (str(entry.get("kind", "")) == "base_under_attack"
+                    and str(entry.get("status", "")) == "active"):
+                defend_pos = rf.base_anchor_pos(by_name)
+                break
+
     return {
         "by_name": by_name,
+        "defend_pos": list(defend_pos) if defend_pos else None,
+        "scout_directive": scout_directive,
+        # 地图尺寸（观测得到）：前压方向/半径的安全判据需要它 ——
+        # 没有它就只能按固定半径往外走，那正是"把部队送到地图边缘"的旧行为。
+        "map_bounds": list((state or {}).get("map_bounds") or []),
         # 敌人只需 id（目标推理归模型，微操只负责"打最近的"）。
         # id 一律经 `rf.entity_id_of` 取：游戏端导出的实体只有 `name`。
         # 【曾按 `entity_id` 读 → `visible_enemies` 恒空 → 就近交火与劣势撤离
@@ -535,7 +723,14 @@ def _adapt(
         # **采集分配器**（照搬游戏内传统 AI `EconomyController._find_visible_resource`）：
         # 按"资源节点已分配人数 + 资源类型均衡 + 距离"给每个工人**预分配**矿点，
         # 避免所有工人取"最近矿"挤成一团（实测 3 工人同矿、部队被堵、有人闲置）。
-        "assigned_resources": rf.assign_resources(by_name, resources, unit_names=ai_units),
+        # 【2026-09-12 结构性整改】必须把"**已经在采的人**"一并交给分配器（`intents=`）：
+        # 少了它，已上岗的人（busy，被调用方过滤掉）不在负载里 → 新工人被重复派到同一个矿
+        # → 永久拥挤（用户实测：4 个工人 3 个挤一个矿，5 米外的矿一个都没人用；
+        # 而且游戏侧 `CollectingResourcesSequentially` 是"认死一个矿"的循环，不会自己散开）。
+        # 占用账的唯一实现在 `resource_allocation.occupancy`，这里只负责把输入交进去。
+        "assigned_resources": rf.assign_resources(
+            by_name, resources, unit_names=ai_units,
+            intents=(state or {}).get("active_intents") or []),
         # 撤离用：允许兜底（必须**一定有坐标可撤**，拿不到基地就退回自身位置）。
         "home_pos": (lambda anchor: list(anchor) if anchor else None)(
             rf._base_anchor_pos(by_name)),
@@ -627,11 +822,23 @@ def micro_parts(
             # 集结/侦察用：必须是**真实观测到的不动建筑**（严格锚点），
             # 拿不到就不动作（宁可不发）—— 用松散兜底会让航点绕着自己漂。
             "home_anchor": shared["base_anchor"],
+            # 前压航点的安全判据需要的边界（缺少时退化为固定安全半径，仍不会贴边）。
+            "map_bounds": shared.get("map_bounds") or [],
+            # 基地受袭时的回防点（来自整局主线的紧急中断；缺席 = 不回防）。
+            "defend_pos": shared.get("defend_pos"),
+            # 扩张选址阶段的定向侦察点（缺席 = 走确定性绕圈航点）。
+            "scout_directive": shared.get("scout_directive"),
             # 空闲集结**默认开启**（2026-09-11 用户要求"要看到副官批量指挥部队"）：
             # 目标点是**观测到的主基地**（全队同一目标 → 仲裁层把这一批 move 合并成
             # **一条多单位命令**，屏幕上就是"整队一起动"）。这不是凭空游走 ——
             # 原始纪律禁止的是"没有依据的野外游走"，而"回基地集结"的位置来自观测。
             "allow_idle_regroup": bool(cfg.get("allow_idle_regroup", True)),
+            # 无可见敌人时作战单位**前压探索**（**默认开启**，见 `_should_advance`）：
+            # 关掉则回退到旧的"空闲集结/静默"，供回放与不想要野外推进的用例使用。
+            "allow_forward_advance": bool(cfg.get("allow_forward_advance", True)),
+            "advance_hold_ticks": int(cfg.get("advance_hold_ticks") or ADVANCE_HOLD_TICKS),
+            "advance_ring_step": float(cfg.get("advance_ring_step") or ADVANCE_RING_STEP),
+            "advance_max_radius": float(cfg.get("advance_max_radius") or ADVANCE_MAX_RADIUS),
             # 专职侦察的航点参数（默认取模块常量；可按对局/验收需要收窄）。
             "scout_types": tuple(cfg.get("scout_types") or ()),
             "scout_hold_ticks": int(cfg.get("scout_hold_ticks") or SCOUT_HOLD_TICKS),

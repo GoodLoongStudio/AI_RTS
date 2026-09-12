@@ -10,6 +10,7 @@ var _selected = false
 
 @onready var _unit = get_parent()
 @onready var _circle = find_child("FadedCircle3D")
+@onready var _range_indicator = find_child("AttackRangeIndicator")
 @onready var _input_runtime = find_parent("Match").get_node("InputBindingRuntime")
 
 
@@ -37,6 +38,7 @@ func select():
 		_unit.add_to_group("selected_units")
 	_update_circle_color()
 	_circle.show()
+	_show_attack_range()
 	if "selected" in _unit:
 		_unit.selected.emit()
 	MatchSignals.unit_selected.emit(_unit)
@@ -49,6 +51,7 @@ func deselect():
 	if _unit.is_in_group("selected_units"):
 		_unit.remove_from_group("selected_units")
 	_circle.hide()
+	_hide_attack_range()
 	if "deselected" in _unit:
 		_unit.deselected.emit()
 	MatchSignals.unit_deselected.emit(_unit)
@@ -81,6 +84,26 @@ func _update_circle_params():
 	_circle.radius = radius
 	_circle.width = width
 	_circle.inner_edge_width = width
+
+
+## 选中时显示攻击范围圈（2026-09-12 用户要求："点击炮塔和单位要显示其攻击范围"）。
+## 半径取权威值 attack_range（= 主武器射程），与所有射程判定同口径
+## （单位中心到目标中心的水平距离，见 Action/UnitCommandService 的射程比较）。
+## 没有武器的单位（Worker/Drone）attack_range 是 Nil
+## （见 BalanceConfigRuntime.ConfigurePrimaryWeapon），本来就没有攻击范围可显示，圈保持隐藏。
+func _show_attack_range():
+	if _range_indicator == null:
+		return
+	var attack_range = _unit.get("attack_range")
+	if attack_range == null:
+		_range_indicator.hide_range()
+		return
+	_range_indicator.show_range(float(attack_range))
+
+
+func _hide_attack_range():
+	if _range_indicator != null:
+		_range_indicator.hide_range()
 
 
 func _on_input_event(_camera, event, _click_position, _click_normal, _shape_idx):

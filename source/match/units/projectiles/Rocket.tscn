@@ -162,6 +162,7 @@ _data = {
 
 [node name="Rocket" type="Node3D"]
 metadata/impact_reaction = "explosion"
+metadata/flight_speed_mps = 5.33
 script = ExtResource("1_dy0dc")
 
 [node name="DetachTransform" type="Node" parent="."]
