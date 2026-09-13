@@ -114,6 +114,10 @@
   {
    "weaponId": "rocket_launcher",
    "projectileScenePath": "res://source/match/units/projectiles/Rocket.tscn"
+  },
+  {
+   "weaponId": "heavy_tank_cannon",
+   "projectileScenePath": "res://source/match/units/projectiles/CannonShell.tscn"
   }
  ]
 }

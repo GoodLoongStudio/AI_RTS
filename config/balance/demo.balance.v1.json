@@ -125,6 +125,17 @@
     "terrain"
    ],
    "warheadId": "cannon_splash"
+  },
+  {
+   "id": "heavy_tank_cannon",
+   "deliveryKind": "projectile",
+   "baseDamage": 5.0,
+   "cooldownMilliseconds": 2400,
+   "rangeMeters": 9.5,
+   "targetDomains": [
+    "terrain"
+   ],
+   "warheadId": "cannon_splash"
   }
  ],
  "unitTypes": [
@@ -326,7 +337,7 @@
     "movingWeaponArcDegrees": 120.0
    },
    "weaponIds": [
-    "tank_cannon"
+    "heavy_tank_cannon"
    ],
    "canForceFireGround": true
   },
