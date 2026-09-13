@@ -85,7 +85,7 @@ void fragment() {
 	vec3 wn = normalize(world_n);
 	// hv = 顶点高度域的权威值（平地 0.6 / 台地 3.6 / 山峰 ~23），
 	// 对任意基座缩放通用；xz 保持世界坐标（噪声密度随地图尺寸自然变化）。
-	float hs = max(world_scale * 0.5, 0.001);
+	float hs = max(world_scale, 0.001);
 	float hv = wp.y / hs;
 	float h = hv;
 	float flatness = clamp(wn.y, 0.0, 1.0);
