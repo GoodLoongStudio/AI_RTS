@@ -569,6 +569,9 @@ func request_legacy_cancel_force_attack() -> bool:
 
 
 func _set_hp(value):
+	if value == null:
+		push_warning("[Unit] set_hp 收到 null，忽略（%s）" % name)
+		return
 	var old_hp = hp
 	hp = max(0, value)
 	if old_hp != null and hp < old_hp and not _suppress_damage_event:
