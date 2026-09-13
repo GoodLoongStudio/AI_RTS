@@ -15,7 +15,8 @@ const FIRE_SOUND_BY_SCENE := {
 	"res://source/match/units/HeavyTank.tscn": "cannon_fire",
 	"res://source/match/units/APC.tscn": "rifle_fire",
 	"res://source/match/units/AntiGroundTurret.tscn": "cannon_fire",
-	"res://source/match/units/AntiAirTurret.tscn": "rocket_fire",
+	"res://source/match/units/MachineGunTurret.tscn": "rifle_fire",
+	"res://source/match/units/AntiAirTurret.tscn": "cannon_fire",
 	"res://source/match/units/Helicopter.tscn": "rocket_fire",
 	"res://source/match/units/Drone.tscn": "rocket_fire",
 }

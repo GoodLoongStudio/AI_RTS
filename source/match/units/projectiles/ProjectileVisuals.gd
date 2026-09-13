@@ -36,7 +36,8 @@ const PROJECTILE_BY_UNIT_SCENE := {
 	"res://source/match/units/HeavyTank.tscn": CannonShellScene,
 	"res://source/match/units/APC.tscn": RifleRoundScene,
 	"res://source/match/units/AntiGroundTurret.tscn": CannonShellScene,
-	"res://source/match/units/AntiAirTurret.tscn": RocketScene,
+	"res://source/match/units/MachineGunTurret.tscn": RifleRoundScene,
+	"res://source/match/units/AntiAirTurret.tscn": CannonShellScene,
 	"res://source/match/units/Helicopter.tscn": RocketScene,
 	"res://source/match/units/Drone.tscn": RocketScene,
 }

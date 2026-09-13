@@ -77,7 +77,7 @@ func _ready():
 
 ## 机枪塔炮管节点（+Z 为炮管朝向）的全局 yaw。
 func _barrel_yaw_degrees(turret) -> float:
-	var mesh = turret.get_node("DetachTransform/Geometry/SM_Veh_Turret_Medium_01")
+	var mesh = turret.get_node("DetachTransform/Geometry/SM_Veh_Turret_Large_01")
 	return rad_to_deg(atan2(mesh.global_transform.basis.z.x, mesh.global_transform.basis.z.z))
 
 
