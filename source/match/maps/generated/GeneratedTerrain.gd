@@ -35,7 +35,7 @@ uniform vec3 bed_color : source_color = vec3(0.30, 0.34, 0.36);
 uniform vec3 shore_color : source_color = vec3(0.72, 0.62, 0.44);
 uniform vec3 sand_color : source_color = vec3(0.80, 0.62, 0.38);
 uniform vec3 soil_color : source_color = vec3(0.63, 0.54, 0.38);
-uniform vec3 plateau_color : source_color = vec3(0.80, 0.66, 0.44);
+uniform vec3 plateau_color : source_color = vec3(0.90, 0.84, 0.68);
 uniform sampler2D sand_tex : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D detail_tex : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D top_tex : source_color, filter_linear_mipmap, repeat_enable;
@@ -83,7 +83,11 @@ void fragment() {
 	}
 	vec3 wp = world_pos;
 	vec3 wn = normalize(world_n);
-	float h = wp.y;
+	// hv = 顶点高度域的权威值（平地 0.6 / 台地 3.6 / 山峰 ~23），
+	// 对任意基座缩放通用；xz 保持世界坐标（噪声密度随地图尺寸自然变化）。
+	float hs = max(world_scale * 0.5, 0.001);
+	float hv = wp.y / hs;
+	float h = hv;
 	float flatness = clamp(wn.y, 0.0, 1.0);
 
 	float facet = vnoise(wp.xz * 0.025);
@@ -108,24 +112,24 @@ void fragment() {
 	ground *= 1.0 - smoothstep(0.48, 0.86, cloud) * 0.16;
 
 	// ---- 2. 水床与岸线 ----
-	float bed_m = 1.0 - smoothstep(-1.6, -0.2, h);
-	vec3 bed = mix(bed_color, vec3(0.55, 0.50, 0.38), smoothstep(-2.2, -0.4, h));
-	float shore_band = 1.0 - smoothstep(0.0, 2.2, abs(h - 0.55));
+	float bed_m = 1.0 - smoothstep(-1.6, -0.2, hv);
+	vec3 bed = mix(bed_color, vec3(0.55, 0.50, 0.38), smoothstep(-2.2, -0.4, hv));
+	float shore_band = 1.0 - smoothstep(0.0, 2.2, abs(hv - 0.55));
 
 	// ---- 3. 台地顶 ----
-	float on_top = smoothstep(3.2, 3.55, h) * (1.0 - smoothstep(3.65, 4.4, h));
+	float on_top = smoothstep(3.2, 3.55, hv) * (1.0 - smoothstep(3.65, 4.4, hv));
 	vec3 top_col = texture(top_tex, wp.xz * 0.012).rgb * (0.92 + macro3 * 0.14);
 
 	// ---- 4. 山体四色区（真实岩石贴图 + 沉积岩条带）----
-	float mountain_in = smoothstep(9.0, 22.0, h);
+	float mountain_in = smoothstep(9.0, 22.0, hv);
 	float steepness = 1.0 - smoothstep(0.50, 0.86, flatness);
-	float altitude = smoothstep(12.0, 55.0, h);
+	float altitude = smoothstep(12.0, 55.0, hv);
 	vec3 wall_dark = vec3(0.30, 0.235, 0.175);
 	vec3 ridge_red = vec3(0.60, 0.375, 0.215);
 	vec3 weathered = vec3(0.50, 0.435, 0.35);
 	vec3 rock_zone = mix(weathered, wall_dark, steepness * 0.90);
 	rock_zone = mix(rock_zone, ridge_red, altitude * (1.0 - steepness * 0.45) * 0.85);
-	float strata_band = sin(h * 0.42 + rock_band * 7.0 + facet * 2.4 + macro3 * 1.6) * 0.5 + 0.5;
+	float strata_band = sin(hv * 0.42 + rock_band * 7.0 + facet * 2.4 + macro3 * 1.6) * 0.5 + 0.5;
 	vec3 bed_a = vec3(0.24, 0.165, 0.115);
 	vec3 bed_b = vec3(0.52, 0.385, 0.27);
 	rock_zone = mix(rock_zone, mix(bed_a, bed_b, strata_band),

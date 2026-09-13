@@ -48,11 +48,11 @@ func _run() -> void:
 
 	var views := [
 		{"name": "game_rts_mountain", "size": 190,
-			"eye": Vector3(ffocus.x + fnorm.x * 300.0, 120.0,
+			"eye": Vector3(ffocus.x + fnorm.x * 220.0, 90.0,
 				ffocus.y + fnorm.y * 300.0),
-			"look": Vector3(mfocus.x, 40.0, mfocus.y)},
+			"look": Vector3(mfocus.x, 20.0, mfocus.y)},
 		{"name": "game_iso45", "size": 2500,
-			"eye": Vector3(2550, 2700, 2900), "look": Vector3(1024, 0, 1024)},
+			"eye": Vector3(2550, 2700, 2900), "look": Vector3(512, 0, 512)},
 	]
 	for view in views:
 		camera.size = float(view.size)
