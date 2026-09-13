@@ -17,6 +17,10 @@ extends MeshInstance3D
 ##   可见后两者 Z-fight 且坡道处盒顶台阶穿出；仅关 visible，碰撞/导航不动。
 
 @export_file("*.bin") var height_data_path := ""
+## Map.tscn 基座 Geometry 对本节点的等比缩放（顶点 0-512 -> 世界 0-2048 时为 4）。
+## shader 内所有高度锚点（水床/岸线/台地/山体）按未缩放顶点坐标编写，
+## vertex 里除回该值，否则缩放把 world_pos.y 抬高 N 倍导致全部着色锚点错位。
+@export var world_scale := 1.0
 @export var terrain_albedo: Color = Color(0.80, 0.72, 0.60, 1)
 @export var terrain_roughness: float = 1.0  # 兼容保留（着色器固定 roughness 1.0）
 @export var terrain_shaded: bool = false    # 兼容保留（着色器恒为受光模式）
@@ -26,11 +30,12 @@ shader_type spatial;
 render_mode cull_disabled;
 
 uniform vec3 base_tint : source_color = vec3(1.0, 1.0, 1.0);
-uniform vec3 bed_color : source_color = vec3(0.42, 0.38, 0.30);
-uniform vec3 sand_color : source_color = vec3(0.76, 0.68, 0.50);
+uniform float world_scale = 1.0; // 基座缩放（GDScript 侧 set_shader_parameter 同步）
+uniform vec3 bed_color : source_color = vec3(0.30, 0.34, 0.36);
+uniform vec3 shore_color : source_color = vec3(0.72, 0.62, 0.44);
+uniform vec3 sand_color : source_color = vec3(0.80, 0.62, 0.38);
 uniform vec3 soil_color : source_color = vec3(0.63, 0.54, 0.38);
-uniform vec3 dry_color : source_color = vec3(0.69, 0.61, 0.45);
-uniform vec3 rock_color : source_color = vec3(0.52, 0.47, 0.40);
+uniform vec3 plateau_color : source_color = vec3(0.80, 0.66, 0.44);
 
 varying vec3 world_pos;
 varying vec3 world_n;
@@ -52,45 +57,93 @@ float vnoise(vec2 p) {
 	return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
 }
 
-float fbm2(vec2 p) {
-	return vnoise(p) * 0.65 + vnoise(p * 2.3 + 17.1) * 0.35;
-}
-
 void vertex() {
-	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz / max(world_scale, 0.001);
 	world_n = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
 }
 
 void fragment() {
-	// 背面法线翻转：cull_disabled 下背面按原法线着色会全黑（GL 兼容实测），
-	// 崖壁/岸线从斜视角度看时必须翻转，否则出现黑色锯齿面。
 	if (!FRONT_FACING) {
 		NORMAL = -NORMAL;
 	}
-	// 色带锚点：水床 -2.4 / 水面 0 / 平地 0.6 / 台地 3.6；中频噪声让带边界有机摆动。
-	float wob = (vnoise(world_pos.xz * 0.08) - 0.5) * 1.4;
-	float h = world_pos.y + wob;
-	vec3 col = bed_color;
-	col = mix(col, sand_color, smoothstep(-1.8, -0.9, h));
-	col = mix(col, soil_color, smoothstep(0.5, 1.5, h));
-	// 台地顶沿用主地表土色；高度层级由崖壁、坡面和受光差异表达，
-	// 不把台地误标成独立草地生物群系。
-	// 宏观色斑：~30m 尺度干草/土壤斑块打破大面积单色（只改颜色不改高程）。
-	float patch = fbm2(world_pos.xz * 0.035);
-	float on_low = 1.0 - smoothstep(1.6, 2.4, world_pos.y);
-	col = mix(col, dry_color, patch * 0.30 * on_low);
-	col = mix(col, col * vec3(1.05, 1.01, 0.95), fbm2(world_pos.xz * 0.013 + 41.7) * on_low * 0.3);
-	// 陡坡岩化：崖壁法线接近水平 → rock≈1；坡道缓坡（n.y≈0.94）不受影响。
-	float rock = 1.0 - smoothstep(0.55, 0.80, world_n.y);
-	col = mix(col, rock_color, rock);
-	// 细尺度明度噪声，避免大色块平板。
-	float n2 = vnoise(world_pos.xz * 0.55) * 0.5 + vnoise(world_pos.xz * 1.9) * 0.3;
-	col *= 0.84 + 0.30 * n2;
+	vec3 wp = world_pos;
+	vec3 wn = normalize(world_n);
+	float h = wp.y;
+	float flatness = clamp(wn.y, 0.0, 1.0);
+
+	// ---- 噪声族（世界 2048 m 尺度，与 review 管线同频）----
+	float facet = vnoise(wp.xz * 0.025);
+	float litho = vnoise(wp.xz * 0.011 + vec2(3.0, 33.0));
+	float mid40 = vnoise(wp.xz * 0.028 + vec2(57.0, 91.0));
+	float macro1 = vnoise(wp.xz * 0.0020);
+	float macro3 = vnoise(wp.xz * 0.035 - vec2(5.0, 9.0));
+	float belt250 = vnoise(wp.xz * 0.004 + vec2(23.0, 87.0));
+	float dune45 = vnoise(wp.xz * 0.022 + vec2(5.0, 71.0));
+	float rock_band = vnoise(wp.xz * 0.011 + vec2(11.0, 29.0));
+	float cloud = vnoise(wp.xz * 0.0011 + vec2(77.0, 31.0)) * 0.65
+	            + vnoise(wp.xz * 0.0032 + vec2(9.0, 51.0)) * 0.35;
+
+	// ---- 1. 沙地平原：金橙 + 暖色带 + 沙丘纹 + 云影 ----
+	vec3 ground = sand_color;
+	ground = mix(ground, soil_color, smoothstep(0.34, 0.90, macro1) * 0.5);
+	ground = mix(ground, ground * vec3(1.07, 1.00, 0.89), smoothstep(0.42, 0.72, belt250) * 0.34);
+	ground *= 0.955 + dune45 * 0.11;
+	ground *= 0.92 + macro3 * 0.16;
+	ground *= 1.0 - smoothstep(0.48, 0.86, cloud) * 0.16;
+
+	// ---- 2. 水床与岸线 ----
+	float bed_m = 1.0 - smoothstep(-1.6, -0.2, h);
+	vec3 bed = mix(bed_color, vec3(0.55, 0.50, 0.38), smoothstep(-2.2, -0.4, h));
+	float shore_band = 1.0 - smoothstep(0.0, 2.2, abs(h - 0.55));
+
+	// ---- 3. 台地顶 ----
+	float on_top = smoothstep(3.2, 3.55, h) * (1.0 - smoothstep(3.65, 4.4, h));
+	vec3 top_col = plateau_color * (0.92 + macro3 * 0.14);
+
+	// ---- 4. 山体四色区（坡度 + 海拔 + 沉积岩条带）----
+	float mountain_in = smoothstep(9.0, 22.0, h);
+	float steepness = 1.0 - smoothstep(0.50, 0.86, flatness);
+	float altitude = smoothstep(12.0, 55.0, h);
+	vec3 wall_dark = vec3(0.30, 0.235, 0.175);
+	vec3 ridge_red = vec3(0.60, 0.375, 0.215);
+	vec3 weathered = vec3(0.50, 0.435, 0.35);
+	vec3 rock_zone = mix(weathered, wall_dark, steepness * 0.90);
+	rock_zone = mix(rock_zone, ridge_red, altitude * (1.0 - steepness * 0.45) * 0.85);
+	float strata_band = sin(h * 0.42 + rock_band * 7.0 + facet * 2.4 + macro3 * 1.6) * 0.5 + 0.5;
+	vec3 bed_a = vec3(0.24, 0.165, 0.115);
+	vec3 bed_b = vec3(0.52, 0.385, 0.27);
+	rock_zone = mix(rock_zone, mix(bed_a, bed_b, strata_band),
+	    mountain_in * 0.82 * (0.45 + 0.55 * (0.5 + 0.5 * rock_band)));
+	rock_zone *= 0.68 + facet * 0.30 + litho * 0.16 + mid40 * 0.12;
+
+	// ---- 合成 ----
+	vec3 col = ground;
+	col = mix(col, bed, bed_m);
+	col = mix(col, shore_color, shore_band * (1.0 - bed_m) * 0.6);
+	float rock_m = clamp(mountain_in * (0.55 + 0.45 * smoothstep(0.30, 0.65, flatness))
+	    + steepness * mountain_in * 0.5, 0.0, 1.0);
+	col = mix(col, rock_zone, rock_m);
+	col = mix(col, top_col, on_top * (1.0 - mountain_in) * 0.85);
+
+	// ---- 细明度 + 暖调分级（shader 内置，不依赖 Environment）----
+	float n2 = vnoise(wp.xz * 0.55) * 0.5 + vnoise(wp.xz * 1.9) * 0.3;
+	col *= 0.88 + 0.24 * n2;
+	col *= vec3(1.05, 0.99, 0.90);
+	col = mix(col, col * col * 1.35, 0.20);
+
 	ALBEDO = col * base_tint;
-	ROUGHNESS = 1.0;
+	ROUGHNESS = mix(0.9, 0.80, mountain_in);
+
+	// ---- 程序化微凹凸：噪声梯度扰动（山面碎岩颗粒感）----
+	vec2 gq = wp.xz * 0.24;
+	float gn0 = vnoise(gq);
+	vec2 bump_g = vec2(vnoise(gq + vec2(0.85, 0.0)) - gn0,
+	                   vnoise(gq + vec2(0.0, 0.85)) - gn0);
+	vec3 bump_world = vec3(bump_g.x, 0.0, bump_g.y) * (0.55 * mountain_in + 0.05);
+	vec3 bump_view = (VIEW_MATRIX * vec4(bump_world, 0.0)).xyz;
+	NORMAL = normalize(normalize(NORMAL) + bump_view);
 }
 "
-
 
 func _enter_tree() -> void:
 	# 必须在 _enter_tree（add_child 同步回调）建网格：Match._ready 会在同一帧
@@ -119,6 +172,7 @@ func _apply_material() -> void:
 	if lum > 0.001:
 		tint = Color(tint.r / lum, tint.g / lum, tint.b / lum, 1.0)
 	mat.set_shader_parameter("base_tint", Vector3(tint.r, tint.g, tint.b))
+	mat.set_shader_parameter("world_scale", world_scale)
 	material_override = mat
 
 
