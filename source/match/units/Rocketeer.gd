@@ -25,6 +25,12 @@ func _attach_hand_weapon():
 	if baked_gun != null:
 		baked_gun.visible = false
 	var skeleton = glb_root.find_child("InfantrySkeleton", true, false)
+	if skeleton == null:
+		return
+	if not skeleton is Skeleton3D:
+		# GLB 里 InfantrySkeleton 是 Node3D 容器，真正的 Skeleton3D 在其下
+		var skel_children = skeleton.find_children("*", "Skeleton3D", true, false)
+		skeleton = skel_children[0] if skel_children.size() > 0 else null
 	if skeleton == null or not skeleton is Skeleton3D:
 		return
 	var attach := BoneAttachment3D.new()
