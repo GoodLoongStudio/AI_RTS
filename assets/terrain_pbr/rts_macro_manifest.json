@@ -1,0 +1,25 @@
+{
+  "size": [
+    4096,
+    4096
+  ],
+  "world_size_m": [
+    2000,
+    2000
+  ],
+  "tiling": "none; world-aligned UV 0..1",
+  "seed": 16,
+  "sources": [
+    "dense_sand",
+    "moon_dusted_03",
+    "sand_01"
+  ],
+  "source_license": "Poly Haven CC0",
+  "generated_with_image_api": false,
+  "regions_m": [
+    80,
+    250,
+    500
+  ],
+  "semantic_masks": "G2 shores and plateau boundaries"
+}

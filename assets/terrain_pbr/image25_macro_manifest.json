@@ -1,0 +1,32 @@
+{
+  "size": [
+    2048,
+    2048
+  ],
+  "world_size_m": [
+    2000,
+    2000
+  ],
+  "tiling": "single world-aligned 0..1; no texture repetition",
+  "assets": [
+    "image25_macro_sand.png",
+    "image25_macro_gravel.png",
+    "image25_macro_rock.png",
+    "image25_macro_wet_shore.png"
+  ],
+  "generated_with_image_api": true,
+  "provider": "official OpenAI built-in image generation (gpt-image-2 fallback from Image2.5 request)",
+  "source_images": {
+    "image25_macro_sand.png": "exec-d5421b40-c36f-44af-97bf-1aea35fd5ae9.png",
+    "image25_macro_gravel.png": "exec-d8aa352e-bece-4a83-a543-1326d5b655f1.png",
+    "image25_macro_rock.png": "exec-8fe6c155-3714-4a31-9afd-6d1af715eab9.png",
+    "image25_macro_wet_shore.png": "exec-03bcdb62-6bbb-49bb-b19f-94665ab2f58b.png"
+  },
+  "postprocess": "center-fit and 1.25px low-pass to suppress near-camera grain",
+  "regions_m": [
+    150,
+    250,
+    400
+  ],
+  "fallback_note": "Direct api.openai.com CLI timed out; official in-app generation succeeded."
+}

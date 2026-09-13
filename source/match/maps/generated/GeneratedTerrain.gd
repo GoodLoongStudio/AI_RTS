@@ -30,12 +30,20 @@ shader_type spatial;
 render_mode cull_disabled;
 
 uniform vec3 base_tint : source_color = vec3(1.0, 1.0, 1.0);
-uniform float world_scale = 1.0; // 基座缩放（GDScript 侧 set_shader_parameter 同步）
+uniform float world_scale = 1.0;
 uniform vec3 bed_color : source_color = vec3(0.30, 0.34, 0.36);
 uniform vec3 shore_color : source_color = vec3(0.72, 0.62, 0.44);
 uniform vec3 sand_color : source_color = vec3(0.80, 0.62, 0.38);
 uniform vec3 soil_color : source_color = vec3(0.63, 0.54, 0.38);
 uniform vec3 plateau_color : source_color = vec3(0.80, 0.66, 0.44);
+uniform sampler2D sand_tex : source_color, filter_linear_mipmap, repeat_enable;
+uniform sampler2D detail_tex : source_color, filter_linear_mipmap, repeat_enable;
+uniform sampler2D top_tex : source_color, filter_linear_mipmap, repeat_enable;
+uniform sampler2D rock_tex : source_color, filter_linear_mipmap, repeat_enable;
+uniform sampler2D detail2_tex : source_color, filter_linear_mipmap, repeat_enable;
+uniform sampler2D sand_nrm : filter_linear_mipmap, repeat_enable;
+uniform sampler2D rock_nrm : filter_linear_mipmap, repeat_enable;
+uniform sampler2D macro_sand : source_color, filter_linear_mipmap, repeat_enable;
 
 varying vec3 world_pos;
 varying vec3 world_n;
@@ -57,6 +65,13 @@ float vnoise(vec2 p) {
 	return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
 }
 
+vec3 triplanar(sampler2D t, vec3 pos, vec3 n, float s) {
+	vec3 w = pow(abs(n), vec3(6.0));
+	w /= max(dot(w, vec3(1.0)), 1e-4);
+	return texture(t, pos.zy * s).rgb * w.x + texture(t, pos.xz * s).rgb * w.y
+	     + texture(t, pos.xy * s).rgb * w.z;
+}
+
 void vertex() {
 	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz / max(world_scale, 0.001);
 	world_n = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
@@ -71,7 +86,6 @@ void fragment() {
 	float h = wp.y;
 	float flatness = clamp(wn.y, 0.0, 1.0);
 
-	// ---- 噪声族（世界 2048 m 尺度，与 review 管线同频）----
 	float facet = vnoise(wp.xz * 0.025);
 	float litho = vnoise(wp.xz * 0.011 + vec2(3.0, 33.0));
 	float mid40 = vnoise(wp.xz * 0.028 + vec2(57.0, 91.0));
@@ -83,12 +97,14 @@ void fragment() {
 	float cloud = vnoise(wp.xz * 0.0011 + vec2(77.0, 31.0)) * 0.65
 	            + vnoise(wp.xz * 0.0032 + vec2(9.0, 51.0)) * 0.35;
 
-	// ---- 1. 沙地平原：金橙 + 暖色带 + 沙丘纹 + 云影 ----
-	vec3 ground = sand_color;
-	ground = mix(ground, soil_color, smoothstep(0.34, 0.90, macro1) * 0.5);
+	// ---- 1. 沙地：真实贴图 + 程序化色带/云影 ----
+	vec3 ground = texture(sand_tex, wp.xz * 0.05).rgb;
+	ground = mix(ground, texture(detail_tex, wp.xz * 0.026).rgb,
+	             smoothstep(0.35, 0.80, macro3) * 0.4);
 	ground = mix(ground, ground * vec3(1.07, 1.00, 0.89), smoothstep(0.42, 0.72, belt250) * 0.34);
 	ground *= 0.955 + dune45 * 0.11;
 	ground *= 0.92 + macro3 * 0.16;
+	ground = mix(ground, texture(macro_sand, wp.xz * 0.0011).rgb, 0.30);
 	ground *= 1.0 - smoothstep(0.48, 0.86, cloud) * 0.16;
 
 	// ---- 2. 水床与岸线 ----
@@ -98,9 +114,9 @@ void fragment() {
 
 	// ---- 3. 台地顶 ----
 	float on_top = smoothstep(3.2, 3.55, h) * (1.0 - smoothstep(3.65, 4.4, h));
-	vec3 top_col = plateau_color * (0.92 + macro3 * 0.14);
+	vec3 top_col = texture(top_tex, wp.xz * 0.012).rgb * (0.92 + macro3 * 0.14);
 
-	// ---- 4. 山体四色区（坡度 + 海拔 + 沉积岩条带）----
+	// ---- 4. 山体四色区（真实岩石贴图 + 沉积岩条带）----
 	float mountain_in = smoothstep(9.0, 22.0, h);
 	float steepness = 1.0 - smoothstep(0.50, 0.86, flatness);
 	float altitude = smoothstep(12.0, 55.0, h);
@@ -125,7 +141,6 @@ void fragment() {
 	col = mix(col, rock_zone, rock_m);
 	col = mix(col, top_col, on_top * (1.0 - mountain_in) * 0.85);
 
-	// ---- 细明度 + 暖调分级（shader 内置，不依赖 Environment）----
 	float n2 = vnoise(wp.xz * 0.55) * 0.5 + vnoise(wp.xz * 1.9) * 0.3;
 	col *= 0.88 + 0.24 * n2;
 	col *= vec3(1.05, 0.99, 0.90);
@@ -134,17 +149,21 @@ void fragment() {
 	ALBEDO = col * base_tint;
 	ROUGHNESS = mix(0.9, 0.80, mountain_in);
 
-	// ---- 程序化微凹凸：噪声梯度扰动（山面碎岩颗粒感）----
+	// ---- 微凹凸：贴图法线（岩面 triplanar + 沙地平面）+ 程序化梯度 ----
+	vec3 n_sand = texture(sand_nrm, wp.xz * 0.05).xyz * 2.0 - 1.0;
+	vec3 n_rock = triplanar(rock_nrm, wp, wn, 0.062) * 2.0 - 1.0;
 	vec2 gq = wp.xz * 0.24;
 	float gn0 = vnoise(gq);
 	vec2 bump_g = vec2(vnoise(gq + vec2(0.85, 0.0)) - gn0,
 	                   vnoise(gq + vec2(0.0, 0.85)) - gn0);
-	vec3 bump_world = vec3(bump_g.x, 0.0, bump_g.y) * (0.55 * mountain_in + 0.05);
+	vec3 nrm = mix(n_sand, n_rock, mountain_in);
+	nrm.x += bump_g.x * 1.2 * mountain_in;
+	nrm.y += bump_g.y * 1.2 * mountain_in;
+	vec3 bump_world = vec3(nrm.x, 0.0, nrm.y) * (0.10 + 0.40 * mountain_in);
 	vec3 bump_view = (VIEW_MATRIX * vec4(bump_world, 0.0)).xyz;
 	NORMAL = normalize(normalize(NORMAL) + bump_view);
 }
 "
-
 func _enter_tree() -> void:
 	# 必须在 _enter_tree（add_child 同步回调）建网格：Match._ready 会在同一帧
 	# 调用 Terrain.update_shape(mesh) 捕提碰撞 trimesh，若等到 _ready 才建网格，
@@ -173,6 +192,16 @@ func _apply_material() -> void:
 		tint = Color(tint.r / lum, tint.g / lum, tint.b / lum, 1.0)
 	mat.set_shader_parameter("base_tint", Vector3(tint.r, tint.g, tint.b))
 	mat.set_shader_parameter("world_scale", world_scale)
+	var pbr := "res://assets/terrain_pbr/"
+	for pair in [
+		["sand_tex", "dense_sand_diff.jpg"], ["sand_nrm", "dense_sand_normal.jpg"],
+		["detail_tex", "sand_01_diff.jpg"], ["top_tex", "moon_dusted_03_diff.jpg"],
+		["rock_tex", "dark_rock_02_diff.jpg"], ["rock_nrm", "dark_rock_02_normal.jpg"],
+		["detail2_tex", "gray_rocks_diff.jpg"], ["macro_sand", "image25_macro_sand.png"],
+	]:
+		var tex := load(pbr + pair[1])
+		if tex != null:
+			mat.set_shader_parameter(pair[0], tex)
 	material_override = mat
 
 
