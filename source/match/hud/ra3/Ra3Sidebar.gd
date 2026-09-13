@@ -10,6 +10,7 @@ const VehicleFactoryUnit := "res://source/match/units/VehicleFactory.tscn"
 const AircraftFactoryUnit := "res://source/match/units/AircraftFactory.tscn"
 const AntiGroundTurretUnit := "res://source/match/units/AntiGroundTurret.tscn"
 const AntiAirTurretUnit := "res://source/match/units/AntiAirTurret.tscn"
+const MachineGunTurretUnit := "res://source/match/units/MachineGunTurret.tscn"
 const WorkerUnit := "res://source/match/units/Worker.tscn"
 const TankUnit := "res://source/match/units/Tank.tscn"
 const APCUnit := "res://source/match/units/APC.tscn"
@@ -30,6 +31,7 @@ const TABS = [
 			{"scene": AircraftFactoryUnit, "caption": "机场", "icon": "aircraft_factory"},
 			{"scene": AntiGroundTurretUnit, "caption": "对地炮", "icon": "anti_ground_turret"},
 			{"scene": AntiAirTurretUnit, "caption": "对空炮", "icon": "anti_air_turret"},
+			{"scene": MachineGunTurretUnit, "caption": "机枪塔", "icon": "machine_gun_turret"},
 			{"scene": BarracksUnit, "caption": "兵营", "icon": "barracks"},
 		],
 	},

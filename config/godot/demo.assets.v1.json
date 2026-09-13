@@ -63,6 +63,11 @@
   {
    "unitTypeId": "heavy_tank",
    "scenePath": "res://source/match/units/HeavyTank.tscn"
+  },
+  {
+   "unitTypeId": "machine_gun_turret",
+   "scenePath": "res://source/match/units/MachineGunTurret.tscn",
+   "blueprintScenePath": "res://source/match/units/structure-geometries/MachineGunTurret.tscn"
   }
  ],
  "weaponAssets": [
@@ -89,6 +94,10 @@
   {
    "weaponId": "apc_autocannon",
    "projectileScenePath": "res://source/match/units/projectiles/RifleRound.tscn"
+  },
+  {
+   "weaponId": "machine_gun_turret_autocannon",
+   "projectileScenePath": "res://source/match/units/projectiles/CannonShell.tscn"
   }
  ]
 }
