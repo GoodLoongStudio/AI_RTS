@@ -19,6 +19,8 @@ const TransportTruckUnit := "res://source/match/units/TransportTruck.tscn"
 const HelicopterUnit := "res://source/match/units/Helicopter.tscn"
 const DroneUnit := "res://source/match/units/Drone.tscn"
 const SoldierUnit := "res://source/match/units/Infantry.tscn"
+const SniperUnit := "res://source/match/units/Sniper.tscn"
+const RocketeerUnit := "res://source/match/units/Rocketeer.tscn"
 const BarracksUnit := "res://source/match/units/Barracks.tscn"
 
 ## RA3 式生产分类。place=true 走蓝图放置（工人建造）；否则 producer 建筑排队生产。
@@ -40,6 +42,8 @@ const TABS = [
 		"producer_caption": "兵营",
 		"items": [
 			{"scene": SoldierUnit, "caption": "步兵", "icon": "soldier"},
+			{"scene": SniperUnit, "caption": "狙击兵", "icon": "sniper"},
+			{"scene": RocketeerUnit, "caption": "炮兵", "icon": "rocketeer"},
 		],
 	},
 	{
