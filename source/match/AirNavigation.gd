@@ -30,6 +30,9 @@ func release_navigation_map():
 
 ## 调整空中参考碰撞体后等待 PhysicsServer 同步，再据此烘焙运行时 NavMesh。
 func bake(map):
+	if OS.get_environment("NAVDBG_SKIP_AIR") != "":
+		print("NAVDBG air.bake SKIPPED (experiment)")
+		return
 	var terrain_navigation = get_parent().terrain
 	while terrain_navigation.server_busy:
 		await get_tree().process_frame

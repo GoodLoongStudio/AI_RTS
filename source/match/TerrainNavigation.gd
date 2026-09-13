@@ -49,7 +49,11 @@ func _process(_delta):
 		_rebake()
 
 
+var _last_map: Node3D = null
+
+
 func bake(map):
+	_last_map = map
 	while server_busy:
 		await get_tree().process_frame
 	_navigation_region.navigation_mesh = get_parent().copy_navmesh_settings(
@@ -64,13 +68,18 @@ func bake(map):
 		Vector3.ZERO, Vector3(map.size.x, 5.0, map.size.y)
 	)
 	NavigationServer3D.parse_source_geometry_data(
-		_navigation_region.navigation_mesh, _map_geometry, get_tree().root
+		# parse 根限定为地图子树（而非整棵 root）：整树收集会与 Match._ready
+		# 后续的玩家/单位装载并发改树 —— 后台线程遍历 vs 主线程增删节点 ->
+		# 悬空访问 0xC0000005（nav_check 崩溃根因，隔离诊断实证）。
+		# 地图的全部静态碰撞（地形/桥/物件）都在 map 子树内。
+		_navigation_region.navigation_mesh, _map_geometry, map
 	)
 	for node in get_tree().get_nodes_in_group("terrain_navigation_input"):
 		node.remove_from_group("terrain_navigation_input")
 	server_busy = true
 	# 异步烘焙：消除"实例化 Match（导航烘焙阻塞点）"的主线程阻塞尖峰。
 	# 完成回调 _on_bake_finished 负责置回 server_busy 并同步 navmesh。
+	print("NAVDBG async bake dispatched")
 	NavigationServer3D.bake_from_source_geometry_data_async(
 		_navigation_region.navigation_mesh, _map_geometry, _on_bake_finished
 	)
@@ -87,7 +96,8 @@ func _rebake():
 	# parse geometry other than map itself
 	var full_geometry = NavigationMeshSourceGeometryData3D.new()
 	NavigationServer3D.parse_source_geometry_data(
-		_navigation_region.navigation_mesh, full_geometry, get_tree().root
+		# 重烘同理：只收集地图子树（见 bake 内注释）。
+		_navigation_region.navigation_mesh, full_geometry, _last_map
 	)
 	# add pre-parsed map geometry
 	full_geometry.merge(_map_geometry)
