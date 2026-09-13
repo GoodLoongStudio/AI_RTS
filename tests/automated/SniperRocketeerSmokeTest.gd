@@ -78,9 +78,9 @@ func _ready():
 
 	_check(far_hit, "狙击兵应在 %.0fs 内命中 9.5 米外目标（超步兵射程，验证狙击特性）" % FIRE_TIMEOUT_SECONDS)
 	_check(near_hit, "炮兵应命中 5 米内目标并造成溅射伤害")
-	# 换枪验证：两个新兵种场景里内嵌步枪应被隐藏，手里应是新武器
-	var mg_gun = sniper.find_child("Rifle", true, false)
-	_check(mg_gun == null or not mg_gun.visible, "狙击兵内嵌步枪应已隐藏")
+	# 武器烘焙验证：新 GLB 的枪械网格（Rifle 节点）应存在且可见
+	var baked_gun = sniper.find_child("Rifle", true, false)
+	_check(baked_gun != null and baked_gun.visible, "狙击兵的烘焙武器网格应存在且可见")
 
 	print("Sniper/Rocketeer smoke test completed: %d failure(s)" % _failures)
 	match_instance.queue_free()

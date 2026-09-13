@@ -2,9 +2,9 @@ import bpy, math
 from mathutils import Vector, Quaternion, Matrix
 from baseline import ASSETS, world_rest, apply_world_rotations
 
-def load_weapon(mat):
+def load_weapon(mat, weapon_file='SM_Wep_Assault_01.fbx'):
     before=set(bpy.data.objects)
-    bpy.ops.import_scene.fbx(filepath=str(ASSETS/'SM_Wep_Assault_01.fbx'))
+    bpy.ops.import_scene.fbx(filepath=str(ASSETS/weapon_file))
     parts=[o for o in bpy.data.objects if o not in before and o.type=='MESH']
     transforms={o:o.matrix_world.copy() for o in parts}
     for ob in parts:
