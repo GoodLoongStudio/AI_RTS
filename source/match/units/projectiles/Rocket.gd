@@ -40,7 +40,7 @@ func _ready():
 
 ## 把动画时长改成"实际发射距离 / 固定速度"，消灭"距离越远飞得越快"。
 func _apply_constant_flight_speed():
-	var animation := _animation_player.get_animation("animate")
+	var animation: Animation = _animation_player.get_animation("animate")
 	if animation == null or animation.length <= 0.0:
 		return
 	var aim_point: Vector3 = projectile_runtime.GetAimPoint(attack_id)
