@@ -260,20 +260,16 @@ func _get_visible_players():
 
 
 func _setup_subsystems_dependent_on_map():
-	print("NAVDBG setup begin")
 	var map_terrain := map.find_child("Terrain") as MeshInstance3D
 	assert(map_terrain != null and map_terrain.mesh != null, "map must provide a Terrain MeshInstance3D")
 	_terrain.update_shape(map_terrain.mesh)
-	print("NAVDBG update_shape done")
 	# Runtime navmesh baking should consume the terrain collider rather than reading
 	# the visual MeshInstance3D back from the GPU. Layer 2 matches the terrain navmesh mask.
 	_terrain.collision_layer = 2
 	_terrain.add_to_group("terrain_navigation_input")
 	fog_of_war.resize(map.size)
 	_recalculate_camera_bounding_planes(map.size)
-	print("NAVDBG entering navigation.setup")
 	await navigation.setup(map)
-	print("NAVDBG navigation.setup returned")
 
 
 func _recalculate_camera_bounding_planes(map_size: Vector2):

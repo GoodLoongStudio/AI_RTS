@@ -79,7 +79,6 @@ func bake(map):
 	server_busy = true
 	# 异步烘焙：消除"实例化 Match（导航烘焙阻塞点）"的主线程阻塞尖峰。
 	# 完成回调 _on_bake_finished 负责置回 server_busy 并同步 navmesh。
-	print("NAVDBG async bake dispatched")
 	NavigationServer3D.bake_from_source_geometry_data_async(
 		_navigation_region.navigation_mesh, _map_geometry, _on_bake_finished
 	)
@@ -171,6 +170,7 @@ func _on_schedule_navigation_rebake(domain):
 
 
 func _on_bake_finished():
+
 	server_busy = false
 	if not is_inside_tree():
 		return
