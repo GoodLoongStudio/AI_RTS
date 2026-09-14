@@ -53,9 +53,9 @@ UNIT_VOICES = {
         "ack2": ("覆盖射击，收到！", "zh-CN-YunyangNeural"),
     },
     "worker": {  # 工人 · 活泼女声
-        "hello": ("工人报到！修建造样样在行！", "zh-CN-YunxiaNeural", "+6Hz"),
-        "ack1": ("马上去干活！", "zh-CN-YunxiaNeural", "+6Hz"),
-        "ack2": ("建造任务交给我！", "zh-CN-YunxiaNeural", "+6Hz"),
+        "hello": ("工人报到！修建造样样在行！", "zh-CN-YunxiNeural", "+5Hz"),
+        "ack1": ("马上去干活！", "zh-CN-YunxiNeural", "+5Hz"),
+        "ack2": ("建造任务交给我！", "zh-CN-YunxiNeural", "+5Hz"),
     },
     "drone": {  # 无人机 · 清脆少年声
         "hello": ("无人机系统启动！", "zh-CN-YunxiaNeural"),
