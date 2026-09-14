@@ -27,7 +27,8 @@
    "timeout_seconds": 90,
    "category": "adjutant",
    "scene": "res://tests/automated/AdjutantCommandProtocolSmokeTest.tscn",
-   "id": "adjutant-command-protocol"
+   "id": "adjutant-command-protocol",
+   "extra_args": ["--", "--debugport", "{free_port}"]
   },
   {
    "expected_marker": "Adjutant credential smoke test completed: 0 failure(s)",
@@ -41,14 +42,16 @@
    "timeout_seconds": 90,
    "category": "adjutant",
    "scene": "res://tests/automated/AdjutantObservationSmokeTest.tscn",
-   "id": "adjutant-observation"
+   "id": "adjutant-observation",
+   "extra_args": ["--", "--debugport", "{free_port}"]
   },
   {
    "expected_marker": "Adjutant rules export smoke test completed: 0 failure(s)",
    "timeout_seconds": 90,
    "category": "adjutant",
    "scene": "res://tests/automated/AdjutantRulesExportSmokeTest.tscn",
-   "id": "adjutant-rules-export"
+   "id": "adjutant-rules-export",
+   "extra_args": ["--", "--debugport", "{free_port}"]
   },
   {
    "expected_marker": "Air entity move smoke test completed: 0 failure(s)",

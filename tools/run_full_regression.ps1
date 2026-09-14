@@ -169,6 +169,26 @@ function Invoke-CapturedProcess {
     }
 }
 
+## 找一个本机空闲 TCP 端口，供 extra_args 里的 {free_port} 占位符替换。
+## 从 24611 起试（避开常用默认值区间），能绑定即视为空闲。
+function Get-FreeTcpPort {
+    foreach ($candidate in 24611..24680) {
+        $listener = $null
+        try {
+            $listener = [System.Net.Sockets.TcpListener]::new(
+                [System.Net.IPAddress]::Loopback, $candidate)
+            $listener.Start()
+            $listener.Stop()
+            return $candidate
+        }
+        catch {
+            if ($null -ne $listener) {
+                try { $listener.Stop() } catch { }
+            }
+        }
+    }
+    throw "No free TCP port found in 24611..24680 for test extra_args."
+}
 function Assert-Manifest {
     param([Parameter(Mandatory = $true)][object]$Manifest)
 
@@ -271,9 +291,21 @@ if (-not $SkipGodot) {
     $resolvedGodot = Resolve-GodotConsole $GodotExecutable
     Write-Host "Godot console: $resolvedGodot"
     foreach ($test in $selectedTests) {
-        $results += Invoke-CapturedProcess ([string]$test.id) $resolvedGodot `
-            @("--headless", "--path", $repositoryRoot, [string]$test.scene) `
-            ([int]$test.timeout_seconds) ([string]$test.expected_marker) @($manifest.forbidden_output_patterns)
+    $testArgs = @("--headless", "--path", $repositoryRoot, [string]$test.scene)
+    # 可选 extra_args：副官类用例需要 `-- --debugport <port>`（见各测试头部注释）。
+    # 不传时它们会去抢**常量** ADJUTANT_PORT=24579，而并行会话的游戏进程常年占着它
+    # ⇒ DebugControlServer `listen()` 失败、不挂副官观测运行时 ⇒ 用例整片假红
+    # （2026-09-15 实测：日志里 `[DBGCTL] 端口 24579 被占用`，断言全错）。
+    # `{free_port}` 占位符在运行时替换成一个本机空闲端口，避免与 24579 冲突。
+    if ($null -ne $test.extra_args -and @($test.extra_args).Count -gt 0) {
+        $freePort = Get-FreeTcpPort
+        foreach ($extra in @($test.extra_args)) {
+            $testArgs += ([string]$extra).Replace("{free_port}", [string]$freePort)
+        }
+    }
+    $results += Invoke-CapturedProcess ([string]$test.id) $resolvedGodot `
+        $testArgs `
+        ([int]$test.timeout_seconds) ([string]$test.expected_marker) @($manifest.forbidden_output_patterns)
     }
 }
 
