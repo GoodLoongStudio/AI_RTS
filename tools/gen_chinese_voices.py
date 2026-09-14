@@ -22,17 +22,17 @@ OUT_DIR = pathlib.Path(__file__).resolve().parent.parent / "assets" / "voice" / 
 
 # ── 全局旁白（指挥 AI · 冷静女声 Xiaomo）──────────────────────────────
 NARRATOR = {
-    "narrator_battle_control_online": ("战斗指挥系统上线，等待你的命令。", "zh-CN-XiaoxiaoNeural"),
-    "narrator_battle_control_offline": ("战斗指挥系统离线。", "zh-CN-XiaoxiaoNeural"),
-    "narrator_victory": ("胜利属于我们！干得漂亮！", "zh-CN-XiaoxiaoNeural"),
-    "narrator_defeat": ("我们失败了……部队正在撤退。", "zh-CN-XiaoxiaoNeural"),
-    "narrator_base_under_attack": ("警告！基地遭到攻击！", "zh-CN-XiaoxiaoNeural"),
-    "narrator_unit_under_attack": ("我方单位受到攻击！", "zh-CN-XiaoxiaoNeural"),
-    "narrator_unit_lost": ("我方单位损失。", "zh-CN-XiaoxiaoNeural"),
-    "narrator_training": ("正在生产作战单位。", "zh-CN-XiaoxiaoNeural"),
-    "narrator_unit_ready": ("新单位已就绪。", "zh-CN-XiaoxiaoNeural"),
-    "narrator_construction_complete": ("建造完成。", "zh-CN-XiaoxiaoNeural"),
-    "narrator_not_enough_resources": ("资源不足，无法执行。", "zh-CN-XiaoxiaoNeural"),
+    "narrator_battle_control_online": ("战斗指挥系统上线，等待你的命令。", "zh-CN-YunyangNeural"),
+    "narrator_battle_control_offline": ("战斗指挥系统离线。", "zh-CN-YunyangNeural"),
+    "narrator_victory": ("胜利属于我们！干得漂亮！", "zh-CN-YunyangNeural"),
+    "narrator_defeat": ("我们失败了……部队正在撤退。", "zh-CN-YunyangNeural"),
+    "narrator_base_under_attack": ("警告！基地遭到攻击！", "zh-CN-YunyangNeural", "+5Hz"),
+    "narrator_unit_under_attack": ("我方单位受到攻击！", "zh-CN-YunyangNeural", "+5Hz"),
+    "narrator_unit_lost": ("我方单位损失。", "zh-CN-YunyangNeural"),
+    "narrator_training": ("正在生产作战单位。", "zh-CN-YunyangNeural"),
+    "narrator_unit_ready": ("新单位已就绪。", "zh-CN-YunyangNeural"),
+    "narrator_construction_complete": ("建造完成。", "zh-CN-YunyangNeural"),
+    "narrator_not_enough_resources": ("资源不足，无法执行。", "zh-CN-YunyangNeural"),
 }
 
 # ── 各单位专属语音（音色+台词全部独特）───────────────────────────────
@@ -53,9 +53,9 @@ UNIT_VOICES = {
         "ack2": ("覆盖射击，收到！", "zh-CN-YunyangNeural"),
     },
     "worker": {  # 工人 · 活泼女声
-        "hello": ("工人报到！修建造样样在行！", "zh-CN-XiaoyiNeural"),
-        "ack1": ("马上去干活！", "zh-CN-XiaoyiNeural"),
-        "ack2": ("建造任务交给我！", "zh-CN-XiaoyiNeural"),
+        "hello": ("工人报到！修建造样样在行！", "zh-CN-YunxiaNeural", "+6Hz"),
+        "ack1": ("马上去干活！", "zh-CN-YunxiaNeural", "+6Hz"),
+        "ack2": ("建造任务交给我！", "zh-CN-YunxiaNeural", "+6Hz"),
     },
     "drone": {  # 无人机 · 清脆少年声
         "hello": ("无人机系统启动！", "zh-CN-YunxiaNeural"),
@@ -63,9 +63,9 @@ UNIT_VOICES = {
         "ack2": ("前往目标区域。", "zh-CN-YunxiaNeural"),
     },
     "transport_truck": {  # 运输车 · 稳重男声
-        "hello": ("运输车就绪，货厢已清空！", "zh-CN-liaoning-XiaobeiNeural"),
-        "ack1": ("收到，马上装车！", "zh-CN-liaoning-XiaobeiNeural"),
-        "ack2": ("物资运输，正在赶路。", "zh-CN-liaoning-XiaobeiNeural"),
+        "hello": ("运输车就绪，货厢已清空！", "zh-CN-YunxiNeural", "-8Hz"),
+        "ack1": ("收到，马上装车！", "zh-CN-YunxiNeural", "-8Hz"),
+        "ack2": ("物资运输，正在赶路。", "zh-CN-YunxiNeural", "-8Hz"),
     },
     "apc": {  # 装甲车 · 沉稳男声
         "hello": ("装甲运兵车待命！", "zh-TW-YunJheNeural"),
@@ -92,11 +92,11 @@ UNIT_VOICES = {
 # ── 建筑选中语音（各自独特）──────────────────────────────────────────
 STRUCTURE_VOICES = {
     "command_center": ("主基地在线，指挥中枢运转正常。", "zh-CN-XiaoxiaoNeural"),
-    "barracks": ("兵营运作正常，新兵随时开训。", "zh-TW-HsiaoChenNeural"),
+    "barracks": ("兵营运作正常，新兵随时开训。", "zh-CN-YunxiNeural", "+5Hz"),
     "vehicle_factory": ("战车工厂运转中，随时可以开工。", "zh-CN-YunjianNeural", "+8Hz"),
-    "aircraft_factory": ("航空工厂就绪，战机生产线上待命。", "zh-TW-HsiaoYuNeural"),
+    "aircraft_factory": ("航空工厂就绪，战机生产线上待命。", "zh-CN-YunyangNeural", "+5Hz"),
     "anti_ground_turret": ("对地炮台就位，地面目标进入射程即开火。", "zh-CN-YunyangNeural"),
-    "anti_air_turret": ("防空炮台展开，天空交给我们。", "zh-CN-shaanxi-XiaoniNeural"),
+    "anti_air_turret": ("防空炮台展开，天空交给我们。", "zh-TW-YunJheNeural", "+5Hz"),
     "machine_gun_turret": ("机枪塔上弹完毕，火力网覆盖中。", "zh-CN-YunxiaNeural", "-10Hz"),
 }
 
