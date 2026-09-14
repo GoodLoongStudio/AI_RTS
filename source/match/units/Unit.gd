@@ -541,9 +541,13 @@ func request_legacy_attack(target_unit) -> bool:
 func request_legacy_force_attack(target_unit) -> bool:
 	if attack_range == null or target_unit == null or not "hp" in target_unit:
 		return false
-	# 炮塔等固定单位顶层动作恒为 WaitingForTargets（其 _set_action 拒绝替换），
-	# 强制攻击作为其子动作挂载（2026-09-07 炮塔支持强制攻击）
-	if action != null and action.has_method("force_attack"):
+	# 炮塔等**固定**单位顶层动作恒为 WaitingForTargets（其 _set_action 拒绝替换），
+	# 强制攻击作为其子动作挂载（2026-09-07 炮塔支持强制攻击）。
+	# ⚠️ 机动单位**不能**走这条：子动作挂法下 `_unit.action` 是父动作（WaitingForTargets）
+	# ≠ `ExplicitForceAttacking` 自身，而后者在追击子动作结束时会用 `_unit.action != self`
+	# 判"已被顶掉"⇒ **误判早退**、射程外强制实体攻击静默不开火（步兵/坦克/APC/直升机全中，
+	# 2026-09-14 定位）。机动单位改走下面的顶层挂法，该判据即成立。
+	if action != null and action.has_method("force_attack") and find_child("Movement") == null:
 		return action.force_attack(target_unit)
 	var force_attack = LegacyForceAttackAction.new(target_unit)
 	force_attack.force_attack_ended.connect(explicit_force_attack_ended.emit)
