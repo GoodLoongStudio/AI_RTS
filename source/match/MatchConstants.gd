@@ -87,12 +87,16 @@ class Navigation:
 
 
 class Air:
-	const Y = 1.5
+	# 空中平面基准高度：地形抬升后（台地顶 8.1 语义 x4 = 32m、山体 60m）
+	# 原值 1.5 会让空中单位穿进地形，抬到 40m（高于最高地形 + 余量）。
+	const Y = 40.0
 	const PLANE = Plane(Vector3.UP, Y)
 
 	class Navmesh:
-		const CELL_SIZE = 0.4
-		const CELL_HEIGHT = 0.4
+		# 2048m 大地图：cell 过小会让 Recast 栅格超限，触发引擎崩溃防护
+		# （Baking interrupted -> polygons=0；on_thread 时直接 0xC0000005）。
+		const CELL_SIZE = 0.8
+		const CELL_HEIGHT = 0.8
 		const MAX_AGENT_RADIUS = 0.8
 
 
@@ -100,8 +104,9 @@ class Terrain:
 	const PLANE = Plane(Vector3.UP, 0)
 
 	class Navmesh:
-		const CELL_SIZE = 0.3
-		const CELL_HEIGHT = 0.3
+		# 0.3 -> 0.6：2048m 世界栅格从 6800^2 降到 3400^2（崩溃防护阈值内）
+		const CELL_SIZE = 0.6
+		const CELL_HEIGHT = 0.6
 		const MAX_AGENT_RADIUS = 0.9  # max radius of movable units
 
 

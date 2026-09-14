@@ -67,6 +67,15 @@ float value_noise(vec2 q) {
  float a=hash21(i), b=hash21(i+vec2(1,0)), c=hash21(i+vec2(0,1)), d=hash21(i+vec2(1,1));
  return mix(mix(a,b,f.x),mix(c,d,f.x),f.y);
 }
+// 旋转交叉噪声：value_noise 的双线性格点在低频下会留下轴向条纹（实测读作
+// "水波/沙纹"），两个 45 度交错的采样叠加后条纹方向互消，读作自然颗粒。
+float value_noise_r(vec2 q, float ang) {
+ float c = cos(ang), s = sin(ang);
+ return value_noise(mat2(vec2(c, s), vec2(-s, c)) * q);
+}
+float terrain_noise(vec2 q) {
+ return value_noise(q) * 0.5 + value_noise_r(q, 0.785398) * 0.5;
+}
 float luma_of(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }
 vec3 desaturate(vec3 c, float keep) { return mix(vec3(luma_of(c)), c, keep); }
 vec3 triplanar(sampler2D t, vec3 pos, vec3 n, float s) {
@@ -139,11 +148,13 @@ void fragment() {
  float macro0 = value_noise(base_uv * 0.0008 + vec2(3.1, 8.7));
  float macro1 = value_noise(base_uv * 0.0020);
  float macro2 = value_noise(base_uv * 0.0075 + vec2(17.0, 5.0));
- float macro3 = value_noise(base_uv * 0.035 - vec2(5.0, 9.0));
+ float macro3 = terrain_noise(base_uv * 0.035 - vec2(5.0, 9.0));
  float macro4 = value_noise(base_uv * 0.00035 + vec2(41.0, 2.0));
 
  // --- 1. main desert floor: pale grey-beige sand with real regional variety --
- vec3 ground = texture(sand_tex, base_uv * 0.050).rgb;
+ // 主层尺度 20m -> 67m：20m 平铺时贴图自带的沙纹在近距离读作"水波"（实测
+ // 多轮 UV 扰动/法线调整均无效——诊断确认来自该采样），放大后读作沙丘波纹。
+ vec3 ground = texture(sand_tex, base_uv * 0.015).rgb;
  ground = mix(ground, texture(detail_tex, base_uv * 0.026).rgb,
               smoothstep(0.35, 0.80, macro2) * 0.58);
  // Cool dust flats read as hardpan pans between the dune belts.  This single
@@ -157,8 +168,8 @@ void fragment() {
  ground *= 0.92 + macro3 * 0.16;
  // Mid-frequency ground rhythm: ~250 m warm belts plus ~45 m dune swells.
  // Without these the floor is one flat beige card from any camera distance.
- float belt250 = value_noise(base_uv * 0.004 + vec2(23.0, 87.0));
- float dune45 = value_noise(base_uv * 0.022 + vec2(5.0, 71.0));
+ float belt250 = terrain_noise(base_uv * 0.004 + vec2(23.0, 87.0));
+ float dune45 = terrain_noise(base_uv * 0.022 + vec2(5.0, 71.0));
  ground = mix(ground, ground * vec3(1.07, 1.00, 0.89),
               smoothstep(0.42, 0.72, belt250) * 0.34);
  ground *= 0.955 + dune45 * 0.11;
@@ -170,29 +181,67 @@ void fragment() {
  // sun+ambient can never produce, without any dynamic cost.
  float cloud = value_noise(base_uv * 0.0011 + vec2(77.0, 31.0))
              * 0.65 + value_noise(base_uv * 0.0032 + vec2(9.0, 51.0)) * 0.35;
- ground *= 1.0 - smoothstep(0.48, 0.86, cloud) * 0.16;
  // Wind ripples give the floor a readable grain direction at any zoom.
  // Keep game-scale sand quiet; broad texture detail survives without periodic bands.
+ // UV 噪声扰动（供近景细节与多材质层共用，必须定义在 if 块外）
+ // 双频扰动：单频 value-noise 带轴向偏置（实测留下横向条带），叠一层
+ // 高频扰动把方向性打散。
+ vec2 uv_jit = vec2(value_noise(base_uv * 0.021 + vec2(3.0, 9.0)),
+                    value_noise(base_uv * 0.021 + vec2(17.0, 5.0))) * 14.0
+             + vec2(value_noise(base_uv * 0.093 + vec2(41.0, 7.0)),
+                    value_noise(base_uv * 0.093 + vec2(29.0, 61.0))) * 5.0;
+ vec2 uv_g = base_uv + uv_jit;
  if (!use_macro_albedo) { ground *= 0.92; }
  if (use_macro_albedo) {
-  ground = mix(ground, macro_sand, macro_strength);
+  // macro 只服务远景色域：近景衰减，避免 34m 视野被大色斑糊成纯色
+  float macro_far = smoothstep(140.0, 560.0, cam_dist);
+  ground = mix(ground, macro_sand, macro_strength * macro_far);
   // Keep fine PBR below 15%; it breaks up close views without restoring the
   // old tiled checkerboard at RTS distance.
-  ground = mix(ground, texture(detail_tex, base_uv * 0.050).rgb, 0.12);
+  // 近景细节：20m 层 + ~6m 层 + ~2.2m 极细层；双尺度采样打破平铺周期。
+  // detail_tex(sand_01) 本身是"横向沙纹照片"，平铺后形成水波状重复（实测
+  // 多轮扰动无效）。改用 dense_sand 的多尺度叠加：同图不同频 -> 均匀沙地 +
+  // 颗粒层次，无跨图拼接、无方向性沙纹。
+  ground = mix(ground, texture(sand_tex, uv_g * 0.018).rgb, 0.14 + 0.16 * (1.0 - macro_far));
+  ground = mix(ground, texture(sand_tex, uv_g * 0.155).rgb,
+               0.13 * (1.0 - macro_far));
+  // detail2(gray_rocks) 在 0.45 频率 = 每 2.2m 平铺 —— 实测这正是 60m 视野里
+  // "2m 级横向波纹"的来源（与网格间距同量级，最刺眼）。降到 0.11（每 9m）
+  // 并减半权重，只保留颗粒而不形成周期纹。
+  vec3 d2a = texture(detail2_tex, uv_g * 0.110).rgb;
+  vec3 d2b = texture(detail2_tex, uv_g * 0.107 + vec2(0.31, 0.17)).rgb;
+  ground = mix(ground, mix(d2a, d2b, 0.5), 0.06 * (1.0 - macro_far));
  }
 
- // Rare crushed-rock fields, kept large and low contrast so they read as
- // gravel plains instead of a leopard print.
+ // ---- 多材质斑驳地表（沙/砾石/裸土/暗土）----
+ // 参照真实荒原与主流 RTS：地表是多种材质大块交错 + 边界渐变，不是单一沙色
+ // 换色。掩码用 100~200m 尺度的低对比噪声（读作"材质区"而非"斑纹"），
+ // 各材质统一乘暖调系数，避免贴图拼贴感。
  vec3 gravel = mix(texture(detail2_tex, base_uv * 0.012).rgb * 0.82, macro_gravel, macro_strength);
  gravel = desaturate(gravel, 0.35) * 1.05;
- float reg = smoothstep(0.74, 0.94, value_noise(base_uv * 0.012 + vec2(31.0, 7.0)));
+ float reg = smoothstep(0.70, 0.92, value_noise(base_uv * 0.012 + vec2(31.0, 7.0)));
  gravel *= 0.94 + luma_of(gravel) * 0.10;
- ground = mix(ground, gravel, reg * 0.18);
+ ground = mix(ground, gravel, reg * 0.32);              // 砾石区（原 0.18 几乎不可见）
+
+ float soil_m = smoothstep(0.55, 0.82, value_noise(base_uv * 0.0085 + vec2(11.0, 53.0)));
+ vec3 soil = texture(ramp_tex, uv_g * 0.075).rgb;      // dirt_aerial：裸土
+ soil = desaturate(soil, 0.25) * vec3(1.06, 1.00, 0.90);
+ ground = mix(ground, mix(ground, soil, 0.55), soil_m * 0.50);
+
+ float dark_m = smoothstep(0.60, 0.88, value_noise(base_uv * 0.0060 + vec2(97.0, 13.0)));
+ vec3 dark_soil = texture(bank_tex, uv_g * 0.055).rgb;  // brown_mud：暗土
+ dark_soil = desaturate(dark_soil, 0.30) * vec3(1.02, 0.97, 0.90);
+ ground = mix(ground, dark_soil * 0.94, dark_m * 0.34);
  float rough = 0.88 - macro3 * 0.05 + reg * 0.06;
 
  // --- 2. plateau top: paler, drier, dusty hardpan ---------------------------
  vec3 top = texture(top_tex, base_uv * 0.012).rgb;
- if (use_macro_albedo) { top = mix(top, macro_sand * vec3(1.035,1.025,1.01), macro_strength); }
+ if (use_macro_albedo) {
+  // 原式 x1.035 提亮 + top_tex 本身偏亮 -> 台地顶比周围地面亮 77%（实测），
+  // 在高台上形成刺眼的"亮斑"。改为轻微压暗并混入更多色域变化。
+  top = mix(top, macro_sand * vec3(0.97, 0.985, 1.0), macro_strength);
+  top *= vec3(0.94, 0.945, 0.96);
+ }
  top = mix(top, texture(detail_tex, base_uv * 0.075).rgb * 1.04, 0.18);
  top = mix(top, top * vec3(1.05, 1.04, 1.00), smoothstep(0.45, 0.85, macro2) * 0.30);
  top *= 0.80 + macro3 * 0.16 + macro0 * 0.13;
@@ -211,7 +260,11 @@ void fragment() {
  cliff = mix(cliff, triplanar(detail2_tex, p, wnr, 0.145), 0.18);
  // Packed-earth tone one step lighter than the old chocolate (0.34,0.30,0.28):
  // the rim read as a dark cookie outline around every mesa at RTS distance.
- cliff = mix(vec3(0.43, 0.375, 0.32), macro_rock, use_macro_albedo ? macro_strength : 0.0) * (0.88 + luma_of(cliff) * 0.14 + macro3 * 0.04);
+ // 崖壁：保留贴图质感（cliff_tex/detail2 的层理与颗粒）+ 提亮的岩壁基色。
+ // 原实现直接以纯色 (0.43,0.375,0.32) 覆盖 -> 崖壁变成无细节的深棕"黑边"
+ // （总览实测）。0.55 的贴图权重恢复层理，基色提亮并去饱和。
+ cliff = mix(cliff, vec3(0.52, 0.465, 0.40), 0.55)
+       * (0.90 + luma_of(cliff) * 0.16 + macro3 * 0.05);
 // Strata follow world height, so wall layers line up between plateaus; the
 // weather-band term adds irregular vertical staining so rims erode instead of
 // reading as extruded plastic.
@@ -359,6 +412,10 @@ float scree = smoothstep(0.58, 0.90, value_noise(base_uv * 0.045 + vec2(53.0, 11
  col = mix(col, ramp, clamp(ramp_m, 0.0, 1.0));
  col = mix(col, shorec, clamp(lake_band, 0.0, 1.0) * 0.92 * (1.0 - rock_in));
  col = mix(col, bank, clamp(river_band, 0.0, 1.0) * 0.92 * (1.0 - rock_in));
+ // 云影统一作用在合成结果上：原先只乘在 ground 上，随后被 top/cliff 等
+ // mix 覆盖 -> 台地顶成了"没有层次的均匀亮板"（实测台地顶 158 均匀 vs
+ // 平地 76~160 有色域变化）。移到此处后所有地表层共享大尺度明暗。
+ col *= 1.0 - smoothstep(0.48, 0.86, cloud) * 0.16;
 	// Warm sci-fi lighting otherwise pushes the albedo toward orange; keep the
 	// terrain in the requested warm-grey / muted rose-brown range.
 	col *= vec3(1.05, 0.99, 0.90);
@@ -403,7 +460,11 @@ float scree = smoothstep(0.58, 0.90, value_noise(base_uv * 0.045 + vec2(53.0, 11
  SPECULAR = 0.22;
  METALLIC = 0.0;
 
- vec3 n_sand = texture(sand_normal, base_uv * 0.050).xyz * 2.0 - 1.0;
+ // 法线贴图 20m 平铺在光照下会形成规则条纹（实测水平波纹的主因）：
+ // 扰动 UV + 双尺度混合后周期互消，保留颗粒感而去掉条纹。
+ vec3 n_sand = normalize(mix(texture(sand_normal, uv_g * 0.050).xyz,
+                             texture(sand_normal, uv_g * 0.113 + vec2(0.41, 0.23)).xyz,
+                             0.5) * 2.0 - 1.0 + vec3(0.0, 1.0, 0.0));
  vec3 n_rock = triplanar(rock_normal, p, wnr, 0.062) * 2.0 - 1.0;
  vec3 n_cliff = triplanar(cliff_normal, p, wnr, 0.070) * 2.0 - 1.0;
  vec3 nrm = n_sand;
@@ -420,12 +481,15 @@ float scree = smoothstep(0.58, 0.90, value_noise(base_uv * 0.045 + vec2(53.0, 11
  // bypassing both the 2 m mesh resolution and the low-frequency sampled normal
  // maps. This is what finally breaks the "poured wax" surface into fractured
  // rock at RTS distance.
+ // 程序化凹凸用旋转交叉噪声：value_noise 的格点结构在【梯度】下最明显，
+ // 直接用作 bump 会在平地上留下网格状明暗条纹（实测 4.2m 周期，多轮
+ // 贴图层排查无效后定位到此）。terrain_noise 的 45 度交错采样消除方向性。
  vec2 gq = base_uv * 0.24;
- float gn0 = value_noise(gq);
- vec2 bump_g = vec2(value_noise(gq + vec2(0.85, 0.0)) - gn0,
-                    value_noise(gq + vec2(0.0, 0.85)) - gn0);
- nrm.x += bump_g.x * 2.6 * rock_in;
- nrm.y += bump_g.y * 2.6 * rock_in;
+ float gn0 = terrain_noise(gq);
+ vec2 bump_g = vec2(terrain_noise(gq + vec2(0.85, 0.0)) - gn0,
+                    terrain_noise(gq + vec2(0.0, 0.85)) - gn0);
+ nrm.x += bump_g.x * 1.7 * rock_in;
+ nrm.y += bump_g.y * 1.7 * rock_in;
  vec3 bumped = normalize(wnr + vec3(nrm.x, 0.0, nrm.y)
      * normal_strength * (1.0 + 8.0 * rock_in));
  NORMAL = normalize((VIEW_MATRIX * vec4(bumped, 0.0)).xyz);

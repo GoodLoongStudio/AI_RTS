@@ -46,13 +46,25 @@ func _run() -> void:
 	var fnorm := Vector2(-0.36566, -0.93075)
 	var mfocus := Vector2(1752.724, 1655.545)
 
+	# 机位：游戏相机范围(size 1..60) + 实测地标；高度随台地抬高同步
+	# （台地顶 8.1 语义 x4 = 32m；山体峰 15 语义 x4 = 60m）
 	var views := [
-		{"name": "game_rts_mountain", "size": 190,
-			"eye": Vector3(ffocus.x + fnorm.x * 220.0, 90.0,
-				ffocus.y + fnorm.y * 300.0),
-			"look": Vector3(mfocus.x, 20.0, mfocus.y)},
-		{"name": "game_iso45", "size": 2500,
+		{"name": "game_default_mesa", "size": 21.25,
+			"eye": Vector3(1383, 59, 564), "look": Vector3(1356, 32, 537)},
+		{"name": "game_far_mesa", "size": 60.0,
+			"eye": Vector3(1434, 110, 615), "look": Vector3(1356, 32, 537)},
+		{"name": "game_oasis", "size": 60.0,
+			"eye": Vector3(448, 86, 1231), "look": Vector3(370, 8, 1153)},
+		{"name": "game_far_mountain", "size": 60.0,
+			"eye": Vector3(1289, 138, 265), "look": Vector3(1211, 60, 187)},
+		{"name": "diag_mesa_full", "size": 340.0,
+			"eye": Vector3(1583, 400, 822), "look": Vector3(1253, 32, 492)},
+		{"name": "diag_river_edge", "size": 90.0,
+			"eye": Vector3(2075, 96, 1167), "look": Vector3(1972, 0, 1064)},
+		{"name": "game_overview", "size": 2500,
 			"eye": Vector3(2550, 2700, 2900), "look": Vector3(1024, 0, 1024)},
+		{"name": "game_profile", "size": 700,
+			"eye": Vector3(1024, 60, 2200), "look": Vector3(1024, 20, 700)},
 	]
 	for view in views:
 		camera.size = float(view.size)
