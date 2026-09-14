@@ -560,6 +560,13 @@
    "scene": "res://tests/automated/PerformanceGovernorSmokeTest.tscn",
    "expected_marker": "Performance governor smoke test completed: 0 failure(s)",
    "timeout_seconds": 60
+  },
+  {
+   "id": "terrain-ground-collision",
+   "category": "navigation",
+   "scene": "res://tests/automated/TerrainGroundCollisionSmokeTest.tscn",
+   "expected_marker": "Terrain ground collision smoke test completed: 0 failure(s)",
+   "timeout_seconds": 120
   }
  ]
 }
