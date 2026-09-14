@@ -27,6 +27,8 @@ const LOCAL_MATCH_ID_PREFIX := "local-"
 var _recorder: MatchReportRecorder = null
 var _match_id := ""
 var _connected := false
+## 本进程内已发出的对局编号序号（见 `_make_match_id()` 的说明）。
+var _match_seq := 0
 
 
 func _ready() -> void:
@@ -130,6 +132,10 @@ func _finish(result: String, reason: String = "") -> void:
 	var before: Variant = recorder.context.get("growth_before", null)
 	recorder.context["growth_spent_this_match"] = _spent_delta(before, after)
 	recorder.finish(result, reason)
+	# 收尾后立刻把 recorder 摘掉：它挂在**对局根**下，若一个 Match 实例里连打多局
+	# （重开），死掉的 recorder 会一局一个地堆在场景树里。
+	if is_instance_valid(recorder):
+		recorder.queue_free()
 	# 详细报告是唯一权威；画像读的是它的摘要。upsert 不会自动同步，这里显式推一次。
 	var store := get_node_or_null("/root/MatchReportStore")
 	if store != null and store.has_method("sync_growth_store"):
@@ -247,7 +253,13 @@ func _spent_delta(before: Variant, after: Variant) -> Variant:
 
 
 ## 本地对局编号。这是**我们自己发的号**，不是协议字段 —— 前缀已经说明了这点。
+##
+## ⚠️ 必须带序号：`Time.get_datetime_string_from_system()` 只有**秒**级精度，同一秒内连开
+## 两局会发出同一个 match_id；而 `MatchReportStore._find_duplicate()` 的规则是
+## "同一玩家 + 同一 match_id ⇒ 同一局"，于是**第二局会静默覆盖第一局**（不报错，数据少一局）。
+## 实测踩过：连开两局，报告数停在 1。
 func _make_match_id() -> String:
+	_match_seq += 1
 	var stamp := Time.get_datetime_string_from_system()
 	stamp = stamp.replace("-", "").replace(":", "").replace("T", "").replace(" ", "")
-	return LOCAL_MATCH_ID_PREFIX + stamp
+	return "%s%s-%d" % [LOCAL_MATCH_ID_PREFIX, stamp, _match_seq]

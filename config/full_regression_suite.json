@@ -574,6 +574,13 @@
    "scene": "res://tests/automated/MatchHistorySmokeTest.tscn",
    "expected_marker": "Match history smoke test completed: 0 failure(s)",
    "timeout_seconds": 180
+  },
+  {
+   "id": "match-history-hook",
+   "category": "ui",
+   "scene": "res://tests/automated/MatchHistoryHookSmokeTest.tscn",
+   "expected_marker": "Match history hook smoke test completed: 0 failure(s)",
+   "timeout_seconds": 120
   }
  ]
 }
