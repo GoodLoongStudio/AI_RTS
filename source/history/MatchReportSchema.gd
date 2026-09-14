@@ -427,7 +427,8 @@ static func validate(report: Dictionary) -> Array:
 	if duration == null:
 		issues.append(_issue("warning", "duration_seconds", "缺少对局时长：每分钟速率类指标不可计算"))
 	var map_data: Dictionary = report.get("map", {}) if report.get("map", {}) is Dictionary else {}
-	if str(map_data.get("name", "")).is_empty() and map_data.get("seed", null) == null:
+	var map_name: Variant = map_data.get("name", null)
+	if (map_name == null or str(map_name).is_empty()) and map_data.get("seed", null) == null:
 		issues.append(_issue("warning", "map", "缺少地图名与种子"))
 	if bool(report.get("demo", false)) and report.get("demo_seed", null) == null:
 		issues.append(_issue("warning", "demo_seed", "Demo 数据必须带 demo_seed 以便复现"))
@@ -600,8 +601,8 @@ static func migrate_legacy(legacy: Dictionary, index: int = 0) -> Dictionary:
 		"migrated_from_legacy": true,
 		"outcome": str(legacy.get("outcome", "unknown")),
 		"map": {"name": "", "seed": null},
-		"mode": "unknown",
-		"difficulty": "unknown",
+		"mode": null,
+		"difficulty": null,
 		"adjutant": {"type": "", "level": null},
 		"overview": {
 			"total_gathered": {"resource_a": gathered, "resource_b": null},
@@ -658,16 +659,27 @@ static func aborted_report(partial: Dictionary, reason: String) -> Dictionary:
 
 # ==================== 展示辅助 ====================
 
-static func outcome_label(outcome: String) -> String:
-	return str(OUTCOME_LABEL.get(outcome, OUTCOME_LABEL["unknown"]))
+## 标签函数对 null / 空串一律返回 "—"：这是"我们没有这个值"。
+## 与 "unknown"（明确未知）在 UI 上必须能区分 —— 缺失不许被渲染成一个分类名。
+static func _label_of(table: Dictionary, value: Variant) -> String:
+	if value == null:
+		return "—"
+	var key := str(value)
+	if key.is_empty():
+		return "—"
+	return str(table.get(key, table.get("unknown", "未知")))
 
 
-static func mode_label(mode: String) -> String:
-	return str(MODE_LABEL.get(mode, MODE_LABEL["unknown"]))
+static func outcome_label(outcome: Variant) -> String:
+	return _label_of(OUTCOME_LABEL, outcome)
 
 
-static func difficulty_label(difficulty: String) -> String:
-	return str(DIFFICULTY_LABEL.get(difficulty, DIFFICULTY_LABEL["unknown"]))
+static func mode_label(mode: Variant) -> String:
+	return _label_of(MODE_LABEL, mode)
+
+
+static func difficulty_label(difficulty: Variant) -> String:
+	return _label_of(DIFFICULTY_LABEL, difficulty)
 
 
 static func hermes_status_label(status: String) -> String:

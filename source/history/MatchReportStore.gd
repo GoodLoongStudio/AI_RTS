@@ -41,6 +41,22 @@ func _ready() -> void:
 	load_all()
 
 
+## 挂上真实对局的记录钩子。**默认关闭**（`FeatureFlags.record_match_history`）：
+## 对局层目前还没有 difficulty / 副官类型 / 权威伤害数字，打开后生成的是
+## "诚实的稀疏报告"（缺失字段为 null、完整度很低）。等玩法系统愿意用
+## `MatchReportRecorder.contribute()` 推进权威数字之后再默认打开。
+##
+## 用 `flags.get("...")` 而不是直接写属性名：老版本 tscn 里没有这个字段时
+## 也能安全降级成关闭，而不是脚本加载失败。
+func _install_match_hook() -> void:
+	var flags := get_node_or_null("/root/FeatureFlags")
+	if flags == null or not bool(flags.get("record_match_history")):
+		return
+	var hook: Node = MatchHistoryHook.new()
+	hook.name = "MatchHistoryHook"
+	add_child(hook)
+
+
 # ==================== 加载 / 保存 ====================
 
 ## 读取本地报告。首次运行时播种 Demo 数据，并迁移旧版对局档案。
@@ -211,12 +227,12 @@ func facets() -> Dictionary:
 	var outcomes := {}
 	for report in reports:
 		var entry: Dictionary = report
-		var map_name := str((entry.get("map", {}) as Dictionary).get("name", "")) \
+		var map_name := _filter_key((entry.get("map", {}) as Dictionary).get("name", null)) \
 			if entry.get("map", {}) is Dictionary else ""
 		if not map_name.is_empty():
 			maps[map_name] = true
-		var mode := str(entry.get("mode", ""))
-		if not mode.is_empty() and mode != "unknown":
+		var mode := _filter_key(entry.get("mode", null))
+		if not mode.is_empty():
 			modes[MatchReportSchema.mode_label(mode)] = mode
 		# Dictionary.get() 返回 Variant，这里必须显式标注类型：
 		# 本工程把 "从 Variant 推断类型" 的告警当成错误。
@@ -225,10 +241,12 @@ func facets() -> Dictionary:
 			var kind := str((adjutant as Dictionary).get("type", ""))
 			if not kind.is_empty():
 				adjutants[kind] = kind
-		var difficulty := str(entry.get("difficulty", ""))
-		if not difficulty.is_empty() and difficulty != "unknown":
+		var difficulty := _filter_key(entry.get("difficulty", null))
+		if not difficulty.is_empty():
 			difficulties[MatchReportSchema.difficulty_label(difficulty)] = difficulty
-		outcomes[str(entry.get("outcome", "unknown"))] = true
+		var outcome_key := _filter_key(entry.get("outcome", null))
+		if not outcome_key.is_empty():
+			outcomes[outcome_key] = true
 	var map_list: Array = maps.keys()
 	map_list.sort()
 	var mode_list: Array = modes.keys()
@@ -433,3 +451,13 @@ func _trim() -> void:
 		return MatchReportSchema.compare(a, b, "date_desc"))
 	while reports.size() > MAX_REPORTS:
 		reports.pop_back()
+
+
+## 从字段里取"可筛选的字符串"。null 与 "unknown" 一律视为"没有这个值"：
+## 直接用 `str(null)` 会得到字面量 "<null>"，在筛选项里就是一条垃圾选项；
+## "unknown" 是"明确未知"，不是可筛选的分类。
+func _filter_key(value: Variant) -> String:
+	if value == null:
+		return ""
+	var text := str(value)
+	return "" if text == "unknown" else text

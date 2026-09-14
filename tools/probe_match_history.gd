@@ -38,10 +38,12 @@ func _run() -> void:
 	await _check_store()
 	await _check_profile_bridge()
 	await _check_recorder()
+	await _check_sparse_report()
 	# 版面层必须在**探针自己的隔离档案**上跑：真实档案可以被并行会话或历史遗留写脏，
 	# 断言"列表应有 10 条"就变成环境依赖的假红（实测踩过：真实档案里两条记录 report_id 为空）。
 	await _prepare_isolated_store()
 	await _check_legacy_json_file()
+	await _check_facets_exclude_missing()
 	for spec in _requested_resolutions():
 		await _check_layout(spec)
 	await _check_empty_state()
@@ -369,6 +371,83 @@ func _check_recorder() -> void:
 	_check(str(report["timeline"][0]["type"]) == "match_start", "记录器时间线以 match_start 开头")
 	recorder.free()
 
+
+
+
+## 缺字段必须"什么都留不下"：不能变成 "unknown"，也不能在 UI 上渲染成 "<null>"。
+## 这条纪律直接对应需求里的**不允许因数据缺失而编造统计**。
+func _check_sparse_report() -> void:
+	# 1) 标签函数：null / 空串 → "—"（"我们没有这个值"）；
+	#    "unknown" → "未知"（"明确未知"）。两者在 UI 上必须能区分。
+	_check(MatchReportSchema.mode_label(null) == "—", "缺失的模式渲染成 —（而不是「未知」）")
+	_check(MatchReportSchema.difficulty_label(null) == "—", "缺失的难度渲染成 —")
+	_check(MatchReportSchema.outcome_label(null) == "—", "缺失的胜负渲染成 —")
+	_check(MatchReportSchema.mode_label("unknown") == "未知",
+		"「明确未知」仍渲染成「未知」—— 与「没有这个值」必须能区分")
+	
+	# 2) 一份"对局层只能给出这些"的稀疏报告（= MatchHistoryHook 的真实产物形状）。
+	var recorder: Node = load("res://source/history/MatchReportRecorder.gd").new()
+	add_child(recorder)
+	recorder.begin({
+		"player_id": "probe_sparse", "match_id": "probe-sparse",
+		"mode": null, "difficulty": null,
+		"adjutant": {"type": null, "level": null},
+		"map": {"name": null, "path": null},
+	})
+	var report: Dictionary = recorder.build_report()
+	recorder.free()
+	
+	_check(report["mode"] == null, "拿不到模式时报告里是 null（不是 \"unknown\"）")
+	_check(report["difficulty"] == null, "拿不到难度时报告里是 null")
+	var map_section: Dictionary = report["map"]
+	_check(map_section["name"] == null, "拿不到地图名时是 null")
+	_check(map_section["path"] == null, "拿不到地图路径时是 null")
+	var adjutant: Dictionary = report["adjutant"]
+	_check(adjutant["type"] == null, "拿不到副官类型时是 null")
+	
+	# 3) 序列化文本里不许出现 str(null) 的字面量：它会一路漏到档案与 UI。
+	_check(not JSON.stringify(report).contains("<null>"), "序列化后的报告不含字面量 <null>")
+	
+	# 4) 完整度必须如实低：这个形状绝不该拿到高分（否则画面会显得"数据很全"）。
+	_check(float(report["data_completeness"]["ratio"]) < 0.6,
+		"稀疏报告如实给出低完整度 %.2f" % report["data_completeness"]["ratio"])
+
+
+## 筛选项不许把"没有这个值"变成一个可选项（否则玩家会看到名叫 "<null>" 的筛选项）。
+## 在**探针自己的隔离档案**上跑，跑完还原，不影响后续版面断言。
+func _check_facets_exclude_missing() -> void:
+	var store: Node = get_node_or_null("/root/MatchReportStore")
+	if store == null:
+		_check(false, "MatchReportStore autoload 可用（筛选项检查）")
+		return
+	var before := (store.reports as Array).size()
+	var facets_before: Dictionary = store.facets()
+	
+	var recorder: Node = load("res://source/history/MatchReportRecorder.gd").new()
+	add_child(recorder)
+	recorder.begin({
+		"player_id": "probe_sparse", "match_id": "probe-sparse",
+		"mode": null, "difficulty": null,
+		"adjutant": {"type": null, "level": null},
+		"map": {"name": null, "path": null},
+	})
+	var report: Dictionary = recorder.build_report()
+	recorder.free()
+	var result: Dictionary = store.upsert(report)
+	_check(str(result.get("action", "")) == "inserted", "缺字段的报告可以入库（不因缺字段被拒）")
+	
+	var facets_after: Dictionary = store.facets()
+	for key in ["maps", "modes", "difficulties"]:
+		var before_list: Array = facets_before[key]
+		var after_list: Array = facets_after[key]
+		_check(after_list.size() == before_list.size(),
+			"缺字段的报告不给筛选「%s」增加任何选项（%d → %d）"
+			% [key, before_list.size(), after_list.size()])
+		_check(not str(after_list).contains("<null>"), "筛选「%s」不含字面量 <null>" % key)
+	
+	# 还原：后面的版面断言要求隔离档案恰好是 10 场 Demo。
+	store.remove(str(report.get("report_id", "")))
+	_check((store.reports as Array).size() == before, "筛选项检查后档案已还原（%d 场）" % before)
 
 # ==================== 版面层 ====================
 

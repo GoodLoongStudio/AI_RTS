@@ -314,9 +314,9 @@ func _build_row(report: Dictionary) -> Button:
 	line2.add_child(ReportWidgets.label("时长 %s"
 		% MatchReportSchema.duration_text(report.get("duration_seconds", null)), 12, SystemUIStyle.TEXT))
 	line2.add_child(ReportWidgets.label("难度 %s"
-		% MatchReportSchema.difficulty_label(str(report.get("difficulty", "unknown"))), 12, SystemUIStyle.MUTED))
+		% MatchReportSchema.difficulty_label(report.get("difficulty", null)), 12, SystemUIStyle.MUTED))
 	line2.add_child(ReportWidgets.label("模式 %s"
-		% MatchReportSchema.mode_label(str(report.get("mode", "unknown"))), 12, SystemUIStyle.MUTED))
+		% MatchReportSchema.mode_label(report.get("mode", null)), 12, SystemUIStyle.MUTED))
 	line2.add_child(ReportWidgets.label("副官 %s"
 		% (str(adjutant.get("type", "")) if str(adjutant.get("type", "")).length() > 0 else "—"),
 		12, SystemUIStyle.MUTED))

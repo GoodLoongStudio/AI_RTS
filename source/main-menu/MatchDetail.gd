@@ -128,10 +128,10 @@ func _bind_header() -> void:
 		var adjutant: Dictionary = _section("adjutant")
 		var completeness: Dictionary = _section("data_completeness")
 		var parts := PackedStringArray()
-		parts.append("地图 %s" % (str(map.get("name", "")) if not str(map.get("name", "")).is_empty() else "—"))
+		parts.append("地图 %s" % _text_or_null(map.get("name", null)))
 		parts.append("种子 %s" % MatchReportSchema.number_text(map.get("seed", null)))
-		parts.append("难度 %s" % MatchReportSchema.difficulty_label(str(_report.get("difficulty", "unknown"))))
-		parts.append("模式 %s" % MatchReportSchema.mode_label(str(_report.get("mode", "unknown"))))
+		parts.append("难度 %s" % MatchReportSchema.difficulty_label(_report.get("difficulty", null)))
+		parts.append("模式 %s" % MatchReportSchema.mode_label(_report.get("mode", null)))
 		parts.append("副官 %s" % (str(adjutant.get("type", "")) if not str(adjutant.get("type", "")).is_empty() else "—"))
 		parts.append("开始 %s" % (str(_report.get("created_at", "")) if _report.get("created_at", null) != null else "—"))
 		parts.append("数据完整度 %s" % MatchReportSchema.percent_text(completeness.get("ratio", null)))
@@ -185,29 +185,29 @@ func _build_overview(body: Node) -> void:
 	var metrics_a := HBoxContainer.new()
 	metrics_a.add_theme_constant_override("separation", 8)
 	body.add_child(metrics_a)
-	metrics_a.add_child(ReportWidgets.metric(metrics_a, "对局时长",
-		MatchReportSchema.duration_text(_report.get("duration_seconds", null)), "", SystemUIStyle.CYAN))
-	metrics_a.add_child(ReportWidgets.metric(metrics_a, "建造建筑",
-		_n(overview.get("structures_built", null)), "座", SystemUIStyle.GREEN))
-	metrics_a.add_child(ReportWidgets.metric(metrics_a, "生产单位",
-		_n(overview.get("units_produced", null)), "个", SystemUIStyle.GREEN))
-	metrics_a.add_child(ReportWidgets.metric(metrics_a, "造成伤害",
-		_n(overview.get("damage_dealt", null)), "", SystemUIStyle.AMBER))
-	metrics_a.add_child(ReportWidgets.metric(metrics_a, "承受伤害",
-		_n(overview.get("damage_taken", null)), "", SystemUIStyle.RED))
+	ReportWidgets.metric(metrics_a, "对局时长",
+		MatchReportSchema.duration_text(_report.get("duration_seconds", null)), "", SystemUIStyle.CYAN)
+	ReportWidgets.metric(metrics_a, "建造建筑",
+		_n(overview.get("structures_built", null)), "座", SystemUIStyle.GREEN)
+	ReportWidgets.metric(metrics_a, "生产单位",
+		_n(overview.get("units_produced", null)), "个", SystemUIStyle.GREEN)
+	ReportWidgets.metric(metrics_a, "造成伤害",
+		_n(overview.get("damage_dealt", null)), "", SystemUIStyle.AMBER)
+	ReportWidgets.metric(metrics_a, "承受伤害",
+		_n(overview.get("damage_taken", null)), "", SystemUIStyle.RED)
 	var metrics_b := HBoxContainer.new()
 	metrics_b.add_theme_constant_override("separation", 8)
 	body.add_child(metrics_b)
-	metrics_b.add_child(ReportWidgets.metric(metrics_b, "单位损失",
-		_n(overview.get("units_lost", null)), "个", SystemUIStyle.RED))
-	metrics_b.add_child(ReportWidgets.metric(metrics_b, "敌方击杀",
-		_n(overview.get("enemies_killed", null)), "个", SystemUIStyle.GREEN))
-	metrics_b.add_child(ReportWidgets.metric(metrics_b, "总采集资源",
-		_amounts(overview.get("total_gathered", null)), "", SystemUIStyle.AMBER))
-	metrics_b.add_child(ReportWidgets.metric(metrics_b, "总消耗资源",
-		_amounts(overview.get("total_spent", null)), "", SystemUIStyle.AMBER))
-	metrics_b.add_child(ReportWidgets.metric(metrics_b, "本局评分",
-		_n(overview.get("score", null)), "", SystemUIStyle.AMBER_HI))
+	ReportWidgets.metric(metrics_b, "单位损失",
+		_n(overview.get("units_lost", null)), "个", SystemUIStyle.RED)
+	ReportWidgets.metric(metrics_b, "敌方击杀",
+		_n(overview.get("enemies_killed", null)), "个", SystemUIStyle.GREEN)
+	ReportWidgets.metric(metrics_b, "总采集资源",
+		_amounts(overview.get("total_gathered", null)), "", SystemUIStyle.AMBER)
+	ReportWidgets.metric(metrics_b, "总消耗资源",
+		_amounts(overview.get("total_spent", null)), "", SystemUIStyle.AMBER)
+	ReportWidgets.metric(metrics_b, "本局评分",
+		_n(overview.get("score", null)), "", SystemUIStyle.AMBER_HI)
 
 	var info := ReportWidgets.section(body, "对局信息", SystemUIStyle.CYAN)
 	var map: Dictionary = _section("map")
@@ -217,8 +217,8 @@ func _build_overview(body: Node) -> void:
 		["地图种子", MatchReportSchema.number_text(map.get("seed", null))],
 		["地图规模", _text_or_null(map.get("size", null))],
 		["地图人数", _text_or_null(map.get("players", null))],
-		["难度", MatchReportSchema.difficulty_label(str(_report.get("difficulty", "unknown")))],
-		["游戏模式", MatchReportSchema.mode_label(str(_report.get("mode", "unknown")))],
+		["难度", MatchReportSchema.difficulty_label(_report.get("difficulty", null))],
+		["游戏模式", MatchReportSchema.mode_label(_report.get("mode", null))],
 		["Hermes 副官", _text_or_null(adjutant.get("type", null))],
 		["副官等级", _text_or_null(adjutant.get("level", null))],
 		["指挥官", _text_or_null(_report.get("commander", null))],
