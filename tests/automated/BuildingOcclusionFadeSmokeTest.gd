@@ -1,5 +1,6 @@
 extends Node
 
+const SmokeTestWarmup = preload("res://tests/automated/SmokeTestWarmup.gd")
 const MatchScene = preload("res://tests/manual/TestOneUnit.tscn")
 
 var _failures := 0
@@ -8,8 +9,10 @@ var _failures := 0
 func _ready():
 	var match_instance = MatchScene.instantiate()
 	add_child(match_instance)
-	await get_tree().process_frame
-	await get_tree().process_frame
+	# ⚠️ `Match._ready()` 是异步的：单位约 0.3 秒后才进 `units` 组。遮挡检测遍历的正是
+	# `get_nodes_in_group("units")`，只等两帧时该组为空 ⇒ `_find_blocking_occluders()` 恒返回
+	# 空字典 ⇒ 建筑永远不会被虚化（断言恒红）。
+	await SmokeTestWarmup.wait_for_units(get_tree(), 1)
 
 	var fade = match_instance.get_node("Handlers/BuildingOcclusionFade")
 	var decorations = match_instance.get_node("Map/Decorations")
