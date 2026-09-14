@@ -21,9 +21,15 @@ func _ready():
 	var mid: Vector3 = camera.global_position.lerp(tank.global_position + Vector3(0, 0.7, 0), 0.4)
 	var pillar := MeshInstance3D.new()
 	var box := BoxMesh.new()
-	box.size = Vector3(4, 12, 4)
+	# ⚠️ 柱高必须**由实际视线高度派生**，不能写死：镜头高度会随设置/版本变化，
+	# 写死 12 米时一旦机位抬高，视线就从柱顶上方越过 ⇒ 遮挡检测恒判「没挡住」
+	# （2026-09-15 实测：相机 y 从 19.7 抬到 25.0 后，40% 处视线高度 15.5 > 12）。
+	# 这里让柱子从地面一直长到视线之上 6 米，机位再变也不会失效。
+	var sight_y: float = mid.y
+	var pillar_height: float = sight_y + 6.0
+	box.size = Vector3(4, pillar_height, 4)
 	pillar.mesh = box
-	pillar.position = Vector3(mid.x, 6, mid.z)
+	pillar.position = Vector3(mid.x, pillar_height * 0.5, mid.z)
 	decorations.add_child(pillar)
 
 	fade._refresh_occluders()
