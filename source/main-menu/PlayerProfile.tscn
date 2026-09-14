@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://source/main-menu/PlayerProfile.gd" id="1"]
 [ext_resource type="Theme" path="res://source/resources/main_menu.theme" id="2"]
@@ -25,17 +25,20 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 
 [node name="PanelContainer" type="PanelContainer" parent="CenterContainer"]
-custom_minimum_size = Vector2(760, 560)
+custom_minimum_size = Vector2(1180, 640)
 layout_mode = 2
+mouse_filter = 0
+clip_contents = true
 
 [node name="MarginContainer" type="MarginContainer" parent="CenterContainer/PanelContainer"]
 layout_mode = 2
-theme_override_constants/margin_left = 28
-theme_override_constants/margin_top = 24
-theme_override_constants/margin_right = 28
-theme_override_constants/margin_bottom = 24
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 18
 
 [node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer"]
 layout_mode = 2
@@ -43,36 +46,147 @@ theme_override_constants/separation = 12
 
 [node name="Title" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 30
-text = "玩家画像"
-horizontal_alignment = 1
+theme_override_font_sizes/font_size = 22
+text = "PLAYER PROFILE  /  HERMES ANALYSIS"
 
 [node name="Hermes" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "Hermes · 只读分析与推荐"
+theme_override_font_sizes/font_size = 13
+text = "Hermes 只读分析：画像来自本地对局档案，不参与对局判定"
+
+[node name="Body" type="HBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 14
+
+[node name="Identity" type="PanelContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Body"]
+custom_minimum_size = Vector2(252, 0)
+layout_mode = 2
+
+[node name="IdentityBox" type="VBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Body/Identity"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Avatar" type="TextureRect" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Body/Identity/IdentityBox"]
+custom_minimum_size = Vector2(96, 96)
+layout_mode = 2
+size_flags_horizontal = 4
+expand_mode = 1
+stretch_mode = 5
+
+[node name="PlayerId" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Body/Identity/IdentityBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "local"
 horizontal_alignment = 1
+autowrap_mode = 3
 
-[node name="Radar" type="Control" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
+[node name="Sample" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Body/Identity/IdentityBox"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 220)
-script = ExtResource("4")
-
-[node name="Dimensions" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
-layout_mode = 2
-text = "战斗 0   经济 0   建设 0"
-horizontal_alignment = 1
-
-[node name="Sample" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
-layout_mode = 2
+theme_override_font_sizes/font_size = 13
 text = "暂无 Hermes 画像快照"
 horizontal_alignment = 1
-autowrap_mode = 2
+autowrap_mode = 3
 
-[node name="Recommendation" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
+[node name="Generated" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Body/Identity/IdentityBox"]
 layout_mode = 2
-text = "副官推荐：暂无\n依据：等待历史对局报告与成长选择数据"
+theme_override_font_sizes/font_size = 12
+text = "生成时间：—"
 horizontal_alignment = 1
-autowrap_mode = 2
+autowrap_mode = 3
+
+[node name="Analysis" type="PanelContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="AnalysisBox" type="VBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Body/Analysis"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Radar" type="Control" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Body/Analysis/AnalysisBox"]
+layout_mode = 2
+size_flags_vertical = 3
+script = ExtResource("4")
+
+[node name="Dimensions" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Body/Analysis/AnalysisBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "战斗 —   经济 —   建设 —   进攻倾向 —   风险偏好 —"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Insights" type="PanelContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Body"]
+custom_minimum_size = Vector2(344, 0)
+layout_mode = 2
+
+[node name="InsightsBox" type="VBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Body/Insights"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="InsightsTitle" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Body/Insights/InsightsBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "对局摘要"
+
+[node name="Recent" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Body/Insights/InsightsBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "近期对局表现：暂无样本"
+autowrap_mode = 3
+
+[node name="Strategy" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Body/Insights/InsightsBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "常用策略：等待样本"
+autowrap_mode = 3
+
+[node name="GrowthAlignment" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Body/Insights/InsightsBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "成长投入：等待分析"
+autowrap_mode = 3
+
+[node name="Adjutant" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Body/Insights/InsightsBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "推荐副官：暂无"
+autowrap_mode = 3
+
+[node name="HermesCard" type="PanelContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="HermesBox" type="VBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/HermesCard"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="HermesTitle" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/HermesCard/HermesBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "HERMES 分析"
+
+[node name="Recommendation" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/HermesCard/HermesBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "推荐内容：暂无"
+autowrap_mode = 3
+
+[node name="HermesReason" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/HermesCard/HermesBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "推荐理由：—"
+autowrap_mode = 3
+
+[node name="Evidence" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/HermesCard/HermesBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "数据依据：暂无"
+autowrap_mode = 3
+
+[node name="HermesTime" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/HermesCard/HermesBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "生成时间：—"
+autowrap_mode = 3
 
 [node name="Back" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 52)
@@ -80,3 +194,8 @@ layout_mode = 2
 text = "返回"
 
 [connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Back" to="." method="_on_back"]
+
+[node name="HistoryButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Body/Insights/InsightsBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 42)
+text = "查看历史对局"

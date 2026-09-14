@@ -1,5 +1,13 @@
 extends Control
 
+func _enter_tree() -> void:
+	call_deferred("_apply_system_ui_style")
+
+func _apply_system_ui_style() -> void:
+	if is_inside_tree():
+		SystemUIStyle.add_scrim(self)
+		SystemUIStyle.apply(self)
+
 ## 主菜单侧页面通用 ESC 回退基类（2026-09-14 用户要求：所有页面支持 ESC 回退）。
 ## 用法：页面脚本写 `extends "res://source/ui/MenuPage.gd"`，覆写 `_on_escape()`。
 ##

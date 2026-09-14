@@ -7,14 +7,14 @@ const SLOT_EMPTY := 0
 const SLOT_HUMAN := 1
 const SLOT_AI := 2
 
-@onready var _host_edit: LineEdit = $CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/HostRow/HostEdit
-@onready var _port_edit: LineEdit = $CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/HostRow/PortEdit
-@onready var _status_label: Label = $CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/StatusLabel
-@onready var _ready_button: Button = $CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ReadyRow/ReadyButton
-@onready var _solo_button: Button = $CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ReadyRow/SoloButton
-@onready var _join_button: Button = $CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/JoinRow/JoinButton
-@onready var _name_edit: LineEdit = $CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/TitleRow/NameRow/NameEdit
-@onready var _slots_box: VBoxContainer = $CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MainRow/SlotsBox
+@onready var _host_edit: LineEdit = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/HostRow/HostEdit
+@onready var _port_edit: LineEdit = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/HostRow/PortEdit
+@onready var _status_label: Label = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/StatusLabel
+@onready var _ready_button: Button = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ReadyRow/ReadyButton
+@onready var _solo_button: Button = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ReadyRow/SoloButton
+@onready var _join_button: Button = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/JoinRow/JoinButton
+@onready var _name_edit: LineEdit = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/TitleRow/NameRow/NameEdit
+@onready var _slots_box: VBoxContainer = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/MainRow/SlotsBox
 
 var _slot_rows: Array = []
 var _last_connection_state := false
@@ -180,17 +180,17 @@ func _refresh_connection_ui() -> void:
 	# 进房后才出现 地图/槽位/准备，开局按钮仅房主可见。
 	_join_button.visible = not connected
 	var local_host_button := get_node_or_null(
-		"CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/JoinRow/LocalHostButton"
+		"CenterContainer/PanelContainer/MarginContainer/VBoxContainer/JoinRow/LocalHostButton"
 	) as Button
 	if local_host_button != null:
 		# 本机 listen server 不属于 Hermes 云端托管链路；仅显式调试时显示。
 		local_host_button.visible = not connected and OS.get_cmdline_user_args().has("--allow-local-host")
 	_host_edit.get_parent().visible = not connected
 	_ready_button.visible = connected
-	var solo_btn := get_node_or_null("CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/ReadyRow/SoloButton") as Button
+	var solo_btn := get_node_or_null("CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ReadyRow/SoloButton") as Button
 	if solo_btn != null:
 		solo_btn.visible = connected and is_host
-	var main_row := get_node_or_null("CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/MainRow")
+	var main_row := get_node_or_null("CenterContainer/PanelContainer/MarginContainer/VBoxContainer/MainRow")
 	if main_row != null:
 		main_row.visible = connected
 	_name_edit.editable = not connected

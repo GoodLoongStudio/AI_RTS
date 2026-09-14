@@ -24,42 +24,56 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 
 [node name="PanelContainer" type="PanelContainer" parent="CenterContainer"]
-custom_minimum_size = Vector2(1040, 650)
+custom_minimum_size = Vector2(1200, 680)
 layout_mode = 2
+mouse_filter = 0
+clip_contents = true
 
 [node name="MarginContainer" type="MarginContainer" parent="CenterContainer/PanelContainer"]
 layout_mode = 2
-theme_override_constants/margin_left = 24
-theme_override_constants/margin_top = 22
-theme_override_constants/margin_right = 24
-theme_override_constants/margin_bottom = 22
+theme_override_constants/margin_left = 22
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 22
+theme_override_constants/margin_bottom = 16
 
 [node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="Title" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
+[node name="Header" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 30
-text = "永久加点"
-horizontal_alignment = 1
+theme_override_font_sizes/font_size = 22
+text = "AI RTS  /  GROWTH COMMAND  //  永久加点"
 
 [node name="Points" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
+theme_override_font_sizes/font_size = 15
 text = "可用成长点"
-horizontal_alignment = 1
 
-[node name="Columns" type="HBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
+[node name="Body" type="HBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 18
+theme_override_constants/separation = 16
+
+[node name="Columns" type="HBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 14
+
+[node name="Detail" type="PanelContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Body"]
+custom_minimum_size = Vector2(336, 0)
+layout_mode = 2
+
+[node name="DetailBox" type="VBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Body/Detail"]
+layout_mode = 2
+theme_override_constants/separation = 8
 
 [node name="Status" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "选择强化后确认保存"
-horizontal_alignment = 1
+text = "点击节点查看详情，确认前可重置"
 
 [node name="Actions" type="HBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2

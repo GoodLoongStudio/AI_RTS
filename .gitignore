@@ -33,3 +33,6 @@ addons/godot_ai/
 # Python
 __pycache__/
 *.pyc
+
+# 系统 UI 取证截图（本地产物，勿提交）
+tmp_ui_shots/

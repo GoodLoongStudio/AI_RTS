@@ -24,48 +24,43 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 
 [node name="PanelContainer" type="PanelContainer" parent="CenterContainer"]
-custom_minimum_size = Vector2(520, 420)
+custom_minimum_size = Vector2(940, 520)
 layout_mode = 2
+mouse_filter = 0
+clip_contents = true
 
 [node name="MarginContainer" type="MarginContainer" parent="CenterContainer/PanelContainer"]
 layout_mode = 2
-theme_override_constants/margin_left = 32
-theme_override_constants/margin_top = 30
-theme_override_constants/margin_right = 32
-theme_override_constants/margin_bottom = 30
+theme_override_constants/margin_left = 26
+theme_override_constants/margin_top = 22
+theme_override_constants/margin_right = 26
+theme_override_constants/margin_bottom = 22
 
 [node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer"]
 layout_mode = 2
 theme_override_constants/separation = 14
 
-[node name="Title" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
+[node name="Header" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 32
-text = "成长系统"
-horizontal_alignment = 1
+theme_override_font_sizes/font_size = 22
+text = "AI RTS  /  GROWTH COMMAND"
 
-[node name="Subtitle" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
+[node name="Cards" type="VBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "塑造你的指挥风格"
-horizontal_alignment = 1
+size_flags_vertical = 3
+theme_override_constants/separation = 16
 
-[node name="UpgradesButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 64)
+[node name="Status" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "永久加点\n战斗 · 经济 · 建设"
-
-[node name="ProfileButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 64)
-layout_mode = 2
-text = "玩家画像\nHermes 分析与副官推荐"
+theme_override_font_sizes/font_size = 13
+text = "数据来源：本地成长档案与 Hermes 只读画像"
 
 [node name="BackButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
 text = "返回主菜单"
 
-[connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/UpgradesButton" to="." method="_on_upgrades_pressed"]
-[connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ProfileButton" to="." method="_on_profile_pressed"]
 [connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/BackButton" to="." method="_on_back_pressed"]

@@ -16,7 +16,6 @@ var _options_panel: Control = null
 func _ready():
 	_setup_map_list()
 	_on_map_list_item_selected(0)
-	_setup_settings_button()
 	var option_nodes = find_child("GridContainer").find_children("OptionButton*")
 	for option_node_id in range(option_nodes.size()):
 		option_nodes[option_node_id].item_selected.connect(_on_player_selected.bind(option_node_id))
@@ -28,9 +27,9 @@ func _ready():
 
 
 ## 把 panel 的 custom_minimum_size clamp 到 viewport - margin。
-## 配合 CenterContainer + PanelContainer(clip_contents=true) + ScrollContainer：
+## 配合 CenterContainer + PanelContainer(clip_contents=true) + 内容自适应：
 ## - viewport 够大：panel 用 .tscn 写死的最小尺寸，居中显示
-## - viewport 太小：panel 缩到 viewport - 边距，超出内容靠 ScrollContainer 滚动
+## - viewport 太小：panel 缩到 viewport - 边距；布局已按 1280x720 收敛，不依赖滚动条
 func _clamp_to_viewport() -> void:
 	var panel := get_node_or_null("CenterContainer/PanelContainer")
 	if panel == null:
@@ -52,15 +51,11 @@ func _on_escape() -> bool:
 	return true
 
 
-func _setup_settings_button():
-	var button_box = $CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/VBoxContainer
-	var settings_button := Button.new()
-	settings_button.name = "SettingsButton"
-	settings_button.text = "设置"
-	settings_button.custom_minimum_size = Vector2(0, 44)
-	settings_button.pressed.connect(_open_options_panel)
-	button_box.add_child(settings_button)
-	button_box.move_child(settings_button, 1)
+## 注：单机页**不再**注入「设置」按钮（2026-09-14 用户要求删掉）。
+## 主菜单已有「设置」入口，这里再放一个是重复项，也让底部按钮栏从 2 个变 3 个。
+## `_open_options_panel` / `_close_options_panel` 与 `_on_escape` 的面板分支保留：
+## 它们仍被 EscReturnSmokeTest 直接驱动（"ESC 只关面板、不越级返回"的契约），
+## 将来若要从暂停菜单再挂设置入口，这套管线可以原样复用。
 
 
 func _open_options_panel():

@@ -17,6 +17,9 @@ const MENU_PAGE_SCRIPTS := [
 	"res://source/main-menu/Online.gd",
 	"res://source/main-menu/Options.gd",
 	"res://source/main-menu/Credits.gd",
+	"res://source/main-menu/Growth.gd",
+	"res://source/main-menu/GrowthUpgrades.gd",
+	"res://source/main-menu/PlayerProfile.gd",
 ]
 
 var _failures := 0
