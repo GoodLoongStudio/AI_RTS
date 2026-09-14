@@ -123,6 +123,35 @@ func _run():
 		_cursor.has_custom_cursor()
 	)
 
+	# Tab 切到 AI 副官：必须取消进行中的指定模式并恢复光标
+	# （RA3 布局下命令面板被侧栏收编，Match.gd 曾用 $HUD.get_node_or_null 取它 ⇒ 恒 null
+	#  ⇒ 切副官时模式不取消、扳手光标挂在副官面板上。2026-09-14 修复，这里做回归。）
+	var input_runtime = _match.get_node_or_null("InputBindingRuntime")
+	_check(input_runtime != null, "应能找到 InputBindingRuntime")
+	if input_runtime != null:
+		input_runtime.emit_signal("ActionPressed", "global.toggle_ai_hud")
+		await get_tree().process_frame
+		await get_tree().process_frame
+		_check(
+			_controller.get_active_command_targeting() == "",
+			"Tab 切 AI 副官应取消维修指定模式"
+		)
+		_check(not _cursor.has_custom_cursor(), "Tab 切 AI 副官应恢复系统光标")
+		print(
+			"[PROBE] after Tab: mode='",
+			_controller.get_active_command_targeting(),
+			"' custom=",
+			_cursor.has_custom_cursor()
+		)
+		# 切回普通 HUD，继续后面的点击验证
+		input_runtime.emit_signal("ActionPressed", "global.toggle_ai_hud")
+		await get_tree().process_frame
+		await get_tree().process_frame
+		repair_button.pressed.emit()
+		await get_tree().process_frame
+		await get_tree().process_frame
+		_check(_controller.get_active_command_targeting() == "Repair", "切回后应能重新进入维修模式")
+
 	# 真实左键点击建筑 A（走 _unhandled_input → 射线兜底）
 	await _click(pos_a)
 	await get_tree().process_frame

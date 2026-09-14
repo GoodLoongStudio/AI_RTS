@@ -22,6 +22,8 @@ const Drone = preload("res://source/match/units/Drone.tscn")
 @export var settings: Resource = null
 
 var _ra3_sidebar = null  # 红警3 风格右侧指挥侧栏（非 headless 对局内挂载）
+## 传统命令面板实例（RA3 布局下被侧栏 absorb_command_panel 收编，不再是 HUD 直接子节点）。
+var _traditional_unit_command_hud: Control = null
 var _unit_spawn_counter := 0  # P0-1 init unit deterministic naming
 var map:
 	set = _set_map,
@@ -90,10 +92,9 @@ func _ready():
 	_register_spawn_points_with_query_runtime()
 	_battlefield_event_runtime.Initialize(get_local_player())
 	_move_camera_to_initial_position()
-	if settings.visibility == settings.Visibility.FULL:
-		# FULL is used by the online Demo: every player may inspect the shared
-		# battlefield. Disable both the screen shader and unit filter; merely
-		# revealing the viewport leaves the overlay black outside its texture.
+	if settings.visibility == settings.Visibility.FULL or _is_large_generated_map():
+		# FULL / 生成大地图：关掉战争迷雾遮罩。
+		# 2048m 图上遮罩视口和深度解算会让整屏 ALPHA=1（进局全黑）。
 		fog_of_war.visible = false
 		var unit_visibility_handler = find_child("UnitVisibilityHandler", true, false)
 		if unit_visibility_handler != null:
@@ -147,7 +148,13 @@ func _setup_ai_command_hud_toggle(ai_command_hud: Control):
 	var apply_visibility := func(should_show: bool):
 		ai_command_hud.set_interface_visible(should_show)
 		toggle_button.text = "隐藏 AI 副官" if should_show else "显示 AI 副官"
-		var command_hud = $HUD.get_node_or_null("TraditionalUnitCommandHUD")
+		# 必须用挂载时保存的引用：RA3 布局下命令面板被侧栏收编，
+		# `$HUD.get_node_or_null("TraditionalUnitCommandHUD")` 恒为 null ⇒
+		# 切换到 AI 副官时既没隐藏传统命令栏、也没取消进行中的指定模式
+		# （维修/出售光标会一直挂在 AI 副官面板上）——2026-09-14 修复。
+		var command_hud: Control = _traditional_unit_command_hud
+		if command_hud == null:
+			command_hud = $HUD.get_node_or_null("TraditionalUnitCommandHUD")
 		if command_hud != null:
 			command_hud.visible = not should_show
 			if should_show and command_hud.actions_controller != null:
@@ -223,6 +230,7 @@ func _setup_traditional_unit_command_hud():
 		_ra3_sidebar.absorb_command_panel(command_hud)
 	else:
 		$HUD.add_child(command_hud)
+	_traditional_unit_command_hud = command_hud
 
 
 func _set_map(a_map):
@@ -268,6 +276,7 @@ func _setup_subsystems_dependent_on_map():
 	_terrain.add_to_group("terrain_navigation_input")
 	fog_of_war.resize(map.size)
 	_recalculate_camera_bounding_planes(map.size)
+	_configure_view_for_generated_map()
 	await navigation.setup(map)
 
 
@@ -276,6 +285,39 @@ func _recalculate_camera_bounding_planes(map_size: Vector2):
 	_camera.bounding_planes[3] = Plane(0, 0, -1, -map_size.y)
 	# 同步拉远上限：防止缩放超出地图边界看到地图外虚空。
 	_camera.set_map_extents(map_size)
+
+
+func _is_large_generated_map() -> bool:
+	return map != null and (map.size.x >= 256.0 or map.size.y >= 256.0)
+
+
+func _configure_view_for_generated_map() -> void:
+	if not _is_large_generated_map():
+		return
+	# 山体世界高约 200m；镜头必须在峰顶之上，far 覆盖 2048m 对角线。
+	_camera.configure_for_large_terrain(map.size, 220.0)
+	var sun := get_node_or_null("DirectionalLight3D") as DirectionalLight3D
+	if sun != null:
+		sun.directional_shadow_max_distance = maxf(sun.directional_shadow_max_distance, 4000.0)
+	# 必须在导航烘焙之前关掉遮罩：烘焙期间 Match 已进场景树，否则先黑十几秒。
+	fog_of_war.visible = false
+	var unit_visibility_handler = find_child("UnitVisibilityHandler", true, false)
+	if unit_visibility_handler != null:
+		unit_visibility_handler.visible = false
+	var minimap_fog_mask = find_child("FogOfWarMask", true, false)
+	if minimap_fog_mask != null:
+		minimap_fog_mask.visible = false
+	var env_node := get_node_or_null("WorldEnvironment") as WorldEnvironment
+	if env_node != null and env_node.environment != null:
+		env_node.environment.volumetric_fog_enabled = false
+	print(
+		"LARGE_MAP view fog_off size=",
+		map.size,
+		" cam_far=",
+		_camera.far,
+		" cam_size=",
+		_camera.size
+	)
 
 
 func _setup_players():
