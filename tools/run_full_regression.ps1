@@ -205,7 +205,22 @@ function Assert-Manifest {
 
     $diskScenes = @(Get-ChildItem -LiteralPath (Join-Path $repositoryRoot "tests/automated") -Filter "*.tscn" -File |
         ForEach-Object { "res://tests/automated/" + $_.Name })
-    $unregistered = @($diskScenes | Where-Object { -not $scenes.ContainsKey($_) })
+    # 诊断脚本（diag）不是回归用例：它们故意把整局 match 留在树上，退出时必然报
+    # ObjectDB/RID 泄漏，会被 forbidden_output_patterns 记成 FAIL，而且没有任何断言价值。
+    # 这类场景必须在 manifest 的 excluded_scenes 里显式声明（声明了但磁盘上没有则忽略）。
+    # 其余任何未登记的 tests/automated/*.tscn 仍然照旧抛错，纪律不放水。
+    $excluded = @{}
+    foreach ($scene in @($Manifest.excluded_scenes)) {
+        if (-not [string]::IsNullOrWhiteSpace([string]$scene)) {
+            $excluded[[string]$scene] = $true
+        }
+    }
+    foreach ($scene in @($excluded.Keys)) {
+        if ($scenes.ContainsKey($scene)) {
+            throw "Scene is both registered and excluded: $scene"
+        }
+    }
+    $unregistered = @($diskScenes | Where-Object { -not $scenes.ContainsKey($_) -and -not $excluded.ContainsKey($_) })
     $stale = @($scenes.Keys | Where-Object { $_ -notin $diskScenes })
     if ($unregistered.Count -gt 0 -or $stale.Count -gt 0) {
         throw "Regression manifest scene mismatch; unregistered [$($unregistered -join ', ')], stale [$($stale -join ', ')]."

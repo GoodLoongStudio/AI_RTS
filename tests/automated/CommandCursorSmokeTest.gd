@@ -70,6 +70,12 @@ func _run():
 	_check(cursor.get_active_command() == "", "对局中断后应恢复默认光标")
 
 	cursor.queue_free()
+	# `queue_free()` 是延迟释放，而 `SmokeTestExit.request` 只留 0.1s 清理窗口：
+	# 实测约 1/3 次会在退出时报 `ObjectDB instances were leaked at exit`，
+	# 而回归 runner 的 forbidden_output_patterns 会把它记成 FAIL（偶发假红）。
+	# 这里显式等两帧，让延迟释放落地再收尾。
+	await get_tree().process_frame
+	await get_tree().process_frame
 	_finish()
 
 

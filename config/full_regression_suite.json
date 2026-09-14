@@ -15,6 +15,12 @@
   "ObjectDB instances were leaked at exit",
   "resources still in use at exit"
  ],
+ "excluded_scenes": [
+  "res://tests/automated/SniperDiagSmokeTest.tscn",
+  "res://tests/automated/SniperMuzzleDiagSmokeTest.tscn",
+  "res://tests/automated/TankMuzzleDiagNormalSmokeTest.tscn",
+  "res://tests/automated/TankMuzzleDiagSmokeTest.tscn"
+ ],
  "godot_tests": [
   {
    "expected_marker": "Adjutant command protocol smoke test completed: 0 failure(s)",
@@ -535,39 +541,11 @@
    "id": "net-structure-command-contract"
   },
   {
-   "expected_marker": "[DIAG] done",
-   "timeout_seconds": 60,
-   "category": "diag",
-   "scene": "res://tests/automated/SniperDiagSmokeTest.tscn",
-   "id": "sniper-diag"
-  },
-  {
-   "expected_marker": "[MZS] done",
-   "timeout_seconds": 60,
-   "category": "diag",
-   "scene": "res://tests/automated/SniperMuzzleDiagSmokeTest.tscn",
-   "id": "sniper-muzzle-diag"
-  },
-  {
    "expected_marker": "Sniper/Rocketeer smoke test completed: 0 failure(s)",
    "timeout_seconds": 90,
    "category": "combat",
    "scene": "res://tests/automated/SniperRocketeerSmokeTest.tscn",
    "id": "sniper-rocketeer"
-  },
-  {
-   "expected_marker": "[MUZZLE] done",
-   "timeout_seconds": 60,
-   "category": "diag",
-   "scene": "res://tests/automated/TankMuzzleDiagNormalSmokeTest.tscn",
-   "id": "tank-muzzle-diag-normal"
-  },
-  {
-   "expected_marker": "[MUZZLE] done",
-   "timeout_seconds": 60,
-   "category": "diag",
-   "scene": "res://tests/automated/TankMuzzleDiagSmokeTest.tscn",
-   "id": "tank-muzzle-diag"
   },
   {
    "id": "performance-governor",
