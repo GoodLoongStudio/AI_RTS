@@ -521,6 +521,55 @@
    "id": "unit-registration-consistency"
   },
   {
+   "expected_marker": "Command cursor smoke test completed: 0 failure(s)",
+   "timeout_seconds": 90,
+   "category": "ui",
+   "scene": "res://tests/automated/CommandCursorSmokeTest.tscn",
+   "id": "command-cursor"
+  },
+  {
+   "expected_marker": "Net structure command contract smoke test completed: 0 failure(s)",
+   "timeout_seconds": 60,
+   "category": "network",
+   "scene": "res://tests/automated/NetStructureCommandContractSmokeTest.tscn",
+   "id": "net-structure-command-contract"
+  },
+  {
+   "expected_marker": "[DIAG] done",
+   "timeout_seconds": 60,
+   "category": "diag",
+   "scene": "res://tests/automated/SniperDiagSmokeTest.tscn",
+   "id": "sniper-diag"
+  },
+  {
+   "expected_marker": "[MZS] done",
+   "timeout_seconds": 60,
+   "category": "diag",
+   "scene": "res://tests/automated/SniperMuzzleDiagSmokeTest.tscn",
+   "id": "sniper-muzzle-diag"
+  },
+  {
+   "expected_marker": "Sniper/Rocketeer smoke test completed: 0 failure(s)",
+   "timeout_seconds": 90,
+   "category": "combat",
+   "scene": "res://tests/automated/SniperRocketeerSmokeTest.tscn",
+   "id": "sniper-rocketeer"
+  },
+  {
+   "expected_marker": "[MUZZLE] done",
+   "timeout_seconds": 60,
+   "category": "diag",
+   "scene": "res://tests/automated/TankMuzzleDiagNormalSmokeTest.tscn",
+   "id": "tank-muzzle-diag-normal"
+  },
+  {
+   "expected_marker": "[MUZZLE] done",
+   "timeout_seconds": 60,
+   "category": "diag",
+   "scene": "res://tests/automated/TankMuzzleDiagSmokeTest.tscn",
+   "id": "tank-muzzle-diag"
+  },
+  {
    "id": "performance-governor",
    "category": "visual",
    "scene": "res://tests/automated/PerformanceGovernorSmokeTest.tscn",

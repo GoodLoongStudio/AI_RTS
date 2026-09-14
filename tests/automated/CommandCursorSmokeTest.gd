@@ -70,7 +70,6 @@ func _run():
 	_check(cursor.get_active_command() == "", "对局中断后应恢复默认光标")
 
 	cursor.queue_free()
-	print("Command cursor smoke test completed: %d failure(s)" % _failures)
 	_finish()
 
 
