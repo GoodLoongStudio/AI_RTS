@@ -31,7 +31,7 @@ def arm_ik(dst,rots,side,wrist,pole):
         rots[n]=old.rotation_difference(newvec)@q
     return distance
 
-def rifle_hold(dst,rots,hip,gun,t,kind):
+def rifle_hold(dst,rots,hip,gun,t,kind,wrist_front=.11):
     rest=world_rest(dst)
     chest=dst.matrix_world@dst.pose.bones['Spine_03'].matrix
     delta=chest.to_quaternion()@rest['Spine_03'].to_quaternion().inverted()
@@ -44,7 +44,7 @@ def rifle_hold(dst,rots,hip,gun,t,kind):
     pos=chest.translation+delta@Vector((-.10,-.24,-.11 if kind!='Fire' else .10))
     pos+=q@Vector((0,.025*kick,0))
     gun.matrix_world=Matrix.LocRotScale(pos,q,Vector((.8,.8,.8)))
-    wrists={'R':gun.matrix_world@Vector((-.060,.025,.018)), 'L':gun.matrix_world@Vector((.11,-.29,-.025))}
+    wrists={'R':gun.matrix_world@Vector((-.060,.025,.018)), 'L':gun.matrix_world@Vector((wrist_front,-.29,-.025))}
     for side in ['R','L']:
         sign=-1 if side=='R' else 1
         pole=chest.translation+delta@Vector((sign*.55,-.05,-.38))

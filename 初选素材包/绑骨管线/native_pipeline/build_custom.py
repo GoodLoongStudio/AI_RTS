@@ -11,6 +11,7 @@ parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--review',action='store_true',help='Render selected frames after baking')
 parser.add_argument('--weapon',default='SM_Wep_Assault_01.fbx',help='Weapon FBX file under ASSETS')
 parser.add_argument('--out',default='Infantry_native_v3',help='Output GLB/blend base name')
+parser.add_argument('--wrist-front',type=float,default=.11,help='Front hand wrist point along gun axis')
 args=parser.parse_args(sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else [])
 src,dst,body=setup();sc=bpy.context.scene;sc.render.fps=30
 source_integrity={
@@ -37,6 +38,7 @@ for key,arm,mapping,reference in [('A',src,{'mixamorig:'+k:v for k,v in MAP.item
     align=Quaternion((0,0,1),math.pi if ref[left].translation.x*rest['Shoulder_L'].translation.x<0 else 0)
     sources[key]=(arm,mapping,ref,align)
 gun=load_weapon(body.data.materials[0],args.weapon);source_actions=set(bpy.data.actions)
+WRIST_FRONT=args.wrist_front
 # FBX import may overwrite scene FPS; output timing is an explicit contract.
 sc.render.fps=30;sc.render.fps_base=1.0
 
@@ -70,7 +72,7 @@ def detached_hand_weapon(rots,hip):
     gun.matrix_world=Matrix.LocRotScale(wrist-q@Vector((-.048,.020,.0144)),q,Vector((.8,.8,.8)))
 
 idle_rots,idle_hip=evaluate('A','A::Idle',20/30)
-rifle_hold(dst,idle_rots,idle_hip,gun,0,'Idle')
+rifle_hold(dst,idle_rots,idle_hip,gun,0,'Idle',WRIST_FRONT)
 idle_rots={n:(dst.matrix_world@dst.pose.bones[n].matrix).to_quaternion() for n in idle_rots}
 
 specs=[('Idle-loop','A','A::Idle',1.966666667),('Run-loop','A','A::Run',.7),
@@ -93,7 +95,7 @@ for active,key,action,duration in specs:
             apply_world_rotations(dst,rots,hip)
         if active in ['Crawl-loop','Death','HitHeavy']:
             detached_hand_weapon(rots,hip)
-        else:rifle_hold(dst,rots,hip,gun,t,active.replace('-loop',''))
+        else:rifle_hold(dst,rots,hip,gun,t,active.replace('-loop',''),WRIST_FRONT)
         # The body controls grounding. Weapon clearance is recorded independently.
         z=min_z([body]);all_z=min_z([body,gun])
         frames.append({'basis':{p.name:p.matrix_basis.copy() for p in dst.pose.bones},'gun':gun.matrix_world.copy(),'min_z':z,'all_min_z':all_z})

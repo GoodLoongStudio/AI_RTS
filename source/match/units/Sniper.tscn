@@ -68,6 +68,7 @@ radius = 0.21
 
 [node name="AnimationDriver" type="Node" parent="."]
 script = ExtResource("11_animdrv")
+muzzle_offset = Vector3(0, 0.16, 0)
 
 [node name="UnitVisualBindings" type="Node" parent="."]
 script = ExtResource("7_bindings")

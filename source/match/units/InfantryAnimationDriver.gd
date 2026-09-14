@@ -63,6 +63,8 @@ var _hit_clip := "Hit"
 var _last_hp = null
 var _death_started := false
 ## 枪口跟随：Marker 节点、其所属骨架、骨骼索引、枪口在该骨骼空间的位置。
+## 枪口微调偏移（单位几何空间）：不同枪械的枪口顶点拾取可能略低，按单位微调。
+@export var muzzle_offset := Vector3.ZERO
 var _muzzle: Node3D = null
 var _muzzle_skeleton: Skeleton3D = null
 var _muzzle_bone := -1
@@ -349,3 +351,5 @@ func _update_muzzle() -> void:
 		* _muzzle_skeleton.get_bone_global_pose(_muzzle_bone)
 	)
 	_muzzle.global_position = bone_pose * _muzzle_in_bone
+	if muzzle_offset != Vector3.ZERO:
+		_muzzle.global_position += _unit.global_transform.basis * muzzle_offset
