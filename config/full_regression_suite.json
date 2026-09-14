@@ -567,6 +567,13 @@
    "scene": "res://tests/automated/TerrainGroundCollisionSmokeTest.tscn",
    "expected_marker": "Terrain ground collision smoke test completed: 0 failure(s)",
    "timeout_seconds": 120
+  },
+  {
+   "id": "match-history",
+   "category": "ui",
+   "scene": "res://tests/automated/MatchHistorySmokeTest.tscn",
+   "expected_marker": "Match history smoke test completed: 0 failure(s)",
+   "timeout_seconds": 180
   }
  ]
 }

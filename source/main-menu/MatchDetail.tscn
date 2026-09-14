@@ -1,0 +1,93 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://source/main-menu/MatchDetail.gd" id="1"]
+[ext_resource type="Theme" path="res://source/resources/main_menu.theme" id="2"]
+[ext_resource type="PackedScene" path="res://source/main-menu/Background.tscn" id="3"]
+
+[node name="MatchDetail" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2")
+script = ExtResource("1")
+
+[node name="Background" parent="." instance=ExtResource("3")]
+layout_mode = 1
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="PanelContainer" type="PanelContainer" parent="CenterContainer"]
+custom_minimum_size = Vector2(1216, 672)
+layout_mode = 2
+mouse_filter = 0
+clip_contents = true
+
+[node name="MarginContainer" type="MarginContainer" parent="CenterContainer/PanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 12
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="TopBar" type="HBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="BackButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/TopBar"]
+custom_minimum_size = Vector2(150, 40)
+layout_mode = 2
+text = "← 返回列表"
+
+[node name="Title" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 17
+text = "MATCH REPORT"
+vertical_alignment = 1
+
+[node name="ResultChip" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/TopBar"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 13
+text = "—"
+
+[node name="ProfileButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/TopBar"]
+custom_minimum_size = Vector2(150, 40)
+layout_mode = 2
+text = "返回玩家画像"
+
+[node name="Meta" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "—"
+
+[node name="TabBar" type="TabBar" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+clip_tabs = false
+
+[node name="Content" type="PanelContainer" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+clip_contents = true
+
+[node name="TabHost" type="Control" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/TopBar/BackButton" to="." method="_on_back_to_list"]
+[connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/TopBar/ProfileButton" to="." method="_on_back_to_profile"]

@@ -17,10 +17,6 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 config/name="Open RTS"
 run/main_scene="res://source/Main.tscn"
 config/features=PackedStringArray("4.7", "C#", "Forward Plus")
-; 帧率上限：不设时 max_fps=0（不限帧），低多边形场景会被渲染到 GPU 物理极限
-; 【2026-09-14 用户要求】改为 **锁 60 帧**：目标是"尽可能稳住 60"而不是追高帧率；
-; 单位多时由 `PerformanceGovernor`（autoload）**动态降画质**保帧率，
-; 上限可在 `user://performance.cfg` 的 `max_fps` 覆盖。
 run/max_fps=60
 boot_splash/bg_color=Color(0, 0, 0, 1)
 boot_splash/stretch_mode=0
@@ -35,14 +31,13 @@ AdjutantButton="*res://source/ui/AdjutantButton.gd"
 FeatureFlags="*res://source/FeatureFlags.tscn"
 Constants="*res://source/Constants.gd"
 Globals="*res://source/Globals.gd"
-; 帧率治理（默认锁 60 + 单位多自动降画质）：必须早于对局加载，故放这里；
-; headless 专用服会自行禁用（没有渲染可调，也不该占 CPU）。
 PerformanceGovernor="*res://source/PerformanceGovernor.gd"
 MatchSignals="*res://source/match/MatchSignals.gd"
 Signals="*res://source/Signals.gd"
 Utils="*res://source/Utils.gd"
 MenuMusic="*res://source/main-menu/MenuMusic.gd"
 GrowthStore="*res://source/growth/GrowthStore.gd"
+MatchReportStore="*res://source/history/MatchReportStore.gd"
 UISfx="*res://source/ui/UISfx.gd"
 MCPRuntimeProbe="*res://addons/godot_mcp/runtime/mcp_runtime_probe.gd"
 _mcp_game_helper="*res://addons/godot_ai/runtime/game_helper.gd"
@@ -60,16 +55,6 @@ gdscript/warnings/integer_division=0
 
 window/size/viewport_width=1920
 window/size/viewport_height=1080
-; 【2026-09-14】必须保持 0（窗口化启动）。
-; 之前写成 3（全屏启动）时，Godot 的 Windows 后端不会记录"全屏之前的窗口化尺寸/位置"，
-; 导致运行期 window_set_mode(WINDOW_MODE_WINDOWED) 被引擎静默忽略：设置面板里的
-; 「窗口」切不过去、分辨率下拉怎么选都没反应（全屏/独占全屏下 window_set_size 无效），
-; 而 UI 又按存档显示"窗口"，于是看起来"设置分辨率没用了"。
-; 默认启动全屏由 Options(screen=FULL) 负责 —— 那是「从窗口化启动切全屏」，可靠且可逆。
-window/size/mode=0
-; 注意：拉伸设置的正确键名是 display/window/stretch/mode、display/window/stretch/aspect。
-; 以下两行曾写在 window/size/ 下（不是有效键，实测 stretch/mode = disabled，从未生效），
-; 已删除避免误导；确需等比拉伸请改到 display/window/stretch/ 下。
 
 [dotnet]
 

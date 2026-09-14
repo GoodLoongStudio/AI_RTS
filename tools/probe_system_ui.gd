@@ -145,7 +145,13 @@ func _check_growth_entry() -> void:
 		"CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Cards") as VBoxContainer
 	_check(cards != null, "成长入口 Cards 容器存在")
 	if cards != null:
-		_check(cards.get_child_count() == 2, "成长入口为两张功能卡", "实际=%d" % cards.get_child_count())
+		# 不写死卡片张数：入口卡会随功能增加（成长页从 2 张长到 3 张过）。
+		# 真正要守的不变式是「加了卡但没把面板加高」——那会把卡片压扁/裁掉。
+		_check(cards.get_child_count() >= 2, "成长入口至少两张功能卡",
+			"实际=%d" % cards.get_child_count())
+		_check(cards.size.y + 0.5 >= cards.get_combined_minimum_size().y,
+			"成长卡片没被面板压扁（加卡必须同时加高面板）",
+			"可用=%.0f 需要=%.0f" % [cards.size.y, cards.get_combined_minimum_size().y])
 		var missing := PackedStringArray()
 		for card in cards.get_children():
 			if not (card is Button):

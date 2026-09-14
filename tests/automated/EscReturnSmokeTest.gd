@@ -20,6 +20,8 @@ const MENU_PAGE_SCRIPTS := [
 	"res://source/main-menu/Growth.gd",
 	"res://source/main-menu/GrowthUpgrades.gd",
 	"res://source/main-menu/PlayerProfile.gd",
+	"res://source/main-menu/MatchHistory.gd",
+	"res://source/main-menu/MatchDetail.gd",
 ]
 
 var _failures := 0

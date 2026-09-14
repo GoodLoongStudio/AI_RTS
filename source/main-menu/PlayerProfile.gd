@@ -311,24 +311,12 @@ func _join(value) -> String:
 	return "、".join(parts)
 
 func _show_history() -> void:
-	var dialog := AcceptDialog.new()
-	dialog.title = "历史对局记录"
-	dialog.size = Vector2(760, 520)
-	var list := VBoxContainer.new()
-	list.add_theme_constant_override("separation", 8)
-	for item in _reports:
-		if not item is Dictionary: continue
-		var r: Dictionary = item
-		var combat: Dictionary = r.get("combat", {})
-		var resources: Dictionary = r.get("resources", {})
-		var build: Dictionary = r.get("construction", {})
-		var label := Label.new()
-		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		label.text = "%s · %s\n资源 %d | 生产 %d | 建造 %.0f%% | 伤害 %d | 损失 %d\n关键事件：%s" % [str(r.get("match_id", "对局")), _outcome_mark(str(r.get("outcome", ""))), int(resources.get("gathered", 0)), int(r.get("production", {}).get("units", 0)), float(build.get("value", 0.0)) * 100.0, int(combat.get("damage_dealt", 0)), int(combat.get("units_lost", 0)), _join(r.get("key_events", []))]
-		list.add_child(label)
-	dialog.add_child(list)
-	add_child(dialog)
-	dialog.popup_centered()
+	## 详细对局记录已经页面化（列表页 + 6 标签详情页）。
+	## 旧实现是弹一个 AcceptDialog 列几行摘要，信息量太低，这里改成只负责导航。
+	## `return_scene` 决定列表页的「返回」去哪 —— 从玩家画像进来的就回玩家画像。
+	MatchHistoryNav.return_scene = "res://source/main-menu/PlayerProfile.tscn"
+	MatchHistoryNav.reset()
+	get_tree().change_scene_to_file("res://source/main-menu/MatchHistory.tscn")
 
 
 # ---------------- 导航 ----------------
