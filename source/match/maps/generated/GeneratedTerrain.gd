@@ -48,7 +48,7 @@ func _apply_material() -> void:
 	mat.shader = shared
 	var pbr := "res://assets/terrain_pbr/"
 	for pair in [
-		["sand_tex", "dense_sand_diff.jpg"], ["sand_normal", "dense_sand_normal.jpg"],
+		["sand_tex", "sand_uniform_diff.jpg"], ["sand_normal", "dense_sand_normal.jpg"],
 		["detail_tex", "sand_01_diff.jpg"], ["top_tex", "moon_dusted_03_diff.jpg"],
 		["cliff_tex", "cliff_side_diff.jpg"], ["cliff_normal", "cliff_side_normal.jpg"],
 		["rock_tex", "dark_rock_02_diff.jpg"], ["rock_normal", "dark_rock_02_normal.jpg"],
