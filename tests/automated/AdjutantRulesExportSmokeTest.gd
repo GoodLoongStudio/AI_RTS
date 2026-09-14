@@ -155,10 +155,17 @@ func _ready():
 		"vehicle_factory 施工定义应带成本/占地/受信任蓝图场景"
 	)
 
+	# 资源口径：断言「导出的资源种类 == 当前实际加载的 Catalog 里定义的种类」。
+	# 原先写死「A/B 两种」，而 2026-09-15 `demo.balance.v1.json` 把 B 资源删掉后它恒红；
+	# 本用例的本意是「规则视图来自 Catalog」（见文件头），不是「游戏必须有两种资源」，
+	# 所以真值来源只能是配置本身。
 	var resources := {}
 	for resource in rules.get("resources", []):
 		resources[str((resource as Dictionary).get("kind", ""))] = resource
-	_check(resources.has("A") and resources.has("B"), "资源定义应导出 A/B 两种")
+	var expected_kinds := _config_resource_kinds(DEMO_BALANCE)
+	_check(not expected_kinds.is_empty(), "应能读到 Demo 平衡配置里的资源定义")
+	_check(resources.size() == expected_kinds.size() and resources.has_all(expected_kinds),
+		"资源定义应与配置一致（配置 %s，实际 %s）" % [expected_kinds, resources.keys()])
 
 	var skills: Array = rules.get("skills", [])
 	var all_uncallable := true
@@ -197,6 +204,21 @@ func _index_by_id(items: Array) -> Dictionary:
 			result[str((item as Dictionary).get("id", ""))] = item
 	return result
 
+
+## 读配置里 resources 的 kind 列表（资源口径的期望值来源）。
+func _config_resource_kinds(path: String) -> Array:
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return []
+	var parsed = JSON.parse_string(file.get_as_text())
+	file.close()
+	if not (parsed is Dictionary):
+		return []
+	var kinds: Array = []
+	for entry in (parsed as Dictionary).get("resources", []):
+		if entry is Dictionary:
+			kinds.append(str((entry as Dictionary).get("kind", "")))
+	return kinds
 
 ## 读配置里某个数组的条数（**期望值的唯一来源**；读不到返回 -1 让断言明确失败）。
 func _config_count(path: String, key: String) -> int:
