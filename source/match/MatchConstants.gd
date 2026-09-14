@@ -146,34 +146,92 @@ class VoiceNarrator:
 	}
 
 	const EVENT_TO_ASSET_MAPPING = {
-		Events.MATCH_STARTED:
-		preload("res://assets/voice/english/ttsmaker-com-148-alayna-us/battle_control_online.ogg"),
-		Events.MATCH_ABORTED:
-		preload("res://assets/voice/english/ttsmaker-com-148-alayna-us/battle_control_offline.ogg"),
-		Events.MATCH_FINISHED_WITH_VICTORY:
-		preload("res://assets/voice/english/ttsmaker-com-148-alayna-us/you_are_victorious.ogg"),
-		Events.MATCH_FINISHED_WITH_DEFEAT:
-		preload("res://assets/voice/english/ttsmaker-com-148-alayna-us/you_have_lost.ogg"),
-		Events.BASE_UNDER_ATTACK:
-		preload(
-			"res://assets/voice/english/ttsmaker-com-148-alayna-us/your_base_is_under_attack.ogg"
+		Events.MATCH_STARTED: preload("res://assets/voice/chinese/narrator_battle_control_online.mp3"),
+		Events.MATCH_ABORTED: preload("res://assets/voice/chinese/narrator_battle_control_offline.mp3"),
+		Events.MATCH_FINISHED_WITH_VICTORY: preload("res://assets/voice/chinese/narrator_victory.mp3"),
+		Events.MATCH_FINISHED_WITH_DEFEAT: preload("res://assets/voice/chinese/narrator_defeat.mp3"),
+		Events.BASE_UNDER_ATTACK: preload("res://assets/voice/chinese/narrator_base_under_attack.mp3"),
+		Events.UNIT_UNDER_ATTACK: preload("res://assets/voice/chinese/narrator_unit_under_attack.mp3"),
+		Events.UNIT_LOST: preload("res://assets/voice/chinese/narrator_unit_lost.mp3"),
+		Events.UNIT_PRODUCTION_STARTED: preload("res://assets/voice/chinese/narrator_training.mp3"),
+		Events.UNIT_PRODUCTION_FINISHED: preload("res://assets/voice/chinese/narrator_unit_ready.mp3"),
+		Events.UNIT_CONSTRUCTION_FINISHED: preload(
+			"res://assets/voice/chinese/narrator_construction_complete.mp3"
 		),
-		Events.UNIT_UNDER_ATTACK:
-		preload("res://assets/voice/english/ttsmaker-com-148-alayna-us/unit_under_attack.ogg"),
-		Events.UNIT_LOST:
-		preload("res://assets/voice/english/ttsmaker-com-148-alayna-us/unit_lost.ogg"),
-		Events.UNIT_PRODUCTION_STARTED:
-		preload("res://assets/voice/english/ttsmaker-com-148-alayna-us/training.ogg"),
-		Events.UNIT_PRODUCTION_FINISHED:
-		preload("res://assets/voice/english/ttsmaker-com-148-alayna-us/unit_ready.ogg"),
-		Events.UNIT_CONSTRUCTION_FINISHED:
-		preload("res://assets/voice/english/ttsmaker-com-148-alayna-us/construction_complete.ogg"),
-		Events.UNIT_HELLO:
-		preload("res://assets/voice/english/ttsmaker-com-2704-jackson-us/sir.ogg"),
-		Events.UNIT_ACK_1:
-		preload("res://assets/voice/english/ttsmaker-com-2704-jackson-us/yes_sir.ogg"),
-		Events.UNIT_ACK_2:
-		preload("res://assets/voice/english/ttsmaker-com-2704-jackson-us/acknowledged.ogg"),
-		Events.NOT_ENOUGH_RESOURCES:
-		preload("res://assets/voice/english/ttsmaker-com-148-alayna-us/not_enough_resources.ogg"),
+		Events.NOT_ENOUGH_RESOURCES: preload("res://assets/voice/chinese/narrator_not_enough_resources.mp3"),
 	}
+
+	## 单位选中语音：unit_type_id → 音频流（未收录类型兜底步兵）。
+	const UNIT_HELLO_MAPPING = {
+		"worker": preload("res://assets/voice/chinese/unit_worker_hello.mp3"),
+		"drone": preload("res://assets/voice/chinese/unit_drone_hello.mp3"),
+		"soldier": preload("res://assets/voice/chinese/unit_soldier_hello.mp3"),
+		"sniper": preload("res://assets/voice/chinese/unit_sniper_hello.mp3"),
+		"rocketeer": preload("res://assets/voice/chinese/unit_rocketeer_hello.mp3"),
+		"transport_truck": preload("res://assets/voice/chinese/unit_transport_truck_hello.mp3"),
+		"apc": preload("res://assets/voice/chinese/unit_apc_hello.mp3"),
+		"tank": preload("res://assets/voice/chinese/unit_tank_hello.mp3"),
+		"heavy_tank": preload("res://assets/voice/chinese/unit_heavy_tank_hello.mp3"),
+		"helicopter": preload("res://assets/voice/chinese/unit_helicopter_hello.mp3"),
+	}
+
+	## 单位命令确认语音（两条轮换）：unit_type_id → 音频流。
+	const UNIT_ACK_1_MAPPING = {
+		"worker": preload("res://assets/voice/chinese/unit_worker_ack1.mp3"),
+		"drone": preload("res://assets/voice/chinese/unit_drone_ack1.mp3"),
+		"soldier": preload("res://assets/voice/chinese/unit_soldier_ack1.mp3"),
+		"sniper": preload("res://assets/voice/chinese/unit_sniper_ack1.mp3"),
+		"rocketeer": preload("res://assets/voice/chinese/unit_rocketeer_ack1.mp3"),
+		"transport_truck": preload("res://assets/voice/chinese/unit_transport_truck_ack1.mp3"),
+		"apc": preload("res://assets/voice/chinese/unit_apc_ack1.mp3"),
+		"tank": preload("res://assets/voice/chinese/unit_tank_ack1.mp3"),
+		"heavy_tank": preload("res://assets/voice/chinese/unit_heavy_tank_ack1.mp3"),
+		"helicopter": preload("res://assets/voice/chinese/unit_helicopter_ack1.mp3"),
+	}
+
+	const UNIT_ACK_2_MAPPING = {
+		"worker": preload("res://assets/voice/chinese/unit_worker_ack2.mp3"),
+		"drone": preload("res://assets/voice/chinese/unit_drone_ack2.mp3"),
+		"soldier": preload("res://assets/voice/chinese/unit_soldier_ack2.mp3"),
+		"sniper": preload("res://assets/voice/chinese/unit_sniper_ack2.mp3"),
+		"rocketeer": preload("res://assets/voice/chinese/unit_rocketeer_ack2.mp3"),
+		"transport_truck": preload("res://assets/voice/chinese/unit_transport_truck_ack2.mp3"),
+		"apc": preload("res://assets/voice/chinese/unit_apc_ack2.mp3"),
+		"tank": preload("res://assets/voice/chinese/unit_tank_ack2.mp3"),
+		"heavy_tank": preload("res://assets/voice/chinese/unit_heavy_tank_ack2.mp3"),
+		"helicopter": preload("res://assets/voice/chinese/unit_helicopter_ack2.mp3"),
+	}
+
+	## 建筑选中语音：unit_type_id → 音频流。
+	const STRUCTURE_HELLO_MAPPING = {
+		"command_center": preload("res://assets/voice/chinese/structure_command_center.mp3"),
+		"barracks": preload("res://assets/voice/chinese/structure_barracks.mp3"),
+		"vehicle_factory": preload("res://assets/voice/chinese/structure_vehicle_factory.mp3"),
+		"aircraft_factory": preload("res://assets/voice/chinese/structure_aircraft_factory.mp3"),
+		"anti_ground_turret": preload("res://assets/voice/chinese/structure_anti_ground_turret.mp3"),
+		"anti_air_turret": preload("res://assets/voice/chinese/structure_anti_air_turret.mp3"),
+		"machine_gun_turret": preload("res://assets/voice/chinese/structure_machine_gun_turret.mp3"),
+	}
+
+	## 未收录单位类型的兜底语音（步兵）。
+	const FALLBACK_HELLO := preload("res://assets/voice/chinese/unit_soldier_hello.mp3")
+	const FALLBACK_ACK_1 := preload("res://assets/voice/chinese/unit_soldier_ack1.mp3")
+	const FALLBACK_ACK_2 := preload("res://assets/voice/chinese/unit_soldier_ack2.mp3")
+
+	## 按单位类型取选中/确认语音；type_id 为空或未收录时回落步兵语音。
+	static func unit_voice(unit_type_id: String, event: int) -> AudioStream:
+		var mapping := {}
+		var fallback: AudioStream = FALLBACK_HELLO
+		match event:
+			Events.UNIT_HELLO:
+				mapping = UNIT_HELLO_MAPPING
+				fallback = FALLBACK_HELLO
+			Events.UNIT_ACK_1:
+				mapping = UNIT_ACK_1_MAPPING
+				fallback = FALLBACK_ACK_1
+			Events.UNIT_ACK_2:
+				mapping = UNIT_ACK_2_MAPPING
+				fallback = FALLBACK_ACK_2
+			_:
+				return null
+		return mapping.get(unit_type_id, fallback)

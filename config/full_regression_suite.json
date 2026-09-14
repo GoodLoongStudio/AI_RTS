@@ -526,6 +526,13 @@
    "category": "config",
    "scene": "res://tests/automated/UnitRegistrationConsistencySmokeTest.tscn",
    "id": "unit-registration-consistency"
+  },
+  {
+   "expected_marker": "Chinese voice mapping smoke test completed: 0 failure(s)",
+   "timeout_seconds": 90,
+   "category": "audio",
+   "scene": "res://tests/automated/ChineseVoiceMappingSmokeTest.tscn",
+   "id": "chinese-voice-mapping"
   }
  ]
 }
