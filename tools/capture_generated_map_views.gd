@@ -15,7 +15,7 @@ extends SceneTree
 
 const MAP_PATH := "res://source/match/maps/generated/16-0-7d337ce8be/map_16-0-7d337ce8be.tscn"
 const OUT_DIR := "G:/AIRTS/RTS_Map_Tool/review/G4/g2_large_lake_kits"
-const PREFIX := "g122"
+const PREFIX := "g124"
 
 ## review 世界 -> 游戏世界（2048/2000）
 const K := 1.024
@@ -70,7 +70,28 @@ func _run() -> void:
 	var K_SEM := 4.0
 	var focus_river := Vector2(969.999, 1128.96) * K_REVIEW
 	var focus_scale_pt := Vector2(1107.422, 396.484) * K_REVIEW
-	var focus_mountain := Vector2(1752.724, 1655.545) * K_REVIEW
+	# 山体焦点不硬编码：直接从 height_data.bin 求最高顶点（世界坐标）。
+	# 硬编码的旧焦点对到了地图边外/低矮区，看不到主峰。
+	var hd_path := MAP_PATH.get_base_dir() + "/height_data.bin"
+	var peak := Vector2(1024, 1024)
+	var hf := FileAccess.open(hd_path, FileAccess.READ)
+	if hf != null:
+		var hw: int = hf.get_32()
+		var hh: int = hf.get_32()
+		var heights := hf.get_buffer((hw * hh) * 4).to_float32_array()
+		hf.close()
+		var bi := 0
+		var bv := -1.0e30
+		for j in range(4, hh - 4, 2):
+			for i in range(4, hw - 4, 2):
+				var v: float = heights[j * hw + i]
+				if v > bv:
+					bv = v
+					bi = j * hw + i
+		peak = Vector2(float(bi % hw) * 2.0, float(bi / hw) * 2.0)   # 顶点->世界
+		print("PEAK height=", bv, " world=", peak)
+	# 主峰常在地图角上，直接对准会把半个画幅甩到图外；往地图中心偏 45% 取景。
+	var focus_mountain := peak.lerp(Vector2(1024.0, 1024.0), 0.45)
 	var focus_mfoot := Vector2(1638.672, 1365.234) * K_REVIEW
 	var mfoot_norm := Vector2(-0.36566, -0.93075)
 	var focus_plateau := Vector2(386.3502, 358.0448) * K_SEM
@@ -92,6 +113,10 @@ func _run() -> void:
 			"pitch": 40.0, "dist": 380.0},
 		{"name": "plain_scale", "focus": focus_scale_pt, "size": 520.0,
 			"pitch": 45.0, "dist": 620.0},
+		{"name": "ramp_central", "focus": Vector2(1080.0, 984.0), "size": 220.0,
+			"pitch": 35.0, "dist": 320.0},
+		{"name": "ramp_se", "focus": Vector2(1372.0, 1704.0), "size": 220.0,
+			"pitch": 35.0, "dist": 320.0},
 		{"name": "mountain", "focus": focus_mountain, "size": 900.0,
 			"pitch": 40.0, "dist": 1100.0},
 		{"name": "mountain_foot", "focus": focus_mfoot + mfoot_norm * 90.0, "size": 460.0,
