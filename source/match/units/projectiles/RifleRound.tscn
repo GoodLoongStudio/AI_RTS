@@ -9,8 +9,8 @@ emission_enabled = true
 emission = Color(1, 0.95, 0.8, 1)
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_tracer"]
-radius = 0.08
-height = 0.6
+radius = 0.04
+height = 0.75
 
 [node name="RifleRound" instance=ExtResource("1_base")]
 metadata/impact_reaction = "bullet"
