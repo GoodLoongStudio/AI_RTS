@@ -117,7 +117,7 @@
   },
   {
    "weaponId": "heavy_tank_cannon",
-   "projectileScenePath": "res://source/match/units/projectiles/CannonShell.tscn"
+   "projectileScenePath": "res://source/match/units/projectiles/HeavyCannonShell.tscn"
   }
  ]
 }

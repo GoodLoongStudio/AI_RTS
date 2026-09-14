@@ -35,7 +35,7 @@ const PROJECTILE_BY_UNIT_SCENE := {
 	"res://source/match/units/Tank.tscn": CannonShellScene,
 	# 同 CombatSfx.FIRE_SOUND_BY_SCENE：新单位漏登记 → 客户端**看不到任何弹道/开火表现**
 	# （权威端照常发射，只是傀儡端没有可回放的弹道视觉）。
-	"res://source/match/units/HeavyTank.tscn": CannonShellScene,
+	"res://source/match/units/HeavyTank.tscn": HeavyCannonShellScene,
 	"res://source/match/units/APC.tscn": RifleRoundScene,
 	"res://source/match/units/AntiGroundTurret.tscn": CannonShellScene,
 	"res://source/match/units/MachineGunTurret.tscn": RifleRoundScene,
