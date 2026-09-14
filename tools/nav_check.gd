@@ -65,29 +65,54 @@ func _run() -> void:
 	root.add_child(match_node)
 	root.gui_disable_input = true
 	root.borderless = true
-	root.position = Vector2i(3600, 80)
+	# NOTE: keep the window on-screen. Parking it at (3600,80) stops the compositor
+	# from drawing it, and Match.tscn's baked navigation / world setup then stalls
+	# mid-frames (same failure class as the off-screen render hang).
+	print("NAVCHK match added")
 	for _i in range(12):
 		await process_frame
 		await physics_frame
+		if _i % 4 == 0:
+			print("NAVCHK frame ", _i)
 
 	var nav = match_node.get("navigation")
+	print("NAVCHK nav=", nav, " class=", nav.get_class())
 	if nav == null:
 		_write(out_path, map_path, false, {"error": "navigation node missing"}, [], 0.0)
 		quit(1)
 		return
 	var terrain_map: RID = nav.get_navigation_map_rid_by_domain(1)  # TERRAIN
+	print("NAVCHK terrain_map=", terrain_map)
 	var t0 := Time.get_ticks_msec()
 	var first_target: Vector3 = Vector3(size / 2.0, 1.0, size / 2.0)
 	if not tdata["targets"].is_empty():
 		var t0d: Dictionary = tdata["targets"][0]
 		first_target = Vector3(float(t0d["x"]), float(t0d["y"]), float(t0d["z"]))
 	var bake_wait_s := -1.0
+	print("NAVCHK bake wait start target=", first_target, " map_valid=", terrain_map.is_valid())
+	# Wait for TerrainNavigation's FIRST bake to complete via its bake_revision
+	# counter (0 -> >=1 on every successful swap-in). Do NOT poll
+	# map_get_closest_point while the bake is running: concurrent queries against
+	# a map whose navmesh is mid-swap crash the process (0xC0000005, observed).
+	var terrain_nav = nav.find_child("Terrain", true, false)
+	var tb0 := Time.get_ticks_msec()
+	if terrain_nav != null and terrain_nav.get("bake_revision") != null:
+		while int(terrain_nav.get("bake_revision")) < 1 and Time.get_ticks_msec() - tb0 < 900000:
+			await process_frame
+			await physics_frame
+			var el := Time.get_ticks_msec() - tb0
+			if el % 60000 < 40:
+				print("NAVCHK waiting bake ", el / 1000, "s rev=", int(terrain_nav.get("bake_revision")))
+	print("NAVCHK bake_revision=", int(terrain_nav.get("bake_revision") if terrain_nav else -1))
 	for _w in range(600):
 		var probe: Vector3 = NavigationServer3D.map_get_closest_point(terrain_map, first_target)
+		if _w % 60 == 0:
+			print("NAVCHK bake wait w=", _w, " probe=", probe)
 		if probe.distance_to(first_target) < 25.0 and probe.length() > 1.0:
 			break
 		await process_frame
 	bake_wait_s = (Time.get_ticks_msec() - t0) / 1000.0
+	print("NAVCHK bake done wait_s=", bake_wait_s)
 
 	var xy_tol := float(tdata.get("xy_tolerance_m", 2.5))
 	var y_tol := float(tdata.get("height_tolerance_m", 0.7))
