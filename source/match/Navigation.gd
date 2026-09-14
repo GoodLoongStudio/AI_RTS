@@ -22,6 +22,12 @@ func get_navigation_map_rid_by_domain(domain):
 
 func setup(map):
 	assert(_static_obstacles.is_empty())
+	# 2048m 图用 Match.tscn 里 0.3 cell 去烘 Recast，栅格超限会 0xC0000005。
+	# 评图先进局看地形；寻路烘焙另立专项（更大 cell + 按高度封顶 AABB）。
+	if map.size.x >= 256.0 or map.size.y >= 256.0:
+		print("NAVDBG skip bake on large map size=", map.size)
+		_setup_static_obstacles()
+		return
 	await air.bake(map)
 	await terrain.bake(map)
 	_setup_static_obstacles()

@@ -104,6 +104,67 @@ class WindowTest(unittest.TestCase):
                         1000 + ORDER_REPEAT_WINDOW_TICKS + 1)
         self.assertEqual(len(state["recent_orders"]), 1, "过期指纹必须被清理")
 
+    def test_finished_produce_is_not_suppressed_as_repeat(self):
+        """T09：同一设施产完再下一单是接续，不能被 900 tick 窗口误伤。"""
+        item = {"unit_ids": ["Unit_0"], "action": "produce",
+                "target": {"scene": "res://source/match/units/Infantry.tscn",
+                           "producer": "Unit_0"}}
+        state = {
+            "active_intents": [{
+                "intent_id": "rule-produce-soldier-Unit_0-1000",
+                "action": "produce", "unit_ids": ["Unit_0"],
+                "state": "completed", "expires_tick": 100000,
+                "target": dict(item["target"]),
+            }],
+        }
+        _remember_order(state, item, 1000)
+        self.assertFalse(_repeat_suppressed(state, item, 1040),
+                         "上一单已完成：必须允许接续")
+
+    def test_live_produce_is_still_suppressed(self):
+        """还在产的同一条不得再发（接续不是『无视去重』）。"""
+        item = {"unit_ids": ["Unit_0"], "action": "produce",
+                "target": {"scene": "res://source/match/units/Infantry.tscn",
+                           "producer": "Unit_0"}}
+        state = {
+            "active_intents": [{
+                "intent_id": "rule-produce-soldier-Unit_0-1000",
+                "action": "produce", "unit_ids": ["Unit_0"],
+                "state": "active", "expires_tick": 100000,
+                "target": dict(item["target"]),
+            }],
+        }
+        _remember_order(state, item, 1000)
+        self.assertTrue(_repeat_suppressed(state, item, 1040))
+
+    def test_en_route_advance_is_suppressed_even_if_waypoint_changed(self):
+        """前压点每轮重算：换坐标也不能再发（T13 / u4dev 重复下发）。"""
+        state = {
+            "server_tick": 1606, "nav_revision": 0,
+            "routes": {"Unit_6": {
+                "ok": True, "route_id": "r1", "nav_revision": 0,
+                "last_replan_tick": 1367, "relay_point": [20.0, 7.0],
+                "target": [40.0, 7.0],
+            }},
+        }
+        item = {"unit_ids": ["Unit_6"], "action": "attack_move",
+                "target": {"pos": [38.2, 12.4]}}
+        self.assertTrue(_repeat_suppressed(state, item, 1606))
+
+    def test_retreat_is_not_blocked_by_hop_hold(self):
+        """求生必须能打断当前跳。"""
+        state = {
+            "server_tick": 1606, "nav_revision": 0,
+            "routes": {"Unit_6": {
+                "ok": True, "route_id": "r1", "nav_revision": 0,
+                "last_replan_tick": 1367, "relay_point": [20.0, 7.0],
+                "target": [40.0, 7.0],
+            }},
+        }
+        item = {"unit_ids": ["Unit_6"], "action": "retreat",
+                "target": {"pos": [8.0, 7.0]}}
+        self.assertFalse(_repeat_suppressed(state, item, 1606))
+
 
 class MicroLayerSuppressionTest(unittest.TestCase):
 
@@ -158,6 +219,21 @@ class CongestionReceiptTest(unittest.TestCase):
         self.assertEqual(state["congestion_events"], 1)
         # 任务状态不得被拥塞拒绝误判为失败
         self.assertEqual(state["active_tasks"]["t-1"], "running")
+
+    def test_stale_match_receipt_is_ignored(self):
+        """T16：旧局回执不得结算当前局意图。"""
+        state = {"match_id": "match-now", "server_tick": 5000, "active_intents": [
+            {"intent_id": "i-3", "state": "pending_authority", "action": "produce",
+             "unit_ids": ["Unit_0"], "task_id": "t-3"}],
+            "active_tasks": {"t-3": "running"}, "decision_log": []}
+        _apply_receipt_to_state(state, "i-3", {
+            "match_id": "match-old", "status": "Accepted", "accepted": True,
+            "result": {"item_id": "ghost", "item": {"definition_id": "soldier"}}})
+        record = state["active_intents"][0]
+        self.assertEqual(record["state"], "pending_authority")
+        self.assertNotIn("production", record)
+        kinds = [item.get("kind") for item in state.get("decision_log") or []]
+        self.assertIn("receipt_ignored_stale_match", kinds)
 
     def test_real_failure_still_drops(self):
         state = {"server_tick": 5000, "active_intents": [

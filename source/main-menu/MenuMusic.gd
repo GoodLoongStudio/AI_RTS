@@ -1,7 +1,7 @@
 extends Node
 
 ## 主菜单背景音乐常驻播放器（2026-09-08）：
-## 自动加载，跨场景切换持续播放——主菜单/单人战役/自定义战斗/联机/设置/制作人员
+## 自动加载，跨场景切换持续播放——主菜单/单机模式/在线匹配/设置/成长系统
 ## 等所有非对局界面都不间断；进入对局（Match.tscn 实例化）时淡出停止，
 ## 回到任一菜单界面自动续播。音量走 Music 总线（设置里可调）。
 
@@ -13,9 +13,8 @@ const MENU_SCENES := [
 	"res://source/main-menu/Play.tscn",
 	"res://source/main-menu/Online.tscn",
 	"res://source/main-menu/Options.tscn",
-	"res://source/main-menu/Credits.tscn",
+	"res://source/main-menu/Growth.tscn",
 	"res://source/main-menu/Loading.tscn",
-	"res://source/campaign/CampaignMenu.tscn",
 ]
 
 var _player: AudioStreamPlayer

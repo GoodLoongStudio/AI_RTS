@@ -16,10 +16,6 @@ func _ready() -> void:
 		_on_online_button_pressed()
 
 
-func _on_campaign_button_pressed():
-	get_tree().change_scene_to_file("res://source/campaign/CampaignMenu.tscn")
-
-
 func _on_play_button_pressed():
 	get_tree().change_scene_to_file("res://source/main-menu/Play.tscn")
 
@@ -32,8 +28,8 @@ func _on_options_button_pressed():
 	get_tree().change_scene_to_file("res://source/main-menu/Options.tscn")
 
 
-func _on_credits_button_pressed():
-	get_tree().change_scene_to_file("res://source/main-menu/Credits.tscn")
+func _on_growth_button_pressed():
+	get_tree().change_scene_to_file("res://source/main-menu/Growth.tscn")
 
 
 func _on_quit_button_pressed():

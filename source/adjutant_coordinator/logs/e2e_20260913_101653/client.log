@@ -1,0 +1,47 @@
+Godot Engine v4.7.1.stable.mono.official.a13da4feb - https://godotengine.org
+
+[DBGCTL] 调试控制端点已启动 127.0.0.1:24570
+[godot_ai game_helper] registered mcp capture (debugger active=false, logger=true)
+Loading[8.0s] 预加载
+Loading[8.0s] 载入地图 res://source/match/maps/PlainAndSimple.tscn
+Loading[8.1s] 地图实例完成
+Loading[8.7s] 实例化 Match（导航烘焙阻塞点）
+Loading[8.7s] 添加 Match 到场景树
+Loading[9.3s] Match 就绪
+Unicode parsing error: Byte 1 is not a correct continuation byte after e5
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+[ECO] PublishSnapshot player=f57684d0 a=50000
+[ECO] PublishSnapshot player=6142a887 a=50000
+[ECO] PublishSnapshot player=66d77251 a=50000
+[ECO] PublishSnapshot player=f5c46196 a=50000
+[TINT] apply_team_tint (0.1608, 0.4745, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.1608, 0.4745, 1.0, 1.0)
+[TINT] apply_team_tint (0.1608, 0.4745, 1.0, 1.0) on Geometry
+[TINT] override meshes=4 tint=(0.1608, 0.4745, 1.0, 1.0)
+[TINT] apply_team_tint (0.1608, 0.4745, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.1608, 0.4745, 1.0, 1.0)
+[TINT] apply_team_tint (0.1608, 0.4745, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.1608, 0.4745, 1.0, 1.0)
+[INPUT] UnitActionsController enabled player=Player_0
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+ERROR: Parse JSON failed. Error at line 0: Unexpected character
+   at: parse_string (core/io/json.cpp:629)
+   GDScript backtrace (most recent call first):
+       [0] _tcp_json (res://source/ui/AdjutantButton.gd:1157)
+[TINT] apply_team_tint (0.1608, 0.4745, 1.0, 1.0) on Geometry
+[TINT] override meshes=1 tint=(0.1608, 0.4745, 1.0, 1.0)
+[VIS] order action=build source=adjutant units=["Unit_2"] target=(13.0, 0.0, 4.0)
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+ERROR: Parse JSON failed. Error at line 0: Expected 'true', 'false', or 'null', got 'H'
+   at: parse_string (core/io/json.cpp:629)
+   GDScript backtrace (most recent call first):
+       [0] _tcp_json (res://source/ui/AdjutantButton.gd:1157)
+ERROR: Parse JSON failed. Error at line 0: Expected 'true', 'false', or 'null', got 'H'
+   at: parse_string (core/io/json.cpp:629)
+   GDScript backtrace (most recent call first):
+       [0] _tcp_json (res://source/ui/AdjutantButton.gd:1157)
+[VIS] order action=produce source=adjutant units=["Unit_4"] target=(13.0, 0.0, 4.0)
+[VIS] order action=move source=adjutant units=["Unit_2"] target=(10.0, 0.0, 10.0)

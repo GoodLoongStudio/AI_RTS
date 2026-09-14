@@ -298,6 +298,8 @@ var _runner_owned := false
 ## （2026-09-13 用户实测："AI 副官没有开启怎么也在控制" —— 屏幕上下着命令、
 ## 面板却说"尚未启动"，两个真相互相打脸）。
 var _external_runner := false
+##: 上一次写进日志的面板结论（状态变化才打印，避免每轮刷屏）。
+var _last_state_logged := ""
 
 
 ## 读本机 runner 配置：user://adjutant_local.cfg（结构化，便于换机器/换路径）；
@@ -453,7 +455,11 @@ func _restore_test_button() -> void:
 ## 不再直接显示服务器原始日志。
 func _poll_tail() -> void:
 	# 本机模式：直接读本地 runner 日志尾部（不再拉云端 _tail）。
-	_query_status()
+	#
+	# 【必须 `await`】`_query_status()` 是协程（要发 TCP 探测）：不 await 的话它刚跑到第一次
+	# await 就返回，**下面立刻按旧的 `_active` 渲染** → 面板永远显示上一次的结论
+	# （实测 2026-09-13：副官在指挥、状态行却一直"副官尚未启动"，根因就是这里少了个 await）。
+	await _query_status()
 	if _panel == null or not is_instance_valid(_panel):
 		return
 	if not _active:
@@ -467,7 +473,9 @@ func _poll_tail() -> void:
 	if _external_runner:
 		# 外部副官在指挥，但它的日志不在本面板的目录里（隔离要求）→ 如实说清，
 		# 不要显示"副官尚未启动"（那会与屏幕上正在发生的指挥自相矛盾）。
-		_set_panel_texts(PANEL_EXTERNAL, PANEL_DASH, PANEL_DASH, "本局由外部副官进程指挥")
+		# 判据来源也写出来：是 match_id 对齐（强）还是租约单位命中（弱），玩家/排查都能看懂。
+		_set_panel_texts(PANEL_EXTERNAL, PANEL_DASH, PANEL_DASH,
+			"本局由外部副官进程指挥（判据：%s）" % _authority_basis)
 		return
 	var status := _read_hud_status()
 	if status.is_empty():
@@ -711,19 +719,50 @@ func _query_status() -> void:
 
 ## 权威端是否报告"**本局**有副官挂上了"（不看本机 pidfile）。
 ##
-## 判据：某个权威口上 `op=adjutant_leases` 报出的租约/意图登记非空，**且它的 match_id
-## 与面板这局的 match_id 相同**（两边都必须非空才比）。
+## **两级证据**（`_authority_basis` 记下用了哪一级，面板文案据此说明）：
 ##
-## ⚠️ 已知边界（2026-09-13 实测，**不许含糊**）：在"专用服 + 客户端"两进程拓扑下
-## `match_id` **两边不一致**（客户端 7ed42f6c… / 服端 5e05db68…）——它是
-## `EconomyRuntime.MatchId`（服端权威），客户端拿到的是本地值。此时本函数**返回 false
-## （不声称）**：证明不了 ≠ 没有，更 ≠ 有。面板宁可说"本机没看到"，也不许再出现
-## "说没启动、命令却在飞"的自相矛盾。要覆盖那个拓扑，得先让对局身份跨进程一致
-## （或在 status 里暴露服端权威口）——那是 Match/Net 侧改动，不在面板职责内。
+## - **强证据**：某个权威口上 `op=adjutant_leases` 的租约/意图登记非空，
+##   且它的 `match_id` 与面板这局的 `match_id` **相同**；
+## - **弱证据**（跨进程兜底）：`match_id` 对不上时，看**租约里的单位名**是否出现在
+##   我本局看得见的己方单位里 —— 有交集就说明"那个副官指挥的就是这局"。
+##
+## 为什么必须加弱证据（2026-09-13 实测，**有数据**）：在"专用服 + 客户端"两进程拓扑下
+## `match_id` 两边**天生不一致**（客户端 711ae3dc… / 服端 e68fb163…，它是服端权威的
+## `EconomyRuntime.MatchId`，客户端拿到的是本地值），而**服端租约的单位名 `Unit_0..Unit_3`
+## 与我客户端视野里的单位完全一致**。只认强证据 = 面板在"副官正在指挥"时仍说"尚未启动"
+## （用户 2026-09-13 截图质问的正是这个自相矛盾）。
+## 弱证据的误判面：需要"同机另一局、同一玩家名、且单位名恰好重叠"才会误报，可接受；
+## 命中哪一级都会如实写在面板上，不假装是强证据。
+var _authority_basis := ""
+
+## 判据自证：前几次调用把解析过程写进日志（`push_warning` 会进客户端日志）。
+## 为什么需要：面板跑在游戏进程里，出问题时只能看到"状态不对"，看不到"卡在哪一步"
+## （2026-09-13 排查 F2 时正是这样卡了多轮）。只打前 3 次，避免刷屏。
+var _attach_debug_left := 3
+## 判据调用计数（每 10 次打一条汇总，用于观察"对局加载完成后"判据是否成立）。
+var _attach_debug_calls := 0
+
 func _authority_reports_attachment() -> bool:
+	_authority_basis = ""
 	var own_match := await _own_match_id()
-	if own_match.is_empty():
-		return false
+	var own_units := await _own_unit_names()
+	_attach_debug_calls += 1
+	# 前 3 次 + 之后每 10 次打一条（前 3 次通常发生在对局加载完成**之前**，
+	# 只看它们会误判成"判据永远不成立" —— 2026-09-13 我自己就被这个坑了一轮）。
+	var debug := _attach_debug_left > 0 or _attach_debug_calls % 10 == 0
+	if _attach_debug_left > 0:
+		_attach_debug_left -= 1
+	if debug:
+		push_warning("[ADJ-DBG] #%d 权威口=%d own_match=%s own_units=%d 玩家名=%s"
+			% [_attach_debug_calls, _authority_port, own_match.substr(0, 12),
+			   own_units.size(), _local_player_name()])
+	if own_match.is_empty() and own_units.is_empty():
+		# 【身份没拿到 ≠ 没人在指挥（2026-09-14 玩家实测："AI 副官没有开怎么也在控制"）】
+		# 对局刚加载时本机玩家名/单位表可能是空的（实测 `[ADJ-DBG] as_player= → player not found`），
+		# 按 `match|` 查租约必然为空 → 面板就会在"命令正在下"的时候显示"副官尚未启动"。
+		# 兜底：问权威端 `all=true`（汇总该局**所有** view_key 的租约/意图）——
+		# 只要它说"本机有成规模的租约/意图"，就必须如实说"有人在指挥"，而不是自相矛盾。
+		return await _authority_reports_anyone(debug)
 	var tried: Array = []
 	for port in _candidate_ports():
 		if tried.has(port):
@@ -731,14 +770,64 @@ func _authority_reports_attachment() -> bool:
 		tried.append(port)
 		var payload := await _tcp_json(int(port), {"op": "adjutant_leases",
 			"as_player": _local_player_name()})
+		if debug:
+			push_warning("[ADJ-DBG] 口 %d → ok=%s 租约=%d 意图=%d match=%s"
+				% [int(port), str(payload.get("ok")), (payload.get("leases") as Dictionary).size()
+					if payload.get("leases") is Dictionary else -1,
+					(payload.get("intents") as Dictionary).size()
+					if payload.get("intents") is Dictionary else -1,
+					str(payload.get("match_id", "")).substr(0, 12)])
 		if payload.is_empty() or payload.has("error") or not bool(payload.get("ok", false)):
-			continue
-		if str(payload.get("match_id", "")) != own_match:
 			continue
 		var leases = payload.get("leases")
 		var intents = payload.get("intents")
-		if (leases is Dictionary and not (leases as Dictionary).is_empty()) \
-				or (intents is Dictionary and not (intents as Dictionary).is_empty()):
+		var names := {}
+		if leases is Dictionary:
+			for key in (leases as Dictionary).keys():
+				names[str(key)] = true
+		if intents is Dictionary:
+			for key in (intents as Dictionary).keys():
+				names[str(key)] = true
+		if names.is_empty():
+			continue
+		if not own_match.is_empty() and str(payload.get("match_id", "")) == own_match:
+			_authority_basis = "match_id 一致 @%d" % int(port)
+			return true
+		for name in names.keys():
+			if own_units.has(name):
+				_authority_basis = "租约单位命中本局视野 @%d（%s）" % [int(port), str(name)]
+				return true
+	return false
+
+
+## 身份未知时的兜底判据：**本机某权威口上有没有副官挂着的痕迹**（`all=true` 汇总视图）。
+##
+## 只回答"有没有人指挥"，**不假装知道是谁**：判据文案会写明"身份未取到"，
+## 面板据此显示"副官正在指挥（外部进程）"——玩家至少不会看到"尚未启动"与屏幕上的指挥打架。
+func _authority_reports_anyone(debug: bool) -> bool:
+	for port in _candidate_ports():
+		var payload := await _tcp_json(int(port), {"op": "adjutant_leases", "all": true})
+		if payload.is_empty() or payload.has("error") or not bool(payload.get("ok", false)):
+			continue
+		var leases = payload.get("leases")
+		var intents = payload.get("intents")
+		var count := 0
+		if leases is Dictionary:
+			for key in (leases as Dictionary).keys():
+				if (leases as Dictionary)[key] is Dictionary:
+					count += ((leases as Dictionary)[key] as Dictionary).size()
+				else:
+					count += 1
+		if intents is Dictionary:
+			for key in (intents as Dictionary).keys():
+				if (intents as Dictionary)[key] is Dictionary:
+					count += ((intents as Dictionary)[key] as Dictionary).size()
+				else:
+					count += 1
+		if debug:
+			push_warning("[ADJ-DBG] 口 %d all=true → 租约/意图条目=%d（身份未知兜底）" % [int(port), count])
+		if count > 0:
+			_authority_basis = "本机权威口有成规模的租约/意图 @%d（本机身份未取到，按事实报告）" % int(port)
 			return true
 	return false
 
@@ -746,7 +835,58 @@ func _authority_reports_attachment() -> bool:
 ## 面板自己这局的 match_id（问已解析的权威口；拿不到返回空串 = 不比对、不声称）。
 func _own_match_id() -> String:
 	var payload: Dictionary = await _authority_call({"op": "status", "lite": true})
+	# 顺手把权威端认定的"本机玩家"记下来：联机局里 `players` 组有多人，
+	# 面板自己数不出来（实测 own_units=0 就是因为玩家名是空的，见 [ADJ-DBG] 日志）。
+	var name := str(payload.get("local_player_name", ""))
+	if not name.is_empty():
+		_local_player_cache = name
 	return str(payload.get("match_id", ""))
+
+
+## `_own_unit_names()` 的调试打印预算与结果短缓存。
+##
+## 【为什么必须修（2026-09-13 实测）】原判据写成 `_attach_debug_left >= 0` ——
+## 计数器减到 0 之后 `0 >= 0` 恒真 → **每次调用都打一条带 GDScript 回溯的
+## `push_warning`**（注释写的"只打前 3 次"从未生效）：客户端日志里 `[ADJ-DBG]
+## fast_state ...` 成片出现，而它跑在**游戏进程**里（面板与渲染同进程）。
+## 同时每次调用都会同步问一次 `adjutant_fast_state`（全量单位表 + JSON 解析），
+## 同一次面板刷新里被调用多次就重复问了多遍。
+## 现在：① 打印用**会递减**的预算；② 结果 1 秒内复用（面板只需要"挂没挂上"这一事实，
+## 不需要每帧最新）。这两条都是"别让副官吃掉游戏性能"（用户原话）的直接落实。
+var _own_units_debug_left := 3
+var _own_units_cache := {}
+var _own_units_cache_at_msec := 0
+const OWN_UNITS_CACHE_MS := 1000
+
+
+func _own_unit_names() -> Dictionary:
+	var now_msec := Time.get_ticks_msec()
+	if not _own_units_cache.is_empty() and now_msec - _own_units_cache_at_msec < OWN_UNITS_CACHE_MS:
+		return _own_units_cache
+	var player_name := _local_player_name()
+	var payload: Dictionary = await _authority_call({"op": "adjutant_fast_state",
+		"as_player": player_name})
+	if _own_units_debug_left > 0:
+		_own_units_debug_left -= 1
+		push_warning("[ADJ-DBG] fast_state as_player=%s → ok=%s 键=%s 错误=%s"
+			% [player_name, str(payload.get("ok")), str(payload.keys()), str(payload.get("error"))])
+	var state = payload.get("state") if payload is Dictionary else null
+	var names := {}
+	if state is Dictionary:
+		# ⚠ **不许写 `(state).get("units") or []`**：GDScript 的 `or` 是布尔运算，
+		# `数组 or []` 求值成 **bool**，迭代它就是 "Unable to iterate on object of type 'bool'"
+		# —— 循环体一次都不跑，单位名恒为空（实测：面板 own_units=0 卡了整整一轮排查）。
+		# 本项目已记录过同类坑（DebugControlServer 的 `snapshot.get("items") or []`），这是第二次。
+		var units = (state as Dictionary).get("units")
+		if units is Array:
+			for entry in units:
+				if entry is Dictionary:
+					names[str((entry as Dictionary).get("name", ""))] = true
+	names.erase("")
+	# 结果短缓存（1 秒）：同一次面板刷新里多次调用只问一次权威端（省一次全量单位表 + JSON）。
+	_own_units_cache = names
+	_own_units_cache_at_msec = now_msec
+	return names
 
 
 ## 读取本机 runner 的 pidfile（runner 启动时由 `--pidfile` 写入）。
@@ -828,6 +968,13 @@ func _update_status_line() -> void:
 	elif _active and not _engine.is_empty():
 		state += "（%s）" % engine_label
 	_title_label.text = "🔹 AI 副官 · %s" % state
+	# 结论变化时**留一行日志**（玩家能看到、我也能据此核对面板到底怎么判断的）：
+	# 用户两次问过"副官没开怎么还在操作" —— 面板的判断依据必须可查，而不是只在屏幕上。
+	if state != _last_state_logged:
+		_last_state_logged = state
+		print("[PANEL] 副官状态 → %s（权威口=%d，外部=%s，判据=%s）"
+			% [state, _authority_port, str(_external_runner),
+			   _authority_basis if not _authority_basis.is_empty() else "本机 runner 心跳"])
 
 
 ## daemon 拒绝原因 → 玩家可读文本（409 有两种：already running / no active match）。
@@ -1033,8 +1180,27 @@ func _apply_reserve_view(payload: Dictionary) -> void:
 	_reserve_label.text = "预留：%s" % " ".join(parts)
 
 
-## 单机自定义对局：players 组恰好一人时返回其名字；否则空串（交给权威端判定，不猜）。
+## 本机玩家名（= 面板代表的那个玩家）。**唯一口径**，按优先级：
+##
+## 1. **对局节点自带的 `get_local_player()`** —— 权威端（`DebugControlServer._resolve_player`）
+##    用的就是它，面板必须同源；
+## 2. 单机自定义对局：`players` 组恰好一人时用那个人。
+##
+## 【2026-09-13 实测修正】原实现只有第 2 条：联机局里 `players` 组有多个玩家 → 返回空串 →
+## 面板问权威端时没有 `as_player` → 对方答 `player not found` → 面板拿不到"本局我方能看见的
+## 单位" → 判据永远为假 → 一直显示"副官尚未启动"（哪怕副官正在指挥）。
+## 本机玩家名缓存（`op=status.local_player_name` 的最近一次结果）。
+## 权威端自己会回这个名字（它就是按 `match_node.get_local_player()` 算的），面板直接采纳。
+var _local_player_cache := ""
+
 func _local_player_name() -> String:
+	if not _local_player_cache.is_empty():
+		return _local_player_cache
+	var scene := get_tree().current_scene
+	if scene != null and scene.has_method("get_local_player"):
+		var local = scene.call("get_local_player")
+		if local != null and is_instance_valid(local):
+			return str(local.name)
 	var players := get_tree().get_nodes_in_group("players")
 	if players.size() == 1:
 		return str(players[0].name)
@@ -1068,7 +1234,26 @@ func _ensure_authority_port() -> int:
 	return 0
 
 
+## 本进程是不是**自动化/验收**对局（`--autojoin` / `--smokeport` 这类参数）。
+##
+## 为什么必须区分（2026-09-14 实测事故）：验收局的客户端也是**完整游戏**，它的面板会把
+## 候选端口（含**面板口 24579**）挨个探一遍 —— `netstat` 里看到 `SYN_SENT 127.0.0.1:24579`。
+## 那正是"面板 runner 抢同一局/两个副官撞车"的入口：自动化局只能认**本进程自己的 DCS**。
+static func is_automation_run() -> bool:
+	for arg in OS.get_cmdline_args() + OS.get_cmdline_user_args():
+		var text := String(arg)
+		if text.begins_with("--autojoin") or text.begins_with("--smokehost") \
+				or text.begins_with("--smokeport"):
+			return true
+	return false
+
+
 ## 候选端口：配置里的那个排最前，其余按**端口口径表**去重（表丢了才用兜底常量）。
+##
+## 自动化/验收局：**剔除"玩家那一侧"的端口**（面板口 `AUTHORITY_PORT` 与游戏默认口 24568），
+## 只保留验收段候选 —— 理由：①不串台（探面板口 = "面板 runner 抢同一局"的入口）；
+## ②仍能发现**挂在本机验收权威口上的外部副官**（那是"有人在指挥"的唯一硬证据，
+## 面板必须能看见，否则又回到"没开却在操作"的自相矛盾）。
 func _candidate_ports() -> Array:
 	var configured := int(_load_runner_config().get("authority_port", AUTHORITY_PORT))
 	var ports: Array = []
@@ -1077,6 +1262,15 @@ func _candidate_ports() -> Array:
 	for port in _registry_authority_candidates():
 		if int(port) > 0 and not ports.has(int(port)):
 			ports.append(int(port))
+	if is_automation_run():
+		var player_side := [AUTHORITY_PORT, 24568]
+		ports = ports.filter(func(item): return not player_side.has(int(item)))
+	# 本进程自己的 DCS 永远排最前（它是唯一"不需要猜"的来源）。
+	var own := int(get_node_or_null("/root/DebugControlServer").call("port")) \
+		if get_node_or_null("/root/DebugControlServer") != null else 0
+	if own > 0:
+		ports = ports.filter(func(item): return int(item) != own)
+		ports.push_front(own)
 	return ports
 
 
@@ -1142,19 +1336,46 @@ func _tcp_json(port: int, payload: Dictionary) -> Dictionary:
 		peer.disconnect_from_host()
 		return {}
 	peer.put_data((JSON.stringify(payload) + "\n").to_utf8_buffer())
-	var buffer := ""
+	# 【必须按**字节**攒，见到换行再整体解码】（2026-09-13 实测根因）
+	#
+	# 原写法 `buffer += peer.get_utf8_string(available)` 是按**每次 TCP 分片**解码的：
+	# 回复里带中文时，一个多字节字符很容易被切在两个分片之间，Godot 直接报
+	# `Unicode parsing error: Byte 4 is not a correct continuation byte`，
+	# 拼出来的字符串也成了乱码 → `JSON.parse_string` 失败 → 面板**永远读不到权威端数据**
+	# （实测客户端日志里这类报错刷屏，面板就一直显示"副官尚未启动"，哪怕副官正在指挥）。
+	# 修法：字节进 `PackedByteArray`，找 0x0A 判行尾，最后 `get_string_from_utf8()` 解一次。
+	var raw := PackedByteArray()
 	waited = 0.0
 	while waited < 1.0:
 		await get_tree().create_timer(0.02).timeout
 		peer.poll()
 		var available := peer.get_available_bytes()
 		if available > 0:
-			buffer += peer.get_utf8_string(available)
-			if buffer.contains("\n"):
+			var chunk = peer.get_data(available)
+			if chunk[0] == OK:
+				raw.append_array(chunk[1])
+			if raw.find(10) >= 0:
 				break
 		waited += 0.02
 	peer.disconnect_from_host()
-	var parsed = JSON.parse_string(buffer.strip_edges())
+	# 【关键：剥掉 4 字节小端长度前缀】权威端的回复帧是 `[u32 长度][JSON 字节]`
+	# （实测十六进制：`e5010000 7b2262616c616e636522...` = 489 字节 + `{"balance":...`）。
+	# 不剥前缀直接 UTF-8 解码 → 前缀字节解出替换字符 → `Parse JSON failed` →
+	# 面板**永远读不到权威端数据**（历史上"副官在指挥、面板说尚未启动"的最终根因）。
+	# 判据：前缀声明的长度 + 4 必须落在实际收到的字节数之内（否则当成没有前缀）。
+	var body := raw
+	if raw.size() > 4:
+		var declared := raw.decode_u32(0)
+		if declared > 0 and declared + 4 <= raw.size():
+			body = raw.slice(4, 4 + declared)
+	var text := body.get_string_from_utf8().strip_edges()
+	var parsed = JSON.parse_string(text)
+	if parsed == null and not text.is_empty():
+		# 解析失败时把收到的原文与原始字节打出来（截断）：否则只看到 "Parse JSON failed"，
+		# 分不清"端口连错/协议带前缀/被切断"（2026-09-13 排查正是卡在这里才挖到前缀）。
+		push_warning("[ADJ] 权威端回复不是合法 JSON（port=%d, %d 字节）：%s"
+			% [port, raw.size(), text.substr(0, 120)])
+		push_warning("[ADJ] 原始字节：%s" % raw.slice(0, 24).hex_encode())
 	return parsed if parsed is Dictionary else {}
 
 

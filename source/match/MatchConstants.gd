@@ -18,6 +18,13 @@ const MAPS = {
 		"players": 8,
 		"size": Vector2i(100, 100),
 	},
+	# 当前 G4 评图：大湖 seed16。DISCOVER_GENERATED_MAPS 仍关，只挂这一张。
+	"res://source/match/maps/generated/16-0-7d337ce8be/map_16-0-7d337ce8be.tscn":
+	{
+		"name": "G4 大湖 seed16",
+		"players": 4,
+		"size": Vector2i(2048, 2048),
+	},
 }
 
 # 自定义对局地图清单**默认只保留 4 人与 8 人两张**（用户要求，2026-09-11）。

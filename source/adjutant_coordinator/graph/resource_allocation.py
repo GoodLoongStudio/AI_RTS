@@ -28,7 +28,7 @@
 
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from .observation_view import entity_id_of, pos2d
+from .observation_view import entity_id_of, pos2d, resource_available
 from .state import INTENT_LIVE_STATES
 
 #: 采集动作 id（与 contracts/rules 视图一致）。
@@ -88,6 +88,8 @@ def occupancy(by_name: Dict[str, Dict[str, Any]],
     """
     kind_of: Dict[str, str] = {}
     for resource in resources or []:
+        if not resource_available(resource):
+            continue
         eid = str(entity_id_of(resource))
         if eid:
             kind_of[eid] = _kind(resource)
@@ -130,6 +132,8 @@ def assign(by_name: Dict[str, Dict[str, Any]],
         best_eid = ""
         best_type = ""
         for resource in resources or []:
+            if not resource_available(resource):
+                continue
             eid = str(entity_id_of(resource))
             if not eid:
                 continue
@@ -183,7 +187,8 @@ def rebalance(by_name: Dict[str, Dict[str, Any]],
             if excess <= 0:
                 break
             free = [r for r in (resources or [])
-                    if int(load_node.get(str(entity_id_of(r)), 0)) < per_node]
+                    if resource_available(r)
+                    and int(load_node.get(str(entity_id_of(r)), 0)) < per_node]
             if not free:
                 return moves      # 没有空位就不折腾（宁可挤，也不让工人闲置）
             info = (by_name or {}).get(name) or {}

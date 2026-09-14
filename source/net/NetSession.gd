@@ -93,6 +93,17 @@ func disconnect_session() -> void:
 	_set_status("已断开")
 
 
+## 幂等断开（"退出战斗 / 结算后回主菜单"的唯一入口）：单机 listen server 与联机客户端都适用。
+## 【2026-09-14】旧实现里"退出战斗"只切场景、不断会话 → 单机残留本机 listen server，
+## 再进「在线匹配」会被误判"已连接/房主"（点"立即开局"变成在本机开房）；
+## 联机则人还在房间里，想再开一局会被服务器静默忽略。
+func disconnect_if_networked() -> void:
+	if dedicated_server:
+		return
+	if _peer != null:
+		disconnect_session()
+
+
 func command_gateway_for(player: Node):
 	if player == null:
 		return null
@@ -748,17 +759,23 @@ func _set_status(text: String) -> void:
 	status_changed.emit(text)
 
 
-## 单人练习房判定：参战玩家（slot_kind != NONE 占位）不足 2 个。
+## 单人练习房判定：**真实参战玩家**不足 2 个。
 ## 设计师需求（2026-09-04）：单人开局只有玩家主动退出才结束，不以胜利/失败为结束——
 ## 因此结算 UI 与专用服回收都必须跳过，否则单人局开局即被判胜利并回收服务器。
+##
+## 【2026-09-14 修复】旧实现统计"带 slot_kind meta 且 ≠0"的玩家，但该 meta 只在
+## **空槽占位玩家**上设置（`Match._create_players_from_settings`）→ 计数恒 0 →
+## 任何对局都被当成单人练习房 → 打完一局**永远不弹结算**、联机不广播、专用服不回收。
+## 现与 C# `MatchOutcomeRuntime` 口径对齐：空槽占位不计，其余（真人/AI）都算参战者。
 func is_solo_practice() -> bool:
 	var tree := get_tree()
 	if tree == null:
 		return false
 	var count := 0
 	for p in tree.get_nodes_in_group("players"):
-		if p.has_meta("slot_kind") and int(p.get_meta("slot_kind")) != 0:
-			count += 1
+		if p.has_meta("slot_kind"):
+			continue
+		count += 1
 	return count < 2
 
 

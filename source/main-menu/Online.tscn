@@ -61,7 +61,7 @@ theme_override_constants/separation = 12
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 28
-text = "联机 Demo"
+text = "在线匹配"
 
 [node name="NameRow" type="HBoxContainer" parent="CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer/TitleRow"]
 layout_mode = 2

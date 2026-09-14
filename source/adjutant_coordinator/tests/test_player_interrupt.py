@@ -125,6 +125,42 @@ class PlayerInterruptNodeTest(unittest.TestCase):
         self.assertEqual(data["server_tick"], 0)
 
 
+class CombatVocabularyIngestTest(unittest.TestCase):
+    """`node_ingest` 每轮把**作战单位口径**从规则视图派生并落进 `state`（唯一实现，见文档 §14.6）。
+
+    为什么要在图上钉这一条：口径曾有三份硬编码副本（`rules_fallback` / `behavior_tree` /
+    `campaign`），各自的类型表都在腐烂；现在只允许 `node_ingest` 派生一次、别处只读。
+    """
+
+    RULES_WITH_CAPS = {
+        "unit_types": [
+            {"id": "tank", "scene_path": "res://source/match/units/tank.tscn",
+             "capabilities": {"move": True, "attack": True}},
+            {"id": "worker", "capabilities": {"gather": True, "move": True}},
+            # 固定防御：能打但**不能动** → 不算兵力（否则 60 座炮塔吃满兵力上限）。
+            {"id": "anti_ground_turret", "capabilities": {"attack": True}},
+        ],
+    }
+
+    def test_ingest_derives_combat_types_and_keeps_them(self):
+        data = make_state().to_dict()
+        ctx = make_ctx(observation={"header": header(30), "rules": self.RULES_WITH_CAPS},
+                       tick=30)
+        data = node_ingest(data, ctx)
+        self.assertEqual(data["combat_types"], ["tank"])
+        restored = AdjutantGraphState.from_dict(data)
+        self.assertEqual(restored.combat_types, ["tank"],
+                         "口径必须随 checkpoint 往返（state.py 显式字段）")
+
+    def test_ingest_keeps_previous_vocabulary_when_capabilities_missing(self):
+        """规则视图没有能力字段（老配置）→ **保持上一轮**，绝不猜、也不退回空口径。"""
+        data = make_state().to_dict()
+        data["combat_types"] = ["soldier", "tank"]
+        ctx = make_ctx(observation={"header": header(30), "rules": rules_view()}, tick=30)
+        data = node_ingest(data, ctx)
+        self.assertEqual(sorted(data["combat_types"]), ["soldier", "tank"])
+
+
 class RouteClassificationTest(unittest.TestCase):
     def test_player_interrupt_wins_over_emergency(self):
         state = make_state()

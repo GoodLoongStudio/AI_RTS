@@ -204,7 +204,8 @@ internal sealed class InputBindingServiceTests
             "文字输入焦点下 Tab 不应切换 HUD");
     }
 
-    /// <summary>验证 F10 打开暂停菜单，Esc 只取消/返回，不再打开菜单。</summary>
+    /// <summary>验证 F10 与 Esc 都解析为对局动作：F10 = 打开暂停菜单，Esc = 取消/返回
+    /// （2026-09-14 起 Esc 在"无取消目标"时由 Menu 兜底唤出菜单，属于 UI 层行为）。</summary>
     private void F10OpensMenuAndEscapeCancels()
     {
         var service = NewService();

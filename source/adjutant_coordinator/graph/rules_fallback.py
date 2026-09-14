@@ -51,14 +51,55 @@ WORKER_QUEUE_CAP = 2
 # 【唯一事实来源】"仍算在途占用"的意图状态**直接引用** `graph.state`，不再手抄一份。
 # 手抄那一份曾经漏掉 `active_unknown` / `retry_wait`，于是"存活状态"在本模块里
 # 与仲裁/微操层口径不一致（同一句判据在不同文件里答案不同）。
-from .state import INTENT_LIVE_STATES as LIVE_INTENT_STATES  # noqa: E402
+from .state import (  # noqa: E402
+    INTENT_DROPPED,
+    INTENT_LIVE_STATES as LIVE_INTENT_STATES,
+)
 
 # ---------------- 发展阶梯（决策手册 BLD-01） ----------------
 #: 有作战单位达到该数量且存在可见敌人时，阶梯给出 attack 候选。
 #: 【待实测】参考值，不是平衡事实；由配置覆盖，禁止在别处硬编码。
 ARMY_ATTACK_THRESHOLD = 2
-#: 视为"作战单位"的单位类型（drone 无武器，不计入）。
+#: 视为"作战单位"的单位类型 —— **仅作兜底**（规则视图里读不到 `capabilities` 时用，
+#: 例如老配置或单测夹具）。运行时的唯一口径是 `combat_types_from_rules()` 的派生结果，
+#: 由 `node_ingest` 每轮写进 `state["combat_types"]`，其余模块只读那一个字段。
 COMBAT_TYPES = ("soldier", "tank", "helicopter")
+
+
+def combat_types_from_rules(rules) -> Tuple[str, ...]:
+    """**可机动作战单位口径的唯一实现**：规则视图里"能打 **且** 能动"的单位类型。
+
+    ## 为什么必须派生而不是硬编码（2026-09-13 收工自检发现三份口径）
+    - 配置里已有 `apc`（带 `apc_autocannon`）与 `heavy_tank`，硬编码的 `COMBAT_TYPES`
+      会**漏算**它们 → 兵力上限少算、军事轨不指挥它们、出击门槛不数它们；
+    - `behavior_tree` 那份写着 `vehicle` / `aircraft` —— 配置里**根本不存在**这两个 id，
+      于是直升机（真实 id `helicopter`）在树里漏计；
+    - `campaign` 又抄一份常量。三份口径 = 三处会各自腐烂的地方。
+
+    ## 为什么必须同时要 `move`（2026-09-13 真机导出实测）
+    只要 `attack` 会把**固定炮塔**算进来：导出实测能打的类型是
+    `[anti_air_turret, anti_ground_turret, apc, heavy_tank, helicopter, soldier, tank]`，
+    而炮塔是**不可机动**的（`move=false`）。把它们算成兵力有两个恶果：
+    ①60 座炮塔就能把兵力上限吃满、部队再也补不了兵；
+    ②军事轨会给炮塔派 `attack_move`（它根本不能动）。
+    所以口径 = `attack ∧ move`，实测结果正好是 `[apc, heavy_tank, helicopter, soldier, tank]`。
+
+    ## 判据必须"能力字段齐全"才派生
+    只对"有 capabilities 的那几种"派生会得到**残缺**口径：没带能力字段的类型会被判成
+    非作战单位 → 兵力上限**少算**（比硬编码更糟）。所以全有才派生，缺一个就返回空元组，
+    由调用方回退 `COMBAT_TYPES`（保守）。导出侧"每个类型都带 capabilities"由
+    `AdjutantRulesExportSmokeTest` 守门。
+    """
+    rows = [item for item in (rules or {}).get("unit_types") or [] if isinstance(item, dict)]
+    if not rows:
+        return ()
+    classified = [item for item in rows if isinstance(item.get("capabilities"), dict)]
+    if len(classified) != len(rows):
+        return ()
+    out = [str(item.get("id", "")) for item in classified
+           if bool((item.get("capabilities") or {}).get("attack"))
+           and bool((item.get("capabilities") or {}).get("move"))]
+    return tuple(sorted({item for item in out if item}))
 #: 发展阶梯的建造顺序（逐级推进；每级达到 `BUILD_LIMITS` 的座数就往下走）。
 #: 【2026-09-12 晚扩线，用户反馈"不会发展、不会多造建筑、防御、分子基地"】
 #: 顺序 = 产能（兵营→车厂→机场）→ 防御（防空→反地）→ 分基地（第二座指挥中心）。
@@ -91,6 +132,350 @@ BUILD_LIMITS = {
 #: 无人机无武器、侦察已由"前压探索 + 专职侦察"覆盖，避免无人机制造堆积。
 PRODUCT_LADDER = (("soldier", "barracks"), ("tank", "vehicle_factory"),
                   ("helicopter", "aircraft_factory"))
+#: "这个单位打不了这个目标"的记忆时长（tick，默认 1800 ≈ 30 秒）。
+#: 仅在**能力版本未知**时作兜底；能力版本已知且未变时，记忆不因时间自动失效（F04）。
+TARGET_BAN_TICKS = 1800
+
+
+def capability_version_of(state: Optional[Dict[str, Any]],
+                          rules: Optional[Dict[str, Any]] = None) -> str:
+    """武器/规则能力版本。变了才允许重新评估黑名单，不靠固定 30 秒遗忘。"""
+    if isinstance(rules, dict):
+        raw = rules.get("rules_version")
+        if isinstance(raw, dict) and raw.get("content_hash"):
+            return str(raw["content_hash"])
+        if isinstance(raw, str) and raw:
+            return raw
+    return str((state or {}).get("rules_version")
+               or (state or {}).get("capability_version") or "")
+
+
+def type_attack_domains(rules: Optional[Dict[str, Any]], unit_type: str) -> List[str]:
+    """规则视图里该类型武器能打的域（`weapons[].target_domains`）。"""
+    if not rules or not unit_type:
+        return []
+    for item in rules.get("unit_types") or []:
+        if not isinstance(item, dict) or str(item.get("id", "")) != str(unit_type):
+            continue
+        domains = set()
+        for weapon in item.get("weapons") or []:
+            if not isinstance(weapon, dict):
+                continue
+            for domain in weapon.get("target_domains") or []:
+                domains.add(str(domain))
+        return sorted(domains)
+    return []
+
+
+def type_movement_domain(rules: Optional[Dict[str, Any]], unit_type: str) -> str:
+    """该类型的移动域。规则缺失时按空中类型名兜底（与编制口径一致）。"""
+    if not unit_type:
+        return ""
+    if isinstance(rules, dict):
+        for item in rules.get("unit_types") or []:
+            if isinstance(item, dict) and str(item.get("id", "")) == str(unit_type):
+                return str((item.get("movement") or {}).get("domain") or "")
+    if str(unit_type) in AIR_UNIT_TYPES:
+        return "air"
+    return "terrain"
+
+
+def unit_attack_domains(state: Optional[Dict[str, Any]], unit: str,
+                        rules: Optional[Dict[str, Any]] = None,
+                        by_name: Optional[Dict[str, Any]] = None) -> List[str]:
+    """该单位当前能打的域：先看观测/状态里的活数据，再退回类型表。"""
+    name = str(unit)
+    live = ((state or {}).get("own_attack_domains") or {}).get(name)
+    if live:
+        return [str(item) for item in live]
+    if by_name and name in by_name:
+        live = (by_name.get(name) or {}).get("attack_domains")
+        if live:
+            return [str(item) for item in live]
+    kind = str(((state or {}).get("own_unit_types") or {}).get(name)
+               or ((by_name or {}).get(name) or {}).get("type") or "")
+    return type_attack_domains(rules, kind)
+
+
+def enemy_movement_domain(enemy, rules: Optional[Dict[str, Any]] = None,
+                          state: Optional[Dict[str, Any]] = None) -> str:
+    """敌人当前所在域：实体字段 → 状态表 → 类型表。"""
+    if isinstance(enemy, dict):
+        domain = str(enemy.get("domain") or "")
+        if domain:
+            return domain
+        entity = entity_id_of(enemy)
+        kind = str(enemy.get("unit_type") or enemy.get("type") or "")
+    else:
+        entity = str(enemy or "")
+        kind = str(((state or {}).get("enemy_types") or {}).get(entity, ""))
+    table = (state or {}).get("enemy_domains") or {}
+    if entity and table.get(entity):
+        return str(table[entity])
+    return type_movement_domain(rules, kind)
+
+
+def can_attack_by_capability(state: Optional[Dict[str, Any]], unit: str, enemy,
+                             rules: Optional[Dict[str, Any]] = None,
+                             by_name: Optional[Dict[str, Any]] = None):
+    """事前能力判定：True/False；未知（缺域或缺武器表）返回 None，交给黑名单兜底。"""
+    domains = unit_attack_domains(state, unit, rules, by_name)
+    target = enemy_movement_domain(enemy, rules, state)
+    if not domains or not target:
+        return None
+    return target in set(domains)
+
+
+def ban_unattackable_target(state: Dict[str, Any], units, entity, tick: int,
+                            entity_type: str = "", unit_types=None) -> None:
+    """记下「这些单位打不了这个目标」（按 **单位 × (目标 或 目标类型)** 记账，有界）。
+
+    **为什么要按"目标类型"再记一条**（2026-09-13 实测，第一版修复没生效的原因）：
+    只按实体拉黑时，树下一轮会挑**另一个**同类敌人（实测 `Unit_43` 对空目标被拒 10 次 =
+    每轮换一个空中目标继续试），命令流照样刷屏。地空不匹配是**武器属性**，
+    所以要把"这个单位打不了**这一类**目标"也记下来。
+
+    **为什么按单位而不是按目标**：同一时刻防空单位打得了的目标、地面单位打不了，
+    按目标全局拉黑会误伤能打的那批。
+
+    依据：一局 347 条命令里 **124 条**被 `武器无法攻击该目标所处的域` 拒掉，
+    同一单位反复重发（`Unit_43` 被拒 **10** 次 ≈ 每 15 秒重试一次，
+    正好撞在 `ORDER_REPEAT_WINDOW_TICKS` 的窗口上）—— 用户原话"你下达命令不能瞎下达"。
+    """
+    entity = str(entity or "")
+    kind = str(entity_type or "")
+    if not entity and not kind:
+        return
+    bans = state.setdefault("unattackable_targets", {})
+    for unit in units or []:
+        name = str(unit)
+        if entity:
+            bans["%s|%s" % (name, entity)] = int(tick)
+        if kind:
+            bans["%s|type:%s" % (name, kind)] = int(tick)
+    # 【再升级一层：**单位类型 × 目标类型**】能力（武器域）是**类型的属性**，不是某个个体的：
+    # 一个士兵打不了无人机，说明"所有士兵都打不了无人机"。只按个体学，就要把
+    # "每个单位 × 每种敌方类型"各付一次拒绝（实测 fix6 局仍残留 29 条域不匹配 = 学习成本）。
+    # 个体差异（升级/挂载）留在个体键上：类型键只作为**加速**，不做唯一判据。
+    known_types = state.get("own_unit_types") or {}
+    for unit in units or []:
+        own_kind = str((unit_types or {}).get(str(unit))
+                       or known_types.get(str(unit), ""))
+        if own_kind and kind:
+            bans["type:%s|type:%s" % (own_kind, kind)] = int(tick)
+    cutoff = int(tick) - TARGET_BAN_TICKS
+    for key in [k for k, v in bans.items() if int(v) < cutoff]:
+        bans.pop(key, None)
+    while len(bans) > 256:                      # 有界（防长局无限增长）
+        bans.pop(next(iter(bans)))
+
+
+def enemy_type_of(state: Dict[str, Any], entity) -> str:
+    """该敌人**上一次被看到时的类型**（`state["enemy_types"]`，由 `node_ingest` 每轮刷新）。
+
+    为什么要留一张表：拒绝是**事后的**（回执到达时敌人可能已经离开视野），
+    没有这张表就没法把"打不了"升级成"打不了这一类"。
+    """
+    return str((state.get("enemy_types") or {}).get(str(entity), ""))
+
+
+def attackable_enemies(state: Dict[str, Any], enemies, units,
+                      rules: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+    """这批单位**打得了**的敌人。
+
+    顺序：① 事前权威能力（武器域 vs 目标移动域）；② 事后黑名单兜底。
+    能力已知且说"打不了"→ 不发；能力已知且说"打得了"→ 不被类型级黑名单误伤。
+    能力版本未变时，黑名单不因 1800 tick 自动放行（F04）。
+    """
+    now = int(state.get("server_tick", 0) or 0)
+    types = state.get("enemy_types") or {}
+    bans = state.get("unattackable_targets") or {}
+    cap_ver = capability_version_of(state, rules)
+    prev_ver = str(state.get("capability_version") or "")
+    if cap_ver and prev_ver and cap_ver != prev_ver:
+        bans = {}
+    if cap_ver:
+        state["capability_version"] = cap_ver
+    keep_bans = bool(cap_ver) and (not prev_ver or prev_ver == cap_ver)
+    own_types = state.get("own_unit_types") or {}
+    blocked_entities = set()
+    blocked_types = set()
+    for unit in units or []:
+        own_kind = str(own_types.get(str(unit), ""))
+        for key, stamp in (bans or {}).items():
+            if (not keep_bans) and now - int(stamp) >= TARGET_BAN_TICKS:
+                continue
+            if key.startswith("%s|" % str(unit)):
+                value = key[len(str(unit)) + 1:]
+                if value.startswith("type:"):
+                    blocked_types.add(value[len("type:"):])
+                else:
+                    blocked_entities.add(value)
+            elif own_kind and key.startswith("type:%s|" % own_kind):
+                value = key[len("type:%s|" % own_kind):]
+                if value.startswith("type:"):
+                    blocked_types.add(value[len("type:"):])
+    out: List[Dict[str, Any]] = []
+    for enemy in enemies or []:
+        known_allow = False
+        known_block = False
+        for unit in units or []:
+            verdict = can_attack_by_capability(state, str(unit), enemy, rules)
+            if verdict is True:
+                known_allow = True
+            elif verdict is False:
+                known_block = True
+        if known_block and not known_allow:
+            continue
+        if known_allow:
+            out.append(enemy)
+            continue
+        entity = str(entity_id_of(enemy))
+        if entity and entity in blocked_entities:
+            continue
+        kind = str(enemy.get("unit_type") or enemy.get("type")
+                   or types.get(entity, ""))
+        if kind and kind in blocked_types:
+            continue
+        out.append(enemy)
+    return out
+
+
+ENGAGE_STICK_RATIO = 1.25
+FIRE_SOFT_CAP = 1
+
+
+def pick_engage_target(state, unit, enemies, unit_pos, combat_types=(),
+                       locks=None) -> str:
+    """合法敌人里按距离/威胁选一个，带滞回与火力分配（F02 唯一口径）。
+
+    `enemies` 是实体列表；返回 entity id。数组顺序不参与排序。
+    """
+    if not enemies:
+        return ""
+    locks = locks if isinstance(locks, dict) else ((state or {}).get("engage_locks") or {})
+    claimed: Dict[str, int] = {}
+    for other, enemy_id in locks.items():
+        if str(other) != str(unit):
+            claimed[str(enemy_id)] = claimed.get(str(enemy_id), 0) + 1
+    here = unit_pos or (0.0, 0.0)
+    scored = []
+    for enemy in enemies:
+        enemy_id = entity_id_of(enemy)
+        if not enemy_id:
+            continue
+        pos = _pos2d(enemy)
+        dist = math.hypot(float(pos[0]) - float(here[0]), float(pos[1]) - float(here[1]))
+        kind = str(enemy.get("unit_type") or enemy.get("type") or "")
+        if kind in set(combat_types or ()):
+            threat = 1.0
+        elif kind == "worker":
+            threat = 0.15
+        elif kind:
+            threat = 0.5
+        else:
+            threat = 0.8
+        try:
+            hp = float(enemy.get("hp") or 0.0)
+            hp_max = float(enemy.get("hp_max") or 0.0) or 1.0
+        except (TypeError, ValueError):
+            hp, hp_max = 0.0, 1.0
+        hp_ratio = max(0.1, hp / hp_max) if hp_max else 1.0
+        score = dist / max(0.2, threat) / hp_ratio
+        scored.append((claimed.get(enemy_id, 0) >= FIRE_SOFT_CAP, score, dist, enemy_id))
+    if not scored:
+        return ""
+    scored.sort()
+    best_id = scored[0][3]
+    best_score = scored[0][1]
+    current = str(locks.get(str(unit)) or "")
+    if current and any(item[3] == current for item in scored):
+        cur_score = next(item[1] for item in scored if item[3] == current)
+        if cur_score <= best_score * ENGAGE_STICK_RATIO:
+            return current
+    return best_id
+
+
+#: 作战单位总上限（手册 04 §军队规模规划："接敌前坦克上限 **60**；达到上限停止产坦克，
+#: 资源留给战损重建"）。这里按**全部作战单位**（`COMBAT_TYPES`）计 ——
+#: 只数坦克会漏掉士兵/直升机，而它们同样吃帧率与指挥带宽。
+#:
+#: 【为什么必须真的执行】手册把"无上限生产"列为禁止项（v4 实测 385 辆坦克既调不动也
+#: 拖垮端点）；2026-09-13 实测同一现象 —— 生产结算修好后 **150 秒兵力 11 → 105**，
+#: 游戏帧率被拖到 20~30（用户原话："不应该为了 AI 副官而放弃游戏性能"）。
+#: 达到上限 = **停发作战生产**（工人/建筑/防御不受影响），钱留着重建战损。
+COMBAT_UNIT_CAP = 60
+
+
+def combat_types_of(state: Dict[str, Any], rules=None) -> Tuple[str, ...]:
+    """**当前生效的**作战单位口径（读的地方只许调这一个）。
+
+    优先级：`state["combat_types"]`（本轮 `node_ingest` 从规则视图派生并落档）
+    → 传入的 `rules` 现算 → 兜底常量 `COMBAT_TYPES`（老配置/夹具）。
+    落进 state 的好处：它随 checkpoint 与对局档案一起留档，
+    复盘时"这局按哪些类型算作战单位"是**可查的事实**，而不是代码里的隐式假设。
+    """
+    stored = state.get("combat_types") if isinstance(state, dict) else None
+    if isinstance(stored, (list, tuple)) and stored:
+        return tuple(str(item) for item in stored)
+    derived = combat_types_from_rules(rules)
+    if derived:
+        return derived
+    return COMBAT_TYPES
+
+
+def combat_units(state: Dict[str, Any], tactical, rules=None) -> Tuple[int, int]:
+    """(已落地作战单位数, 队列中作战产品数) —— 兵力上限判定的**唯一口径**。
+
+    两个都要数，缺一个上限就守不住：
+    - 只数已落地 = "边产边超编"（实测 150 秒从 11 涨到 105）；
+    - 只数**队列**不数在途意图 = 队列项还没出现时（刚下发、游戏还没入队）重复下单。
+    计数范围 = **观测里我方全部单位**（不只 `ai_controlled_units`）：上限管的是
+    "战场上有多少人在跑"，玩家接管的那些一样吃帧率。
+    """
+    by_name = _normalized_units(tactical)
+    combat_ids = combat_types_of(state, rules)
+    deployed = sum(1 for info in by_name.values()
+                   if str(info.get("type", "")) in combat_ids)
+    queued = 0
+    for entry in (tactical or {}).get("production") or []:
+        if not isinstance(entry, dict):
+            continue
+        for item in entry.get("items") or []:
+            # 队列项的类型字段是 `definition_id`（`product_type_id` 是旧名，实测恒空）。
+            item_id = str((item or {}).get("definition_id")
+                          or (item or {}).get("product_type_id", ""))
+            if item_id in combat_ids:
+                queued += 1
+    return deployed, queued
+
+
+def note_army_cap(state: Dict[str, Any], deployed: int, queued: int, tick: int) -> str:
+    """记账（**不许静默跳过**）：本轮因为兵力上限没发作战生产，写进 `state["army_cap"]`。
+
+    为什么必须留痕：验收读的是"为什么这一轮没有出兵"——上限拦下的和"忘了出兵/被拒掉"
+    在日志上必须能分辨（否则下次复盘会把设计当成故障，或反过来）。
+    """
+    record = state.setdefault("army_cap", {})
+    record["cap"] = COMBAT_UNIT_CAP
+    record["deployed"] = int(deployed)
+    record["queued"] = int(queued)
+    # `blocked` 是**轮次**计数（阶梯与并行填充同一轮各判一次 → 只算一次），
+    # 否则"拦住 1 轮"会报成 2（这条坑在受阻降级那边刚踩过）。
+    if int(record.get("last_block_tick", -1) or -1) != int(tick):
+        record["blocked"] = int(record.get("blocked", 0) or 0) + 1
+        record["last_block_tick"] = int(tick)
+    return "army_cap:%d/%d(+%d)" % (deployed, COMBAT_UNIT_CAP, queued)
+
+
+def combat_production_allowed(state: Dict[str, Any], tactical, tick: int,
+                              rules=None) -> bool:
+    """兵力未达上限 → True（照常产兵）；达到 → **记账后** False（本轮停发作战生产）。"""
+    deployed, queued = combat_units(state, tactical, rules)
+    if deployed + queued >= COMBAT_UNIT_CAP:
+        note_army_cap(state, deployed, queued, tick)
+        return False
+    return True
 #: 整批里出现这些动作，才算"这批已经在发展"，否则补阶梯。
 DEVELOPMENT_ACTIONS = (ACTION_BUILD, ACTION_PRODUCE, ACTION_ATTACK)
 #: **可被发展动作抢占**的低优先动作：这些动作占用的单位不算"忙"。
@@ -265,7 +650,22 @@ def pick_expansion_spot(by_name, resources, anchor, blocked=None, bounds=None) -
     return [round(best[0], 1), round(best[1], 1)]
 
 
-def pick_build_spot(by_name, resources, anchor, blocked=None, bounds=None) -> list:
+def _note(state, kind: str, **payload) -> None:
+    """写一条决策日志（与 `nodes._decide` **同形状**；上限也用它那份常量，避免两套口径）。
+
+    延迟导入：模块级 `from . import nodes` 会成环（`nodes` 依赖本模块）。
+    """
+    from . import nodes
+
+    entry = {**payload, "kind": kind, "server_tick": int(state.get("server_tick", 0))}
+    log = state.setdefault("decision_log", [])
+    log.append(entry)
+    while len(log) > nodes.MAX_DECISION_LOG:
+        del log[0]
+
+
+def pick_build_spot(by_name, resources, anchor, blocked=None, bounds=None,
+                    state=None) -> list:
     """选建造落点：**离己方单位与采矿通道最远**，且在地图内、视野内、有净空。
 
     实测依据（2026-09-12 用户反馈："兵营造的位置会卡住工人采矿"）：
@@ -302,7 +702,20 @@ def pick_build_spot(by_name, resources, anchor, blocked=None, bounds=None) -> li
                                      own_points=units, rejected=blocked)
     if retreat is not None:
         return retreat
-    return placement.clamp_into_bounds(anchor, bounds)
+    # 【最后一次兜底也必须守拉黑与净空（2026-09-14 迭代3 现场修）】
+    # 老实现这里直接 `clamp_into_bounds(anchor)` —— 返回的是**基地自身坐标**，
+    # 它必然 `SurfaceNotBuildable`：实测同一个点被拒 **13 次**（账本记了也没用，
+    # 因为这条路绕过了账本）。用户原话："你下达命令不能瞎下达"。
+    # 纪律：**宁可不建**，也不产出一条注定被拒的命令。
+    clamped = placement.clamp_into_bounds(anchor, bounds)
+    if placement.spot_issue(clamped, bounds, units, blocked) is None:
+        return [round(float(clamped[0]), 1), round(float(clamped[1]), 1)]
+    if state is not None:
+        _note(state, "build_spot_exhausted", anchor=[round(float(anchor[0]), 1),
+                                                     round(float(anchor[1]), 1)],
+              banned=len(getattr(blocked, "entries", {}) or {}),
+              note="候选与兜底全不可用（含被拉黑）：本轮不发建造命令")
+    return []
 
 
 def base_anchor_pos(by_name: Dict[str, Dict[str, Any]]):
@@ -345,6 +758,7 @@ from .observation_view import (  # noqa: E402  （语义上是模块级导入，
     entities as _entities,
     own_units as _own_units,
     resources as _resources,
+    resource_available as resource_available,
     entity_id_of as entity_id_of,
     normalized_units as normalized_units,
     pos2d as _pos2d,
@@ -386,6 +800,8 @@ def _nearest_resource(unit: Dict[str, Any],
     best = None
     best_distance = None
     for resource in resources:
+        if not resource_available(resource):
+            continue
         entity = entity_id_of(resource)
         if cap and int(load.get(str(entity), 0)) >= cap:
             continue
@@ -397,6 +813,28 @@ def _nearest_resource(unit: Dict[str, Any],
         # 所有矿点都满了：退回"最近的"（宁可挤，也不要让工人闲置）。
         return _nearest_resource(unit, resources)
     return best
+
+
+#: 每个生产者的**队列深度上限**（含正在生产的那一项）。
+#:
+#: 为什么必须有（2026-09-13 真机实测）：修好"按 item_id 结算生产"之后，一个生产意图会在
+#: 完成事件到达时**立刻**结算 → 阶梯下一轮就再下一单 —— 而"每轮 0.5 秒"意味着
+#: **150 秒发出 1118 条生产回执**（≈7.5 条/秒），兵力 13→111 只用 90 秒，
+#: 结果把 10Hz 扫描拖到 3.29Hz、协调掉到 0.83Hz。
+#: 生产本身是长动作（120~300 tick = 2~5 秒），队列里排 2 个就足够接续；
+#: "接续快"不等于"下单频率等于轮次频率"（用户口径：只发送变化意图）。
+PRODUCER_QUEUE_CAP = 2
+
+
+def _queue_size_of(views: Dict[str, Dict[str, Any]], producer: str) -> int:
+    """该生产者当前的**队列深度**（观测事实；拿不到就按 0 处理，不阻塞下单）。"""
+    view = views.get(producer) if isinstance(views, dict) else None
+    if not isinstance(view, dict):
+        return 0
+    try:
+        return max(0, int(view.get("queue_size", 0) or 0))
+    except (TypeError, ValueError):
+        return 0
 
 
 def _worker_product(rules, owned_types: set) -> Optional[Tuple[str, str]]:
@@ -443,14 +881,160 @@ def _pick_probe_unit(by_name: Dict[str, Dict[str, Any]], ai_units: List[str],
             return False
         return bool(info.get("movement"))
 
+    # 扩张前探**不得抽走专职侦察**：无人机是 T01 探索的唯一执行者。
+    # `u1t01d` 在侦察 TTL 到期后立刻发了 `rule-probe-expansion-Unit_1`，无人机不再换前沿。
+    for name in ai_units:
+        kind = str((by_name.get(name) or {}).get("type", ""))
+        if usable(name) and kind not in PROBE_TYPES:
+            return name
     for wanted in PROBE_TYPES:
         for name in ai_units:
             if usable(name) and str((by_name.get(name) or {}).get("type", "")) == wanted:
                 return name
+    return ""
+
+
+def pick_scout_executor(by_name: Dict[str, Dict[str, Any]], ai_units: List[str],
+                        busy: set, *, explore: Optional[Dict[str, Any]] = None,
+                        blocked: Optional[set] = None,
+                        state: Optional[Dict[str, Any]] = None) -> str:
+    """侦察执行者：专职优先；专职不在编制/阵亡/0 血时转交其它机动单位。
+
+    计划 U1 / T03：受阻或阵亡后要有人接着探，不能只在原单位上 `wait`。
+    玩家接管 = 不在 `ai_controlled_units` 里，同样转交，且不夺回玩家单位。
+
+    **不许**在"这局从来没有专职侦察"的夹具/开局里抢工人 —— 那会把在途 move
+    判成 `scout_executor_transfer` 丢掉（金标准 `replay_path_failed` / PendingAuthority
+    会被整单冲掉）。转交只在"专职确实没了"时发生。
+    """
+    assigned = {}
+    if isinstance(explore, dict):
+        raw = explore.get("assigned")
+        if isinstance(raw, dict):
+            assigned = raw
+    prior_assigned = [str(name) for name in assigned]
+    blocked = {str(item) for item in (blocked or set())}
+
+    def gone(name: str) -> bool:
+        if name not in ai_units:
+            return True
+        info = by_name.get(name) or {}
+        if info.get("confirmed_dead"):
+            return True
+        hp = info.get("hp")
+        if hp is not None:
+            try:
+                return float(hp) <= 0.0
+            except (TypeError, ValueError):
+                return False
+        return False
+
+    def usable(name: str) -> bool:
+        info = by_name.get(name) or {}
+        if name in busy or name in blocked or gone(name):
+            return False
+        if info.get("queue"):
+            return False
+        return bool(info.get("movement"))
+
+    living_probes = [
+        name for name in ai_units
+        if not gone(name)
+        and str((by_name.get(name) or {}).get("type", "")) in PROBE_TYPES
+    ]
+    def _finish(picked: str, *, transfer: bool) -> str:
+        if transfer and picked and assigned:
+            for name in list(assigned):
+                if gone(name):
+                    assigned.pop(name, None)
+        return picked
+
+    for _wanted in PROBE_TYPES:
+        for name in living_probes:
+            if usable(name):
+                return _finish(name, transfer=False)
+    # 专职还在编制里（哪怕本轮忙碌）→ 不转交，避免采集工把正在飞的无人机顶掉。
+    if living_probes:
+        return ""
+    known_probes = set()
+    for name, info in (by_name or {}).items():
+        if str((info or {}).get("type", "")) in PROBE_TYPES:
+            known_probes.add(str(name))
+    for name, kind in ((state or {}).get("own_unit_types") or {}).items():
+        if str(kind) in PROBE_TYPES:
+            known_probes.add(str(name))
+    assigned_missing = bool(prior_assigned) and all(gone(name) for name in prior_assigned)
+    # 从来没有专职、也没有"原探索执行者已不在" → 不抢工人。
+    if not known_probes and not assigned_missing:
+        return ""
+    for name in ai_units:
+        info = by_name.get(name) or {}
+        if usable(name) and not info.get("gather"):
+            return _finish(name, transfer=True)
     for name in ai_units:
         if usable(name):
-            return name
+            return _finish(name, transfer=True)
+    # 开局往往没有空闲士兵：专职没了就抢一个仍在采集的机动工人，否则 T03 无人可交。
+    # `busy` 可抢（采集），`blocked`（玩家挂起）不可抢。
+    for name in ai_units:
+        if name in blocked:
+            continue
+        info = by_name.get(name) or {}
+        if gone(name) or info.get("queue"):
+            continue
+        if not info.get("movement"):
+            continue
+        return _finish(name, transfer=True)
     return ""
+
+
+def release_unit_for_scout_transfer(state: Dict[str, Any], unit: str) -> int:
+    """专职侦察没了时，释放替代者身上的采集/机动占用，让新 scout 能发出去。
+
+    抢占序里 scout(20) < gather(40)，不先丢掉旧采集，仲裁会把转交侦察压掉。
+    """
+    if not unit or not isinstance(state, dict):
+        return 0
+    released = 0
+    for intent in state.get("active_intents") or []:
+        if not isinstance(intent, dict):
+            continue
+        if intent.get("state") not in LIVE_INTENT_STATES:
+            continue
+        if unit not in {str(item) for item in (intent.get("unit_ids") or [])}:
+            continue
+        action = str(intent.get("action", ""))
+        if action not in (ACTION_GATHER, ACTION_MOVE, ACTION_HOLD, ACTION_SCOUT):
+            continue
+        intent["state"] = INTENT_DROPPED
+        intent["drop_reason"] = "scout_executor_transfer"
+        released += 1
+    return released
+
+
+def release_unit_for_expansion_cc(state: Dict[str, Any], unit: str) -> int:
+    """分基地是当前前沿时，可把工人从采集/本地续建上拉开。"""
+    if not unit or not isinstance(state, dict):
+        return 0
+    released = 0
+    for intent in state.get("active_intents") or []:
+        if not isinstance(intent, dict):
+            continue
+        if intent.get("state") not in LIVE_INTENT_STATES:
+            continue
+        if unit not in {str(item) for item in (intent.get("unit_ids") or [])}:
+            continue
+        action = str(intent.get("action", ""))
+        if action not in (ACTION_GATHER, ACTION_MOVE, ACTION_HOLD, ACTION_BUILD):
+            continue
+        target = intent.get("target") if isinstance(intent.get("target"), dict) else {}
+        scene = str(target.get("scene", ""))
+        if action == ACTION_BUILD and "command_center" in scene:
+            continue
+        intent["state"] = INTENT_DROPPED
+        intent["drop_reason"] = "expansion_cc_preempt"
+        released += 1
+    return released
 
 
 def batch_from_rules(state: Dict[str, Any], *, tactical=None, rules=None,
@@ -630,8 +1214,23 @@ ADVANCE_EDGE_MARGIN_M = 10.0
 ADVANCE_EDGE_FACTOR = 0.5
 
 
+##: 【小部队快打】没有**可见**敌人时，用"上次见过的敌方情报点"当前压目标（用户 2026-09-14：
+##: "AI 副官可以高频操作，那就没必要集结大部队，按小部队快速集结后就可以行动了"）。
+##: 为什么必须用它：旧口径在没情报时只推地图中心、半径上限 40m —— 部队整局在家门口转圈，
+##: 实测一局攒到 **36 个作战单位、可见敌人 0**、全程只有前压命令（= 玩家眼里的"攒兵不打"）。
+##: 已经侦察到的敌方单位（`strategic.enemy_intel`）是**合法的公开情报**，不用它就等于装作没看见。
+##: 无任何情报且小队成形时，允许**更大搜索半径**（去找人打），仍受地图边缘余量与硬上限约束。
+ADVANCE_SEARCH_RADIUS_M = 90.0
+ADVANCE_SEARCH_ENEMY_STANDOFF = 0.6
+##: 【小部队快打】"小队成形"的最小兵力（作战单位数）：到它就允许主动出击 + 允许远距搜索。
+##: 与 `campaign.SQUAD_ACTION_MIN` **同一口径**（那边直接引用这里，不许各写一份数字）。
+SQUAD_ACTION_MIN = 2
+
+
 def military_waypoint(base, *, bounds=None, enemies=(), ring: int = 1,
-                      bearing=None, max_radius=None) -> Optional[List[float]]:
+                      bearing=None, max_radius=None, intel=(), search=False,
+                      state=None, unit: str = ""
+                      ) -> Optional[List[float]]:
     """作战单位"往哪前压"的**唯一方向判据**（行为树与并行填充共用）。
 
     ## 用户实测问题（2026-09-12）
@@ -663,34 +1262,74 @@ def military_waypoint(base, *, bounds=None, enemies=(), ring: int = 1,
             hard_radius = min(ADVANCE_SAFE_RADIUS_M, float(max_radius))
     except (TypeError, ValueError):
         hard_radius = ADVANCE_SAFE_RADIUS_M
-    # ---- 1. 方向 ----
+    # ---- 1. 方向与"推进到哪"（三种依据，按优先级）----
+    #   ① 可见敌人（实时事实）；② **上次见过的敌情**（公开情报，可能已不在视野里）；
+    #   ③ 什么都没有 → 朝地图中心；`search=True`（小队已成形）时放宽半径，**去找人打**。
+    # 半径上限：默认 40m；一旦要"够到情报点"或处于搜索态，放宽到 ADVANCE_SEARCH_RADIUS_M
+    # （仍受地图边缘余量约束，绝不会把部队送到边缘）。
+    limit_radius = max(hard_radius, ADVANCE_SEARCH_RADIUS_M) if search else hard_radius
     nearest: Optional[Tuple[float, float, float]] = None
     for enemy in enemies or ():
         point = _pos2d(enemy)
         distance = math.hypot(float(point[0]) - base_x, float(point[1]) - base_z)
         if nearest is None or distance < nearest[0]:
             nearest = (distance, float(point[0]), float(point[1]))
-    if nearest is not None and nearest[0] > 1e-3:
+    from_intel = False
+    if nearest is None:
+        # 没有可见敌人 → 退一步用"上次见过的敌情"（公开情报，不是全局视野）。
+        for item in intel or ():
+            point = _pos2d(item)
+            if not point:
+                continue
+            distance = math.hypot(float(point[0]) - base_x, float(point[1]) - base_z)
+            if distance <= 1e-3:
+                continue
+            if nearest is None or distance < nearest[0]:
+                nearest = (distance, float(point[0]), float(point[1]))
+        from_intel = nearest is not None
+    if nearest is not None:
+        if nearest[0] <= 1e-3:
+            return None
         direction = (nearest[1] - base_x, nearest[2] - base_z)
-        radius_cap = min(hard_radius, nearest[0] * ADVANCE_ENEMY_STANDOFF)
+        # 情报点（非实时）→ 要真的走过去，站位比"看得见时"更靠前。
+        standoff = ADVANCE_SEARCH_ENEMY_STANDOFF if from_intel else ADVANCE_ENEMY_STANDOFF
+        if from_intel:
+            limit_radius = max(limit_radius, ADVANCE_SEARCH_RADIUS_M)
+        radius_cap = min(limit_radius, nearest[0] * standoff)
     elif has_bounds:
+        # 【U1/F01】没有敌情/情报时，用**探索前沿 + 访问记忆**选点（不再是一个固定坐标）。
+        # 审查 F01 实测：旧口径 ring 取 1/2/3/5/10/100 都返回同一个点，部队到了以后
+        # 继续收到同一个目标 —— 没有"推进"也没有"去过哪"的记忆。
+        unit_type = ""
+        if isinstance(state, dict):
+            unit_type = str((state.get("own_unit_types") or {}).get(str(unit), ""))
+        # 只有专职侦察（或单测未标类型）才写入探索记忆。作战单位前压只读已覆盖格，
+        # 不得改写 `current` —— 否则士兵一调用就把无人机的到达结算冲掉
+        # （`u1t01d`：无人机停在 [17.5,17.5]，covered 却被地面到达刷到 4）。
+        commit = (not unit_type) or unit_type in PROBE_TYPES
+        frontier = explore_frontier(state, base, bounds, unit=str(unit), intel=intel,
+                                    ring=ring, commit=commit)
+        if frontier:
+            return list(frontier["point"])
         direction = (size_x / 2.0 - base_x, size_z / 2.0 - base_z)
         if math.hypot(*direction) < 1e-3:
             direction = tuple(bearing) if bearing else (1.0, 0.0)
-        # 无情报时不越过"基地到最近地图边"的一半 —— 这一项直接禁止"派往地图边缘"。
+        # 无情报时不越过"基地到最近地图边"的一半 —— 直接禁止"派往地图边缘"；
+        # 搜索态放宽系数（但仍不越过边缘余量），否则"没情报"= 永远在家门口转圈。
         edge_distance = min(base_x, base_z, size_x - base_x, size_z - base_z)
-        radius_cap = min(hard_radius,
-                         max(ADVANCE_MIN_RADIUS_M, edge_distance * ADVANCE_EDGE_FACTOR))
+        edge_cap = edge_distance * (ADVANCE_SEARCH_ENEMY_STANDOFF if search
+                                    else ADVANCE_EDGE_FACTOR)
+        radius_cap = min(limit_radius, max(ADVANCE_MIN_RADIUS_M, edge_cap))
     elif bearing:
         direction = (float(bearing[0]), float(bearing[1]))
-        radius_cap = min(hard_radius,
+        radius_cap = min(limit_radius,
                          max(ADVANCE_MIN_RADIUS_M, ADVANCE_MIN_RADIUS_M * max(1, int(ring))))
     else:
         return None
     length = math.hypot(direction[0], direction[1])
     if length < 1e-3:
         return None
-    radius = min(hard_radius,
+    radius = min(limit_radius,
                  max(ADVANCE_MIN_RADIUS_M, ADVANCE_MIN_RADIUS_M * max(1, int(ring))),
                  radius_cap)
     point = [base_x + direction[0] / length * radius,
@@ -699,6 +1338,308 @@ def military_waypoint(base, *, bounds=None, enemies=(), ring: int = 1,
         point[0] = min(max(point[0], ADVANCE_EDGE_MARGIN_M), size_x - ADVANCE_EDGE_MARGIN_M)
         point[1] = min(max(point[1], ADVANCE_EDGE_MARGIN_M), size_z - ADVANCE_EDGE_MARGIN_M)
     return [round(point[0], 1), round(point[1], 1)]
+
+
+# ------------------------------------------------------------------ 探索前沿（U1/F01）
+#: 探索前沿网格边长（米）：把地图切成格，**格中心**是候选前沿。
+#: 24m ≈ 2×`VISION_SAFE_RADIUS`…… 这个尺度是为"一次移动就能带来新增视野"选的：
+#: 太小会让部队在家门口来回；太大则单跳距离过远、中途遇敌就白跑。
+EXPLORE_CELL_M = 24.0
+#: 判定"已到达某前沿"的半径（米）：单位进到这个范围内就记 `covered` 并换下一个前沿。
+EXPLORE_REACHED_M = 8.0
+#: 同一前沿连续失败上限：达到就记 `unreachable` 并换目标（**退避**，不是无限重试）。
+EXPLORE_MAX_FAILURES = 3
+#: 访问记忆容量（格数，有界）：超出时丢最早的一条，防长局无限增长。
+EXPLORE_MEMORY_LIMIT = 128
+#: 临时条件：网格不可用 / 查询超时 / 未接线 / 版本过期 / 版本 0。
+#: 这类失败**立刻换目标或等待**，不累计成永久 `unreachable`（T02：恢复后还要能继续）。
+EXPLORE_WAIT_REASONS = frozenset({
+    "navmesh_unavailable", "nav_timeout", "nav_query_unwired", "stale_nav_revision",
+})
+#: 真正的路径失败（两点不连通 / 退化路径）。累计到上限才标 `unreachable`。
+EXPLORE_FAIL_REASONS = frozenset({"path_failed", "no_path", "path_too_short"})
+#: 空中单位类型（规则视图缺失时的移动域兜底，与 `squads.SQUAD_AIR_TYPES` 同口径）。
+AIR_UNIT_TYPES = ("drone", "helicopter", "scout")
+#: 基地回防半径：唯一口径在 `campaign.DEFENSE_RADIUS_M`（手册 DEF-01）。
+DEFENSE_RADIUS_M = campaign_mod.DEFENSE_RADIUS_M
+
+
+def base_under_attack_active(state: Optional[Dict[str, Any]]) -> bool:
+    """整局主线里是否有活跃的 `base_under_attack`（T07：只认中断栈，不认偶遇敌人）。"""
+    campaign = (state or {}).get("campaign_state")
+    if not isinstance(campaign, dict):
+        return False
+    for entry in campaign.get("interrupt_stack") or []:
+        if not isinstance(entry, dict):
+            continue
+        if (str(entry.get("kind", "")) == "base_under_attack"
+                and str(entry.get("status", "")) == "active"):
+            return True
+    return False
+
+
+def unit_near_base(unit_pos, base, radius: float = DEFENSE_RADIUS_M) -> bool:
+    """单位是否在基地回防圈内。坐标一律 [x, z]。"""
+    if not unit_pos or not base:
+        return False
+    try:
+        return math.hypot(float(unit_pos[0]) - float(base[0]),
+                          float(unit_pos[1]) - float(base[1])) <= float(radius)
+    except (TypeError, ValueError, IndexError):
+        return False
+
+
+def explore_frontier(state: Dict[str, Any], base, bounds, *, unit: str = "",
+                     intel=(), ring: int = 1, commit: bool = True
+                     ) -> Optional[Dict[str, Any]]:
+    """选一个**尚未覆盖**的探索前沿（带访问记忆、失败退避；确定性）。
+
+    ## 为什么必须替换旧口径（审查 F01）
+    旧实现没有敌情/情报时是**纯几何**：方向朝地图中心、半径被"基地到最近边"卡死，
+    于是 ring 取任何值都返回同一个坐标。部队到了以后继续收到同一个目标 ——
+    没有"推进"，也没有"去过哪"的记忆（`archive_5d6cdb0e` 侦察覆盖恒 0.0）。
+
+    ## 区域状态（计划 U1 要求）
+    - **未探**：不在记忆里 → 候选；
+    - **已覆盖 `covered`**：单位进到格心 `EXPLORE_REACHED_M` 内（用既有路线事实判定：
+      `routes[unit].invalidated_reason == "arrived"`，**不新增埋点**）；
+    - **暂不可达 `unreachable`**：同一前沿连续失败 `EXPLORE_MAX_FAILURES` 次（路径失败类）
+      → 换目标；记忆有界（`EXPLORE_MEMORY_LIMIT`）。
+    - **等待有效条件 `waiting`**：`navmesh_unavailable` / 查询超时等临时断路
+      → **立刻释放指派并换目标**，网格版本变化后把该格重新打开，禁止永久 `no_path`。
+      `nav_revision=0` 是合法首版，单独出现不得标 waiting。
+    重访**必须有理由**：当前实现只在"无可用前沿"时返回最后一个已覆盖格（并标 `reason=revisit`），
+    否则宁可返回 None（宁可不发，也不给固定点）。
+
+    ## 选择顺序（确定性）
+    有情报 → 先朝**情报点**方向（"朝上次见过敌人的方向"探索）；
+    否则 → 距基地**由近到远**（先把家周围覆盖干净，再逐圈外推）。
+
+    `commit=False`：只读已覆盖格选一个点（给前压用），**不改** `current` / `assigned` /
+    `selected`。作战单位与侦察共用函数但不能共用"当前前沿"指针。
+    """
+    if not placement.has_bounds(bounds):
+        return None
+    base_x, base_z = float(base[0]), float(base[1])
+    # 没有状态（旧调用点/单测）时用一个**临时**记忆：仍然按 `ring` 取不同的格，
+    # 这样"ring 取任何值都返回同一坐标"的旧缺陷在**函数级**也不复现（审查 F01 的判据）。
+    scratch: Dict[str, Any] = {}
+    memory: Dict[str, Any] = state.setdefault("explore", {}) if isinstance(state, dict) else scratch
+    cells: Dict[str, Dict[str, Any]] = memory.setdefault("cells", {})
+    assigned: Dict[str, str] = memory.setdefault("assigned", {})
+    # --- ① 网格恢复后，把等待格重新打开（T02：不能永久 no_path）---
+    _reopen_waiting_explore(cells, state if isinstance(state, dict) else {})
+    # --- ② 用**本单位自己的指派**结算到达 / 失败（禁止看全局 current）---
+    if commit and unit:
+        _settle_explore_assignment(memory, cells, assigned, state, str(unit), bounds)
+    # --- ② 淘汰记忆（有界） ---
+    while len(cells) > EXPLORE_MEMORY_LIMIT:
+        cells.pop(next(iter(cells)))
+    # 未到达前保持本单位已指派的前沿（不抖、不刷 selected）。
+    if commit and unit:
+        held = str(assigned.get(str(unit), "") or "")
+        held_entry = cells.get(held) or {}
+        if held and str(held_entry.get("state", "open")) == "open":
+            point = _cell_center_from_key(held, bounds)
+            if point:
+                memory["current"] = held
+                return {
+                    "point": point, "cell": held, "reason": "hold_assigned",
+                    "covered": sum(1 for item in cells.values() if item.get("state") == "covered"),
+                    "unreachable": sum(1 for item in cells.values()
+                                       if item.get("state") == "unreachable"),
+                }
+    # --- ③ 候选排序 ---
+    grid_x, grid_z, _usable_x, _usable_z, _margin = _explore_grid(bounds)
+    # 情报点有两种形状，都要认：`state["enemy_intel_points"]` 是 `[[x, z], …]`（列表），
+    # 而实体字典走 `_pos2d`。**只认一种会让情报在这条路上静默失效**（实测踩到）。
+    intel_points = []
+    for item in (intel or ()):
+        if isinstance(item, (list, tuple)) and len(item) >= 2:
+            intel_points.append((float(item[0]), float(item[1])))
+        else:
+            point = _pos2d(item)
+            if point:
+                intel_points.append(point)
+    base_cell = _cell_key_of_point(base_x, base_z, bounds)
+    taken = {str(cell) for cell in assigned.values() if cell}
+    if unit:
+        taken.discard(str(assigned.get(str(unit), "") or ""))
+    candidates: List[Tuple[float, float, str, List[float]]] = []
+    for ix in range(grid_x):
+        for iz in range(grid_z):
+            point = _cell_center(ix, iz, bounds)
+            key = "%d,%d" % (ix, iz)
+            entry = cells.get(key) or {}
+            if str(entry.get("state", "")) in ("covered", "unreachable"):
+                continue
+            if str(entry.get("state", "")) == "waiting":
+                continue
+            if commit and key in taken:
+                continue
+            distance_base = math.hypot(point[0] - base_x, point[1] - base_z)
+            if distance_base <= EXPLORE_REACHED_M and key == base_cell:
+                # 出发格不算前沿（它已经被"我们在这里"覆盖），只记一次。
+                if commit:
+                    cells[base_cell] = {"state": "covered", "tick": 0, "visits": 1,
+                                        "role": "base"}
+                continue
+            if intel_points:
+                distance_intel = min(math.hypot(point[0] - p[0], point[1] - p[1])
+                                     for p in intel_points)
+            else:
+                distance_intel = distance_base
+            candidates.append((distance_intel, distance_base, key, point))
+    if not candidates:
+        # 没有可推进的前沿：**宁可不发**（返回 None），调用方会退回几何兜底。
+        return None
+    candidates.sort(key=lambda item: (round(item[0], 3), round(item[1], 3), item[2]))
+    # `ring` 是**候选序号偏移**（同一轮里不同单位各自去不同的前沿；也让无记忆调用的
+    # `ring=1..N` 得到不同结果）。取模保证永远落在候选表内。
+    index = (max(1, int(ring)) - 1) % len(candidates)
+    distance_intel, _distance_base, key, point = candidates[index]
+    reason = "toward_intel" if intel_points and distance_intel < 1e9 else "nearest_unvisited"
+    if commit:
+        if unit:
+            assigned[str(unit)] = key
+        if str(memory.get("current", "")) != key:
+            memory["selected"] = int(memory.get("selected", 0) or 0) + 1
+        memory["current"] = key
+        entry = cells.setdefault(key, {"state": "open", "visits": 0})
+        entry["state"] = "open"
+    return {
+        "point": point, "cell": key, "reason": reason,
+        "covered": sum(1 for item in cells.values() if item.get("state") == "covered"),
+        "unreachable": sum(1 for item in cells.values() if item.get("state") == "unreachable"),
+    }
+
+
+def _settle_explore_assignment(memory: Dict[str, Any], cells: Dict[str, Dict[str, Any]],
+                               assigned: Dict[str, str], state: Dict[str, Any],
+                               unit: str, bounds) -> None:
+    """按**该单位自己的指派格**结算到达/失败；全局 `current` 不再参与判定。"""
+    mine = str(assigned.get(unit, "") or "")
+    if not mine:
+        # 兼容旧档案：还没有 assigned 时退回 current（仅当本单位路线目标就是那一格）。
+        mine = str(memory.get("current", "") or "")
+    if not mine:
+        return
+    previous = _previous_route_for_explore(state, unit)
+    target = [float(v) for v in (previous.get("target") or []) if isinstance(v, (int, float))]
+    if not target or _cell_key_of_point(target[0], target[1], bounds) != mine:
+        return
+    invalidated = str(previous.get("invalidated_reason", "") or "")
+    route_reason = str(previous.get("reason", "") or "")
+    reason = invalidated or route_reason
+    if not reason and not previous.get("ok"):
+        reason = "path_failed"
+    if invalidated == "arrived":
+        cells[mine] = {"state": "covered",
+                       "tick": int(previous.get("arrived_tick", 0) or 0),
+                       "visits": int((cells.get(mine) or {}).get("visits", 0)) + 1,
+                       "by": unit, "role": "scout"}
+        assigned.pop(unit, None)
+        return
+    if not (invalidated or not previous.get("ok") or reason):
+        return
+    entry = cells.setdefault(mine, {"state": "open", "visits": 0})
+    entry["last_fail"] = reason
+    nav_rev = _explore_nav_revision(state)
+    if reason in EXPLORE_WAIT_REASONS:
+        # 临时断路：立刻换目标，格标 waiting。`nav_revision=0` 是合法首版，
+        # 不许当成"未烘焙"（真机 `u1t02a` 全程 revision=0 但无人机在飞）。
+        entry["state"] = "waiting"
+        entry["wait_reason"] = reason
+        entry["wait_revision"] = nav_rev
+        assigned.pop(unit, None)
+        return
+    entry["fails"] = int(entry.get("fails", 0)) + 1
+    if entry["fails"] >= EXPLORE_MAX_FAILURES:
+        entry["state"] = "unreachable"
+        assigned.pop(unit, None)
+
+
+def _explore_nav_revision(state: Optional[Dict[str, Any]]) -> int:
+    """当前导航网格版本。0 是合法值（未烘焙），不许写成 `value or -1`。"""
+    raw = (state or {}).get("nav_revision", -1)
+    if raw is None:
+        return -1
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return -1
+
+
+def _reopen_waiting_explore(cells: Dict[str, Dict[str, Any]],
+                            state: Dict[str, Any]) -> None:
+    """网格恢复后重新打开 waiting 格。
+
+    恢复条件：当前 `nav_revision` 与记下的 `wait_revision` **不同**
+    （0→正数、重烘换版本）。同一版本上的临时失败不立刻重试同一格。
+    0 是合法首版，不许写成 `rev<=0 就跳过`。
+    """
+    rev = _explore_nav_revision(state)
+    for entry in cells.values():
+        if not isinstance(entry, dict) or str(entry.get("state", "")) != "waiting":
+            continue
+        raw_waited = entry.get("wait_revision", -1)
+        try:
+            waited = int(-1 if raw_waited is None else raw_waited)
+        except (TypeError, ValueError):
+            waited = -1
+        if waited != rev:
+            entry["state"] = "open"
+            entry["fails"] = 0
+            entry.pop("wait_reason", None)
+
+
+def _cell_center_from_key(key: str, bounds) -> Optional[List[float]]:
+    parts = str(key).split(",")
+    if len(parts) != 2:
+        return None
+    try:
+        return _cell_center(int(parts[0]), int(parts[1]), bounds)
+    except (TypeError, ValueError):
+        return None
+
+
+def _explore_grid(bounds) -> Tuple[int, int, float, float, float]:
+    """探索网格：`(格数x, 格数z, 可用宽, 可用高, 边缘余量)`。
+
+    **网格建在"可用区"里**（地图减掉边缘余量），而不是建在整张地图上再逐点夹取 ——
+    后者会让贴边的好几格被夹到同一个坐标（实测 `[40,12]` 重复出现），
+    于是"换了前沿"在坐标上根本看不出来（T01 要的是**不同可达前沿**）。
+    """
+    size_x, size_z = float(bounds[0]), float(bounds[1])
+    margin = float(ADVANCE_EDGE_MARGIN_M)
+    usable_x = max(1.0, size_x - 2.0 * margin)
+    usable_z = max(1.0, size_z - 2.0 * margin)
+    grid_x = max(1, int(math.ceil(usable_x / EXPLORE_CELL_M)))
+    grid_z = max(1, int(math.ceil(usable_z / EXPLORE_CELL_M)))
+    return grid_x, grid_z, usable_x, usable_z, margin
+
+
+def _cell_key_of_point(x: float, z: float, bounds) -> str:
+    """点 → 所在探索格的键（与 `_cell_center` 同一网格/同一映射）。"""
+    grid_x, grid_z, usable_x, usable_z, margin = _explore_grid(bounds)
+    ix = min(grid_x - 1, max(0, int((float(x) - margin) / max(1e-6, usable_x / grid_x))))
+    iz = min(grid_z - 1, max(0, int((float(z) - margin) / max(1e-6, usable_z / grid_z))))
+    return "%d,%d" % (ix, iz)
+
+
+def _cell_center(ix: int, iz: int, bounds) -> List[float]:
+    """格中心（**必然落在可用区内**，且不同格不同点）。"""
+    grid_x, grid_z, usable_x, usable_z, margin = _explore_grid(bounds)
+    x = margin + (ix + 0.5) * (usable_x / grid_x)
+    z = margin + (iz + 0.5) * (usable_z / grid_z)
+    return [round(x, 1), round(z, 1)]
+
+
+def _previous_route_for_explore(state: Dict[str, Any], unit: str) -> Dict[str, Any]:
+    """取该单位上一条路线记录（延迟导入 `movement`，避免模块级循环依赖）。"""
+    from . import movement
+
+    return movement.previous_route(state, str(unit)) or {}
 
 
 # --------------------------------------------------------------- 意图构造（唯一）
@@ -748,6 +1689,13 @@ def _parallel_intents(state: Dict[str, Any], *, tactical=None, rules=None,
     by_name = _normalized_units(tactical)
     if not by_name:
         return out
+    # 给 `military_waypoint` 的 commit 判定补齐类型（ingest 已写时不覆盖）。
+    types = state.setdefault("own_unit_types", {})
+    if isinstance(types, dict):
+        for name, info in by_name.items():
+            kind = str((info or {}).get("type", ""))
+            if kind and name not in types:
+                types[name] = kind
     inputs = ladder_inputs(state, tactical=tactical, rules=rules)
     ai_units = list(inputs["ai_units"])
     busy = set(inputs["busy"])
@@ -763,11 +1711,26 @@ def _parallel_intents(state: Dict[str, Any], *, tactical=None, rules=None,
                                task_id, tick=tick, snapshot=snapshot, expires=expires))
         used.add(str(unit))
 
-    def _room() -> bool:
-        return len(out) < PARALLEL_FILL_CAP
-
     def _free(name: str) -> bool:
         return name not in busy and name not in used and name not in suspended
+
+    from . import movement as _movement
+
+    def _en_route(name: str) -> bool:
+        return _movement.unit_en_route(state, name, tick)
+
+    # 侦察轨至少留 1 个名额：产能/采集把 PARALLEL_FILL_CAP 吃满后，
+    # 无人机到达第一前沿也发不出下一跳（`u1t01d` scout.last_served 钉死 948）。
+    # **只挑一次**：`pick_scout_executor` 转交时会清掉已阵亡的 assigned，
+    # 预留名额再挑一次会把"专职没了"信号吃掉，后面就转交不出去。
+    scout_pick = pick_scout_executor(
+        by_name, ai_units, busy | used,
+        explore=state.get("explore") if isinstance(state, dict) else None,
+        blocked=suspended, state=state if isinstance(state, dict) else None)
+    scout_reserve = 1 if scout_pick else 0
+
+    def _room(*, reserve: int = 0) -> bool:
+        return len(out) < PARALLEL_FILL_CAP - reserve
 
     # ---- 轨 1：经济（还没上岗的采集单位 → 最近且人少的矿）----
     resources = _resources(tactical)
@@ -786,10 +1749,10 @@ def _parallel_intents(state: Dict[str, Any], *, tactical=None, rules=None,
         load, _type_load, _holders = _resource_allocation.occupancy(
             by_name, resources, state.get("active_intents") or [])
         for name in ai_units:
-            if not _room():
+            if not _room(reserve=scout_reserve):
                 break
             info = by_name.get(name) or {}
-            if not _free(name) or name in on_site or not info.get("gather"):
+            if not _free(name) or name == scout_pick or name in on_site or not info.get("gather"):
                 continue
             resource = _nearest_resource(info, resources, load=load,
                                          cap=RESOURCE_WORKERS_PER_NODE)
@@ -831,8 +1794,12 @@ def _parallel_intents(state: Dict[str, Any], *, tactical=None, rules=None,
         key = str(info.get("type", ""))
         if key:
             counts[key] = counts.get(key, 0) + 1
+    # 兵力上限（与阶梯 2 同口径、同记账函数）：达到上限时生产轨**不再补作战单位**。
+    # 判一次即可（本函数内兵力不会变），避免每个设施各算一次。
+    combat_ids = combat_types_of(state, rules)
+    combat_allowed = combat_production_allowed(state, tactical, tick, rules)
     for name in sorted(inputs["constructed_producers"]):
-        if not _room():
+        if not _room(reserve=scout_reserve):
             break
         # `used` 必须一起判：骨架已经给这个设施派了活，填充不得再派同一条
         # （否则同一批次里出现两条一模一样的 produce —— 契约层会直接判 id 重复）。
@@ -842,7 +1809,8 @@ def _parallel_intents(state: Dict[str, Any], *, tactical=None, rules=None,
         options = [(product, scene_index.get(product, ""))
                    for product, producer in PRODUCT_LADDER
                    if producer == producer_type and producer in own_types
-                   and scene_index.get(product, "")]
+                   and scene_index.get(product, "")
+                   and (combat_allowed or product not in combat_ids)]
         if not options:
             continue
         product, scene = min(options, key=lambda item: counts.get(item[0], 0))
@@ -862,20 +1830,35 @@ def _parallel_intents(state: Dict[str, Any], *, tactical=None, rules=None,
     base = base_anchor_pos(by_name)
     bounds = state.get("map_bounds")
     combat_all = [n for n in ai_units
-                  if str(by_name.get(n, {}).get("type", "")) in COMBAT_TYPES]
+                  if str(by_name.get(n, {}).get("type", "")) in combat_ids]
     # 主动交火的门槛与阶梯 3 **同口径**（兵力达标 ∧ 阶段允许 ∧ 有可见敌人）：
     # 并行填充只放宽"谁能拿到任务"，绝不放宽"什么时候能打"（手册禁止未达规模就添油）。
     may_attack = (bool(enemies) and bool(prefs.get("allow_attack", True))
                   and len(combat_all) >= max(1, int(army_threshold)))
-    for name in ai_units:
+    intel_points = list(state.get("enemy_intel_points") or [])   # 公开情报（上次见过的敌情）
+    # 专职都在就仍派专职；专职没了才转交一个机动单位（T03 换执行者）。
+    scout_names = [name for name in ai_units
+                   if _free(name)
+                   and str((by_name.get(name) or {}).get("type", "")) in PROBE_TYPES]
+    if not scout_names:
+        replacement = scout_pick
+        if replacement and replacement not in suspended:
+            # 转交时允许抢采集工：专职没了比"工人继续采"更缺执行者。
+            # 玩家挂起单位绝不转交、也不释放其在途意图。
+            release_unit_for_scout_transfer(state, replacement)
+            busy.discard(replacement)
+            used.discard(replacement)
+            scout_names = [replacement]
+    for name in scout_names:
         if not _room():
             break
-        info = by_name.get(name) or {}
-        if not _free(name) or str(info.get("type", "")) not in PROBE_TYPES:
-            continue
-        point = military_waypoint(base, bounds=bounds, enemies=enemies)
+        point = military_waypoint(base, bounds=bounds, enemies=enemies,
+                                  intel=intel_points, state=state, unit=name)
         if not point:
-            break
+            continue
+        if _en_route(name):
+            # 侦察还在飞当前前沿：换 tick 再发一条只会半路改令（T13）。
+            continue
         # `rule-fill-` 前缀：与阶梯骨架的 id 明确区分（同一批次里绝不允许 id 重复，
         # 契约层会直接判非法），日志/报告里也能一眼看出"这条是并行填充发的"。
         _add("rule-fill-scout-%s-%d" % (name, tick), ACTION_SCOUT, name, {"pos": point}, 3,
@@ -883,29 +1866,72 @@ def _parallel_intents(state: Dict[str, Any], *, tactical=None, rules=None,
 
     # ---- 轨 4：军事（每个空闲作战单位各一条：能打就打、不能打就**有界**前压）----
     # `attack_move` 而不是 `move`：一路遇敌就地交火，不用再等下一轮决策。
+    defending_home = base_under_attack_active(state)
+    from . import movement as _movement
+    local_radius = float(getattr(_movement, "LOCAL_CONTACT_RADIUS_M", 30.0))
     for index, name in enumerate(ai_units):
         if not _room():
             break
         info = by_name.get(name) or {}
-        if not _free(name) or str(info.get("type", "")) not in COMBAT_TYPES:
+        if not _free(name) or str(info.get("type", "")) not in combat_ids:
             continue
         if enemies:
+            # T07：基地受袭时远处线不许被召回打家里的敌人（不全军回防）。
+            # 近处单位留给行为树 `defend`；远处只打自己接触圈里的敌人，否则继续前压。
+            if defending_home and not unit_near_base(_pos2d(info), base):
+                local = [enemy for enemy in enemies
+                         if unit_near_base(_pos2d(enemy), _pos2d(info), local_radius)]
+                if local and may_attack:
+                    hittable = attackable_enemies(state, local, [name])
+                    locks = state.setdefault("engage_locks", {})
+                    target_id = pick_engage_target(
+                        state, name, hittable, _pos2d(info), combat_ids, locks)
+                    if target_id:
+                        locks[str(name)] = target_id
+                        _add("rule-fill-attack-%s" % name, ACTION_ATTACK, name,
+                             {"entity_id": target_id}, 2,
+                             "并行填充：军事轨（远处线只打接触圈内敌人）", "rule-attack")
+                        continue
+                point = military_waypoint(base, bounds=bounds, enemies=local,
+                                          intel=intel_points, search=False,
+                                          ring=1 + index // 4, state=state, unit=name)
+                if point and not _en_route(name):
+                    _add("rule-fill-advance-%s-%d" % (name, tick), ACTION_ATTACK_MOVE, name,
+                         {"pos": point}, 3,
+                         "并行填充：军事轨（基地受袭，远处线保持前压）", "rule-advance")
+                continue
+            if defending_home and unit_near_base(_pos2d(info), base):
+                # 近处回防归行为树，填充不抢名额、也不发 attack 顶掉 defend。
+                continue
             # **有可见敌人时，作战单位只走"打"这一条路**：够格才打，不够格就**不发**。
             # 绝不能"不够格也往前顶" —— 那就是"拿 1 个兵硬冲 3 个敌人"，
             # 微操树同时还要负责劣势撤离（`test_outnumbered_retreat_preempts_model_attack`）。
             # 交火/撤离的威胁判断归行为树（它看得见数量对比），这里只做"规模够了就开打"。
             if may_attack:
-                target_id = entity_id_of(min(enemies, key=lambda e: _pos2d(e)))
+                # 只挑**打得了**的目标：被权威以"武器域不匹配"拒过的 单位×目标 对在窗口内剔除
+                # （修正维度是**换目标**，不是重发同一条命令 —— 见 `ban_unattackable_target`）。
+                hittable = attackable_enemies(state, enemies, [name])
+                locks = state.setdefault("engage_locks", {})
+                target_id = pick_engage_target(
+                    state, name, hittable, _pos2d(info), combat_ids, locks)
                 if target_id:
+                    locks[str(name)] = target_id
                     _add("rule-fill-attack-%s" % name, ACTION_ATTACK, name,
                          {"entity_id": target_id}, 2,
-                         "并行填充：军事轨（交火最近的可见敌人）", "rule-attack")
+                         "并行填充：军事轨（交火局部最近/高威胁目标）", "rule-attack")
             continue
         # 无可见敌人：才谈"前压"。前压点由 `military_waypoint` 给
-        # （朝地图内侧、不越交战线、不贴边）。
-        point = military_waypoint(base, bounds=bounds, enemies=enemies, ring=1 + index // 4)
+        # （朝地图内侧 / 朝已知敌情、不越交战线、不贴边）。
+        # **小队已成形 → search=True**：允许更远（去找人打），否则部队会在家门口转圈
+        # （实测一局攒到 36 个作战单位、可见敌人 0、只有前压命令 = 玩家眼里的"攒兵不打"）。
+        squad_ready = len(combat_all) >= max(1, int(army_threshold))
+        point = military_waypoint(base, bounds=bounds, enemies=enemies,
+                                  intel=intel_points, search=squad_ready,
+                                  ring=1 + index // 4, state=state, unit=name)
         if not point:
             break
+        if _en_route(name):
+            continue
         _add("rule-fill-advance-%s-%d" % (name, tick), ACTION_ATTACK_MOVE, name,
              {"pos": point}, 3,
              "并行填充：军事轨（前压到 %s，遇敌即交火）" % (point,), "rule-advance")
@@ -991,6 +2017,12 @@ def _development_intents_raw(state: Dict[str, Any], *, tactical=None, rules=None
     idle_producers = [u for u in inputs["idle_producers"] if u not in suspended]
     own_types = set(inputs["own_types"])
     built_types = set(inputs["built_types"])   # 建筑不是采集单位
+    # 生产视图（生产者 → 队列）在**本函数开头**建一次：工人补产与作战单位补产两处都要用
+    # （放在后面会让前面的分支引用未定义变量 —— 实测一次就炸出 14 个测试错误）。
+    production_views: Dict[str, Dict[str, Any]] = {}
+    for entry in (tactical or {}).get("production") or []:
+        if isinstance(entry, dict) and entry.get("producer"):
+            production_views[str(entry["producer"])] = entry
     # 【三个叠加缺陷，2026-09-11 逐个修掉，勿回退】现由 `ladder_inputs()` 单点实现：
     #  A. 抢占判据曾要求**两个角色同时**为空。基地（command_center, queue=True）
     #     天然是"空闲生产者"，条件恒 False → 工人全忙时**永远没人去建造**。
@@ -1031,6 +2063,10 @@ def _development_intents_raw(state: Dict[str, Any], *, tactical=None, rules=None
     # `NotVisible` 拒**（落点在视野外），还把工人成批从采集里抽走 —— 采集线当场停摆。
     # 施工进度由下面的阶梯 1.5 保障（只派 1 个工人到场续建，其余继续干本职）。
     unfinished_now = list(inputs.get("unfinished_buildings") or [])
+    # 主基地旁还有工地时，默认不开新工地（施工串行）。分基地是**另一处远端矿**，
+    # 被这条规定挡住就会错过"前探单位还在矿旁"的窗口（无模型主线卡在 M05）。
+    expansion_cc_open = (str(prefs.get("milestone_id") or "") == campaign_mod.M05
+                         and "command_center" in (prefs.get("build_order") or ()))
     # 落点可行性**账本**（几何类按点拉黑 / 内容类按意图前缀拉黑），整个循环共用：
     # 传账本本体而不是坐标列表 —— 落点生成器据此一次筛干净（含旧 `blocked_build_spots` 兼容）。
     blocked_spots = placement.ledger_from_state(state)
@@ -1066,15 +2102,34 @@ def _development_intents_raw(state: Dict[str, Any], *, tactical=None, rules=None
                             % probe_unit,
                             "rule-probe-expansion")]
 
-    for building in [] if (build_backoff or unfinished_now) else build_order:
+    pending_order = list(build_order)
+    if build_backoff:
+        pending_order = []
+    elif unfinished_now:
+        pending_order = (["command_center"] if expansion_cc_open
+                         and "command_center" in build_order else [])
+    for building in pending_order:
         if building not in buildable_ids:
             continue
         if building_counts.get(building, 0) >= int(BUILD_LIMITS.get(building, 1)):
             continue
         scene = scene_index.get(building, "")
-        if not scene or not idle_builders:
+        if not scene:
             continue
-        builder = idle_builders[0]
+        builders = list(idle_builders)
+        if not builders and building == "command_center" and expansion_cc_open:
+            suspended = {str(item) for item in (prefs.get("suspended_objects") or [])}
+            for name in ai_units:
+                if name in suspended:
+                    continue
+                if not bool((by_name.get(name) or {}).get("construct")):
+                    continue
+                release_unit_for_expansion_cc(state, name)
+                builders = [name]
+                break
+        if not builders:
+            continue
+        builder = builders[0]
         # 【必须带落点】游戏侧 `_op_build` 取的是 `parsed.pos`，缺省为 (0,0) →
         # 实测被拒：{"primary_issue":"NotVisible","issues":["NotVisible","OutOfBounds",
         # "SurfaceNotBuildable"]}。这里取**主基地附近**的偏移点：基地一定在视野内，
@@ -1095,7 +2150,8 @@ def _development_intents_raw(state: Dict[str, Any], *, tactical=None, rules=None
         else:
             place = pick_build_spot(by_name, resources, anchor,
                                    blocked=blocked_spots,
-                                   bounds=state.get("map_bounds"))
+                                   bounds=state.get("map_bounds"),
+                                   state=state)   # 传 state 只为了留痕（候选全不可用时记账）
         # intent_id 必须**带上 tick**：游戏侧按 intent_id 幂等缓存回执，
         # 若沿用固定 id，重试会一直命中最早那次拒绝（实测 `intent_replay: true` +
         # `issued_tick` 停在旧值），换落点也永远不会被执行。
@@ -1165,7 +2221,12 @@ def _development_intents_raw(state: Dict[str, Any], *, tactical=None, rules=None
             if not isinstance(entry, dict):
                 continue
             for item in entry.get("items") or []:
-                if str((item or {}).get("product_type_id", "")) == product_id:
+                # 【字段口径】10Hz/`op=tactical` 的队列项用的是 **`definition_id`**
+                # （`product_type_id` 是旧名，实测恒为空 → 这层"队列去重"静默失效、
+                # 同一条生产被反复下发）。两个名字都认，权威优先。
+                item_id = str((item or {}).get("definition_id")
+                              or (item or {}).get("product_type_id", ""))
+                if item_id == product_id:
                     queued_workers += 1
         in_flight_workers = sum(
             1 for intent in (state.get("active_intents") or [])
@@ -1183,6 +2244,7 @@ def _development_intents_raw(state: Dict[str, Any], *, tactical=None, rules=None
             # 整局一个兵都没出"。这里改成"已在推进 → 往下走"。
             pass
         elif (producer and worker_scene
+                and _queue_size_of(production_views, producer) < PRODUCER_QUEUE_CAP
                 and deployed_workers + queued_workers < target_workers
                 and queued_workers < _worker_queue_cap(bank_a(tactical), target_workers,
                                                        deployed_workers)):
@@ -1219,11 +2281,20 @@ def _development_intents_raw(state: Dict[str, Any], *, tactical=None, rules=None
     # 兵营/车厂/机场全部闲置，M03"首支作战队"卡了 12000 tick 才被超时阻塞。
     # 状态口径取 `graph.state.INTENT_LIVE_STATES`（唯一事实来源）；过期由
     # `runtime.tick()` 每轮统一标记为 expired，所以不需要在这里再查 TTL。
+    # 【设施队列为空 = 它确实没在忙】未知状态的生产意图**不许永久占用设施**。
+    # 归档复盘的链尾（archive_045ed0d6）：类型错配 → 进度恒 unknown → 意图一直 active_unknown
+    # （仍是 LIVE 状态）→ 设施被判"正在生产"→ 下一单要等旧意图 TTL 过期才发（实测相隔 1148 tick）。
+    # 判据用**观测事实**（队列空），不是超时猜测：队列空说明设施闲着，新单带新 item_id，
+    # 不影响旧任务继续对账。
     producing_units = {str(unit)
                        for intent in (state.get("active_intents") or [])
                        if str(intent.get("action", "")) == ACTION_PRODUCE
                        and str(intent.get("state", "")) in LIVE_INTENT_STATES
                        for unit in (intent.get("unit_ids") or [])}
+    for name in list(producing_units):
+        view = production_views.get(name)
+        if view is not None and int(view.get("queue_size", 0) or 0) <= 0:
+            producing_units.discard(name)
     free_producers = [name for name in idle_producers if name not in producing_units]
     for name in sorted(usable_producers):
         if name not in producing_units and name not in free_producers:
@@ -1236,10 +2307,17 @@ def _development_intents_raw(state: Dict[str, Any], *, tactical=None, rules=None
             continue
         producer = next((n for n in free_producers
                          if by_name.get(n, {}).get("type") == producer_type
-                         and n in usable_producers), "")
+                         and n in usable_producers
+                         and _queue_size_of(production_views, n) < PRODUCER_QUEUE_CAP), "")
         if not producer:
             continue
         options.append((product, producer, scene))
+    if options:
+        # 阶梯 2.5：**兵力上限**（手册 04 §军队规模规划）。达到上限 → 本轮不产作战单位，
+        # 让阶梯继续往下走（出击/其它），钱留给战损重建。工人与建造不受影响。
+        combat_ids = combat_types_of(state, rules)
+        if not combat_production_allowed(state, tactical, tick, rules):
+            options = [item for item in options if item[0] not in combat_ids]
     if options:
         counts: Dict[str, int] = {}
         for info in by_name.values():
@@ -1260,12 +2338,24 @@ def _development_intents_raw(state: Dict[str, Any], *, tactical=None, rules=None
     # 禁止"未达规模就添油"）。`allow_attack` 缺省为 True，所以无 mainline 的调用不受影响。
     enemies = _living_enemies(tactical)
     combat = [n for n in ai_units
-              if n not in busy and by_name.get(n, {}).get("type") in COMBAT_TYPES]
-    if (enemies and len(combat) >= max(1, int(army_threshold))
+              if n not in busy
+              and by_name.get(n, {}).get("type") in combat_types_of(state, rules)]
+    # T07：基地受袭时骨架出击只许近处单位打家里的敌人，不许把远处线拉回来。
+    if base_under_attack_active(state):
+        home = base_anchor_pos(by_name)
+        combat = [n for n in combat
+                  if unit_near_base(_pos2d(by_name.get(n) or {}), home)]
+    # 【别让部队去打它打不了的目标】把"被权威以武器域不匹配拒过"的目标从候选里剔除
+    # （按单位×目标记，见 `ban_unattackable_target`）。出击前先过滤，避免"出击 → 被拒 → 再出击"。
+    hittable = attackable_enemies(state, enemies, combat)
+    if (hittable and len(combat) >= max(1, int(army_threshold))
             and bool(prefs.get("allow_attack", True))):
-        target = min(enemies, key=lambda e: _pos2d(e))
-        target_id = entity_id_of(target)
+        locks = state.setdefault("engage_locks", {})
+        info = by_name.get(combat[0]) or {}
+        target_id = pick_engage_target(
+            state, combat[0], hittable, _pos2d(info), combat_types_of(state, rules), locks)
         if target_id:
+            locks[str(combat[0])] = target_id
             return [_intent("rule-attack-%s" % combat[0], ACTION_ATTACK, combat[0],
                             {"entity_id": target_id}, 2,
                             "发展阶梯：兵力达标且可见敌人，出击", "rule-attack")]

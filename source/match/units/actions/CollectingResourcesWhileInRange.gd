@@ -60,8 +60,10 @@ func _setup_timer():
 
 
 func _transfer_single_resource_unit_from_resource_to_worker():
-	if _unit.name in ["Unit_2", "Unit_3"]:
-		print("[COLLECT] ", _unit.name, " tick adhere=", Utils.Match.Unit.Movement.units_adhere(_unit, _resource_unit), " carried=", _unit.resource_a, "/", _unit.resource_b)
+	# 【2026-09-13 移除逐 tick 调试打印】这里原来对 Unit_2/Unit_3 每个采集 tick 打一行
+	# `[COLLECT]`（含一次 `units_adhere` 计算），单局刷出 **35 万行** stdout ——
+	# 对游戏帧率是白白的 I/O 与格式化开销（玩家反馈掉帧时排查到的固定成本之一）。
+	# 采集链路的事实已由观测通道（10Hz 采样 + `[GATHER]` 状态迁移）覆盖，不需要这行。
 	if not Utils.Match.Unit.Movement.units_adhere(_unit, _resource_unit):
 		# 2026-08-31: 导航停点与贴合阈值(0.3m)相差厘米级, 严格判死会造成
 		# 「到达→采不到→重走」死循环(采集时灵时不灵的根因)。2 倍距离内宽限采集。

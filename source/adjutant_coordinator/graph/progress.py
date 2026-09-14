@@ -23,7 +23,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from .state import (
     INTENT_ACTIVE_UNKNOWN, INTENT_COMPLETED, INTENT_FAILED, INTENT_LIVE_STATES,
@@ -43,14 +43,30 @@ PROGRESS_EPSILON_M = 0.1
 MOVEMENT_ACTIONS = ("move", "attack_move", "scout", "defend", "regroup", "retreat")
 
 
-def _flat_distance(pos_a: Any, pos_b: Any) -> Optional[float]:
-    """只取 [x, z] 平面距离（Godot 里 y 是高度，地形起伏不该算进"走到了没"）。"""
+def _xz_plane(pos: Any) -> Optional[Tuple[float, float]]:
+    """观测坐标 → 平面 (x, z)。
+
+    权威实体是 `[x, y, z]`；规则层航点（`military_waypoint` / 侦察前沿）是 `[x, z]`。
+    只认 3D 会让 `pos=[17.5, 17.5]` 的侦察令永远算不出距离 → 意图活到 TTL，
+    无人机到了第一格也拿不到下一跳（`u1t01d` / `archive_2325cc87`）。
+    """
+    if not isinstance(pos, (list, tuple)) or len(pos) < 2:
+        return None
     try:
-        ax, az = float(pos_a[0]), float(pos_a[2])
-        bx, bz = float(pos_b[0]), float(pos_b[2])
+        if len(pos) >= 3:
+            return float(pos[0]), float(pos[2])
+        return float(pos[0]), float(pos[1])
     except (TypeError, ValueError, IndexError):
         return None
-    return ((ax - bx) ** 2 + (az - bz) ** 2) ** 0.5
+
+
+def _flat_distance(pos_a: Any, pos_b: Any) -> Optional[float]:
+    """只取 [x, z] 平面距离（Godot 里 y 是高度，地形起伏不该算进"走到了没"）。"""
+    left = _xz_plane(pos_a)
+    right = _xz_plane(pos_b)
+    if left is None or right is None:
+        return None
+    return ((left[0] - right[0]) ** 2 + (left[1] - right[1]) ** 2) ** 0.5
 
 
 def _carried_total(entity: Dict[str, Any]) -> int:
@@ -97,6 +113,18 @@ def index_observation(observation: Optional[Dict[str, Any]]) -> Dict[str, Any]:
                 intel[str(item["name"])] = item
     return {"own": own, "resources": resources, "enemies": enemies,
             "production": production, "intel": intel, "truncated": truncated}
+
+
+def production_events_facts(state: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """生产台账（按 **item_id** 索引）：`{item_id: {producer, product_id, started_tick,
+    finished_tick, produced_unit}}`。
+
+    为什么必须要它：队列是"当前状态"，队列项一消失就什么都不剩 —— 而"这一项到底完成了没有"
+    只能靠**事件**回答（`production_finished` 带 item_id）。台账由回执与快速事件共同维护，
+    结算时按 item_id 查，不靠猜。
+    """
+    ledger = (state or {}).get("production_ledger")
+    return dict(ledger) if isinstance(ledger, dict) else {}
 
 
 def _units_of(intent: Dict[str, Any]) -> List[str]:
@@ -228,9 +256,14 @@ def _gather_progress(intent, facts, tick, params):
     record["metrics"]["carried"] = carried
     increased = any(carried.get(name, 0) > int(previous.get(name, 0) or 0) for name in living)
     metrics = {"carried": carried, "resource": resource_id}
-    if resource_id and resource_id not in facts["resources"] and facts["truncated"] is False:
-        # 资源点从**完整**观测里消失 = 已耗尽；截断观测下不判定（缺席不等于消失）。
-        return "completed", "资源点 %s 已不在观测中（判定耗尽）" % resource_id, metrics
+    resource = facts["resources"].get(resource_id) if resource_id else None
+    if resource_id and facts["truncated"] is False:
+        from .observation_view import resource_available
+        gone = resource_id not in facts["resources"]
+        empty = bool(resource) and not resource_available(resource)
+        if gone or empty:
+            # 资源点从完整观测消失，或存量已报 0 = 已耗尽；截断观测下不判定。
+            return "completed", "资源点 %s 已耗尽，工人转岗" % resource_id, metrics
     if increased:
         record["stall_count"] = 0
         return "in_progress", "正在装载资源（载量 %s）" % carried, metrics
@@ -243,27 +276,63 @@ def _gather_progress(intent, facts, tick, params):
     return "in_progress", "采集中", metrics
 
 
+def product_ids_of(intent: Dict[str, Any]) -> List[str]:
+    """这条生产意图的**产品身份候选**（权威优先）。
+
+    为什么需要多个候选（2026-09-13 归档复盘的根因）：
+    `target.scene` 是 `res://source/match/units/Infantry.tscn`，而队列项与实体的
+    `definition_id`/`unit_type` 都是 **`soldier`** —— 场景名与产品 ID **不是同一套命名**
+    （`Barracks.tscn`→`barracks` 恰好同名，`Infantry.tscn`→`soldier` 不同名），
+    所以"拿 scene 直接比 definition_id"必然判不出，任务永远停在 `active_unknown`。
+
+    权威来源是**生产回执**：`receipt.result.item.definition_id`（下单时就返回），
+    存在 `intent["production"]["product_id"]`；scene 名只作兜底。
+    """
+    out: List[str] = []
+    production = intent.get("production") if isinstance(intent.get("production"), dict) else {}
+    for value in (production.get("product_id"),):
+        if value and str(value) not in out:
+            out.append(str(value))
+    scene = str((intent.get("target") or {}).get("scene", ""))
+    if scene:
+        base = scene.rsplit("/", 1)[-1].split(".")[0].lower()
+        if base and base not in out:
+            out.append(base)
+    return out
+
+
 def _produce_progress(intent, facts, tick, params):
     record = _progress_of(intent)
     target = intent.get("target") or {}
     producer = str(target.get("producer", ""))
-    product = str(target.get("scene", ""))
-    if not producer or not product:
+    product_ids = product_ids_of(intent)
+    if not producer or not product_ids:
         return "failed", "生产意图缺少 producer/scene", {"reason": "missing_producer_or_product"}
     if producer not in facts["own"]:
         return "unknown", "生产者暂不在观测中（不判失败）", {"producer": producer}
+    production = intent.get("production") if isinstance(intent.get("production"), dict) else {}
+    item_id = str(production.get("item_id", ""))
+    ledger = (facts.get("production_events") or {}).get(item_id) or {}
     view = facts["production"].get(producer) or {}
     items = [item for item in (view.get("items") or [])
-             if str(item.get("definition_id", "")) == product]
+             if (item_id and str(item.get("item_id", "")) == item_id)
+             or str(item.get("definition_id", "")) in product_ids]
     # 产物数量必须在**每一轮**都记录，否则队列项消失时才建立基线 → 永远比不出"新增单位"。
     has_baseline = "product_count" in record["metrics"]
     baseline = int(record["metrics"].get("product_count") or 0)
     current = sum(1 for entity in facts["own"].values()
-                  if str(entity.get("unit_type", "")) == product)
+                  if str(entity.get("unit_type", "")) in product_ids)
     record["metrics"]["product_count"] = current
-    metrics = {"producer": producer, "product": product,
+    metrics = {"producer": producer, "product": product_ids[0],
+               "product_ids": product_ids, "item_id": item_id or None,
                "queue_size": int(view.get("queue_size", 0) or 0),
                "product_count": current, "product_count_before": baseline}
+    # ① 【权威完成证据】生产完成事件（同一 item_id）→ 直接结算。
+    #    这条是本次修复的核心：以前只看"队列里还在不在 + 产物数量差"，两者都会被命名错配毁掉。
+    if ledger.get("finished_tick"):
+        metrics["confirmed_by"] = "production_finished@%s" % ledger["finished_tick"]
+        return "completed", ("权威完成事件：%s（item %s，tick %s）"
+                             % (product_ids[0], item_id[:8], ledger["finished_tick"])), metrics
     if items:
         item = items[0]
         required = int(item.get("required_work", 0) or 0)
@@ -275,13 +344,43 @@ def _produce_progress(intent, facts, tick, params):
         return "in_progress", "队列中生产中（%s %d/%d）" % (
             item.get("state", ""), done, required), metrics
     if has_baseline and current > baseline:
-        return "completed", "产物已部署（%s 数量 %d→%d）" % (product, baseline, current), metrics
+        return "completed", "产物已部署（%s 数量 %d→%d）" % (product_ids[0], baseline, current), metrics
     # 关键（方案 §4）：项目从队列消失**不能**一律当作生产成功。
     if view:
-        # 队列项消失但没看到新单位：**不判成功也不判失败**（可能是还没走出来/名字不在视野）。
-        # 【2026-09-12 实测】从前判 failed → 生产任务被判失败 → 微操层重发生产（produce 152 次）。
-        return "unknown", "队列项已消失但未观察到新单位（保持未知）", metrics
+        # 队列项消失但**没有完成事件**、也没看到新单位：保持未知（可能是还没走出来/名字不在视野），
+        # 并且记下"该去对账什么"（item_id + 生产者），下一轮继续查。
+        metrics.update({"recheck": {"producer": producer, "item_id": item_id or None,
+                                    "why": "queue_item_vanished_without_finish_event"}})
+        return "unknown", "队列项已消失但未观察到新单位/完成事件（保持未知，继续对账）", metrics
     return "in_progress", "等待队列信息", metrics
+
+
+def building_type_of(intent, facts=None) -> str:
+    """这条建造意图的**建筑类型 ID**（权威优先）。
+
+    同一个坑（2026-09-13 修复）：`target.scene` = `…/AircraftFactory.tscn`，而实体的
+    `unit_type` = `aircraft_factory` —— 场景名去掉扩展名后**不等于**类型 ID
+    （蛇形命名 vs 驼峰命名），拿 scene 直接比 `unit_type` 会永远判不出"已建成"。
+    权威来源有两个（按可靠性排序）：
+    ① 意图目标里的工地实体（`target.entity_id`/`site`）在观测里的 `unit_type`；
+    ② 意图上已记录的 `building_type`（由回执/工地实体回填）。
+    scene 名只作最后兜底。
+    """
+    target = intent.get("target") if isinstance(intent.get("target"), dict) else {}
+    # 【不许看 `producer`】它是**建造者**（工人），不是工地 —— 拿它取类型会得出 "worker"，
+    # 于是"工地已建成"永远判不出来（实测：改完这个 key 立刻挂了两条既有测试）。
+    for key in ("entity_id", "site", "building"):
+        name = str(target.get(key, ""))
+        if not name or not facts:
+            continue
+        entity = (facts.get("own") or {}).get(name)
+        if isinstance(entity, dict) and entity.get("unit_type"):
+            return str(entity["unit_type"])
+    recorded = str(intent.get("building_type", ""))
+    if recorded:
+        return recorded
+    scene = str(target.get("scene", ""))
+    return scene.rsplit("/", 1)[-1].split(".")[0].lower() if scene else ""
 
 
 def _build_progress(intent, facts, tick, params):
@@ -289,7 +388,7 @@ def _build_progress(intent, facts, tick, params):
     record = _progress_of(intent)
     target = intent.get("target") or {}
     builder = str(target.get("producer", ""))
-    building = str(target.get("scene", ""))
+    building = building_type_of(intent, facts)
     if not building:
         return "failed", "建造意图缺少 scene", {"reason": "missing_scene"}
     if builder and builder not in facts["own"]:
@@ -350,6 +449,8 @@ def track_task_progress(state: Dict[str, Any], *, observation: Optional[Dict[str
     arrive_radius = float(config.get("progress_arrive_radius", ARRIVE_RADIUS_M))
     stall_limit = int(config.get("progress_stall_limit", STALL_LIMIT))
     facts = index_observation(observation)
+    # 生产台账（item_id → 完成事件）挂进 facts：`_produce_progress` 按它做权威结算。
+    facts["production_events"] = production_events_facts(state)
     tick = int(tick)
     params = {"arrive_radius": arrive_radius, "stall_limit": stall_limit,
               "lost_sight_ticks": int(config.get("progress_lost_sight_ticks",
@@ -380,6 +481,13 @@ def track_task_progress(state: Dict[str, Any], *, observation: Optional[Dict[str
         if status in _STATUS_TO_INTENT:
             intent["state"] = _STATUS_TO_INTENT[status]
             intent["drop_reason"] = "progress_%s" % status
+        if status == "completed" and action in MOVEMENT_ACTIONS:
+            # 观测已确认走到目标：作废当前跳，下一轮才能规划下一跳。
+            # 游戏侧 arrival 事件会走同一条 `note_arrival`；无事件的模拟局/延迟回执
+            # 不能把单位锁在 hop_in_progress 里直到 HOP_HOLD_MAX_TICKS。
+            from . import movement as movement_mod
+            for unit_name in _units_of(intent):
+                movement_mod.note_arrival(state, unit_name, tick)
         per_intent[intent_id] = {
             "intent_id": intent_id, "action": action,
             "task_id": str(intent.get("task_id", "")), "status": status,

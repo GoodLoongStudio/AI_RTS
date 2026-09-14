@@ -160,6 +160,18 @@ func set_map_extents(extents: Vector2):
 	set_size_safely(size)
 
 
+## 生成大地图：镜头必须高过台地/山体，far 必须覆盖整张图，否则正交视锥裁空。
+func configure_for_large_terrain(map_size: Vector2, peak_world_y: float = 80.0) -> void:
+	visible_height_max = maxf(visible_height_max, peak_world_y)
+	visible_height_min = minf(visible_height_min, -20.0)
+	size_max = maxf(size_max, minf(map_size.x, map_size.y) * 0.16)
+	set_map_extents(map_size)
+	var start_size := clampf(90.0, size_min, _effective_size_max())
+	set_size_safely(start_size)
+	far = maxf(far, map_size.length() + peak_world_y * 4.0 + 512.0)
+	near = maxf(near, 0.5)
+
+
 ## 拉远上限：正交 size 是垂直视线平面的高度，30° 俯角下地面可见纵深约
 ## 2×size、宽度约 size×宽高比。除轴对齐约束外，还按当前 Y 轴旋转角计算
 ## 视野矩形的地面投影 AABB——旋转到对角方向时上限自动收紧，保证任何
@@ -473,7 +485,10 @@ func _align_camera_far_to_size(a_size: float):
 	var camera_ray_normal = project_ray_normal(Vector2(0, 0))
 	var min_visible_plane = Plane(Vector3.UP, visible_height_min)
 	var ray_intersection = min_visible_plane.intersects_ray(camera_ray_begin, camera_ray_normal)
-	far = ceil(ray_intersection.distance_to(camera_ray_begin))
+	if ray_intersection != null:
+		far = ceil(ray_intersection.distance_to(camera_ray_begin))
+	if _map_extents != Vector2.ZERO:
+		far = maxf(far, _map_extents.length() + absf(visible_height_max) * 4.0)
 
 
 func _align_position_to_bounding_planes():

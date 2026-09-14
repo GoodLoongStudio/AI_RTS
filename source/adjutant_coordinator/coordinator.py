@@ -137,10 +137,20 @@ class AdjutantCoordinator:
         self.player_id = player_id
         # transport 归一化：既接受第一阶段裸 Callable(envelope)->receipt，
         # 也接受第二阶段 Transport 对象（有 send_command 方法）。
+        #
+        # 【2026-09-13 修：别再把它压成 bound method】原来这里写成
+        #     self._transport = transport.send_command
+        # 于是 `submit_batch` 里的 `hasattr(self._transport, "send_batch")` **恒为假**
+        # —— 传输对象明明实现了 `send_batch`，却永远走不进批量分支：
+        # 5 分钟集成局 116 条命令全是单发（`batch.calls=0`），计划 §5 的批量链路形同虚设。
+        # 纪律：**对象和方法分开存** —— 对象用于批量，方法用于单发。
+        self._transport = transport
         if hasattr(transport, "send_command"):
-            self._transport = transport.send_command
+            self._send_one = transport.send_command
+        elif callable(transport):
+            self._send_one = transport
         else:
-            self._transport = transport
+            self._send_one = None
         self._strategy = strategy_model
         self._tactics = tactics_model
         self.config = config or CoordinatorConfig()
@@ -416,7 +426,7 @@ class AdjutantCoordinator:
             return blocked
         unit_ids = list((command.get("params", {}) or {}).get("units", []) or [])
         task_id = str(command.get("task_id", ""))
-        receipt = Receipt.from_json(self._transport(command))
+        receipt = Receipt.from_json(self._send_one(command))
         return self._settle(command, receipt, unit_ids, task_id, current_tick)
 
     def submit_batch(self, commands: List[Dict[str, Any]],

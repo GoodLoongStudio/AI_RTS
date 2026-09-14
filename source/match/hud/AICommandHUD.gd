@@ -19,6 +19,7 @@ const COMMAND_LABELS = {
 }
 const F1_DOUBLE_TAP_MS := 350
 const STATE_ONLINE := "● 副官已接入，正在观察"
+const EscapeRouter = preload("res://source/ui/EscapeRouter.gd")
 
 var control_mode := "squad"
 var hero_name := "先锋指挥单元"
@@ -85,6 +86,8 @@ func _on_input_action_pressed(action_id: String):
 		if pending_command != "":
 			pending_command = ""
 			_refresh_squad_ui()
+			# 认领本次 ESC：清空待发命令优先于菜单兜底唤出（见 EscapeRouter 不变式）。
+			EscapeRouter.claim()
 		return
 	if action_id == "legacy.hero_focus" and _is_hero_mode():
 		_handle_hero_focus_hotkey()

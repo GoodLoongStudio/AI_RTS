@@ -57,36 +57,30 @@ layout_mode = 2
 text = "AI 原生即时战略"
 horizontal_alignment = 1
 
-[node name="CampaignButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 58)
-layout_mode = 2
-text = "单人战役"
-
 [node name="PlayButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
-text = "自定义战斗"
+text = "单机模式"
 
 [node name="OnlineButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
-text = "联机 Demo"
+text = "在线匹配"
+
+[node name="GrowthButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "成长系统"
 
 [node name="OptionsButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 text = "设置"
 
-[node name="CreditsButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
-layout_mode = 2
-text = "制作人员"
-
 [node name="QuitButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 text = "退出游戏"
 
-[connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/CampaignButton" to="." method="_on_campaign_button_pressed"]
 [connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/PlayButton" to="." method="_on_play_button_pressed"]
 [connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/OnlineButton" to="." method="_on_online_button_pressed"]
 [connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/OptionsButton" to="." method="_on_options_button_pressed"]
-[connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/CreditsButton" to="." method="_on_credits_button_pressed"]
+[connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/GrowthButton" to="." method="_on_growth_button_pressed"]
 [connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/QuitButton" to="." method="_on_quit_button_pressed"]

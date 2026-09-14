@@ -52,20 +52,37 @@ func _process(_delta):
 var _last_map: Node3D = null
 
 
+func _count_static_bodies(root: Node) -> int:
+	var count := 0
+	var todo: Array[Node] = [root]
+	while not todo.is_empty():
+		var n: Node = todo.pop_back()
+		todo.append_array(n.get_children())
+		if n is StaticBody3D:
+			count += 1
+	return count
+
+
 func bake(map):
 	_last_map = map
 	while server_busy:
 		await get_tree().process_frame
+	print("NAVDBG bake map=", map.get_path(), " StaticBody3D in subtree=",
+		_count_static_bodies(map))
 	_navigation_region.navigation_mesh = get_parent().copy_navmesh_settings(
 		_navigation_region.navigation_mesh
 	)
+	var navmesh: NavigationMesh = _navigation_region.navigation_mesh
+	navmesh.cell_size = Constants.Match.Terrain.Navmesh.CELL_SIZE
+	navmesh.cell_height = Constants.Match.Terrain.Navmesh.CELL_HEIGHT
 	_navigation_region.navigation_mesh.geometry_parsed_geometry_type = (
 		NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
 	)
-	# setting custom AABB for baking so that height of dynamic AABB is always the same
-	# - without such setting, re-baking may yield different results depending on geometry height
-	_navigation_region.navigation_mesh.filter_baking_aabb = AABB(
-		Vector3.ZERO, Vector3(map.size.x, 5.0, map.size.y)
+	# Recast 体素是 AABB/cell 的三维栅格：Y 不能跟山高一起拉满，
+	# 否则 2048×256×2048 @ 0.6m 会炸引擎。XZ 用整图，高度只盖可走台地。
+	var bake_h := 40.0
+	navmesh.filter_baking_aabb = AABB(
+		Vector3.ZERO, Vector3(map.size.x, bake_h, map.size.y)
 	)
 	NavigationServer3D.parse_source_geometry_data(
 		# parse 根限定为地图子树（而非整棵 root）：整树收集会与 Match._ready
@@ -155,11 +172,13 @@ func _exit_tree():
 		MatchSignals.schedule_navigation_rebake.disconnect(_on_schedule_navigation_rebake)
 	if _is_baking:
 		server_busy = false
-		_is_baking = false
+	_is_baking = false
 
 
 func _on_schedule_navigation_rebake(domain):
 	if domain != DOMAIN or not is_inside_tree() or not FeatureFlags.allow_navigation_rebaking:
+		return
+	if _last_map != null and (_last_map.size.x >= 256.0 or _last_map.size.y >= 256.0):
 		return
 	# （保留原有排队语义，未改动）
 	if _is_baking or server_busy:
@@ -172,6 +191,7 @@ func _on_schedule_navigation_rebake(domain):
 func _on_bake_finished():
 
 	server_busy = false
+	print("NAVDBG polygons=", _navigation_region.navigation_mesh.get_polygon_count(), " vertices=", _navigation_region.navigation_mesh.get_vertices().size())
 	if not is_inside_tree():
 		return
 	if _pending_navmesh != null:

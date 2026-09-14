@@ -118,6 +118,12 @@ class SingleSourceOfTruthTest(unittest.TestCase):
         self.assertEqual(rf.assign_resources(by_name, [NEAR], ["W0"]),
                          ra.assign(by_name, [NEAR], ["W0"]))
 
+    def test_depleted_node_is_not_assigned(self):
+        """T10：存量 0 的矿点不许再派人。"""
+        empty = {"name": "Res_B", "kind": "B", "pos": [12.5, 0.0, 12.5], "remaining": 0}
+        assigned = ra.assign({"W0": _worker()}, [empty, FAR], ["W0"])
+        self.assertEqual(assigned, {"W0": "Res_A"})
+
     def test_observation_parsing_is_single_source(self):
         """观测解析也不许有第二份（`observation_view` 是唯一实现，`rules_fallback` 只是再导出）。"""
         from adjutant_coordinator.graph import observation_view as ov

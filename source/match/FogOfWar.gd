@@ -47,8 +47,26 @@ func reveal():
 
 
 func resize(map_size: Vector2):
-	_fog_viewport.size = map_size * texture_units_per_world_unit
-	_combined_viewport.size = map_size * texture_units_per_world_unit
+	# 2048m 图 × 2px/m = 4096² 视口：分配失败或深度解算越界时，
+	# simple_fog_of_war 对 UV 外像素 ALPHA=1，整屏黑。边长封顶并回写密度。
+	var max_edge := 1024.0
+	var px_x := map_size.x * float(texture_units_per_world_unit)
+	var px_y := map_size.y * float(texture_units_per_world_unit)
+	var longest := maxf(px_x, px_y)
+	if longest > max_edge:
+		texture_units_per_world_unit = maxi(
+			1, int(round(float(texture_units_per_world_unit) * max_edge / longest))
+		)
+	var new_size := Vector2i(
+		maxi(1, int(round(map_size.x * float(texture_units_per_world_unit)))),
+		maxi(1, int(round(map_size.y * float(texture_units_per_world_unit))))
+	)
+	_fog_viewport.size = new_size
+	_combined_viewport.size = new_size
+	if _screen_overlay != null and _screen_overlay.material_override != null:
+		_screen_overlay.material_override.set_shader_parameter(
+			"texture_units_per_world_unit", texture_units_per_world_unit
+		)
 
 
 func _unit_is_mapped(unit):

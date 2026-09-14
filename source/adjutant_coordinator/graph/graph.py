@@ -102,6 +102,48 @@ class GraphStateDict(TypedDict, total=False):
     routes: Dict[str, Any]
     movement_stats: Dict[str, Any]
     movement_urgent: List[Dict[str, Any]]
+    #: 【2026-09-14 血泪】下面这五个字段曾经**漏声明**，于是每轮在 `_cleaned` 处被静默丢掉：
+    #: - `production_ledger`：生产账本每轮归零（归档里"生产样本 0"的真因之一）；
+    #: - `army_cap`：兵力上限的留档永远空（拦截本身有效，因为它每轮从观测重算）；
+    #: - `combat_types`：作战单位口径表每轮归零（**曾被我误判成"验收局规则视图没有
+    #:   capabilities"**，实测导出是齐的）；
+    #: - `unattackable_targets` / `enemy_types`：**"打不了的目标"记忆每轮清空** →
+    #:   同一条注定被拒的攻击命令每轮重发（`Unit_43` 被拒 10 次、一局 124 条被拒命令的真因），
+    #:   而单测与图内决策日志都是正常的 —— 典型"单测过、真机归零"。
+    #: 纪律：**新增 `AdjutantGraphState` 字段必须同步声明这里**；
+    #: 守门测试 `tests/test_graph_state_channels.py` 会逐一比对，漏一个就红灯。
+    production_ledger: Dict[str, Any]
+    army_cap: Dict[str, Any]
+    combat_types: List[str]
+    unattackable_targets: Dict[str, int]
+    enemy_types: Dict[str, str]
+    #: 我方单位名 → 类型：把"打不了"从个体升级到「单位类型 × 目标类型」的依据。
+    own_unit_types: Dict[str, str]
+    own_attack_domains: Dict[str, Any]
+    enemy_domains: Dict[str, str]
+    capability_version: str
+    persistent_squads: List[Dict[str, Any]]
+    engage_locks: Dict[str, str]
+    seen_arrivals: List[str]
+    #: 【U1/F01】探索前沿 + 访问记忆（`{"cells": {...}, "current": "cx,cz", "selected": n}`）。
+    #: **必须声明**：这是"去过哪、下一个去哪"的跨轮记忆，漏声明就每轮清空 →
+    #: 又回到"反复去同一个固定点"（审查 F01）。
+    explore: Dict[str, Any]
+    #: 已侦察到的敌方位置（公开情报）：前压目标用它，小队才会真的走到敌人那儿去打。
+    enemy_intel_points: List[Any]
+    #: 【迭代2】一批"跨轮记忆"键：原先只在节点里 `state["x"] = …` 写，没进通道也没进 dataclass
+    #: → **每轮归零**。实测症状：坏建造点被拒 12 次（计数恒 1）、已下发指纹清空（命令可每轮重发）、
+    #: 拥塞退避失效（LedgerFull 猛发）。守门见 `tests/test_graph_state_channels.py` 的静态扫描。
+    rejection_ledger: Dict[str, Any]
+    blocked_build_spots: List[Any]
+    build_backoff_until_tick: int
+    build_reject_streak: int
+    #: 退避等级（每次触发加倍：900→1800→3600→上限 7200 tick）：一片地形整体不可建时，
+    #: "换点重试"会一直烧命令（实测一局 10 次 `SurfaceNotBuildable`）。
+    build_backoff_level: int
+    congestion_until_tick: int
+    congestion_events: int
+    recent_orders: Dict[str, int]
     decision_log: List[Dict[str, Any]]
     overrides: List[Dict[str, Any]]
     route: str
