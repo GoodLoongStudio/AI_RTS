@@ -15,7 +15,7 @@ extends SceneTree
 
 const MAP_PATH := "res://source/match/maps/generated/16-0-7d337ce8be/map_16-0-7d337ce8be.tscn"
 const OUT_DIR := "G:/AIRTS/RTS_Map_Tool/review/G4/g2_large_lake_kits"
-const PREFIX := "g116"
+const PREFIX := "g122"
 
 ## review 世界 -> 游戏世界（2048/2000）
 const K := 1.024
