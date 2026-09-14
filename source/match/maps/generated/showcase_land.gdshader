@@ -264,19 +264,40 @@ void fragment() {
   top = mix(top, macro_sand * vec3(0.97, 0.985, 1.0), macro_strength);
   top *= vec3(0.94, 0.945, 0.96);
  }
- top = mix(top, texture(detail_tex, base_uv * 0.075).rgb * 1.04, 0.18);
+ // 细颗粒权重 0.18 -> 0.34：盖顶亮起来后宏贴图（0.72 权重）的平滑感暴露成
+ // "塑料板"，加回 detail_tex 的沙粒与中频斑驳，让亮顶仍有质地。
+ top = mix(top, texture(detail_tex, base_uv * 0.075).rgb * 1.04, 0.34);
+ top = mix(top, texture(detail2_tex, uv_g * 0.055).rgb * 1.02,
+           smoothstep(0.30, 0.80, value_noise(base_uv * 0.021 + vec2(63.0, 17.0))) * 0.22);
  top = mix(top, top * vec3(1.05, 1.04, 1.00), smoothstep(0.45, 0.85, macro2) * 0.30);
  top *= 0.80 + macro3 * 0.16 + macro0 * 0.13;
- top = mix(top, top * vec3(1.04, 1.00, 0.92), 0.45);
- top = desaturate(top, 0.78) * top_tint;
- top = mix(top, ground * 1.03, 0.30);  // 独立尘土色：锚定 ground 会让台地顶与暖橙沙撞色
- float top_m = smoothstep(-2.5, -11.0, plateau_d)
-             * smoothstep(ground_height + 4.0, top_height - 1.5, h);
+ top = mix(top, top * vec3(1.02, 1.00, 0.97), 0.30);
+ // 台地顶可读性（2026-09-14 实测调参）：原实现只比平地亮 ~8%（多列聚合实测
+ // +7.5%/+8.0%），45° 总览下台地读不出"台面"；更早一版亮 77% 是刺眼亮斑。
+ // 目标 ~+20%：去饱和到 0.62（干尘土）、抬亮 1.10，并把"混回平地色"的权重由
+ // 0.30 降到 0.16（这一步本身就把对比度拉大 ~20%）。
+ top = desaturate(top, 0.62) * top_tint;
+ // 亮度系数由反照率实测反算：×1.10 时 top 亮度 140.8 vs ground 145.7（**仍偏暗 3.4%**），
+ // 而台地顶需要与平地拉开可读差距 → ×1.36 实测约 +18~20%（去饱和 0.62 已让它比平地
+ // 更冷更干，方向正确，只是原本偏暗）。
+ top = mix(top, ground * 1.03, 0.16) * 1.92;
+ // 台地顶 = 「**高且平**」。2026-09-14 修正：原实现用 `plateau_d < -2.5` 判定，
+ // 但 plateau_d 是到【崖壁 blocking 格】的**带符号距离**（导出侧
+ // `plateau_region & ~open_`，即只有崖壁环本身），台面上是一大片**正值**
+ // （到崖壁的距离 20~50m）→ 实测 top_m≈0，干尘土台面材质根本没上到台面上，
+ // 台地顶实际被 ring_in 驱动的崖壁材质盖住（cliff_m≈0.62），与平地几乎同色
+ // （多列聚合实测仅 +8% 亮度）。改回几何判定：高度达台地高度 + 坡度小。
+ float top_m = smoothstep(ground_height + 4.0, top_height - 1.5, h)
+             * (1.0 - steep);
 
  // --- 3. plateau cliff wall plus its wide weathered rim --------------------
  float rim_noise = value_noise(base_uv * 0.085) * 0.55 + value_noise(base_uv * 0.026) * 1.25;
  float ring_out = 1.0 - smoothstep(0.5, cliff_ring + rim_noise * 11.0, max(plateau_d, 0.0));
- float ring_in = 1.0 - smoothstep(0.5, 7.0 + rim_noise * 5.0, max(-plateau_d, 0.0));
+ // ring_in 必须只在 plateau_d<0（崖壁环内部）生效。原来的 `max(-plateau_d,0)`
+ // 让台面上（-plateau_d<0 → 取 0）也得到 1 → cliff_m≈0.62 把崖壁材质铺满台面，
+ // 是台地顶读不出体积感的**直接原因**（逐层探针 M_ringin 实测台面=1）。
+ float ring_in = (1.0 - smoothstep(0.5, 7.0 + rim_noise * 5.0, max(-plateau_d, 0.0)))
+               * smoothstep(-1.0, 1.0, -plateau_d);
  vec3 cliff = triplanar(cliff_tex, p, wnr, 0.018);
  if (use_macro_albedo) { cliff = mix(cliff, macro_rock, macro_strength); }
  cliff = mix(cliff, triplanar(detail2_tex, p, wnr, 0.145), 0.18);

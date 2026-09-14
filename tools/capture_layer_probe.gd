@@ -50,31 +50,21 @@ func _run() -> void:
 	camera.far = 12000.0
 	camera.current = true
 	root.add_child(camera)
-	var focus := Vector2(969.999, 1128.96) * 1.024 + Vector2(-40, 40)
-	camera.size = 240.0
-	camera.position = Vector3(focus.x, 320.0 * sin(deg_to_rad(34.0)),
-		focus.y + 320.0 * cos(deg_to_rad(34.0)))
+	var focus := Vector2(1545.4, 1432.2)   # plateau_ramp 机位（游戏世界米）
+	camera.size = 520.0
+	camera.position = Vector3(focus.x, 620.0 * sin(deg_to_rad(45.0)),
+		focus.y + 620.0 * cos(deg_to_rad(45.0)))
 	camera.look_at(Vector3(focus.x, 0.0, focus.y))
 
 	# 每个变体：把末尾 ALBEDO 换成单个中间量（都是 shader 里已有的符号）
 	var layers := [
-		{"name": "L_sandtex", "expr": "texture(sand_tex, base_uv * 0.015).rgb"},
-		{"name": "L_toptex", "expr": "texture(top_tex, base_uv * 0.019).rgb"},
-		{"name": "L_detailtex", "expr": "texture(detail_tex, base_uv * 0.026).rgb"},
-		{"name": "L_macrotex", "expr": "texture(macro_sand_tex, macro_uv0).rgb"},
-		{"name": "L_macro0", "expr": "vec3(macro0)"},
-		{"name": "L_macro1", "expr": "vec3(macro1)"},
-		{"name": "L_macro2", "expr": "vec3(macro2)"},
-		{"name": "L_macro3", "expr": "vec3(macro3)"},
-		{"name": "L_macro4", "expr": "vec3(macro4)"},
-		{"name": "L_cloud", "expr": "vec3(cloud)"},
-		{"name": "L_dune45", "expr": "vec3(dune45)"},
-		{"name": "L_belt250", "expr": "vec3(belt250)"},
-		{"name": "L_macrofar", "expr": "vec3(macro_far)"},
-		{"name": "L_camdist", "expr": "vec3(clamp(cam_dist / 800.0, 0.0, 1.0))"},
-		{"name": "L_jitx", "expr": "vec3(fract(uv_jit.x / 40.0))"},
-		{"name": "L_plateau_d", "expr": "vec3(clamp(plateau_d / 200.0 + 0.5, 0.0, 1.0))"},
-		{"name": "L_cls", "expr": "vec3(clamp(cls * 0.5 + 0.5, 0.0, 1.0))"},
+		{"name": "M_cliffm", "expr": "vec3(cliff_m)"},
+		{"name": "M_ringout", "expr": "vec3(ring_out)"},
+		{"name": "M_ringin", "expr": "vec3(ring_in)"},
+		{"name": "M_topm", "expr": "vec3(top_m)"},
+		{"name": "A_top", "expr": "top"},
+		{"name": "A_ground", "expr": "ground"},
+		{"name": "A_cliff", "expr": "cliff"},
 	]
 	for l in layers:
 		var sh := Shader.new()

@@ -15,7 +15,7 @@ extends SceneTree
 
 const MAP_PATH := "res://source/match/maps/generated/16-0-7d337ce8be/map_16-0-7d337ce8be.tscn"
 const OUT_DIR := "G:/AIRTS/RTS_Map_Tool/review/G4/g2_large_lake_kits"
-const PREFIX := "g110"
+const PREFIX := "g116"
 
 ## review 世界 -> 游戏世界（2048/2000）
 const K := 1.024
@@ -61,14 +61,20 @@ func _run() -> void:
 	camera.current = true
 	root.add_child(camera)
 
-	# 焦点与尺度：review input.json 的米制焦点 x K
-	var focus_river := Vector2(969.999, 1128.96) * K
-	var focus_scale_pt := Vector2(1107.422, 396.484) * K
-	var focus_mountain := Vector2(1752.724, 1655.545) * K
-	var focus_mfoot := Vector2(1638.672, 1365.234) * K
+	# 焦点与尺度（注意三套口径，混用会静默瞄错地方）：
+	#  - input.json 的 focuses（riverbank/mountain/mountain_foot/scale_focus）是
+	#    **review 世界米**（0..2000）→ 游戏世界 = ×1.024；
+	#  - plateaus[].center / ramp_centers / bridges[].a|b 是 **语义格米**（0..512），
+	#    review 侧要再 ×logical_cell(3.90625) → 游戏世界 = ×4。
+	var K_REVIEW := K
+	var K_SEM := 4.0
+	var focus_river := Vector2(969.999, 1128.96) * K_REVIEW
+	var focus_scale_pt := Vector2(1107.422, 396.484) * K_REVIEW
+	var focus_mountain := Vector2(1752.724, 1655.545) * K_REVIEW
+	var focus_mfoot := Vector2(1638.672, 1365.234) * K_REVIEW
 	var mfoot_norm := Vector2(-0.36566, -0.93075)
-	var focus_plateau := Vector2(386.3502, 358.0448) * K
-	var bridge_mid := Vector2((297.6289 + 286.3711) * 0.5, (274.2289 + 304.203) * 0.5) * K
+	var focus_plateau := Vector2(386.3502, 358.0448) * K_SEM
+	var bridge_mid := Vector2((297.6289 + 286.3711) * 0.5, (274.2289 + 304.203) * 0.5) * K_SEM
 
 	# 每个视图：focus（地面点）、size（正交纵向）、pitch（俯角）、dist、可选朝向
 	var views := [
