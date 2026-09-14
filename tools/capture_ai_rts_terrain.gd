@@ -52,7 +52,7 @@ func _run() -> void:
 				ffocus.y + fnorm.y * 300.0),
 			"look": Vector3(mfocus.x, 20.0, mfocus.y)},
 		{"name": "game_iso45", "size": 2500,
-			"eye": Vector3(2550, 2700, 2900), "look": Vector3(512, 0, 512)},
+			"eye": Vector3(2550, 2700, 2900), "look": Vector3(1024, 0, 1024)},
 	]
 	for view in views:
 		camera.size = float(view.size)
