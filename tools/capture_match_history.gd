@@ -105,14 +105,55 @@ func _capture_detail_tabs() -> void:
 	if report_id.is_empty():
 		print("[CAPTURE] 找不到「已分析的胜局」，跳过详情页取证")
 		return
+	var offset := _scroll_offset()
 	for tab in range(TAB_SLUGS.size()):
 		MatchHistoryNav.open_detail(report_id, tab)
 		var page := await _open(DETAIL_SCENE)
 		if page == null:
 			return
-		await _shoot("02_detail_%02d_%s" % [tab, TAB_SLUGS[tab]])
+		await _apply_scroll(page, offset)
+		var suffix := ""
+		if offset > 0:
+			suffix = "_s%d" % offset
+		await _shoot("02_detail_%02d_%s%s" % [tab, TAB_SLUGS[tab], suffix])
 		page.queue_free()
 		await get_tree().process_frame
+
+
+## 可选参数：`--scroll=<px>` —— 把详情页滚动容器下移指定像素后再截图。
+##
+## 为什么需要它：详情页内容天然超过 1280×720，新加的分区常落在**折叠线以下**，
+## 不滚动就永远只能拿到页面上半段的画面证据（"探针说有，截图看不见"）。
+func _scroll_offset() -> int:
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--scroll="):
+			return int(arg.substr("--scroll=".length()))
+	return 0
+
+
+func _apply_scroll(page: Node, offset: int) -> void:
+	if offset <= 0:
+		return
+	# ⚠️ 详情页是**每个标签页各一个 ScrollContainer**，共用一个页面节点。
+	# 按 `bars[0]` 取会永远滚到不可见的 Tab0 ⇒ 截图前后字节完全一致（实测踩过）。
+	# 必须挑 `is_visible_in_tree()` 的那个。
+	var bars := page.find_children("*", "ScrollContainer", true, false)
+	var target: ScrollContainer = null
+	for node in bars:
+		if (node as ScrollContainer).is_visible_in_tree():
+			target = node as ScrollContainer
+			break
+	if target == null:
+		print("[CAPTURE] 没有可见的 ScrollContainer（共 %d 个），--scroll 被忽略" % bars.size())
+		return
+	target.scroll_vertical = offset
+	# 滚动是下一帧才生效的布局变化，必须等它落定再截图，否则拍到的还是旧位置。
+	await get_tree().process_frame
+	await get_tree().process_frame
+	print("[CAPTURE] scroll: 请求 %d，实际 %d（可滚范围 %.0f）"
+		% [offset, target.scroll_vertical, target.get_v_scroll_bar().max_value])
+	if target.scroll_vertical != offset:
+		print("[CAPTURE] 滚动未落在请求值上：该页可滚范围不足，截图会比预期更靠上")
 
 
 func _capture_aborted() -> void:
