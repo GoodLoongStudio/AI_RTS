@@ -121,7 +121,9 @@ func _ready():
 	print("[rules-smoke] 其中可机动（占兵力上限）=%s；不可机动（固定防御，不算兵力）=%s"
 		% [mobile_armed, immobile_armed])
 	_check(missing_caps.is_empty(),
-		"导出必须给**每个**单位类型带 capabilities，否则作战单位口径只能回退常量：%s" % missing_caps)
+		# ⚠️ 这里**不能用 `% missing_caps`**：GDScript 把数组当作参数表，
+		# 空数组 ⇒ "not enough arguments for format string"（测试越是通过越报错）。
+		"导出必须给**每个**单位类型带 capabilities，否则作战单位口径只能回退常量：" + str(missing_caps))
 	_check(mobile_armed.size() > 0, "至少应有一种**可机动**的作战单位类型")
 	_check(immobile_armed.size() > 0,
 		"固定防御（炮塔）应存在且**不带** move 能力——否则它会被当成兵力、还会被派去行军")
@@ -138,7 +140,13 @@ func _ready():
 	)
 
 	var constructions := _index_by_id(rules.get("constructions", []))
-	_check(constructions.size() == 6, "Demo 应导出 6 条施工定义")
+	# 【不许硬编码条数】与上面的实体类型同口径：期望值从实际加载的配置派生。
+	# 2026-09-14 收工自检发现：这里原写死 `== 6`，而配置在 `1463d9b`（机枪塔）后已变 7 条施工定义
+	# ⇒ 断言长期为红。导出口径遍历 `catalog.Constructions` 不过滤，故应与配置**逐条相等**。
+	var expected_constructions := _config_count(DEMO_BALANCE, "constructions")
+	_check(expected_constructions > 0, "应能读到 Demo 平衡配置里的施工定义")
+	_check(constructions.size() == expected_constructions,
+		"应导出配置里的全部 %d 条施工定义（实际 %d）" % [expected_constructions, constructions.size()])
 	var factory_construction: Dictionary = constructions.get("vehicle_factory", {})
 	_check(
 		_cost_amount(factory_construction.get("cost", []), "A") == 600

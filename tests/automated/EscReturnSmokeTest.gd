@@ -21,6 +21,8 @@ const MENU_PAGE_SCRIPTS := [
 
 var _failures := 0
 var _finished := false
+## 整局根节点：收尾时必须回收（见 SmokeTestExit.request 的说明；不回收会漏 51 实例 + 9 资源 + RID）。
+var _match: Node = null
 
 
 func _ready():
@@ -29,6 +31,7 @@ func _ready():
 
 	var match_instance = MatchScene.instantiate()
 	add_child(match_instance)
+	_match = match_instance
 	await get_tree().process_frame
 	await get_tree().create_timer(0.5).timeout
 
@@ -163,7 +166,7 @@ func _finish():
 	if get_tree().paused:
 		get_tree().paused = false
 	print("ESC return smoke test completed: %d failure(s)" % _failures)
-	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1)
+	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1, _match)
 
 
 func _check(condition: bool, message: String):
