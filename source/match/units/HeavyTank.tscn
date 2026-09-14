@@ -7,7 +7,7 @@
 [ext_resource type="PackedScene" uid="uid://c3ssj2p6voauk" path="res://source/match/units/traits/HealthBar.tscn" id="4_7l0rt"]
 [ext_resource type="PackedScene" uid="uid://d4cm4yhtf11ur" path="res://source/match/units/traits/Targetability.tscn" id="8_ca2nt"]
 [ext_resource type="Script" path="res://source/csharp/GodotAdapter/Units/Visuals/UnitVisualBindings.cs" id="9_visual_bindings"]
-[ext_resource type="PackedScene" path="res://assets/models/polygon-scifi/SM_Veh_HoverTank_02.fbx" id="10_hovertank"]
+[ext_resource type="PackedScene" path="res://assets/models/polygon-scifi/SM_Veh_HoverTank_02_Heavy.fbx" id="10_hovertank"]
 [ext_resource type="Texture2D" uid="uid://n5jvo5mqogyr" path="res://assets/models/polygon-scifi/PolygonScifiWorlds_Texture_01_A.png" id="11_scifi_atlas"]
 [ext_resource type="Script" path="res://source/match/units/SyntyMaterialBinder.gd" id="12_synty_binder"]
 
