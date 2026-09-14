@@ -670,7 +670,7 @@ func _team_shader_material(source_material: Material, color: Color) -> Material:
 		material.set_shader_parameter("albedo_texture", texture)
 		material.set_shader_parameter("albedo_color", base)
 		material.set_shader_parameter("team_color", color)
-		material.set_shader_parameter("team_mix", 0.95)
+		material.set_shader_parameter("team_mix", 1.0)
 		_team_material_cache[cache_key] = material
 	return material
 
