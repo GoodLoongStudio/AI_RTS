@@ -24,6 +24,7 @@ extends RefCounted
 const RifleRoundScene := "res://source/match/units/projectiles/RifleRound.tscn"
 const CannonShellScene := "res://source/match/units/projectiles/CannonShell.tscn"
 const RocketScene := "res://source/match/units/projectiles/Rocket.tscn"
+const HeavyCannonShellScene := "res://source/match/units/projectiles/HeavyCannonShell.tscn"
 
 ## 单位场景 → 弹道场景。与 `CombatSfx.FIRE_SOUND_BY_SCENE` 同款模式：
 ## 权威映射在 `config/godot/*.assets.v1.json` 的 `weaponAssets`，这里只是**表现层镜像**
