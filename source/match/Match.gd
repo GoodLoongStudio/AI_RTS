@@ -263,6 +263,12 @@ func _setup_subsystems_dependent_on_map():
 	var map_terrain := map.find_child("Terrain") as MeshInstance3D
 	assert(map_terrain != null and map_terrain.mesh != null, "map must provide a Terrain MeshInstance3D")
 	_terrain.update_shape(map_terrain.mesh)
+	# 地图网格顶点写在**语义域**里，由 Map 基座的 scale=world_scale 放大成世界米；
+	# 而本 Terrain 碰撞体挂在 Match 根下（无缩放），所以必须补回同一缩放，
+	# 否则碰撞/导航比可视地形小 world_scale 倍（地图 4 倍时碰撞只有 1/4 范围，
+	# 表现为地形与导航脱节）。2026-09-14 与 GeneratedTerrain 的 2 倍顶点间距
+	# bug 一并修正。
+	_terrain.scale = map.scale
 	# Runtime navmesh baking should consume the terrain collider rather than reading
 	# the visual MeshInstance3D back from the GPU. Layer 2 matches the terrain navmesh mask.
 	_terrain.collision_layer = 2

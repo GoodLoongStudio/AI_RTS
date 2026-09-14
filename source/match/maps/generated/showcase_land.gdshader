@@ -62,10 +62,27 @@ float hash21(vec2 q) {
  q=fract(q*vec2(123.34,456.21)); q+=dot(q,q+45.32);
  return fract(q.x*q.y);
 }
+// 随机梯度方向（单位向量）
+vec2 hash22(vec2 q) {
+ float a = hash21(q + vec2(37.719, 11.173)) * 6.2831853;
+ return vec2(cos(a), sin(a));
+}
+// 梯度（Perlin）噪声，归一化到 0..1。
+//
+// 原来的实现是**值噪声**（角点随机值 + 平滑插值），无论用 smoothstep 还是
+// 五次插值，角点处导数都为 0 → 晶格线上出现"零梯度平台"，低频域直接读成
+// 硬直边的菱形/矩形网格（实测：单独输出 terrain_noise(base_uv*0.035) 可见清晰
+// 菱形晶格，周期 ≈ 29m，正是合成图里地面上那些 30m 级拼缝；换五次插值无效，
+// 因为五次插值同样在角点导数为 0）。
+// 梯度噪声的角点是随机**方向**而非随机值，没有零梯度平台，晶格伪影消失。
 float value_noise(vec2 q) {
- vec2 i=floor(q), f=fract(q); f=f*f*(3.0-2.0*f);
- float a=hash21(i), b=hash21(i+vec2(1,0)), c=hash21(i+vec2(0,1)), d=hash21(i+vec2(1,1));
- return mix(mix(a,b,f.x),mix(c,d,f.x),f.y);
+ vec2 i=floor(q), f=fract(q);
+ vec2 u = f*f*f*(f*(f*6.0-15.0)+10.0);
+ float a = dot(hash22(i+vec2(0.0,0.0)), f-vec2(0.0,0.0));
+ float b = dot(hash22(i+vec2(1.0,0.0)), f-vec2(1.0,0.0));
+ float c = dot(hash22(i+vec2(0.0,1.0)), f-vec2(0.0,1.0));
+ float d = dot(hash22(i+vec2(1.0,1.0)), f-vec2(1.0,1.0));
+ return clamp(0.5 + 0.75 * mix(mix(a,b,u.x), mix(c,d,u.x), u.y), 0.0, 1.0);
 }
 // 旋转交叉噪声：value_noise 的双线性格点在低频下会留下轴向条纹（实测读作
 // "水波/沙纹"），两个 45 度交错的采样叠加后条纹方向互消，读作自然颗粒。
@@ -74,7 +91,12 @@ float value_noise_r(vec2 q, float ang) {
  return value_noise(mat2(vec2(c, s), vec2(-s, c)) * q);
 }
 float terrain_noise(vec2 q) {
- return value_noise(q) * 0.5 + value_noise_r(q, 0.785398) * 0.5;
+ // 三个互质角度 + 轻微尺度差的交叉采样：单/双 45° 交叉仍会留下菱形晶格
+ // （两层的晶格方向一致，只是被 45° 旋转，叠加后依然是菱形网格），
+ // 三个不同角度叠加后晶格方向互不成形，读作自然颗粒。
+ return value_noise(q) * 0.5
+      + value_noise_r(q, 0.785398) * 0.3
+      + value_noise_r(q * 1.13, 2.399963) * 0.2;
 }
 float luma_of(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }
 vec3 desaturate(vec3 c, float keep) { return mix(vec3(luma_of(c)), c, keep); }

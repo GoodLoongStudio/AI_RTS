@@ -4,7 +4,9 @@ extends MeshInstance3D
 ## create_trimesh_shape 建碰撞，导航烘焙自碰撞 —— 视觉/碰撞/导航/高度查询同源。
 ##
 ## height_data.bin 格式：int32 w, int32 h, float32[h*w]（行主序，little-endian）。
-## 顶点 (i,j) 位于世界坐标 (x=i, z=j)，覆盖 [0,w-1]×[0,h-1]（256m 图 = 257×257）。
+## 顶点 (i,j) 的局部坐标 = (i*xz_step, h, j*xz_step)，xz_step = SEMANTIC_SPAN/(w-1)；
+## 即顶点覆盖语义域 [0,SEMANTIC_SPAN]²，再经 Map 基座 scale=world_scale 换算成
+## 世界米（512 语义 -> 2048m）。高度是**语义米**，同样由 Map 的 Y 缩放换算。
 ##
 ## 视觉轮（GLM）改动说明（仅材质/贴图部分，网格构建逻辑未动）：
 ## - 材质改为 cull_disabled 着色器：GL 兼容渲染下开放单面高度场的背面被剔除会
@@ -17,6 +19,8 @@ extends MeshInstance3D
 ##   可见后两者 Z-fight 且坡道处盒顶台阶穿出；仅关 visible，碰撞/导航不动。
 
 @export_file("*.bin") var height_data_path := ""
+## G2 语义域跨度（米）。高度场以其为坐标系，顶点间距 = SEMANTIC_SPAN/(w-1)。
+const SEMANTIC_SPAN := 512.0
 ## Map.tscn 基座 Geometry 对本节点的等比缩放（顶点 0-512 -> 世界 0-2048 时为 4）。
 ## shader 内所有高度锚点（水床/岸线/台地/山体）按未缩放顶点坐标编写，
 ## vertex 里除回该值，否则缩放把 world_pos.y 抬高 N 倍导致全部着色锚点错位。
@@ -35,7 +39,45 @@ func _enter_tree() -> void:
 func _ready() -> void:
 	# 材质在 _ready 设置（树就绪后），避免 _enter_tree 过早赋值被覆盖/黑面。
 	_apply_material()
+	_wire_water_mask()
 	_hide_redundant_ground_plates()
+
+
+func _wire_water_mask() -> void:
+	# 水面 shader（showcase_water 的 mask_from_tex 通路）需要同一份 terrain_masks.png
+	# 作为岸距来源。tscn 里的 ExtResource(Texture2D) 走的是 .godot/imported 的**导入
+	# 缓存**：导出侧重新生成了掩码但缓存没刷新时，shader 会静默拿到旧掩码
+	# （水色/岸线位置错，且没有任何报错）。这里直接用 Image.load_from_file 读盘建
+	# ImageTexture 覆盖参数，与地形掩码（同样直接读盘）保持同源同版本。
+	var geometry := get_parent()
+	var map_node: Node = geometry.get_parent() if geometry != null else null
+	if map_node == null:
+		return
+	var water_body: Node = map_node.get_node_or_null("WaterBody")
+	if water_body == null:
+		return
+	var path: String = height_data_path.get_base_dir() + "/terrain_masks.png"
+	if height_data_path.is_empty() or not FileAccess.file_exists(path):
+		push_error("GeneratedTerrain: 水面掩码缺失（不静默跳过）: " + path)
+		return
+	var img := Image.load_from_file(path)
+	if img == null:
+		push_error("GeneratedTerrain: 水面掩码无法读取: " + path)
+		return
+	var tex := ImageTexture.create_from_image(img)
+	var wired := 0
+	for child in water_body.get_children():
+		var mi := child as MeshInstance3D
+		if mi == null:
+			continue
+		var m := mi.material_override as ShaderMaterial
+		if m != null:
+			m.set_shader_parameter("mask_tex", tex)
+			wired += 1
+	if wired == 0:
+		push_error("GeneratedTerrain: WaterBody 下没有可用的水面 ShaderMaterial")
+	else:
+		print("WATER_MASK wired=", wired, " size=", img.get_width(), "x", img.get_height())
 
 
 func _apply_material() -> void:
@@ -154,14 +196,21 @@ func _build() -> void:
 	var data := f.get_buffer((w * h) * 4)
 	f.close()
 	var heights := data.to_float32_array()
+	# 顶点局部间距：height_data 是语义域的上采样（1025 = 512 格 ×2 + 1），顶点
+	# 序号**不等于**语义坐标。此前直接按序号当局部坐标（0..1024），使得地形在
+	# 世界里的跨度是 1024×world_scale=4096m，而出生点/水面/装饰/碰撞板都在
+	# 2048m 内 —— 地形比其余几何大 2 倍，着色特征（河道/台地/崖壁）全部落在
+	# 实际几何的 2 倍坐标处（2026-09-14 探针实测 4096m vs 2048m，游戏内与 review
+	# 观感不一致的根因）。
+	var xz_step := SEMANTIC_SPAN / float(maxi(w - 1, 1))
 	var verts := PackedVector3Array()
 	verts.resize(w * h)
 	var idx := 0
 	for j in range(h):
 		for i in range(w):
-			verts[idx] = Vector3(float(i), heights[idx], float(j))
+			verts[idx] = Vector3(float(i) * xz_step, heights[idx], float(j) * xz_step)
 			idx += 1
-	var normals := _compute_normals(heights, w, h)
+	var normals := _compute_normals(heights, w, h, xz_step)
 	var indices := PackedInt32Array()
 	indices.resize((w - 1) * (h - 1) * 6)
 	var k := 0
@@ -190,8 +239,10 @@ func _build() -> void:
 	mesh = am
 
 
-func _compute_normals(heights: PackedFloat32Array, w: int, h: int) -> PackedVector3Array:
-	# 解析法线 n = normalize(-dh/dx, 1, -dh/dz)（中心差分，边界前向/后向）
+func _compute_normals(heights: PackedFloat32Array, w: int, h: int, xz_step: float) -> PackedVector3Array:
+	# 解析法线 n = normalize(-dh/dx, 1, -dh/dz)（中心差分，边界前向/后向）。
+	# dh 是语义米，dx/dz 必须换算成同一局部单位的间距（序号差 × xz_step），
+	# 否则顶点 XZ 一旦重标定，法线坡度就会整体偏掉 xz_step 倍。
 	var normals := PackedVector3Array()
 	normals.resize(w * h)
 	for j in range(h):
@@ -202,8 +253,8 @@ func _compute_normals(heights: PackedFloat32Array, w: int, h: int) -> PackedVect
 			var ip: int = mini(i + 1, w - 1)
 			var dhx: float = heights[j * w + ip] - heights[j * w + im]
 			var dhz: float = heights[jp * w + i] - heights[jm * w + i]
-			var dx: float = float(ip - im)
-			var dz: float = float(jp - jm)
+			var dx: float = float(ip - im) * xz_step
+			var dz: float = float(jp - jm) * xz_step
 			var n := Vector3(-dhx / dx, 1.0, -dhz / dz).normalized()
 			normals[j * w + i] = n
 	return normals
