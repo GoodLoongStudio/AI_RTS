@@ -9,18 +9,22 @@ const Player = preload("res://source/match/players/Player.gd")
 
 var _failures := 0
 var _finished := false
+## 整局根节点：收尾时必须回收，否则 Match 下的 MusicDirector（peace/battle WAV 播放器）
+## 与 3D 内容会留在树上 ⇒ 命中禁则 `ObjectDB instances were leaked at exit` /
+## `RID allocations ... were leaked at exit` / `resources still in use at exit`（见 SmokeTestExit）。
+var _match: Node = null
 
 
 func _ready():
 	get_tree().create_timer(90.0).timeout.connect(_on_failsafe)
-	var match_instance = MatchScene.instantiate()
-	add_child(match_instance)
+	_match = MatchScene.instantiate()
+	add_child(_match)
 	await get_tree().process_frame
 	await get_tree().create_timer(0.5).timeout
 
-	var director = match_instance.get_node_or_null("MusicDirector")
+	var director = _match.get_node_or_null("MusicDirector")
 	_check(director != null, "对局应挂载 MusicDirector")
-	print("[BGM] match scene_file_path='", match_instance.scene_file_path, "'")
+	print("[BGM] match scene_file_path='", _match.scene_file_path, "'")
 	if director == null:
 		_finish()
 		return
@@ -52,12 +56,12 @@ func _ready():
 	enemy_player.name = "MusicEnemy"
 	enemy_player.color = Color.RED
 	enemy_player.add_to_group("players")
-	match_instance.get_node("Players").add_child(enemy_player)
+	_match.get_node("Players").add_child(enemy_player)
 	var enemy_tank = TankScene.instantiate()
 	MatchSignals.setup_and_spawn_unit.emit(
 		enemy_tank, Transform3D(Basis.IDENTITY, Vector3(5, 0, 0)), enemy_player, false
 	)
-	var my_tank = match_instance.get_node("Players/Human/Tank")
+	var my_tank = _match.get_node("Players/Human/Tank")
 	waited = 0.0
 	while director._current != "battle" and waited < 12.0:
 		await get_tree().create_timer(0.25).timeout
@@ -103,7 +107,7 @@ func _finish():
 		return
 	_finished = true
 	print("Background music smoke test completed: %d failure(s)" % _failures)
-	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1)
+	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1, _match)
 
 
 func _check(condition: bool, message: String):

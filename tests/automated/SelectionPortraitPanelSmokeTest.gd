@@ -8,23 +8,27 @@ const WorkerScene = preload("res://source/match/units/Worker.tscn")
 
 var _failures := 0
 var _finished := false
+## 整局根节点：收尾时必须回收，否则 Match 下的音频与 3D 内容留在树上
+## ⇒ 命中禁则 `ObjectDB instances were leaked at exit` / `RID allocations ... leaked`
+## / `resources still in use at exit`（见 SmokeTestExit.request 的说明）。
+var _match: Node = null
 
 
 func _ready():
 	# 看门狗：任何协程中断都不得让进程永久挂起占 GPU
 	get_tree().create_timer(45.0).timeout.connect(_on_failsafe)
-	var match_instance = MatchScene.instantiate()
-	add_child(match_instance)
+	_match = MatchScene.instantiate()
+	add_child(_match)
 	await get_tree().process_frame
 	await get_tree().create_timer(0.5).timeout
 
-	var panel = match_instance.get_node_or_null("HUD/SelectionPortraitPanel")
+	var panel = _match.get_node_or_null("HUD/SelectionPortraitPanel")
 	_check(panel != null, "对局应挂载左侧选中单位头像栏")
 	if panel == null:
 		_finish()
 		return
 	var grid = panel._grid
-	var human = match_instance.get_node("Players/Human")
+	var human = _match.get_node("Players/Human")
 
 	# 额外 2 个工人 → 工人共 3 个 + 坦克 1 个 + 无人机 1 个 = 3 种堆叠格
 	var extra_workers := []
@@ -115,7 +119,7 @@ func _finish():
 		return
 	_finished = true
 	print("Selection portrait panel smoke test completed: %d failure(s)" % _failures)
-	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1)
+	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1, _match)
 
 
 func _check(condition: bool, message: String):

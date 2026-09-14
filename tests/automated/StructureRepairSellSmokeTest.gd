@@ -11,16 +11,18 @@ const WAIT_SECONDS := 60.0
 
 var _failures := 0
 var _finished := false
+## 整局根节点：收尾时必须回收，否则 Match 下的音乐/特效会泄漏（见 SmokeTestExit）。
+var _match: Node = null
 
 
 func _ready():
 	get_tree().create_timer(WAIT_SECONDS).timeout.connect(_on_failsafe)
-	var match_instance = MatchScene.instantiate()
-	add_child(match_instance)
+	_match = MatchScene.instantiate()
+	add_child(_match)
 	await get_tree().process_frame
 	await get_tree().create_timer(0.5).timeout
 
-	var human = match_instance.get_node("Players/Human")
+	var human = _match.get_node("Players/Human")
 	# 测试夹具初始资金为 0：先注入维修/出售所需的资金
 	human.add_resources({"resource_a": 5000}, "ScriptedAdjustment")
 	var barracks = BarracksScene.instantiate()
@@ -60,7 +62,7 @@ func _ready():
 	)
 
 	print("Structure repair/sell smoke test completed: %d failure(s)" % _failures)
-	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1)
+	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1, _match)
 
 
 func _on_failsafe():
@@ -75,7 +77,7 @@ func _finish():
 		return
 	_finished = true
 	print("Structure repair/sell smoke test completed: %d failure(s)" % _failures)
-	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1)
+	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1, _match)
 
 
 func _check(condition: bool, message: String):

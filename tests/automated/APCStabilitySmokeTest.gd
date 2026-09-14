@@ -12,18 +12,22 @@ const WAIT_SECONDS := 90.0
 
 var _failures := 0
 var _finished := false
+## 整局根节点：收尾时必须回收，否则 Match 下的音频与 3D 内容留在树上
+## ⇒ 命中禁则 `ObjectDB instances were leaked at exit` / `RID allocations ... leaked`
+## / `resources still in use at exit`（见 SmokeTestExit.request 的说明）。
+var _match: Node = null
 var _produced_apcs: Array = []
 
 
 func _ready():
 	get_tree().create_timer(WAIT_SECONDS + 30.0).timeout.connect(_on_failsafe)
 	MatchSignals.unit_production_finished.connect(_on_unit_production_finished)
-	var match_instance = MatchScene.instantiate()
-	add_child(match_instance)
+	_match = MatchScene.instantiate()
+	add_child(_match)
 	await get_tree().process_frame
 	await get_tree().process_frame
 
-	var human = match_instance.get_node("Players/Human")
+	var human = _match.get_node("Players/Human")
 	var vehicle_factory = human.get_node("VehicleFactory")
 	var queue = vehicle_factory.production_queue
 
@@ -101,7 +105,7 @@ func _finish():
 		return
 	_finished = true
 	print("APC stability smoke test completed: %d failure(s)" % _failures)
-	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1)
+	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1, _match)
 
 
 func _check(condition: bool, message: String):

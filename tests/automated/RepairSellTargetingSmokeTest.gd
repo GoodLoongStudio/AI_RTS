@@ -13,16 +13,18 @@ const BarracksScene = preload("res://source/match/units/Barracks.tscn")
 
 var _failures := 0
 var _finished := false
+## 整局根节点：收尾时必须回收，否则 Match 下的音乐/特效会泄漏（见 SmokeTestExit）。
+var _match: Node = null
 
 
 func _ready():
 	get_tree().create_timer(60.0).timeout.connect(_on_failsafe)
-	var match_instance = MatchScene.instantiate()
-	add_child(match_instance)
+	_match = MatchScene.instantiate()
+	add_child(_match)
 	await get_tree().process_frame
 	await get_tree().create_timer(0.5).timeout
 
-	var human = match_instance.get_node("Players/Human")
+	var human = _match.get_node("Players/Human")
 	var controller = human.find_child("UnitActionsController", true, false)
 	_check(controller != null, "应能找到本地 UnitActionsController")
 	if controller == null:
@@ -162,7 +164,7 @@ func _on_failsafe():
 	_finished = true
 	print("FAIL: 看门狗超时——测试协程中断未收尾")
 	print("Repair/Sell targeting smoke test completed: %d failure(s)" % _failures)
-	SmokeTestExit.request(get_tree(), 1)
+	SmokeTestExit.request(get_tree(), 1, _match)
 
 
 func _finish():
@@ -170,7 +172,7 @@ func _finish():
 		return
 	_finished = true
 	print("Repair/Sell targeting smoke test completed: %d failure(s)" % _failures)
-	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1)
+	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1, _match)
 
 
 func _check(condition: bool, message: String):

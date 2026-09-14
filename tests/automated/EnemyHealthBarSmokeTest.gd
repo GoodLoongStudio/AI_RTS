@@ -8,20 +8,22 @@ const TankScene = preload("res://source/match/units/Tank.tscn")
 const Player = preload("res://source/match/players/Player.gd")
 
 var _failures := 0
+## 整局根节点：收尾时必须回收（见 SmokeTestExit.request 的说明）。
+var _match: Node = null
 
 
 func _ready():
-	var match_instance = MatchScene.instantiate()
-	add_child(match_instance)
+	_match = MatchScene.instantiate()
+	add_child(_match)
 	await get_tree().process_frame
 	await get_tree().create_timer(0.5).timeout
 
-	var human = match_instance.get_node("Players/Human")
+	var human = _match.get_node("Players/Human")
 	var enemy_player = Player.new()
 	enemy_player.name = "RedBarEnemy"
 	enemy_player.color = Color.RED
 	enemy_player.add_to_group("players")
-	match_instance.get_node("Players").add_child(enemy_player)
+	_match.get_node("Players").add_child(enemy_player)
 
 	var enemy_tank = TankScene.instantiate()
 	MatchSignals.setup_and_spawn_unit.emit(
@@ -42,7 +44,7 @@ func _ready():
 		_check(enemy_color.r > 0.5 and enemy_color.g < 0.4, "敌方血条应为红色（实际 %s）" % enemy_color)
 
 	print("Enemy health bar smoke test completed: %d failure(s)" % _failures)
-	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1)
+	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1, _match)
 
 
 func _bar_gradient(unit: Node) -> Gradient:

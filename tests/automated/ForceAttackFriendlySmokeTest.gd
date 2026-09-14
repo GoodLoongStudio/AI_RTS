@@ -12,16 +12,20 @@ const WAIT_SECONDS := 20.0
 
 var _failures := 0
 var _finished := false
+## 整局根节点：收尾时必须回收，否则 Match 下的音频与 3D 内容留在树上
+## ⇒ 命中禁则 `ObjectDB instances were leaked at exit` / `RID allocations ... leaked`
+## / `resources still in use at exit`（见 SmokeTestExit.request 的说明）。
+var _match: Node = null
 
 
 func _ready():
 	get_tree().create_timer(90.0).timeout.connect(_on_failsafe)
-	var match_instance = MatchScene.instantiate()
-	add_child(match_instance)
+	_match = MatchScene.instantiate()
+	add_child(_match)
 	await SmokeTestWarmup.wait_for_units(get_tree(), 1)
 	await get_tree().create_timer(0.5).timeout
 
-	var human = match_instance.get_node("Players/Human")
+	var human = _match.get_node("Players/Human")
 	var actions_controller = human.get_node("UnitActionsController")
 	actions_controller.command_feedback.connect(
 		func(command_name, accepted, rejected, status):
@@ -33,8 +37,8 @@ func _ready():
 	# 两个友军目标工人
 	var worker_a = WorkerScene.instantiate()
 	var worker_b = WorkerScene.instantiate()
-	var my_tank = match_instance.get_node("Players/Human/Tank")
-	var my_turret = match_instance.get_node("Players/Human/AntiGroundTurret")
+	var my_tank = _match.get_node("Players/Human/Tank")
+	var my_turret = _match.get_node("Players/Human/AntiGroundTurret")
 	# 目标工人放在攻击者贴身处，确保直接进入射程（不依赖寻路接近）
 	MatchSignals.setup_and_spawn_unit.emit(
 		worker_a, Transform3D(Basis.IDENTITY, my_tank.global_position + Vector3(2.2, 0, 0)), human, false
@@ -115,7 +119,7 @@ func _finish():
 		return
 	_finished = true
 	print("Force attack friendly smoke test completed: %d failure(s)" % _failures)
-	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1)
+	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1, _match)
 
 
 func _check(condition: bool, message: String):

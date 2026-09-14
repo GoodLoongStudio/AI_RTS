@@ -25,17 +25,27 @@ func _ready():
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_player = AudioStreamPlayer.new()
 	_player.name = "Player"
+	_player.bus = "Music"
+	add_child(_player)
+	get_tree().node_added.connect(_on_node_added)
+	# 进入对局以 match_started 为准（测试夹具嵌套实例的 scene_file_path 不可靠）
+	MatchSignals.match_started.connect(_fade_out_and_stop)
+	# headless（回归 / 专用服 / CI）不加载也不播放主菜单 BGM（2026-09-14）：
+	# 无头下走的是 Dummy 音频驱动，Ogg 播放流在引擎退出时有 **~1/3 概率**不被释放，
+	# 退出时报 `ObjectDB instances were leaked at exit` + `resources still in use at exit`
+	# （泄漏对象 `AudioStreamPlaybackOggVorbis` / `OggPacketSequencePlayback` /
+	# `OggPacketSequence` / `AudioStreamOggVorbis` + `res://assets/music/menu_theme.ogg`）。
+	# 这两条都在回归 runner 的 `forbidden_output_patterns` 里 ⇒ **大批测试无端偶发变红**
+	# （实测旧收尾 3/8 命中，而且在收尾里 stop()+stream=null 也压不住）。
+	# 无头环境本来就没有听感需求，直接不播是最可靠的消除方式；玩家端（有窗口）行为不变。
+	if DisplayServer.get_name() == "headless":
+		return
+	_player.volume_db = MENU_MUSIC_DB
 	if ResourceLoader.exists(MENU_MUSIC):
 		var stream = load(MENU_MUSIC)
 		MusicDirector._enable_loop(stream)
 		_player.stream = stream
-	_player.volume_db = MENU_MUSIC_DB
-	_player.bus = "Music"
-	add_child(_player)
 	_player.play()
-	get_tree().node_added.connect(_on_node_added)
-	# 进入对局以 match_started 为准（测试夹具嵌套实例的 scene_file_path 不可靠）
-	MatchSignals.match_started.connect(_fade_out_and_stop)
 
 
 ## 回到菜单场景 → 续播。
@@ -58,6 +68,10 @@ func _fade_out_and_stop():
 
 
 func _fade_in_and_play():
+	# headless 下 `_ready` 明确不装载 stream（见那里的说明），这里直接跳过，
+	# 免得对空 stream 调 play()。
+	if _player.stream == null:
+		return
 	if _fade_tween != null and _fade_tween.is_valid():
 		_fade_tween.kill()
 	_fade_tween = create_tween()

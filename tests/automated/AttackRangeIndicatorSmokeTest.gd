@@ -15,18 +15,22 @@ const WorkerScene = preload("res://source/match/units/Worker.tscn")
 
 var _failures := 0
 var _finished := false
+## 整局根节点：收尾时必须回收，否则 Match 下的音频与 3D 内容留在树上
+## ⇒ 命中禁则 `ObjectDB instances were leaked at exit` / `RID allocations ... leaked`
+## / `resources still in use at exit`（见 SmokeTestExit.request 的说明）。
+var _match: Node = null
 
 
 func _ready():
 	# 看门狗：任何 await 卡死都在 90 秒后以失败收尾，避免 CI 永久挂起。
 	get_tree().create_timer(90.0).timeout.connect(_on_failsafe)
-	var match_instance = MatchScene.instantiate()
-	add_child(match_instance)
+	_match = MatchScene.instantiate()
+	add_child(_match)
 	await get_tree().process_frame
 	# 开局阶段 `units` 组与导航都还在异步就绪，必须等（见 SmokeTestWarmup 的说明）。
 	await SmokeTestWarmup.wait_for_units(get_tree(), 1, 2)
 
-	var human = match_instance.get_node("Players/Human")
+	var human = _match.get_node("Players/Human")
 	_check(human != null, "应能取到本地 Human 玩家")
 	if human == null:
 		_finish()
@@ -136,7 +140,7 @@ func _on_failsafe():
 	_failures += 1
 	print("FAIL: 看门狗超时——测试协程中断未收尾")
 	print("Attack range indicator smoke test completed: %d failure(s)" % _failures)
-	SmokeTestExit.request(get_tree(), 1)
+	SmokeTestExit.request(get_tree(), 1, _match)
 
 
 func _finish():
@@ -144,7 +148,7 @@ func _finish():
 		return
 	_finished = true
 	print("Attack range indicator smoke test completed: %d failure(s)" % _failures)
-	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1)
+	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1, _match)
 
 
 func _check(condition: bool, message: String):

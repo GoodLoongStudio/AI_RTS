@@ -20,15 +20,17 @@ const AUTO_HIDE_SECONDS := 2.0
 const SAMPLE_INTERVAL := 0.1
 
 var _failures := 0
+## 整局根节点：收尾时必须回收（见 SmokeTestExit.request 的说明）。
+var _match: Node = null
 
 
 func _ready():
-	var match_instance = MatchScene.instantiate()
-	add_child(match_instance)
+	_match = MatchScene.instantiate()
+	add_child(_match)
 	await get_tree().process_frame
 	await get_tree().create_timer(0.5).timeout
 
-	var human = match_instance.get_node("Players/Human")
+	var human = _match.get_node("Players/Human")
 	var tank = human.get_node_or_null("Tank")
 	if tank == null:
 		_fail("测试场景中未找到己方 Tank")
@@ -57,8 +59,13 @@ func _ready():
 	var next_damage := 0.0
 	while elapsed < DAMAGE_SECONDS:
 		if elapsed >= next_damage:
-			var damage := max(1, int(float(tank.hp_max) * 0.02))
-			tank.hp = max(1, int(tank.hp) - damage)
+			var damage := maxi(1, int(float(tank.hp_max) * 0.02))
+			# ⚠️ 必须用 `set_hp_without_damage()`，不能直接赋 `tank.hp`：
+			# 本项目的 `hp` 由伤害模型驱动，直接赋值会被立刻回写成原值——
+			# 实测每 1 秒一次的"持续掉血"只有一半真正生效，有效间隔恰好等于
+			# 2 秒自动隐藏窗口，于是血条在该熄灭/点亮之间抖动（实测 12/60 采样熄灭），
+			# 让断言 1 变成"夹具不可靠"而不是产品问题。2026-09-14 定位。
+			tank.set_hp_without_damage(int(tank.hp) - damage)
 			damage_count += 1
 			next_damage += DAMAGE_INTERVAL
 		if elapsed > 0.3 and not bar.visible:
@@ -119,4 +126,4 @@ func _fail(message: String):
 
 func _finish():
 	print("Health bar flicker smoke test completed: %d failure(s)" % _failures)
-	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1)
+	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1, _match)
