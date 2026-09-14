@@ -69,8 +69,25 @@ func _setup_path():
 	_path.curve.add_point(aim_point)
 
 
-## 动画抵达末端时仅结算一次实际爆点伤害。
+## 动画抵达末端时仅结算一次实际爆点伤害，并迸发与坦克炮弹同款的火光黑烟。
+const EXPLOSION_SCENE := preload(
+	"res://source/match/units/projectiles/ShellExplosion.tscn"
+)
+
+
 func _perform_hit():
 	if _path.curve.point_count < 2:
 		return
-	projectile_runtime.ResolveImpact(attack_id, _path.curve.get_point_position(1))
+	var impact_point: Vector3 = _path.curve.get_point_position(1)
+	projectile_runtime.ResolveImpact(attack_id, impact_point)
+	_spawn_explosion(impact_point)
+
+
+## 落点一次性爆炸：与 CannonShell._spawn_explosion 同款（橙红火光 + 黑烟升腾）。
+func _spawn_explosion(impact_point: Vector3):
+	var explosion = EXPLOSION_SCENE.instantiate()
+	var parent := get_parent()
+	if parent == null:
+		return
+	parent.add_child(explosion)
+	explosion.global_position = impact_point + Vector3(0.0, 0.2, 0.0)
