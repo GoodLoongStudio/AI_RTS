@@ -527,6 +527,22 @@ func _check_detail_page(size: Vector2i) -> void:
 	_check(str(page._report.get("report_id", "")) == aborted_id,
 		"半途退出对局的详情页正常打开（不崩）")
 	_check(page._tab_bar.tab_count == 6, "详情页有 6 个标签页（实际 %d）" % page._tab_bar.tab_count)
+	# TabBar 标签不能被挤在一起：每个标签的可点宽度必须比文字宽出内边距。
+	# （`SystemUIStyle._style_tab_bar` 曾用 `flat()`，content margin 归零 ⇒ 六个标签
+	#   渲染成 "总览经济生产与建设战斗时间线"，一个字都读不出来。）
+	var tab_font: Font = page._tab_bar.get_theme_font("font")
+	if tab_font != null:
+		var tab_font_size: int = page._tab_bar.get_theme_font_size("font_size")
+		var cramped := PackedStringArray()
+		for index in range(page._tab_bar.tab_count):
+			var title: String = str(page._tab_bar.get_tab_title(index))
+			var needed: float = tab_font.get_string_size(
+				title, HORIZONTAL_ALIGNMENT_LEFT, -1, tab_font_size).x + 8.0
+			if page._tab_bar.get_tab_rect(index).size.x + 0.5 < needed:
+				cramped.append(title)
+		_check(cramped.is_empty(), "标签页标签之间有内边距（没挤在一起）：%s" % "、".join(cramped))
+	else:
+		_check(false, "TabBar 取到主题字体（否则无法判定标签是否挤在一起）")
 	var label_counts: Array = []
 	for index in range(6):
 		page._select_tab(index)

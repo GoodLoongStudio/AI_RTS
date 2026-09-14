@@ -314,11 +314,23 @@ static func _style_h_slider(slider: HSlider) -> void:
 
 
 static func _style_tab_bar(bar: TabBar) -> void:
-	bar.add_theme_stylebox_override("tab_unselected", flat(Color("#0c1c25"), 0, LINE_SOFT, 1))
-	bar.add_theme_stylebox_override("tab_hovered", flat(Color("#14313f"), 0, CYAN, 1))
-	bar.add_theme_stylebox_override("tab_selected", flat(Color("#173847"), 0, CYAN, 2))
+	# ⚠️ `flat()` 会把 content margin 归零。TabBar 直接用它会让标签**紧贴在一起**
+	# （实测渲染成 "总览经济生产与建设战斗时间线"，完全读不出来），所以这里要单独补内边距。
+	var unselected := flat(Color("#0c1c25"), 0, LINE_SOFT, 1)
+	var hovered := flat(Color("#14313f"), 0, CYAN, 1)
+	var selected := flat(Color("#173847"), 0, CYAN, 2)
+	for style in [unselected, hovered, selected]:
+		var box := style as StyleBoxFlat
+		box.content_margin_left = 14
+		box.content_margin_right = 14
+		box.content_margin_top = 6
+		box.content_margin_bottom = 6
+	bar.add_theme_stylebox_override("tab_unselected", unselected)
+	bar.add_theme_stylebox_override("tab_hovered", hovered)
+	bar.add_theme_stylebox_override("tab_selected", selected)
 	bar.add_theme_stylebox_override("tab_disabled", flat(DISABLED_BG, 0, DISABLED_LINE, 1))
 	bar.add_theme_stylebox_override("tab_focus", focus_ring(AMBER))
+	bar.add_theme_constant_override("h_separation", 6)
 	bar.add_theme_color_override("font_unselected_color", MUTED)
 	bar.add_theme_color_override("font_hovered_color", Color.WHITE)
 	bar.add_theme_color_override("font_selected_color", Color.WHITE)
