@@ -149,9 +149,11 @@ func _ready():
 		"账本背压不得锁死指挥链")
 
 	print("Adjutant command protocol smoke test completed: %d failure(s)" % _failures)
-	_match.queue_free()
-	await get_tree().process_frame
-	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1)
+	# 交给 SmokeTestExit 统一回收整局（2 帧 + 静音全树音频）。
+	# 原来是"自己 queue_free + 只等 1 帧 + 不传根节点"，收尾时 C# Variant 终结器
+	# 会撞上已拆除的 interop 层（System.AccessViolationException in godot_variant_destroy，
+	# exit=139）——断言全绿却被判崩溃。
+	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1, _match)
 
 
 ## 以当前对局上下文构造基础命令包。

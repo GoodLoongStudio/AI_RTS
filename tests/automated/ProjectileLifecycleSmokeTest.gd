@@ -6,6 +6,9 @@ const MatchScene = preload("res://tests/manual/TestOneUnit.tscn")
 const TankScene = preload("res://source/match/units/Tank.tscn")
 const HelicopterScene = preload("res://source/match/units/Helicopter.tscn")
 const Player = preload("res://source/match/players/Player.gd")
+## 期望伤害一律从这里派生。教训：`f30562a` 把坦克炮 2.0 伤 → 3.5 伤时只同步了"核心断言"，
+## 本文件写死的 `- 2` 就长期为红。断言语义是"用发射快照结算一次伤害"，不是"钉死某个数值"。
+const DEMO_BALANCE := "res://config/balance/demo.balance.v1.json"
 
 var _failures := 0
 
@@ -38,9 +41,12 @@ func _ready():
 	await get_tree().process_frame
 	_check(projectiles.get_child_count() > 0, "发射者阵亡后 CannonShell 视觉应继续存在")
 	await _wait_for_hp_below(cannon_target, cannon_hp_before, 3.0)
+	var cannon_damage := _weapon_base_damage("tank")
+	_check(cannon_damage > 0.0, "应能从 demo 平衡配置读到 Tank 主武器伤害")
 	_check(
-		cannon_target.hp == cannon_hp_before - 2,
-		"发射者阵亡后 CannonShell 应使用发射快照完成一次伤害；实际 HP=%s" % cannon_target.hp
+		cannon_target.hp == cannon_hp_before - cannon_damage,
+		"发射者阵亡后 CannonShell 应使用发射快照完成一次伤害；实际 HP=%s（配置伤害 %s）"
+			% [cannon_target.hp, cannon_damage]
 	)
 	_check(not cannon_target.has_meta("damage_presentation"), "炮弹命中类型不得残留到下一次伤害")
 
@@ -60,9 +66,11 @@ func _ready():
 	await get_tree().process_frame
 	_check(projectiles.get_child_count() > 0, "发射者阵亡后 Rocket 视觉应继续存在")
 	await _wait_for_hp_below(rocket_target, rocket_hp_before, 2.0)
+	var rocket_damage := _weapon_base_damage("helicopter")
+	_check(rocket_damage > 0.0, "应能从 demo 平衡配置读到 Helicopter 主武器伤害")
 	_check(
-		rocket_target.hp == rocket_hp_before - 1,
-		"发射者阵亡后 Rocket 应使用发射快照完成一次伤害"
+		rocket_target.hp == rocket_hp_before - rocket_damage,
+		"发射者阵亡后 Rocket 应使用发射快照完成一次伤害（配置伤害 %s）" % [rocket_damage]
 	)
 	_check(not rocket_target.has_meta("damage_presentation"), "火箭命中类型不得残留到下一次伤害")
 
@@ -111,6 +119,30 @@ func _check(condition: bool, message: String):
 		return
 	_failures += 1
 	push_error("Projectile lifecycle assertion failed: %s" % message)
+
+
+## 读 demo 平衡配置里某单位主武器的 `baseDamage`（期望值的唯一来源；读不到返回 -1）。
+func _weapon_base_damage(unit_type_id: String) -> float:
+	var file := FileAccess.open(DEMO_BALANCE, FileAccess.READ)
+	if file == null:
+		return -1.0
+	var parsed = JSON.parse_string(file.get_as_text())
+	file.close()
+	if not (parsed is Dictionary):
+		return -1.0
+	var balance := parsed as Dictionary
+	var unit := _find_by_id(balance.get("unitTypes", []), unit_type_id)
+	var weapon_ids: Array = unit.get("weaponIds", [])
+	if weapon_ids.is_empty():
+		return -1.0
+	return float(_find_by_id(balance.get("weapons", []), str(weapon_ids[0])).get("baseDamage", -1.0))
+
+
+func _find_by_id(items: Array, id: String) -> Dictionary:
+	for item in items:
+		if item is Dictionary and str((item as Dictionary).get("id", "")) == id:
+			return item
+	return {}
 
 
 ## 在超时时间内等待一次视觉命中，兼容首帧初始化和低帧率下的计时偏差。
