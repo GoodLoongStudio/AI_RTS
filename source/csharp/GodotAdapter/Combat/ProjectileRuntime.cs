@@ -130,6 +130,16 @@ public partial class ProjectileRuntime : Node
                 continue;
             }
 
+            // 溅射（Area）只结算地面单位：坦克炮的爆炸不波及飞行中的空中单位。
+            if (state.Snapshot.ImpactSelectionMode == ImpactSelectionMode.Area)
+            {
+                var domain = node.Get("movement_domain");
+                if (domain.VariantType != Variant.Type.Nil && domain.AsString() == "air")
+                {
+                    continue;
+                }
+            }
+
             var radiusValue = node.Get("radius");
             var radius = radiusValue.VariantType == Variant.Type.Nil ? 0.0f : radiusValue.AsSingle();
             candidates.Add(new ImpactCandidateSnapshot(

@@ -92,6 +92,50 @@
     "terrain"
    ],
    "warheadId": "direct_full_damage"
+  },
+  {
+   "id": "machine_gun_turret_autocannon",
+   "deliveryKind": "projectile",
+   "baseDamage": 1.0,
+   "cooldownMilliseconds": 400,
+   "rangeMeters": 7.0,
+   "targetDomains": [
+    "terrain"
+   ],
+   "warheadId": "direct_full_damage"
+  },
+  {
+   "id": "sniper_rifle",
+   "deliveryKind": "projectile",
+   "baseDamage": 1.5,
+   "cooldownMilliseconds": 1200,
+   "rangeMeters": 11.0,
+   "targetDomains": [
+    "terrain"
+   ],
+   "warheadId": "direct_full_damage"
+  },
+  {
+   "id": "rocket_launcher",
+   "deliveryKind": "projectile",
+   "baseDamage": 1.0,
+   "cooldownMilliseconds": 1500,
+   "rangeMeters": 7.0,
+   "targetDomains": [
+    "terrain"
+   ],
+   "warheadId": "cannon_splash"
+  },
+  {
+   "id": "heavy_tank_cannon",
+   "deliveryKind": "projectile",
+   "baseDamage": 5.0,
+   "cooldownMilliseconds": 2400,
+   "rangeMeters": 9.5,
+   "targetDomains": [
+    "terrain"
+   ],
+   "warheadId": "cannon_splash"
   }
  ],
  "unitTypes": [
@@ -293,7 +337,52 @@
     "movingWeaponArcDegrees": 120.0
    },
    "weaponIds": [
-    "tank_cannon"
+    "heavy_tank_cannon"
+   ],
+   "canForceFireGround": true
+  },
+  {
+   "id": "machine_gun_turret",
+   "maxHp": 12.0,
+   "sightRangeMeters": 8.0,
+   "weaponIds": [
+    "machine_gun_turret_autocannon"
+   ],
+   "canForceFireGround": false
+  },
+  {
+   "id": "sniper",
+   "maxHp": 3.0,
+   "sightRangeMeters": 11.0,
+   "movement": {
+    "domain": "terrain",
+    "speedMetersPerSecond": 3.5,
+    "maxTurnDegreesPerSecond": 360.0,
+    "canReverse": false,
+    "reverseSpeedMultiplier": 0.65,
+    "canFireWhileMoving": true,
+    "movingWeaponArcDegrees": 120.0
+   },
+   "weaponIds": [
+    "sniper_rifle"
+   ],
+   "canForceFireGround": true
+  },
+  {
+   "id": "rocketeer",
+   "maxHp": 3.0,
+   "sightRangeMeters": 7.0,
+   "movement": {
+    "domain": "terrain",
+    "speedMetersPerSecond": 3.5,
+    "maxTurnDegreesPerSecond": 360.0,
+    "canReverse": false,
+    "reverseSpeedMultiplier": 0.65,
+    "canFireWhileMoving": true,
+    "movingWeaponArcDegrees": 120.0
+   },
+   "weaponIds": [
+    "rocket_launcher"
    ],
    "canForceFireGround": true
   }
@@ -410,6 +499,34 @@
    "allowedProducerUnitTypeIds": [
     "vehicle_factory"
    ]
+  },
+  {
+   "id": "sniper",
+   "productUnitTypeId": "sniper",
+   "requiredWork": 120,
+   "cost": [
+    {
+     "kind": "A",
+     "amount": 350
+    }
+   ],
+   "allowedProducerUnitTypeIds": [
+    "barracks"
+   ]
+  },
+  {
+   "id": "rocketeer",
+   "productUnitTypeId": "rocketeer",
+   "requiredWork": 140,
+   "cost": [
+    {
+     "kind": "A",
+     "amount": 400
+    }
+   ],
+   "allowedProducerUnitTypeIds": [
+    "barracks"
+   ]
   }
  ],
  "constructions": [
@@ -490,6 +607,19 @@
    ],
    "environmentId": "terrain.surface",
    "footprintRadiusMeters": 1.5
+  },
+  {
+   "id": "machine_gun_turret",
+   "unitTypeId": "machine_gun_turret",
+   "requiredWork": 240,
+   "cost": [
+    {
+     "kind": "A",
+     "amount": 600
+    }
+   ],
+   "environmentId": "terrain.surface",
+   "footprintRadiusMeters": 0.6
   }
  ],
  "skills": [

@@ -172,7 +172,7 @@ func _collect_reconcile_entries() -> Array:
 				"parent": str(_match.get_path_to(unit.get_parent())),
 				"scene": scene_path,
 				"xf": unit.global_transform,
-				"hp": unit.hp if "hp" in unit else 0.0,
+				"hp": unit.hp if ("hp" in unit and unit.hp != null) else 0.0,
 				"stance": _authoritative_stance(unit),
 				"fire_policy": _authoritative_fire_policy(unit),
 			}
@@ -357,8 +357,8 @@ func apply_client_snapshot(
 			# 视觉表现为单位原地高频抖动/瞬转（2026-09-02 移动故障视频定位）。
 			_interp_prev_yaw[path] = _interp_target_yaw.get(path, float(item["yaw"]))
 			_interp_target_yaw[path] = float(item["yaw"])
-		if item.has("hp") and "hp" in unit:
-			unit.hp = item["hp"]
+		if item.has("hp") and item["hp"] != null and "hp" in unit:
+			unit.hp = float(item["hp"])
 		if item.has("action") and unit.has_method("apply_presentation_action"):
 			unit.apply_presentation_action(str(item["action"]))
 		# 施工进度：只改外观与进度镜像，**不动 hp**（客户端 hp 由上面的快照结算）。
@@ -402,7 +402,7 @@ func _broadcast_snapshot() -> void:
 			"path": str(_match.get_path_to(unit)),
 			"pos": unit.global_position,
 			"yaw": unit.rotation.y,
-			"hp": unit.hp if "hp" in unit else 0,
+			"hp": unit.hp if ("hp" in unit and unit.hp != null) else 0,
 			"stance": _authoritative_stance(unit, command_runtime),
 			"fire_policy": _authoritative_fire_policy(unit, command_runtime),
 		}
@@ -748,8 +748,8 @@ func _spawn_unit(
 	unit.global_transform = xf
 	# 物理插值开启后，进树后的瞬移需显式 reset，避免从原点滑到出生位的拖影。
 	unit.reset_physics_interpolation()
-	if "hp" in unit:
-		unit.hp = hp
+	if "hp" in unit and hp != null:
+		unit.hp = float(hp)
 	if _match.has_method("_setup_unit_groups"):
 		_match._setup_unit_groups(unit, parent)
 	MatchSignals.unit_spawned.emit(unit)

@@ -63,6 +63,19 @@
   {
    "unitTypeId": "heavy_tank",
    "scenePath": "res://source/match/units/HeavyTank.tscn"
+  },
+  {
+   "unitTypeId": "machine_gun_turret",
+   "scenePath": "res://source/match/units/MachineGunTurret.tscn",
+   "blueprintScenePath": "res://source/match/units/structure-geometries/MachineGunTurret.tscn"
+  },
+  {
+   "unitTypeId": "sniper",
+   "scenePath": "res://source/match/units/Sniper.tscn"
+  },
+  {
+   "unitTypeId": "rocketeer",
+   "scenePath": "res://source/match/units/Rocketeer.tscn"
   }
  ],
  "weaponAssets": [
@@ -80,7 +93,7 @@
   },
   {
    "weaponId": "anti_air_turret_rocket",
-   "projectileScenePath": "res://source/match/units/projectiles/Rocket.tscn"
+   "projectileScenePath": "res://source/match/units/projectiles/CannonShell.tscn"
   },
   {
    "weaponId": "infantry_rifle",
@@ -89,6 +102,22 @@
   {
    "weaponId": "apc_autocannon",
    "projectileScenePath": "res://source/match/units/projectiles/RifleRound.tscn"
+  },
+  {
+   "weaponId": "machine_gun_turret_autocannon",
+   "projectileScenePath": "res://source/match/units/projectiles/RifleRound.tscn"
+  },
+  {
+   "weaponId": "sniper_rifle",
+   "projectileScenePath": "res://source/match/units/projectiles/RifleRound.tscn"
+  },
+  {
+   "weaponId": "rocket_launcher",
+   "projectileScenePath": "res://source/match/units/projectiles/Rocket.tscn"
+  },
+  {
+   "weaponId": "heavy_tank_cannon",
+   "projectileScenePath": "res://source/match/units/projectiles/HeavyCannonShell.tscn"
   }
  ]
 }

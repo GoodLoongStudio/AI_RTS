@@ -10,6 +10,7 @@ const VehicleFactoryUnit := "res://source/match/units/VehicleFactory.tscn"
 const AircraftFactoryUnit := "res://source/match/units/AircraftFactory.tscn"
 const AntiGroundTurretUnit := "res://source/match/units/AntiGroundTurret.tscn"
 const AntiAirTurretUnit := "res://source/match/units/AntiAirTurret.tscn"
+const MachineGunTurretUnit := "res://source/match/units/MachineGunTurret.tscn"
 const WorkerUnit := "res://source/match/units/Worker.tscn"
 const TankUnit := "res://source/match/units/Tank.tscn"
 const APCUnit := "res://source/match/units/APC.tscn"
@@ -18,6 +19,8 @@ const TransportTruckUnit := "res://source/match/units/TransportTruck.tscn"
 const HelicopterUnit := "res://source/match/units/Helicopter.tscn"
 const DroneUnit := "res://source/match/units/Drone.tscn"
 const SoldierUnit := "res://source/match/units/Infantry.tscn"
+const SniperUnit := "res://source/match/units/Sniper.tscn"
+const RocketeerUnit := "res://source/match/units/Rocketeer.tscn"
 const BarracksUnit := "res://source/match/units/Barracks.tscn"
 
 ## RA3 式生产分类。place=true 走蓝图放置（工人建造）；否则 producer 建筑排队生产。
@@ -30,6 +33,7 @@ const TABS = [
 			{"scene": AircraftFactoryUnit, "caption": "机场", "icon": "aircraft_factory"},
 			{"scene": AntiGroundTurretUnit, "caption": "对地炮", "icon": "anti_ground_turret"},
 			{"scene": AntiAirTurretUnit, "caption": "对空炮", "icon": "anti_air_turret"},
+			{"scene": MachineGunTurretUnit, "caption": "机枪塔", "icon": "machine_gun_turret"},
 			{"scene": BarracksUnit, "caption": "兵营", "icon": "barracks"},
 		],
 	},
@@ -38,6 +42,8 @@ const TABS = [
 		"producer_caption": "兵营",
 		"items": [
 			{"scene": SoldierUnit, "caption": "步兵", "icon": "soldier"},
+			{"scene": SniperUnit, "caption": "狙击兵", "icon": "sniper"},
+			{"scene": RocketeerUnit, "caption": "炮兵", "icon": "rocketeer"},
 		],
 	},
 	{

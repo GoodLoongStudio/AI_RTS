@@ -24,19 +24,23 @@ extends RefCounted
 const RifleRoundScene := "res://source/match/units/projectiles/RifleRound.tscn"
 const CannonShellScene := "res://source/match/units/projectiles/CannonShell.tscn"
 const RocketScene := "res://source/match/units/projectiles/Rocket.tscn"
+const HeavyCannonShellScene := "res://source/match/units/projectiles/HeavyCannonShell.tscn"
 
 ## 单位场景 → 弹道场景。与 `CombatSfx.FIRE_SOUND_BY_SCENE` 同款模式：
 ## 权威映射在 `config/godot/*.assets.v1.json` 的 `weaponAssets`，这里只是**表现层镜像**
 ## （发射音效已经在用同样的镜像方式，不引入新的真相源）。
 const PROJECTILE_BY_UNIT_SCENE := {
 	"res://source/match/units/Infantry.tscn": RifleRoundScene,
+	"res://source/match/units/Sniper.tscn": RifleRoundScene,
+	"res://source/match/units/Rocketeer.tscn": RocketScene,
 	"res://source/match/units/Tank.tscn": CannonShellScene,
 	# 同 CombatSfx.FIRE_SOUND_BY_SCENE：新单位漏登记 → 客户端**看不到任何弹道/开火表现**
 	# （权威端照常发射，只是傀儡端没有可回放的弹道视觉）。
-	"res://source/match/units/HeavyTank.tscn": CannonShellScene,
+	"res://source/match/units/HeavyTank.tscn": HeavyCannonShellScene,
 	"res://source/match/units/APC.tscn": RifleRoundScene,
 	"res://source/match/units/AntiGroundTurret.tscn": CannonShellScene,
-	"res://source/match/units/AntiAirTurret.tscn": RocketScene,
+	"res://source/match/units/MachineGunTurret.tscn": RifleRoundScene,
+	"res://source/match/units/AntiAirTurret.tscn": CannonShellScene,
 	"res://source/match/units/Helicopter.tscn": RocketScene,
 	"res://source/match/units/Drone.tscn": RocketScene,
 }

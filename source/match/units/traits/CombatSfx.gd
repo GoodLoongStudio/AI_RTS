@@ -9,14 +9,17 @@ const SFX_DIR := "res://assets/sfx/combat/"
 
 const FIRE_SOUND_BY_SCENE := {
 	"res://source/match/units/Infantry.tscn": "rifle_fire",
+	"res://source/match/units/Sniper.tscn": "rifle_fire",
+	"res://source/match/units/Rocketeer.tscn": "cannon_fire",
 	"res://source/match/units/Tank.tscn": "cannon_fire",
 	# 新增单位必须同步登记，否则 fire_key_for() 返回空串 → **开火完全没声音**
 	# （2026-09-12 用户报"重型坦克开火没有动画和声音"；装甲车同批漏登记）。
 	"res://source/match/units/HeavyTank.tscn": "cannon_fire",
 	"res://source/match/units/APC.tscn": "rifle_fire",
 	"res://source/match/units/AntiGroundTurret.tscn": "cannon_fire",
-	"res://source/match/units/AntiAirTurret.tscn": "rocket_fire",
-	"res://source/match/units/Helicopter.tscn": "rocket_fire",
+	"res://source/match/units/MachineGunTurret.tscn": "rifle_fire",
+	"res://source/match/units/AntiAirTurret.tscn": "cannon_fire",
+	"res://source/match/units/Helicopter.tscn": "cannon_fire",
 	"res://source/match/units/Drone.tscn": "rocket_fire",
 }
 

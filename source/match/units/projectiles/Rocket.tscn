@@ -7,7 +7,9 @@ resource_local_to_scene = true
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_45jbp"]
 shading_mode = 0
-albedo_color = Color(0.95, 0.92, 0.75, 1)
+albedo_color = Color(0.9, 0.08, 0.05, 1)
+emission_enabled = true
+emission = Color(0.7, 0.06, 0.03, 1)
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_vlm3w"]
 radius = 0.08

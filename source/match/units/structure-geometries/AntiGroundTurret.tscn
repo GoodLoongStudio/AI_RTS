@@ -1,12 +1,12 @@
 [gd_scene load_steps=4 format=3 uid="uid://bmiqncjpgsw2e"]
 
-[ext_resource type="PackedScene" uid="uid://crqwileh5qdjv" path="res://assets/models/polygon-scifi/SM_Veh_Turret_Large_01.fbx" id="1_model"]
+[ext_resource type="PackedScene" path="res://assets/models/polygon-scifi/SM_Veh_Turret_Medium_01.fbx" id="1_model"]
 [ext_resource type="Texture2D" uid="uid://n5jvo5mqogyr" path="res://assets/models/polygon-scifi/PolygonScifiWorlds_Texture_01_A.png" id="2_atlas"]
 [ext_resource type="Script" path="res://source/match/units/SyntyMaterialBinder.gd" id="3_binder"]
 
 [node name="Geometry" type="Node3D"]
 
-[node name="SM_Veh_Turret_Large_01" parent="." instance=ExtResource("1_model")]
+[node name="SM_Veh_Turret_Medium_01" parent="." instance=ExtResource("1_model")]
 transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 0, 0)
 
 [node name="SyntyMaterialBinder" type="Node" parent="."]

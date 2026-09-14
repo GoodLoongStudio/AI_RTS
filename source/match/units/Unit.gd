@@ -569,6 +569,9 @@ func request_legacy_cancel_force_attack() -> bool:
 
 
 func _set_hp(value):
+	if value == null:
+		push_warning("[Unit] set_hp 收到 null，忽略（%s）" % name)
+		return
 	var old_hp = hp
 	hp = max(0, value)
 	if old_hp != null and hp < old_hp and not _suppress_damage_event:
@@ -667,7 +670,7 @@ func _team_shader_material(source_material: Material, color: Color) -> Material:
 		material.set_shader_parameter("albedo_texture", texture)
 		material.set_shader_parameter("albedo_color", base)
 		material.set_shader_parameter("team_color", color)
-		material.set_shader_parameter("team_mix", 0.85)
+		material.set_shader_parameter("team_mix", 1.0)
 		_team_material_cache[cache_key] = material
 	return material
 
