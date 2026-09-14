@@ -61,8 +61,13 @@ func _run() -> void:
 			"eye": Vector3(1583, 400, 822), "look": Vector3(1253, 32, 492)},
 		{"name": "diag_river_edge", "size": 90.0,
 			"eye": Vector3(2075, 96, 1167), "look": Vector3(1972, 0, 1064)},
-		{"name": "game_overview", "size": 2500,
-			"eye": Vector3(2550, 2700, 2900), "look": Vector3(1024, 0, 1024)},
+		# 水景机位：坐标取自 tscn 的 WaterBody/WaterMesh* 实测（353 片，
+		# 世界范围 x 4..2030 / z 942..1738，中心 (1017,1340)，水面 y=0）
+		# 水景机位：直接取自 tscn 实际水面片中心（局部 132,235.5 -> 世界 528,942）
+		{"name": "game_water", "size": 120.0,
+			"eye": Vector3(606, 72, 1020), "look": Vector3(528, 0, 942)},
+		{"name": "game_overview", "size": 3200,
+			"eye": Vector3(3200, 3400, 3200), "look": Vector3(1024, 20, 1024)},
 		{"name": "game_profile", "size": 700,
 			"eye": Vector3(1024, 60, 2200), "look": Vector3(1024, 20, 700)},
 	]
