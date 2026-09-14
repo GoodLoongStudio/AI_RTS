@@ -71,6 +71,20 @@ class FastScannerTest(unittest.TestCase):
         scanner._poll_once(0.0)
         self.assertEqual(scanner.drain_events(), [])
 
+    def test_non_json_reply_is_retried_once(self):
+        """**非 JSON / 半行读要重试一次**（2026-09-13 实测：5 分钟局 127 次 `non-json`，每次丢一个快照）。
+
+        载荷随单位数增长（41 单位时几 KB），DCS 逐帧写出 → 读取超时/半行读很常见。
+        只读 op 的重试是廉价且安全的；不重试等于把这些采样整帧丢掉。
+        """
+        scanner, calls = self._scanner([{"error": "non-json"}, _payload(7, [], 2007)])
+        # `_scanner` 里已经跑过一次轮询：第一次响应坏 → 重试 → 必须拿到快照。
+        self.assertEqual(len(calls), 2, "坏响应后必须再请求一次")
+        self.assertEqual(scanner.latest().get("server_tick"), 2007,
+                         "重试成功后必须拿到快照（不许整帧丢弃）")
+        self.assertEqual(scanner.stats()["scan_errors"], 0,
+                         "重试成功就不该计错误（错误数要反映真实失败）")
+
     def test_stats_expose_age_and_rate(self):
         scanner, _ = self._scanner([_payload(1, [])])
         stats = scanner.stats()
@@ -155,6 +169,68 @@ class ConsumeFastEventsTest(unittest.TestCase):
         state = self._state()
         nodes._consume_fast_events(state, _FakeContext({}))
         self.assertNotIn("fast_event_seq", state)
+
+    def test_player_override_releases_scout_executor(self):
+        """DCS 玩家接管事件当轮写入 player_controlled，并丢掉该单位侦察占用。"""
+        state = {
+            "server_tick": 1000,
+            "ai_controlled_units": ["Unit_1", "Unit_10"],
+            "player_controlled_units": [],
+            "released_units": [],
+            "pending_requests": {},
+            "active_tasks": {},
+            "active_intents": [
+                {"intent_id": "rule-fill-scout-Unit_1-900", "action": "scout",
+                 "unit_ids": ["Unit_1"], "state": "active"},
+            ],
+            "explore": {"assigned": {"Unit_1": "0,0"}},
+        }
+        nodes._consume_fast_events(state, _FakeContext({"fast_events": [
+            {"seq": 9, "kind": "player_override", "unit": "Unit_1",
+             "units": ["Unit_1"], "server_tick": 1005}]}))
+        self.assertIn("Unit_1", state.get("player_controlled_units") or [])
+        self.assertNotIn("Unit_1", state.get("ai_controlled_units") or [])
+        self.assertEqual(state["active_intents"][0]["state"], "dropped")
+        self.assertEqual(state["active_intents"][0]["drop_reason"], "player_override")
+
+    def test_duplicate_arrival_does_not_complete_next_hop(self):
+        """T13：同一目标的第二次 arrival（新 seq）不得再完成下一跳侦察。"""
+        state = {
+            "server_tick": 1000,
+            "active_intents": [
+                {"intent_id": "rule-fill-scout-Unit_1-900", "action": "scout",
+                 "unit_ids": ["Unit_1"], "state": "active"},
+            ],
+            "routes": {"Unit_1": {"ok": True, "target": [17.5, 17.5]}},
+        }
+        first = {"seq": 10, "kind": "arrival", "unit": "Unit_1",
+                 "target": [17.5, 17.5], "server_tick": 1010}
+        nodes._consume_fast_events(state, _FakeContext({"fast_events": [first]}))
+        self.assertEqual(state["active_intents"][0]["state"], "completed")
+        state["active_intents"] = [
+            {"intent_id": "rule-fill-scout-Unit_1-1010", "action": "scout",
+             "unit_ids": ["Unit_1"], "state": "active"},
+        ]
+        again = {"seq": 11, "kind": "arrival", "unit": "Unit_1",
+                 "target": [17.5, 17.5], "server_tick": 1012}
+        nodes._consume_fast_events(state, _FakeContext({"fast_events": [again]}))
+        self.assertEqual(state["active_intents"][0]["state"], "active",
+                         "重复 arrival 把下一跳也结掉了：%s" % state["active_intents"])
+
+    def test_unit_dead_clears_scout_assignment(self):
+        state = {
+            "server_tick": 1000,
+            "active_intents": [
+                {"intent_id": "rule-fill-scout-Unit_1-900", "action": "scout",
+                 "unit_ids": ["Unit_1"], "state": "active"},
+            ],
+            "explore": {"assigned": {"Unit_1": "0,0"}},
+        }
+        nodes._consume_fast_events(state, _FakeContext({"fast_events": [
+            {"seq": 3, "kind": "unit_dead", "unit": "Unit_1", "server_tick": 1004}]}))
+        self.assertNotIn("Unit_1", (state.get("explore") or {}).get("assigned") or {})
+        self.assertEqual(state["active_intents"][0]["state"], "dropped")
+        self.assertEqual(state["active_intents"][0]["drop_reason"], "unit_dead")
 
 
 if __name__ == "__main__":

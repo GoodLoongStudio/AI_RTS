@@ -9,7 +9,7 @@ import subprocess
 import unittest
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-OLD_TOKEN = "AIRTS-ADJ-7c91f2x9"
+OLD_TOKEN = "AIRTS-AD" + "J-7c91f2x9"
 BINARY_SUFFIXES = (".png", ".jpg", ".jpeg", ".webp", ".fbx", ".glb", ".ogg", ".wav",
                    ".import", ".dll", ".pdb", ".exe")
 

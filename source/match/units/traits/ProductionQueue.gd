@@ -161,12 +161,27 @@ func produce(unit_prototype):
 	return _find_element(result["item"]["item_id"])
 
 
+## 取消全部生产：联机客户端必须**转发给服务器**执行
+##（本地 C# 生产服务在客户端被门控，没有权威队列条目，直接本地取消会静默失败 — 2026-09-14）。
 func cancel_all():
+	if NetSession.should_forward_commands():
+		var sync = find_parent("Match").get_node_or_null("NetSync")
+		if sync != null:
+			sync.forward_command("cancel_produce", [_unit], Vector3.ZERO, null, _unit.player, "*")
+		return
 	_runtime.CancelAll(_unit, _unit.player)
 
 
+## 取消单个生产项：联机客户端把 item_id 转发给服务器执行（服务器取消后由快照同步队列视图）。
 func cancel(element):
 	if element == null or not element in _queue:
+		return
+	if NetSession.should_forward_commands():
+		var sync = find_parent("Match").get_node_or_null("NetSync")
+		if sync != null:
+			sync.forward_command(
+				"cancel_produce", [_unit], Vector3.ZERO, null, _unit.player, str(element.item_id)
+			)
 		return
 	_runtime.Cancel(element.item_id, _unit.player)
 

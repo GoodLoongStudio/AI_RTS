@@ -48,10 +48,10 @@ func _test_human_victory_and_spawn_bridge():
 		"本机歼灭胜利的 local_result 应为 Victory")
 	_check(fixture.handler.find_child("Victory").visible,
 		"本机 Human 获胜应显示 Victory")
-	_check(not fixture.handler.find_child("CampaignSummary").visible,
-		"非战役对局不应显示战役结算摘要")
-	_check(not fixture.handler.find_child("RestartButton").visible,
-		"非战役对局不应显示重开本关")
+	_check(fixture.handler.find_child("CampaignSummary", true, false) == null,
+		"战役已移除：结算面板不得再出现战役摘要节点")
+	_check(fixture.handler.find_child("RestartButton", true, false) == null,
+		"战役已移除：结算面板不得再出现重开本关按钮")
 	await _dispose_fixture(fixture)
 
 
@@ -192,17 +192,22 @@ func _test_actual_match_unit_death_path():
 	get_tree().paused = false
 	var match_instance = PlayerVsAiScene.instantiate()
 	add_child(match_instance)
-	await get_tree().process_frame
-	await get_tree().process_frame
 	var human = match_instance.get_node("Players/Human")
 	var enemy_players: Array = match_instance.get_node("Players").get_children().filter(
 		func(player): return player != human and player.is_in_group("players")
 	)
 	for player in enemy_players:
 		player.process_mode = Node.PROCESS_MODE_DISABLED
-	var enemy_units: Array = get_tree().get_nodes_in_group("units").filter(
-		func(unit): return match_instance.is_ancestor_of(unit) and unit.player != human
-	)
+	# 单位在导航烘焙完成后才由 Match._ready（协程）生成；固定等 2 帧会偶发拿到 0 个单位
+	# （2026-09-14 实测：等 2 帧 = 敌方 0 个；等够帧数 = 2 玩家 / 14 单位）→ 改为轮询等待。
+	var enemy_units: Array = []
+	for _frame in range(120):
+		await get_tree().process_frame
+		enemy_units = get_tree().get_nodes_in_group("units").filter(
+			func(unit): return match_instance.is_ancestor_of(unit) and unit.player != human
+		)
+		if not enemy_units.is_empty():
+			break
 	_check(not enemy_units.is_empty(), "真实 Match 应至少生成一个敌方单位")
 	for unit in enemy_units:
 		unit.call("_handle_unit_death")

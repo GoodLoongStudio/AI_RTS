@@ -12,6 +12,8 @@ enum BlueprintPositionValidity {
 const ROTATION_BY_KEY_STEP = 45.0
 const ROTATION_DEAD_ZONE_DISTANCE = 0.1
 
+const EscapeRouter = preload("res://source/ui/EscapeRouter.gd")
+
 const MATERIALS_ROOT = "res://source/match/resources/materials/"
 const BLUEPRINT_VALID_PATH = MATERIALS_ROOT + "blueprint_valid.material.tres"
 const BLUEPRINT_INVALID_PATH = MATERIALS_ROOT + "blueprint_invalid.material.tres"
@@ -291,3 +293,5 @@ func _on_input_action_pressed(action_id: String):
 	if action_id == "global.cancel" and _structure_placement_started():
 		_finish_blueprint_rotation()
 		_cancel_structure_placement()
+		# 认领本次 ESC：取消放置优先于菜单兜底唤出（见 EscapeRouter 不变式）。
+		EscapeRouter.claim()

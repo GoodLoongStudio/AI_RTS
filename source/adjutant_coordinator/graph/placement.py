@@ -62,6 +62,12 @@ REJECT_CONTRACT = "contract"
 REJECT_CAPABILITY = "capability"
 REJECT_STALE = "stale"
 REJECT_OTHER = "other"
+#: **目标本身打不了**（实测原文：`当前武器无法攻击该目标所处的域（地面/空中不匹配），
+#: 请改打地面目标或用对空单位。`）→ 修正维度是**换目标**：
+#: 换点没用、停发前缀也没用（换个敌人就能打）。2026-09-13 实测：一局 347 条命令里
+#: **124 条**被这条原因拒掉，同一单位反复重发（Unit_43 攻击命令被拒 10 次）——
+#: 用户原话"你下达命令不能瞎下达啊"的这一半就是它。
+REJECT_TARGET = "target"
 #: **链路没给任何原因**（只有 status、`reason` 为空）。与 OTHER 的区别：
 #: OTHER 是"给了原因但我们不认识"（记账即可），UNSPECIFIED 是"什么都没给" ——
 #: 对它重发同一条命令是**纯噪音**，必须按前缀停发。
@@ -71,6 +77,8 @@ REJECT_UNSPECIFIED = "unspecified"
 GEOMETRY_KINDS = (REJECT_GEOMETRY, REJECT_VISION, REJECT_OCCUPANCY)
 #: 内容类拒绝：换点没用，必须**停止产出**这类意图（否则就是刷屏噪音）。
 CONTENT_KINDS = (REJECT_CONTRACT, REJECT_CAPABILITY)
+#: 目标类拒绝：**换目标**才能解决（同一条命令对这个目标永远打不了）。
+TARGET_KINDS = (REJECT_TARGET,)
 #: 按**意图前缀**停发的类别（= 内容类 + 无原因）。这些拒绝换点/换单位都没用。
 PREFIX_BAN_KINDS = CONTENT_KINDS + (REJECT_UNSPECIFIED,)
 
@@ -98,6 +106,11 @@ _REASON_MAP: Tuple[Tuple[str, str], ...] = (
     ("StaleGeneration", REJECT_STALE),
     ("Expired", REJECT_STALE),
     ("StalePlan", REJECT_STALE),
+    # 武器域不匹配（英文错误码 + 权威端中文原文，两种写法都认）；
+    # 判定"这个目标打不了"，修正维度 = **换目标**（见 REJECT_TARGET）。
+    ("WeaponCannotTargetDomain", REJECT_TARGET),
+    ("武器无法攻击该目标", REJECT_TARGET),
+    ("地面/空中不匹配", REJECT_TARGET),
 )
 
 
@@ -495,8 +508,9 @@ def ledger_to_state(ledger: RejectionLedger, state: Dict[str, Any],
 __all__ = [
     "BUILD_BOUND_MARGIN_M", "VISION_SAFE_RADIUS_M", "MIN_OWN_CLEARANCE_M",
     "REJECT_GEOMETRY", "REJECT_VISION", "REJECT_OCCUPANCY", "REJECT_CONTRACT",
-    "REJECT_CAPABILITY", "REJECT_STALE", "REJECT_OTHER", "GEOMETRY_KINDS",
-    "CONTENT_KINDS", "RejectionLedger", "candidate_spots", "clamp_into_bounds",
+    "REJECT_CAPABILITY", "REJECT_STALE", "REJECT_OTHER", "REJECT_TARGET",
+    "GEOMETRY_KINDS", "CONTENT_KINDS", "TARGET_KINDS", "RejectionLedger",
+    "candidate_spots", "clamp_into_bounds",
     "classify_rejection", "filter_rejected", "first_own_distance", "has_bounds",
     "in_bounds",
     "intent_prefix", "is_banned", "ledger_from_state", "ledger_to_state",

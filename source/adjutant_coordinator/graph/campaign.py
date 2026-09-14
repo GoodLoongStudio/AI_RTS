@@ -40,10 +40,22 @@ from .observation_view import (
     normalized_units, own_units as _own_units, pos2d as _pos2d, resources as _resources,
 )
 from . import placement
+#: `enemy_on_route` 中断的解除半径 = 安全移动层的威胁半径（**同一口径**，不另写一份数字）：
+#: 敌人不在推进路径 12 米内时，安全闸门本来就会重新放行推进 → 紧急状态自然结束。
+from .movement import THREAT_RADIUS_M as ENEMY_ON_ROUTE_CLEAR_M
 
 # ---------------------------------------------------------------------------
 # 常量：阶段 / 主线 / 四条线
 # ---------------------------------------------------------------------------
+
+##: 【小部队快打】首支小队的**最小兵力**：到它就允许主动出击（用户 2026-09-14：
+##: "AI 副官可以高频操作，那就没必要集结大部队，按小部队快速集结后就可以行动了"）。
+##: 数值**只有一处**（`rules_fallback.SQUAD_ACTION_MIN`）—— 这里用懒加载读，避免模块环
+##: （`rules_fallback` 在模块级就 import 了本模块）。
+def squad_action_min() -> int:
+    from . import rules_fallback as rf
+    return int(rf.SQUAD_ACTION_MIN)
+
 
 PHASE_RECON = "摸底"
 PHASE_FOOTHOLD = "立足"
@@ -81,9 +93,18 @@ INTERRUPT_QUIET_TICKS = 240
 INTERRUPT_MIN_HOLD_TICKS = 120
 #: 中断最长驻留（tick）：超时弹出（标记 expired），不许无限挂起主线。
 INTERRUPT_MAX_TICKS = 7200
+#: 基地回防 / 受袭判定半径（米）。手册 DEF-01：只调动基地附近单位，远处线继续原任务。
+#: 行为树与并行军事轨必须读这个常量，不许再各写一个 40。
+DEFENSE_RADIUS_M = 40.0
+#: "已压过的事件 id"记忆容量（有界，随主线 checkpoint 一起保留）。
+#: 队列是有界的（256）且事件只在这里被消费，所以 256 足够覆盖"还在队列里的老事件"。
+EVENT_MEMORY_LIMIT = 256
 
-#: 作战单位类型（drone 无武器，不算作战单位 —— 与 `rules_fallback.COMBAT_TYPES` 同口径）。
-COMBAT_TYPES: Tuple[str, ...] = ("soldier", "tank", "helicopter")
+#: 【已删除的第三份口径】这里曾有一份 `COMBAT_TYPES = ("soldier","tank","helicopter")`
+#: 硬编码副本（注释还写着"与 rules_fallback 同口径"，而两份都会各自腐烂）。
+#: 现在作战单位口径的唯一实现是 `rules_fallback.combat_types_from_rules()`
+#: （从规则视图的 `capabilities.attack` 派生），逐轮落进 `state["combat_types"]`，
+#: 本模块也只读那个字段 —— 见 `_facts()` 里的迟导入调用。
 
 #: 分基地/分矿的"远离主基地"门槛（米）：与 `rules_fallback.EXPANSION_MIN_DISTANCE_M`
 #: 同口径（那边是落点判定，这里是里程碑证据判定，必须一致）。
@@ -287,8 +308,12 @@ def build_facts(state: Dict[str, Any], observation: Optional[Dict[str, Any]],
     workers = [name for name, info in by_name.items() if info.get("gather")]
     builders = [name for name, info in by_name.items() if info.get("construct")]
     producers = [name for name, info in by_name.items() if info.get("queue")]
+    # 作战单位口径**只有一处实现**（`rules_fallback.combat_types_from_rules`，逐轮落进
+    # `state["combat_types"]`）。这里曾抄了一份硬编码常量 —— 下面那行注释"同口径"就是
+    # 口径分叉的现场（那份常量漏 `apc`/`heavy_tank`）。迟导入避免模块环。
+    from . import rules_fallback as _rf
     combat = [name for name, info in by_name.items()
-              if str(info.get("type", "")) in COMBAT_TYPES]
+              if str(info.get("type", "")) in _rf.combat_types_of(state)]
 
     receipts = [item for item in (state.get("command_receipts") or [])
                 if isinstance(item, dict)]
@@ -350,6 +375,10 @@ def build_facts(state: Dict[str, Any], observation: Optional[Dict[str, Any]],
         "resource_count": len(resources),
         "far_resources": far_resources,
         "base": [round(base[0], 1), round(base[1], 1)] if base else [],
+        # 己方单位位置（`enemy_on_route` 中断的"威胁是否解除"判据要按**被拦的那支部队**
+        # 算，而不是按基地算：敌人还在路上时，基地附近可能是干净的）。
+        "own_positions": {str(name): [round(_pos2d(info)[0], 1), round(_pos2d(info)[1], 1)]
+                          for name, info in by_name.items() if _pos2d(info)},
         "balance": _balance_of(tactical),
         "map_bounds": list(state.get("map_bounds") or []),
         "accepted_actions": accepted_actions,
@@ -658,19 +687,77 @@ def note_emergency(campaign: Dict[str, Any], kind: str, tick: int,
     return entry
 
 
-def _visible_enemies_near_base(facts: Dict[str, Any], radius: float = 40.0) -> int:
+def _emergency_events(state: Dict[str, Any],
+                      observation: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """整局主线能看到的事件源（**唯一口径**）：观测事件 + 图自己的待处理队列。
+
+    两个源都读的理由：`observation["events"]` 是游戏里真实发生的事（基地受袭 / 发现敌人），
+    而安全闸门产生的紧急事件（`enemy_on_route` / `path_failed`）由
+    `nodes._raise_movement_urgent` 推进 `state["pending_events"]` —— 它**只进事件队列**。
+    只读观测的话，"遇敌停止推进"这类事件永远压不进中断栈（2026-09-13 结局局复盘第 ③ 条：
+    部队被威胁拦住，整局主线却完全不知道有敌情）。
+
+    ## 为什么不能用"两源合并 + 去重"
+
+    `node_ingest` 会把**观测事件也推进同一个队列**。如果无条件合并两个源，同一事件会在
+    "观测那一轮"和"队列那一轮"各出现一次 → `under_attack_total` 这类计数被算两遍
+    （真机上就是"受袭次数翻倍"这种假指标）。所以队列源**只取本图自己产生的事件**：
+    `payload.source == "movement_gate"`（安全闸门专用标记），它们永远不会出现在观测里。
+    """
+    out: List[Dict[str, Any]] = []
+    for event in (observation or {}).get("events") or []:
+        if isinstance(event, dict):
+            out.append(event)
+    for event in state.get("pending_events") or []:
+        if not isinstance(event, dict):
+            continue
+        if str((event.get("payload") or {}).get("source", "")) != "movement_gate":
+            continue
+        out.append(event)
+    return out
+
+
+def _visible_enemies_near_base(facts: Dict[str, Any], radius: float = DEFENSE_RADIUS_M) -> int:
     base = facts.get("base") or []
     if not base:
         return 0
+    return _visible_enemies_near_points(facts, [base], radius)
+
+
+def _visible_enemies_near_points(facts: Dict[str, Any], points: Sequence[Any],
+                                 radius: float) -> int:
+    """这些点附近有多少可见敌人（`facts["enemy_positions"]` 是**唯一**敌人位置口径）。"""
     count = 0
     for pos in facts.get("enemy_positions") or []:
         try:
-            if math.hypot(float(pos[0]) - float(base[0]),
-                          float(pos[1]) - float(base[1])) <= radius:
-                count += 1
+            ex, ez = float(pos[0]), float(pos[1])
         except (TypeError, ValueError, IndexError):
             continue
+        for point in points or []:
+            try:
+                if math.hypot(ex - float(point[0]), ez - float(point[1])) <= radius:
+                    count += 1
+                    break
+            except (TypeError, ValueError, IndexError):
+                continue
     return count
+
+
+def _visible_enemies_near_units(facts: Dict[str, Any], units: Any,
+                                radius: float = 40.0) -> int:
+    """这些**单位**附近有多少可见敌人（中断弹出判据）。
+
+    单位位置拿不到（已阵亡 / 观测缺该单位）时返回 0 = **视为已脱离**：
+    紧急中断本身有上限寿命（`INTERRUPT_MAX_TICKS`）兜底，这里宁可让它按时弹出，
+    也不因为"读不到位置"把主线永久挂起。
+    """
+    positions = facts.get("own_positions") or {}
+    if not isinstance(positions, dict):
+        return 0
+    points = [positions[str(unit)] for unit in (units or []) if str(unit) in positions]
+    if not points:
+        return 0
+    return _visible_enemies_near_points(facts, points, radius)
 
 
 def resolve_interrupts(campaign: Dict[str, Any], facts: Dict[str, Any],
@@ -680,7 +767,9 @@ def resolve_interrupts(campaign: Dict[str, Any], facts: Dict[str, Any],
     弹出条件（全部成立）：
       ① 已驻留 ≥ `INTERRUPT_MIN_HOLD_TICKS`（保证紧急任务至少下发过一次）；
       ② 距最近一次同类事件 ≥ `INTERRUPT_QUIET_TICKS`（事件不再刷屏）；
-      ③ 威胁消失（基地受袭类要求基地附近无可见敌人）。
+      ③ 威胁消失：
+         - `base_under_attack`：基地附近无可见敌人；
+         - `enemy_on_route`：**原来那条路/那支部队附近**无可见敌人（2026-09-13 起）。
     或 ④ 超过 `expires_tick`（超时弹出，标记 expired，同样恢复主线）。
     """
     resolved: List[Dict[str, Any]] = []
@@ -694,8 +783,12 @@ def resolve_interrupts(campaign: Dict[str, Any], facts: Dict[str, Any],
         held = int(tick) - int(entry.get("pushed_tick", tick))
         expired = int(tick) > int(entry.get("expires_tick", 0) or 0)
         threat_clear = True
-        if str(entry.get("kind", "")) == "base_under_attack":
+        kind = str(entry.get("kind", ""))
+        if kind == "base_under_attack":
             threat_clear = _visible_enemies_near_base(facts) <= 0
+        elif kind == "enemy_on_route":
+            threat_clear = _visible_enemies_near_units(
+                facts, entry.get("units"), radius=ENEMY_ON_ROUTE_CLEAR_M) <= 0
         ready = (held >= INTERRUPT_MIN_HOLD_TICKS and quiet >= INTERRUPT_QUIET_TICKS
                  and threat_clear)
         if expired or ready:
@@ -1079,8 +1172,25 @@ def frontier_preferences(state: Dict[str, Any], observation: Optional[Dict[str, 
     from . import rules_fallback as rf
 
     phase = str(campaign.get("phase", PHASE_RECON))
-    allow_attack = phase in (PHASE_PRESSURE, PHASE_CONVERGE)
-    expand_probe = (frontier == M04 and not (campaign.get("expansion_candidates") or []))
+    # 【小部队快打（2026-09-14 用户）】"AI 副官可以高频操作，那就没必要集结大部队，
+    # 按小部队快速集结后就可以行动了。"
+    #
+    # 旧口径是 `phase in (施压, 收束)` —— 而 M04/M05（扩张选址 / 分基地，priority 40/45）
+    # 排在 M06（持续施压，50）**前面**，于是"小队早就成形了却整局不打"：
+    # 玩家看到的是部队在家门口转圈、兵力越攒越多（正是用户认定的"没必要集结大部队"）。
+    #
+    # 新口径：**首支小队成形就允许行动**（作战单位 ≥ `SQUAD_ACTION_MIN`），与阶段解耦；
+    # 高频指挥（~2Hz 决策 + 逐单位微操）本来就支持"小股快打、边打边补"，
+    # 不需要等到某个阶段才肯出手。防御/撤离仍由行为树按威胁自己接管（优先级更高）。
+    facts_for_attack = campaign.get("_facts") if isinstance(campaign.get("_facts"), dict) else {}
+    squad_min = int(campaign.get("army_threshold", 0) or squad_action_min())
+    squad_ready = int(facts_for_attack.get("combat_count", 0) or 0) >= squad_min
+    phase_allows = phase in (PHASE_PRESSURE, PHASE_CONVERGE)
+    allow_attack = phase_allows or squad_ready
+    attack_basis = ("phase" if phase_allows else
+                    ("squad_ready" if squad_ready else "none"))
+    expand_probe = (frontier in (M04, M05)
+                    and not (campaign.get("expansion_candidates") or []))
     order_override: Tuple[str, ...] = ()
     # 模型的**分支选择**通过 `preferred_node` 生效；过期（默认 30s 无更新）自动失效，
     # 避免"一条早期选择永久盖住主线"。
@@ -1114,8 +1224,11 @@ def frontier_preferences(state: Dict[str, Any], observation: Optional[Dict[str, 
         "milestone_id": frontier,
         "milestone_name": str(spec.get("name", "")),
         "build_order": tuple(build_order),
-        # 施压/收束阶段才允许规则阶梯主动出击（手册：集结 → 前压 → 进攻）。
+        # 允许主动出击的判据：**首支小队成形**（`squad_ready`）或已进入施压/收束阶段。
+        # `attack_basis` 把用了哪一条写出来 —— 归档/HUD 据此能回答"为什么它在打/不打"。
         "allow_attack": allow_attack,
+        "attack_basis": attack_basis,
+        "squad_min": squad_min,
         "allow_expansion": True,
         "expand_probe": expand_probe,
         # 【先补兵还是先扩建】由前沿节点决定（M03/M06/M07 = 兵力/施压 → True）。
@@ -1289,21 +1402,37 @@ def update(state: Dict[str, Any], observation: Optional[Dict[str, Any]], tick: i
         [round(_pos2d(e)[0], 1), round(_pos2d(e)[1], 1)] for e in enemies_now]
 
     # ③ 中断：先推进新事件，再结算可弹出的。
-    for event in (observation or {}).get("events") or []:
-        if not isinstance(event, dict):
-            continue
+    #
+    # 【同一事件只压一次】`state["pending_events"]` 是有界队列，**会跨 tick 保留**
+    # （生产链路上只有 `node_wait` 会清空它）。如果每轮都拿队列里的老事件去压栈：
+    # 条目被弹出后又被重新建立，而 `pushed_tick` 取的是**事件自己的 tick**
+    # （很旧）→ `expires_tick` 早已过去 → 下一轮立刻"超时弹出"。
+    # 2026-09-13 实测（240 秒局）：`campaign_interrupt_resolved` 刷了 **662 次**
+    # （path_failed 452 / enemy_on_route 208），主线被这些假紧急事件反复搅动。
+    # 现在按 `event_id` 记住"压过的事件"（有界 256，随主线一起 checkpoint），
+    # 同一事件从任何来源（观测 / 队列）都只压一次 —— 这才是"事件幂等"的唯一实现处。
+    seen_ids = campaign.setdefault("seen_event_ids", [])
+    seen_set = {str(item) for item in seen_ids}
+    for event in _emergency_events(state, observation):
         kind = str(event.get("kind", ""))
         if kind not in EMERGENCY_KINDS:
+            continue
+        event_id = str(event.get("event_id", ""))
+        if event_id and event_id in seen_set:
             continue
         units = _event_units(event)
         note_emergency(campaign, kind, int(event.get("server_tick", tick) or tick),
                        units=units, detail=str((event.get("payload") or {}).get("reason", "")))
+        if event_id:
+            seen_set.add(event_id)
+            seen_ids.append(event_id)
         if kind == "base_under_attack":
             campaign["under_attack_total"] = int(
                 campaign.get("under_attack_total", 0) or 0) + 1
         if kind in ("formation_loss", "target_dead"):
             campaign["combat_loss_events"] = int(
                 campaign.get("combat_loss_events", 0) or 0) + 1
+    del seen_ids[:-EVENT_MEMORY_LIMIT]
     resolved = resolve_interrupts(campaign, facts, tick)
 
     # ④ 里程碑证据与推进（**循环到不动点**：后一个里程碑可能在同一 tick 就满足）。
@@ -1363,7 +1492,7 @@ def update(state: Dict[str, Any], observation: Optional[Dict[str, Any]], tick: i
     # 前探点**只在"扩张选址"是前沿**时给：其它阶段把侦察单位调去矿区方向是浪费
     # （虽然无害，但会让"当前该干什么"的语义变混）。
     campaign["expansion_probe"] = (
-        [] if candidates or str(campaign.get("next_frontier", "")) != M04
+        [] if candidates or str(campaign.get("next_frontier", "")) not in (M04, M05)
         else _expansion_probe(state, facts))
 
     # ⑧ 决策地图检索（**每 tick 一次**，唯一入口）：可用节点 = 模型可选的路线候选；
@@ -1412,7 +1541,11 @@ def _facts_signature(facts: Dict[str, Any]) -> Dict[str, Any]:
 
 
 EMERGENCY_KINDS: Tuple[str, ...] = ("base_under_attack", "enemy_spotted",
-                                    "formation_loss", "path_failed", "target_dead")
+                                    "formation_loss", "path_failed", "target_dead",
+                                    # 【2026-09-13 补】安全闸门的"遇敌停止推进"事件：
+                                    # 它以前只进 `movement_urgent`（线路账）**不进中断栈**，
+                                    # 于是整局主线不知道部队已经在交战，还以为在推进。
+                                    "enemy_on_route")
 
 
 def _event_units(event: Dict[str, Any]) -> List[str]:

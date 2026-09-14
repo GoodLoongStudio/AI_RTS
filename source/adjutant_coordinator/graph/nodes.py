@@ -32,9 +32,9 @@ from . import interrupts as itr
 from .arbitration import arbitrate_intents
 from .checkpoint import CheckpointStore, NullCheckpointStore
 from .contracts import (
-    ACTION_ATTACK_MOVE, ACTION_MOVE, ACTION_RETREAT, ACTION_SCOUT, ContractError,
-    IntentBatch, StrategicPlan, intent_to_command_envelope, parse_intent_batch,
-    parse_strategic_plan,
+    ACTION_ATTACK, ACTION_ATTACK_MOVE, ACTION_DEFEND, ACTION_HOLD, ACTION_MOVE,
+    ACTION_REGROUP, ACTION_RETREAT, ACTION_SCOUT, ContractError, IntentBatch,
+    StrategicPlan, intent_to_command_envelope, parse_intent_batch, parse_strategic_plan,
 )
 from . import behavior_tree
 from . import campaign as campaign_mod
@@ -43,6 +43,7 @@ from . import movement as movement_mod
 from . import decision_map
 from . import placement
 from . import rules_fallback
+from . import squads as squads_mod
 from . import task_patch_bridge
 from .async_scheduler import KIND_EMERGENCY, KIND_NORMAL, STATUS_ERROR, STATUS_OK
 from .task_patch import MODE_FAST
@@ -54,7 +55,8 @@ from .pydantic_agents import ModelInvalidOutput, ModelTimeout, ModelUnavailable
 from . import reserves as reserves_mod
 from .progress import track_task_progress
 from .state import (
-    INTENT_DROPPED, INTENT_LIVE_STATES, MAX_DECISION_LOG, TASK_RUNNING, TASK_UNKNOWN,
+    INTENT_COMPLETED, INTENT_DROPPED, INTENT_LIVE_STATES, MAX_DECISION_LOG,
+    TASK_RUNNING, TASK_UNKNOWN,
 )
 
 # 路由名称（与 graph.py 的条件边一致）。
@@ -320,21 +322,93 @@ def _consume_fast_events(state: Dict[str, Any], ctx: NodeContext) -> None:
     state["fast_event_seq"] = max(int(event.get("seq", 0) or 0) for event in fresh)
     counts: Dict[str, int] = {}
     stamped: List[str] = []
+    # 【关键事件响应延迟的事实】事件自带 `server_tick`（发生时刻），本轮的 `server_tick`
+    # 是处理时刻 —— 差 = "游戏里发生 → 副官这一轮处理"隔了多少 tick。
+    # 为什么必须量它：验收要求"关键事件及时响应"，而"允许约 2 秒一轮"**不能**被用来
+    # 掩盖"事件躺在队列里没人管"；没有这个数字就只能靠猜（`event_latency_*` 只覆盖
+    # 扫描层"游戏→runner"，不覆盖"runner→本轮决策"）。
+    lag_by_kind: Dict[str, int] = {}
+    lag_max = 0
     intents = state.get("active_intents") or []
+    now_tick = int(state.get("server_tick", 0) or 0)
     for event in fresh:
         kind = str(event.get("kind", ""))
         counts[kind] = counts.get(kind, 0) + 1
+        happened = int(event.get("server_tick", 0) or 0)
+        if happened > 0 and now_tick >= happened:
+            lag = now_tick - happened
+            lag_by_kind[kind] = max(int(lag_by_kind.get(kind, 0)), lag)
+            lag_max = max(lag_max, lag)
         unit = str(event.get("unit", ""))
         # 【P2 闭环：到达 / 路径失败】这两类事实以前**拿不到**（权威端不产出，被显式声明
         # 为"不支持"），于是"到达后重观测""路径失败停止推进"都只是写进注释的口号。
         # 现在 10Hz 采样能给出它们（见 `DebugControlServer._fast_sample_movement`），
         # 这里必须**用起来**：到达 → 作废路线逼出下一跳重规划；路径失败 → 停止推进 + 进紧急线。
-        if unit and kind == "path_failed":
+        if kind == "player_override":
+            # 权威口手动命令（DCS `op=move` / 真实 UI）只停租约不够：必须当轮
+            # 写入 player_controlled，否则 T03 换执行者看不到"专职已被接管"。
+            # 这里直接 apply，不进 pending_events，避免整图 pause 挡住转交。
+            taken: List[str] = []
+            raw_units = event.get("units")
+            if isinstance(raw_units, (list, tuple)):
+                taken = [str(item) for item in raw_units if str(item)]
+            if not taken and unit:
+                taken = [unit]
+            if taken:
+                _apply_override(state, taken, happened or now_tick, "fast_player_override")
+        elif kind in ("unit_dead", "unit_lost") and unit:
+            explore = state.get("explore")
+            if isinstance(explore, dict):
+                assigned = explore.get("assigned")
+                if isinstance(assigned, dict):
+                    assigned.pop(unit, None)
+            for record in intents:
+                if not isinstance(record, dict):
+                    continue
+                if record.get("state") not in INTENT_LIVE_STATES:
+                    continue
+                if unit not in {str(item) for item in (record.get("unit_ids") or [])}:
+                    continue
+                record["state"] = INTENT_DROPPED
+                record["drop_reason"] = kind
+        elif unit and kind == "path_failed":
             movement_mod.invalidate_route(state, unit, reason="path_failed")
             _raise_movement_urgent(state, ctx, "path_failed", unit,
                                    int(state.get("server_tick", 0) or 0))
         elif unit and kind == "arrival":
+            arrival_key = "%s|%s" % (unit, event.get("target") or [])
+            seen_arrivals = state.setdefault("seen_arrivals", [])
+            if arrival_key in seen_arrivals:
+                continue
+            seen_arrivals.append(arrival_key)
+            if len(seen_arrivals) > 64:
+                del seen_arrivals[:-64]
             movement_mod.note_arrival(state, unit, int(state.get("server_tick", 0) or 0))
+            # 侦察段到达必须释放占用：否则意图活到 TTL，专职无人机发不出下一跳
+            # （`u1t01d`：`rule-fill-scout-Unit_1-948` 一直占到 expires=4548）。
+            for record in intents:
+                if not isinstance(record, dict):
+                    continue
+                if record.get("state") not in INTENT_LIVE_STATES:
+                    continue
+                if str(record.get("action", "")) != ACTION_SCOUT:
+                    continue
+                if unit not in {str(item) for item in (record.get("unit_ids") or [])}:
+                    continue
+                record["state"] = INTENT_COMPLETED
+                record["drop_reason"] = "arrival"
+        # 【生产台账】开始/完成都按 **item_id** 记事实：队列项一消失就没别的证据了，
+        # 而"到底完成了没有"只能由 `production_finished` 回答（归档复盘的证据链就是这么连的）。
+        if kind in ("production_started", "production_finished") and event.get("item_id"):
+            ledger = state.setdefault("production_ledger", {})
+            entry = ledger.setdefault(str(event["item_id"]), {})
+            happened = int(event.get("server_tick", 0) or 0)
+            if kind == "production_started":
+                entry.setdefault("started_tick", happened)
+                entry.setdefault("producer", unit)
+            else:
+                entry["finished_tick"] = happened
+                entry.setdefault("producer", unit)
         if not unit:
             continue
         for record in intents:
@@ -358,8 +432,10 @@ def _consume_fast_events(state: Dict[str, Any], ctx: NodeContext) -> None:
                 continue
             record["effective_tick"] = int(event.get("server_tick", 0) or 0)
             stamped.append(str(record.get("intent_id", "")))
+    # `lag_max`/`lag_by_kind` = 本轮处理的**最旧事件**隔了多少 tick（关键事件响应延迟）。
+    # 用 `lag_max` 而不是 `event_*_tick`：验收只需要"这一轮最迟处理的一个事件有多旧"。
     _decide(state, "fast_events_consumed", count=len(fresh), kinds=counts,
-            effective=stamped[:8])
+            effective=stamped[:8], lag_max=lag_max, lag_by_kind=lag_by_kind)
 
 
 def node_ingest(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, Any]:
@@ -390,6 +466,18 @@ def node_ingest(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, Any]:
 
     # 10Hz 扫描层的增量事件：先消费，后续节点（含回执结算与进度）都看到最新证据。
     _consume_fast_events(state, ctx)
+    # 【作战单位口径：每轮从规则视图派生一次，落进 state 供全链路只读】
+    # 为什么要有这一步（2026-09-13 收工自检）：口径曾有三份硬编码副本 ——
+    # `rules_fallback.COMBAT_TYPES`（漏 `apc`/`heavy_tank`）、`behavior_tree` 的 cfg
+    # （写着配置里**不存在**的 `vehicle`/`aircraft`，于是直升机漏计）、`campaign` 又抄一份。
+    # 现在唯一实现是 `rules_fallback.combat_types_from_rules()`（"具备 attack 能力"），
+    # 在这里派生并落档：复盘时"这局按哪些类型算作战单位"是可查事实。
+    # 规则视图缺能力字段时**保持上一轮的值**（读不到就不覆盖，绝不猜）。
+    rules_view = ctx.observation.get("rules")
+    if isinstance(rules_view, dict):
+        derived_combat = rules_fallback.combat_types_from_rules(rules_view)
+        if derived_combat:
+            state["combat_types"] = list(derived_combat)
     # 导航网格版本（P2 安全移动）：路线记录必须绑定"当时是哪一版网格"，
     # 重烘之后旧路径一律作废。缺失/非法时**保持 -1（未知）**，不猜。
     fast_state = ctx.observation.get("fast_state")
@@ -422,6 +510,17 @@ def node_ingest(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, Any]:
     # AI 可控单位以观测为事实来源：本玩家自有单位 - 玩家接管 - 已归还待接管。
     # 这样战略层才能把任务指派给真实存在的单位（否则首次战略 tick 无单位可指派）。
     tactical = ctx.observation.get("tactical")
+    # 已侦察到的敌方位置（公开情报）：前压目标用它，小队才会真的走到敌人那儿去打
+    # （没有它 → 没可见敌人时部队在基地 40m 内转圈，实测"36 兵不打"）。
+    _remember_enemy_intel(state, ctx.observation)
+    # 【敌人类型表】拒绝是**事后**的：回执到达时目标可能已经离开视野，没有这张表就
+    # 没法把"打不了这个目标"升级成"打不了**这一类**目标"——实测只按实体拉黑挡不住
+    # "每轮换一个同类目标继续试"（Unit_43 对空被拒 10 次就是这么来的，详见
+    # `rules_fallback.ban_unattackable_target`）。
+    _remember_enemy_types(state, tactical)
+    if seen_rules:
+        state["capability_version"] = seen_rules
+    _persist_combat_squads(state, tactical, rules_view)
     observed_own = sorted(own_unit_ids(tactical)) if isinstance(tactical, dict) else []
     if observed_own:
         _ensure_units(state, observed_own)
@@ -929,6 +1028,11 @@ def _ensure_units(state: Dict[str, Any], units: List[str]) -> None:
 # 下一轮微操层又把同一条命令补一次 → 更拥塞。这是正反馈，必须用**与意图存活无关**的
 # "最近下发指纹"来兜底：同一「单位集合 + 动作 + 目标」在一个窗口内只下发一次。
 ORDER_REPEAT_WINDOW_TICKS = 900
+#: 这些动作在「正在走当前跳」时不得因新 tick / 新航点再发一条。
+#: 求生（retreat）不在此列：半路也必须能撤。
+STICKY_MOVE_ACTIONS = (ACTION_ATTACK_MOVE, ACTION_MOVE, ACTION_SCOUT)
+#: 项目完成后必须立刻允许下一单；窗口只挡住「同一条还在途」的重复。
+CONTINUATION_ACTIONS = ("produce", "build")
 
 #: 拥塞类拒绝后的静默窗口（不新发命令；既有任务继续执行，行为树自己循环）。
 CONGESTION_BACKOFF_TICKS = 300
@@ -953,12 +1057,46 @@ def _order_signature(item: Dict[str, Any]) -> str:
     return "%s|%s|%s" % (units, action, key)
 
 
+def _stamp_tick(stamp: Any) -> int:
+    if isinstance(stamp, dict):
+        return int(stamp.get("tick", 0) or 0)
+    try:
+        return int(stamp)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _has_live_same_order(state: Dict[str, Any], item: Dict[str, Any], tick: int) -> bool:
+    """同单位+同动作+同目标是否仍有一条活着的意图。"""
+    signature = _order_signature(item)
+    action = str(item.get("action", ""))
+    units = {str(unit) for unit in (item.get("unit_ids") or [])}
+    for live in _StateView(state).live_intents(int(tick)):
+        if str(live.get("action", "")) != action:
+            continue
+        if not units & {str(unit) for unit in (live.get("unit_ids") or [])}:
+            continue
+        if _order_signature(live) == signature:
+            return True
+    return False
+
+
 def _repeat_suppressed(state: Dict[str, Any], item: Dict[str, Any], tick: int) -> bool:
     """该意图是否在"最近下发窗口"内已经发过（发过就不该再发）。"""
+    action = str(item.get("action", ""))
+    units = [str(unit) for unit in (item.get("unit_ids") or [])]
+    if action in STICKY_MOVE_ACTIONS and units:
+        if all(movement_mod.unit_en_route(state, unit, tick) for unit in units):
+            return True
     stamp = (state.get("recent_orders") or {}).get(_order_signature(item))
     if stamp is None:
         return False
-    return int(tick) - int(stamp) < ORDER_REPEAT_WINDOW_TICKS
+    if int(tick) - _stamp_tick(stamp) >= ORDER_REPEAT_WINDOW_TICKS:
+        return False
+    if action in CONTINUATION_ACTIONS:
+        # 上一单已结束 → 允许接续；仍在途才算重复。
+        return _has_live_same_order(state, item, tick)
+    return True
 
 
 def _remember_order(state: Dict[str, Any], item: Dict[str, Any], tick: int) -> None:
@@ -1580,6 +1718,11 @@ def _preempt_for_emergency(state: Dict[str, Any], events: List[Dict[str, Any]],
 #: 采集/建造在基地附近、生产在建筑里，都不涉及野外行军。
 GATED_MOVE_ACTIONS = (ACTION_ATTACK_MOVE, ACTION_MOVE, ACTION_SCOUT)
 
+#: **求生移动**（撤退）也过闸门，但判据完全不同：它要证明的是"真的在脱离敌人"
+#: （`movement.disengaging`），而不是"前方安全、看得见"。用推进判据卡撤退 =
+#: 敌人在前面时不许撤 —— 2026-09-13 结局局"停在原地挨打"的一半成因。
+GATED_RETREAT_ACTIONS = (ACTION_RETREAT,)
+
 #: `movement_urgent` 保留条数（有界，避免长局无限增长）。
 MOVEMENT_URGENT_LIMIT = 32
 #: 同一单位同一种紧急事件的抑制窗口（tick）：避免"一直走不通"每轮刷一条。
@@ -1615,7 +1758,150 @@ def _raise_movement_urgent(state: Dict[str, Any], ctx: NodeContext, kind: str,
         "server_tick": int(tick),
         "payload": {"subject": str(unit), "source": "movement_gate"},
     })
-    _decide(state, "movement_urgent", tick=int(tick), kind=str(kind), unit=str(unit))
+    # `event_kind` 而不是 `kind`：`_decide` 的规范 kind 永远取自**第一个位置参数**，
+    # payload 里的同名字段会被静默覆盖（"什么紧急事件"就丢在日志里了）。
+    _decide(state, "movement_urgent", tick=int(tick), event_kind=str(kind),
+            unit=str(unit))
+
+
+def _fallback_intent_id(action: str, unit: str, tick: int) -> str:
+    """降级意图的**窗口 id**：同一窗口内重复生成 → id 相同 → 被仲裁层判重。
+
+    为什么要"窗口"而不是每 tick 一个新 id：降级会被连续触发（敌人一直在路上），
+    每 tick 新 id 就等于每 tick 重下一次命令（正是纪律禁止的）。窗口内同 id 让
+    "不重发仍在执行的命令"这件事仍然**只有一处实现**（仲裁层 `intent_already_tracked`
+    / 单位级判重），闸门不需要自己再写一套去重。
+    """
+    window = max(1, int(movement_mod.FALLBACK_WINDOW_TICKS))
+    return "fallback-%s-%s-%d" % (str(action), str(unit), int(tick) // window)
+
+
+def _make_fallback_intent(blocked: Dict[str, Any], *, action: str, unit: str,
+                          target: Dict[str, Any], tick: int, reason: str) -> Dict[str, Any]:
+    """把一个**受阻降级**动作变成正规意图（形状与阶梯/行为树候选完全一致）。
+
+    形状必须一致的理由：它会走**同一条**仲裁与下发链（`parse_tactical_intent` →
+    队级判重 → 批量合并 → 权威执行）。任何"降级专用通道"都会变成第二条权威链。
+    """
+    return {
+        "intent_id": _fallback_intent_id(action, unit, tick),
+        "plan_version": str(blocked.get("plan_version", "")),
+        "task_id": "",
+        "unit_ids": [str(unit)],
+        "action": str(action),
+        "target": dict(target),
+        "priority": max(int(blocked.get("priority", 0) or 0), 5),
+        "based_on_snapshot": int(blocked.get("based_on_snapshot", 0) or 0),
+        "issued_tick": int(tick),
+        "expires_tick": int(tick) + max(1, int(movement_mod.FALLBACK_WINDOW_TICKS)),
+        "generation": int(blocked.get("generation", 0) or 0),
+        "abort_when": [],
+        "emergency": False,
+        "reacquire": False,
+        "rationale": "受阻降级：%s（原动作 %s 被安全闸门拦下：%s）" % (
+            str(action), str(blocked.get("action", "")), str(reason)),
+    }
+
+
+def _blocked_move_fallbacks(state: Dict[str, Any], ctx: NodeContext,
+                            blocked: Dict[str, Any], *, units: List[str], reason: str,
+                            tick: int, budget: List[int],
+                            rally: Optional[List[float]] = None) -> List[Dict[str, Any]]:
+    """被拦下的移动意图 → **可执行的替代方案**（计划 §7 的四个合法归宿）。
+
+    返回值追加进 `kept`：和普通候选走**同一条**仲裁/下发链，绝不另开通道。
+
+    归宿分档只有一处（`movement.fallback_action_for`）：
+      - 敌人挡路 → **回基地**（`retreat` 到基地锚点，必须过"脱离"判据）；
+      - 队形散开 → **集结**（`regroup` 到小队最保守的那一跳，落点必须不在敌人威胁圈内）；
+      - 没证据 / 撤不动 / 配额不够 → **守卫**（`hold`，游戏侧 = 原地 stop，交给自动交火）；
+      - 连守卫都不能发（单位信息缺失等）→ **等待**（显式记账，不假装没发生）。
+
+    兜底永远有解：`hold` 不需要路径也不需要坐标，所以"拦下之后部队什么都不做"
+    在结构上不再可能 —— 要么给出一条**验证过的**替代移动，要么落进守卫/等待账本。
+    """
+    action = str(blocked.get("action", ""))
+    fallback = movement_mod.fallback_action_for(action, reason)
+    by_name = movement_mod._by_name(ctx.observation.get("tactical"))
+    nav_query = getattr(getattr(ctx, "services", None), "nav_query", None)
+    out: List[Dict[str, Any]] = []
+    for member in units or []:
+        chosen = fallback
+        target_pos: Optional[List[float]] = None
+        note = str(reason)
+        if chosen == movement_mod.FALLBACK_RETREAT:
+            home = rules_fallback.base_anchor_pos(by_name)
+            target_pos = [float(home[0]), float(home[1])] if home else None
+            if target_pos is None:
+                note = "no_base_anchor"
+                chosen = movement_mod.FALLBACK_GUARD
+        elif chosen == movement_mod.FALLBACK_REGROUP:
+            target_pos = list(rally or [])
+            if not target_pos:
+                home = rules_fallback.base_anchor_pos(by_name)
+                target_pos = [float(home[0]), float(home[1])] if home else None
+            if target_pos is None:
+                note = "no_rally_point"
+                chosen = movement_mod.FALLBACK_GUARD
+        if chosen in (movement_mod.FALLBACK_RETREAT, movement_mod.FALLBACK_REGROUP):
+            # ① 复用刚拒过的结论（同一目标、5 秒窗口内）→ **不再查一次权威路径**：
+            #    结论不会翻转，重复查只是白花一次 DCS 往返（实测 71% 的求生规划都是这种）。
+            cached = movement_mod.survival_blocked(
+                state, str(member), target_pos or [0.0, 0.0], tick)
+            # ② **网格刚换版本（有人重烘）→ 本轮不查路径**，直接守卫、下一轮再试。
+            #    为什么：重烘期间权威寻路会**阻塞**（实测单轮 3.24s：那一轮正好在重烘，
+            #    同时又发了一条求生撤退查询 → 协调线程整轮被卡住，验收里的"单轮静默"就是它）。
+            #    撤退/集结不是"必须这一轮查出来"的事（部队已被拦下，守卫是安全的），
+            #    而这一轮的查询结果大概率也是过期网格上的。
+            rebaking = movement_mod.nav_revision_changed(state, str(member))
+            if cached:
+                note = "%s:%s(复用)" % (chosen, cached)
+                chosen = movement_mod.FALLBACK_GUARD
+            elif rebaking:
+                note = "nav_rebake:%s" % chosen
+                chosen = movement_mod.FALLBACK_GUARD
+            elif budget[0] <= 0:
+                # 配额不够 → 不发**未经验证**的移动（纪律），改守卫并显式记账。
+                note = "fallback_quota:%s" % chosen
+                chosen = movement_mod.FALLBACK_GUARD
+            else:
+                budget[0] -= 1
+                plan = movement_mod.plan_survival_route(
+                    state, ctx.observation.get("tactical"), unit=str(member),
+                    target=target_pos or [0.0, 0.0], tick=tick, nav_query=nav_query,
+                    rule=(movement_mod.RULE_DISENGAGE
+                          if chosen == movement_mod.FALLBACK_RETREAT
+                          else movement_mod.RULE_SAFE_SPOT))
+                plan.fallback = str(chosen)
+                plan.squad = list(units)
+                # 走 `record_survival`（**不写** `routes[unit]`）：那条记录是"被批准推进的
+                # 路线"，写进去会把合法推进路线顶掉、还会把撤退终点当成可推进中继点。
+                movement_mod.record_survival(state, plan)
+                if not plan.ok:
+                    # 求生路线也不成立（撤不动 / 集结点不安全）→ 守卫，原因照记。
+                    note = "%s:%s" % (chosen, plan.reason)
+                    chosen = movement_mod.FALLBACK_GUARD
+        if chosen == movement_mod.FALLBACK_WAIT:
+            movement_mod.record_fallback(state, action=movement_mod.FALLBACK_WAIT,
+                                         reason=note)
+            continue
+        target: Dict[str, Any] = ({"pos": [float(target_pos[0]), float(target_pos[1])]}
+                                  if target_pos and
+                                  chosen in (movement_mod.FALLBACK_RETREAT,
+                                             movement_mod.FALLBACK_REGROUP)
+                                  else {})
+        item = _make_fallback_intent(blocked, action=chosen, unit=str(member),
+                                     target=target, tick=tick, reason=note)
+        # 来源记账与阶梯/行为树同一张表（契约禁止把 origin 写进载荷）。
+        _record_origins(state, [{"intent_id": item["intent_id"],
+                                 "origin": ORIGIN_BASELINE}])
+        movement_mod.record_fallback(state, action=chosen, reason=note)
+        out.append(item)
+    if out:
+        _decide(state, "movement_blocked_fallback", tick=tick, blocked_reason=str(reason),
+                actions=sorted({str(item["action"]) for item in out}),
+                units=[str(item["unit_ids"][0]) for item in out])
+    return out
 
 
 def _gate_movement(state: Dict[str, Any], ctx: NodeContext,
@@ -1624,13 +1910,21 @@ def _gate_movement(state: Dict[str, Any], ctx: NodeContext,
     """**安全移动硬闸门**（计划 §7）：候选里的野外移动意图逐条过闸门。
 
     通过 → 目标被改写成**安全中继点**（一跳），路线证据落在 `state["routes"]`；
-    不通过 → 直接从候选里摘掉，给出可统计的原因 `movement_gated:<reason>`。
+    不通过 → 摘掉原意图（原因 `movement_gated:<reason>`）**并生成替代归宿**。
 
-    这就是"**没有有效路径的主力移动数为 0**"的实现方式：不是事后统计发现，
-    而是**结构上**根本没有未经验证的移动意图能走到下发（同一处收口，无法绕过）。
+    ## 不变式（2026-09-13 结局局复盘后定版）
+
+    ① **没有有效路径的主力移动数为 0**：不是事后统计发现，而是**结构上**没有未经验证的
+       推进意图能走到下发（同一处收口，无法绕过）。
+    ② **被拦下的移动意图必须有归宿**：回基地（`retreat`，须过"脱离"判据）／集结
+       （`regroup` 到小队最保守的那一跳）／守卫（`hold`）／等待（显式记账）。
+       "丢弃意图、下一轮再试"会导致部队**停在原地挨打**（实测：10 分钟局打到最后全灭）。
+    ③ **求生移动（撤退）用"脱离"判据**，不用推进判据 —— 敌人在前面时"前方没有己方视野"
+       正是要撤的原因，用推进判据卡它 = 不许撤退。
 
     为什么放在仲裁前：仲裁是通往下发的**唯一咽喉**（`candidates → arbitrate → dispatch`），
     闸门放这里就不必给每个生产者各写一遍（写多份必然漏，本项目已有先例）。
+    降级产物也走**同一条**链（会被 `_record_origins` 标成 baseline，参与正常判重与合并）。
     """
     if not candidates:
         return candidates, []
@@ -1654,15 +1948,43 @@ def _gate_movement(state: Dict[str, Any], ctx: NodeContext,
     kept: List[Dict[str, Any]] = []
     blocked: List[Dict[str, Any]] = []
     queries = 0
+    # 降级移动自己的路径查询配额（**不与推进共用**，见 movement 里的说明）。
+    fallback_budget = [int(movement_mod.FALLBACK_QUERIES_PER_TICK)]
     for intent in candidates:
         action = str(intent.get("action", ""))
         target = intent.get("target")
         position = (target or {}).get("pos") if isinstance(target, dict) else None
+        units = [str(item) for item in (intent.get("unit_ids") or [])]
+        # 【求生移动（撤退）】也过闸门，但判据是"脱离"而不是"推进"：目标点必须让
+        # **每个成员**都比现在更远离最近可见敌人（位置未知的成员不判，不拿缺数据卡死）。
+        # 为什么仍在这一处收口：移动意图过审是**同一个咽喉**，另开一条路必然出现
+        # "某类移动没人管"（本项目踩过多次：口径分叉一次就静默失效一次）。
+        if action in GATED_RETREAT_ACTIONS and units \
+                and isinstance(position, (list, tuple)) and len(position) >= 2:
+            goal = [float(position[0]), float(position[1])]
+            by_name = movement_mod._by_name(tactical)
+            offenders = [member for member in units
+                         if (movement_mod._pos2d(by_name.get(member) or {})
+                             and not movement_mod.disengaging(
+                                 tactical,
+                                 from_point=movement_mod._pos2d(by_name.get(member) or {}),
+                                 to_point=goal))]
+            if not offenders:
+                kept.append(intent)
+                continue
+            blocked.append({"intent_id": str(intent.get("intent_id", "")),
+                            "reason": "movement_gated:%s" % movement_mod.REJECT_NOT_DISENGAGING,
+                            "unit": offenders[0], "squad": list(units),
+                            "detail": movement_mod.REJECT_NOT_DISENGAGING})
+            kept.extend(_blocked_move_fallbacks(
+                state, ctx, intent, units=units,
+                reason=movement_mod.REJECT_NOT_DISENGAGING, tick=tick,
+                budget=fallback_budget))
+            continue
         if action not in GATED_MOVE_ACTIONS or not isinstance(position, (list, tuple)) \
                 or len(position) < 2:
             kept.append(intent)
             continue
-        units = [str(item) for item in (intent.get("unit_ids") or [])]
         if not units:
             kept.append(intent)
             continue
@@ -1681,28 +2003,55 @@ def _gate_movement(state: Dict[str, Any], ctx: NodeContext,
         if action == ACTION_SCOUT:
             role = movement_mod.ROLE_SCOUT
         goal = [float(position[0]), float(position[1])]
-        revision = int((state.get("nav_revision", -1) if state.get("nav_revision")
-                        is not None else -1))
+        revision = movement_mod.parse_nav_revision(state.get("nav_revision"))
         # 【小队语义】每个成员都要有**自己**的合法路线：不许"能走的先走、剩下的留在原地"。
         squad_plans: List[Any] = []
         member_block: Optional[Dict[str, Any]] = None
+        all_en_route = True
         for member in units:
             cached = movement_mod.previous_route(state, member)
+            # 【在路上的不许换目标 · 2026-09-13 用户实测】
+            # "部队还没到位，你就下达下一个命令了，这部队怎么跟得过来" ——
+            # 判据分两种：
+            #   ① **正在执行一跳**（`hop_in_progress`）→ 无条件复用**当前中继点**，
+            #      哪怕这一轮算出来的目标已经变了（到位才允许换；到达/受阻/换网格会作废它）；
+            #   ② 没在路上 → 回到旧判据（目标没变且间隔未到才复用，否则重规划）。
+            # 半路被压下来的新目标**要记账**（`hop_holds` + 决策日志）：
+            # 否则"副官为什么不理我"在复盘时又是一条查不出来的黑箱。
+            en_route = movement_mod.hop_in_progress(state, member, revision, tick)
+            if not en_route:
+                all_en_route = False
             reuse = (bool(cached.get("ok"))
-                     and not movement_mod.needs_replan(state, member, goal, revision, tick)
-                     and len(cached.get("relay_point") or []) >= 2)
+                     and len(cached.get("relay_point") or []) >= 2
+                     and (en_route
+                          or not movement_mod.needs_replan(state, member, goal,
+                                                           revision, tick)))
+            if en_route:
+                relay_now = cached.get("relay_point") or []
+                if len(relay_now) >= 2 and \
+                        movement_mod.point_distance(relay_now, goal) > 0.5:
+                    stats = state.setdefault("movement_stats", {})
+                    stats["hop_holds"] = int(stats.get("hop_holds", 0)) + 1
+                    _decide(state, "hop_hold", unit=member, tick=tick,
+                            holding=[round(float(relay_now[0]), 2),
+                                     round(float(relay_now[1]), 2)],
+                            proposed=[round(float(goal[0]), 2),
+                                      round(float(goal[1]), 2)],
+                            note="部队还在路上：先走完当前这一跳，到位再换目标")
             if reuse:
                 relay = cached.get("relay_point") or []
                 plan = movement_mod.RoutePlan(
                     ok=True, unit=member, squad=list(units),
                     route_id=str(cached.get("route_id", "")),
-                    nav_revision=int(cached.get("nav_revision", -1) or -1),
+                    nav_revision=movement_mod.parse_nav_revision(
+                        cached.get("nav_revision")),
                     relay_point=[float(relay[0]), float(relay[1])])
             elif queries + 1 > movement_mod.NAV_QUERIES_PER_TICK:
                 # 配额不够验证**整队** → 本轮不推进（"验了一半就走"比不走更危险）。
                 member_block = {"intent_id": str(intent.get("intent_id", "")),
                                 "reason": "movement_gated:%s" % movement_mod.REJECT_SQUAD_UNVERIFIED,
-                                "unit": member, "squad": list(units)}
+                                "unit": member, "squad": list(units),
+                                "detail": movement_mod.REJECT_SQUAD_UNVERIFIED}
                 break
             else:
                 queries += 1
@@ -1720,22 +2069,53 @@ def _gate_movement(state: Dict[str, Any], ctx: NodeContext,
                     member_block = {
                         "intent_id": str(intent.get("intent_id", "")),
                         "reason": "movement_gated:%s" % blocked_reason,
-                        "unit": member, "squad": list(units)}
+                        "unit": member, "squad": list(units),
+                        "detail": plan.reason}
                     if plan.urgent_event:
                         _raise_movement_urgent(state, ctx, plan.urgent_event, member, tick)
                     break
             squad_plans.append(plan)
         if member_block is not None:
             blocked.append(member_block)
+            # 【受阻降级的接入点 ①】推进被拦下 → 给出四个合法归宿之一
+            # （回基地 / 集结 / 守卫 / 等待），而不是"丢弃意图、下一轮再试"。
+            kept.extend(_blocked_move_fallbacks(
+                state, ctx, intent, units=units,
+                reason=str(member_block.get("detail", "")), tick=tick,
+                budget=fallback_budget))
             continue
         # 全队只认**一个**中继点 = 各成员中最保守的那一跳；队形散了就先集结。
+        # 【单人**不判**散开】`squad_scatter` 语义只属于"队伍"：单人的中继点由
+        # `safe_relay_point` 保证在**己方视野**内，但视野可能是**别的单位**提供的 ——
+        # 于是这个点可能离它自己 30 米。按散开拦掉它 = 前探/前压**永远出不了门**
+        # （实测 5 分钟集成局：`rule-probe-expansion` 被 `squad_scatter` 卡死）。
         positions = {member: movement_mod._pos2d(by_name.get(member) or {}) or []
                      for member in units}
-        relay, scatter = movement_mod.squad_hop(squad_plans, positions)
+        if len(units) == 1:
+            relay, scatter = list(squad_plans[0].relay_point), ""
+            rally = list(relay)
+        else:
+            relay, scatter = movement_mod.squad_hop(squad_plans, positions)
+            # 集结点与推进点同源、但不做散开判定：散开时正是要用它把人叫回来。
+            rally = movement_mod.rally_point(squad_plans, positions)
         if scatter:
             blocked.append({"intent_id": str(intent.get("intent_id", "")),
                             "reason": "movement_gated:%s" % scatter,
-                            "unit": units[0], "squad": list(units)})
+                            "unit": units[0], "squad": list(units),
+                            "detail": scatter})
+            # 【受阻降级的接入点 ②】队形散开 → **真的去集结**（regroup 到最保守的那一跳）。
+            # 旧行为只是"丢弃推进、下一轮再试"，于是散开的队伍永远不集结
+            # （计划 §7 要求"不让单位各自散开"）。
+            kept.extend(_blocked_move_fallbacks(
+                state, ctx, intent, units=units, reason=str(scatter), tick=tick,
+                budget=fallback_budget, rally=rally))
+            continue
+        if all_en_route:
+            # 全员都在走当前跳：复用中继点、**不再下发**。旧行为把目标改回中继点
+            # 仍 `kept.append` → 每轮一条新 `rule-fill-advance-<单位>-<tick>`
+            # （`u4dev` 30s 重复下发 100 条）。游戏侧旧令还在执行，再发只会改令。
+            stats = state.setdefault("movement_stats", {})
+            stats["hop_reuse_dropped"] = int(stats.get("hop_reuse_dropped", 0)) + 1
             continue
         target["pos"] = list(relay)
         # 小队路线留痕（供验收读"小队推进"，不占新的状态键：挂在 `routes` 下加前缀）。
@@ -1755,6 +2135,171 @@ def _gate_movement(state: Dict[str, Any], ctx: NodeContext,
                 kept=len(kept), blocked=blocked[:6],
                 stats=movement_mod.movement_stats(state))
     return kept, blocked
+
+
+#: 敌人类型表容量（有界；键是实体 id，值是**上次看到时的类型**）。
+ENEMY_TYPE_LIMIT = 256
+
+
+##: 敌方情报点保留上限（有界；前压只需要"往哪边走"，不需要全图）。
+ENEMY_INTEL_POINT_LIMIT = 16
+
+
+def _remember_enemy_intel(state: Dict[str, Any], observation) -> None:
+    """把 `strategic.enemy_intel` 里**未确认死亡**的敌方位置记进状态（有界）。
+
+    用途单一：给"无可见敌人时的前压"一个**真实目标**（见 `state.enemy_intel_points`）。
+    这是公开情报（我们自己侦察到的 last_seen 位置），不是全局视野泄露。
+    """
+    strategic = (observation or {}).get("strategic")
+    if not isinstance(strategic, dict):
+        return
+    points: List[List[float]] = []
+    for item in strategic.get("enemy_intel") or []:
+        if not isinstance(item, dict) or bool(item.get("confirmed_dead")):
+            continue
+        pos = item.get("pos") or []
+        if not isinstance(pos, (list, tuple)) or len(pos) < 2:
+            continue
+        try:
+            points.append([round(float(pos[0]), 1), round(float(pos[2]), 1)])
+        except (TypeError, ValueError, IndexError):
+            continue
+        if len(points) >= ENEMY_INTEL_POINT_LIMIT:
+            break
+    # 空也写：**情报过期就该清掉**（否则部队会永远朝一个早就没了的目标推进）。
+    state["enemy_intel_points"] = points
+
+
+def _remember_enemy_types(state: Dict[str, Any], tactical) -> None:
+    """刷新 `state["enemy_types"]`：可见敌人 → 它的单位类型。
+
+    用途单一：权威回执说"武器域不匹配"时，把"这个目标"升级成"**这一类目标**"
+    （见 `rules_fallback.ban_unattackable_target`）。
+    """
+    # 我方单位名 → 类型（同一轮顺带刷新）：拒绝时要把"打不了"升级到**单位类型**级，
+    # 没有这张表就只能按个体学（实测每个单位各付一次拒绝 = 29 条浪费）。
+    own_table = state.setdefault("own_unit_types", {})
+    own_domains = state.setdefault("own_attack_domains", {})
+    for name, info in (rules_fallback._normalized_units(tactical) or {}).items():
+        kind = str((info or {}).get("type", ""))
+        if kind:
+            own_table[str(name)] = kind
+        domains = list((info or {}).get("attack_domains") or [])
+        if domains:
+            own_domains[str(name)] = [str(item) for item in domains]
+    while len(own_table) > ENEMY_TYPE_LIMIT:
+        own_table.pop(next(iter(own_table)))
+    while len(own_domains) > ENEMY_TYPE_LIMIT:
+        own_domains.pop(next(iter(own_domains)))
+    enemies = rules_fallback._living_enemies(tactical)
+    if not enemies:
+        return
+    table = state.setdefault("enemy_types", {})
+    enemy_domains = state.setdefault("enemy_domains", {})
+    for enemy in enemies:
+        entity = rules_fallback.entity_id_of(enemy)
+        if not entity:
+            continue
+        kind = str(enemy.get("unit_type") or enemy.get("type") or "")
+        if kind:
+            table[str(entity)] = kind
+        domain = str(enemy.get("domain") or "")
+        if domain:
+            enemy_domains[str(entity)] = domain
+    while len(table) > ENEMY_TYPE_LIMIT:
+        table.pop(next(iter(table)))
+    while len(enemy_domains) > ENEMY_TYPE_LIMIT:
+        enemy_domains.pop(next(iter(enemy_domains)))
+
+
+def _persist_combat_squads(state: Dict[str, Any], tactical, rules) -> None:
+    """跨轮保持小队身份：成员阵亡/增援不整队重建（T08）。"""
+    authorized = {str(name) for name in (state.get("ai_controlled_units") or [])}
+    living = list((rules_fallback._normalized_units(tactical) or {}).keys())
+    derived = squads_mod.derive_squads(
+        tactical, authorized=authorized or None, rules=rules)
+    state["persistent_squads"] = squads_mod.persist_squads(
+        state.get("persistent_squads") or [], derived, living)
+
+
+#: "指挥同一个单位去哪/停哪"的动作族。同一轮里给同一单位发两条就会互相打架 ——
+#: 实测（真机档案 `archive_045ed0d6`，2026-09-13）：同一 tick 里 Unit_23 同时收到
+#: `fallback-hold-Unit_23-7`（→ stop）与 `bt-retreat-Unit_23-2249`（→ move），
+#: **两条都 Accepted**；该局这样的"同 tick 同单位多条移动命令"共 32 组
+#: （还有 `attack+attack`）。单位收到的命令自相矛盾 → 走走停停、看起来"跟不过来"。
+MOVE_FAMILY_ACTIONS = (ACTION_RETREAT, ACTION_ATTACK, ACTION_ATTACK_MOVE, ACTION_MOVE,
+                       ACTION_SCOUT, ACTION_REGROUP, ACTION_DEFEND, ACTION_HOLD)
+
+
+def _resolve_same_unit_conflicts(state: Dict[str, Any], accepted: List[Dict[str, Any]],
+                                 tick: int) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """把"同一单位本轮被多条线路同时指挥"收敛成**一条**命令。
+
+    返回 `(保留的意图, 被压下的 dropped 记录)`。
+
+    ## 为什么必须在仲裁层收口
+    阶梯骨架 / 并行填充 / 行为树 / 受阻降级是**四条独立的发令路**，它们各自都不知道
+    别人也盯上了同一个单位；`ACTION_PREEMPT_RANK` 只管"新意图能不能抢**上一轮还在跑**的旧意图"，
+    管不了**同一批**里的冲突。于是同一 tick 会出现两条互相抵消的命令。
+
+    ## 裁决口径（不许另造一套：直接用既有的抢占序表）
+    - 只对"移动族"动作裁决（`MOVE_FAMILY_ACTIONS`）：`gather`/`produce`/`build` 是本职动作，
+      不在这一层互相取消；
+    - 保留**rank 最高**的那条（`ACTION_PREEMPT_RANK`：求生 90 > 交战 70 > 建造/生产 60 >
+      防御 55 > 采集 40 > 集结 30 > 侦察/移动 20 > 守卫 10）；rank 相同取 `issued_tick` 早的；
+    - 表里没有的动作按**最低**处理（`action_rank()` 对未知动作给 100，那是"抢不抢旧任务"
+      的口径；同批去重方向相反，拿不准要让位给明确更高优先的那条）；
+    - 一个单位被占住后，**整条**低 rank 意图让位（小队语义：验了一半就走比不走更危险），
+      并**显式记账**（`dropped` 里带 `same_unit_conflict`，走既有 `intent_dropped` 决策）。
+    """
+    claim: Dict[str, Dict[str, Any]] = {}
+    order: List[Dict[str, Any]] = []
+    for intent in accepted:
+        action = str(intent.get("action", ""))
+        if action not in MOVE_FAMILY_ACTIONS:
+            continue
+        rank = (int(rules_fallback.ACTION_PREEMPT_RANK.get(action))
+                if action in rules_fallback.ACTION_PREEMPT_RANK else 0)
+        units = [str(unit) for unit in (intent.get("unit_ids") or [])]
+        if not units:
+            continue
+        order.append({"intent": intent, "rank": rank,
+                      "issued": int(intent.get("issued_tick", tick) or tick),
+                      "units": units})
+    order.sort(key=lambda item: (-item["rank"], item["issued"]))
+    dropped_ids = set()
+    for item in order:
+        holder = next((claim[unit] for unit in item["units"] if unit in claim), None)
+        if holder is None:
+            for unit in item["units"]:
+                claim[unit] = item
+            continue
+        dropped_ids.add(id(item["intent"]))
+    if not dropped_ids:
+        return accepted, []
+    stats = state.setdefault("movement_stats", {})
+    stats["same_unit_conflicts"] = int(stats.get("same_unit_conflicts", 0)) + len(dropped_ids)
+    kept = [intent for intent in accepted if id(intent) not in dropped_ids]
+    dropped: List[Dict[str, Any]] = []
+    for intent in accepted:
+        if id(intent) not in dropped_ids:
+            continue
+        units = [str(unit) for unit in (intent.get("unit_ids") or [])]
+        winner = next((claim[unit]["intent"].get("intent_id") for unit in units
+                       if unit in claim), "")
+        dropped.append({
+            "intent_id": str(intent.get("intent_id", "")),
+            "reason": "same_unit_conflict",
+            "errors": ["同一单位本轮已被更高优先的命令占用",
+                       "unit=%s" % (units[0] if units else ""),
+                       "kept=%s" % winner],
+        })
+    _decide(state, "same_unit_conflict", tick=tick,
+            dropped=[item["intent_id"] for item in dropped][:6],
+            kept=[str(item.get("intent_id", "")) for item in kept][:6],
+            note="同一单位本轮被多条线路同时指挥：只留 rank 最高的那条（两条会互相打架）")
+    return kept, dropped
 
 
 def node_arbitrate_intent(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, Any]:
@@ -1824,6 +2369,17 @@ def node_arbitrate_intent(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, 
         _decide(state, "reserve_blocked",
                 blocked=[item["intent_id"] for item in over_budget],
                 reserves=dict(state.get("reserves") or {}))
+    # 【一个单位一轮只许一条"去哪/停哪"的命令】用户 2026-09-13：
+    # "你下达命令不能瞎下达啊，部队还没到位，你就下达下一个命令了，这部队怎么跟得过来"。
+    #
+    # **必须放在校验与预算之后**：只裁决"真的能执行的"意图之间的冲突。
+    # 反例（实测踩到）：先裁决会把 `attack 已死的目标`（rank 70）留下、把有效的
+    # `move 重新定位`（rank 20）丢掉 —— 前者随后被 `target_dead` 拒掉，结果**两个都没发**。
+    accepted_now, same_unit_dropped = _resolve_same_unit_conflicts(
+        state, result.accepted, tick)
+    if same_unit_dropped:
+        result.accepted = accepted_now
+        result.dropped.extend(same_unit_dropped)
     for intent in result.accepted:
         intent["state"] = "active"
         intent["drop_reason"] = ""
@@ -1952,11 +2508,66 @@ def _find_intent(state: Dict[str, Any], intent_id: str) -> Optional[Dict[str, An
     return None
 
 
+#: 生产台账保留条数（有界；按 item_id 索引的完成/开始事实）。
+PRODUCTION_LEDGER_LIMIT = 200
+
+
+def _capture_production_identity(state: Dict[str, Any], record: Dict[str, Any],
+                                 receipt: Dict[str, Any]) -> None:
+    """把生产回执里的**权威身份**写回意图与台账（产品 ID / 生产项 ID / 生产者 ID）。
+
+    背景（2026-09-13 归档复盘，最高优先级问题）：`target.scene` 是
+    `res://source/match/units/Infantry.tscn`，而队列项与实体的身份是 `soldier` —— 两套命名，
+    拿 scene 直接比 `definition_id` **必然比不中**，于是"生产完成"也结算不了，
+    旧任务一直 `active_unknown` 占着设施，下一单要等 TTL 过期才发。
+    """
+    if str(record.get("action", "")) != "produce":
+        return
+    result = receipt.get("result")
+    if not isinstance(result, dict):
+        return
+    item = result.get("item") if isinstance(result.get("item"), dict) else {}
+    item_id = str(result.get("item_id") or item.get("item_id") or "")
+    product_id = str(item.get("definition_id") or "")
+    producer_id = str(item.get("producer_id") or "")
+    target = record.get("target") if isinstance(record.get("target"), dict) else {}
+    record["production"] = {
+        "item_id": item_id, "product_id": product_id, "producer_id": producer_id,
+        "producer": str(target.get("producer", "")),
+        "scene": str(result.get("scene", "") or target.get("scene", "")),
+        "item_state": str(item.get("state", "")),
+        "requested_tick": int(record.get("issued_tick", 0) or 0),
+    }
+    if not item_id:
+        return
+    ledger = state.setdefault("production_ledger", {})
+    entry = ledger.setdefault(item_id, {})
+    entry.update({"producer": record["production"]["producer"],
+                  "producer_id": producer_id, "product_id": product_id,
+                  "intent_id": str(record.get("intent_id", "")),
+                  "requested_tick": int(record.get("issued_tick", 0) or 0)})
+    while len(ledger) > PRODUCTION_LEDGER_LIMIT:
+        # 有界：丢最旧的**已结束**条目（没结束的不许丢，否则会丢证据）。
+        for key in list(ledger):
+            if ledger[key].get("finished_tick"):
+                ledger.pop(key, None)
+                break
+        else:
+            break
+
+
 def _apply_receipt_to_state(state: Dict[str, Any], intent_id: str,
                             receipt: Dict[str, Any],
                             ctx: Optional[NodeContext] = None) -> None:
     record = _find_intent(state, intent_id)
     if record is None:
+        return
+    receipt_match = str((receipt or {}).get("match_id") or "")
+    bound_match = str(state.get("match_id") or "")
+    if receipt_match and bound_match and receipt_match != bound_match:
+        # T16：旧局/串局回执不得结算、不得扣费、不得改意图。
+        _decide(state, "receipt_ignored_stale_match", intent_id=intent_id,
+                bound=bound_match, observed=receipt_match)
         return
     status = str(receipt.get("status", ""))
     accepted = bool(receipt.get("accepted", False))
@@ -1999,9 +2610,14 @@ def _apply_receipt_to_state(state: Dict[str, Any], intent_id: str,
                     received_tick=tick_now, action=str(record.get("action", "")),
                     status=str(status))
     if accepted:
-        # 建造成功 → 清空连续失败计数（退避只针对"连续被拒"）。
+        # 【生产身份】权威回执带 item_id / definition_id / producer_id —— 这是**唯一**能可靠
+        # 结算生产的钥匙（场景名与产品 ID 不是同一套命名，见 `progress.product_ids_of`）。
+        _capture_production_identity(state, record, receipt)
+        # 建造成功 → 清空连续失败计数与**退避等级**（退避只针对"连续被拒"；
+        # 等级不清会让后续偶发失败直接吃到 2 分钟的大退避）。
         if str(record.get("action", "")) == "build":
             state["build_reject_streak"] = 0
+            state["build_backoff_level"] = 0
         record["state"] = "active" if status == "Accepted" else (
             "completed" if status == "Completed" else record.get("state", "active"))
         task_id = str(record.get("task_id", ""))
@@ -2051,7 +2667,22 @@ def _apply_receipt_to_state(state: Dict[str, Any], intent_id: str,
     reject_kind = placement.classify_rejection(reason_text)
     tick_now = int(state.get("server_tick", 0) or 0)
     ledger = placement.ledger_from_state(state)
-    if reject_kind in placement.GEOMETRY_KINDS:
+    if reject_kind in placement.TARGET_KINDS:
+        # 【目标打不了 → 换目标】权威回执已经写明"当前武器无法攻击该目标所处的域
+        # （地面/空中不匹配），请改打地面目标或用对空单位" —— 修正维度是**换目标**：
+        # 重发同一条命令是纯噪音（实测 Unit_43 被拒 10 次、每 15 秒重试一次）。
+        # 记 «单位 × 目标» 而不是只记目标：地空不匹配是**武器**属性，
+        # 防空单位打得了的目标、地面单位打不了，按目标拉黑会误伤能打的那批。
+        target = record.get("target") if isinstance(record.get("target"), dict) else {}
+        entity = str(target.get("entity_id", ""))
+        kind = rules_fallback.enemy_type_of(state, entity)
+        rules_fallback.ban_unattackable_target(
+            state, [str(u) for u in record.get("unit_ids", [])], entity, tick_now,
+            entity_type=kind)
+        _decide(state, "target_unattackable", entity=entity, enemy_type=kind,
+                units=[str(u) for u in record.get("unit_ids", [])][:4],
+                note="武器域不匹配：该目标（及同类目标）对这个单位在窗口内不再作为候选")
+    elif reject_kind in placement.GEOMETRY_KINDS:
         pair = placement.plane_point((record.get("target") or {}).get("pos"))
         if pair is not None:
             point = [round(pair[0], 1), round(pair[1], 1)]
@@ -2075,13 +2706,28 @@ def _apply_receipt_to_state(state: Dict[str, Any], intent_id: str,
                     kind=reject_kind, count=count,
                     reason=str(receipt.get("reason", ""))[:40])
         # 内容类问题会影响所有意图 → 保留**全局退避**这个安全阀
-        # （GPT Q6：不得用无限重试掩盖 Rejected）。几何类不走这条路（已按点自愈）。
+        # （GPT Q6：不得用无限重试掩盖 Rejected）。
+    # 【升级退避（2026-09-14 迭代4）】**对所有"连续被拒"生效，几何类也算**。
+    #
+    # 为什么改（老注释写"几何类已按点自愈，不走这条路"——实测证伪）：几何类拒绝的处理是
+    # "按点拉黑 + 换个点再试"，可**一片地形整体不可建**时（基地落在不可建表面上），
+    # 换个点还是 `SurfaceNotBuildable` → 以固定 900 tick 的节奏一直烧命令（一局 10 次）。
+    # 所以：连续失败要**加倍退避**（900 → 1800 → 3600 → 上限 7200 ≈ 2 分钟），
+    # 并把等级记进决策日志 —— 复盘能一眼看出"不是忘了建，是这片地建不了"。
+    # 成功建造会把等级清零（见 accepted 分支），所以偶发失败不会越滚越大。
+    if reject_kind not in (placement.REJECT_STALE,) \
+            and str(record.get("action", "")) == "build":
         streak = int(state.get("build_reject_streak", 0)) + 1
         state["build_reject_streak"] = streak
         if streak >= 3:
-            state["build_backoff_until_tick"] = tick_now + 900
+            level = int(state.get("build_backoff_level", 0)) + 1
+            state["build_backoff_level"] = level
+            window = min(900 * (2 ** (level - 1)), 7200)
+            state["build_backoff_until_tick"] = tick_now + window
             state["build_reject_streak"] = 0
-            _decide(state, "build_backoff", until_tick=state["build_backoff_until_tick"])
+            _decide(state, "build_backoff", until_tick=state["build_backoff_until_tick"],
+                    level=level, window_ticks=window, kind=reject_kind,
+                    note="连续建造被拒：退避加倍（换点也不行时，多半是这片地形不可建）")
     placement.ledger_to_state(ledger, state)
     task_id = str(record.get("task_id", ""))
     if task_id and state.get("active_tasks", {}).get(task_id) in ("running", "pending", "unknown"):

@@ -117,8 +117,8 @@ geometry_parsed_geometry_type = 1
 geometry_collision_mask = 4278190088
 geometry_source_geometry_mode = 1
 geometry_source_group_name = &"air_navigation_input"
-cell_size = 0.4
-cell_height = 0.4
+cell_size = 0.8
+cell_height = 0.8
 agent_height = 2.0
 agent_radius = 0.8
 agent_max_climb = 0.0
@@ -129,8 +129,8 @@ geometry_parsed_geometry_type = 2
 geometry_collision_mask = 4278190082
 geometry_source_geometry_mode = 2
 geometry_source_group_name = &"terrain_navigation_input"
-cell_size = 0.3
-cell_height = 0.3
+cell_size = 0.6
+cell_height = 0.6
 agent_height = 1.8
 agent_radius = 0.9
 agent_max_climb = 0.5
@@ -192,7 +192,7 @@ script = ExtResource("30_simulation_clock")
 [node name="Players" type="Node3D" parent="."]
 
 [node name="IsometricCamera3D" type="Camera3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0.866025, 0.5, 0, -0.5, 0.866025, 49.5996, 12.4465, 65.9216)
+transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 49.5996, 20.0000, 55.0000)
 projection = 1
 current = true
 size = 21.25

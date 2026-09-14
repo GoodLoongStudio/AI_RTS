@@ -47,6 +47,7 @@ based_on_snapshot / issued_tick / expires_tick / generation / rationale`
 
 from __future__ import annotations
 
+import math
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 # ---------------------------------------------------------------------------
@@ -293,9 +294,8 @@ def _retreat(bb: Blackboard) -> str:
                    priority=95, rationale="可见敌人数多于我方作战单位，撤离保存战力")
 
 
-#: 基地回防的**作用半径**（米）：只调动基地附近的作战单位（手册 DEF-01：
-#: "仅基地附近单位；远处部队继续原任务（不全军回防）"）。
-DEFENSE_RADIUS_M = 40.0
+#: 基地回防的**作用半径**（米）：唯一口径在 `campaign.DEFENSE_RADIUS_M`。
+from .campaign import DEFENSE_RADIUS_M  # noqa: E402
 
 
 def _under_attack(bb: Blackboard) -> bool:
@@ -309,16 +309,8 @@ def _under_attack(bb: Blackboard) -> bool:
 
 
 def _near_base(bb: Blackboard) -> bool:
-    point = bb.get("defend_pos") or []
-    pos = bb.get("unit_pos") or []
-    if len(point) < 2 or len(pos) < 2:
-        return False
-    try:
-        distance2 = ((float(pos[0]) - float(point[0])) ** 2
-                     + (float(pos[1]) - float(point[1])) ** 2)
-    except (TypeError, ValueError):
-        return False
-    return distance2 <= DEFENSE_RADIUS_M ** 2
+    from . import rules_fallback as rf
+    return rf.unit_near_base(bb.get("unit_pos") or [], bb.get("defend_pos") or [])
 
 
 def _defend_base(bb: Blackboard) -> str:
@@ -333,7 +325,9 @@ def _defend_base(bb: Blackboard) -> str:
 
 def _has_assigned_target(bb: Blackboard) -> bool:
     target = bb.get("assigned_target")
-    return bool(target) and target in (bb.get("visible_enemies") or ())
+    # 分派的目标也必须"打得了"：打不了的（武器域不匹配）当作没有目标，
+    # 让树走别的分支（前压/集结），而不是重发一条注定被拒的攻击命令。
+    return bool(target) and target in _attackable(bb)
 
 
 def _attack_assigned(bb: Blackboard) -> str:
@@ -535,8 +529,16 @@ def _advance_waypoint(bb: Blackboard):
     # "同一 tick 必然同一点"的可复现性与按单位错相位。
     bearing = SCOUT_BEARINGS[(slot + seed) % len(SCOUT_BEARINGS)]
     ring = 1 + (slot + seed) // len(SCOUT_BEARINGS)
+    # 小队已成形 → `search=True`（允许更远，去找人打）+ 用**已侦察到的敌情**当前压目标：
+    # 否则无可见敌人时部队只在基地附近转圈（实测一局 36 兵、可见敌人 0、全程只有前压）。
+    squad_ready = int(bb.get("own_combat_count") or 0) >= int(rf.SQUAD_ACTION_MIN)
+    # `state=`/`unit=` 是为了**探索前沿 + 访问记忆**（计划 U1/F01）：树这条路的选点
+    # 也要进同一份记忆，否则"到达后换下一个前沿"只对并行填充生效、树仍来回走同一个点。
     return rf.military_waypoint(home, bounds=bb.get("map_bounds"), ring=ring,
                                 bearing=bearing,
+                                intel=bb.get("enemy_intel_points") or (),
+                                search=squad_ready, state=bb.get("state_ref"),
+                                unit=str(bb.get("unit") or ""),
                                 max_radius=float(bb.get("advance_max_radius")
                                                  or ADVANCE_MAX_RADIUS))
 
@@ -557,12 +559,104 @@ def _advance(bb: Blackboard) -> str:
                    rationale="无可见敌人：向外前压探索 %s（不停下等待）" % (point,))
 
 
+#: 当前目标分数不超过最优的这么多倍就保持（防每轮因轻微排序抖动换目标）。
+ENGAGE_STICK_RATIO = 1.25
+#: 同一敌人软封顶：已有这么多单位锁定后，其余单位优先打下一个。
+FIRE_SOFT_CAP = 1
+
+
+def _attackable(bb: Blackboard) -> list:
+    """该单位**打得了**的可见敌人（事前能力 + 事后黑名单，不排序）。"""
+    from . import rules_fallback as rf
+
+    ids = [str(item) for item in (bb.get("visible_enemies") or [])]
+    types = bb.get("enemy_types") or {}
+    facts = bb.get("enemy_facts") or {}
+    view = {"server_tick": int(bb.get("server_tick") or 0),
+            "unattackable_targets": bb.get("unattackable_targets") or {},
+            "enemy_types": types,
+            "own_unit_types": bb.get("own_unit_types") or {},
+            "own_attack_domains": bb.get("own_attack_domains") or {},
+            "enemy_domains": bb.get("enemy_domains") or {},
+            "capability_version": bb.get("capability_version") or "",
+            "rules_version": bb.get("capability_version") or ""}
+    enemies = []
+    for entity in ids:
+        info = facts.get(entity) or {}
+        enemies.append({
+            "name": entity,
+            "unit_type": str(types.get(entity) or info.get("type") or ""),
+            "domain": str(info.get("domain") or ""),
+        })
+    return [str(rf.entity_id_of(enemy)) for enemy in
+            rf.attackable_enemies(view, enemies, [str(bb.get("unit") or "")],
+                                 rules=bb.get("rules_ref"))]
+
+
+def _engage_score(bb: Blackboard, enemy_id: str) -> Tuple[float, float]:
+    """(越低越好的综合分, 平面距离)。近 + 有威胁优先。"""
+    facts = (bb.get("enemy_facts") or {}).get(enemy_id) or {}
+    pos = bb.get("unit_pos") or [0.0, 0.0]
+    epos = facts.get("pos") or [0.0, 0.0]
+    try:
+        dist = math.hypot(float(epos[0]) - float(pos[0]), float(epos[1]) - float(pos[1]))
+    except (TypeError, ValueError, IndexError):
+        dist = 0.0
+    kind = str(facts.get("type") or "")
+    combat = bb.get("combat_types") or ()
+    if kind in combat:
+        threat = 1.0
+    elif kind in ("worker",):
+        threat = 0.15
+    elif kind:
+        threat = 0.5
+    else:
+        threat = 0.8
+    try:
+        hp = float(facts.get("hp") or 0.0)
+        hp_max = float(facts.get("hp_max") or 0.0) or 1.0
+    except (TypeError, ValueError):
+        hp, hp_max = 0.0, 1.0
+    hp_ratio = max(0.1, hp / hp_max) if hp_max else 1.0
+    return dist / max(0.2, threat) / hp_ratio, dist
+
+
+def _pick_engage_target(bb: Blackboard, candidates: Sequence[str]) -> str:
+    """合法目标里按距离/威胁排序，带滞回与火力分配。数组顺序不决定战术（F02）。"""
+    if not candidates:
+        return ""
+    locks = bb.get("engage_locks") or {}
+    claimed: Dict[str, int] = {}
+    for unit, enemy in locks.items():
+        if str(unit) != str(bb.unit):
+            claimed[str(enemy)] = claimed.get(str(enemy), 0) + 1
+    scored = []
+    for enemy_id in candidates:
+        score, dist = _engage_score(bb, enemy_id)
+        scored.append((claimed.get(enemy_id, 0) >= FIRE_SOFT_CAP, score, dist, enemy_id))
+    scored.sort()
+    best_id = scored[0][3]
+    best_score = scored[0][1]
+    current = str((locks.get(bb.unit) or bb.get("assigned_target") or "") or "")
+    if current in set(candidates):
+        cur_score, _dist = _engage_score(bb, current)
+        if cur_score <= best_score * ENGAGE_STICK_RATIO:
+            return current
+    return best_id
+
+
 def _engage_nearest(bb: Blackboard) -> str:
-    enemies = bb.get("visible_enemies") or []
+    enemies = _attackable(bb)
     if not enemies:
         return Status.FAILURE
-    return bb.emit("attack", {"entity_id": str(enemies[0])}, priority=75,
-                   rationale="作战单位交火最近的可见敌人")
+    pick = _pick_engage_target(bb, enemies)
+    if not pick:
+        return Status.FAILURE
+    locks = bb.get("engage_locks")
+    if isinstance(locks, dict):
+        locks[str(bb.unit)] = pick
+    return bb.emit("attack", {"entity_id": str(pick)}, priority=75,
+                   rationale="作战单位交火局部最近/高威胁目标")
 
 
 def _regroup(bb: Blackboard) -> str:
@@ -712,6 +806,17 @@ def _adapt(
         # 【曾按 `entity_id` 读 → `visible_enemies` 恒空 → 就近交火与劣势撤离
         #   **永远不触发**，且不报错、不降级，只表现为"副官从不打仗"。】
         "visible_enemies": [rf.entity_id_of(e) for e in enemies if rf.entity_id_of(e)],
+        "enemy_facts": {
+            rf.entity_id_of(e): {
+                "pos": list(rf._pos2d(e)),
+                "type": str(e.get("unit_type") or e.get("type") or ""),
+                "hp": e.get("hp"), "hp_max": e.get("hp_max"),
+                "domain": str(e.get("domain") or ""),
+            }
+            for e in enemies if rf.entity_id_of(e)
+        },
+        # 已侦察到的敌方位置（公开情报）：给"无可见敌人时的前压"一个真实目标。
+        "enemy_intel_points": list((state or {}).get("enemy_intel_points") or []),
         # 资源坐标统一成 2D：观测里的 pos 是 [x, y, z]，直接当 [x, z] 会错位。
         # 同一原因：资源实体的字段也是 `name`，读错会让工人在树里**永远采不了矿**。
         "visible_resources": [
@@ -768,7 +873,11 @@ def micro_parts(
     """
     from . import rules_fallback as rf
 
-    cfg = {"combat_types": ("soldier", "vehicle", "tank", "aircraft"),
+    # 作战单位口径**不在这里硬编码**（原值 `("soldier","vehicle","tank","aircraft")` 里的
+    # `vehicle` / `aircraft` 在配置里**根本不存在** → 直升机（真实 id `helicopter`）漏计，
+    # 影响树的"我方作战单位数"与接敌/撤离判据）。统一走 `rf.combat_types_of()`：
+    # state（本轮派生并落档）→ rules 现算 → 兜底常量。
+    cfg = {"combat_types": rf.combat_types_of(state or {}, rules),
            # 专职侦察单位：无人机是这局里唯一的"眼睛"（`scout` 对应 Scout.tscn 的单位类型）。
            # 只认这两类，作战单位不参与侦察（见 `_is_scout` 的说明）。
            "scout_types": ("drone", "scout")}
@@ -813,6 +922,29 @@ def micro_parts(
             "player_controlled_units": player_units,
             "combat_types": cfg["combat_types"],
             "visible_enemies": shared["visible_enemies"],
+            "enemy_facts": shared.get("enemy_facts") or {},
+            "engage_locks": (state or {}).setdefault("engage_locks", {}),
+            "own_attack_domains": (state or {}).get("own_attack_domains") or {},
+            "enemy_domains": (state or {}).get("enemy_domains") or {},
+            "capability_version": (state or {}).get("capability_version")
+                                 or (state or {}).get("rules_version") or "",
+            "rules_ref": rules,
+            # 已侦察到的敌方位置（公开情报）：无可见敌人时的前压目标（见 `_advance_waypoint`）。
+            "enemy_intel_points": shared.get("enemy_intel_points") or [],
+            # **状态引用（只读用途）**：探索前沿/访问记忆存在状态里（`state["explore"]`），
+            # 树的选点必须与并行填充共用同一份记忆（计划 U1/F01：到达后换下一个前沿）。
+            # 传引用而不是副本：前沿选择器会**就地**记账（covered/unreachable），
+            # 每轮拷一份会让记忆永远停留在初始状态。
+            "state_ref": (state or {}),
+            # "打不了的目标"记忆（单位×目标）：取自 `state["unattackable_targets"]`，
+            # 由权威回执的"武器域不匹配"喂进来（见 `rules_fallback.ban_unattackable_target`）。
+            # **只用于选目标**，不参与"是否劣势/是否撤离"的判断（那用全部可见敌情，更保守）。
+            "unattackable_targets": (state or {}).get("unattackable_targets") or {},
+            # 敌人类型表：把"打不了这个目标"升级成"打不了这一类目标"（见 `_attackable`）。
+            "enemy_types": (state or {}).get("enemy_types") or {},
+            # 我方单位类型表：**必须一起给**，否则类型级黑名单（`type:soldier|type:drone`）
+            # 在树这条路上命不中 —— 每个新单位都要各被拒一次（迭代1 实测 51 条）。
+            "own_unit_types": (state or {}).get("own_unit_types") or {},
             "visible_resources": shared["visible_resources"],
             # 预分配的矿点（程序分配器的结果；没有时退回"最近的矿"）。
             "assigned_resource": (shared.get("assigned_resources") or {}).get(name, ""),

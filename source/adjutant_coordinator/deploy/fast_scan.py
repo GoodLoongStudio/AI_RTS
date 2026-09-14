@@ -83,6 +83,20 @@ class FastScanner:
         self._ages: deque = deque(maxlen=STATS_WINDOW)
         self._intervals: deque = deque(maxlen=STATS_WINDOW)
         self._latencies: deque = deque(maxlen=STATS_WINDOW)
+        #: 游戏侧 10Hz 采样的**自身耗时**（`state.sample_ms`，由游戏上报）。
+        #: 为什么要跨进程上报：玩家掉帧时第一个要回答的问题是"副官通道占了多少"，
+        #: 而这个数字只有游戏侧知道（实测：`is_target_reachable` 每单位每 100ms 一次
+        #: 真寻路 → 大部队时把 FPS 拖到 20~30）。缺字段时留空，**不编 0**。
+        self._sample_ms: deque = deque(maxlen=STATS_WINDOW)
+        self.sample_ms_unknown = 0
+        #: 游戏帧率（随采样上报）：与单位数、采样耗时放进同一条时间线，
+        #: 任何一局都能回答"帧率是随部队规模掉的，还是随副官通道掉的"。
+        self._fps: deque = deque(maxlen=STATS_WINDOW)
+        #: 帧率治理（游戏侧 `PerformanceGovernor`）：画质档与缩放。
+        #: 为什么要跨进程上报（用户 2026-09-14："单位多就降画质、稳住 60 帧"）：
+        #: "部队涨上来时画质到底有没有降下去"只能靠这条时间线证明；缺字段时留空，**不编 0**。
+        self._quality_tier: deque = deque(maxlen=STATS_WINDOW)
+        self._quality_scale: deque = deque(maxlen=STATS_WINDOW)
         self.samples = 0
         self.errors = 0
         self.last_error = ""
@@ -110,6 +124,23 @@ class FastScanner:
     def running(self) -> bool:
         return self._thread is not None and self._thread.is_alive()
 
+    def _request(self, attempts: int = 2) -> Any:
+        """请求一次快照（**失败重试一次**）。
+
+        为什么必须重试：`adjutant_fast_state` 的载荷随单位数增长（实测 41 个单位时几 KB），
+        而 DCS 是逐帧写出的；读取超时/半行读会返回"非 JSON"。5 分钟集成局实测
+        **127 次 `non-json`（约 4%）** —— 每次丢掉一整个快照。
+        重试一次是廉价且安全的：`amount` 无副作用（只读 op）。
+        """
+        last: Any = {}
+        for _ in range(max(1, int(attempts))):
+            last = self._tcp_json(self.port, {
+                "op": "adjutant_fast_state", "as_player": self.player,
+                "since_event_seq": self._since_seq}, timeout=self.timeout)
+            if isinstance(last, dict) and last.get("ok") and last.get("state"):
+                return last
+        return last
+
     def _loop(self) -> None:
         previous_sample = 0.0
         while not self._stop.is_set():
@@ -127,9 +158,7 @@ class FastScanner:
             self._stop.wait(max(0.0, self.interval - elapsed))
 
     def _poll_once(self, started: float) -> None:
-        payload = self._tcp_json(self.port, {
-            "op": "adjutant_fast_state", "as_player": self.player,
-            "since_event_seq": self._since_seq}, timeout=self.timeout)
+        payload = self._request(attempts=2)
         if not isinstance(payload, dict) or payload.get("error") or not payload.get("ok"):
             with self._lock:
                 self.errors += 1
@@ -145,6 +174,21 @@ class FastScanner:
         with self._lock:
             self.samples += 1
             self.last_payload_ms = int((time.time() - started) * 1000)
+            raw_fps = state.get("fps")
+            if isinstance(raw_fps, (int, float)) and float(raw_fps) > 0:
+                self._fps.append(float(raw_fps))
+            raw_tier = state.get("quality_tier")
+            if isinstance(raw_tier, (int, float)):
+                self._quality_tier.append(float(raw_tier))
+            raw_scale = state.get("quality_scale")
+            if isinstance(raw_scale, (int, float)) and float(raw_scale) > 0:
+                self._quality_scale.append(float(raw_scale))
+            raw_sample_ms = state.get("sample_ms")
+            if isinstance(raw_sample_ms, (int, float)):
+                self._sample_ms.append(float(raw_sample_ms))
+            else:
+                # 旧版游戏不上报 → 记"未知"（不写 0，否则会被读成"零成本"）。
+                self.sample_ms_unknown += 1
             if age is not None:
                 self._ages.append(age)
             else:
@@ -191,6 +235,22 @@ class FastScanner:
                 "scan_last_error": self.last_error,
                 "scan_hz": (1.0 / (sum(intervals) / len(intervals)) if intervals else 0.0),
                 "scan_ms_p50": self.last_payload_ms,
+                # 游戏侧采样成本（副官通道对帧率的固定开销，玩家可见）。
+                "sample_ms_last": int(self._sample_ms[-1]) if self._sample_ms else None,
+                "sample_ms_p50": _percentile(list(self._sample_ms), 0.5) if self._sample_ms else None,
+                "sample_ms_p95": _percentile(list(self._sample_ms), 0.95) if self._sample_ms else None,
+                "sample_ms_max": max(self._sample_ms) if self._sample_ms else None,
+                "sample_ms_unknown": self.sample_ms_unknown,
+                # 游戏帧率（玩家最在意的那个数）：与单位数/采样耗时同一条时间线。
+                "fps_last": int(self._fps[-1]) if self._fps else None,
+                "fps_min": int(min(self._fps)) if self._fps else None,
+                "fps_p50": int(_percentile(list(self._fps), 0.5)) if self._fps else None,
+                # 画质档（游戏侧帧率治理）：**最高档号 = 画质最低**（0 最高、3 最低）。
+                # 验收读它回答"单位多的时候画质到底降没降"。
+                "quality_tier_last": int(self._quality_tier[-1]) if self._quality_tier else None,
+                "quality_tier_max": int(max(self._quality_tier)) if self._quality_tier else None,
+                "quality_scale_last": (round(self._quality_scale[-1], 2)
+                                       if self._quality_scale else None),
                 "snapshot_age_samples": len(ages),
                 "snapshot_age_unknown": self.age_unknown,
                 "snapshot_age_p50": _percentile(ages, 0.5),

@@ -10,10 +10,30 @@ func _ready():
 	add_child(match_instance)
 	await get_tree().process_frame
 
-	var hud = match_instance.get_node("HUD/AICommandHUD")
+	# HUD 由 Match._ready() 构建，大地图生成会 await 若干帧 ⇒ 不能只等一帧就读节点，
+	# 否则读到的是空 HUD、断言全部落空（2026-09-14 修复）。
+	var hud = null
+	var deadline := Time.get_ticks_msec() + 20000
+	while Time.get_ticks_msec() < deadline:
+		hud = match_instance.find_child("AICommandHUD", true, false)
+		if hud != null:
+			break
+		await get_tree().process_frame
+	await get_tree().create_timer(0.3).timeout
 	var toggle = match_instance.find_child("AICommandHUDToggle", true, false)
-	var command_hud = match_instance.get_node("HUD/TraditionalUnitCommandHUD")
+	# RA3 布局下命令面板被侧栏 absorb_command_panel() 收编，不再是 HUD 直接子节点。
+	var command_hud = match_instance.find_child("TraditionalUnitCommandHUD", true, false)
 	var input_runtime = match_instance.get_node("InputBindingRuntime")
+	_check(hud != null, "AI 副官 HUD 应存在（等待 HUD 就绪后仍取不到）")
+	_check(toggle != null, "应能找到 AI 副官开关按钮")
+	_check(
+		command_hud != null,
+		"传统命令栏应存在（RA3 布局下被侧栏收编，用 find_child 而非 HUD 直接子节点）"
+	)
+	if hud == null or toggle == null or command_hud == null:
+		print("Legacy HUD visibility smoke test aborted: HUD 未就绪 (%d failure(s))" % _failures)
+		SmokeTestExit.request(get_tree(), 1)
+		return
 	_check(not hud.is_interface_visible(), "AI 副官 HUD 应默认隐藏")
 	_check(command_hud.visible, "默认应显示传统命令栏")
 	_check(toggle.text == "显示 AI 副官", "默认按钮文字错误")
@@ -35,8 +55,14 @@ func _ready():
 	tank.add_to_group("legacy_ai_squad_1")
 	input_runtime.emit_signal("ActionPressed", "legacy.command_move")
 	_check(hud.pending_command == "MOVE", "U 对应动作应进入移动命令")
-	var move_button_text := str(hud._command_buttons[0].button.text)
-	_check(move_button_text.contains("U") and move_button_text.contains("移动"), "副官移动按钮应显示 U")
+	var command_buttons = hud.get("_command_buttons")
+	_check(command_buttons != null and command_buttons.size() > 0, "AI 副官应有命令按钮")
+	if command_buttons != null and command_buttons.size() > 0:
+		var move_button_text := str(command_buttons[0].button.text)
+		_check(
+			move_button_text.contains("U") and move_button_text.contains("移动"),
+			"副官移动按钮应显示 U"
+		)
 
 	hud.pending_command = "MOVE"
 	input_runtime.emit_signal("ActionPressed", "global.toggle_ai_hud")

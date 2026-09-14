@@ -16,6 +16,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from . import campaign as campaign_mod
+from . import placement
 from .squads import build_decision_frame
 from .task_patch import (
     ACTION_TO_SKILL, MODE_FAST, DecisionFrame, DecodeResult, TaskPatchBatch,
@@ -62,7 +63,7 @@ def frame_from_state(state: Any, observation: Dict[str, Any],
         authorized_units=authorized,
         generations={str(k): int(v or 0) for k, v in generations.items()},
         task_versions=task_versions,
-        authoritative_squads=authoritative_squads,
+        authoritative_squads=authoritative_squads or _get(state, "persistent_squads"),
         current_tasks=current_tasks,
         plan_version=str(_get(state, "plan_version") or ""),
         phase_goal=str(((_get(state, "active_plan") or {}) or {}).get("phase_goal", "")),
@@ -72,6 +73,9 @@ def frame_from_state(state: Any, observation: Dict[str, Any],
         # 地图边界：建造落点必须收在地图内，否则权威端一律 `OutOfBounds`
         # （实测 160/169 条 build 回执；见 `squads._placement_radii`）。
         map_bounds=_get(state, "map_bounds"),
+        # 拒绝账本：**候选菜单也要过滤坏点** —— 模型的落点菜单里出现已被拒的点，
+        # 就等于把"一条注定被拒的命令"放进选项（实测同一点被拒 13 次）。
+        rejected=placement.ledger_from_state(state),
         # 整局主线上下文（纠偏 §7 硬要求）：阶段/主线目标/已完成与阻塞里程碑/
         # 四条线/下一前沿/可选决策地图节点及其前置条件。
         campaign=_campaign_view(state),

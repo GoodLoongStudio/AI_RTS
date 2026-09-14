@@ -1,4 +1,4 @@
-extends Control
+extends "res://source/ui/MenuPage.gd"
 
 const MatchSettings = preload("res://source/data-model/MatchSettings.gd")
 const PlayerSettings = preload("res://source/data-model/PlayerSettings.gd")
@@ -43,10 +43,13 @@ func _clamp_to_viewport() -> void:
 	panel.custom_minimum_size = Vector2(minf(cur.x, max_w), minf(cur.y, max_h))
 
 
-func _unhandled_input(event: InputEvent):
-	if event.is_action_pressed("toggle_match_menu") and _options_panel != null:
+## ESC 回退（MenuPage 基类）：先关设置面板，再返回主菜单。
+func _on_escape() -> bool:
+	if _options_panel != null:
 		_close_options_panel()
-		get_viewport().set_input_as_handled()
+		return true
+	_on_back_button_pressed()
+	return true
 
 
 func _setup_settings_button():

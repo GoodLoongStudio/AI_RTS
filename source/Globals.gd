@@ -108,6 +108,69 @@ func _ready():
 	_apply_audio_volumes()
 
 
+## 【退出追踪 · 2026-09-13】进程**自己关停**时留下一条带上下文的事实（只打印，不改行为）。
+##
+## 为什么需要：验收里服端会在对局中途消失（24592 拒连），日志里只剩"资源在退出时泄漏"
+## 这类引擎收尾噪音，**没有任何原因**；全仓 GDScript/C# 也搜不到"对局期间可达"的 `quit()`
+## （只有主菜单按钮与大厅调试截图两处）。到底是"有人正常 quit"还是"进程被外部终止"，
+## 只有现场能分辨：
+##   - 走到 `PREDELETE` → 引擎确实在跑收尾（= 有人调了 quit / 主循环正常结束）；
+##   - 进程没了但这里**没有**打印 → 外部终止（taskkill / 控制台关闭），与游戏逻辑无关。
+## Autoload 在每个进程（含 headless 专用服）都存在，所以追踪点放在这里。
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		print("[EXIT-TRACE] WM_CLOSE_REQUEST：有人请求关闭窗口/控制台")
+	elif what == NOTIFICATION_EXIT_TREE:
+		print("[EXIT-TRACE] EXIT_TREE：场景树收尾（tick=%s，场景=%s，对局结果=%s）"
+			% [_trace_tick(), _trace_scene(), _trace_outcome()])
+	elif what == NOTIFICATION_PREDELETE:
+		print("[EXIT-TRACE] PREDELETE：引擎收尾（Globals 释放，tick=%s）" % _safe_tick())
+
+
+## 退出那一刻的**当前场景**（判断"退出前场景被换走了吗"——换场景=收局/回大厅的那条路）。
+func _trace_scene() -> String:
+	var tree := get_tree()
+	if tree == null or tree.current_scene == null:
+		return "unknown"
+	return str(tree.current_scene.name)
+
+
+## 退出那一刻是否已有对局结果（`MatchOutcomeRuntime` 发的终态）。
+## 有结果 ⇒ "退出发生在收局之后"（正常收局路）；没有 ⇒ 中途退出，与胜负无关。
+func _trace_outcome() -> String:
+	var tree := get_tree()
+	if tree == null or tree.root == null:
+		return "unknown"
+	for node in tree.root.find_children("*", "MatchOutcomeRuntime", true, false):
+		var resolution = node.get("_resolution")
+		if resolution is Dictionary and not (resolution as Dictionary).is_empty():
+			return str((resolution as Dictionary).get("kind", "resolved"))
+		return "无"
+	return "无该节点"
+
+
+## 收尾期安全的 tick 文本。
+##
+## **PREDELETE 阶段节点已经脱离场景树**：此时调 `get_tree()` 会让引擎自己打印
+## `ERROR: Parameter "data.tree" is null`（实测：每局退出都多一行红字，把退出痕迹弄脏）。
+## `is_inside_tree()` 是安全判据（不访问 tree 指针），脱离时直接给"未知"。
+func _safe_tick() -> String:
+	if not is_inside_tree():
+		return "unknown(已脱离场景树)"
+	return _trace_tick()
+
+
+## 尽力拿当前 server_tick（收尾期节点可能已经没了 → 拿不到就返回 "unknown"，绝不抛错）。
+func _trace_tick() -> String:
+	var tree := get_tree()
+	if tree == null:
+		return "unknown"
+	var dcs := tree.root.get_node_or_null("DebugControlServer") if tree.root != null else null
+	if dcs != null and dcs.has_method("server_tick"):
+		return str(dcs.call("server_tick"))
+	return "unknown"
+
+
 func _load_audio_options() -> Dictionary:
 	var loaded := AUDIO_DEFAULTS.duplicate(true)
 	var config := ConfigFile.new()

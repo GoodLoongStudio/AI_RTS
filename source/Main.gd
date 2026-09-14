@@ -6,6 +6,12 @@ extends Control
 func _ready():
 	# 独立运行时默认贴靠屏幕左侧，占用一半宽度，给 Codex/日志窗口
 	# 留出右侧空间；嵌入 Godot 编辑器时这些调用由引擎忽略。
+	var play_map := _play_map_from_cmdline()
+	if play_map != "":
+		if _logos != null:
+			_logos.queue_free()
+		call_deferred("_start_local_playtest", play_map)
+		return
 	if NetSession.try_start_from_cmdline():
 		if _logos != null:
 			_logos.queue_free()
@@ -23,5 +29,48 @@ func _ready():
 	_logos.tree_exited.connect(
 		get_tree().change_scene_to_file.bind("res://source/main-menu/Main.tscn")
 	)
+
+
+func _play_map_from_cmdline() -> String:
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--play-map="):
+			return arg.substr(11)
+	return ""
+
+
+func _start_local_playtest(map_path: String) -> void:
+	if _logos != null:
+		_logos.queue_free()
+	NetSession.clear_auto_start_intent()
+	var err := NetSession.host()
+	if err != OK:
+		err = NetSession.host(NetSession.DEFAULT_PORT + 10)
+	if err != OK:
+		push_error("评图开房失败（端口可能被占用）：%s" % err)
+		get_tree().change_scene_to_file("res://source/main-menu/Main.tscn")
+		return
+	var MatchSettings = load("res://source/data-model/MatchSettings.gd")
+	var PlayerSettings = load("res://source/data-model/PlayerSettings.gd")
+	var LoadingScene = load("res://source/main-menu/Loading.tscn")
+	var match_settings = MatchSettings.new()
+	# 评图要看整张地形：关掉迷雾，避免山和坡道被黑幕挡住。
+	match_settings.visibility = match_settings.Visibility.FULL
+	match_settings.visible_player = 0
+	match_settings.local_player_index = 0
+	var human = PlayerSettings.new()
+	human.controller = Constants.PlayerType.HUMAN
+	human.color = Constants.Player.COLORS[0]
+	var ai = PlayerSettings.new()
+	ai.controller = Constants.PlayerType.SIMPLE_CLAIRVOYANT_AI
+	ai.color = Constants.Player.COLORS[1]
+	match_settings.players.append(human)
+	match_settings.players.append(ai)
+	var loading = LoadingScene.instantiate()
+	loading.match_settings = match_settings
+	loading.map_path = map_path
+	var tree := get_tree()
+	tree.root.add_child(loading)
+	tree.current_scene = loading
+	queue_free()
 
 

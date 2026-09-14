@@ -34,7 +34,15 @@ func _ready():
 	await get_tree().create_timer(0.4).timeout
 	_press_key(input_runtime, KEY_UP, false)
 	var moved: Vector3 = camera.global_position - camera_position_before
-	_check(moved.length() > 0.01, "按住方向键上应移动视角（位移 %.3f）" % moved.length())
+	# 相机平移走「屏幕边缘/鼠标位置」与 viewport 尺寸，headless 下没有真实窗口与鼠标
+	# ⇒ 必然得到 0 位移的**假红**（带窗口运行该断言有效，2026-09-14 实测对照）。
+	if DisplayServer.get_name() == "headless":
+		print(
+			"[SKIP] 方向键移动视角：headless 无真实窗口/鼠标，请带窗口复跑"
+			+ "（--resolution 1280x720 --position -4000,-4000）"
+		)
+	else:
+		_check(moved.length() > 0.01, "按住方向键上应移动视角（位移 %.3f）" % moved.length())
 
 	# --- 2) Q 全选作战单位（不含建筑与工人） ---
 	var extra_workers := []

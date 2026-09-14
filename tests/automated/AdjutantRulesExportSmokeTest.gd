@@ -6,6 +6,8 @@ extends Node
 ## 施工定义、受信任场景映射、来源指纹；未知机制显式 unsupported。
 
 const MatchScene = preload("res://tests/manual/TestAllUnits.tscn")
+## 本冒烟对着的实际配置（断言里的期望值一律从这里派生，不硬编码条数）。
+const DEMO_BALANCE := "res://config/balance/demo.balance.v1.json"
 
 var _failures := 0
 
@@ -42,7 +44,13 @@ func _ready():
 	var types := _index_by_id(rules.get("unit_types", []))
 	_check(types.has("worker") and types.has("tank") and types.has("command_center"),
 		"规则视图应包含 Demo 稳定类型 ID")
-	_check(types.size() == 11, "Demo 配置应导出全部 11 种实体类型")
+	# 【不许硬编码条数】期望值必须从**实际加载的配置**派生。
+	# 2026-09-13 收工自检发现：这里原写死 `== 11`，而 `demo.balance.v1.json` 在 09-12 已扩到
+	# 14 种实体（新增 transport_truck / apc / heavy_tank）→ 断言长期为红，与"配置驱动"的本意相反。
+	var expected_types := _config_count(DEMO_BALANCE, "unitTypes")
+	_check(expected_types > 0, "应能读到 Demo 平衡配置（否则断言无意义）")
+	_check(types.size() == expected_types,
+		"规则视图应导出配置里的全部 %d 种实体类型（实际 %d）" % [expected_types, types.size()])
 
 	var tank: Dictionary = types.get("tank", {})
 	_check(str(tank.get("display_name", "")) == "tank",
@@ -80,7 +88,43 @@ func _ready():
 
 	# 动态生产关系：产品 → 成本 → 允许生产者（不硬编码名单）。
 	var productions := _index_by_id(rules.get("productions", []))
-	_check(productions.size() == 5, "Demo 应导出 5 条生产定义")
+	var expected_productions := _config_count(DEMO_BALANCE, "productions")
+	_check(expected_productions > 0, "应能读到 Demo 平衡配置里的生产定义")
+	# 导出口径本来就按"生产者类型在本局可用"过滤，所以允许**少于**配置条数，
+	# 但**任何一条都不许凭空多出来**（多于配置 = 伪造）。
+	_check(productions.size() <= expected_productions and productions.size() > 0,
+		"生产定义条数应在 (0, %d] 之间（实际 %d）" % [expected_productions, productions.size()])
+	print("[rules-smoke] 实体类型 %d/%d，生产定义 %d/%d（期望来自配置）"
+		% [types.size(), expected_types, productions.size(), expected_productions])
+
+	# 作战单位口径的**输入自证**：副官的"作战单位"= 这里有 `attack` 能力的类型
+	# （唯一实现 `rules_fallback.combat_types_from_rules`，它要求**能力字段齐全**才派生，
+	# 缺一个就回退硬编码常量 —— 那种回退是隐蔽的退化，所以这里钉死"一个都不许缺"）。
+	var armed: Array = []
+	var mobile_armed: Array = []
+	var immobile_armed: Array = []
+	var missing_caps: Array = []
+	for id in types.keys():
+		var caps = (types[id] as Dictionary).get("capabilities")
+		if not (caps is Dictionary):
+			missing_caps.append(id)
+			continue
+		if not bool((caps as Dictionary).get("attack", false)):
+			continue
+		armed.append(id)
+		# "能打" ≠ "是兵力"：固定炮塔也能打，但它不占兵力上限、也不该被派去行军。
+		if bool((caps as Dictionary).get("move", false)):
+			mobile_armed.append(id)
+		else:
+			immobile_armed.append(id)
+	print("[rules-smoke] 能打的类型=%s" % [armed])
+	print("[rules-smoke] 其中可机动（占兵力上限）=%s；不可机动（固定防御，不算兵力）=%s"
+		% [mobile_armed, immobile_armed])
+	_check(missing_caps.is_empty(),
+		"导出必须给**每个**单位类型带 capabilities，否则作战单位口径只能回退常量：%s" % missing_caps)
+	_check(mobile_armed.size() > 0, "至少应有一种**可机动**的作战单位类型")
+	_check(immobile_armed.size() > 0,
+		"固定防御（炮塔）应存在且**不带** move 能力——否则它会被当成兵力、还会被派去行军")
 	var tank_production: Dictionary = productions.get("tank", {})
 	_check(
 		str(tank_production.get("product_type_id", "")) == "tank"
@@ -144,6 +188,19 @@ func _index_by_id(items: Array) -> Dictionary:
 		if item is Dictionary:
 			result[str((item as Dictionary).get("id", ""))] = item
 	return result
+
+
+## 读配置里某个数组的条数（**期望值的唯一来源**；读不到返回 -1 让断言明确失败）。
+func _config_count(path: String, key: String) -> int:
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return -1
+	var parsed = JSON.parse_string(file.get_as_text())
+	file.close()
+	if not (parsed is Dictionary):
+		return -1
+	var items = (parsed as Dictionary).get(key)
+	return (items as Array).size() if items is Array else -1
 
 
 func _cost_amount(costs: Array, kind: String) -> int:

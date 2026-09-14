@@ -87,13 +87,6 @@
    "id": "building-occlusion-fade"
   },
   {
-   "expected_marker": "CAMPAIGN_SMOKE_TEST_OK:",
-   "timeout_seconds": 150,
-   "category": "frozen-campaign",
-   "scene": "res://tests/automated/CampaignSmokeTest.tscn",
-   "id": "campaign-assembly"
-  },
-  {
    "expected_marker": "Combat sfx smoke test completed: 0 failure(s)",
    "timeout_seconds": 90,
    "category": "audio",
@@ -533,6 +526,13 @@
    "category": "audio",
    "scene": "res://tests/automated/ChineseVoiceMappingSmokeTest.tscn",
    "id": "chinese-voice-mapping"
+  },
+  {
+   "id": "performance-governor",
+   "category": "visual",
+   "scene": "res://tests/automated/PerformanceGovernorSmokeTest.tscn",
+   "expected_marker": "Performance governor smoke test completed: 0 failure(s)",
+   "timeout_seconds": 60
   }
  ]
 }

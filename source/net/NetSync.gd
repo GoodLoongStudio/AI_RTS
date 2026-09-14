@@ -3,6 +3,11 @@ extends Node
 ## 挂在 Match 下：客户端把命令转发到服务器，服务器按 10Hz 广播单位快照。
 
 const SNAPSHOT_INTERVAL_FRAMES := 6
+# 联机迷雾裁剪（2026-09-14 用户要求"联机不应该拿到迷雾里敌人的数据"）：
+# 快照按**每个客户端自己的可见范围**定向下发，判定与单机 UnitVisibilityHandler 同口径。
+const VIS_SIGHT_COMPENSATION := 2.0
+# 每 2 次快照（≈5Hz）重算一次可见集合；敌人进入视野最多延迟 ~200ms。
+const VISIBILITY_RECALC_SNAPSHOTS := 2
 # GDScript 的 `is` 右侧不能用局部变量（parse error），用脚本资源等价比较代替。
 const HumanScript := preload("res://source/match/players/human/Human.gd")
 # 命令可视化（纯表现层）：客户端侧动态挂载，画副官指令的信标与路径；专用服不挂载。
@@ -18,6 +23,9 @@ var _own_manifest: PackedStringArray = PackedStringArray()
 var _client_manifests: Dictionary = {}  # peer_id -> PackedStringArray
 var _go_live_blocked := false
 
+# 结算回主菜单只允许执行一次（服务器广播与客户端本地推断可能先后到达）。
+var _match_over_handled := false
+
 # 复核 P1-1：客户端两快照线性插值（渲染落后一个快照周期，消除 10Hz 瞬移感）。
 var _interp_prev: Dictionary = {}  # Match 相对路径 -> Vector3
 var _interp_target: Dictionary = {}  # Match 相对路径 -> Vector3
@@ -32,12 +40,22 @@ var _hud_accum := 0.0
 var _authoritative_stance_by_path := {}
 var _authoritative_fire_policy_by_path := {}
 
+# 迷雾裁剪：每个客户端槽位的可见集合（path 集合）与待发的 reconcile 条目。
+var _visible_paths_by_slot: Dictionary = {}    # slot:int -> {path: true}
+var _visible_entries_by_slot: Dictionary = {}  # slot:int -> Array[reconcile entry]
+var _pending_reconcile_slots: Dictionary = {}  # slot:int -> true（可见集合变化，待定向 reconcile）
+var _visibility_recalc_countdown := 0
+
 
 func _ready() -> void:
 	_match = get_parent()
 	# 表现层挂载点在 is_networked() 早退之前：单机局也能看到命令可视化。
 	if not NetSession.is_dedicated_server():
 		_ensure_order_visualizer()
+		# 右上角状态行（延时/FPS）同理提到早退之前：`_hud_tick` 本来就有"单机"分支，
+		# 但它过去永远走不到（离线局在上一行 return 了）→ 单机玩家看不到帧率/画质。
+		_ensure_hud()
+		set_process(true)          # 离线局由 `_process` 驱动 `_hud_tick`（联机走 `_physics_process`）
 	set_physics_process(NetSession.is_networked())
 	if not NetSession.is_networked():
 		return
@@ -49,8 +67,6 @@ func _ready() -> void:
 	if NetSession.is_server():
 		MatchSignals.unit_spawned.connect(_on_unit_spawned)
 		NetSession.player_dropped.connect(_on_player_dropped)
-	if not NetSession.is_dedicated_server():
-		_ensure_hud()
 
 
 func _ensure_hud() -> void:
@@ -96,7 +112,17 @@ func _hud_tick(delta: float) -> void:
 			var ping := NetSession.get_ping_ms()
 			# 0 = RTT 样本未积累（刚连上），显示 -- 避免误读成"0 延迟"。
 			ping_text = ("%d ms" % ping) if ping > 0 else "-- ms"
-	_hud_label.text = "%s · %d FPS" % [ping_text, Engine.get_frames_per_second()]
+	# 帧率治理把"当前画质档"接在**同一行**后面（用户 2026-09-14：不要另开一行，
+	# 就用原来右上角这行）—— 玩家因此能看到"自动降画质"到底在不在动、动到哪一档。
+	var quality := ""
+	var governor := get_node_or_null("/root/PerformanceGovernor")
+	if governor != null and governor.has_method("stats"):
+		var stats: Dictionary = governor.call("stats")
+		quality = str(governor.call("quality_suffix", stats))
+	var text := "%s · %d FPS" % [ping_text, Engine.get_frames_per_second()]
+	if not quality.is_empty():
+		text += " · %s" % quality
+	_hud_label.text = text
 
 
 func _on_any_match_started() -> void:
@@ -161,23 +187,28 @@ func _manifest_diff(a: PackedStringArray, b: PackedStringArray) -> String:
 func _collect_reconcile_entries() -> Array:
 	var entries: Array = []
 	for unit in get_tree().get_nodes_in_group("units"):
-		if unit == null or not is_instance_valid(unit):
-			continue
-		var scene_path := String(unit.scene_file_path)
-		if scene_path.is_empty():
-			continue
-		entries.append(
-			{
-				"path": str(_match.get_path_to(unit)),
-				"parent": str(_match.get_path_to(unit.get_parent())),
-				"scene": scene_path,
-				"xf": unit.global_transform,
-				"hp": unit.hp if ("hp" in unit and unit.hp != null) else 0.0,
-				"stance": _authoritative_stance(unit),
-				"fire_policy": _authoritative_fire_policy(unit),
-			}
-		)
+		var entry = _reconcile_entry_for(unit)
+		if entry != null:
+			entries.append(entry)
 	return entries
+
+
+## 单个单位的 reconcile 条目（生成节点所需的全部信息）；不可序列化/无场景的单位返回 null。
+func _reconcile_entry_for(unit):
+	if unit == null or not is_instance_valid(unit):
+		return null
+	var scene_path := String(unit.scene_file_path)
+	if scene_path.is_empty():
+		return null
+	return {
+		"path": str(_match.get_path_to(unit)),
+		"parent": str(_match.get_path_to(unit.get_parent())),
+		"scene": scene_path,
+		"xf": unit.global_transform,
+		"hp": unit.hp if ("hp" in unit and unit.hp != null) else 0.0,
+		"stance": _authoritative_stance(unit),
+		"fire_policy": _authoritative_fire_policy(unit),
+	}
 
 
 func _authoritative_stance(unit: Node, runtime: Node = null) -> String:
@@ -250,6 +281,15 @@ func _physics_process(delta: float) -> void:
 		_client_interp_tick()
 
 
+## 【单机也刷新右上角状态行】`_physics_process` 在离线局被关掉（`is_networked()=false`），
+## 过去整个 `_hud_tick` 也跟着不跑 → 单机玩家看不到帧率（"单机"分支写了但走不到）。
+## 这里只驱动**表现层**（延时/FPS/画质档），不碰任何网络逻辑。
+func _process(delta: float) -> void:
+	if NetSession.is_networked() or NetSession.is_dedicated_server():
+		return
+	_hud_tick(delta)
+
+
 func _server_tick() -> void:
 	if not _live:
 		_try_go_live()
@@ -313,7 +353,15 @@ func forward_command(
 		target_path = str(_match.get_path_to(target))
 	print("[CMD] 客户端提交 op=%s units=%s dest=%s" % [op, paths, destination])
 	_rpc_command.rpc_id(1, op, paths, destination, target_path, extra)
-	return {"status": "Accepted", "unit_results": []}
+	# 联机客户端**拿不到**逐单位结果（服务器异步执行）：返回"已发送"口径，
+	# 由 HUD 显示"已发送（等待服务器确认）"，不再伪造 Accepted + 空结果
+	# （旧版让命令栏恒显示"接受 0，拒绝 0"，玩家无法判断命令是否生效 — 2026-09-14）。
+	return {
+		"status": "PendingAuthority",
+		"accepted": unit_nodes.size(),
+		"rejected": 0,
+		"unit_results": [],
+	}
 
 
 ## 客户端 HUD 只读取最近一次服务器快照确认的策略。
@@ -394,7 +442,7 @@ func apply_client_snapshot(
 
 func _broadcast_snapshot() -> void:
 	var command_runtime = _match.get_node_or_null("CommandRuntime")
-	var units_payload: Array = []
+	var entries_all: Array = []  # [{unit, entry}]：快照条目（供逐客户端迷雾过滤）
 	for unit in get_tree().get_nodes_in_group("units"):
 		if unit == null or not is_instance_valid(unit):
 			continue
@@ -434,7 +482,7 @@ func _broadcast_snapshot() -> void:
 		if "production_queue" in unit and unit.production_queue != null \
 				and unit.production_queue.has_method("presentation_snapshot"):
 			entry["production"] = unit.production_queue.presentation_snapshot()
-		units_payload.append(entry)
+		entries_all.append({"unit": unit, "entry": entry})
 	var resources_payload: Array = []
 	var players := get_tree().get_nodes_in_group("players")
 	for i in range(players.size()):
@@ -445,7 +493,95 @@ func _broadcast_snapshot() -> void:
 	if _frame % 100 == 0:
 		print("[SNAP] 服务器镜像余额: ", resources_payload)
 	# 复核 P2：快照携带服务器帧号，客户端用它做资源版本去重（原来传客户端本地 _frame 恒为 0）。
-	_rpc_snapshot.rpc(units_payload, resources_payload, _frame)
+	# 【2026-09-14 迷雾裁剪】改为**逐客户端定向**下发：每个客户端只收到"自己看得见的单位"；
+	# 可见集合变化时补一条定向 reconcile（客户端据此增/删节点 = 敌人进入/离开视野）。
+	if _visibility_recalc_countdown <= 0:
+		_recompute_client_visibility(entries_all)
+		_visibility_recalc_countdown = VISIBILITY_RECALC_SNAPSHOTS
+	_visibility_recalc_countdown -= 1
+	var my_peer_id := multiplayer.get_unique_id()
+	for peer_id in NetSession.human_peer_ids():
+		if peer_id == my_peer_id:
+			continue  # 本机房主本地即权威，不需要快照
+		var slot := NetSession.slot_of(peer_id)
+		if slot < 0:
+			continue
+		var visible_paths: Dictionary = _visible_paths_by_slot.get(slot, {})
+		var payload: Array = []
+		for item in entries_all:
+			if visible_paths.has(str(item["entry"]["path"])):
+				payload.append(item["entry"])
+		_rpc_snapshot.rpc_id(peer_id, payload, resources_payload, _frame)
+		if _pending_reconcile_slots.has(slot):
+			_pending_reconcile_slots.erase(slot)
+			_rpc_reconcile.rpc_id(peer_id, _visible_entries_by_slot.get(slot, []))
+
+
+## 重算"每个客户端玩家能看到哪些单位"（服务器侧，迷雾裁剪）。
+## 口径与单机一致：己方 / 中立（无主）恒可见；其它玩家的单位只有落在己方
+## "揭示单位"（is_revealing：在 revealed_units 组且 visible）的 sight_range 内才可见。
+## 可见集合发生变化时登记 `_pending_reconcile_slots`，由快照发送端补一条定向 reconcile。
+func _recompute_client_visibility(entries_all: Array) -> void:
+	var players := get_tree().get_nodes_in_group("players")
+	var all_units := get_tree().get_nodes_in_group("units")
+	for peer_id in NetSession.human_peer_ids():
+		var slot := NetSession.slot_of(peer_id)
+		if slot < 0 or slot >= players.size():
+			continue
+		var player = players[slot]
+		if player == null or not is_instance_valid(player):
+			continue
+		var revealers: Array = []
+		for unit in all_units:
+			if unit == null or not is_instance_valid(unit):
+				continue
+			if unit.get_parent() != player:
+				continue
+			if unit.has_method("is_revealing") and unit.is_revealing():
+				revealers.append(unit)
+		var visible_paths: Dictionary = {}
+		var visible_entries: Array = []
+		for item in entries_all:
+			var unit = item["unit"]
+			if not _is_unit_visible_to_player(unit, player, revealers):
+				continue
+			var path := str(item["entry"]["path"])
+			visible_paths[path] = true
+			var entry = _reconcile_entry_for(unit)
+			if entry != null:
+				visible_entries.append(entry)
+		var previous: Dictionary = _visible_paths_by_slot.get(slot, {})
+		var changed := previous.size() != visible_paths.size()
+		if not changed:
+			for path in visible_paths.keys():
+				if not previous.has(path):
+					changed = true
+					break
+		_visible_paths_by_slot[slot] = visible_paths
+		_visible_entries_by_slot[slot] = visible_entries
+		if changed:
+			_pending_reconcile_slots[slot] = true
+
+
+## 判定一个单位是否对某客户端玩家可见（服务器侧只读；显式 float 避免 GDScript 类型推断坑）。
+func _is_unit_visible_to_player(unit, player, revealers: Array) -> bool:
+	var owner = unit.get("player")
+	if owner == player:
+		return true
+	# 中立实体（资源点等无主对象）始终可见：否则玩家看不到可采集资源。
+	if owner == null:
+		return true
+	for revealer in revealers:
+		var sight = revealer.get("sight_range")
+		if sight == null:
+			continue
+		var rp: Vector3 = revealer.global_position
+		var up: Vector3 = unit.global_position
+		var dx: float = rp.x - up.x
+		var dz: float = rp.z - up.z
+		if sqrt(dx * dx + dz * dz) <= float(sight) + VIS_SIGHT_COMPENSATION:
+			return true
+	return false
 
 
 ## 把转发命令的终态登记到调试端点命令历史，供副官按 command_id 复核。
@@ -460,6 +596,21 @@ func _record_command_terminal(command_id: String, op: String, issuer: Node,
 		return
 	dbg.record_command(command_id, op, str(issuer.name), subject, scene,
 		status, reason, artifact_id)
+
+
+func _notify_adjutant_player_override(issuer: Node, units: Array) -> void:
+	# 玩家命令的权威落点在局服。客户端 DCS 自己 notify 进不了 runner（它扫 24612）。
+	# 副官命令走局服 DCS 且带 `_adjutant_executing`，不会进这条 RPC。
+	var dbg = get_node_or_null("/root/DebugControlServer")
+	if dbg == null or not dbg.has_method("notify_player_override") or issuer == null:
+		return
+	var names: Array = []
+	for unit in units:
+		if unit != null and is_instance_valid(unit):
+			names.append(str(unit.name))
+	if names.is_empty():
+		return
+	dbg.notify_player_override(str(issuer.name), names)
 
 
 @rpc("any_peer", "reliable")
@@ -613,6 +764,7 @@ func _rpc_command(
 				nearest = d
 				target = candidate
 	print("[CMD][服务器] 应用 op=%s units=%d dest=%s" % [op, units.size(), destination])
+	_notify_adjutant_player_override(issuer, units)
 	match op:
 		"move":
 			var move_result: Dictionary = gateway.MoveUnits(units, destination, issuer)
@@ -670,6 +822,60 @@ func _rpc_command(
 		"set_fire_policy":
 			var policy_result: Dictionary = gateway.SetFirePolicy(units, extra, issuer)
 			print("[CMD][服务器] SetFirePolicy 结果: ", policy_result)
+		"cancel_produce":
+			# 客户端取消生产（extra = item_id 或 "*" 表示全部）：权威端执行，
+			# 队列变化经快照回到客户端 HUD（2026-09-14：此前客户端没有转发分支，点了没反应）。
+			if units.is_empty():
+				print("[CMD][服务器] cancel_produce 拒绝: 单位解析为空")
+				return
+			var cancel_queue = units[0].find_child("ProductionQueue")
+			if cancel_queue == null:
+				print("[CMD][服务器] cancel_produce 拒绝: %s 无 ProductionQueue" % units[0].name)
+				return
+			if extra == "*":
+				cancel_queue.cancel_all()
+				print("[CMD][服务器] cancel_produce 全部取消（%s）" % units[0].name)
+			else:
+				var cancel_element = null
+				for element in cancel_queue.get_elements():
+					if str(element.item_id) == extra:
+						cancel_element = element
+						break
+				if cancel_element == null:
+					print("[CMD][服务器] cancel_produce 未找到 item=%s（%s）" % [extra, units[0].name])
+					return
+				cancel_queue.cancel(cancel_element)
+				print("[CMD][服务器] cancel_produce 取消 item=%s（%s）" % [extra, units[0].name])
+		"set_rally_point":
+			var rally_runtime = _match.get_node_or_null("RallyPointRuntime")
+			if rally_runtime == null:
+				print("[CMD][服务器] set_rally_point 拒绝: 无 RallyPointRuntime")
+				return
+			var rally_point_result: Dictionary = rally_runtime.SetPosition(units, destination, issuer)
+			print("[CMD][服务器] set_rally_point 结果: ", rally_point_result)
+		"set_rally_target":
+			var rally_target_runtime = _match.get_node_or_null("RallyPointRuntime")
+			if rally_target_runtime == null or target == null:
+				print("[CMD][服务器] set_rally_target 拒绝: runtime/目标缺失")
+				return
+			var rally_target_result: Dictionary = rally_target_runtime.SetTarget(units, target, issuer)
+			print("[CMD][服务器] set_rally_target 结果: ", rally_target_result)
+		"clear_rally_point":
+			var rally_clear_runtime = _match.get_node_or_null("RallyPointRuntime")
+			if rally_clear_runtime == null:
+				print("[CMD][服务器] clear_rally_point 拒绝: 无 RallyPointRuntime")
+				return
+			var rally_clear_result: Dictionary = rally_clear_runtime.Clear(units, issuer)
+			print("[CMD][服务器] clear_rally_point 结果: ", rally_clear_result)
+		"cast_skill":
+			# 客户端技能施放（extra = skill_id；target 为空 = 自身技能）：权威端执行（2026-09-14）。
+			var skill_result: Dictionary = gateway.CastSkill(units, extra, issuer, target)
+			print("[CMD][服务器] CastSkill 结果: ", skill_result)
+		"cast_skill_ground":
+			var skill_ground_result: Dictionary = gateway.CastSkillGround(
+				units, extra, destination, issuer
+			)
+			print("[CMD][服务器] CastSkillGround 结果: ", skill_ground_result)
 
 
 @rpc("authority", "unreliable")
@@ -774,21 +980,35 @@ func _on_match_finished(result: String) -> void:
 	if not NetSession.is_networked():
 		return
 	if NetSession.is_server():
+		# 广播给客户端（`rpc()` 不会在服务器本机执行，房主自己也必须显式走一次）。
 		_rpc_match_over.rpc(result)
-		print("[对局] 已广播结果: ", result, ", 5 秒后回收专用服")
-		await get_tree().create_timer(5.0).timeout
-		get_tree().quit(0)
+		if NetSession.is_dedicated_server():
+			print("[对局] 已广播结果: ", result, ", 5 秒后回收专用服")
+			await get_tree().create_timer(5.0).timeout
+			get_tree().quit(0)
+		else:
+			# 本机房主（单机 / 联机房主）：只回主菜单，**不回收进程**
+			#（旧实现会 `quit(0)`；此前被"恒判单人练习房"的早退挡住，从未暴露 — 2026-09-14）。
+			print("[对局] 已广播结果: ", result, "（本机房主，不回收进程）")
+			_rpc_match_over(result)
 	else:
 		_rpc_match_over(result)
 
 
 @rpc("authority", "reliable")
 func _rpc_match_over(result: String) -> void:
+	# 幂等：服务器广播与客户端本地推断可能先后到达，只允许执行一次
+	#（否则出现两个 3 秒计时器、两次切场景 — 2026-09-14）。
+	if _match_over_handled:
+		return
+	_match_over_handled = true
 	NetSession._match_started = false
 	get_tree().paused = false
 	NetSession._set_status("对局结束: " + result + "，即将返回主菜单")
-	print("[对局] 客户端收到结算: ", result, "，3 秒后返回主菜单")
+	print("[对局] 收到结算: ", result, "，3 秒后返回主菜单")
 	await get_tree().create_timer(3.0).timeout
+	# 回主菜单前断开会话：避免"人还在房间 / 本机 server 残留"（2026-09-14）。
+	NetSession.disconnect_if_networked()
 	get_tree().change_scene_to_file.call_deferred("res://source/main-menu/Main.tscn")
 
 

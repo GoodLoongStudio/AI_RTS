@@ -690,7 +690,7 @@ def modifications_to_intents(result: DecodeResult, frame: DecisionFrame) -> Inte
                          or [0])
         # 【一个工地一个建造者】建造只派 **1 个**工人。
         # 为什么（2026-09-12 晚用户反馈："建造 1 个建筑就让一堆工人上，那矿不采了？"）：
-        # 工人执行者是**集群**（`derive_squads` 按位置聚合，最多 `MAX_UNITS_PER_ACTOR` 个），
+        # 工人执行者是**集群**（`derive_squads` 按位置聚合，最多 `squads.WORKER_GROUP_MAX` 个），
         # `unit_ids` 直接取整个集群 → 一条 `BLD` 就等于"全队上工地"，采集线当场停摆，
         # 违反决策手册 01 §3"四条线同时推进"。生产/采集/作战不受影响（那些本来就该整组动）。
         builder_units = list(modification.units)

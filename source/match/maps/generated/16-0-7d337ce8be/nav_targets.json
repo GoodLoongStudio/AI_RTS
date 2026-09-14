@@ -1,0 +1,1105 @@
+{
+ "forbidden": {
+  "cliff": [
+   {
+    "clearance_m": 1.2,
+    "name": "forbid_cliff_0",
+    "x": 34.5,
+    "y": 2.1,
+    "z": 24.5
+   },
+   {
+    "clearance_m": 1.2,
+    "name": "forbid_cliff_1",
+    "x": 289.5,
+    "y": 2.1,
+    "z": 66.5
+   },
+   {
+    "clearance_m": 1.2,
+    "name": "forbid_cliff_2",
+    "x": 342.5,
+    "y": 2.1,
+    "z": 104.5
+   },
+   {
+    "clearance_m": 1.2,
+    "name": "forbid_cliff_3",
+    "x": 41.5,
+    "y": 2.1,
+    "z": 171.5
+   },
+   {
+    "clearance_m": 1.2,
+    "name": "forbid_cliff_4",
+    "x": 309.5,
+    "y": 2.1,
+    "z": 171.5
+   },
+   {
+    "clearance_m": 1.2,
+    "name": "forbid_cliff_5",
+    "x": 347.5,
+    "y": 2.1,
+    "z": 171.5
+   },
+   {
+    "clearance_m": 1.2,
+    "name": "forbid_cliff_6",
+    "x": 220.5,
+    "y": 2.1,
+    "z": 342.5
+   },
+   {
+    "clearance_m": 1.2,
+    "name": "forbid_cliff_7",
+    "x": 352.5,
+    "y": 2.1,
+    "z": 342.5
+   }
+  ],
+  "water": [
+   {
+    "clearance_m": 2.0,
+    "name": "forbid_water_0",
+    "x": 153.5,
+    "y": 0.0,
+    "z": 238.5
+   },
+   {
+    "clearance_m": 2.0,
+    "name": "forbid_water_1",
+    "x": 171.5,
+    "y": 0.0,
+    "z": 239.5
+   },
+   {
+    "clearance_m": 2.0,
+    "name": "forbid_water_2",
+    "x": 506.5,
+    "y": 0.0,
+    "z": 246.5
+   },
+   {
+    "clearance_m": 2.0,
+    "name": "forbid_water_3",
+    "x": 182.5,
+    "y": 0.0,
+    "z": 346.5
+   },
+   {
+    "clearance_m": 2.0,
+    "name": "forbid_water_4",
+    "x": 170.5,
+    "y": 0.0,
+    "z": 351.5
+   }
+  ]
+ },
+ "height_tolerance_m": 1.2,
+ "paths": [
+  [
+   "P0",
+   "P1"
+  ],
+  [
+   "P0",
+   "P2"
+  ],
+  [
+   "P0",
+   "P3"
+  ],
+  [
+   "P0",
+   "exp_P0"
+  ],
+  [
+   "P1",
+   "P2"
+  ],
+  [
+   "P1",
+   "P3"
+  ],
+  [
+   "P1",
+   "exp_P1"
+  ],
+  [
+   "P2",
+   "P3"
+  ],
+  [
+   "P2",
+   "exp_P2"
+  ],
+  [
+   "P3",
+   "exp_P3"
+  ],
+  [
+   "ramp_0_0_bottom",
+   "ramp_0_0_top"
+  ],
+  [
+   "ramp_0_0_top",
+   "top_0_home"
+  ],
+  [
+   "ramp_0_1_bottom",
+   "ramp_0_1_top"
+  ],
+  [
+   "ramp_0_1_top",
+   "top_0_home"
+  ],
+  [
+   "ramp_0_2_bottom",
+   "ramp_0_2_top"
+  ],
+  [
+   "ramp_0_2_top",
+   "top_0_home"
+  ],
+  [
+   "ramp_1_0_bottom",
+   "ramp_1_0_top"
+  ],
+  [
+   "ramp_1_0_top",
+   "top_1_home"
+  ],
+  [
+   "ramp_1_1_bottom",
+   "ramp_1_1_top"
+  ],
+  [
+   "ramp_1_1_top",
+   "top_1_home"
+  ],
+  [
+   "ramp_1_2_bottom",
+   "ramp_1_2_top"
+  ],
+  [
+   "ramp_1_2_top",
+   "top_1_home"
+  ],
+  [
+   "ramp_2_0_bottom",
+   "ramp_2_0_top"
+  ],
+  [
+   "ramp_2_0_top",
+   "top_2_central"
+  ],
+  [
+   "ramp_2_1_bottom",
+   "ramp_2_1_top"
+  ],
+  [
+   "ramp_2_1_top",
+   "top_2_central"
+  ],
+  [
+   "ramp_2_2_bottom",
+   "ramp_2_2_top"
+  ],
+  [
+   "ramp_2_2_top",
+   "top_2_central"
+  ],
+  [
+   "ramp_3_0_bottom",
+   "ramp_3_0_top"
+  ],
+  [
+   "ramp_3_0_top",
+   "top_3_route"
+  ],
+  [
+   "ramp_3_1_bottom",
+   "ramp_3_1_top"
+  ],
+  [
+   "ramp_3_1_top",
+   "top_3_route"
+  ],
+  [
+   "ramp_4_0_bottom",
+   "ramp_4_0_top"
+  ],
+  [
+   "ramp_4_0_top",
+   "top_4_route"
+  ],
+  [
+   "ramp_4_1_bottom",
+   "ramp_4_1_top"
+  ],
+  [
+   "ramp_4_1_top",
+   "top_4_route"
+  ],
+  [
+   "ramp_5_0_bottom",
+   "ramp_5_0_top"
+  ],
+  [
+   "ramp_5_0_top",
+   "top_5_route"
+  ],
+  [
+   "ramp_5_1_bottom",
+   "ramp_5_1_top"
+  ],
+  [
+   "ramp_5_1_top",
+   "top_5_route"
+  ],
+  [
+   "ramp_6_0_bottom",
+   "ramp_6_0_top"
+  ],
+  [
+   "ramp_6_0_top",
+   "top_6_route"
+  ],
+  [
+   "ramp_6_1_bottom",
+   "ramp_6_1_top"
+  ],
+  [
+   "ramp_6_1_top",
+   "top_6_route"
+  ],
+  [
+   "ramp_7_0_bottom",
+   "ramp_7_0_top"
+  ],
+  [
+   "ramp_7_0_top",
+   "top_7_route"
+  ],
+  [
+   "ramp_7_1_bottom",
+   "ramp_7_1_top"
+  ],
+  [
+   "ramp_7_1_top",
+   "top_7_route"
+  ],
+  [
+   "bridge_0_a",
+   "bridge_0_b"
+  ],
+  [
+   "bridge_1_a",
+   "bridge_1_b"
+  ],
+  [
+   "bridge_2_a",
+   "bridge_2_b"
+  ],
+  [
+   "bridge_3_a",
+   "bridge_3_b"
+  ],
+  [
+   "bridge_4_a",
+   "bridge_4_b"
+  ],
+  [
+   "bridge_5_a",
+   "bridge_5_b"
+  ],
+  [
+   "P0",
+   "res_0_A"
+  ],
+  [
+   "P0",
+   "res_1_A"
+  ],
+  [
+   "P1",
+   "res_2_A"
+  ],
+  [
+   "P1",
+   "res_3_A"
+  ],
+  [
+   "P2",
+   "res_4_A"
+  ],
+  [
+   "P2",
+   "res_5_A"
+  ],
+  [
+   "P3",
+   "res_6_A"
+  ],
+  [
+   "P3",
+   "res_7_A"
+  ],
+  [
+   "P0",
+   "res_8_A"
+  ],
+  [
+   "P0",
+   "res_9_B"
+  ],
+  [
+   "P1",
+   "res_10_A"
+  ],
+  [
+   "P1",
+   "res_11_B"
+  ],
+  [
+   "P2",
+   "res_12_A"
+  ],
+  [
+   "P2",
+   "res_13_B"
+  ],
+  [
+   "P3",
+   "res_14_A"
+  ],
+  [
+   "P3",
+   "res_15_B"
+  ]
+ ],
+ "targets": [
+  {
+   "kind": "spawn",
+   "name": "P0",
+   "required": true,
+   "x": 109.23,
+   "y": 0.6,
+   "z": 364.29
+  },
+  {
+   "kind": "spawn",
+   "name": "P1",
+   "required": true,
+   "x": 163.91,
+   "y": 0.6,
+   "z": 101.6
+  },
+  {
+   "kind": "spawn",
+   "name": "P2",
+   "required": true,
+   "x": 367.03,
+   "y": 3.6,
+   "z": 389.6
+  },
+  {
+   "kind": "spawn",
+   "name": "P3",
+   "required": true,
+   "x": 428.85,
+   "y": 3.6,
+   "z": 189.32
+  },
+  {
+   "kind": "expansion",
+   "name": "exp_P0",
+   "required": true,
+   "x": 109.5,
+   "y": 0.6,
+   "z": 300.5
+  },
+  {
+   "kind": "expansion",
+   "name": "exp_P1",
+   "required": true,
+   "x": 163.5,
+   "y": 0.6,
+   "z": 37.5
+  },
+  {
+   "kind": "expansion",
+   "name": "exp_P2",
+   "required": true,
+   "x": 396.5,
+   "y": 0.6,
+   "z": 337.5
+  },
+  {
+   "kind": "expansion",
+   "name": "exp_P3",
+   "required": true,
+   "x": 376.5,
+   "y": 0.6,
+   "z": 206.5
+  },
+  {
+   "kind": "plateau_top",
+   "name": "top_0_home",
+   "required": true,
+   "x": 367.03,
+   "y": 3.6,
+   "z": 389.6
+  },
+  {
+   "kind": "ramp_top",
+   "name": "ramp_0_0_top",
+   "required": true,
+   "x": 384.261,
+   "y": 3.472,
+   "z": 361.456
+  },
+  {
+   "kind": "ramp_bottom",
+   "name": "ramp_0_0_bottom",
+   "required": true,
+   "x": 392.617,
+   "y": 0.6,
+   "z": 347.811
+  },
+  {
+   "kind": "ramp_top",
+   "name": "ramp_0_1_top",
+   "required": true,
+   "x": 326.998,
+   "y": 3.6,
+   "z": 395.738
+  },
+  {
+   "kind": "ramp_bottom",
+   "name": "ramp_0_1_bottom",
+   "required": true,
+   "x": 311.183,
+   "y": 0.676,
+   "z": 398.163
+  },
+  {
+   "kind": "ramp_top",
+   "name": "ramp_0_2_top",
+   "required": true,
+   "x": 345.214,
+   "y": 3.591,
+   "z": 423.127
+  },
+  {
+   "kind": "ramp_bottom",
+   "name": "ramp_0_2_bottom",
+   "required": true,
+   "x": 336.488,
+   "y": 0.622,
+   "z": 436.538
+  },
+  {
+   "kind": "plateau_top",
+   "name": "top_1_home",
+   "required": true,
+   "x": 428.85,
+   "y": 3.6,
+   "z": 189.32
+  },
+  {
+   "kind": "ramp_top",
+   "name": "ramp_1_0_top",
+   "required": true,
+   "x": 389.928,
+   "y": 3.594,
+   "z": 176.433
+  },
+  {
+   "kind": "ramp_bottom",
+   "name": "ramp_1_0_bottom",
+   "required": true,
+   "x": 374.739,
+   "y": 0.619,
+   "z": 171.404
+  },
+  {
+   "kind": "ramp_top",
+   "name": "ramp_1_1_top",
+   "required": true,
+   "x": 435.027,
+   "y": 3.586,
+   "z": 219.698
+  },
+  {
+   "kind": "ramp_bottom",
+   "name": "ramp_1_1_bottom",
+   "required": true,
+   "x": 438.216,
+   "y": 0.64,
+   "z": 235.377
+  },
+  {
+   "kind": "ramp_top",
+   "name": "ramp_1_2_top",
+   "required": true,
+   "x": 400.207,
+   "y": 3.6,
+   "z": 211.943
+  },
+  {
+   "kind": "ramp_bottom",
+   "name": "ramp_1_2_bottom",
+   "required": true,
+   "x": 387.65,
+   "y": 0.658,
+   "z": 221.86
+  },
+  {
+   "kind": "plateau_top",
+   "name": "top_2_central",
+   "required": true,
+   "x": 270.289,
+   "y": 3.6,
+   "z": 214.385
+  },
+  {
+   "kind": "ramp_top",
+   "name": "ramp_2_0_top",
+   "required": true,
+   "x": 249.018,
+   "y": 3.6,
+   "z": 191.833
+  },
+  {
+   "kind": "ramp_bottom",
+   "name": "ramp_2_0_bottom",
+   "required": true,
+   "x": 238.04,
+   "y": 0.69,
+   "z": 180.193
+  },
+  {
+   "kind": "ramp_top",
+   "name": "ramp_2_1_top",
+   "required": true,
+   "x": 269.704,
+   "y": 3.556,
+   "z": 241.878
+  },
+  {
+   "kind": "ramp_bottom",
+   "name": "ramp_2_1_bottom",
+   "required": true,
+   "x": 269.365,
+   "y": 0.606,
+   "z": 257.875
+  },
+  {
+   "kind": "ramp_top",
+   "name": "ramp_2_2_top",
+   "required": true,
+   "x": 292.019,
+   "y": 3.37,
+   "z": 210.95
+  },
+  {
+   "kind": "ramp_bottom",
+   "name": "ramp_2_2_bottom",
+   "required": true,
+   "x": 307.822,
+   "y": 0.6,
+   "z": 208.452
+  },
+  {
+   "kind": "plateau_top",
+   "name": "top_3_route",
+   "required": true,
+   "x": 245.611,
+   "y": 3.6,
+   "z": 330.588
+  },
+  {
+   "kind": "ramp_top",
+   "name": "ramp_3_0_top",
+   "required": true,
+   "x": 281.137,
+   "y": 3.454,
+   "z": 347.855
+  },
+  {
+   "kind": "ramp_bottom",
+   "name": "ramp_3_0_bottom",
+   "required": true,
+   "x": 295.528,
+   "y": 0.6,
+   "z": 354.848
+  },
+  {
+   "kind": "ramp_top",
+   "name": "ramp_3_1_top",
+   "required": true,
+   "x": 224.415,
+   "y": 3.6,
+   "z": 303.367
+  },
+  {
+   "kind": "ramp_bottom",
+   "name": "ramp_3_1_bottom",
+   "required": true,
+   "x": 214.584,
+   "y": 0.665,
+   "z": 290.743
+  },
+  {
+   "kind": "plateau_top",
+   "name": "top_4_route",
+   "required": true,
+   "x": 305.809,
+   "y": 3.6,
+   "z": 116.98
+  },
+  {
+   "kind": "ramp_top",
+   "name": "ramp_4_0_top",
+   "required": true,
+   "x": 286.176,
+   "y": 3.587,
+   "z": 133.252
+  },
+  {
+   "kind": "ramp_bottom",
+   "name": "ramp_4_0_bottom",
+   "required": true,
+   "x": 273.856,
+   "y": 0.613,
+   "z": 143.462
+  },
+  {
+   "kind": "ramp_top",
+   "name": "ramp_4_1_top",
+   "required": true,
+   "x": 342.791,
+   "y": 3.546,
+   "z": 118.146
+  },
+  {
+   "kind": "ramp_bottom",
+   "name": "ramp_4_1_bottom",
+   "required": true,
+   "x": 358.783,
+   "y": 0.607,
+   "z": 118.65
+  },
+  {
+   "kind": "plateau_top",
+   "name": "top_5_route",
+   "required": true,
+   "x": 80.5,
+   "y": 3.6,
+   "z": 176.5
+  },
+  {
+   "kind": "ramp_top",
+   "name": "ramp_5_0_top",
+   "required": true,
+   "x": 71.873,
+   "y": 3.6,
+   "z": 207.834
+  },
+  {
+   "kind": "ramp_bottom",
+   "name": "ramp_5_0_bottom",
+   "required": true,
+   "x": 67.625,
+   "y": 0.742,
+   "z": 223.26
+  },
+  {
+   "kind": "ramp_top",
+   "name": "ramp_5_1_top",
+   "required": true,
+   "x": 51.471,
+   "y": 3.589,
+   "z": 193.221
+  },
+  {
+   "kind": "ramp_bottom",
+   "name": "ramp_5_1_bottom",
+   "required": true,
+   "x": 37.608,
+   "y": 0.631,
+   "z": 201.207
+  },
+  {
+   "kind": "plateau_top",
+   "name": "top_6_route",
+   "required": true,
+   "x": 272.5,
+   "y": 3.6,
+   "z": 440.5
+  },
+  {
+   "kind": "ramp_top",
+   "name": "ramp_6_0_top",
+   "required": true,
+   "x": 241.056,
+   "y": 3.6,
+   "z": 434.56
+  },
+  {
+   "kind": "ramp_bottom",
+   "name": "ramp_6_0_bottom",
+   "required": true,
+   "x": 225.334,
+   "y": 0.676,
+   "z": 431.59
+  },
+  {
+   "kind": "ramp_top",
+   "name": "ramp_6_1_top",
+   "required": true,
+   "x": 270.428,
+   "y": 3.6,
+   "z": 406.062
+  },
+  {
+   "kind": "ramp_bottom",
+   "name": "ramp_6_1_bottom",
+   "required": true,
+   "x": 269.468,
+   "y": 0.673,
+   "z": 390.091
+  },
+  {
+   "kind": "plateau_top",
+   "name": "top_7_route",
+   "required": true,
+   "x": 56.5,
+   "y": 3.6,
+   "z": 56.5
+  },
+  {
+   "kind": "ramp_top",
+   "name": "ramp_7_0_top",
+   "required": true,
+   "x": 78.807,
+   "y": 3.391,
+   "z": 97.3
+  },
+  {
+   "kind": "ramp_bottom",
+   "name": "ramp_7_0_bottom",
+   "required": true,
+   "x": 86.483,
+   "y": 0.6,
+   "z": 111.338
+  },
+  {
+   "kind": "ramp_top",
+   "name": "ramp_7_1_top",
+   "required": true,
+   "x": 47.418,
+   "y": 3.16,
+   "z": 82.986
+  },
+  {
+   "kind": "ramp_bottom",
+   "name": "ramp_7_1_bottom",
+   "required": true,
+   "x": 42.228,
+   "y": 0.6,
+   "z": 98.121
+  },
+  {
+   "kind": "bridge_bank",
+   "name": "bridge_0_a",
+   "required": true,
+   "x": 66.423,
+   "y": 0.6,
+   "z": 253.661
+  },
+  {
+   "kind": "bridge_bank",
+   "name": "bridge_0_b",
+   "required": true,
+   "x": 77.577,
+   "y": 0.6,
+   "z": 280.796
+  },
+  {
+   "kind": "bridge_bank",
+   "name": "bridge_1_a",
+   "required": true,
+   "x": 142.185,
+   "y": 0.6,
+   "z": 230.038
+  },
+  {
+   "kind": "bridge_bank",
+   "name": "bridge_1_b",
+   "required": true,
+   "x": 145.815,
+   "y": 0.6,
+   "z": 258.31
+  },
+  {
+   "kind": "bridge_bank",
+   "name": "bridge_2_a",
+   "required": true,
+   "x": 221.426,
+   "y": 0.6,
+   "z": 241.073
+  },
+  {
+   "kind": "bridge_bank",
+   "name": "bridge_2_b",
+   "required": true,
+   "x": 210.574,
+   "y": 0.6,
+   "z": 268.645
+  },
+  {
+   "kind": "bridge_bank",
+   "name": "bridge_3_a",
+   "required": true,
+   "x": 297.629,
+   "y": 0.6,
+   "z": 274.229
+  },
+  {
+   "kind": "bridge_bank",
+   "name": "bridge_3_b",
+   "required": true,
+   "x": 286.371,
+   "y": 0.6,
+   "z": 304.203
+  },
+  {
+   "kind": "bridge_bank",
+   "name": "bridge_4_a",
+   "required": true,
+   "x": 361.374,
+   "y": 0.6,
+   "z": 281.322
+  },
+  {
+   "kind": "bridge_bank",
+   "name": "bridge_4_b",
+   "required": true,
+   "x": 366.626,
+   "y": 0.6,
+   "z": 314.596
+  },
+  {
+   "kind": "bridge_bank",
+   "name": "bridge_5_a",
+   "required": true,
+   "x": 433.599,
+   "y": 0.6,
+   "z": 256.308
+  },
+  {
+   "kind": "bridge_bank",
+   "name": "bridge_5_b",
+   "required": true,
+   "x": 446.401,
+   "y": 0.6,
+   "z": 287.218
+  },
+  {
+   "kind": "resource",
+   "name": "res_0_A",
+   "required": true,
+   "x": 101.5,
+   "y": 0.6,
+   "z": 358.5
+  },
+  {
+   "kind": "resource",
+   "name": "res_1_A",
+   "required": true,
+   "x": 107.5,
+   "y": 0.6,
+   "z": 374.5
+  },
+  {
+   "kind": "resource",
+   "name": "res_2_A",
+   "required": true,
+   "x": 158.5,
+   "y": 0.6,
+   "z": 93.5
+  },
+  {
+   "kind": "resource",
+   "name": "res_3_A",
+   "required": true,
+   "x": 162.5,
+   "y": 0.6,
+   "z": 91.5
+  },
+  {
+   "kind": "resource",
+   "name": "res_4_A",
+   "required": true,
+   "x": 362.5,
+   "y": 3.6,
+   "z": 398.5
+  },
+  {
+   "kind": "resource",
+   "name": "res_5_A",
+   "required": true,
+   "x": 377.5,
+   "y": 3.6,
+   "z": 387.5
+  },
+  {
+   "kind": "resource",
+   "name": "res_6_A",
+   "required": true,
+   "x": 428.5,
+   "y": 3.6,
+   "z": 178.5
+  },
+  {
+   "kind": "resource",
+   "name": "res_7_A",
+   "required": true,
+   "x": 436.5,
+   "y": 3.6,
+   "z": 194.5
+  },
+  {
+   "kind": "resource",
+   "name": "res_8_A",
+   "required": true,
+   "x": 121.5,
+   "y": 0.6,
+   "z": 294.5
+  },
+  {
+   "kind": "resource",
+   "name": "res_9_B",
+   "required": true,
+   "x": 98.5,
+   "y": 0.6,
+   "z": 294.5
+  },
+  {
+   "kind": "resource",
+   "name": "res_10_A",
+   "required": true,
+   "x": 176.5,
+   "y": 0.6,
+   "z": 31.5
+  },
+  {
+   "kind": "resource",
+   "name": "res_11_B",
+   "required": true,
+   "x": 165.5,
+   "y": 0.6,
+   "z": 28.5
+  },
+  {
+   "kind": "resource",
+   "name": "res_12_A",
+   "required": true,
+   "x": 397.5,
+   "y": 0.6,
+   "z": 330.5
+  },
+  {
+   "kind": "resource",
+   "name": "res_13_B",
+   "required": true,
+   "x": 392.5,
+   "y": 0.6,
+   "z": 327.5
+  },
+  {
+   "kind": "resource",
+   "name": "res_14_A",
+   "required": true,
+   "x": 371.5,
+   "y": 0.6,
+   "z": 202.5
+  },
+  {
+   "kind": "resource",
+   "name": "res_15_B",
+   "required": true,
+   "x": 372.5,
+   "y": 0.6,
+   "z": 195.5
+  },
+  {
+   "kind": "resource",
+   "name": "res_16_A",
+   "required": true,
+   "x": 295.5,
+   "y": 0.6,
+   "z": 170.5
+  },
+  {
+   "kind": "resource",
+   "name": "res_17_A",
+   "required": true,
+   "x": 451.5,
+   "y": 0.6,
+   "z": 305.5
+  },
+  {
+   "kind": "resource",
+   "name": "res_18_A",
+   "required": true,
+   "x": 222.5,
+   "y": 0.6,
+   "z": 373.5
+  },
+  {
+   "kind": "resource",
+   "name": "res_19_A",
+   "required": true,
+   "x": 137.5,
+   "y": 0.567,
+   "z": 233.5
+  },
+  {
+   "kind": "resource",
+   "name": "res_20_B",
+   "required": true,
+   "x": 300.5,
+   "y": 0.6,
+   "z": 160.5
+  },
+  {
+   "kind": "resource",
+   "name": "res_21_B",
+   "required": true,
+   "x": 448.5,
+   "y": 0.6,
+   "z": 303.5
+  },
+  {
+   "kind": "resource",
+   "name": "res_22_B",
+   "required": true,
+   "x": 229.5,
+   "y": 0.6,
+   "z": 382.5
+  },
+  {
+   "kind": "resource",
+   "name": "res_23_B",
+   "required": true,
+   "x": 134.5,
+   "y": 0.6,
+   "z": 232.5
+  }
+ ],
+ "xy_tolerance_m": 2.5
+}

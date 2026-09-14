@@ -51,19 +51,38 @@ func _apply_screen():
 		if screen == Screen.FULL
 		else DisplayServer.WINDOW_MODE_WINDOWED
 	)
-	DisplayServer.window_set_mode(mode)
-	# Godot 强制全屏无边框；切回窗口时必须显式恢复系统标题栏和边框。
-	DisplayServer.window_set_flag(
-		DisplayServer.WINDOW_FLAG_BORDERLESS,
-		mode == DisplayServer.WINDOW_MODE_FULLSCREEN
-	)
+	_set_window_mode(mode)
 	if mode == DisplayServer.WINDOW_MODE_WINDOWED:
 		_apply_resolution()
+
+
+## 窗口模式与无边框标记必须成对切换：
+## 切到窗口时先清 BORDERLESS 再设 mode（全屏则反过来），避免出现
+## 「带边框全屏」这种错配中间态；否则在 Windows 上会被引擎重解释成
+## **独占全屏**(WINDOW_MODE_EXCLUSIVE_FULLSCREEN)，而独占全屏下
+## window_set_size() 被忽略 —— 分辨率设置看起来完全失效。
+## （真正的启动陷阱在 project.godot：`window/size/mode` 必须保持 0，
+##  详见那里的注释。）
+func _set_window_mode(mode: int):
+	if mode == DisplayServer.WINDOW_MODE_WINDOWED:
+		DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, false)
+		DisplayServer.window_set_mode(mode)
+	else:
+		DisplayServer.window_set_mode(mode)
+		DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, true)
 
 
 func _apply_resolution():
 	if screen != Screen.WINDOW:
 		return
+
+	# 存储是「窗口」但实际仍停在独占全屏（启动早期的模式切换被引擎吞掉、
+	# 或窗口被外部改成全屏）时，window_set_size() 不生效 —— 先真正切回窗口模式。
+	if (
+		DisplayServer.get_name() != "headless"
+		and DisplayServer.window_get_mode() != DisplayServer.WINDOW_MODE_WINDOWED
+	):
+		_set_window_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 
 	var target_size := resolution
 	var usable_rect := DisplayServer.screen_get_usable_rect(DisplayServer.SCREEN_OF_MAIN_WINDOW)

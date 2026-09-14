@@ -1,6 +1,7 @@
 extends CanvasLayer
 
 const OptionsScene = preload("res://source/main-menu/Options.tscn")
+const EscapeRouter = preload("res://source/ui/EscapeRouter.gd")
 
 var _options_panel: Control = null
 
@@ -15,7 +16,23 @@ func _on_input_action_pressed(action_id: String):
 		_open()
 		return
 	if action_id == "global.cancel":
-		_cancel_or_return()
+		# 面板/菜单已打开：同步逐级返回（不依赖他人认领）。
+		if _options_panel != null or visible:
+			_cancel_or_return()
+			return
+		# 菜单未打开：本帧末尾再决定是否唤出。放置/目标选择/待发命令等
+		# "取消"消费者会先同步认领 ESC（EscapeRouter.claim()）；
+		# 无人认领时 ESC 与 F10 等价——唤出暂停菜单（2026-09-14 用户要求）。
+		_open_if_unclaimed.call_deferred()
+
+
+## 本帧末尾的兜底唤出：只有无人认领 ESC 时才打开菜单。
+func _open_if_unclaimed():
+	if visible:
+		return
+	if EscapeRouter.is_claimed_this_frame():
+		return
+	_open()
 
 
 func _open():
@@ -23,6 +40,15 @@ func _open():
 		return
 	visible = true
 	get_tree().paused = true
+	# 联机对局无法真正暂停（服务器继续推进战局）：在标题上明确告知玩家，
+	# 避免误以为"暂停了就是安全的"（2026-09-14）。
+	var title = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Title
+	if title != null:
+		title.text = (
+			"菜单（联机中，战斗仍在继续）"
+			if NetSession.should_forward_commands()
+			else "游戏暂停"
+		)
 
 
 func _close():
@@ -78,4 +104,7 @@ func _on_exit_button_pressed():
 	MatchSignals.match_aborted.emit()
 	await get_tree().create_timer(1.74).timeout  # Give voice narrator some time to finish.
 	get_tree().paused = false
+	# 退出战斗必须**断开会话**（单机 listen server / 联机房间），否则残留状态会让
+	# 「在线匹配」误判"已连接/房主"（单机）或让下一局被服务器忽略（联机）——2026-09-14。
+	NetSession.disconnect_if_networked()
 	get_tree().change_scene_to_file("res://source/main-menu/Main.tscn")

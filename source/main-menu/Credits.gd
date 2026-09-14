@@ -1,4 +1,4 @@
-extends Control
+extends "res://source/ui/MenuPage.gd"
 
 @onready var _rich_text_label = find_child("RichTextLabel")
 
@@ -14,3 +14,9 @@ func _ready():
 
 func _on_back_button_pressed():
 	get_tree().change_scene_to_file("res://source/main-menu/Main.tscn")
+
+
+## ESC 回退（MenuPage 基类）：返回主菜单。
+func _on_escape() -> bool:
+	_on_back_button_pressed()
+	return true

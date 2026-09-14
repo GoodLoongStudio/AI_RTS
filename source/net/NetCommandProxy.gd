@@ -70,6 +70,35 @@ func CancelConstruction(site, issuer):
 	return _sync.forward_command("cancel_construct", [site], Vector3.ZERO, site, issuer)
 
 
+func SetRallyPointPosition(structures, position, issuer):
+	return _sync.forward_command("set_rally_point", structures, position, null, issuer)
+
+
+func SetRallyPointTarget(units, target, issuer):
+	return _sync.forward_command("set_rally_target", units, Vector3.ZERO, target, issuer)
+
+
+func ClearRallyPoints(structures, issuer):
+	return _sync.forward_command("clear_rally_point", structures, Vector3.ZERO, null, issuer)
+
+
+## 技能槽是单位定义上的静态数据，客户端可本地查询（不涉及权威状态）；
+## 本地权威查询不可用时退化为空槽，绝不本地施放（施放必须走服务器）。
+func GetHudSlots(unit):
+	var local_gateway = _player.find_child("UnitCommandGateway")
+	if local_gateway != null and local_gateway.has_method("GetHudSlots"):
+		return local_gateway.GetHudSlots(unit)
+	return []
+
+
+func CastSkill(units, skill_id, issuer, target):
+	return _sync.forward_command("cast_skill", units, Vector3.ZERO, target, issuer, str(skill_id))
+
+
+func CastSkillGround(units, skill_id, position, issuer):
+	return _sync.forward_command("cast_skill_ground", units, position, null, issuer, str(skill_id))
+
+
 func SetEngagementStance(units, stance, issuer):
 	# 客户端不再乐观写入姿态：回基地可能因没有己方基地或导航不可用被
 	# 服务器拒绝，HUD 必须等权威快照确认，避免显示假状态。

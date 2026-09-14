@@ -252,6 +252,34 @@ class RuleFloorFollowsMainlineTest(unittest.TestCase):
         self.assertTrue(prefs["allow_attack"])
         self.assertEqual(prefs["build_order"][0], "anti_air_turret")
 
+    def test_first_squad_unlocks_attack_before_pressure_phase(self):
+        """【小部队快打】首支小队成形就允许出击，不再等"施压阶段"（用户 2026-09-14）。
+
+        用户原话："AI 副官可以高频操作，那就没必要集结大部队，按小部队快速集结后就可以行动了。"
+        旧口径 `phase in (施压, 收束)` 会让 M04/M05（扩张/分基地）挡在 M06（施压）前面 →
+        小队成形了整局不打，看着就是"越攒越多、不打"。
+        """
+        state, campaign = self._state_with_frontier(cm.M04)      # 扩张阶段（旧口径：不许打）
+        campaign["_facts"] = {"combat_count": cm.squad_action_min()}
+        prefs = cm.frontier_preferences(state)
+        self.assertTrue(prefs["allow_attack"], "小队成形就该能打（不必先攒大部队/先开分基地）")
+        self.assertEqual(prefs["attack_basis"], "squad_ready")
+        self.assertEqual(prefs["squad_min"], cm.squad_action_min())
+
+    def test_single_unit_does_not_unlock_attack(self):
+        """一个兵不派出去（避免"添油"式送人头）—— 门槛是**小队**，不是"有兵就打"。"""
+        state, campaign = self._state_with_frontier(cm.M04)
+        campaign["_facts"] = {"combat_count": cm.squad_action_min() - 1}
+        prefs = cm.frontier_preferences(state)
+        self.assertFalse(prefs["allow_attack"])
+        self.assertEqual(prefs["attack_basis"], "none")
+
+    def test_pressure_phase_still_reports_phase_basis(self):
+        state, _ = self._state_with_frontier(cm.M06)
+        prefs = cm.frontier_preferences(state)
+        self.assertTrue(prefs["allow_attack"])
+        self.assertEqual(prefs["attack_basis"], "phase")
+
     def test_no_campaign_state_keeps_legacy_ladder(self):
         # 直接调用阶梯（单测/回放）没有 campaign_state：必须保持既有语义不变。
         state = base_state()
@@ -300,10 +328,54 @@ class RuleFloorFollowsMainlineTest(unittest.TestCase):
         self.assertTrue(out)
         self.assertEqual(out[0]["intent_id"].split("-")[1], "probe")
 
+    def test_expansion_probe_while_second_base_pending(self):
+        """M05 分基地还没开工、候选又丢了 → 必须再派人去远端矿（否则永远盖不出第二座）。"""
+        state, campaign = self._state_with_frontier(cm.M05)
+        for key in (cm.M01, cm.M02, cm.M03, cm.M04):
+            campaign["milestones"][key]["status"] = "done"
+        campaign["expansion_candidates"] = []
+        state["ai_controlled_units"] = ["Unit_3"]
+        state["unit_generations"] = {"Unit_3": 1}
+        entities = [unit("Unit_0", "command_center", queue=True),
+                    unit("Unit_3", "drone", pos=(5.0, 0.0, 5.0), movement=True)]
+        far = [resource("R_far", (100.0, 0.0, 100.0))]
+        cm.update(state, observation(entities + far), 600)
+        prefs = cm.frontier_preferences(state)
+        self.assertTrue(prefs["expand_probe"])
+        out = rf.development_intents(state, tactical=tactical(entities + far),
+                                    rules=RULES_VIEW, server_tick=600)
+        self.assertTrue(out)
+        self.assertEqual(out[0]["intent_id"].split("-")[1], "probe")
 
-# ---------------------------------------------------------------------------
-# 4. 紧急事件只进 interrupt_stack，处理完恢复原主线
-# ---------------------------------------------------------------------------
+    def test_second_base_is_not_blocked_by_unfinished_home_site(self):
+        """主基地旁还有未完工车厂时，M05 仍必须能在远端矿开第二座指挥中心。"""
+        state, campaign = self._state_with_frontier(cm.M05)
+        for key in (cm.M01, cm.M02, cm.M03, cm.M04):
+            campaign["milestones"][key]["status"] = "done"
+        state["ai_controlled_units"] = ["Unit_0", "Unit_1", "Unit_3", "VF_1"]
+        state["unit_generations"] = {name: 1 for name in state["ai_controlled_units"]}
+        state["active_intents"] = [{
+            "intent_id": "rule-finish-site-VF_1-500", "action": "build",
+            "unit_ids": ["Unit_1"], "state": "active", "expires_tick": 100000,
+            "target": {"scene": "res://buildings/VehicleFactory.tscn",
+                       "producer": "Unit_1", "entity_id": "VF_1"},
+        }]
+        entities = [
+            unit("Unit_0", "command_center", queue=True, constructed=True),
+            unit("Unit_1", "worker", gather=True, construct=True, pos=(12.0, 0.0, 12.0)),
+            unit("Unit_3", "soldier", pos=(70.0, 0.0, 70.0), movement=True),
+            unit("VF_1", "vehicle_factory", queue=True, constructed=False,
+                 pos=(16.0, 0.0, 8.0)),
+        ]
+        far = [resource("R_far", (70.0, 0.0, 70.0))]
+        out = rf.development_intents(state, tactical=tactical(entities + far),
+                                    rules=RULES_VIEW, server_tick=600)
+        builds = [item for item in out if item.get("action") == "build"]
+        self.assertTrue(builds, "有合法分基地落点却没下建造：%s" % out)
+        self.assertIn("command_center", str(builds[0].get("intent_id", "")),
+                      "未完工的本地工地把分基地挤掉了：%s" % builds[0])
+        self.assertEqual(state["active_intents"][0]["state"], "dropped")
+        self.assertEqual(state["active_intents"][0]["drop_reason"], "expansion_cc_preempt")
 
 
 class InterruptStackTest(unittest.TestCase):
@@ -357,6 +429,88 @@ class InterruptStackTest(unittest.TestCase):
         self.assertTrue(all(str((campaign["tracks"][name] or {}).get("status"))
                             in ("running", "suspended") for name in cm.TRACKS))
 
+    def test_gate_enemy_on_route_enters_stack(self):
+        """安全闸门的"遇敌停止推进"必须**压进中断栈**（2026-09-13 结局局复盘第 ③ 条）。
+
+        这类事件由 `nodes._raise_movement_urgent` 推进 `state["pending_events"]`，
+        **永远不出现在观测里** —— 旧实现只读观测事件，于是整局主线完全不知道
+        部队已经在交战，还以为在推进。这里同时钉住"队列源只认 `movement_gate` 标记"：
+        哪怕同一事件重复出现，`interrupt_total` 也不许翻倍。
+        """
+        state = base_state()
+        entities = [unit("Unit_0", "command_center", queue=True),
+                    unit("Unit_1", "worker", gather=True),
+                    unit("Unit_2", "soldier", pos=(30.0, 0.0, 30.0)),
+                    resource("R_1", (8.0, 0.0, 8.0))]
+        cm.update(state, observation(entities), 0)
+        state["pending_events"] = [{
+            "event_id": "movement-enemy_on_route-Unit_2-200", "kind": "enemy_on_route",
+            "server_tick": 200, "payload": {"subject": "Unit_2", "source": "movement_gate"}}]
+        campaign = cm.update(state, observation(entities, tick=200), 200)
+        stack = [item for item in campaign["interrupt_stack"] if item["status"] == "active"]
+        self.assertEqual([item["kind"] for item in stack], ["enemy_on_route"])
+        self.assertEqual(stack[0]["units"], ["Unit_2"])
+        self.assertEqual(campaign["interrupt_total"], 1)
+        # 同一事件继续留在队列里（事件队列是有界的、会跨轮保留）：不许重复计数。
+        cm.update(state, observation(entities, tick=260), 260)
+        self.assertEqual(state["campaign_state"]["interrupt_total"], 1)
+
+    def test_same_event_is_not_pushed_twice_across_ticks(self):
+        """同一事件（id 相同）只许压栈一次 —— 事件队列会跨轮保留，不许被反复压。
+
+        2026-09-13 实测（240 秒真实局）：没有这层记忆时 `campaign_interrupt_resolved`
+        刷了 **662 次** —— 队列里躺着的老事件每轮都重新建立条目，而 `pushed_tick`
+        取的是**事件自带的旧 tick** → `expires_tick` 早已过去 → 立刻"超时弹出"，
+        主线被这堆假紧急事件反复搅动（真实的中断栈反而看不出来）。
+        """
+        state = base_state()
+        entities = [unit("Unit_0", "command_center", queue=True),
+                    unit("Unit_1", "worker", gather=True),
+                    unit("Unit_2", "soldier", pos=(30.0, 0.0, 30.0)),
+                    resource("R_1", (8.0, 0.0, 8.0))]
+        # 队列里的"老事件"：会一直躺在有界队列里（生产链路上只有 wait 轮才清空）。
+        state["pending_events"] = [{
+            "event_id": "movement-enemy_on_route-Unit_2-0", "kind": "enemy_on_route",
+            "server_tick": 0, "payload": {"subject": "Unit_2", "source": "movement_gate"}}]
+        # 敌人一直贴着 Unit_2 → 威胁没解除，中断必须挂着（否则这条测试测不到"反复压栈"）。
+        near = entities + [enemy("E_1", (32.0, 0.0, 30.0))]
+        cm.update(state, observation(near, tick=0), 0)
+        for tick in (60, 120, 180, 240):
+            cm.update(state, observation(near, tick=tick), tick)
+        campaign = state["campaign_state"]
+        self.assertEqual(campaign["interrupt_total"], 1, "同一事件只许压一次")
+        self.assertEqual(len(campaign["interrupt_stack"]), 1, "老事件不许把中断栈灌满")
+        # 敌人走开 + 超过超时窗口 → 只弹一次；之后队列里那条老事件也不许再压回来。
+        later = cm.INTERRUPT_MAX_TICKS + 10
+        cm.update(state, observation(entities, tick=later), later)
+        self.assertEqual(campaign["interrupt_stack"], [])
+        cm.update(state, observation(entities, tick=later + 60), later + 60)
+        self.assertEqual(campaign["interrupt_resolved"], 1)
+        self.assertEqual(campaign["interrupt_total"], 1)
+
+    def test_enemy_on_route_interrupt_clears_when_enemy_leaves(self):
+        """敌人离开那支部队 → 紧急状态解除，主线自动恢复（不用等超时）。"""
+        state = base_state()
+        entities = [unit("Unit_0", "command_center", queue=True),
+                    unit("Unit_1", "worker", gather=True),
+                    unit("Unit_2", "soldier", pos=(30.0, 0.0, 30.0)),
+                    resource("R_1", (8.0, 0.0, 8.0))]
+        cm.update(state, observation(entities), 0)
+        enemy_near = entities + [enemy("E_1", (32.0, 0.0, 30.0))]
+        state["pending_events"] = [{
+            "event_id": "movement-enemy_on_route-Unit_2-200", "kind": "enemy_on_route",
+            "server_tick": 200, "payload": {"subject": "Unit_2", "source": "movement_gate"}}]
+        cm.update(state, observation(enemy_near, tick=200), 200)
+        self.assertEqual(len(state["campaign_state"]["interrupt_stack"]), 1)
+        # 敌人走远（50 米外 > 解除半径 12 米）+ 驻留/静默窗口都过了 → 弹出。
+        later = 200 + cm.INTERRUPT_MIN_HOLD_TICKS + cm.INTERRUPT_QUIET_TICKS + 1
+        far = entities + [enemy("E_1", (90.0, 0.0, 90.0))]
+        cm.update(state, observation(far, tick=later), later)
+        campaign = state["campaign_state"]
+        self.assertEqual(campaign["interrupt_stack"], [])
+        self.assertEqual(campaign["resolved_interrupts"][0]["kind"], "enemy_on_route")
+        self.assertEqual(campaign["resolved_interrupts"][0]["resolution"], "handled")
+
     def test_interrupt_expires_and_does_not_hang_mainline(self):
         state = base_state()
         entities = [unit("Unit_0", "command_center", queue=True),
@@ -389,6 +543,50 @@ class InterruptStackTest(unittest.TestCase):
                                  "units": ["Unit_0"]}]}
         defended = bt.micro_intents(state, tactical=tac)
         self.assertEqual({item["action"] for item in defended}, {"defend"})
+
+    def test_far_line_is_not_recalled_when_base_is_raided(self):
+        """T07：基地受袭只召回附近单位；远处作战线不得被拉去打家里的敌人。"""
+        from adjutant_coordinator.graph import behavior_tree as bt
+        state = base_state(600)
+        state["ai_controlled_units"] = ["Unit_near", "Unit_far"]
+        state["campaign_state"] = {
+            "interrupt_stack": [{"kind": "base_under_attack", "status": "active",
+                                 "units": ["Unit_0"]}]}
+        entities = [
+            unit("Unit_0", "command_center", queue=True, pos=(0.0, 0.0, 0.0)),
+            unit("Unit_near", "soldier", pos=(6.0, 0.0, 6.0)),
+            unit("Unit_far", "soldier", pos=(80.0, 0.0, 80.0)),
+            enemy("E_raid", (5.0, 0.0, 5.0)),
+        ]
+        tac = tactical(entities, tick=600)
+        filled = rf.development_intents(state, tactical=tac, rules=RULES_VIEW)
+        far = next((item for item in filled
+                    if "Unit_far" in (item.get("unit_ids") or [])), None)
+        if far is not None:
+            self.assertNotEqual(far.get("action"), "attack",
+                                "并行填充把远处单位召回打家里：%s" % far)
+            self.assertNotEqual((far.get("target") or {}).get("entity_id"), "E_raid")
+        merged = bt.micro_intents(state, tactical=tac, rules=RULES_VIEW)
+        far_merged = next((item for item in merged
+                           if "Unit_far" in (item.get("unit_ids") or [])), None)
+        self.assertIsNotNone(far_merged, "远处线必须继续有任务，不能被清空")
+        self.assertNotEqual(far_merged.get("action"), "defend")
+        self.assertNotEqual((far_merged.get("target") or {}).get("entity_id"), "E_raid")
+        near_merged = next((item for item in merged
+                            if "Unit_near" in (item.get("unit_ids") or [])), None)
+        self.assertIsNotNone(near_merged)
+        self.assertIn(near_merged.get("action"), ("defend", "attack"))
+
+    def test_defense_stops_after_interrupt_clears(self):
+        """T07：威胁解除后近处单位不再回防。"""
+        from adjutant_coordinator.graph import behavior_tree as bt
+        state = {"ai_controlled_units": ["Unit_2"], "server_tick": 800,
+                 "latest_snapshot_id": 1, "campaign_state": {
+                     "interrupt_stack": []}}
+        entities = [unit("Unit_0", "command_center", queue=True),
+                    unit("Unit_2", "soldier", pos=(6.0, 0.0, 6.0))]
+        cleared = bt.micro_intents(state, tactical=tactical(entities, tick=800))
+        self.assertNotIn("defend", {item["action"] for item in cleared})
 
 
 # ---------------------------------------------------------------------------

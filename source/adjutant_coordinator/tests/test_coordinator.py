@@ -56,11 +56,22 @@ def make_command(command_id="c-1", task_id="t-1", units=("Unit_1",), est_cost=No
 
 
 class AcceptTransport:
-    """测试桩：全部接受并记录提交顺序。"""
+    """测试桩：全部接受并记录提交顺序。
+
+    ⚠ **形状必须与生产传输一致**（`AuthorityIntentTransport` 同时有 `send_command` 与
+    `send_batch`）。2026-09-13 的教训：本桩当时只有 `__call__`，于是"协调器把传输对象
+    压成 bound method"这个 bug **在测试里看不见**（`hasattr(_transport,'send_batch')` 只在
+    有 `send_command` 的传输上才为假）—— 真机 116 条命令全是单发、批量链路形同虚设。
+    桩与生产不同形状 = 守门测试守不住门。
+    """
 
     def __init__(self, receipts=None):
         self.submitted = []
         self._receipts = receipts or {}
+
+    def send_command(self, command):
+        """与生产传输同名的方法；单发入口。"""
+        return self(command)
 
     def __call__(self, command):
         self.submitted.append(command["command_id"])
@@ -183,6 +194,23 @@ class TestBatchSubmit(unittest.TestCase):
         self.assertEqual(coordinator.metrics.batches_submitted, 1)
         self.assertEqual(coordinator.metrics.batched_commands, 3)
         self.assertEqual(coordinator.metrics.commands_accepted, 1 + 3)
+
+    def test_real_transport_shape_still_batches(self):
+        """传输**同时**有 `send_command` 与 `send_batch` 时也必须走批量（2026-09-13 回归）。
+
+        真机的 `AuthorityIntentTransport` 就是这种形状；协调器曾经把
+        `transport.send_command`（bound method）存成 `_transport`，
+        导致 `hasattr(_transport, "send_batch")` 恒为假 → 永远单发。
+        这条测试用"两个方法都有"的桩把它钉住。
+        """
+        transport = BatchTransport()
+        self.assertTrue(hasattr(transport, "send_command"))
+        coordinator = self._coordinator(transport)
+        receipts = coordinator.submit_batch(
+            [make_command("c-1"), make_command("c-2")], 500)
+        self.assertEqual(len(transport.batch_calls), 1,
+                         "传输同时实现两个方法时，批量必须生效（不许退化成逐条）")
+        self.assertEqual([item.command_id for item in receipts], ["c-1", "c-2"])
 
     def test_order_is_preserved_when_one_is_blocked_locally(self):
         transport = BatchTransport()

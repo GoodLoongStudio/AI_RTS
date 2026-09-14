@@ -49,13 +49,36 @@ class RegistryShapeTest(unittest.TestCase):
             seen[int(port)] = name
 
     def test_acceptance_block_does_not_overlap_player_block(self):
-        blocks = registry()["reserved_blocks"]
-        low, high = blocks["acceptance_only"]
+        """**每一段**验收专用段都不许与玩家/面板段重叠。
+
+        （验收段现在有两段：默认 24589-24592 与并行会话 24609-24612，
+        见口径表里的 `acceptance_parallel`；`_` 前缀的键是文档，不是端口段。）
+        """
+        blocks = {name: value for name, value in registry()["reserved_blocks"].items()
+                  if not str(name).startswith("_")}
+        acceptance_names = [name for name in blocks if name.startswith("acceptance")]
+        self.assertTrue(acceptance_names, "至少要有默认验收段 acceptance_only")
         for name, (start, end) in blocks.items():
-            if name == "acceptance_only":
+            if name.startswith("acceptance"):
                 continue
-            self.assertTrue(high < start or low > end,
-                            "验收段 %d-%d 与 %s 段 %d-%d 重叠" % (low, high, name, start, end))
+            for accept_name in acceptance_names:
+                alow, ahigh = blocks[accept_name]
+                self.assertTrue(ahigh < start or alow > end,
+                                "%s 段 %d-%d 与 %s 段 %d-%d 重叠"
+                                % (accept_name, alow, ahigh, name, start, end))
+
+    def test_parallel_acceptance_roles_stay_inside_their_block(self):
+        """并行会话第二段的角色也必须落在自己的段内（否则又是"两路抢同一口"）。"""
+        blocks = registry()["reserved_blocks"]
+        if "acceptance_parallel" not in blocks:
+            self.skipTest("口径表里没有并行验收段（旧表）")
+        low, high = blocks["acceptance_parallel"]
+        roles = registry()["roles"]
+        for name in ("accept_parallel_game_udp", "accept_parallel_client_dcs",
+                     "accept_parallel_server_dcs"):
+            self.assertIn(name, roles, "并行段有段无名：%s 缺失" % name)
+            self.assertTrue(low <= int(roles[name]) <= high,
+                            "%s=%s 不在并行验收段 %d-%d 内" % (name, roles[name], low, high))
 
     def test_acceptance_roles_stay_inside_the_acceptance_block(self):
         low, high = registry()["reserved_blocks"]["acceptance_only"]
@@ -101,6 +124,34 @@ class GameSideMatchesRegistryTest(unittest.TestCase):
         known |= set(int(value) for value in registry()["panel"]["authority_candidates"])
         for port in fallback:
             self.assertIn(port, known, "面板兜底候选 %d 不在口径表里" % port)
+
+    def test_panel_reads_reply_as_bytes_not_per_chunk(self):
+        """面板读权威端回复**必须按字节攒、见到换行再整体解码**（2026-09-13 实测根因）。
+
+        原写法 `buffer += peer.get_utf8_string(available)` 按 TCP 分片解码：中文被切在
+        两个分片之间就报 `Unicode parsing error: Byte 4 is not a correct continuation byte`，
+        JSON 解析失败 → 面板永远读不到权威端数据（显示"尚未启动"而副官正在指挥）。
+        """
+        text = read(PANEL)
+        # **只看非注释行**：修复注释里引用了旧写法（说明"原来错在哪"），不该被自己误伤。
+        code = "\n".join(line for line in text.splitlines()
+                         if not line.lstrip().startswith("#"))
+        self.assertNotIn("get_utf8_string(available)", code,
+                         "面板又按分片解码了 —— 中文会被切断，回复解析必失败")
+        self.assertIn("get_string_from_utf8()", code,
+                      "面板没有\"整体解码\"的写法（应按字节攒到换行再解一次）")
+
+    def test_panel_attachment_check_has_two_tiers(self):
+        """面板判"这局有没有副官在指挥"必须有**两级证据**（2026-09-13 实测修正）。
+
+        背景：跨进程（专用服 + 客户端）`match_id` 天生不一致（服端权威 MatchId
+        vs 客户端本地值），只认"match_id 相同"会让面板在副官正在指挥时说"尚未启动"。
+        第二级 = 租约里的**单位名**与本局可见单位有交集。
+        """
+        text = read(PANEL)
+        self.assertIn("_own_unit_names", text, "面板没有第二级证据（本局单位名集合）")
+        self.assertIn("_authority_basis", text, "面板没有记录判据来源（无法说明凭什么认为在指挥）")
+        self.assertIn("租约单位命中", text, "面板缺第二级判据的说明文案")
 
     def test_panel_prefers_its_own_process_dcs(self):
         """面板在自己的游戏进程里 → **先问本进程 DCS**，而不是去猜端口。

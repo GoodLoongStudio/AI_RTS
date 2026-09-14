@@ -26,11 +26,38 @@ from .task_patch import (
     TARGET_ANCHOR, TARGET_ENEMY, TARGET_LOCATION, TARGET_PRODUCT, TARGET_RESOURCE,
 )
 
-#: 集群粒度（米）：同一格内的作战单位归为一个小队；这是**派生的缺省**，
-#: 阶段 B 会换成游戏权威端维护的稳定小队。
+#: 集群粒度（米）：**同一格**是编队的候选范围（先按位置靠近，再按编制切分；
+#: 见 `_compose_squads`）。这是**派生的缺省**，阶段 B 会换成游戏权威端维护的稳定小队。
 CLUSTER_SIZE = 20.0
-#: 单个执行者最多包含的单位数（设计 §3：默认约 12-20 个作战单位）。
-MAX_UNITS_PER_ACTOR = 20
+
+# ---------------- AI 小队编制（2026-09-14 用户规格）----------------
+#: 用户原话："小队可以是步兵多一点，坦克 1-2 个就行，小队是给 AI 去指挥的，
+#: 玩家也会有另一套分组小队系统。"
+#:
+#: 两条边界（都别越界）：
+#: 1. 这里编的是 **AI 的指挥单位**；玩家侧的分组小队由游戏内那套系统自己管
+#:    （`legacy_ai_squad_*` 那些组），本模块**不读、不写、不复用**；
+#: 2. 编制只描述"谁跟谁一起走"，不涉及权限 —— 授权单位仍由 `authorized` 决定。
+#:
+#: 编成：**步兵为主（≤ `SQUAD_INFANTRY_MAX`）+ 坦克 1~2 个（≤ `SQUAD_TANK_MAX`）**。
+#: 旧口径是"按 20m 格切，每 20 个一队" —— 实测（2026-09-14）出现"20 人一坨、
+#: 队内最大间距 22m、坦克和步兵各走各的"，玩家看到的就是一堆单位挤在一个信标上。
+SQUAD_INFANTRY_MAX = 6
+SQUAD_TANK_MAX = 2
+#: 单个执行者最多包含的单位数 = 步兵上限 + 坦克上限（**派生值**，不另写一个数）。
+MAX_UNITS_PER_ACTOR = SQUAD_INFANTRY_MAX + SQUAD_TANK_MAX
+#: 工人组上限：工人是**集群**语义（按位置聚合去采/去建），不是战斗编队，
+#: 所以不受战斗编成约束（保持历史行为，别把采集线拆散）。
+WORKER_GROUP_MAX = 20
+
+#: 编制角色判据：类型名取自观测 `unit_type`（`op=tactical` 的实体字段）。
+SQUAD_INFANTRY_TYPES = ("soldier",)
+SQUAD_TANK_TYPES = ("tank", "heavy_tank")
+#: 空中单位（`Domain.AIR`）：**不与地面同队** —— 空中/地面是**两套导航网格**
+#: （`MatchConstants.gd`: `enum Domain { AIR, TERRAIN }`；`Drone/Helicopter/Scout.tscn`
+#: 里 `Movement.domain = 0` = AIR），小队"一个中继点/一个队形"在空中+地面混合队里
+#: 根本没有意义（实测确实出现过 `drone` 被编进地面小队）。
+SQUAD_AIR_TYPES = ("drone", "helicopter", "scout")
 
 #: 建造落点距地图边缘的最小余量（米）；**唯一口径在 `placement`**（此处只是别名）。
 BUILD_BOUND_MARGIN_M = placement.BUILD_BOUND_MARGIN_M
@@ -100,11 +127,120 @@ def _chunk(units: List[Dict[str, Any]], size: int) -> List[List[Dict[str, Any]]]
     return [units[i:i + size] for i in range(0, len(units), size)]
 
 
+def _cell_key(entity: Dict[str, Any], size: float = CLUSTER_SIZE) -> str:
+    """单位所在格（**只按位置，不含类型**）。
+
+    与 `_cluster_key` 的区别是编制必需的：`_cluster_key` 把单位类型并进键里，
+    于是"同一格的坦克"和"同一格的步兵"落在**两个不同集群**，永远组不成一支小队
+    （这就是"编成只有单类型、坦克步兵各走各的"的机制）。
+    """
+    x, z = _pos_of(entity)
+    return "%d,%d" % (int(math.floor(x / size)), int(math.floor(z / size)))
+
+
+def squad_role(entity: Dict[str, Any]) -> str:
+    """编制角色：`infantry` / `tank` / `air`。
+
+    `_compose_squads` 只会收到**口径内的作战类型**（见 `_is_composable`），
+    所以这里的兜底只覆盖"口径内的非坦克/非空中类型"（例如 `apc`）→ 按步兵计入。
+    """
+    unit_type = str(entity.get("unit_type", ""))
+    if unit_type in SQUAD_AIR_TYPES:
+        return "air"
+    if unit_type in SQUAD_TANK_TYPES:
+        return "tank"
+    return "infantry"
+
+
+def _combat_types(rules: Optional[Dict[str, Any]]) -> Tuple[str, ...]:
+    """作战单位类型口径：**唯一实现在 `rules_fallback`**（此处只调用，不抄一份）。
+
+    延迟导入：避免本模块与 `rules_fallback` 形成模块级循环依赖。
+    """
+    from . import rules_fallback
+
+    return tuple(rules_fallback.combat_types_of({}, rules))
+
+
+def _is_composable(entity: Dict[str, Any], combat_types: Sequence[str]) -> bool:
+    """这个单位能不能进**战斗编队**：必须在作战口径内 **且可移动**。
+
+    两道闸缺一不可：
+    - **口径内**（`rules_fallback.combat_types_from_rules`：能打 ∧ 能动）—— 防止把工人/
+      建筑（能力标志缺失时会被 `classify` 误判成作战）编进小队，那会变成"让建筑去移动"；
+    - **可移动** —— 固定炮塔也在"能打"口径里，但它们动不了。
+    """
+    if str(entity.get("unit_type", "")) not in tuple(combat_types or ()):
+        return False
+    return bool(entity.get("movement"))
+
+
+def _compose_squads(members: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """同一格内的作战单位 → 若干小队（步兵为主 + 坦克 1~2 个，**确定性**）。
+
+    返回 `[{"entities": [...], "mix": {"infantry": n, "tank": m, "air": k}}, ...]`。
+
+    ## 规则（用户 2026-09-14 规格）
+    - **步兵为主**：每队 ≤ `SQUAD_INFANTRY_MAX`；
+    - **坦克 1~2 个**：每队 ≤ `SQUAD_TANK_MAX`，且**先保证每队都有 1 个**再补第 2 个
+      （轮转分配），不是"前几队吃满、后面的队没有"；
+    - **空中单独成队**：见 `SQUAD_AIR_TYPES`（空中/地面两套导航网格，混合队没有意义）；
+    - 队数 = `max(ceil(步兵/上限), ceil(坦克/上限))` → 两边上限**同时**不会被突破；
+    - **确定性**：按「离格内质心距离 → 名字」排序后再切分 —— 同一观测必得同一编组，
+      且与输入遍历顺序无关（引用表可复核的前提）。
+    """
+    buckets: Dict[str, List[Dict[str, Any]]] = {"infantry": [], "tank": [], "air": []}
+    for entity in members:
+        buckets[squad_role(entity)].append(entity)
+    if not members:
+        return []
+    cx, cz = _center(members)
+
+    def ordered(items: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        def sort_key(entity: Dict[str, Any]):
+            x, z = _pos_of(entity)
+            return (round(math.hypot(x - cx, z - cz), 3), str(entity.get("name", "")))
+        return sorted(items, key=sort_key)
+
+    infantry = ordered(buckets["infantry"])
+    tanks = ordered(buckets["tank"])
+    out: List[Dict[str, Any]] = []
+    # 空中：单独成队，规模沿用同一上限（用户没给空中编制，不编造"1-2 个坦克"这类地面口径）。
+    for part in _chunk(ordered(buckets["air"]), MAX_UNITS_PER_ACTOR):
+        out.append({"entities": part, "mix": _mix_of(part)})
+    if infantry or tanks:
+        count = max(1,
+                    math.ceil(len(infantry) / SQUAD_INFANTRY_MAX) if infantry else 0,
+                    math.ceil(len(tanks) / SQUAD_TANK_MAX) if tanks else 0)
+        squads: List[List[Dict[str, Any]]] = [[] for _ in range(count)]
+        for index, tank in enumerate(tanks):
+            squads[index % count].append(tank)          # 轮转：先每队 1 个，再补第 2 个
+        for index, part in enumerate(_chunk(infantry, SQUAD_INFANTRY_MAX)):
+            squads[index].extend(part)
+        for part in squads:
+            if part:
+                part.sort(key=lambda e: str(e.get("name", "")))
+                out.append({"entities": part, "mix": _mix_of(part)})
+    return out
+
+
+def _mix_of(units: Sequence[Dict[str, Any]]) -> Dict[str, int]:
+    """小队的编制构成（留痕用：复盘能看出"这队是 6 步 2 坦还是 3 个无人机"）。"""
+    mix = {"infantry": 0, "tank": 0, "air": 0}
+    for entity in units:
+        mix[squad_role(entity)] += 1
+    return mix
+
+
 def derive_squads(tactical: Optional[Dict[str, Any]], *,
                   authorized: Optional[Set[str]] = None,
-                  authoritative: Optional[Sequence[Dict[str, Any]]] = None
+                  authoritative: Optional[Sequence[Dict[str, Any]]] = None,
+                  rules: Optional[Dict[str, Any]] = None
                   ) -> List[Dict[str, Any]]:
     """从观测派生小队/工人组/生产设施（确定性）。
+
+    **作战小队按编制切**（`_compose_squads`）：步兵为主 + 坦克 1~2 个，
+    空中单独成队；工人组与生产设施沿用各自口径（见 `WORKER_GROUP_MAX`）。
 
     `authoritative`：游戏权威端给的小队表（阶段 B）；给了就直接用，不做派生。
     `authorized`：AI 授权单位集合；None = 观测中的全部己方单位。
@@ -137,15 +273,40 @@ def derive_squads(tactical: Optional[Dict[str, Any]], *,
         buckets[classify(entity)].append(entity)
 
     groups: List[Dict[str, Any]] = []
-    for kind in (ACTOR_SQUAD, ACTOR_WORKER):
-        clusters: Dict[str, List[Dict[str, Any]]] = {}
-        for entity in sorted(buckets[kind], key=lambda e: str(e.get("name", ""))):
-            clusters.setdefault(_cluster_key([entity]), []).append(entity)
-        for key in sorted(clusters):
-            for part in _chunk(sorted(clusters[key], key=lambda e: str(e.get("name", ""))),
-                               MAX_UNITS_PER_ACTOR):
-                groups.append({"role": kind, "key": key,
-                               "units": [str(u.get("name")) for u in part]})
+    # 作战单位：先按**格**聚（不含类型，否则坦克/步兵永远组不到一起），再按编制切分。
+    # 只有**口径内的作战类型**参与编队；其余（工人/建筑，或口径外的新类型）走"各自成组"
+    # 的旧路径 —— 既不会把建筑编进小队，也**不许**让任何单位因为"没被认出来"而消失。
+    combat_types = _combat_types(rules)
+    squad_cells: Dict[str, List[Dict[str, Any]]] = {}
+    others: List[Dict[str, Any]] = []
+    for entity in sorted(buckets[ACTOR_SQUAD], key=lambda e: str(e.get("name", ""))):
+        if _is_composable(entity, combat_types):
+            squad_cells.setdefault(_cell_key(entity), []).append(entity)
+        else:
+            others.append(entity)
+    for key in sorted(squad_cells):
+        for squad in _compose_squads(squad_cells[key]):
+            groups.append({"role": ACTOR_SQUAD, "key": key, "mix": dict(squad["mix"]),
+                           "units": [str(u.get("name")) for u in squad["entities"]]})
+    # 口径外对象：**按 (格, 类型) 聚合**（与历史上限一致）—— 类型不同就分到不同组，
+    # 不会把"没认出来的东西"互相编到一起（拿不准就不编队，这是保守方向）。
+    other_clusters: Dict[str, List[Dict[str, Any]]] = {}
+    for entity in others:
+        other_clusters.setdefault(_cluster_key([entity]), []).append(entity)
+    for key in sorted(other_clusters):
+        for part in _chunk(sorted(other_clusters[key], key=lambda e: str(e.get("name", ""))),
+                           MAX_UNITS_PER_ACTOR):
+            groups.append({"role": ACTOR_SQUAD, "key": key, "mix": {},
+                           "units": [str(u.get("name")) for u in part]})
+    # 工人：位置聚合的集群（历史上限 `WORKER_GROUP_MAX`，不受战斗编成约束）。
+    worker_clusters: Dict[str, List[Dict[str, Any]]] = {}
+    for entity in sorted(buckets[ACTOR_WORKER], key=lambda e: str(e.get("name", ""))):
+        worker_clusters.setdefault(_cluster_key([entity]), []).append(entity)
+    for key in sorted(worker_clusters):
+        for part in _chunk(sorted(worker_clusters[key], key=lambda e: str(e.get("name", ""))),
+                           WORKER_GROUP_MAX):
+            groups.append({"role": ACTOR_WORKER, "key": key,
+                           "units": [str(u.get("name")) for u in part]})
     for entity in sorted(buckets[ACTOR_FACILITY], key=lambda e: str(e.get("name", ""))):
         groups.append({"role": ACTOR_FACILITY, "key": str(entity.get("name", "")),
                        "units": [str(entity.get("name", ""))]})
@@ -159,8 +320,82 @@ def derive_squads(tactical: Optional[Dict[str, Any]], *,
         # 编号按类型分列：S1.. / W1.. / F1..（设计示例 S2/F1 即此含义）。
         squads.append({"squad_id": "%s%d" % (group["role"][0].upper(), index),
                        "index": index, "kind": group["role"], "cluster": group["key"],
+                       # 编制构成留痕（复盘能一眼看出"这队是 6 步 2 坦还是 3 架无人机"）。
+                       "mix": dict(group.get("mix") or {}),
                        "units": list(group["units"])})
     return _renumber(squads)
+
+
+def persist_squads(previous, derived, living) -> List[Dict[str, Any]]:
+    """跨轮稳定小队身份：重叠成员继承旧 `squad_id`，阵亡不整队重建。
+
+    T08：不永久等满编、成员死亡不拆成全新编号。工人/设施每轮跟派生表走。
+    """
+    living_set = {str(name) for name in (living or [])}
+    prev_list = [item for item in (previous or []) if isinstance(item, dict)]
+    new_list = [item for item in (derived or []) if isinstance(item, dict)]
+    prev_combat = [item for item in prev_list if str(item.get("kind")) == ACTOR_SQUAD]
+    new_combat = [item for item in new_list if str(item.get("kind")) == ACTOR_SQUAD]
+    extras = [item for item in new_list if str(item.get("kind")) != ACTOR_SQUAD]
+    used_new = set()
+    assigned = set()
+    out: List[Dict[str, Any]] = []
+    used_ids = set()
+    for old in prev_combat:
+        old_units = [str(name) for name in (old.get("units") or []) if str(name) in living_set]
+        if not old_units:
+            continue
+        best_index, best_overlap = -1, 0
+        for index, neu in enumerate(new_combat):
+            if index in used_new:
+                continue
+            overlap = len(set(old_units) & {str(name) for name in (neu.get("units") or [])})
+            if overlap > best_overlap:
+                best_overlap, best_index = overlap, index
+        if best_index >= 0 and best_overlap > 0:
+            used_new.add(best_index)
+            entry = dict(new_combat[best_index])
+            entry["squad_id"] = old.get("squad_id")
+            entry["task"] = old.get("task") or entry.get("task")
+            entry["target"] = old.get("target") or entry.get("target")
+            entry["rally"] = old.get("rally") or entry.get("rally")
+            prior = max(1, len(old.get("units") or []))
+            entry["status"] = "understrength" if len(entry.get("units") or []) < prior else (
+                old.get("status") or "active")
+            out.append(entry)
+            used_ids.add(str(entry.get("squad_id")))
+            assigned.update(str(name) for name in (entry.get("units") or []))
+        else:
+            remnant = dict(old)
+            remnant["units"] = old_units
+            remnant["count"] = len(old_units)
+            remnant["status"] = "understrength"
+            out.append(remnant)
+            used_ids.add(str(old.get("squad_id")))
+            assigned.update(old_units)
+
+    def next_id() -> str:
+        number = 1
+        while ("S%d" % number) in used_ids:
+            number += 1
+        squad_id = "S%d" % number
+        used_ids.add(squad_id)
+        return squad_id
+
+    for index, neu in enumerate(new_combat):
+        if index in used_new:
+            continue
+        free = [str(name) for name in (neu.get("units") or []) if str(name) not in assigned]
+        if not free:
+            continue
+        entry = dict(neu)
+        entry["units"] = free
+        entry["count"] = len(free)
+        entry["squad_id"] = next_id()
+        entry["status"] = entry.get("status") or "forming"
+        assigned.update(free)
+        out.append(entry)
+    return out + _renumber(extras)
 
 
 def _renumber(squads: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -318,6 +553,9 @@ def build_decision_frame(
     task_versions: Optional[Dict[str, int]] = None,
     authoritative_squads: Optional[Sequence[Dict[str, Any]]] = None,
     current_tasks: Optional[Dict[str, Dict[str, Any]]] = None,
+    #: 拒绝账本（`placement.RejectionLedger` 或旧坐标列表）：**建造落点候选必须过它**，
+    #: 否则模型会看到已被权威拒过的坏点（实测同一点被拒 13 次）。
+    rejected: Any = None,
     plan_version: str = "",
     phase_goal: str = "",
     intent_ttl_ticks: int = 3600,
@@ -329,7 +567,7 @@ def build_decision_frame(
 ) -> DecisionFrame:
     """观测 → `DecisionFrame`（含 actor/skill/target/params 四张引用表）。"""
     squads = derive_squads(tactical, authorized=authorized_units,
-                           authoritative=authoritative_squads)
+                           authoritative=authoritative_squads, rules=rules)
     by_name = {str(e.get("name", "")): e for e in _self_entities(tactical)}
     unit_type_of = {name: str(e.get("unit_type", "")) for name, e in by_name.items()}
 
@@ -438,6 +676,9 @@ def build_decision_frame(
             base_x, base_z,
             bounds=map_bounds,
             own_points=own_points,
+            # 拒绝账本**必须传进来**（2026-09-14 迭代3 现场修）：漏传时模型仍会看到
+            # 已被拒的坏点 → 选它 → 又一条注定被拒的命令（"瞎下达"的另一半）。
+            rejected=rejected,
             radii=_placement_radii(base_x, base_z, map_bounds),
             slots=BUILD_PLACEMENT_SLOTS):
         if spot in build_spots:      # 贴边时多圈会退化到同一半径 → 去重
@@ -447,15 +688,20 @@ def build_decision_frame(
         locations.append({"kind": TARGET_LOCATION, "pos": [spot[0], spot[1]],
                           "cn": "建造落点%d" % spot_index})
     if not build_spots:
-        # 极端情况（基地几乎贴角 / 候选全被拉黑）：至少给一个**夹进地图**的落点，
-        # 不留空菜单（模型没有落点可选 = 整局无法建造）。
+        # 极端情况（基地几乎贴角 / 候选全被拉黑）：给"朝地图中心后退"的点。
+        # ⚠**兜底也必须过账本与几何判据**：老实现直接 `clamp_into_bounds((base_x, base_z))`
+        # = 基地自身坐标 → 必然 `SurfaceNotBuildable`（实测同一点被拒 13 次）。
+        # 全不可用就**不给落点**（空菜单好过一条注定被拒的命令 —— 用户："不能瞎下达"）。
         fallback = placement.retreat_spot(base_x, base_z, bounds=map_bounds,
-                                          own_points=own_points)
+                                          own_points=own_points, rejected=rejected)
         if fallback is None:
-            fallback = placement.clamp_into_bounds((base_x, base_z), map_bounds)
-        build_spots.append((fallback[0], fallback[1]))
-        locations.append({"kind": TARGET_LOCATION, "pos": [fallback[0], fallback[1]],
-                          "cn": "建造落点1"})
+            clamped = placement.clamp_into_bounds((base_x, base_z), map_bounds)
+            fallback = (clamped if placement.spot_issue(
+                clamped, map_bounds, own_points, rejected) is None else None)
+        if fallback is not None:
+            build_spots.append((fallback[0], fallback[1]))
+            locations.append({"kind": TARGET_LOCATION, "pos": [fallback[0], fallback[1]],
+                              "cn": "建造落点1"})
     for index, item in enumerate(locations, start=1):
         targets["L%d" % index] = dict(item, ref="L%d" % index)
 

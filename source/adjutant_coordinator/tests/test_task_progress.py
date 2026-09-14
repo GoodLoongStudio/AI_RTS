@@ -82,6 +82,30 @@ class MovementProgressTest(unittest.TestCase):
         self.assertEqual(item["state"], INTENT_COMPLETED)
         self.assertEqual(state["active_tasks"]["t-1"], TASK_COMPLETED)
 
+    def test_movement_completion_unlocks_the_current_hop(self):
+        """观测到位必须作废当前跳，否则半路不再下新令后会卡到 hop 超时。"""
+        item = intent("i-1", "attack_move", ["Unit_1"], {"pos": [10.0, 0.0]})
+        state = make_state([item])
+        state["routes"] = {"Unit_1": {
+            "ok": True, "route_id": "r1", "nav_revision": 0,
+            "last_replan_tick": 10, "relay_point": [10.0, 0.0],
+            "target": [10.0, 0.0],
+        }}
+        track_task_progress(state, observation=observation(
+            [own("Unit_1", pos=(10.0, 0.0, 0.0))]), tick=30)
+        route = state["routes"]["Unit_1"]
+        self.assertFalse(route["ok"])
+        self.assertEqual(route["invalidated_reason"], "arrived")
+
+    def test_two_dimensional_waypoint_arrival_completes_scout(self):
+        """侦察前沿是 [x, z]，实体是 [x, y, z] —— 两种都要能判定到达。"""
+        item = intent("i-scout", "scout", ["Unit_1"], {"pos": [17.5, 17.5]})
+        state = make_state([item])
+        report = track_task_progress(state, observation=observation(
+            [own("Unit_1", pos=(17.47, 1.5, 17.46), unit_type="drone")]), tick=1200)
+        self.assertEqual(report["intents"]["i-scout"]["status"], "completed")
+        self.assertEqual(item["state"], INTENT_COMPLETED)
+
     def test_stalled_movement_stays_unknown_not_failed(self):
         """停顿**不能**判失败，但更不能判成功（保持未知 + 继续占用）。"""
         item = intent("i-1", "move", ["Unit_1"], {"pos": [50.0, 0.0, 0.0]})
@@ -193,6 +217,19 @@ class GatherProgressTest(unittest.TestCase):
             [own("Unit_2", carried=(0, 0))]), tick=20)
         self.assertEqual(report["intents"]["i-1"]["status"], "completed")
 
+    def test_remaining_zero_completes_gather_so_worker_can_reassign(self):
+        """T10：完整观测里矿点 remaining=0 → 采集完成，工人才能转岗。"""
+        item = intent("i-1", "gather", ["Unit_2"], {"entity_id": "ResourceA"})
+        state = make_state([item])
+        track_task_progress(state, observation=observation(
+            [own("Unit_2", carried=(5, 0))],
+            [{"kind": "resource", "name": "ResourceA", "remaining": 10}]), tick=10)
+        report = track_task_progress(state, observation=observation(
+            [own("Unit_2", carried=(5, 0))],
+            [{"kind": "resource", "name": "ResourceA", "remaining": 0}]), tick=20)
+        self.assertEqual(report["intents"]["i-1"]["status"], "completed")
+        self.assertEqual(item["state"], INTENT_COMPLETED)
+
     def test_truncated_observation_never_claims_resource_depleted(self):
         item = intent("i-1", "gather", ["Unit_2"], {"entity_id": "ResourceA"})
         state = make_state([item])
@@ -254,6 +291,102 @@ class ProduceProgressTest(unittest.TestCase):
             production=[self._empty_queue()]), tick=20)
         self.assertEqual(report["intents"]["i-1"]["status"], "completed")
 
+    # ---- 2026-09-13 归档复盘根因（GPT 报告 P1a）----
+
+    def _infantry_intent(self):
+        """真实形状：场景名 `Infantry.tscn`，权威产品 ID `soldier`（两套命名）。"""
+        item = intent("rule-produce-soldier-Unit_17-1409", "produce", ["Unit_17"],
+                      {"producer": "Unit_17",
+                       "scene": "res://source/match/units/Infantry.tscn"})
+        item["production"] = {"item_id": "e69b08d1-7f26-464d-b066-7601e69b3aef",
+                              "product_id": "soldier", "producer": "Unit_17"}
+        return item
+
+    def _soldier_queue(self, *, item_id="e69b08d1-7f26-464d-b066-7601e69b3aef",
+                       work=30, required=120):
+        return {"producer": "Unit_17", "producer_type": "barracks", "queue_size": 1,
+                "items": [{"item_id": item_id, "definition_id": "soldier",
+                           "state": "Producing", "completed_work": work,
+                           "required_work": required}]}
+
+    def test_scene_path_is_not_the_product_id(self):
+        """**根因**：`scene=Infantry.tscn` 与 `definition_id=soldier` 不是同一套命名 ——
+        拿 scene 直接比永远比不中（旧实现因此判"队列里没有"，任务停在 active_unknown）。
+
+        证据（archive_045ed0d6）：intent `rule-produce-soldier-Unit_17-1409` 的回执
+        `item.definition_id=soldier`、`scene=…/Infantry.tscn`；队列项 `definition_id=soldier`。
+        """
+        item = self._infantry_intent()
+        state = make_state([item])
+        report = track_task_progress(state, observation=observation(
+            [own("Unit_17", unit_type="barracks")],
+            production=[self._soldier_queue()]), tick=1415)
+        self.assertEqual(report["intents"][item["intent_id"]]["status"], "in_progress",
+                         "认出权威产品 ID 后必须看到「队列中生产中」")
+
+    def test_production_finished_event_settles_by_item_id(self):
+        """**闭环**：完成事件带**同一个 item_id** → 直接结算 completed，不等 TTL、不靠产物计数。"""
+        item = self._infantry_intent()
+        state = make_state([item])
+        state["production_ledger"] = {
+            "e69b08d1-7f26-464d-b066-7601e69b3aef": {
+                "producer": "Unit_17", "product_id": "soldier",
+                "started_tick": 1415, "finished_tick": 1532}}
+        report = track_task_progress(state, observation=observation(
+            [own("Unit_17", unit_type="barracks"),
+             own("Unit_23", unit_type="soldier")],
+            production=[self._empty_queue()]), tick=1600)
+        self.assertEqual(report["intents"][item["intent_id"]]["status"], "completed")
+        self.assertEqual(item["state"], INTENT_COMPLETED)
+        metrics = (item.get("progress") or {}).get("metrics") or {}
+        self.assertEqual(metrics.get("item_id"), "e69b08d1-7f26-464d-b066-7601e69b3aef")
+
+    def test_sibling_item_finish_does_not_complete_other_line(self):
+        """T09：双设施同类并产，一条 item 完成不得误结另一条。"""
+        first = self._infantry_intent()
+        second = intent("rule-produce-soldier-Unit_18-1409", "produce", ["Unit_18"],
+                        {"producer": "Unit_18",
+                         "scene": "res://source/match/units/Infantry.tscn"})
+        second["production"] = {"item_id": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+                                "product_id": "soldier", "producer": "Unit_18"}
+        state = make_state([first, second])
+        state["production_ledger"] = {
+            "e69b08d1-7f26-464d-b066-7601e69b3aef": {
+                "producer": "Unit_17", "product_id": "soldier",
+                "started_tick": 1415, "finished_tick": 1532},
+        }
+        still_queue = {"producer": "Unit_18", "producer_type": "barracks",
+                       "queue_size": 1,
+                       "items": [{"item_id": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+                                  "definition_id": "soldier", "state": "Producing",
+                                  "completed_work": 40, "required_work": 120}]}
+        report = track_task_progress(state, observation=observation(
+            [own("Unit_17", unit_type="barracks"),
+             own("Unit_18", unit_type="barracks"),
+             own("Unit_23", unit_type="soldier")],
+            production=[self._empty_queue_of("Unit_17"), still_queue]), tick=1600)
+        self.assertEqual(report["intents"][first["intent_id"]]["status"], "completed")
+        self.assertEqual(report["intents"][second["intent_id"]]["status"], "in_progress",
+                         "另一条生产线被误结：%s" % report["intents"][second["intent_id"]])
+
+    def test_vanished_without_finish_event_stays_unknown_with_recheck(self):
+        """队列项消失但**没有完成事件** → 保持未知，并记下"该去对账什么"（item_id + 生产者）。"""
+        item = self._infantry_intent()
+        state = make_state([item])
+        track_task_progress(state, observation=observation(
+            [own("Unit_17", unit_type="barracks")],
+            production=[self._soldier_queue()]), tick=1415)
+        report = track_task_progress(state, observation=observation(
+            [own("Unit_17", unit_type="barracks")],
+            production=[self._empty_queue_of("Unit_17")]), tick=1600)
+        self.assertEqual(report["intents"][item["intent_id"]]["status"], "unknown")
+        metrics = (item.get("progress") or {}).get("metrics") or {}
+        self.assertEqual((metrics.get("recheck") or {}).get("item_id"),
+                         "e69b08d1-7f26-464d-b066-7601e69b3aef")
+
+    def _empty_queue_of(self, producer):
+        return {"producer": producer, "producer_type": "barracks", "queue_size": 0, "items": []}
+
     def test_producer_gone_stays_unknown(self):
         item = intent("i-1", "produce", ["Unit_0"],
                       {"producer": "Unit_0", "scene": "worker"})
@@ -263,6 +396,18 @@ class ProduceProgressTest(unittest.TestCase):
 
 
 class BuildProgressTest(unittest.TestCase):
+    def test_build_type_resolves_from_site_entity(self):
+        """建造同样有"场景名 ≠ 类型 ID"的坑：`AircraftFactory.tscn`（驼峰）→ `aircraft_factory`
+        （蛇形）。必须按**工地实体**的 `unit_type` 判，否则永远看不到"已建成"。"""
+        item = intent("i-1", "build", ["Unit_2"],
+                      {"producer": "Unit_2", "entity_id": "Unit_45",
+                       "scene": "res://source/match/units/AircraftFactory.tscn"})
+        state = make_state([item])
+        report = track_task_progress(state, observation=observation(
+            [own("Unit_2"),
+             own("Unit_45", unit_type="aircraft_factory", constructed=True)]), tick=600)
+        self.assertEqual(report["intents"]["i-1"]["status"], "completed")
+
     def test_site_then_constructed_completes(self):
         item = intent("i-1", "build", ["Unit_2"],
                       {"producer": "Unit_2", "scene": "barracks"})

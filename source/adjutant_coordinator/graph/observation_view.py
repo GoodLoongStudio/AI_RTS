@@ -26,6 +26,7 @@ __all__ = [
     "entities",
     "own_units",
     "resources",
+    "resource_available",
     "living_enemies",
     "entity_id_of",
     "pos2d",
@@ -45,8 +46,29 @@ def own_units(tactical: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return [e for e in entities(tactical) if str(e.get("kind", "")) == "unit_self"]
 
 
+def resource_available(resource: Any) -> bool:
+    """矿点还能否派工人。观测缺存量字段时，只要实体还在就当可用。
+
+    `remaining` / `amount` / `stock` / `left` 任一为 0，或显式 `depleted`/`exhausted`，
+    都视为采空（T10：工人必须转岗，不能继续认死矿）。
+    """
+    if not isinstance(resource, dict):
+        return False
+    if resource.get("depleted") or resource.get("exhausted"):
+        return False
+    for key in ("remaining", "amount", "stock", "left"):
+        if key not in resource or resource[key] is None:
+            continue
+        try:
+            return float(resource[key]) > 0
+        except (TypeError, ValueError):
+            continue
+    return True
+
+
 def resources(tactical: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    return [e for e in entities(tactical) if str(e.get("kind", "")) == "resource"]
+    return [e for e in entities(tactical)
+            if str(e.get("kind", "")) == "resource" and resource_available(e)]
 
 
 def living_enemies(tactical: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -105,6 +127,12 @@ def normalized_units(tactical: Optional[Dict[str, Any]]) -> Dict[str, Dict[str, 
             "movement": bool(unit.get("movement")),
             "pos": unit.get("pos"),
             "constructed": unit.get("constructed"),
+            # 换执行者要用：专职侦察阵亡/0 血时必须能从观测里看出来。
+            "hp": unit.get("hp"),
+            "confirmed_dead": bool(unit.get("confirmed_dead")),
+            # 武器域 / 移动域：首次下令前过滤非法目标（F04），加法字段。
+            "attack_domains": list(unit.get("attack_domains") or []),
+            "domain": str(unit.get("domain") or ""),
         }
         for unit in own_units(tactical)
     }

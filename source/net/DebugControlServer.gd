@@ -19,8 +19,12 @@ const DEFAULT_PORT := 24568
 const ADJUTANT_PORT := 24579
 const ADJUTANT_OPS := [
 	"status", "tactical", "strategic", "rules", "commands",
+	# 只读移动诊断（玩家问"这台坦克为什么卡住不动"时一次看全部内部状态；不触发任何动作）。
+	"unit_motion",
 	"adjutant_fast_state", "adjutant_nav_path",
 	"adjutant_intent", "adjutant_batch", "adjutant_leases", "adjutant_reserves",
+	# 只读性能自查（玩家要能随时问"副官通道吃了多少帧"）；不含任何控制能力。
+	"perf",
 ]
 var _adjutant_only := false
 
@@ -79,6 +83,15 @@ const ADJUTANT_RESERVE_PERCENT := 20
 ## - 带 `--debugport N`（自动化/测试）→ 监听 N。
 func port() -> int:
 	return _port if _server.is_listening() else 0
+
+
+## 当前权威 `server_tick`（**只读**；拿不到返回 -1，绝不抛错）。
+## 为什么要有：诊断/退出追踪这类场景会在"随时可能被调用"的地方取 tick
+## （见 `Globals._notification` 的 `[EXIT-TRACE]`），调用方不该知道内部字段与空值细节。
+func server_tick() -> int:
+	if _adjutant_observation == null:
+		return -1
+	return int(_adjutant_observation.CurrentServerTick())
 
 
 func _ready() -> void:
@@ -172,7 +185,7 @@ func _dispatch(line: String) -> String:
 		return JSON.stringify({"error": "no match scene"})
 	match str(parsed.get("op", "")):
 		"status":
-			return JSON.stringify(_collect_status(match_node, parsed))
+			return _timed_json("status_ms", func(): return _collect_status(match_node, parsed))
 		"start":
 			return _op_start(parsed)
 		"click":
@@ -206,9 +219,9 @@ func _dispatch(line: String) -> String:
 		"rules":
 			return JSON.stringify(_op_rules(match_node))
 		"tactical":
-			return JSON.stringify(_op_tactical(match_node, parsed))
+			return _timed_json("tactical_ms", func(): return _op_tactical(match_node, parsed))
 		"strategic":
-			return JSON.stringify(_op_strategic(match_node, parsed))
+			return _timed_json("tactical_ms", func(): return _op_strategic(match_node, parsed))
 		"adjutant_command":
 			return JSON.stringify(_op_adjutant_command(match_node, parsed))
 		"adjutant_batch":
@@ -218,11 +231,16 @@ func _dispatch(line: String) -> String:
 		"adjutant_leases":
 			return JSON.stringify(_op_adjutant_leases(match_node, parsed))
 		"adjutant_fast_state":
-			return JSON.stringify(_op_adjutant_fast_state(match_node, parsed))
+			return _timed_json("fast_state_ms",
+				func(): return _op_adjutant_fast_state(match_node, parsed))
 		"adjutant_nav_path":
 			return JSON.stringify(_op_adjutant_nav_path(match_node, parsed))
+		"unit_motion":
+			return JSON.stringify(_op_unit_motion(match_node, parsed))
 		"adjutant_reserves":
 			return JSON.stringify(_op_adjutant_reserves(match_node, parsed))
+		"perf":
+			return JSON.stringify(_op_perf(match_node, parsed))
 		"lobby":
 			return JSON.stringify(_op_lobby())
 		"controller":
@@ -1430,6 +1448,9 @@ func _op_tactical(match_node, parsed) -> Dictionary:
 					"hp_max": float(unit.hp_max) if "hp_max" in unit and unit.hp_max != null else 0.0,
 					"last_seen_tick": current_tick,
 					"confirmed_dead": false,
+					"domain": _domain_name(unit.get("movement_domain")
+						if "movement_domain" in unit
+						else Constants.Match.Navigation.Domain.TERRAIN),
 				}
 				entities.append(_tactical_enemy_entry(unit_name, intel[unit_name], "unit_enemy"))
 			elif intel.has(unit_name):
@@ -1547,6 +1568,14 @@ func _tactical_self_entry(unit) -> Dictionary:
 		"attack": "attack_range" in unit,
 		"gather": "resource_a" in unit and "resource_b" in unit,
 		"construct": "construction_work_per_tick" in unit and int(unit.get("construction_work_per_tick")) > 0,
+		# 移动域（air/terrain）：**能力事实**，副官据此分开规划与统计。
+		# 【为什么必须有】2026-09-14 U1：无人机（空域）的路径查询整体失败（查询高度错），
+		# 副官看不到"域"这个事实，只能把它和地面单位一起当"没路"处理 —— 于是侦察任务
+		# 一直挂在无人机身上空转（档案 608 次 no_path）。域是**权威属性**，不该由类型名猜。
+		"domain": _domain_name(unit.get("movement_domain")
+			if "movement_domain" in unit
+			else Constants.Match.Navigation.Domain.TERRAIN),
+		"attack_domains": _attack_domain_names(unit),
 		"carried": [
 			int(unit.resource_a) if "resource_a" in unit else 0,
 			int(unit.resource_b) if "resource_b" in unit else 0,
@@ -1581,7 +1610,25 @@ func _tactical_enemy_entry(unit_name: String, intel_entry: Dictionary, kind: Str
 		"hp_max": float(intel_entry.get("hp_max", 0.0)),
 		"last_seen_tick": int(intel_entry.get("last_seen_tick", 0)),
 		"confirmed_dead": false,
+		"domain": str(intel_entry.get("domain", "")),
 	}
+
+
+func _domain_name(domain_value) -> String:
+	if int(domain_value) == Constants.Match.Navigation.Domain.AIR:
+		return "air"
+	return "terrain"
+
+
+func _attack_domain_names(unit) -> Array:
+	var out := []
+	if unit == null or not ("attack_domains" in unit):
+		return out
+	for item in unit.attack_domains:
+		var name := _domain_name(item)
+		if name not in out:
+			out.append(name)
+	return out
 
 
 ## op=strategic：战略摘要（三视图之二）：资源、产能、已知敌情及时间、地图边界、
@@ -2220,6 +2267,103 @@ var _fast_prev_production := {}
 var _fast_unsupported := ["task_deltas"]
 
 
+## ---------- 观测通道自身的开销账（`op=perf`） ----------
+##
+## 为什么必须有（2026-09-13 玩家实测："游戏都到 20-30FPS 了，不应该为了副官放弃游戏性能"）：
+## 玩家看到的掉帧必须能**拆开**看——是游戏模拟本身（单位多、RVO、寻路）还是**副官通道**
+## （10Hz 场景采样、观测请求、命令可视化 RPC）。没有这本账就只能猜，
+## 而"猜"在这个项目里被证明过很多次是错的。
+const PERF_RING_LIMIT := 64
+var _perf_rings := {"sample_ms": [], "tactical_ms": [], "fast_state_ms": [], "status_ms": []}
+var _perf_counters := {"samples": 0, "reach_queries": 0, "reach_deferred": 0,
+	"order_visuals": 0, "tactical_calls": 0, "fast_state_calls": 0}
+
+
+func _perf_note(key: String, value: float) -> void:
+	var ring: Array = _perf_rings.get(key, [])
+	ring.append(value)
+	if ring.size() > PERF_RING_LIMIT:
+		ring = ring.slice(ring.size() - PERF_RING_LIMIT)
+	_perf_rings[key] = ring
+
+
+func _perf_count(key: String, delta: int = 1) -> void:
+	_perf_counters[key] = int(_perf_counters.get(key, 0)) + delta
+
+
+## 把一个 op 的"执行耗时"记进性能账，再原样返回它（字符串直传、字典序列化）。
+## 为什么要有：观测请求是**同步跑在主线程**上的（`op=tactical` 大部队时能到几十毫秒），
+## 玩家掉帧时第一个要排除/确认的就是它 —— 不量就只能猜。
+func _timed_json(key: String, producer: Callable) -> String:
+	var started_us := Time.get_ticks_usec()
+	var value = producer.call()
+	_perf_note(key, float(Time.get_ticks_usec() - started_us) / 1000.0)
+	if value is String:
+		return value
+	return JSON.stringify(value)
+
+
+func _perf_summary(key: String) -> Dictionary:
+	var ring: Array = _perf_rings.get(key, [])
+	if ring.is_empty():
+		return {"samples": 0}
+	var sorted := ring.duplicate()
+	sorted.sort()
+	var size := sorted.size()
+	return {
+		"samples": size,
+		"p50": snappedf(float(sorted[size / 2]), 0.01),
+		"p95": snappedf(float(sorted[mini(size - 1, int(size * 0.95))]), 0.01),
+		"max": snappedf(float(sorted[size - 1]), 0.01),
+	}
+
+
+## op=perf：**副官通道吃了多少性能** + 引擎侧负载（只读，不改变任何状态）。
+## 参数：`reset=true` 可清零计数器（换场景/换对局后重新计数用）。
+func _op_perf(match_node, parsed) -> Dictionary:
+	if bool(parsed.get("reset", false)):
+		for key in _perf_counters.keys():
+			_perf_counters[key] = 0
+		for key in _perf_rings.keys():
+			_perf_rings[key] = []
+	var state := _fast_state if _fast_state is Dictionary else {}
+	return {
+		"ok": true,
+		# —— 引擎侧（玩家直接感受的）——
+		"fps": Engine.get_frames_per_second(),
+		"process_ms": snappedf(Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, 0.01),
+		"physics_ms": snappedf(Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0, 0.01),
+		"nodes": int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT)),
+		"orphans": int(Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)),
+		"objects": int(Performance.get_monitor(Performance.OBJECT_COUNT)),
+		"memory_mb": snappedf(Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0, 0.1),
+		# —— 副官通道侧（我该负责的）——
+		"copies": _fast_snapshot_seq,
+		"sample_ms": _perf_summary("sample_ms"),
+		"tactical_ms": _perf_summary("tactical_ms"),
+		"fast_state_ms": _perf_summary("fast_state_ms"),
+		"status_ms": _perf_summary("status_ms"),
+		# 帧率治理（用户 2026-09-14："锁 60 帧 + 单位多自动降画质"）：
+		# 档位/缩放/最近一次升降原因 —— 掉帧时先看它，才知道"降没降、为什么降"。
+		"governor": _governor_stats(),
+		"counters": _perf_counters.duplicate(),
+		"units": len(state.get("units", [])),
+		"events_buffered": _fast_events.size(),
+		"last_sample_ms": int(state.get("sample_ms", 0)),
+	}
+
+
+## 帧率治理统计（autoload `PerformanceGovernor`）。
+##
+## 没有它时（老版本 / 单测环境 / 专用服）返回**明确的空档位**而不是编造数字 ——
+## "没数据"与"档位 0"在复盘里必须能分开（本仓纪律：事实缺失不许当通过）。
+func _governor_stats() -> Dictionary:
+	var node := get_node_or_null("/root/PerformanceGovernor")
+	if node == null or not node.has_method("stats"):
+		return {"enabled": false, "tier": 0, "scale": 1.0, "reason": "no_governor"}
+	return node.call("stats")
+
+
 ## 采样节拍（由 `_process` 调用；与请求无关，所以 10Hz 读的是**缓存**）。
 func _fast_sample_tick() -> void:
 	if _adjutant_observation == null:
@@ -2259,6 +2403,7 @@ func _fast_sample(now_ms: int) -> void:
 	if match_node == null or not match_node.has_method("get_local_player"):
 		return
 	_fast_snapshot_seq += 1
+	_fast_reach_used = 0
 	var units: Array = []
 	var production: Array = []
 	var seen := {}
@@ -2315,6 +2460,7 @@ func _fast_sample(now_ms: int) -> void:
 							"completed_work": int(item.get("completed_work", 0)),
 							"required_work": int(item.get("required_work", 0))})
 			production.append({"unit": unit_name, "items": items})
+	var governor := _governor_stats()
 	_fast_state = {
 		"server_tick": server_tick,
 		# **必须是 epoch 秒**（不是 `Time.get_ticks_msec()` 的"引擎运行时长"）。
@@ -2328,8 +2474,19 @@ func _fast_sample(now_ms: int) -> void:
 		"units": units,
 		"production": production,
 		"sample_ms": Time.get_ticks_msec() - now_ms,
+		# 【帧率随采样一起上报】玩家在意"副官有没有吃掉游戏性能"：
+		# 把它和单位数/采样耗时放进同一条时间线，任何一局都能回答
+		# "帧率是随部队规模掉的，还是随副官通道掉的"（只读，不改变任何状态）。
+		"fps": Engine.get_frames_per_second(),
+		# 【画质档随采样上报】"单位多就降画质"这条机制必须能在档案里看到轨迹：
+		# 每轮记 tier/scale，验收就能验证"部队涨上来时画质确实降下去了"。
+		"quality_tier": int(governor.get("tier", 0)),
+		"quality_scale": float(governor.get("scale", 1.0)),
 		"unsupported": _fast_unsupported,
 	}
+	# 这本账是 `op=perf` 的数据源：10Hz 采样到底花了多少毫秒（玩家掉帧时先看它）。
+	_perf_note("sample_ms", float(_fast_state["sample_ms"]))
+	_perf_count("samples")
 	_fast_diff_units(units)
 	_fast_diff_production(production)
 
@@ -2342,6 +2499,17 @@ const ARRIVAL_EPS_M := 1.5
 ## 为什么不是 1 次：导航网格重烘期间 `is_target_reachable()` 会瞬时返回 false，
 ## 单次判会把"正在重烘"误报成"走不通"（副官会不必要地停止推进）。
 const UNREACHABLE_SAMPLES_NEEDED := 2
+
+## 【性能护栏 · 2026-09-13 玩家实测反馈 FPS 掉到 20~30】可达性查询的**分槽**：
+## `is_target_reachable()` 会在导航地图上**真的跑一次寻路**（贵），而它是**每单位每
+## 100ms** 调一次 —— 100+ 单位同时在动时就是 1000+ 次/秒，把游戏帧率直接拖垮。
+## 改成按 `unit_name` 哈希分槽：每个单位每 `REACHABILITY_STAGGER × 100ms` 才查一次，
+## 全队被摊平到每个采样只有 1/4 在查。代价是 `path_failed` 的最坏发现延迟从 200ms
+## 变成 ~800ms（对"走不通就换路"完全够用），换来的是**帧率**。
+const REACHABILITY_STAGGER := 4
+## 每个 100ms 采样里**最多**做多少次可达性查询（绝对上限；分槽之外的保险丝）。
+const FAST_REACHABILITY_MAX_PER_SAMPLE := 8
+var _fast_reach_used := 0
 
 var _fast_move_key := {}        # unit -> 当前目标键（换目标就允许重新上报）
 var _fast_move_reported := {}   # unit -> 该目标是否已上报过
@@ -2376,6 +2544,17 @@ func _fast_sample_movement(unit, unit_name: String, pos: Vector3) -> void:
 			"distance": _round2(distance),
 			"navigation_finished": finished})
 		return
+	# 【性能护栏】可达性查询分槽：只有落到本采样槽的单位才做这次**真寻路**。
+	# 为什么必须限：它是"每单位每 100ms 一次真寻路"，大规模部队下就是每秒上千次查询
+	# （玩家实测 FPS 20~30 的直接来源）。分槽后每个单位每 400ms 查一次，
+	# `path_failed` 最坏晚 ~0.8 秒被发现 —— 这个代价远小于掉帧。
+	if _fast_reach_used >= FAST_REACHABILITY_MAX_PER_SAMPLE:
+		_perf_count("reach_deferred")
+		return
+	if absi(int(unit_name.hash())) % REACHABILITY_STAGGER != int(_fast_snapshot_seq) % REACHABILITY_STAGGER:
+		return
+	_fast_reach_used += 1
+	_perf_count("reach_queries")
 	if not bool(agent.is_target_reachable()):
 		var streak := int(_fast_unreachable.get(unit_name, 0)) + 1
 		_fast_unreachable[unit_name] = streak
@@ -2396,26 +2575,42 @@ func _fast_diff_units(units: Array) -> void:
 		var unit_name := str(entry["name"])
 		var hp := float(entry["hp"])
 		var constructed = entry.get("constructed")
-		current[unit_name] = {"hp": hp, "constructed": constructed}
+		# 差分表要留下"复盘需要的最小事实集"：类型/归属/最后位置（阵亡事件要用）。
+		current[unit_name] = {"hp": hp, "constructed": constructed,
+			"unit_type": str(entry["unit_type"]), "owner": str(entry["owner"]),
+			"pos": entry.get("pos", [])}
 		var previous = _fast_prev_units.get(unit_name)
 		if previous == null:
 			_fast_emit("unit_spawned", {"unit": unit_name, "unit_type": str(entry["unit_type"]),
-				"owner": str(entry["owner"])})
+				"owner": str(entry["owner"]), "pos": entry.get("pos", [])})
 			continue
 		if hp < float(previous["hp"]) - 0.01:
+			# 【位置/类型是复盘的最小事实集】"谁在哪被打掉多少"没有位置就只能猜战场在哪。
+			# 攻击者**不在**这里：游戏侧受伤信号只带受害者（`MatchSignals.unit_damaged(unit)`），
+			# 归因要么改战斗域代码（不属本次范围），要么靠位置邻近**推断**——
+			# 推断放归档层做，并显式标成推断（不许把推断写成事实）。
 			_fast_emit("damage", {"unit": unit_name, "hp": hp,
 				"hp_max": float(entry["hp_max"]),
-				"delta": hp - float(previous["hp"])})
+				"delta": hp - float(previous["hp"]),
+				"unit_type": str(entry["unit_type"]),
+				"owner": str(entry["owner"]),
+				"pos": entry.get("pos", [])})
 		if previous.get("constructed") == false and constructed == true:
 			_fast_emit("construction_done", {"unit": unit_name,
 				"unit_type": str(entry["unit_type"])})
 	for unit_name in _fast_prev_units.keys():
 		if not current.has(unit_name):
 			var previous: Dictionary = _fast_prev_units[unit_name]
+			# 阵亡/丢失都要带**最后已知位置与类型**：否则复盘只能知道"少了个人"，不知道在哪丢的。
+			var last_seen := {"unit": unit_name,
+				"unit_type": str(previous.get("unit_type", "")),
+				"owner": str(previous.get("owner", "")),
+				"last_hp": float(previous.get("hp", 0.0)),
+				"pos": previous.get("pos", [])}
 			if float(previous.get("hp", 0.0)) <= 0.0:
-				_fast_emit("unit_dead", {"unit": unit_name})
+				_fast_emit("unit_dead", last_seen)
 			else:
-				_fast_emit("unit_lost", {"unit": unit_name})
+				_fast_emit("unit_lost", last_seen)
 	_fast_prev_units = current
 
 
@@ -2525,6 +2720,65 @@ func _op_adjutant_fast_state(match_node, parsed) -> Dictionary:
 	}
 
 
+## op=unit_motion：**只读移动诊断**（每个我方单位一行）。
+##
+## 为什么必须有（2026-09-14 用户拿着截图问"这台坦克为什么这样过来会被卡住？
+## 这也没啥遮挡啊，是寻路算法问题很大吗？"）：判断"卡住"的归属需要**同时**看到五件事，
+## 缺一件就只能猜：
+##   ① 它被命令去哪（`target` = 任务目标，`committed` = clamp/推离障碍后的合法落点）；
+##   ② 权威端认不认这个目标**可达**（`reachable`）—— 不可达 = 目标落在网格外/避让圈里；
+##   ③ 当前路径有几个点（`path_points` = 0 且 reachable = 网格重烘竞态/路径被清）；
+##   ④ 脱困状态机走到哪一档（`recovery_mode`/`recovery_rounds`/`stall_windows`）；
+##   ⑤ 避障是否开着、当前速度多大（被邻兵 RVO 顶住时速度会被压到接近 0）。
+## **只读**：不改目标、不改状态、不触发任何动作（与 `adjutant_nav_path` 同一纪律）。
+func _op_unit_motion(match_node, parsed) -> Dictionary:
+	var guard := _adjutant_require_observation()
+	if not guard.is_empty():
+		return guard
+	var wanted := str(parsed.get("unit", ""))
+	var rows: Array = []
+	var stats := {}
+	for unit in get_tree().get_nodes_in_group("units"):
+		if not _is_real_unit(unit):
+			continue
+		if not wanted.is_empty() and str(unit.name) != wanted:
+			continue
+		var agent = _nav_agent_of(unit)
+		if agent == null:
+			continue
+		var script = agent.get_script()
+		if stats.is_empty() and script != null and "recovery_stats" in script:
+			# 脱困计数是**静态**的（全军共享）：卡住归因的宏观证据（重寻路/侧移/放弃各多少次）。
+			stats = (script.recovery_stats as Dictionary).duplicate()
+		var navigation_path: PackedVector3Array = agent.get_current_navigation_path()
+		rows.append({
+			"unit": str(unit.name),
+			"type": str(unit.get("unit_type_id")) if "unit_type_id" in unit else "",
+			"pos": [_round2(unit.global_position.x), _round2(unit.global_position.z)],
+			"target": _planar_or_null(agent.get("target_position")),
+			"committed": _planar_or_null(agent.get("_committed_target")),
+			"reachable": bool(agent.is_target_reachable()),
+			"path_points": navigation_path.size(),
+			"recovery_mode": str(agent.get("_recovery_mode")),
+			"recovery_rounds": int(agent.get("_recovery_rounds")),
+			"stall_windows": int(agent.get("_stall_windows")),
+			"avoidance": bool(agent.avoidance_enabled),
+			"velocity": _round2(agent.velocity.length()) if "velocity" in agent else -1.0,
+		})
+	return {"ok": true, "server_tick": server_tick(),
+		"units": rows, "recovery_stats": stats}
+
+
+## 平面坐标 [x, z]；不是 Vector3 时返回 null（**不编 0**：0 与"没有目标"必须能区分）。
+func _planar_or_null(value) -> Variant:
+	if value is Vector3:
+		var point: Vector3 = value
+		if not point.is_finite():
+			return null
+		return [_round2(point.x), _round2(point.z)]
+	return null
+
+
 ## op=adjutant_nav_path：**只读**权威寻路查询（计划 §7「安全移动硬闸门」）。
 ##
 ## 为什么必须在游戏侧查：计划明令「必要时增加只读路径查询，**不在 Python 伪造"安全路线"**」。
@@ -2552,7 +2806,14 @@ func _op_adjutant_nav_path(match_node, parsed) -> Dictionary:
 			"detail": "from/to 必须是 [x, z] 两元素数组。"}
 	var domain := str(parsed.get("domain", "terrain"))
 	var map_rid := RID()
+	#: 查询点的**高度平面**：初值按域给（空中 = `Constants.Match.Air.Y`，地面 = 0）。
+	#: ⚠ 2026-09-14 U1 实测：这里原本把查询点写成 `Vector3(x, 0, z)`（**y 恒为 0**），
+	#: 而**空域网格烘在 y = `Constants.Match.Air.Y`(1.5)** → 空域查询永远返回
+	#: `navmesh_unavailable` → 副官把无人机判成"没路"（档案里 608 次 `no_path` 的真因，
+	#: 计划 U1 点名要查的就是它）。**不是游戏没有空域网格，是查询用了错的高度。**
+	var plane_y: float = (Constants.Match.Air.Y if domain == "air" else 0.0)
 	# 优先按**单位自己的导航代理**取地图：域映射只有一处（游戏侧），Python 不必抄一份。
+	# 同时取**该单位自己的 y** 作为查询平面 —— 每个域的运动平面只有本域单位最清楚。
 	var unit_name := str(parsed.get("unit", ""))
 	if not unit_name.is_empty():
 		for unit in get_tree().get_nodes_in_group("units"):
@@ -2561,6 +2822,11 @@ func _op_adjutant_nav_path(match_node, parsed) -> Dictionary:
 			var agent = _nav_agent_of(unit)
 			if agent != null:
 				map_rid = agent.get_navigation_map()
+			if unit is Node3D:
+				plane_y = unit.global_position.y
+			# 域标签按**单位自己的域**回填：否则空中单位的回执会写着 "terrain"（误导复盘）。
+			domain = ("air" if unit.get("movement_domain")
+				== Constants.Match.Navigation.Domain.AIR else "terrain")
 			break
 	if not map_rid.is_valid():
 		var nav_node = match_node.find_child("Navigation", true, false)
@@ -2572,13 +2838,17 @@ func _op_adjutant_nav_path(match_node, parsed) -> Dictionary:
 	if not map_rid.is_valid():
 		return {"ok": false, "reason": "navmesh_unavailable", "nav_revision": nav_revision,
 			"detail": "导航地图 RID 无效（导航未初始化）。"}
-	var start := Vector3(float(from_raw[0]), 0.0, float(from_raw[1]))
-	var goal := Vector3(float(to_raw[0]), 0.0, float(to_raw[1]))
+	var start := Vector3(float(from_raw[0]), plane_y, float(from_raw[1]))
+	var goal := Vector3(float(to_raw[0]), plane_y, float(to_raw[1]))
 	# 网格是否可用：`map_get_closest_point_owner` 无效 = 网格退化/正在重烘。
 	var owner_rid := NavigationServer3D.map_get_closest_point_owner(map_rid, start)
 	if not owner_rid.is_valid():
+		# 失败分支**必须带上下文**（域 / 查询高度 / 单位），否则调用方只能把它折叠成"没路"
+		# ——计划 U1 明确禁止这种折叠。
 		return {"ok": false, "reason": "navmesh_unavailable", "nav_revision": nav_revision,
-			"detail": "导航网格当前不可用（可能正在烘焙）。"}
+			"domain": domain, "plane_y": plane_y, "unit": unit_name,
+			"detail": "导航网格当前不可用（可能正在烘焙）；查询点 (%.1f, %.1f, %.1f)。"
+				% [start.x, start.y, start.z]}
 	var start_point := NavigationServer3D.map_get_closest_point(map_rid, start)
 	var end_point := NavigationServer3D.map_get_closest_point(map_rid, goal)
 	var path := NavigationServer3D.map_get_path(map_rid, start_point, end_point, true)
@@ -2639,6 +2909,29 @@ func _op_adjutant_leases(match_node, parsed) -> Dictionary:
 		return {"error": "match unavailable", "reason": "当前对局没有稳定 match_id。"}
 	var player_id := str(parsed.get("player_id", parsed.get("as_player", "")))
 	var view_key := "%s|%s" % [match_id, player_id]
+	if bool(parsed.get("all", false)):
+		# **身份未知时的兜底**（2026-09-14 玩家实测："AI 副官没有开怎么也在控制"）。
+		# 面板在**对局刚加载**时可能拿不到本机玩家名（`_local_player_name()` 为空），
+		# 于是按 `match|` 查租约必然为空 → 面板误报"副官尚未启动"，而屏幕上命令正在下。
+		# `all=true` 只做一件事：把本权威口上**所有** view_key 的租约/意图汇总出来，
+		# 让面板能如实说"本机有副官在指挥"，而不是自相矛盾。**只读**，不含任何控制。
+		var leases := {}
+		var intents := {}
+		var keys: Array = []
+		for key in _adjutant_leases.keys():
+			if String(key).begins_with(match_id + "|"):
+				keys.append(String(key))
+				leases[String(key)] = _adjutant_leases[key]
+		for key in _adjutant_intents.keys():
+			if String(key).begins_with(match_id + "|"):
+				if not keys.has(String(key)):
+					keys.append(String(key))
+				intents[String(key)] = _adjutant_intents[key]
+		return {
+			"ok": true, "match_id": match_id, "player_id": player_id, "all": true,
+			"server_tick": int(_adjutant_observation.CurrentServerTick()),
+			"view_keys": keys, "leases": leases, "intents": intents,
+		}
 	return {
 		"ok": true,
 		"match_id": match_id,
@@ -2705,6 +2998,9 @@ func _visualize_command(match_node, action: String, unit_nodes: Array, target: V
 			names.append(str(unit.name))
 	if names.is_empty():
 		return
+	# 每一次命令都会广播一次可视化 RPC（生产洪水时每秒好几次）—— 计入性能账，
+	# 让"副官到底往网络/表现层推了多少东西"可查（`op=perf` 的 `order_visuals`）。
+	_perf_count("order_visuals")
 	sync.broadcast_order_visual({
 		"action": action,
 		"units": names,
@@ -2840,6 +3136,20 @@ func notify_player_override(player_name: String, unit_names: Array) -> void:
 		for unit_name in unit_names:
 			if leases.has(str(unit_name)):
 				leases[str(unit_name)]["active"] = false
+	# T03：玩家接管必须进 10Hz 事件，否则 Python 侧 ai_controlled 仍含该单位，
+	# 侦察会继续派给已被玩家点走的无人机（只停租约不够）。
+	var names: Array = []
+	for unit_name in unit_names:
+		var key := str(unit_name)
+		if key:
+			names.append(key)
+	if names.is_empty():
+		return
+	_fast_emit("player_override", {
+		"unit": str(names[0]),
+		"units": names,
+		"player": player_name,
+	})
 
 
 ## 幂等账本总容量统计（跨对局/玩家共享上限，显式背压）。

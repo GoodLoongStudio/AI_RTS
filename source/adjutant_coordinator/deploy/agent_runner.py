@@ -39,6 +39,8 @@ sys.path.insert(0, HERE)
 
 from env_file import load_env_file  # noqa: E402
 from fast_scan import FastScanner  # noqa: E402  （10Hz 缓存型扫描层，计划 §3.1）
+from match_archive import (  # noqa: E402  （对局留档：每局尽可能留数据给后续分析）
+    MatchArchive, compact_enemies, compact_production, compact_units)
 from adjutant_coordinator.graph.checkpoint import JsonCheckpointStore  # noqa: E402
 from adjutant_coordinator.graph.graph import langgraph_available  # noqa: E402
 from adjutant_coordinator.graph.pydantic_agents import (  # noqa: E402
@@ -336,12 +338,26 @@ class AuthorityIntentTransport:
 
 
 class MeteredModel:
-    """记录模型调用延迟与结果（慢模型调度节流的依据）。"""
+    """记录模型调用延迟与结果（慢模型调度节流的依据）。
 
-    def __init__(self, role: str, inner: Any, sink: List[Dict[str, Any]]) -> None:
+    `sink_writer`：额外的落点（用在**对局留档**上）——记录"这次调用**提议了什么**"，
+    否则复盘只能看到"模型被调用了 12 次、耗时 3s"，看不到它说了什么（那是分析的关键输入）。
+    """
+
+    def __init__(self, role: str, inner: Any, sink: List[Dict[str, Any]],
+                 sink_writer=None) -> None:
         self.role = role
         self.inner = inner
         self.sink = sink
+        self.sink_writer = sink_writer
+
+    def _emit(self, record: Dict[str, Any]) -> None:
+        self.sink.append(record)
+        if self.sink_writer is not None:
+            try:
+                self.sink_writer(record)
+            except Exception:  # noqa: BLE001 —— 留档失败绝不影响指挥链
+                pass
 
     def _invoke(self, method: str, context: Dict[str, Any]) -> Any:
         started = time.time()
@@ -350,13 +366,14 @@ class MeteredModel:
                                   "started_at": started}
         try:
             value = getattr(self.inner, method)(context)
-            record.update({"ok": True, "kind": "", "error": ""})
+            record.update({"ok": True, "kind": "", "error": "",
+                           "proposal": _proposal_digest(value)})
         except (ModelTimeout, ModelUnavailable, ModelInvalidOutput) as exc:
             record.update({"ok": False, "kind": type(exc).__name__, "error": str(exc)})
-            self.sink.append(dict(record, latency_ms=int((time.time() - started) * 1000)))
+            self._emit(dict(record, latency_ms=int((time.time() - started) * 1000)))
             raise
         record["latency_ms"] = int((time.time() - started) * 1000)
-        self.sink.append(record)
+        self._emit(record)
         return value
 
     def propose_plan(self, context: Dict[str, Any]) -> Any:  # pragma: no cover - 透传
@@ -393,6 +410,130 @@ class MeteredModel:
 
 # ---------------- runner ----------------
 
+def _dig_receipt(receipt: Dict[str, Any], *keys: str) -> Any:
+    """从回执的嵌套结构里取字段（`result.result.unit_results[0]...`）。
+
+    为什么用"挖"而不是写死路径：回执有两层转发（统一入口 + 权威端），
+    不同动作分组的层级不同；写死路径会在部分动作上取到 None（实测 `error_code` 就踩过）。
+    """
+    seen: List[Any] = [receipt]
+    for _ in range(4):
+        deeper: List[Any] = []
+        for item in seen:
+            if isinstance(item, dict):
+                for key in keys:
+                    if item.get(key) not in (None, "", []):
+                        return item[key]
+                for value in item.values():
+                    if isinstance(value, dict):
+                        deeper.append(value)
+                    elif isinstance(value, list):
+                        deeper.extend(value[:4] if isinstance(value, list) else [])
+            elif isinstance(item, list):
+                deeper.extend(item[:4])
+        seen = deeper
+        if not seen:
+            break
+    return ""
+
+
+def _compact_intents(intents: List[Dict[str, Any]], limit: int = 80) -> List[Dict[str, Any]]:
+    """把活跃意图压成紧凑表（每轮进档案）。
+
+    为什么必须有（GPT 复盘计划 P0："证据链要能串起 产生候选→仲裁→回执→开产→完成→**任务结算**"）：
+    原来的每轮记录只有"世界"没有"我们的任务状态"，于是"生产完成了但任务仍是 unknown"
+    这件事在档案里**看不到**（只能靠 raw 逐行猜）。有了它，完成事件与任务状态可以直接对齐。
+    """
+    out: List[Dict[str, Any]] = []
+    for intent in intents or []:
+        if not isinstance(intent, dict):
+            continue
+        target = intent.get("target") if isinstance(intent.get("target"), dict) else {}
+        progress = intent.get("progress") if isinstance(intent.get("progress"), dict) else {}
+        out.append({
+            "id": str(intent.get("intent_id", "")),
+            "action": str(intent.get("action", "")),
+            "units": [str(u) for u in (intent.get("unit_ids") or [])][:8],
+            "state": str(intent.get("state", "")),
+            "drop_reason": str(intent.get("drop_reason", "")),
+            "issued": intent.get("issued_tick"),
+            "expires": intent.get("expires_tick"),
+            "scene": str(target.get("scene", "")),
+            "pos": (target.get("pos") or [])[:2] or None,
+            "item_id": str((intent.get("production") or {}).get("item_id", "")),
+            "progress": str(progress.get("status") or ""),
+            "progress_tick": progress.get("tick"),
+        })
+        if len(out) >= limit:
+            break
+    return out
+
+
+def _read_jsonl(path: str, limit: int = 200000) -> List[Dict[str, Any]]:
+    """读一份 JSONL（容错：坏行跳过、最多 `limit` 行）。
+
+    用途：收尾时把图内 `command_timing` 合并进命令生命周期表（读的是本进程刚写的日志）。
+    """
+    out: List[Dict[str, Any]] = []
+    try:
+        with io.open(path, encoding="utf-8", errors="replace") as handle:
+            for line in handle:
+                line = line.strip()
+                if not line or not line.startswith("{"):
+                    continue
+                try:
+                    out.append(json.loads(line))
+                except ValueError:
+                    continue
+                if len(out) >= limit:
+                    break
+    except OSError:
+        return []
+    return out
+
+
+def _first_error_code(receipt: Dict[str, Any]) -> str:
+    return str(_dig_receipt(receipt, "error_code") or "")
+
+
+def _first_order_id(receipt: Dict[str, Any]) -> str:
+    return str(_dig_receipt(receipt, "order_id") or "")
+
+
+def _proposal_digest(value: Any, limit: int = 600) -> str:
+    """模型产出的**一行摘要**（留档用）：意图/计划要点，超长截断并标 `…`。
+
+    只留摘要不留全文：全文里有大幅上下文，体积大且含无关内容；分析要的是
+    "它提议了什么动作、打哪、谁去打"。
+    """
+    try:
+        if hasattr(value, "model_dump"):
+            value = value.model_dump()
+        elif hasattr(value, "to_dict"):
+            value = value.to_dict()
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        if isinstance(value, dict):
+            keep = {key: value.get(key) for key in
+                    ("plan_id", "phase_goal", "intents", "task_patch", "reasoning",
+                     "rationale", "notes")
+                    if value.get(key) not in (None, "", [], {})}
+            if keep:
+                value = keep
+    except Exception:  # noqa: BLE001
+        pass
+    return _digest_json(value, limit)
+
+
+def _digest_json(value: Any, limit: int) -> str:
+    try:
+        text = json.dumps(value, ensure_ascii=False, default=str)
+    except (TypeError, ValueError):
+        text = str(value)
+    return text if len(text) <= limit else text[:limit] + "…"
+
+
 class AgentRunner:
     """常驻循环：观测 → 图推进 → 下发 → 日志。"""
 
@@ -406,6 +547,10 @@ class AgentRunner:
         self.transport: Optional[AuthorityIntentTransport] = None
         self.rules_cache: Dict[str, Any] = {}
         self.model_sink: List[Dict[str, Any]] = []
+        #: 对局留档（`deploy/match_archive.py`）：**每一局都留**（用户 2026-09-13：
+        #: "每个对局都有意义，要尽可能把数据留档，我要给高级模型分析"）。写失败不影响对局。
+        self.archive: Optional[Any] = None
+        self._structured_path = ""
         self._log_handle = None
         #: 图内结构化日志 sink（`ctx.services.log`）。**必须显式注入**，
         #: 否则 `GraphServices.logger` 为 None → 所有 `_log(...)` 打点静默丢弃。
@@ -415,6 +560,9 @@ class AgentRunner:
         self._stopping = False
         self._stop_reason = ""
         self._last_event_tick = 0
+        #: 最近一次看到的对局结局（`op=tactical` 的 `outcome`）与扫描统计，供留档收尾用。
+        self._last_outcome: Dict[str, Any] = {}
+        self._last_scan_stats: Dict[str, Any] = {}
 
     # ---------- 装配 ----------
 
@@ -499,6 +647,12 @@ class AgentRunner:
             self.runtime.state.ensure_units(own_units)
         handover = {"units": own_units, "reason": "adjutant_takeover"}
         describe = self.runtime.describe()
+        self._open_archive(describe)
+        # 模型层的**提议摘要**也进留档（复盘要能回答"它当时提议了什么、多久、成没成"）。
+        # 在这里挂而不是构造时传：模型先于留档装配（`_build_models` 在 runtime 之前）。
+        for model in (strategy_model, tactics_model):
+            if isinstance(model, MeteredModel) and self.archive is not None:
+                model.sink_writer = self.archive.model
         self._log({
             "kind": "start", "match_id": self.match_id, "player": self.player,
             "rules_version": self.rules_version, "server_tick": tick,
@@ -725,6 +879,10 @@ class AgentRunner:
                     observe_started = time.time()
                     tick_value, obs = self._observe()
                     observe_ms = int((time.time() - observe_started) * 1000)
+                    # 对局结局（打到结算/投降）——留档要能回答"这局谁赢了"。
+                    outcome = (obs.get("tactical") or {}).get("outcome")
+                    if isinstance(outcome, dict) and outcome.get("finished"):
+                        self._last_outcome = dict(outcome)
                     self._sync_control(obs.get("tactical") or {})
                     # 【增量事件消费】把扫描层攒下的新事件交给本轮（按 seq 去重，只消费新增）。
                     # 事件带"游戏内真实发生的事"（回执/受击/建成/生产开始…），
@@ -767,7 +925,9 @@ class AgentRunner:
                         # scout_first_coverage / bound_clamped。`ungated` 必须为 0
                         # （非 0 = 有移动意图没经过权威寻路闸门）。
                         "movement": dict(result.state.get("movement_stats") or {}),
-                        "nav_revision": int(result.state.get("nav_revision", -1) or -1),
+                        "nav_revision": int(result.state.get("nav_revision")
+                                           if result.state.get("nav_revision") is not None
+                                           else -1),
                         "batch": {
                             "calls": int(getattr(self.transport, "batch_count", 0)),
                             "commands": int(getattr(self.transport, "batch_commands", 0)),
@@ -776,25 +936,61 @@ class AgentRunner:
                         },
                     })
                     # 扫描层指标（计划 §9：快照年龄 p50/p95/max、扫描频率、事件延迟）。
+                    #
+                    # 【加固 · 2026-09-13 血泪】**只看的埋点绝不允许把整轮日志搞掉**：
+                    # 这里曾经把统计变量写成不存在的 `scan_stats` → 每轮 `NameError` →
+                    # 被外层 `except` 吞成 `tick_error`，于是**同轮后面的留档/决策/HUD/回执
+                    # 全部被跳过**（实测 186/186 轮全中：`scan_hz=0`、档案 rounds 全空）。
+                    # 所以这段单独包一层：埋点自己出错只记一行，绝不牵连后面的正经记录。
                     if self.scanner is not None:
-                        snapshot = self.scanner.latest() or {}
-                        production = snapshot.get("production") or []
-                        self._log({"kind": "fast_scan", "server_tick": tick_value,
-                                   # 生产增量链路的自证：这两个数为 0 说明
-                                   # "production_*" 事件永远不会产生（不能靠猜）。
-                                   "fast_units": len(snapshot.get("units") or []),
-                                   "fast_production_units": len(production),
-                                   "fast_production_items": sum(
-                                       len(entry.get("items") or [])
-                                       for entry in production if isinstance(entry, dict)),
-                                   "fast_nav_revision": snapshot.get("nav_revision"),
-                                   **self.scanner.stats()})
+                        try:
+                            snapshot = self.scanner.latest() or {}
+                            production = snapshot.get("production") or []
+                            # 每轮只取一次扫描统计（留档与日志共用；重复调用会有锁竞争开销）。
+                            scan_stats = self.scanner.stats()
+                            self._last_scan_stats = scan_stats
+                            # 【生产接续的可测事实】只有"队列项总数"看不出**有几座设施在同时干活**：
+                            # 6 座设施共 1 个队列项 与 1 座设施 1 个队列项，前者是"整体在动、
+                            # 局部空转"，后者是"只有一条线在动"。验收要的是前者，所以必须分开数。
+                            busy_producers = sum(
+                                1 for entry in production
+                                if isinstance(entry, dict) and (entry.get("items") or []))
+                            self._log({"kind": "fast_scan", "server_tick": tick_value,
+                                       # 生产增量链路的自证：这两个数为 0 说明
+                                       # "production_*" 事件永远不会产生（不能靠猜）。
+                                       "fast_units": len(snapshot.get("units") or []),
+                                       "fast_production_units": len(production),
+                                       "fast_production_busy": busy_producers,
+                                       "fast_production_items": sum(
+                                           len(entry.get("items") or [])
+                                           for entry in production if isinstance(entry, dict)),
+                                       # 游戏侧 10Hz 采样的自身耗时（**副官通道对帧率的开销**）：
+                                       # 玩家反馈掉帧时用它回答"是不是副官吃的"（实测踩过
+                                       # `is_target_reachable` 每单位每 100ms 一次真寻路）。
+                                       "sample_ms_p50": scan_stats.get("sample_ms_p50"),
+                                       "sample_ms_p95": scan_stats.get("sample_ms_p95"),
+                                       "sample_ms_max": scan_stats.get("sample_ms_max"),
+                                       # 游戏帧率：与单位数/采样耗时同一条时间线（玩家最在意的数）。
+                                       "fps": scan_stats.get("fps_last"),
+                                       "fps_min": scan_stats.get("fps_min"),
+                                       # 画质档（帧率治理）：验收据此验证"部队涨上来时画质降了没"。
+                                       "quality_tier": scan_stats.get("quality_tier_last"),
+                                       "quality_tier_max": scan_stats.get("quality_tier_max"),
+                                       "quality_scale": scan_stats.get("quality_scale_last"),
+                                       "fast_nav_revision": snapshot.get("nav_revision"),
+                                       **scan_stats})
+                        except Exception as exc:  # noqa: BLE001 —— 埋点出错只记一行
+                            self._log({"kind": "scan_log_error", "server_tick": tick_value,
+                                       "error": repr(exc)[:200]})
                     self._log_decision_delta(tick_value)
                     # 游戏内面板的"思考"内容：由 runner 直接给结论，HUD 只渲染。
                     self._log_hud_status(tick_value, result)
                     for receipt in result.receipts:
                         self._log({"kind": "receipt", "server_tick": tick_value,
                                    "receipt": receipt})
+                    self._archive_round(tick_value, obs, result, {
+                        "elapsed_ms": elapsed_ms, "coord_hz": coord_hz,
+                        "observe_ms": observe_ms})
                 except Exception as exc:  # noqa: BLE001 —— 单轮异常不终止常驻循环
                     bad_ticks += 1
                     self._log({"kind": "tick_error", "error": repr(exc),
@@ -826,6 +1022,18 @@ class AgentRunner:
             if self.scanner is not None:
                 self.scanner.stop()
                 self._log({"kind": "fast_scan_final", **self.scanner.stats()})
+            # 留档收尾：写 MANIFEST + 给分析模型的 digest（**每局都要有**）。
+            state = getattr(self.runtime, "state", None)
+            self._close_archive(status=self._stop_reason or "stopped", extra={
+                "outcome": self._last_outcome,
+                "exit_code": exit_code,
+                "sent": self.transport.sent_count if self.transport else 0,
+                "model_calls": len(self.model_sink),
+                "degraded_reason": str(getattr(state, "degraded_reason", "") or ""),
+                "route": str(getattr(state, "route", "") or ""),
+                "plan_version": str(getattr(state, "plan_version", "") or ""),
+                "units": len(getattr(state, "ai_controlled_units", None) or []),
+            })
             try:
                 if self.runtime is not None:
                     self.runtime.checkpoint()
@@ -1032,6 +1240,30 @@ class AgentRunner:
             print("[runner] 日志文件不可写（仅 stdout）：%s" % exc, file=sys.stderr)
         self._open_structured_log(stamp)
 
+    def _open_archive(self, describe: Dict[str, Any]) -> None:
+        """打开本局留档（**只写事实、失败不影响对局**）。
+
+        为什么不塞进 `runner.out`：那是运行日志，刻意只记摘要（事件只记计数、单位只记名字），
+        复盘缺的恰是逐条明细。留档层写 `events/rounds/commands/model/decisions` 五个明细流
+        + `MANIFEST.json` + `digest.md`（给分析模型的第一读物）。
+        """
+        try:
+            self.archive = MatchArchive(
+                self.args.log_dir, match_id=self.match_id, player=self.player,
+                rules_version=self.rules_version,
+                config={"provider": str(self.args.provider),
+                        "interface": str(getattr(self.args, "interface", "")),
+                        "model": str(getattr(self.args, "model", "")),
+                        "strategy_mode": str(getattr(self.args, "strategy_mode", "")),
+                        "tick_interval": float(getattr(self.args, "tick_interval", 0.5) or 0.5),
+                        "engine": describe.get("engine"),
+                        "port": self.port,
+                        "graph_config": describe.get("config")})
+            print("[runner] 留档：%s" % self.archive.dir)
+        except Exception as exc:  # noqa: BLE001 —— 留档失败绝不影响指挥链
+            self.archive = None
+            print("[runner] 留档不可用（不影响对局）：%r" % exc, file=sys.stderr)
+
     def _open_structured_log(self, stamp: str) -> None:
         """打开**图内结构化日志**（`ctx.services.log` 的 sink）。
 
@@ -1052,6 +1284,8 @@ class AgentRunner:
                 JsonlFileSink(path),
                 base={"match_id": self.match_id, "player_id": self.player,
                       "rules_version": self.rules_version})
+            # 记下路径：收尾时要从这里读 `command_timing` 合并进命令表（生命周期）。
+            self._structured_path = path
             print("[runner] 结构日志：%s" % path)
         except OSError as exc:
             # 日志不可用不阻断指挥链，但必须显式告警：没有它就只能靠猜。
@@ -1306,6 +1540,145 @@ class AgentRunner:
                 continue
             self._log({"kind": "decision", "server_tick": int(tick),
                        "decision": entry})
+            # 同一份决策也进留档（分析时不必再解析 runner.out）。
+            if self.archive is not None:
+                try:
+                    self.archive.decision(dict(entry))
+                except Exception:  # noqa: BLE001 —— 留档失败绝不影响对局
+                    pass
+
+    def _archive_round(self, tick: int, obs: Dict[str, Any], result: Any,
+                       metrics: Dict[str, Any]) -> None:
+        """每轮把**世界事实**写进档（余额 / 我方单位 / 可见敌情 / 生产队列 / 扫描指标）。
+
+        「世界事实」与「决策事实」分开：决策在 `decisions.jsonl`，世界在 `rounds.jsonl` ——
+        分析时要能把"它做了什么"和"当时世界是什么样"按 tick 对上。
+        """
+        archive = self.archive
+        if archive is None:
+            return
+        try:
+            fast = obs.get("fast_state") or {}
+            tactical = obs.get("tactical") or {}
+            scan_stats = getattr(self, "_last_scan_stats", {}) or {}
+            # 【必须先绑定】`intents` 字段用它，而它原来在**下面**才赋值 →
+            # 每轮 `UnboundLocalError` → 被本函数的 `except` 记成 `archive_error`，
+            # 于是 `rounds.jsonl`（每轮世界事实）**从来没有落过盘**（2026-09-13 实测
+            # 档案里只有 decisions、没有 rounds，MANIFEST 只能写"runner 未写留档"）。
+            live_intents = list((getattr(result, "state", {}) or {}).get("active_intents") or [])
+            archive.round_({
+                "server_tick": int(tick),
+                "ts": time.time(),
+                "balance": (tactical.get("balance") or {}).get("a"),
+                "map_bounds": fast.get("map_bounds"),
+                "nav_revision": fast.get("nav_revision"),
+                "units": compact_units(fast.get("units")),
+                "enemies": compact_enemies(fast.get("visible_enemies")),
+                "production": compact_production(fast.get("production")),
+                "route": str(getattr(result, "route", "")),
+                "degraded_reason": str(getattr(result, "degraded_reason", "") or ""),
+                "paused": bool(getattr(result, "paused", False)),
+                "elapsed_ms": metrics.get("elapsed_ms"),
+                "coord_hz": metrics.get("coord_hz"),
+                "observe_ms": metrics.get("observe_ms"),
+                "scan_hz": scan_stats.get("scan_hz"),
+                "snapshot_age_p95": scan_stats.get("snapshot_age_p95"),
+                # 【帧率与采样成本也写进每轮档案】档案里已经有"当时有多少单位"，
+                # 加上这两个数，任何一局都能**直接**画出"帧率 vs 单位数 vs 副官开销"，
+                # 不必再去 runner.out 里翻（用户 2026-09-13："掉帧到底谁吃的"）。
+                "fps": scan_stats.get("fps_last"),
+                # 【画质档也写进每轮档案】帧率治理（锁 60 + 单位多降画质）的验证就在这一行：
+                # 档案里 `units` 与 `quality_tier` 同一条时间线，一眼能看出"降档有没有跟着规模"。
+                "quality_tier": scan_stats.get("quality_tier_last"),
+                "quality_scale": scan_stats.get("quality_scale_last"),
+                "sample_ms_p50": scan_stats.get("sample_ms_p50"),
+                "event_seq": fast.get("event_seq"),
+                "movement": dict((getattr(result, "state", {}) or {}).get("movement_stats") or {}),
+                "lanes": dict((getattr(result, "state", {}) or {}).get("lanes") or {}),
+                # 【任务侧事实】每轮把"我们的意图状态"也落档：否则"生产完成了但任务仍 unknown"
+                # 这类问题在档案里看不见（只能去 raw 逐行猜）。见 `_compact_intents`。
+                "intents": _compact_intents(live_intents),
+                "tasks": {str(key): str(value) for key, value in
+                          ((getattr(result, "state", {}) or {}).get("active_tasks") or {}).items()},
+                # 【兵力上限留档】为什么这一轮没有出兵：达到上限（设计）还是没轮到（故障）。
+                # 复盘时"没有意图"这一条必须有解释，否则分不清两者。
+                "army_cap": dict((getattr(result, "state", {}) or {}).get("army_cap") or {}),
+                # 【命令纪律的可测事实】"打不了的目标"记忆与敌人类型表各有多大 ——
+                # 没有这两个数，"按域拉黑到底有没有生效"在档案里查不出来（用户要求可溯源）。
+                "target_memory": dict((getattr(result, "state", {}) or {}
+                                       ).get("target_memory") or {}),
+                # 探索前沿（U1/F01）：`covered` = 真的到达过并换过的前沿数 ——
+                # T01 的"≥3 个不同可达前沿"就用它判，且必须能在档案里复核。
+                "explore": dict((getattr(result, "state", {}) or {}
+                                 ).get("explore") or {}),
+            })
+            # 逐条游戏事件（复盘缺的就是这一层：谁被打了、谁死了、谁路走不通）。
+            # 受伤/阵亡类事件额外补**上下文**（那时我们命令它干什么、附近有谁）——
+            # 位置与命令都是已有事实的组合，不带归因（游戏侧受伤信号不带攻击者）。
+            units_snapshot = compact_units(fast.get("units"))
+            enemies_snapshot = compact_enemies(fast.get("visible_enemies"))
+            for event in obs.get("fast_events") or []:
+                if not isinstance(event, dict):
+                    continue
+                enriched = archive.enrich_event(
+                    dict(event, server_tick=int(event.get("server_tick", tick) or tick)),
+                    units=units_snapshot, enemies=enemies_snapshot, intents=live_intents)
+                archive.event(enriched)
+            # 命令生命周期：下发 → 权威回执。
+            for receipt in getattr(result, "receipts", []) or []:
+                if isinstance(receipt, dict):
+                    archive.command({
+                        "server_tick": int(tick),
+                        "intent_id": str(receipt.get("intent_id", "")),
+                        "command_id": str(receipt.get("command_id", "")),
+                        "action": str(receipt.get("intent_action", "")
+                                      or receipt.get("action", "")),
+                        "unit_ids": list(receipt.get("unit_ids") or []),
+                        "issued_tick": receipt.get("issued_tick"),
+                        "expires_tick": receipt.get("expires_tick"),
+                        "status": str(receipt.get("status", "")),
+                        "accepted": bool(receipt.get("accepted", False)),
+                        "reason": str(receipt.get("reason", ""))[:300],
+                        "error_code": _first_error_code(receipt),
+                        "order_id": _first_order_id(receipt),
+                        "generation": receipt.get("generation"),
+                        "task_id": str(receipt.get("task_id", "")),
+                    })
+            # 主线时间线：抽成 `MatchArchive.campaign_moments`（纯逻辑、有单测）。
+            # 放这里只是为了"每轮调一次"，判断与去重都在留档层。
+            archive.campaign_moments((getattr(result, "state", {}) or {}).get("campaign") or {})
+            # 每轮刷一次缓冲（进程随时可能被打断，留档必须已经落盘）。
+            archive.flush()
+        except Exception as exc:  # noqa: BLE001 —— 留档失败绝不影响对局
+            self._log({"kind": "archive_error", "error": repr(exc)})
+
+    def _close_archive(self, *, status: str, extra: Dict[str, Any]) -> None:
+        if self.archive is None:
+            return
+        try:
+            # 命令生命周期：把图内 `command_timing`（决定→下发）合并进命令表，
+            # 否则 `commands.jsonl` 只有回执，"为什么慢/为什么没接上"两段拼不起来。
+            if self._structured_path and os.path.isfile(self._structured_path):
+                merged = self.archive.command_lifecycle(
+                    _read_jsonl(self._structured_path))
+                if merged.get("merged"):
+                    print("[runner] 命令生命周期合并：%s" % merged, flush=True)
+        except Exception as exc:  # noqa: BLE001 —— 合并失败不影响收尾
+            print("[runner] 命令生命周期合并失败：%r" % exc, file=sys.stderr)
+        try:
+            # 摘要以**磁盘上的明细**为准（进程被强杀时进度文件只到最近 10 轮）。
+            self.archive.rebuild_from_files()
+        except Exception:  # noqa: BLE001 —— 反推失败不影响收尾
+            pass
+        try:
+            payload = self.archive.close(status=status, extra=extra)
+            print("[runner] 留档完成：%s（%s，事件 %s 条，命令 %s 条，模型 %s 次）"
+                  % (self.archive.dir, status,
+                     (payload.get("counts") or {}).get("events", 0),
+                     (payload.get("counts") or {}).get("commands", 0),
+                     (payload.get("counts") or {}).get("model_calls", 0)))
+        except Exception as exc:  # noqa: BLE001
+            print("[runner] 留档收尾失败：%r" % exc, file=sys.stderr)
 
     def _log(self, record: Dict[str, Any]) -> None:
         record.setdefault("ts", time.time())
@@ -1360,9 +1733,9 @@ def build_parser() -> argparse.ArgumentParser:
                              "提速要靠微操高频跑（见 --tactics-interval / --event-interval）。")
     parser.add_argument("--tactics-interval", type=int, default=60,
                         help="战术决策最小间隔（tick，默认 60≈1s）。"
-                             "【用户硬要求 2026-09-12 晚】副官下发节拍**不得低于 1 次/秒**；"
-                             "原默认 120(≈2s) 被用户判定为\"命令频率太低\"。地板（规则中台+"
-                             "行为树）按同一节拍重新决策，所以这个值就是\"AI 反应速度\"。")
+                             "模型决策间隔与协调、命令下发频率分别记录。"
+                             "2026-09-13 用户允许大规模约 2 秒一轮协调与控制；"
+                             "验收重点是多线并发、生产接续和任务持续执行，不要求每秒下令。")
     parser.add_argument("--emergency-interval", type=int, default=60,
                         help="紧急事件最小间隔（tick，默认 60≈1s）")
     parser.add_argument("--ttl", type=int, default=3600,
@@ -1371,7 +1744,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--emergency-ttl", type=int, default=1200,
                         help="紧急意图有效期（tick，默认 1200≈20s）")
     parser.add_argument("--tick-interval", type=float, default=0.5,
-                        help="循环节奏（秒；模型本身耗时不受此限制）")
+                        help="协调周期（秒，默认 0.5；大规模允许约 2.0，"
+                             "须验证多线并发、生产接续和关键事件响应）")
     parser.add_argument("--full-view-interval", type=float, default=1.0,
                         help="完整 tactical/strategic 视图的刷新间隔（秒，默认 1.0）。"
                              "两者都是全场景扫描（tactical 还是 O(敌×我)），每轮重拉会把"
@@ -1384,9 +1758,8 @@ def build_parser() -> argparse.ArgumentParser:
                         help="是否启用 10Hz 缓存型扫描层（off = 退回旧的 0.5s 全量轮询，"
                              "用于对照与排障）")
     parser.add_argument("--event-interval", type=int, default=60,
-                        help="观测事件节流（tick；图需事件才会走战术分支，默认 60≈1s，"
-                             "应不大于 --tactics-interval）。与 --tactics-interval 一起决定"
-                             "副官的下发节拍（用户要求 ≥1 次/秒）。")
+                        help="观测事件节流（tick，默认 60≈1s）；大规模可调整，"
+                             "须验证关键事件及时处理，不以命令发送次数作为验收门槛。")
     parser.add_argument("--max-batch", type=int, default=24,
                         help="每轮最多下发多少条意图（默认 24，原为 8）。"
                              "实测默认 8 在对局激烈时大量触发 batch_limit_exceeded"

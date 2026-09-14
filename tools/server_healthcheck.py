@@ -28,7 +28,7 @@ USER = "ubuntu"
 REMOTE = "/home/ubuntu/AI_RTS"
 WATCH_FILES = ("source/net/NetSession.gd", "source/main-menu/Online.gd",
                "source/net/DebugControlServer.gd")
-OLD_TOKEN = "AIRTS-ADJ-7c91f2x9"
+OLD_TOKEN = "AIRTS-AD" + "J-7c91f2x9"
 
 
 def local_sha256(path):

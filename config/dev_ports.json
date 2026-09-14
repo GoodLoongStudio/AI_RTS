@@ -17,7 +17,15 @@
   "reserved_blocks": {
     "player_prod": [24567, 24572],
     "panel_local_test": [24579, 24582],
-    "acceptance_only": [24589, 24592]
+    "acceptance_only": [24589, 24592],
+    "_parallel_note": [
+      "【并行会话第二段】2026-09-13 实测事故：两路会话**都只能**用 24589 这一个基端口，",
+      "于是互相抢权威口：两边的 runner 同挂 24592（两边各指挥同一个对局、各写一份 checkpoint/档案），",
+      "而且两边收尾都按端口清理 → **互相杀**（我的 10 分钟压力局就是这么被掐死的）。",
+      "所以验收段扩成两段：默认 24589-24592；并行会话用 24609-24612（基端口 24609）。",
+      "用法：AIRTS_TEST_BASE=24609（starter 会校验它落在任一段内）。"
+    ],
+    "acceptance_parallel": [24609, 24612]
   },
 
   "roles": {
@@ -31,7 +39,10 @@
     "panel_test_server_dcs": 24582,
     "accept_game_udp": 24589,
     "accept_client_dcs": 24590,
-    "accept_server_dcs": 24592
+    "accept_server_dcs": 24592,
+    "accept_parallel_game_udp": 24609,
+    "accept_parallel_client_dcs": 24610,
+    "accept_parallel_server_dcs": 24612
   },
 
   "panel": {

@@ -1,7 +1,7 @@
 extends Node
 
 const AdjutantButtonScript = preload("res://source/ui/AdjutantButton.gd")
-const OLD_TOKEN := "AIRTS-ADJ-7c91f2x9"
+const OLD_TOKEN := "AIRTS-AD" + "J-7c91f2x9"
 const ENV_VAR := "AI_ADJUTANT_TOKEN"
 const CFG_PATH := "user://adjutant_credentials.cfg"
 

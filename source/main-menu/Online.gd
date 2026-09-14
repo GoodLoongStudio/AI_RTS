@@ -1,4 +1,4 @@
-extends Control
+extends "res://source/ui/MenuPage.gd"
 
 ## RA3 式联机大厅：左侧 4 个玩家槽位（颜色/昵称/准备状态，房主可加撤 AI），
 ## 右侧地图卡，顶部昵称，底部连接与开局按钮。槽位状态由服务器全量广播。
@@ -280,3 +280,9 @@ func _on_back_button_pressed() -> void:
 	if NetSession.is_networked() and not NetSession.is_dedicated_server():
 		NetSession.disconnect_session()
 	get_tree().change_scene_to_file.call_deferred("res://source/main-menu/Main.tscn")
+
+
+## ESC 回退（MenuPage 基类）：与"返回"按钮同一条路径（断开会话 + 回主菜单）。
+func _on_escape() -> bool:
+	_on_back_button_pressed()
+	return true

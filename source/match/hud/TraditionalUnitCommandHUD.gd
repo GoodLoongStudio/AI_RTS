@@ -5,6 +5,8 @@ var _targeting_command := ""
 var _input_runtime = null
 var _skill_slot_ids: Array[String] = []
 
+const EscapeRouter = preload("res://source/ui/EscapeRouter.gd")
+
 const _SKILL_CAPTIONS := {
 	"demo_self_heal": "治疗",
 	"demo_unit_pulse": "脉冲",
@@ -170,6 +172,8 @@ func _on_input_action_pressed(action_id: String):
 		"global.cancel":
 			if _targeting_command != "":
 				actions_controller.cancel_command_targeting()
+				# 认领本次 ESC：取消目标选择优先于菜单兜底唤出（见 EscapeRouter 不变式）。
+				EscapeRouter.claim()
 
 
 func _on_force_move_pressed():
@@ -289,6 +293,10 @@ func _on_command_targeting_changed(command_name: String):
 		_feedback_label.text = "请右键地面指定战术后退目的地"
 	elif command_name == "GroundAttackMove":
 		_feedback_label.text = "请右键地面或敌方单位指定移动并攻击目标"
+	elif command_name == "Repair":
+		_feedback_label.text = "维修模式：点建筑开始/停止维修，可连续操作（右键或 ESC 退出）"
+	elif command_name == "Sell":
+		_feedback_label.text = "出售模式：点建筑即可出售，可连续操作（右键或 ESC 退出）"
 	elif command_name.begins_with("Skill:"):
 		_feedback_label.text = "请右键指定技能目标"
 
@@ -323,6 +331,11 @@ func _on_command_feedback(
 		_feedback_label.text = "%s：无法到达目标" % display_name
 		_refresh_policy_buttons()
 		return
+	if status == "PendingAuthority":
+		# 联机客户端：命令已发给服务器，本地没有逐单位结果（2026-09-14）。
+		_feedback_label.text = "%s：已发送（等待服务器确认）" % display_name
+		_refresh_policy_buttons()
+		return
 	_feedback_label.text = "%s：接受 %d，拒绝 %d（%s）" % [
 		display_name, accepted_count, rejected_count, status
 	]
@@ -347,7 +360,14 @@ func _refresh_availability():
 	_hold_fire_button.disabled = not has_fire_policy_units
 	_clear_rally_point_button.disabled = not has_rally_producers
 	if not has_supported_units:
-		actions_controller.cancel_command_targeting()
+		# 维修/出售是「点建筑」模式：作用于被点击的自建建筑（含射线兜底），
+		# 不以当前选择为前提。而出售一座建筑会触发 Structure.sell →
+		# MatchSignals.deselect_all_units → 选择清空 → 本函数被回调；
+		# 若无脑取消模式，玩家卖完第一座就被踢出模式、无法连续出售
+		# （2026-09-14 用户报「出售建筑不好用」的根因）。
+		var active_targeting: String = actions_controller.get_active_command_targeting()
+		if active_targeting != "Repair" and active_targeting != "Sell":
+			actions_controller.cancel_command_targeting()
 		_feedback_label.text = "选择单位或生产建筑后可下达适用的传统 RTS 命令"
 	_refresh_policy_buttons()
 	_refresh_skill_slots()
