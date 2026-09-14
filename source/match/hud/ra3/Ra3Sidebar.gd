@@ -123,8 +123,26 @@ func _ready():
 	if _local_player != null and "changed" in _local_player:
 		_local_player.changed.connect(_refresh_funds)
 	MatchSignals.not_enough_resources_for_production.connect(_on_not_enough_resources)
+	# 维修/出售指定模式：按钮按下态与提示文案随真实模式同步（红警式，2026-09-14）。
+	MatchSignals.command_targeting_changed.connect(_on_command_targeting_changed)
 	_refresh_funds()
 	_select_tab("structures")
+
+
+## MatchSignals 是 autoload，生命周期长于本节点，退出时显式断开。
+func _exit_tree():
+	if MatchSignals.command_targeting_changed.is_connected(_on_command_targeting_changed):
+		MatchSignals.command_targeting_changed.disconnect(_on_command_targeting_changed)
+
+
+## 指定模式变化：按钮按下态与状态提示以真实模式为准。
+func _on_command_targeting_changed(command_name: String):
+	if _repair_button != null:
+		_repair_button.button_pressed = command_name == "Repair"
+	if _sell_button != null:
+		_sell_button.button_pressed = command_name == "Sell"
+	if command_name.is_empty():
+		_set_status("已退出指定模式")
 
 
 func _process(delta):
@@ -226,7 +244,11 @@ func _build_ui():
 	_repair_button.custom_minimum_size = Vector2(0, 26)
 	_repair_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_repair_button.add_theme_font_size_override("font_size", 13)
-	_style_button(_repair_button)
+	_make_mode_button_styles(_repair_button)
+	# toggle 样式：按下态由 _on_command_targeting_changed 以真实模式为准同步，
+	# 让玩家一眼看出当前处于维修/出售模式（红警式，2026-09-14）。
+	_repair_button.toggle_mode = true
+	_repair_button.tooltip_text = "维修模式：点建筑开始/停止维修（右键或 ESC 退出）"
 	_repair_button.pressed.connect(_on_repair_pressed)
 	mode_row.add_child(_repair_button)
 	_sell_button = Button.new()
@@ -234,7 +256,9 @@ func _build_ui():
 	_sell_button.custom_minimum_size = Vector2(0, 26)
 	_sell_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_sell_button.add_theme_font_size_override("font_size", 13)
-	_style_button(_sell_button)
+	_make_mode_button_styles(_sell_button)
+	_sell_button.toggle_mode = true
+	_sell_button.tooltip_text = "出售模式：点建筑出售（右键或 ESC 退出）"
 	_sell_button.pressed.connect(_on_sell_pressed)
 	mode_row.add_child(_sell_button)
 	_unload_button = Button.new()
@@ -375,6 +399,39 @@ func _make_button_styles(button: Button):
 
 func _style_button(button: Button):
 	_make_button_styles(button)
+
+
+## 维修/出售这类「模式按钮」的专属样式：toggle 激活时用琥珀底 + 加粗金边 + 金字，
+## 让玩家一眼看出「当前正处于该模式」（2026-09-14 用户反馈：点了没有任何反馈）。
+func _make_mode_button_styles(button: Button):
+	var normal = StyleBoxFlat.new()
+	normal.bg_color = CELL_BG
+	normal.border_color = CELL_EDGE
+	normal.set_border_width_all(1)
+	normal.set_corner_radius_all(3)
+	var hover = StyleBoxFlat.new()
+	hover.bg_color = CELL_HOVER_BG
+	hover.border_color = HIGHLIGHT
+	hover.set_border_width_all(1)
+	hover.set_corner_radius_all(3)
+	var pressed = StyleBoxFlat.new()
+	pressed.bg_color = Color(GOLD.r, GOLD.g, GOLD.b, 0.22)
+	pressed.border_color = GOLD
+	pressed.set_border_width_all(2)
+	pressed.set_corner_radius_all(3)
+	var disabled = StyleBoxFlat.new()
+	disabled.bg_color = CELL_DISABLED_BG
+	disabled.border_color = CELL_DISABLED_EDGE
+	disabled.set_border_width_all(1)
+	disabled.set_corner_radius_all(3)
+	button.add_theme_stylebox_override("normal", normal)
+	button.add_theme_stylebox_override("hover", hover)
+	button.add_theme_stylebox_override("pressed", pressed)
+	button.add_theme_stylebox_override("hover_pressed", pressed)
+	button.add_theme_stylebox_override("disabled", disabled)
+	button.add_theme_color_override("font_pressed_color", GOLD)
+	button.add_theme_color_override("font_hover_pressed_color", GOLD)
+
 
 
 # ---------------------------------------------------------------- 页签与格子
@@ -559,10 +616,13 @@ func _item_tooltip(item: Dictionary) -> String:
 func _on_repair_pressed():
 	var controller = _local_actions_controller()
 	if controller == null:
+		# 没进模式就要把按钮回弹，否则 toggle 会停在按下的假状态。
+		if _repair_button != null:
+			_repair_button.button_pressed = false
 		_set_status("维修：指令控制器未就绪")
 		return
 	controller.begin_repair_targeting()
-	_set_status("维修模式：左键点击你的建筑开始/停止维修（右键取消）")
+	_set_status("维修模式：点建筑开始/停止维修，可连续操作（右键或 ESC 退出）")
 
 
 ## 卸货按钮：选中载有士兵的运输车后点击，乘客散开下车。
@@ -582,10 +642,12 @@ func _on_unload_pressed():
 func _on_sell_pressed():
 	var controller = _local_actions_controller()
 	if controller == null:
+		if _sell_button != null:
+			_sell_button.button_pressed = false
 		_set_status("出售：指令控制器未就绪")
 		return
 	controller.begin_sell_targeting()
-	_set_status("出售模式：左键点击要出售的建筑（右键取消）")
+	_set_status("出售模式：点建筑即可出售，可连续操作（右键或 ESC 退出）")
 
 
 ## 本地玩家的指令控制器。
@@ -838,6 +900,8 @@ func _refresh_funds():
 
 
 func _set_status(text: String):
+	if _status_label == null:
+		return
 	_status_label.text = text
 
 

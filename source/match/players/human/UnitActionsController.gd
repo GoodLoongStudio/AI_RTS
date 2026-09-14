@@ -8,6 +8,8 @@ const ResourceUnit = preload("res://source/match/units/non-player/ResourceUnit.g
 
 var _is_repair_targeting := false
 var _is_sell_targeting := false
+var _last_structure_apply_unit = null
+var _last_structure_apply_msec := -1000000
 var _is_force_move_targeting := false
 var _is_force_attack_targeting := false
 var _is_tactical_withdraw_targeting := false
@@ -23,6 +25,15 @@ var _is_ground_attack_move_targeting := false:
 		else:
 			remove_from_group("attack_move_targeting")
 var _local_input_bound := false
+## 维修/出售兜底射线的最远距离（世界米）：覆盖俯视镜头下的全图建筑。
+const STRUCTURE_PICK_RAY_LENGTH := 5000.0
+## 射线兜底最多穿透几层：建筑碰撞体常被地形碰撞板（ReferenceStaticCollider）
+## 等静态体挡在最近命中位置，而 intersect_ray 只给最近命中（2026-09-14 实测），
+## 所以必须逐层排除已命中体往后找，否则这个兜底等于永远不生效。
+const STRUCTURE_PICK_MAX_LAYERS := 6
+## 同一次点击的去重窗口（ms）：射线兜底与「3D picking → unit_targeted」会对
+## 同一次左键各结算一次，不去重会把维修开关拨两次（效果等于没点）。
+const STRUCTURE_CLICK_DEDUPE_MS := 180
 var _skill_targeting_id := ""
 var _skill_targeting_kind := ""
 var _input_runtime = null
@@ -71,6 +82,14 @@ func _bind_local_input():
 	var command_runtime = find_parent("Match").get_node_or_null("CommandRuntime")
 	if command_runtime != null:
 		command_runtime.connect("OrderStateChanged", _on_order_state_changed)
+	# 指定模式变化广播到全局信号（命令光标、侧栏按钮高亮等表现层据此反馈）。
+	if not command_targeting_changed.is_connected(_forward_targeting_to_signals):
+		command_targeting_changed.connect(_forward_targeting_to_signals)
+
+
+## 把本控制器的指定模式变化转发给全局信号（表现层专用，不参与判定）。
+func _forward_targeting_to_signals(command_name: String):
+	MatchSignals.command_targeting_changed.emit(command_name)
 
 
 func _try_navigating_selected_units_towards_position(target_point):
@@ -159,6 +178,11 @@ func get_active_command_targeting() -> String:
 		return "TacticalWithdraw"
 	if _is_ground_attack_move_targeting:
 		return "GroundAttackMove"
+	# 维修/出售也是"待点目标"的命令（2026-09-14）：漏掉它们会让右键无法退出模式。
+	if _is_repair_targeting:
+		return "Repair"
+	if _is_sell_targeting:
+		return "Sell"
 	if not _skill_targeting_id.is_empty():
 		return "Skill:%s" % _skill_targeting_id
 	return ""
@@ -421,12 +445,24 @@ func _execute_targeted_ground_force_attack(target_point: Vector3):
 func _unhandled_input(event):
 	if not _local_input_bound:
 		return
-	if (
-		event is InputEventMouseButton
-		and event.button_index == MOUSE_BUTTON_LEFT
-		and event.pressed
-		and _is_ground_attack_move_targeting
-	):
+	if not (event is InputEventMouseButton) or not event.pressed:
+		return
+	# 右键：退出任何"待点目标"的命令模式（红警式；维修/出售模式下同样是取消）。
+	if event.button_index == MOUSE_BUTTON_RIGHT:
+		if not get_active_command_targeting().is_empty():
+			cancel_command_targeting()
+			get_viewport().set_input_as_handled()
+		return
+	if event.button_index != MOUSE_BUTTON_LEFT:
+		return
+	# 维修/出售：建筑被单位/装饰挡住时 CollisionObject3D 的 input_event 命中的是
+	# 遮挡物，Selection 的转发会落空。这里用相机射线兜底；没命中建筑就不消费事件，
+	# 交给原有的"点空地取消模式"逻辑。
+	if _is_repair_targeting or _is_sell_targeting:
+		if _try_structure_mode_from_ray(event.position):
+			get_viewport().set_input_as_handled()
+		return
+	if _is_ground_attack_move_targeting:
 		var camera = get_viewport().get_camera_3d()
 		if camera == null:
 			return
@@ -491,9 +527,12 @@ func _get_command_gateway():
 
 
 func _count_command_result(result: Dictionary) -> Array[int]:
+	# 联机客户端：命令已转发、结果待服务器确认（没有逐单位结果），按"已发送"口径返回。
+	if str(result.get("status", "")) == "PendingAuthority":
+		return [int(result.get("accepted", 0)), int(result.get("rejected", 0))]
 	var accepted_count := 0
 	var rejected_count := 0
-	for unit_result in result["unit_results"]:
+	for unit_result in result.get("unit_results", []):
 		if unit_result["accepted"]:
 			accepted_count += 1
 		else:
@@ -526,7 +565,11 @@ func _find_controlled_unit(unit_id: String) -> Node:
 
 func _emit_command_feedback(command_name: String, accepted_count: int, rejected_count: int):
 	var status := "Rejected"
-	if accepted_count > 0 and rejected_count == 0:
+	if NetSession.should_forward_commands() and rejected_count == 0 and accepted_count > 0:
+		# 联机客户端：命令只是"发给了服务器"，本地没有权威结果 —— 显示"已发送"，
+		# 不再让玩家看到恒定的"接受 0，拒绝 0"（2026-09-14）。
+		status = "PendingAuthority"
+	elif accepted_count > 0 and rejected_count == 0:
 		status = "Accepted"
 	elif accepted_count > 0:
 		status = "PartiallyAccepted"
@@ -555,6 +598,33 @@ func _release_adjutant_leases():
 		dbg.notify_player_override(str(get_parent().name), unit_names)
 
 
+## 集结点命令统一入口（2026-09-14）：联机客户端必须**转发给服务器**执行。
+## 此前三处（设点/指定单位/清除）都直调本地 `RallyPointRuntime` → 联机下只改了本机视图，
+## 服务器不知情 → 玩家看到"设了集结点，但新出厂的单位不去"。
+func _dispatch_rally_command(
+	op: String, structures: Array, target_unit, target_point: Vector3
+) -> Dictionary:
+	if structures.is_empty():
+		return {"accepted": 0, "rejected": 0}
+	if NetSession.should_forward_commands():
+		var gateway = _get_command_gateway()
+		match op:
+			"set_rally_point":
+				return gateway.SetRallyPointPosition(structures, target_point, get_parent())
+			"set_rally_target":
+				return gateway.SetRallyPointTarget(structures, target_unit, get_parent())
+			_:
+				return gateway.ClearRallyPoints(structures, get_parent())
+	var runtime = find_parent("Match").get_node("RallyPointRuntime")
+	match op:
+		"set_rally_point":
+			return runtime.SetPosition(structures, target_point, get_parent())
+		"set_rally_target":
+			return runtime.SetTarget(structures, target_unit, get_parent())
+		_:
+			return runtime.Clear(structures, get_parent())
+
+
 func _try_setting_rally_points(target_point: Vector3):
 	var controlled_structures = get_tree().get_nodes_in_group("selected_units").filter(
 		func(unit):
@@ -562,9 +632,7 @@ func _try_setting_rally_points(target_point: Vector3):
 	)
 	if controlled_structures.is_empty():
 		return
-	var result = find_parent("Match").get_node("RallyPointRuntime").SetPosition(
-		controlled_structures, target_point, get_parent()
-	)
+	var result = _dispatch_rally_command("set_rally_point", controlled_structures, null, target_point)
 	var counts = _count_command_result(result)
 	_emit_command_feedback("SetRallyPoint", counts[0], counts[1])
 
@@ -673,9 +741,7 @@ func _try_setting_rally_point_to_unit(unit, target_unit):
 		return false
 	if unit.find_child("RallyPoint") == null:
 		return false
-	var result = find_parent("Match").get_node("RallyPointRuntime").SetTarget(
-		[unit], target_unit, get_parent()
-	)
+	var result = _dispatch_rally_command("set_rally_target", [unit], target_unit, Vector3.ZERO)
 	var counts = _count_command_result(result)
 	_emit_command_feedback("SetRallyPoint", counts[0], counts[1])
 	return true
@@ -689,9 +755,7 @@ func clear_selected_rally_points():
 	if structures.is_empty():
 		_emit_command_feedback("ClearRallyPoint", 0, 0)
 		return
-	var result = find_parent("Match").get_node("RallyPointRuntime").Clear(
-		structures, get_parent()
-	)
+	var result = _dispatch_rally_command("clear_rally_point", structures, null, Vector3.ZERO)
 	var counts = _count_command_result(result)
 	_emit_command_feedback("ClearRallyPoint", counts[0], counts[1])
 
@@ -803,10 +867,10 @@ func _on_unit_targeted(unit, target_position: Vector3):
 			skill_targetability.animate()
 		return
 	if _is_repair_targeting or _is_sell_targeting:
+		# 红警式**持续模式**（2026-09-14 用户要求）：点中建筑后不退出模式，
+		# 光标保持扳手/金币，可以接着点下一座建筑；右键 / ESC / 再点按钮 /
+		# 点空地才退出。
 		var mode := "Repair" if _is_repair_targeting else "Sell"
-		_is_repair_targeting = false
-		_is_sell_targeting = false
-		command_targeting_changed.emit("")
 		_apply_structure_target_mode(unit, mode)
 		return
 	if _is_force_move_targeting:
@@ -892,6 +956,10 @@ func _apply_structure_target_mode(unit, mode: String):
 	if not ok:
 		_emit_command_feedback(mode, 0, 1)
 		return
+	if _is_duplicate_structure_click(unit):
+		return
+	_last_structure_apply_unit = unit
+	_last_structure_apply_msec = Time.get_ticks_msec()
 	# 联机傀儡端（2026-09-12）：维修/出售必须**转发给权威端执行**。
 	# 此前这里直接本地 `set_repairing()/sell()`：客户端 hp 与资源由 10Hz 快照结算，
 	# 本地改动下一帧就被覆盖 → 玩家看到"点了维修没反应、建筑也删不掉"。
@@ -919,6 +987,56 @@ func _forward_structure_command(op: String, unit) -> bool:
 		return false
 	sync.forward_command(op, [unit], Vector3.ZERO, null, get_parent())
 	return true
+
+
+## 维修/出售模式下的射线兜底：直接找鼠标下的建筑并结算。
+## 返回是否已结算（false = 鼠标下没有建筑，调用方不该消费这次点击）。
+func _try_structure_mode_from_ray(screen_position: Vector2) -> bool:
+	var camera := get_viewport().get_camera_3d()
+	if camera == null:
+		return false
+	var from := camera.project_ray_origin(screen_position)
+	var direction := camera.project_ray_normal(screen_position)
+	var to := from + direction * STRUCTURE_PICK_RAY_LENGTH
+	var space := get_viewport().world_3d.direct_space_state
+	var excluded: Array[RID] = []
+	var structure: Node = null
+	# 逐层排除已命中体：地形碰撞板、其他静态体常常排在建筑碰撞体前面，
+	# 只取最近命中的话这个兜底永远不会命中建筑。
+	for _layer in STRUCTURE_PICK_MAX_LAYERS:
+		var query := PhysicsRayQueryParameters3D.create(from, to)
+		query.collide_with_areas = true
+		query.collide_with_bodies = true
+		query.exclude = excluded
+		var hit := space.intersect_ray(query)
+		if hit.is_empty():
+			break
+		excluded.append(hit["rid"])
+		structure = _resolve_structure_from_collider(hit["collider"])
+		if structure != null:
+			break
+	if structure == null:
+		return false
+	_apply_structure_target_mode(structure, "Repair" if _is_repair_targeting else "Sell")
+	return true
+
+
+## 同一次左键会被射线兜底与 3D picking 各结算一次，用「同一建筑 + 时间窗」去重。
+func _is_duplicate_structure_click(unit) -> bool:
+	if _last_structure_apply_unit != unit:
+		return false
+	return Time.get_ticks_msec() - _last_structure_apply_msec < STRUCTURE_CLICK_DEDUPE_MS
+
+
+## 从射线命中的碰撞体反查它归属的建筑（碰撞体通常是建筑的子节点）。
+## 只决定"点中了谁"，是否允许操作仍由 _apply_structure_target_mode 判定。
+func _resolve_structure_from_collider(collider) -> Node:
+	var node = collider
+	while node != null:
+		if node is Structure:
+			return node
+		node = node.get_parent()
+	return null
 
 
 ## 运输车登车令：把当前选中的己方地面士兵标记为"前往该车登车"。
@@ -951,7 +1069,9 @@ func _on_unit_selected_cancel_idle_construction(unit):
 		return
 	if _has_assigned_builders(unit):
 		return
-	var gateway = get_parent().get_node_or_null("UnitCommandGateway")
+	# 必须走统一命令网关（联机客户端 = NetCommandProxy → 转发给服务器执行）：
+	# 此前用本地 `UnitCommandGateway` → 客户端本地没有该工地的注册 → 静默失败（2026-09-14）。
+	var gateway = _get_command_gateway()
 	if gateway == null:
 		return
 	var cancel_result: Dictionary = gateway.CancelConstruction(unit, get_parent())

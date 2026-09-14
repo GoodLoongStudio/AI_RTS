@@ -13,6 +13,11 @@ signal match_aborted
 signal match_finished_with_victory
 signal match_finished_with_defeat
 signal terrain_targeted(position)
+## 本地玩家的命令指定模式变化（维修/出售/强制移动/攻击…）。
+## 供命令光标与命令面板做视觉反馈（2026-09-14 红警式交互），不参与任何玩法判定；
+## 空字符串表示已退出指定模式。注意：联机傀儡端的模式切换同样会发出，因为
+## 目标选择本来就发生在本地。
+signal command_targeting_changed(command_name)
 signal unit_spawned(unit)
 signal unit_targeted(unit, target_position)
 signal unit_selected(unit)

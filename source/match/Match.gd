@@ -10,9 +10,8 @@ const TraditionalUnitCommandHUD = preload(
 )
 const Ra3Sidebar = preload("res://source/match/hud/ra3/Ra3Sidebar.gd")
 const SelectionPortraitPanel = preload("res://source/match/hud/ra3/SelectionPortraitPanel.gd")
+const CommandCursor = preload("res://source/match/hud/CommandCursor.gd")
 const MusicDirector = preload("res://source/match/MusicDirector.gd")
-const CampaignController = preload("res://source/campaign/CampaignController.gd")
-const CampaignHeroIdentity = preload("res://source/campaign/CampaignHeroIdentity.gd")
 
 const CommandCenter = preload("res://source/match/units/CommandCenter.tscn")
 const Worker = preload("res://source/match/units/Worker.tscn")
@@ -22,7 +21,6 @@ const Drone = preload("res://source/match/units/Drone.tscn")
 
 @export var settings: Resource = null
 
-var campaign_data = null
 var _ra3_sidebar = null  # 红警3 风格右侧指挥侧栏（非 headless 对局内挂载）
 var _unit_spawn_counter := 0  # P0-1 init unit deterministic naming
 var map:
@@ -106,13 +104,13 @@ func _ready():
 	if not _is_dedicated_or_headless():
 		_setup_ra3_sidebar()
 		_setup_selection_portrait_panel()
+		_setup_command_cursor()
 		_setup_music_director()
 		if not NetSession.is_networked():
 			_setup_ai_command_hud()
 		_setup_traditional_unit_command_hud()
 	else:
 		$HUD.visible = false
-	_setup_campaign()
 	MatchSignals.match_started.emit()
 
 
@@ -135,9 +133,6 @@ func _setup_ai_command_hud():
 		return
 	var ai_command_hud = AICommandHUD.new()
 	ai_command_hud.name = "AICommandHUD"
-	if campaign_data != null:
-		ai_command_hud.control_mode = campaign_data.get("initial_control_mode", "squad")
-		ai_command_hud.hero_name = campaign_data.get("hero_name", "先锋指挥单元")
 	$HUD.add_child(ai_command_hud)
 	_setup_ai_command_hud_toggle(ai_command_hud)
 
@@ -205,6 +200,13 @@ func _setup_selection_portrait_panel():
 	$HUD.add_child(panel)
 
 
+## 红警式命令光标（2026-09-14）：维修/出售等指定模式下把系统光标换成对应图标。
+func _setup_command_cursor():
+	var cursor = CommandCursor.new()
+	cursor.name = "CommandCursor"
+	$HUD.add_child(cursor)
+
+
 func _setup_traditional_unit_command_hud():
 	var human_player = get_local_player()
 	if human_player == null:
@@ -221,15 +223,6 @@ func _setup_traditional_unit_command_hud():
 		_ra3_sidebar.absorb_command_panel(command_hud)
 	else:
 		$HUD.add_child(command_hud)
-
-
-func _setup_campaign():
-	if campaign_data == null:
-		return
-	var campaign_controller = CampaignController.new()
-	campaign_controller.name = "CampaignController"
-	campaign_controller.mission_data = campaign_data
-	add_child(campaign_controller)
 
 
 func _set_map(a_map):
@@ -385,16 +378,6 @@ func _register_spawn_points_with_query_runtime() -> void:
 
 
 func _spawn_player_units(player, spawn_transform):
-	if _should_spawn_campaign_hero(player):
-		var hero_scene_path: String = campaign_data.get("hero_scene", "res://source/match/units/Tank.tscn")
-		var hero_scene: PackedScene = load(hero_scene_path) as PackedScene
-		assert(hero_scene != null, "campaign hero scene could not be loaded: %s" % hero_scene_path)
-		var hero_unit: Node3D = hero_scene.instantiate() as Node3D
-		assert(hero_unit != null and hero_unit is Unit, "campaign hero must be a normal RTS Unit")
-		_setup_and_spawn_unit(hero_unit, spawn_transform, player)
-		_register_campaign_hero(hero_unit)
-		return
-
 	# 开局：主基地 + 1 无人机 + 2 工人（2026-09-05 用户设定：
 	# 无人机恢复 1 架，其余建筑/单位一律由工人建造/生产）。
 	_setup_and_spawn_unit(CommandCenter.instantiate(), spawn_transform, player, false)
@@ -416,24 +399,6 @@ func _spawn_player_units(player, spawn_transform):
 		_setup_and_spawn_unit(
 			Barracks.instantiate(), spawn_transform.translated(Vector3(0, 0, 9)), player, false
 		)
-
-
-func _register_campaign_hero(unit: Node3D):
-	# Hero is an identity/role layered on top of a normal RTS Unit. The current prologue
-	# uses Tank.tscn, while future missions can swap in a stronger dedicated unit scene.
-	unit.add_to_group("campaign_hero")
-	var identity = CampaignHeroIdentity.new()
-	identity.name = "CampaignHeroIdentity"
-	identity.configure(campaign_data if campaign_data != null else {})
-	unit.add_child(identity)
-
-
-func _should_spawn_campaign_hero(player) -> bool:
-	return (
-		campaign_data != null
-		and campaign_data.get("initial_control_mode", "squad") == "hero"
-		and player == get_local_player()
-	)
 
 
 func _setup_and_spawn_unit(unit, a_transform, player, mark_structure_under_construction = true):

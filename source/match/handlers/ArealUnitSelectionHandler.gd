@@ -47,13 +47,23 @@ func _get_controlled_units_from_navigation_domain_within_topdown_polygon_2d(
 
 
 func _rebase_topdown_polygon_2d_to_different_plane(topdown_polygon_2d, plane):
-	var rebased_topdown_polygon_2d = []
+	if topdown_polygon_2d == null:
+		return null
 	var camera = get_viewport().get_camera_3d()
+	if camera == null:
+		return null
+	var rebased_topdown_polygon_2d = []
 	for polygon_point_2d in topdown_polygon_2d:
 		var screen_point_2d = camera.unproject_position(
 			Vector3(polygon_point_2d.x, Constants.Match.Terrain.PLANE.d, polygon_point_2d.y)
 		)
 		var rebased_point_3d = camera.get_ray_intersection_with_plane(screen_point_2d, plane)
+		# 射线可能与目标平面不相交（相机近水平、点到视口顶边之外等）→ 返回 null。
+		# 此前直接取 `.x` 会抛 "Invalid access … on Nil"，而且它发生在 finished.emit()
+		# 的回调里 ⇒ 每次左键都刷一条 SCRIPT ERROR 并中止后续结算（2026-09-14 实测）。
+		# 返回 null 后由调用方整体放弃本次合并，语义与原来的"半途中止"一致。
+		if rebased_point_3d == null:
+			return null
 		rebased_topdown_polygon_2d.append(Vector2(rebased_point_3d.x, rebased_point_3d.z))
 	return rebased_topdown_polygon_2d
 
@@ -66,12 +76,15 @@ func _on_selection_changed(topdown_polygon_2d):
 	var units_to_highlight = _get_controlled_units_from_navigation_domain_within_topdown_polygon_2d(
 		Constants.Match.Navigation.Domain.TERRAIN, topdown_polygon_2d
 	)
+	var air_topdown_polygon_2d = _rebase_topdown_polygon_2d_to_different_plane(
+		topdown_polygon_2d, Constants.Match.Air.PLANE
+	)
+	if air_topdown_polygon_2d == null:
+		# 与原来"重投影报错中止"等价：本次高亮刷新整体放弃。
+		return
 	units_to_highlight.merge(
 		_get_controlled_units_from_navigation_domain_within_topdown_polygon_2d(
-			Constants.Match.Navigation.Domain.AIR,
-			_rebase_topdown_polygon_2d_to_different_plane(
-				topdown_polygon_2d, Constants.Match.Air.PLANE
-			)
+			Constants.Match.Navigation.Domain.AIR, air_topdown_polygon_2d
 		)
 	)
 	var units_not_to_highlight_anymore = Utils.Set.subtracted(
@@ -95,12 +108,15 @@ func _on_selection_finished(topdown_polygon_2d):
 	var units_to_select = _get_controlled_units_from_navigation_domain_within_topdown_polygon_2d(
 		Constants.Match.Navigation.Domain.TERRAIN, topdown_polygon_2d
 	)
+	var air_topdown_polygon_2d = _rebase_topdown_polygon_2d_to_different_plane(
+		topdown_polygon_2d, Constants.Match.Air.PLANE
+	)
+	if air_topdown_polygon_2d == null:
+		# 与原来"重投影报错中止"等价：本次框选不再结算。
+		return
 	units_to_select.merge(
 		_get_controlled_units_from_navigation_domain_within_topdown_polygon_2d(
-			Constants.Match.Navigation.Domain.AIR,
-			_rebase_topdown_polygon_2d_to_different_plane(
-				topdown_polygon_2d, Constants.Match.Air.PLANE
-			)
+			Constants.Match.Navigation.Domain.AIR, air_topdown_polygon_2d
 		)
 	)
 	Utils.Match.select_units(units_to_select)
