@@ -1,0 +1,14 @@
+---
+description: 通过项目内 Godot MCP 运行游戏并查看画面
+alwaysApply: true
+---
+
+# Godot MCP
+
+本仓库已启用 `addons/godot_mcp`（Godot MCP Native）。Cursor 项目连接器在 `.cursor/mcp.json`，地址是 `http://127.0.0.1:9080/mcp`。
+
+验证或改画面时：
+
+1. 确认 Godot 4.7 Mono 已打开本项目，且 MCP 面板里 HTTP 服务在 9080 端口运行。
+2. 用 `godot-mcp` 的 `run_project` 启动对局，需要看画面时用 `get_runtime_screenshot` 或 `get_editor_screenshot`。
+3. 不要用浏览器自动化去绕过缺失的 Godot MCP。服务没起来时，先请用户在编辑器里启动 MCP，再继续。

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import pathlib
 # -*- coding: utf-8 -*-
 """AI_RTS 服务器一键健康自检（防止版本漂移/协议不兼容再次溜到玩家手上）。
 
@@ -21,7 +22,7 @@ from pathlib import Path
 warnings.filterwarnings("ignore")
 
 REPO = Path(__file__).resolve().parents[1]
-INFO_FILE = Path(r"G:\AIRTS\服务器信息.md")
+INFO_FILE = pathlib.Path(__file__).resolve().parent.parent / "服务器信息.md"
 HOST = "101.43.121.102"
 USER = "ubuntu"
 REMOTE = "/home/ubuntu/AI_RTS"

@@ -548,6 +548,13 @@
    "id": "sniper-rocketeer"
   },
   {
+   "expected_marker": "Chinese voice mapping smoke test completed: 0 failure(s)",
+   "timeout_seconds": 90,
+   "category": "audio",
+   "scene": "res://tests/automated/ChineseVoiceMappingSmokeTest.tscn",
+   "id": "chinese-voice-mapping"
+  },
+  {
    "id": "performance-governor",
    "category": "visual",
    "scene": "res://tests/automated/PerformanceGovernorSmokeTest.tscn",
