@@ -32,7 +32,7 @@ func _ready():
 	cannon_target.hp = 100
 	var cannon_hp_before: float = cannon_target.hp
 
-	runtime.LaunchEntity(cannon_source, cannon_target)
+	runtime.LaunchEntity(cannon_source, cannon_target, false)
 	_check(cannon_target.hp == cannon_hp_before, "CannonShell 发射时不应提前结算伤害")
 	cannon_source.hp = 0
 	await get_tree().process_frame
@@ -55,7 +55,7 @@ func _ready():
 	gateway.SetFirePolicy([rocket_target], "HoldFire", enemy_player)
 	rocket_target.hp = 100
 	var rocket_hp_before: float = rocket_target.hp
-	runtime.LaunchEntity(rocket_source, rocket_target)
+	runtime.LaunchEntity(rocket_source, rocket_target, false)
 	rocket_source.hp = 0
 	await get_tree().process_frame
 	_check(projectiles.get_child_count() > 0, "发射者阵亡后 Rocket 视觉应继续存在")
@@ -75,7 +75,7 @@ func _ready():
 	await get_tree().process_frame
 	gateway.SetFirePolicy([lost_target_source], "HoldFire", human)
 	gateway.SetFirePolicy([lost_target], "HoldFire", enemy_player)
-	runtime.LaunchEntity(lost_target_source, lost_target)
+	runtime.LaunchEntity(lost_target_source, lost_target, false)
 	lost_target.hp = 0
 	await get_tree().process_frame
 	_check(projectiles.get_child_count() > 0, "目标先失效时 Rocket 不应立即消失")

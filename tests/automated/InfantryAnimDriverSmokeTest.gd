@@ -154,7 +154,7 @@ func _ready():
 	var blast_direction: Vector3 = infantry.global_position - muzzle.global_position
 	blast_direction.y = 0.0
 	blast_direction = blast_direction.normalized()
-	runtime.LaunchEntity(cannon, infantry)
+	runtime.LaunchEntity(cannon, infantry, false)
 	await get_tree().create_timer(0.75).timeout
 	_check(not is_instance_valid(infantry), "致死爆炸应立即移除战斗单位")
 	var visuals := get_tree().get_nodes_in_group("infantry_death_visuals")
@@ -204,7 +204,7 @@ func _ready():
 	gateway.SetFirePolicy([shooter], "HoldFire", enemy)
 	gateway.SetFirePolicy([victim], "HoldFire", human)
 	victim.hp = 0.25
-	runtime.LaunchEntity(shooter, victim)
+	runtime.LaunchEntity(shooter, victim, false)
 	await get_tree().create_timer(0.75).timeout
 	_check(not is_instance_valid(victim), "致死子弹应移除战斗单位")
 	visuals = get_tree().get_nodes_in_group("infantry_death_visuals")
@@ -328,14 +328,14 @@ func _test_fire_events(match_instance, human, gateway):
 	_check(player.current_animation == "Idle", "恢复后 Fire 应正常收尾回 Idle，不卡死")
 	# 受击必须抢占 Fire，受击期间的新发射也不得覆盖 Hit 或事后补播。
 	attacker.hp -= 0.1
-	runtime.LaunchEntity(attacker, target)
+	runtime.LaunchEntity(attacker, target, false)
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_check(player.current_animation == "Hit", "同帧中弹与开火应保留 Hit 优先级")
 	await get_tree().create_timer(player.get_animation("Hit").length + 0.1).timeout
 	_check(player.current_animation == "Idle", "受击结束不得补播已丢弃的开火事件")
 
-	runtime.LaunchEntity(attacker, target)
+	runtime.LaunchEntity(attacker, target, false)
 	_check(await _wait_until(func(): return player.current_animation == "Fire", 0.5),
 		"受击后新的真实发射应再次播放 Fire")
 	var move_origin: Vector3 = attacker.global_position
@@ -356,7 +356,7 @@ func _test_fire_events(match_instance, human, gateway):
 	_check(await _wait_until(run_with_displacement, 2.0),
 		"射击后移动应切换 Run，并产生实际位移")
 	# 此处只隔离表现层竞争，发射仍创建真实子弹，不伪造信号或直接播放剪辑。
-	runtime.LaunchEntity(attacker, target)
+	runtime.LaunchEntity(attacker, target, false)
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_check(player.current_animation == "Run", "移动中的发射不得抢占全身 Run 造成站姿滑行")

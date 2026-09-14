@@ -36,6 +36,13 @@ public partial class ProjectileRuntime : Node
     }
 
     /// <summary>发射指向实体目标的投射物，并在发射瞬间冻结伤害与来源数据。</summary>
+    /// <remarks>
+    /// ⚠️ `allowsFriendlyDamage` 的默认值**只在 C# 内部有效**：Godot 的 C# 绑定不会为默认参数
+    /// 生成重载，GDScript 侧省略该实参会直接报
+    /// `Invalid call. Nonexistent function 'LaunchEntity' in base 'Node (ProjectileRuntime.cs)'`，
+    /// 且该错误会**中断调用方协程**——测试里表现为挂到被 harness 杀掉（exit=124）而非报红。
+    /// 因此所有 GDScript 调用点必须显式传满三个参数。
+    /// </remarks>
     public string LaunchEntity(Node sourceNode, Node targetNode, bool allowsFriendlyDamage = false)
     {
         var source = RequireSpatial(sourceNode, nameof(sourceNode));

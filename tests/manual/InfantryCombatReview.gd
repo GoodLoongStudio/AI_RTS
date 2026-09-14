@@ -312,7 +312,7 @@ func _on_explosion_death_pressed() -> void:
 	_gateway.StopUnits([_infantry], _human)
 	_gateway.SetFirePolicy([_infantry], "HoldFire", _human)
 	_infantry.hp = 1.0
-	_runtime.LaunchEntity(_blast_tank, _infantry)
+	_runtime.LaunchEntity(_blast_tank, _infantry, false)
 	_log_command("致死爆炸（真实炮弹）",
 		{"status": "Launched", "unit_results": []})
 
