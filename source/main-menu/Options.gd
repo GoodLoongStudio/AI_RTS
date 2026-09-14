@@ -1,4 +1,4 @@
-extends Control
+extends "res://source/ui/MenuPage.gd"
 
 signal close_requested
 
@@ -27,6 +27,7 @@ func _ready():
 		UISfx.play("ui_menu_open")  # 游戏内打开设置：菜单开音
 	_setup_save_timer()
 	_mouse_movement_restricted.button_pressed = Globals.options.mouse_restricted
+	_sync_screen_from_actual()
 	_screen.selected = Globals.options.screen
 	_setup_resolution_options()
 	_build_camera_settings()
@@ -76,13 +77,33 @@ func _clamp_to_viewport() -> void:
 		_panel.custom_minimum_size = Vector2(_panel.custom_minimum_size.x, max_h)
 
 
+## 存储的屏幕模式可能和实际窗口脱节（启动早期的模式切换被引擎吞掉，或窗口
+## 被外部改成/退出全屏）。打开设置面板时以「实际模式」为准自愈，否则会出现
+## 「下拉显示窗口、实际全屏」，进而让用户以为分辨率设置坏了（2026-09-14）。
+func _sync_screen_from_actual():
+	if DisplayServer.get_name() == "headless":
+		return
+	var is_windowed := (
+		DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_WINDOWED
+	)
+	var actual: int = Options.Screen.WINDOW if is_windowed else Options.Screen.FULL
+	if Globals.options.screen != actual:
+		# 赋值会触发 Options._apply_screen（含 _apply_resolution），把实际窗口纠正过来。
+		Globals.options.screen = actual
+
+
 func _setup_resolution_options():
 	_resolution.clear()
+	var usable := DisplayServer.screen_get_usable_rect(DisplayServer.SCREEN_OF_MAIN_WINDOW).size
 	for size in Options.RESOLUTION_OPTIONS:
 		_resolution.add_item("%d x %d" % [size.x, size.y])
-		_resolution.set_item_tooltip(
-			_resolution.item_count - 1, "窗口大小 %d x %d" % [size.x, size.y]
-		)
+		var tooltip := "窗口大小 %d x %d" % [size.x, size.y]
+		# 超过屏幕可用区的选项会被自动夹到最大可容纳尺寸（见 Options._apply_resolution），
+		# 不提示的话用户会以为"选了没用"。
+		if DisplayServer.get_name() != "headless" and usable.x > 0 and usable.y > 0:
+			if size.x > usable.x or size.y > usable.y:
+				tooltip += "；超过屏幕可用区 %d x %d，会缩到最大可容纳尺寸" % [usable.x, usable.y]
+		_resolution.set_item_tooltip(_resolution.item_count - 1, tooltip)
 	var selected_index := Options.RESOLUTION_OPTIONS.find(Globals.options.resolution)
 	_resolution.select(maxi(selected_index, 0))
 
@@ -325,6 +346,12 @@ func _on_screen_item_selected(index):
 func _on_resolution_item_selected(index):
 	if index < 0 or index >= Options.RESOLUTION_OPTIONS.size():
 		return
+	# 全屏（含独占全屏）下窗口尺寸由屏幕决定，window_set_size() 会被引擎忽略。
+	# 用户在这里选分辨率 = 想要一个具体窗口尺寸，所以自动切到窗口模式再应用，
+	# 避免"选了没反应"（2026-09-14 用户报告的现象）。
+	if Globals.options.screen != Options.Screen.WINDOW:
+		Globals.options.screen = Options.Screen.WINDOW
+		_screen.selected = Options.Screen.WINDOW
 	Globals.options.resolution = Options.RESOLUTION_OPTIONS[index]
 	_queue_save()
 
@@ -351,3 +378,10 @@ func _on_back_button_pressed():
 		close_requested.emit()
 		return
 	get_tree().change_scene_to_file("res://source/main-menu/Main.tscn")
+
+
+## ESC 回退（MenuPage 基类）：嵌入模式关闭面板（通知打开者收尾）；独立模式返回主菜单。
+## 子先于父收到 `_unhandled_input`，且消费后会标记 handled，父页面不会重复处理同一次 ESC。
+func _on_escape() -> bool:
+	_on_back_button_pressed()
+	return true
