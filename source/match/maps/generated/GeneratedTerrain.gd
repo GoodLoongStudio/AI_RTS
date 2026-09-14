@@ -35,7 +35,7 @@ uniform vec3 bed_color : source_color = vec3(0.30, 0.34, 0.36);
 uniform vec3 shore_color : source_color = vec3(0.72, 0.62, 0.44);
 uniform vec3 sand_color : source_color = vec3(0.80, 0.62, 0.38);
 uniform vec3 soil_color : source_color = vec3(0.63, 0.54, 0.38);
-uniform vec3 plateau_color : source_color = vec3(0.90, 0.84, 0.68);
+uniform vec3 plateau_color : source_color = vec3(0.93, 0.90, 0.78);
 uniform sampler2D sand_tex : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D detail_tex : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D top_tex : source_color, filter_linear_mipmap, repeat_enable;
