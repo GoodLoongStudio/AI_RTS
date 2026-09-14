@@ -340,7 +340,8 @@ func _on_screen_item_selected(index):
 		0: Globals.options.Screen.FULL,
 		1: Globals.options.Screen.WINDOW,
 	}[index]
-	_queue_save()
+	# 下拉是低频操作，直接落盘：走 0.25s 防抖的话，改完就关游戏会丢设置。
+	_save_options()
 
 
 func _on_resolution_item_selected(index):
@@ -353,7 +354,7 @@ func _on_resolution_item_selected(index):
 		Globals.options.screen = Options.Screen.WINDOW
 		_screen.selected = Options.Screen.WINDOW
 	Globals.options.resolution = Options.RESOLUTION_OPTIONS[index]
-	_queue_save()
+	_save_options()
 
 
 func _on_save_button_pressed():
