@@ -258,10 +258,11 @@
   },
   {
    "expected_marker": "Net infantry smoke test completed: 0 failure(s)",
-   "timeout_seconds": 150,
+   "timeout_seconds": 300,
    "category": "network",
    "scene": "res://tests/automated/NetInfantrySmokeTest.tscn",
-   "id": "net-infantry"
+   "id": "net-infantry",
+   "prelaunch_server": true
   },
   {
    "expected_marker": "Production queue smoke test completed: 0 failure(s)",

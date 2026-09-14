@@ -303,9 +303,42 @@ if (-not $SkipGodot) {
             $testArgs += ([string]$extra).Replace("{free_port}", [string]$freePort)
         }
     }
-    $results += Invoke-CapturedProcess ([string]$test.id) $resolvedGodot `
-        $testArgs `
-        ([int]$test.timeout_seconds) ([string]$test.expected_marker) @($manifest.forbidden_output_patterns)
+    $serverProcess = $null
+    if ($null -ne $test.prelaunch_server -and [bool]$test.prelaunch_server) {
+        # 有些联机用例需要一个**外部专用服**（用例内部自己 join 一个固定端口），
+        # runner 原本不起它 ⇒ 用例永远连不上，失败信息是
+        # 「联机对局应完成加载并出现 Match」（没有服务端在对局）。
+        # 这里按需预启专用服；跑完只杀**我们自己起的这个 PID**（严禁按映像名批量杀）。
+        $serverPort = 24682
+        $serverLogPath = Join-Path $resultRoot (([string]$test.id) + ".server.log")
+        $serverProcess = Start-Process -FilePath $resolvedGodot `
+            -ArgumentList @("--headless", "--path", $repositoryRoot, "--", "--server", "--port", [string]$serverPort) `
+            -WorkingDirectory $repositoryRoot `
+            -RedirectStandardOutput $serverLogPath `
+            -RedirectStandardError ($serverLogPath + ".err") `
+            -NoNewWindow -PassThru
+        $serverReady = $false
+        foreach ($attempt in 1..40) {
+            Start-Sleep -Milliseconds 500
+            if (Get-NetUDPEndpoint -LocalPort $serverPort -ErrorAction SilentlyContinue) {
+                $serverReady = $true
+                break
+            }
+        }
+        if (-not $serverReady) {
+            Write-Warning "Dedicated server on UDP $serverPort did not come up for $($test.id)"
+        }
+    }
+    try {
+        $results += Invoke-CapturedProcess ([string]$test.id) $resolvedGodot `
+            $testArgs `
+            ([int]$test.timeout_seconds) ([string]$test.expected_marker) @($manifest.forbidden_output_patterns)
+    }
+    finally {
+        if ($null -ne $serverProcess -and -not $serverProcess.HasExited) {
+            try { & taskkill.exe /PID $serverProcess.Id /T /F | Out-Null } catch { }
+        }
+    }
     }
 }
 
