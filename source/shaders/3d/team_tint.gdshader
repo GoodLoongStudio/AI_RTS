@@ -8,7 +8,7 @@ uniform float team_mix = 0.0;
 void fragment() {
 	vec4 tex = texture(albedo_texture, UV) * albedo_color;
 	float gray = dot(tex.rgb, vec3(0.299, 0.587, 0.114));
-	vec3 team = gray * team_color.rgb * 1.4;
+	vec3 team = gray * team_color.rgb * 1.55;
 	ALBEDO = mix(tex.rgb, team, team_mix);
 	ROUGHNESS = 0.8;
 }
