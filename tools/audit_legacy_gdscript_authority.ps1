@@ -130,18 +130,30 @@ function Invoke-AuthorityAudit {
         $relativePath = Get-NormalizedRelativePath $RepositoryRoot $file.FullName
         $lines = @(Get-Content -Encoding UTF8 -LiteralPath $file.FullName)
         for ($lineIndex = 0; $lineIndex -lt $lines.Count; $lineIndex++) {
-            if ($lines[$lineIndex].TrimStart().StartsWith("#")) {
+            $line = $lines[$lineIndex]
+            if ($line.TrimStart().StartsWith("#")) {
+                continue
+            }
+            # 只看"代码"部分（2026-09-15 修正误报，不削弱检测力）：
+            #   ① 先摘掉字符串字面量 —— 写操作不可能发生在字符串里，而日志串里的
+            #      `action=%s` / `resource_a=%d` 曾被判成非法写入；
+            #   ② 跳过 `var x = ...` 声明 —— 那是新建局部变量（`var action = unit.action`
+            #      只是**读**），不是对既有权威状态的写入。
+            # 真正的旁路写入必然是不带 var 的赋值语句、且不在引号内，仍会被抓到。
+            $codeLine = [regex]::Replace($line, '"(?:[^"\\]|\\.)*"', '""')
+            $codeLine = [regex]::Replace($codeLine, "'(?:[^'\\]|\\.)*'", "''")
+            if ($codeLine.TrimStart().StartsWith("var ")) {
                 continue
             }
             foreach ($category in $compiledCategories) {
-                if ($category.Regex.IsMatch($lines[$lineIndex])) {
+                if ($category.Regex.IsMatch($codeLine)) {
                     $matchCount++
                     if (-not $category.Allowed.ContainsKey($relativePath)) {
                         $violations += [PSCustomObject]@{
                             Category = $category.Id
                             File = $relativePath
                             Line = $lineIndex + 1
-                            Text = $lines[$lineIndex].Trim()
+                            Text = $codeLine.Trim()
                         }
                     }
                 }
