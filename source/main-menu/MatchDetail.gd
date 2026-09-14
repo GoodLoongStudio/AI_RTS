@@ -208,6 +208,8 @@ func _build_overview(body: Node) -> void:
 		_amounts(overview.get("total_spent", null)), "", SystemUIStyle.AMBER)
 	ReportWidgets.metric(metrics_b, "本局评分",
 		_n(overview.get("score", null)), "", SystemUIStyle.AMBER_HI)
+	ReportWidgets.metric(metrics_b, "峰值军力",
+		_n(overview.get("peak_army_value", null)), "", SystemUIStyle.CYAN)
 
 	var info := ReportWidgets.section(body, "对局信息", SystemUIStyle.CYAN)
 	var map: Dictionary = _section("map")
@@ -549,6 +551,12 @@ func _build_production(body: Node) -> void:
 		["最远建筑距离", "%s m" % _n(construction.get("farthest_building_distance_m", null))],
 		["建筑密度", "%s /km²" % _n(construction.get("density_per_km2", null), 1)],
 		["防线完整度", _pct(construction.get("defense_line_integrity", null), 0)],
+		["建造开工数", _text_or_null(construction.get("build_started", null))],
+		["建造取消数", _text_or_null(construction.get("build_cancelled", null))],
+		["平均建造耗时", MatchReportSchema.duration_text(construction.get("avg_build_time_s", null))],
+		["被毁后重建次数", _text_or_null(construction.get("rebuild_count", null))],
+		["建筑维修花费", _n(construction.get("repair_spent", null))],
+		["同时在建峰值", _text_or_null(construction.get("peak_concurrent_builds", null))],
 	], 2)
 
 	var detail_block := ReportWidgets.section(body, "建筑明细", SystemUIStyle.CYAN)
@@ -639,20 +647,38 @@ func _build_combat(body: Node) -> void:
 	], 2)
 
 	var units_block := ReportWidgets.section(body, "单位战斗统计", SystemUIStyle.CYAN)
+	# 单位统计 11 项（汇总口径）。与下面的逐类型明细表**同源**：两边数字必须对得上，
+	# 不允许出现"表里加起来 37，汇总写 40"这种两套数字。
+	var unit_stats: Dictionary = combat.get("unit_stats", {}) if combat.get("unit_stats", {}) is Dictionary else {}
+	ReportWidgets.kv_grid(units_block, [
+		["生产单位总数", _text_or_null(unit_stats.get("produced", null))],
+		["损失单位总数", _text_or_null(unit_stats.get("lost", null))],
+		["存活单位数", _text_or_null(unit_stats.get("alive", null))],
+		["单位存活率", _pct(unit_stats.get("survival_rate", null), 0)],
+		["击杀总数", _text_or_null(unit_stats.get("kills", null))],
+		["击杀/损失比", _n(unit_stats.get("kill_loss_ratio", null), 2)],
+		["单位平均输出", _n(unit_stats.get("damage_per_unit", null))],
+		["单位平均承伤", _n(unit_stats.get("damage_taken_per_unit", null))],
+		["单位平均存活时长", MatchReportSchema.duration_text(unit_stats.get("avg_lifetime_s", null))],
+		["参战单位种类", _text_or_null(unit_stats.get("unique_types", null))],
+		["侦察单位数", _text_or_null(unit_stats.get("scout_units", null))],
+	], 2)
 	var unit_rows: Array = combat.get("units", []) if combat.get("units", []) is Array else []
 	var rows: Array = []
 	for item in unit_rows:
 		var entry: Dictionary = item if item is Dictionary else {}
 		rows.append([
 			_text_or_null(entry.get("label", null)), _n(entry.get("produced", null)),
+			_n(entry.get("alive", null)),
 			_n(entry.get("killed", null)), _n(entry.get("lost", null)),
 			_n(entry.get("damage_dealt", null)), _n(entry.get("damage_taken", null)),
 			MatchReportSchema.duration_text(entry.get("avg_lifetime_s", null)),
 			MatchReportSchema.duration_text(entry.get("first_seen_s", null)),
 			MatchReportSchema.duration_text(entry.get("last_alive_s", null)),
 		])
-	ReportWidgets.table(units_block, ["单位", "生产", "击杀", "损失", "造成伤害", "承受伤害",
-		"平均存活", "首次出场", "最后存活"], rows, [1.3, 0.7, 0.7, 0.7, 1.1, 1.1, 0.9, 0.9, 0.9])
+	ReportWidgets.table(units_block, ["单位", "生产", "存活", "击杀", "损失", "造成伤害", "承受伤害",
+		"平均存活", "首次出场", "最后存活"], rows,
+		[1.2, 0.6, 0.6, 0.6, 0.6, 1.0, 1.0, 0.85, 0.85, 0.85])
 
 	var key_block := ReportWidgets.section(body, "最有价值 / 最差表现", SystemUIStyle.AMBER_HI)
 	ReportWidgets.kv_grid(key_block, [

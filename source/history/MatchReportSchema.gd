@@ -169,6 +169,7 @@ const TEMPLATE := {
 		"key_events": "@list",
 		"final_base_value": null,
 		"final_controlled_zones": null,
+		"peak_army_value": null,
 		"score": null,
 	},
 	"economy": {
@@ -232,6 +233,12 @@ const TEMPLATE := {
 		"farthest_building_distance_m": null,
 		"density_per_km2": null,
 		"defense_line_integrity": null,
+		"build_started": null,
+		"build_cancelled": null,
+		"avg_build_time_s": null,
+		"rebuild_count": null,
+		"repair_spent": null,
+		"peak_concurrent_builds": null,
 	},
 	"combat": {
 		"overview": {
@@ -263,6 +270,21 @@ const TEMPLATE := {
 			"exchange_ratio": null,
 		},
 		"units": "@list",
+		## 单位统计 11 项：`combat.units` 是**逐类型明细表**，这里是全局汇总口径的 11 个标量，
+		## 与「伤害统计 11 项 / 战斗质量 13 项」同级。缺数据一律 null，不用 0 冒充。
+		"unit_stats": {
+			"produced": null,
+			"lost": null,
+			"alive": null,
+			"survival_rate": null,
+			"kills": null,
+			"kill_loss_ratio": null,
+			"damage_per_unit": null,
+			"damage_taken_per_unit": null,
+			"avg_lifetime_s": null,
+			"unique_types": null,
+			"scout_units": null,
+		},
 		"quality": {
 			"focus_fire": null,
 			"formation_time_s": null,
@@ -341,7 +363,7 @@ const LIST_RECORDS := {
 	},
 	"construction.order": {"t": null, "building": null, "position": null, "cost": null, "note": null},
 	"combat.units": {
-		"id": null, "label": null, "produced": null, "killed": null, "lost": null,
+		"id": null, "label": null, "produced": null, "alive": null, "killed": null, "lost": null,
 		"damage_dealt": null, "damage_taken": null, "avg_lifetime_s": null,
 		"first_seen_s": null, "last_alive_s": null,
 	},
@@ -933,3 +955,114 @@ static func _normalize_base_value(value: Variant) -> float:
 		var number := float(value)
 		return number if number <= 1.0 else number / 100.0
 	return 0.0
+
+
+## 侦察单位白名单。Demo 与真实对局**共用这一份**，否则"侦察单位数"在两条链路上
+## 会各算一套（明细表里有的类型，汇总里不算，页面上就对不上）。
+const SCOUT_UNIT_IDS := ["drone"]
+
+
+## 从逐类型单位明细推导「单位统计 11 项」的汇总口径。
+##
+## 三条纪律：
+## 1. **空明细 ⇒ 全 null**。没有单位数据时这些统计是"未测量"而不是 0；用 0 冒充会让玩家
+##    看到"阵亡 0 人 / 存活率 100%"，那是编造，不是缺失。
+## 2. **只从明细推导**，不额外接收总量参数 —— 保证汇总与 `combat.units` 表同源，
+##    不会出现"表里加起来 37、汇总写 40"的两套数字。
+## 3. **未测量的列给 null**。明细行里根本没有 `killed`（击杀没有可订阅信号）时，
+##    汇总写 null 而不是 0；"测到 0"和"没测"必须能区分。
+static func derive_unit_stats(rows: Variant) -> Dictionary:
+	if not (rows is Array) or (rows as Array).is_empty():
+		return _empty_unit_stats()
+	var produced := 0
+	var lost := 0
+	var kills := 0
+	var dealt := 0.0
+	var taken := 0.0
+	var lifetime_weighted := 0.0
+	var lifetime_denom := 0
+	var scout := 0
+	var counted := 0
+	var produced_measured := false
+	var lost_measured := false
+	var kills_measured := false
+	var dealt_measured := false
+	var taken_measured := false
+	for item in (rows as Array):
+		if not (item is Dictionary):
+			continue
+		var entry: Dictionary = item
+		# 判定用 "键存在**且**非 null"：归一化过的行会把缺失键补成 null，
+		# 直接 `has()` + `int(null)` 会炸；`int(null)` 也绝不能当成 0。
+		var count := 0
+		if entry.get("produced", null) != null:
+			produced_measured = true
+			count = int(entry.get("produced"))
+		produced += count
+		if entry.get("lost", null) != null:
+			lost_measured = true
+			lost += int(entry.get("lost"))
+		if entry.get("killed", null) != null:
+			kills_measured = true
+			kills += int(entry.get("killed"))
+		if entry.get("damage_dealt", null) != null:
+			dealt_measured = true
+			dealt += float(entry.get("damage_dealt"))
+		if entry.get("damage_taken", null) != null:
+			taken_measured = true
+			taken += float(entry.get("damage_taken"))
+		if entry.get("avg_lifetime_s", null) != null:
+			lifetime_weighted += float(entry["avg_lifetime_s"]) * float(count)
+			lifetime_denom += count
+		if SCOUT_UNIT_IDS.has(str(entry.get("id", ""))):
+			scout += count
+		counted += 1
+	if counted == 0:
+		return _empty_unit_stats()
+	var denom := maxf(float(produced), 1.0)
+	# 先算成局部变量再塞进字典：GDScript 的 `x if c else null` 跨行要用反斜杠续行，
+	# 在字典字面量里容易踩坑，拆开写更稳。
+	# 逐列独立判定"是否测量过"：生产/损失两列是存活率的输入，缺任一列存活率就无法成立。
+	var produced_out: Variant = produced if produced_measured else null
+	var lost_out: Variant = lost if lost_measured else null
+	var alive_out: Variant = null
+	var survival_out: Variant = null
+	if produced_measured and lost_measured:
+		alive_out = maxi(0, produced - lost)
+		survival_out = roundf((1.0 - float(lost) / denom) * 1000.0) / 1000.0
+	var kills_out: Variant = kills if kills_measured else null
+	var kill_loss_out: Variant = null
+	if kills_measured:
+		kill_loss_out = roundf(float(kills) / maxf(float(lost), 1.0) * 100.0) / 100.0
+	var dealt_per_unit: Variant = null
+	if dealt_measured:
+		dealt_per_unit = roundf(dealt / denom)
+	var taken_per_unit: Variant = null
+	if taken_measured:
+		taken_per_unit = roundf(taken / denom)
+	var lifetime_avg: Variant = null
+	if lifetime_denom > 0:
+		lifetime_avg = roundf(lifetime_weighted / maxf(float(lifetime_denom), 1.0))
+	return {
+		"produced": produced_out,
+		"lost": lost_out,
+		"alive": alive_out,
+		"survival_rate": survival_out,
+		"kills": kills_out,
+		"kill_loss_ratio": kill_loss_out,
+		"damage_per_unit": dealt_per_unit,
+		"damage_taken_per_unit": taken_per_unit,
+		"avg_lifetime_s": lifetime_avg,
+		"unique_types": counted,
+		"scout_units": scout,
+	}
+
+
+static func _empty_unit_stats() -> Dictionary:
+	# 键顺序与 TEMPLATE.combat.unit_stats 保持一致，便于肉眼比对。
+	return {
+		"produced": null, "lost": null, "alive": null, "survival_rate": null,
+		"kills": null, "kill_loss_ratio": null, "damage_per_unit": null,
+		"damage_taken_per_unit": null, "avg_lifetime_s": null,
+		"unique_types": null, "scout_units": null,
+	}

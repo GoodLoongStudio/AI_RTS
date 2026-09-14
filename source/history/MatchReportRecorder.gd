@@ -191,6 +191,9 @@ func build_report() -> Dictionary:
 				"taken": damage_taken if damage_taken > 0.0 else null,
 			},
 			"units": unit_rows.duplicate(true),
+			# 汇总从明细推导：明细行里没有的列（如 killed / damage_*）推导结果是 null，
+			# 而不是替玩家写 0 —— "没测到"和"测到 0"是两件事。
+			"unit_stats": MatchReportSchema.derive_unit_stats(unit_rows),
 		},
 		"timeline": timeline.duplicate(true),
 		"hermes_analysis": {"status": "none"},

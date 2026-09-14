@@ -6,6 +6,12 @@ extends Node
 ##   godot --headless --path . res://tools/probe_match_history.tscn
 ##   godot --headless --path . res://tools/probe_match_history.tscn -- --res=1280x720,1600x900
 ##
+## ⚠️ 断言文案里**禁用**这些词：`Parse Error` / `SCRIPT ERROR` / `Assertion failed` …
+##    runner（`run_full_regression.ps1`）用 `-match` 比对禁用词表，而它是**正则且大小写不敏感**，
+##    探针自己打印的文案里出现小写 "parse error" 也会把本用例判红
+##    （实测踩过：`match-history` 长期假红，全因一句 "为 null 说明脚本有 parse error"）。
+##    要表达同一件事就写「脚本加载失败」。
+##
 ## 判据：逐条打印 `[PROBE] PASS/FAIL`，末行 `[PROBE] >>> PASS n / FAIL m`；
 ##      FAIL > 0 时退出码 1。
 ##
@@ -33,6 +39,7 @@ func _ready() -> void:
 func _run() -> void:
 	await _check_schema()
 	await _check_demo()
+	await _check_requirement_coverage()
 	await _check_scoring()
 	await _check_legacy_and_garbage()
 	await _check_store()
@@ -485,7 +492,7 @@ func _check_page(display_name: String, scene_path: String, size: Vector2i) -> vo
 
 	# 脚本没挂上 = 该页面脚本有 parse error。此时页面只是个裸 Control，
 	# 后面的断言会全部落空，探针就会变成"假绿"。所以这里必须显式判红。
-	_check(page.get_script() != null, "%s：场景脚本已加载（为 null 说明脚本有 parse error）" % display_name)
+	_check(page.get_script() != null, "%s：场景脚本已加载（为 null 说明脚本加载失败）" % display_name)
 
 	var viewport := get_viewport().get_visible_rect().size
 	var problems: Array[String] = []
@@ -517,7 +524,7 @@ func _check_history_page(size: Vector2i) -> void:
 	# 脚本没加载（parse error）时 Rows 仍是 tscn 声明节点（所以 rows 不会为 null），
 	# 后面调 `page._refresh()` 会直接抛错中断协程 ⇒ 必须在这里堵住，否则探针假绿。
 	if page.get_script() == null:
-		_check(false, "历史列表页脚本已加载（为 null 说明 MatchHistory.gd 有 parse error）")
+		_check(false, "历史列表页脚本已加载（为 null 说明 MatchHistory.gd 加载失败）")
 		page.queue_free()
 		return
 	var rows := page.get_node_or_null(ROOT_HISTORY + "/ListPanel/ListScroll/Rows") as VBoxContainer
@@ -600,7 +607,7 @@ func _check_detail_page(size: Vector2i) -> void:
 	# 脚本没加载（parse error）时页面只是裸 Control：必须判红并早退，
 	# 否则下面每一处 `page._xxx` 都会抛错中断协程，探针变成"假绿"。
 	if page.get_script() == null:
-		_check(false, "对局详情页脚本已加载（为 null 说明 MatchDetail.gd 有 parse error）")
+		_check(false, "对局详情页脚本已加载（为 null 说明 MatchDetail.gd 加载失败）")
 		page.queue_free()
 		return
 	_check(str(page._report.get("report_id", "")) == aborted_id,
@@ -646,6 +653,15 @@ func _check_detail_page(size: Vector2i) -> void:
 			% [index, TABS_DETAIL[index], labels.size()])
 		if index == 1:
 			_check(chart_found, "经济页包含资源曲线控件")
+	# 需求覆盖度：新增的统计项必须**渲染到页面上**（数据结构里有 ≠ 玩家看得到）。
+	var combat_labels := _labels_of(page._pages[3])
+	_check(combat_labels.has("侦察单位数") and combat_labels.has("单位存活率"),
+		"战斗页渲染「单位统计 11 项」汇总区")
+	var build_labels := _labels_of(page._pages[2])
+	_check(build_labels.has("建造开工数") and build_labels.has("同时在建峰值"),
+		"生产与建设页渲染新增的 6 项建设统计")
+	var all_overview_labels := _labels_of(page._pages[0])
+	_check(all_overview_labels.has("峰值军力"), "总览页渲染峰值军力")
 	# 事实与推断分区：自然语言只出现在最后一个标签页
 	var overview_labels := _labels_of(page._pages[0])
 	_check(not overview_labels.has("HERMES 观察（自然语言，属推断）"),
@@ -757,7 +773,7 @@ func _check_legacy_json_file() -> void:
 	# 脚本没加载（parse error）时 Rows 仍是 tscn 声明节点（所以 rows 不会为 null），
 	# 后面调 `page._refresh()` 会直接抛错中断协程 ⇒ 必须在这里堵住，否则探针假绿。
 	if page.get_script() == null:
-		_check(false, "历史列表页脚本已加载（为 null 说明 MatchHistory.gd 有 parse error）")
+		_check(false, "历史列表页脚本已加载（为 null 说明 MatchHistory.gd 加载失败）")
 		page.queue_free()
 		return
 	var rows := page.get_node_or_null(ROOT_HISTORY + "/ListPanel/ListScroll/Rows") as VBoxContainer
@@ -788,7 +804,7 @@ func _check_empty_state() -> void:
 	# 脚本没加载（parse error）时 Rows 仍是 tscn 声明节点（所以 rows 不会为 null），
 	# 后面调 `page._refresh()` 会直接抛错中断协程 ⇒ 必须在这里堵住，否则探针假绿。
 	if page.get_script() == null:
-		_check(false, "历史列表页脚本已加载（为 null 说明 MatchHistory.gd 有 parse error）")
+		_check(false, "历史列表页脚本已加载（为 null 说明 MatchHistory.gd 加载失败）")
 		page.queue_free()
 		return
 	var rows := page.get_node_or_null(ROOT_HISTORY + "/ListPanel/ListScroll/Rows") as VBoxContainer
@@ -822,7 +838,8 @@ func _check_default_entry_points() -> void:
 		page.queue_free()
 		await get_tree().process_frame
 
-	# 成长页现在有 3 张入口卡（永久加点 / 玩家画像 / 历史对局）。
+	# 【2026-09-15 用户要求】成长页**不再挂**「历史对局」入口：现在只有 2 张卡
+	# （永久加点 / 玩家画像）。历史系统本身仍在，只是入口收敛到玩家画像页（下面继续断言）。
 	var growth = (load("res://source/main-menu/Growth.tscn") as PackedScene).instantiate()
 	add_child(growth)
 	await get_tree().process_frame
@@ -831,9 +848,10 @@ func _check_default_entry_points() -> void:
 		"CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Cards") as VBoxContainer
 	_check(cards != null, "成长页能找到卡片容器")
 	if cards != null:
-		_check(cards.get_child_count() == 3,
-			"成长页有 3 张入口卡（实际 %d）" % cards.get_child_count())
-		_check(_collect_text(cards).contains("历史对局"), "成长页有「历史对局」入口卡")
+		_check(cards.get_child_count() == 2,
+			"成长页有 2 张入口卡（实际 %d）" % cards.get_child_count())
+		_check(not _collect_text(cards).contains("历史对局"),
+			"成长页不再挂「历史对局」入口（2026-09-15 用户要求）")
 		_check(_collect_text(cards).contains("玩家画像"), "成长页原有入口卡没被顶掉")
 	growth.queue_free()
 	await get_tree().process_frame
@@ -861,3 +879,121 @@ func _check(condition: bool, message: String) -> void:
 	_fail += 1
 	_failures.append(message)
 	print("[PROBE] FAIL %s" % message)
+
+
+## 需求覆盖度审计：把需求里写死的**数量**变成机器可判的断言。
+##
+## 为什么单列一条：需求逐条给了「伤害统计 11 项 / 单位统计 11 项 / 战斗质量 13 项 /
+## 建设统计约 20 项 / 总览约 20 项 / 时间线 ≥21 类」这类硬数字。靠人肉扫字段表迟早漏，
+## 这里固化成断言 —— 以后谁删了字段，探针立刻变红。
+func _check_requirement_coverage() -> void:
+	var template: Dictionary = MatchReportSchema.TEMPLATE
+	var overview: Dictionary = template.get("overview", {}) if template.get("overview", {}) is Dictionary else {}
+	var construction: Dictionary = template.get("construction", {}) \
+		if template.get("construction", {}) is Dictionary else {}
+	var combat: Dictionary = template.get("combat", {}) if template.get("combat", {}) is Dictionary else {}
+	var damage: Dictionary = combat.get("damage", {}) if combat.get("damage", {}) is Dictionary else {}
+	var unit_stats: Dictionary = combat.get("unit_stats", {}) if combat.get("unit_stats", {}) is Dictionary else {}
+	var quality: Dictionary = combat.get("quality", {}) if combat.get("quality", {}) is Dictionary else {}
+	var combat_overview: Dictionary = combat.get("overview", {}) \
+		if combat.get("overview", {}) is Dictionary else {}
+	var production: Dictionary = template.get("production", {}) if template.get("production", {}) is Dictionary else {}
+	var composition: Dictionary = production.get("composition", {}) \
+		if production.get("composition", {}) is Dictionary else {}
+	# 注意：这里必须数**叶子**而不是键 —— `overview` 有 3 个键是资源对（A/B 两项）。
+	# 用 `.size()` 会得到 17（键数），把"实际 20 项"误判成不达标。
+	_check(_count_variant_leaves(overview) >= 20,
+		"总览区 ≥20 项指标（实际 %d）" % _count_variant_leaves(overview))
+	_check(_count_variant_leaves(production) >= 10,
+		"生产统计 ≥10 项（实际 %d）" % _count_variant_leaves(production))
+	_check(_count_variant_leaves(construction) >= 20,
+		"建设统计 ≥20 项（实际 %d）" % _count_variant_leaves(construction))
+	_check(combat_overview.size() == 13, "战斗总览 13 项（实际 %d）" % combat_overview.size())
+	_check(damage.size() == 11, "伤害统计 11 项（实际 %d）" % damage.size())
+	_check(unit_stats.size() == 11, "单位统计 11 项（实际 %d）" % unit_stats.size())
+	_check(quality.size() == 13, "战斗质量 13 项（实际 %d）" % quality.size())
+	_check(MatchReportSchema.TIMELINE_TYPES.size() >= 21,
+		"时间线事件类型 ≥21 类（实际 %d）" % MatchReportSchema.TIMELINE_TYPES.size())
+	_check(MatchReportSchema.SCORE_DIMENSIONS.size() == 6, "对局表现评分拆 6 维")
+	for key in ["physical", "energy", "explosive", "friendly_fire"]:
+		_check(damage.has(key), "伤害统计包含 %s" % key)
+	_check(composition.size() == 6, "单位构成 6 项口径（实际 %d）" % composition.size())
+
+	# ---- 汇总纪律：空明细 ⇒ 全 null（"未测量"不是 0）----
+	var empty: Dictionary = MatchReportSchema.derive_unit_stats([])
+	var non_null := 0
+	for key in empty:
+		if empty[key] != null:
+			non_null += 1
+	_check(empty.size() == 11 and non_null == 0,
+		"没有单位明细时单位统计全为 null（非 null %d 项）" % non_null)
+	# ---- 明细缺列 ⇒ 该项 null。recorder 的行只有 produced/lost，没有 killed。----
+	var sparse: Dictionary = MatchReportSchema.derive_unit_stats([
+		{"id": "soldier", "produced": 4, "lost": 1},
+	])
+	_check(sparse.get("kills", "x") == null, "明细没有 killed 列时不给编造 0（kills=null）")
+	_check(sparse.get("damage_per_unit", "x") == null, "明细没有伤害列时不给编造 0")
+	_check(int(sparse.get("produced", -1)) == 4 and int(sparse.get("lost", -1)) == 1,
+		"已测量的列照常汇总")
+	_check(int(sparse.get("alive", -1)) == 3, "存活数 = 生产 - 损失")
+	# ---- 归一化过的行会把缺失键补成 null：null 不能被当成 0，也不能 int(null) 崩掉 ----
+	var nulled: Dictionary = MatchReportSchema.derive_unit_stats([
+		{"id": "tank", "produced": 3, "lost": null, "killed": null, "damage_dealt": null},
+	])
+	_check(int(nulled.get("produced", -1)) == 3, "补成 null 的行仍能汇总已测量列（produced=3）")
+	_check(nulled.get("lost", "x") == null and nulled.get("alive", "x") == null,
+		"损失列未测量 ⇒ 损失与存活数均为 null（不给 0）")
+	_check(nulled.get("survival_rate", "x") == null, "损失列未测量 ⇒ 存活率为 null")
+	_check(nulled.get("kills", "x") == null, "明细有 killed 键但值为 null 时不给编造 0")
+
+	# ---- Demo：新增字段必须真的有值，不能只是结构占位 ----
+	var demo := load("res://source/history/DemoMatchReports.gd")
+	var reports: Array = demo.build()
+	var blank_stats := 0
+	var mismatch := 0
+	var blank_peak := 0
+	var blank_construction := 0
+	var stats_missing := 0
+	var inconsistent := 0
+	for report in reports:
+		var entry: Dictionary = report
+		var stats: Dictionary = entry["combat"]["unit_stats"]
+		if stats.size() != 11:
+			stats_missing += 1
+		for key in stats:
+			if stats[key] == null:
+				blank_stats += 1
+		# 同源：汇总必须等于对同一份明细重新推导的结果（不允许出现第三套数字）
+		var again: Dictionary = MatchReportSchema.derive_unit_stats(entry["combat"]["units"])
+		for key in stats:
+			if stats[key] != again.get(key, null):
+				mismatch += 1
+				break
+		if entry["overview"].get("peak_army_value", null) == null:
+			blank_peak += 1
+		for key in ["build_started", "build_cancelled", "avg_build_time_s", "rebuild_count",
+				"repair_spent", "peak_concurrent_builds"]:
+			if entry["construction"].get(key, null) == null:
+				blank_construction += 1
+		var built: Dictionary = entry["construction"]
+		if int(built.get("build_started", 0)) != int(built.get("total_built", 0)) \
+				+ int(built.get("build_cancelled", 0)):
+			inconsistent += 1
+	_check(stats_missing == 0, "每场 Demo 都有完整的 11 项单位统计（缺项 %d 场）" % stats_missing)
+	_check(blank_stats == 0, "Demo 的 11 项单位统计全部有值（空缺 %d）" % blank_stats)
+	_check(mismatch == 0, "单位统计与逐类型明细表同源（重新推导不一致 %d 场）" % mismatch)
+	_check(blank_peak == 0, "Demo 每场都有峰值军力")
+	_check(blank_construction == 0, "Demo 建设统计新增 6 项全部有值（空缺 %d）" % blank_construction)
+	_check(inconsistent == 0, "建造「开工 = 落成 + 取消」自洽（矛盾 %d 场）" % inconsistent)
+
+
+## 模板叶子数：`@list` 记 1 个叶子，字典递归，其余记 1。只用于覆盖度审计。
+func _count_variant_leaves(node: Variant) -> int:
+	if node is String and str(node) == "@list":
+		return 1
+	if node is Dictionary:
+		var total := 0
+		for key in (node as Dictionary):
+			total += _count_variant_leaves((node as Dictionary)[key])
+		return total
+	return 1

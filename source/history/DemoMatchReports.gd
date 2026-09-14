@@ -219,6 +219,7 @@ static func _build_one(index: int, cfg: Dictionary, created_at: String) -> Dicti
 			"weight_class": str(info["weight_class"]),
 			"role_class": str(info["role_class"]),
 			"produced": produced,
+			"alive": maxi(0, produced - lost),
 			"batches": maxi(1, int(roundf(float(produced) / rng.randf_range(2.0, 4.0)))),
 			"avg_interval_s": roundf(rng.randf_range(28.0, 74.0) / maxf(scale, 0.4)),
 			"resource_cost": produced * cost,
@@ -463,6 +464,9 @@ static func _build_one(index: int, cfg: Dictionary, created_at: String) -> Dicti
 	# hermes_analysis.adjutant_impact 里 —— 一处算，两处引用，避免两个数字打架。
 	var adjutant_contribution := roundf(clampf(0.18 + aggression * 0.34, 0.1, 0.6) * 100.0) / 100.0
 	_mark_series_events(series, timeline, duration)
+	# 中途取消的建造数：**只取一次随机数**，供 `build_cancelled` 与 `build_started` 共用，
+	# 保证"开工 = 落成 + 取消"自洽（两次调用会让 3 个数字互相矛盾）。
+	var build_cancelled := int(roundf(rng.randf_range(0.0, 3.0)))
 	var report := {
 		"schema_version": MatchReportSchema.SCHEMA_VERSION,
 		"report_id": "MR-DEMO-%03d" % (index + 1),
@@ -520,6 +524,7 @@ static func _build_one(index: int, cfg: Dictionary, created_at: String) -> Dicti
 			"key_events": _key_events(timeline),
 			"final_base_value": roundf((0.35 + float(cfg["economy_focus"]) * 0.6) * 100.0) / 100.0,
 			"final_controlled_zones": 1 + int(cfg["expansions"]),
+			"peak_army_value": _peak_army_value(unit_rows, aggression),
 			"score": null,
 		},
 		"economy": {
@@ -614,6 +619,14 @@ static func _build_one(index: int, cfg: Dictionary, created_at: String) -> Dicti
 			"defense_line_integrity": roundf(clampf(
 				0.48 + float(cfg["economy_focus"]) * 0.3 + (0.12 if bool(cfg["defensive"]) else 0.0),
 				0.2, 0.95) * 100.0) / 100.0,
+			# 开工数 = 落成数 + 中途取消数，两个数字必须自洽（取消失败的建造不该凭空消失）。
+			"build_cancelled": build_cancelled,
+			"build_started": built_total + build_cancelled,
+			"avg_build_time_s": roundf(rng.randf_range(12.0, 34.0)),
+			"rebuild_count": mini(destroyed_total, int(roundf(float(destroyed_total) * 0.35))),
+			"repair_spent": roundf(float(building_cost_total) * clampf(
+				0.06 + (1.0 - aggression) * 0.12, 0.02, 0.25)),
+			"peak_concurrent_builds": 1 + int(roundf(aggression * 3.0)),
 		},
 		"combat": {
 			"overview": {
@@ -633,6 +646,7 @@ static func _build_one(index: int, cfg: Dictionary, created_at: String) -> Dicti
 			},
 			"damage": damage,
 			"units": combat_rows,
+			"unit_stats": MatchReportSchema.derive_unit_stats(combat_rows),
 			"quality": {
 				"focus_fire": roundf(clampf(0.44 + aggression * 0.4, 0.2, 0.92) * 100.0) / 100.0,
 				"formation_time_s": roundf(rng.randf_range(18.0, 62.0)),
@@ -779,6 +793,23 @@ static func _sink_breakdown(total_spent: float) -> Array:
 	return out
 
 
+## 峰值军力：本局"同时在场"单位价值最高值。用**累计投入的战斗单位价值 × 同时在场系数**估算，
+## 系数随进攻性上升（换线快 ⇒ 同时在场的比例更接近累计投入），并封顶在累计投入之内。
+## 只统计战斗单位（`category != "economy"`）—— 工程车不计入军力。
+static func _peak_army_value(unit_rows: Array, aggression: float) -> float:
+	var invested := 0.0
+	for row in unit_rows:
+		var entry: Dictionary = row
+		if str(entry["category"]) == "economy":
+			continue
+		var cost := int(UNITS.get(str(entry["id"]), {}).get("cost", 0))
+		invested += float(int(entry["produced"]) * cost)
+	return roundf(invested * clampf(0.45 + aggression * 0.34, 0.3, 0.85))
+
+
+## 单位统计 11 项：与「伤害统计 11 项 / 战斗质量 13 项」同级的**汇总口径**。
+## 推导放在 `MatchReportSchema.derive_unit_stats()` —— Demo 与真实对局共用同一份实现，
+## 避免两条链路各算一套数字。
 static func _composition(unit_rows: Array, produced_total: int, lost_total: int) -> Dictionary:
 	var by_type: Array = []
 	var weight := {"light": 0, "medium": 0, "heavy": 0}
@@ -798,7 +829,8 @@ static func _composition(unit_rows: Array, produced_total: int, lost_total: int)
 			role[r] += count
 	var scout := 0
 	for row in unit_rows:
-		if str((row as Dictionary)["id"]) == "drone":
+		# 侦察单位判定与 `unit_stats.scout_units` 共用同一份白名单，否则两处口径会打架。
+		if MatchReportSchema.SCOUT_UNIT_IDS.has(str((row as Dictionary)["id"])):
 			scout += int((row as Dictionary)["produced"])
 	var total := maxf(float(produced_total), 1.0)
 	return {
