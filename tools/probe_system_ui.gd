@@ -47,6 +47,7 @@ func _run() -> void:
 	await _check_growth_tree()
 	await _check_profile()
 	await _check_growth_confirm()
+	await _check_growth_reset()
 	print("[PROBE] >>> PASS %d / FAIL %d" % [_pass, _fail])
 	for line in _failures:
 		print("[PROBE] FAILED: %s" % line)
@@ -391,6 +392,162 @@ func _check_growth_confirm() -> void:
 			GrowthStore.get_level(node_id, {}), int(GrowthStore.state.get("available_points", 0)),
 		]
 	)
+
+
+# ---------------- 彻底重置（洗点） ----------------
+
+func _check_growth_reset() -> void:
+	## 用户验收（2026-09-15）："重置"必须是**彻底重置加点** —— 已保存的等级一起归零，
+	## 且投入的成长点必须**全额退还**。旧实现只丢弃未保存的暂存（undo 语义），
+	## 玩家把点花完、又没有未保存变化时点下去毫无反应，等于按钮失效。
+	var node_id := ""
+	for branch in ["combat", "economy", "construction"]:
+		var definitions: Array = GrowthStore.DEFINITIONS.get(branch, [])
+		if not definitions.is_empty():
+			node_id = str(definitions[0].get("id", ""))
+			break
+	if node_id.is_empty():
+		_check(false, "存在可用于重置验证的成长节点", "DEFINITIONS 为空")
+		return
+	var definition := GrowthStore.get_definition(node_id)
+	var costs: Array = definition.get("costs", [])
+	if costs.is_empty():
+		_check(false, "节点有成本定义（重置期望值从数据源推导）", node_id)
+		return
+	var max_level := int(definition.get("max_level", 0))
+	# 期望退款 = 升满该节点的 costs 前缀和（**多级累加**，不是只退第一级）：
+	# 用户现场就是 combat_power 5/5 + combat_mobility 2/4 一共投了 12 点，
+	# 只退第一级 = 吞点，属于最隐蔽的一类错误。
+	var expected_refund := 0
+	for i in range(mini(max_level, costs.size())):
+		expected_refund += int(costs[i])
+	var budget := expected_refund + 8
+	var state_backup: Dictionary = GrowthStore.state.duplicate(true)
+
+	# --- 1) 先真花点：把首节点逐级升满，得到一个"已投入"的存档 ---
+	GrowthStore.state = {
+		"available_points": budget, "levels": {}, "earned_total": budget, "spent_total": 0,
+	}
+	GrowthStore.save_state()
+	var spend_pending := {}
+	spend_pending[node_id] = max_level
+	var spent := GrowthStore.confirm_pending(spend_pending)
+	_check(bool(spent.get("ok", false)), "重置前置：可逐级加点至满级", str(spent))
+	var points_after_spend := int(GrowthStore.state.get("available_points", 0))
+	_check(
+		points_after_spend == budget - expected_refund,
+		"重置前置：多级加点按成本前缀和扣减",
+		"%d - %d = %d（实际 %d）" % [
+			budget, expected_refund, budget - expected_refund, points_after_spend,
+		]
+	)
+
+	# --- 2) reset_all 必须归零 + 全额退款 ---
+	var result := GrowthStore.reset_all()
+	_check(bool(result.get("ok", false)), "重置全部加点返回成功", str(result))
+	_check(
+		int(result.get("refunded", 0)) == expected_refund,
+		"退还点数 == 多级已投入成本（不吞点）",
+		"期望 %d / 实际 %d" % [expected_refund, int(result.get("refunded", 0))]
+	)
+	var levels_after: Dictionary = GrowthStore.state.get("levels", {})
+	_check(levels_after.is_empty(), "重置后已保存等级清空", str(levels_after))
+	_check(
+		int(GrowthStore.state.get("available_points", 0)) == budget,
+		"重置后点数回到投入前",
+		"实际 %d（期望 %d）" % [int(GrowthStore.state.get("available_points", 0)), budget]
+	)
+	_check(
+		int(GrowthStore.state.get("spent_total", 0)) == 0,
+		"重置后累计消耗归零（可用 + 已花 == 累计获得）",
+		"spent=%d" % int(GrowthStore.state.get("spent_total", 0))
+	)
+
+	# 落盘证据：重启后读回的等级表必须是空的
+	var persisted := {}
+	if FileAccess.file_exists(GrowthStore.SAVE_PATH):
+		var file := FileAccess.open(GrowthStore.SAVE_PATH, FileAccess.READ)
+		if file != null:
+			var parsed = JSON.parse_string(file.get_as_text())
+			if parsed is Dictionary:
+				persisted = (parsed as Dictionary).get("levels", {})
+	_check(persisted.is_empty(), "重置已落盘（等级表为空）", str(persisted))
+
+	# 幂等：空存档再点一次不得报错、不得吞点
+	var again := GrowthStore.reset_all()
+	_check(
+		bool(again.get("ok", false)) and int(again.get("refunded", 0)) == 0
+			and int(GrowthStore.state.get("available_points", 0)) == budget,
+		"空存档重复重置幂等（不报错、不吞点）",
+		str(again)
+	)
+
+	# --- 3) UI 层：点「重置全部加点」，等级退回 0 且状态行如实报出退还点数 ---
+	GrowthStore.state = {
+		"available_points": budget, "levels": {}, "earned_total": budget, "spent_total": 0,
+	}
+	var ui_pending := {}
+	ui_pending[node_id] = max_level
+	GrowthStore.confirm_pending(ui_pending)
+	var page := await _open("res://source/main-menu/GrowthUpgrades.tscn")
+	if page != null:
+		var reset_button := page.find_child("Reset", true, false) as Button
+		_check(reset_button != null, "成长页存在重置按钮", "Actions/Reset")
+		if reset_button != null:
+			_check(
+				reset_button.text == "重置全部加点",
+				"重置按钮文案表明是彻底重置",
+				"实际 = %s" % reset_button.text
+			)
+			reset_button.pressed.emit()
+			await get_tree().process_frame
+			var status := page.find_child("Status", true, false) as Label
+			_check(
+				status != null and status.text.begins_with("已彻底重置加点"),
+				"重置按钮给出可读反馈（不再是静默无变化）",
+				status.text if status != null else "Status 节点缺失"
+			)
+			var points_label := page.find_child("Points", true, false) as Label
+			_check(
+				points_label != null
+					and points_label.text.contains("可用成长点：%d " % budget),
+				"重置按钮退还成长点",
+				points_label.text if points_label != null else "Points 节点缺失"
+			)
+			_check(
+				_node_level_text(page, node_id) == "0/%d" % max_level,
+				"重置按钮把节点等级退回 0",
+				"%s 卡片等级 = %s" % [node_id, _node_level_text(page, node_id)]
+			)
+		page.queue_free()
+		await get_tree().process_frame
+
+	# 还原：探针不得留下副作用
+	GrowthStore.state = state_backup
+	GrowthStore.save_state()
+	var restored_levels: Dictionary = GrowthStore.state.get("levels", {})
+	var backup_levels: Dictionary = state_backup.get("levels", {})
+	_check(
+		int(GrowthStore.state.get("available_points", 0))
+			== int(state_backup.get("available_points", 0))
+			and restored_levels == backup_levels,
+		"重置探针已还原成长状态",
+		"点数 %d / 等级 %s" % [
+			int(GrowthStore.state.get("available_points", 0)), str(restored_levels),
+		]
+	)
+
+
+func _node_level_text(page: Node, node_id: String) -> String:
+	## 取页面卡片登记表里的等级 Label 文本（GrowthUpgrades 用 `_cards: node_id -> {level: Label}`）。
+	var cards = page.get("_cards")
+	if cards is Dictionary:
+		var entry = (cards as Dictionary).get(node_id, {})
+		if entry is Dictionary:
+			var label = (entry as Dictionary).get("level")
+			if label is Label:
+				return (label as Label).text
+	return ""
 
 
 # ---------------- 工具 ----------------

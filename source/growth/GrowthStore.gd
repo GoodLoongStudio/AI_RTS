@@ -123,7 +123,46 @@ func confirm_pending(pending: Dictionary) -> Dictionary:
 	return {"ok": true, "state": state.duplicate(true)}
 
 func reset_pending() -> Dictionary:
+	## 只返回**已保存的等级**，供 UI 丢弃未保存的暂存选择（"撤销本次选择"，不写盘）。
 	return state.duplicate(true)
+
+func reset_all() -> Dictionary:
+	## 彻底重置加点（洗点）：清空**已保存**的等级，并把已投入的成长点**全额退还**。
+	##
+	## 与 `reset_pending()` 的区别必须分清：那个是"撤销本次未保存的选择"，只动 UI 暂存；
+	## 这个是连存档一起归零。因此**必须退款** —— 退多少由 costs 数组逐级回滚算出
+	## （第 1..level 级各自花的点数之和），否则玩家的点数会凭空蒸发。
+	## spent_total 归零（历史累计获得 earned_total 保留），使 available + spent == earned 恒成立。
+	var before := state.duplicate(true)
+	var levels: Dictionary = state.get("levels", {})
+	var refund := 0
+	var nodes := 0
+	for key in levels.keys():
+		var level := int(levels[key])
+		if level <= 0:
+			continue
+		var costs: Array = get_definition(str(key)).get("costs", [])
+		for i in range(mini(level, costs.size())):
+			refund += int(costs[i])
+		nodes += 1
+	if nodes == 0 and refund == 0:
+		return {
+			"ok": true, "refunded": 0, "nodes": 0,
+			"reason": "当前没有已投入的加点", "state": state.duplicate(true),
+		}
+	state["levels"] = {}
+	state["available_points"] = int(state.get("available_points", 0)) + refund
+	state["spent_total"] = maxi(0, int(state.get("spent_total", 0)) - refund)
+	if not save_state():
+		state = before
+		return {
+			"ok": false, "refunded": 0, "nodes": 0,
+			"reason": "无法保存成长状态", "state": state.duplicate(true),
+		}
+	return {
+		"ok": true, "refunded": refund, "nodes": nodes,
+		"reason": "", "state": state.duplicate(true),
+	}
 
 func save_profile_snapshot(snapshot: Dictionary) -> bool:
 	profile = snapshot.duplicate(true)

@@ -456,8 +456,24 @@ func _on_confirm() -> void:
 
 
 func _on_reset() -> void:
-	pending = GrowthStore.reset_pending().get("levels", {}).duplicate(true)
-	status_label.text = "已重置本次未保存的选择"
+	## 彻底重置（洗点）：连**已保存**的等级一起清空，投入的点全额退还；未保存的暂存选择一并丢弃。
+	## 语义与旧版不同 —— 旧版只丢暂存（"撤销本次选择"），在没有未保存变化时点下去毫无反应。
+	var dropped := _pending_cost()
+	var result := GrowthStore.reset_all()
+	pending = GrowthStore.state.get("levels", {}).duplicate(true)
+	if not bool(result.get("ok", false)):
+		status_label.text = "重置失败：%s" % str(result.get("reason", "未知原因"))
+	else:
+		var refunded := int(result.get("refunded", 0))
+		if refunded <= 0 and dropped <= 0:
+			status_label.text = "当前没有可重置的加点：尚未投入任何成长点"
+		else:
+			var detail := "已彻底重置加点：%d 个节点归零，退还 %d 点成长点" % [
+				int(result.get("nodes", 0)), refunded,
+			]
+			if dropped > 0:
+				detail += "，未保存的 %d 点选择一并丢弃" % dropped
+			status_label.text = detail
 	_refresh()
 
 
