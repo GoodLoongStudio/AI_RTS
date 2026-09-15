@@ -1,0 +1,148 @@
+{
+ "accepted": false,
+ "adjacent_angle_gaps_deg": [
+  25.3655,
+  38.067,
+  45.7412,
+  250.8263
+ ],
+ "algo_version": "2.0.0",
+ "attempts": 200,
+ "center_dists": [
+  85.536,
+  75.5963,
+  114.0637,
+  106.0379
+ ],
+ "constraints": {
+  "angle_gap": {
+   "limit": [
+    45.0,
+    150.0
+   ],
+   "pass": false,
+   "value": [
+    25.3655,
+    250.8263
+   ]
+  },
+  "center_gap": {
+   "limit": 0.0,
+   "pass": true,
+   "value": 75.5963
+  },
+  "center_ratio": {
+   "limit": 99.0,
+   "pass": true,
+   "value": 1.5089
+  },
+  "margin": {
+   "limit": 12.0,
+   "pass": true,
+   "value": 29.2787
+  },
+  "min_pair": {
+   "limit": 89.6,
+   "pass": false,
+   "value": 48.9541
+  },
+  "nn_ratio": {
+   "limit": 1.3,
+   "pass": false,
+   "value": 1.5691
+  },
+  "territory_ratio": {
+   "cells": [
+    25630,
+    29042,
+    4815,
+    6049
+   ],
+   "limit": 1.3,
+   "pass": false,
+   "value": 6.0316
+  }
+ },
+ "corner_flags": [
+  false,
+  false,
+  false,
+  false
+ ],
+ "gate": "G1",
+ "gate_seed": 731944515271650687,
+ "master_seed": 58,
+ "min_pair": 48.9541,
+ "pair_dist_matrix": [
+  [
+   Infinity,
+   131.4482,
+   118.3574,
+   76.8144
+  ],
+  [
+   131.4482,
+   Infinity,
+   71.7499,
+   98.9364
+  ],
+  [
+   118.3574,
+   71.7499,
+   Infinity,
+   48.9541
+  ],
+  [
+   76.8144,
+   98.9364,
+   48.9541,
+   Infinity
+  ]
+ ],
+ "params": {
+  "angle_max": 150.0,
+  "angle_min": 45.0,
+  "candidates": 32,
+  "center_gap": 0.0,
+  "center_ratio": 99.0,
+  "margin": 12.0,
+  "max_attempts": 200,
+  "min_pair_factor": 0.35,
+  "nn_ratio": 1.3,
+  "territory_ratio": 1.3,
+  "top_frac": 0.7
+ },
+ "polar_angles_deg": [
+  -168.8323,
+  81.994,
+  120.061,
+  145.4265
+ ],
+ "reject_reason": "min_pair",
+ "rot_sym_err": 0.2611,
+ "sampler": "A",
+ "starts": [
+  [
+   44.08,
+   111.43
+  ],
+  [
+   138.53,
+   202.86
+  ],
+  [
+   70.86,
+   226.72
+  ],
+  [
+   40.69,
+   188.17
+  ]
+ ],
+ "territory_cells": [
+  25630,
+  29042,
+  4815,
+  6049
+ ]
+}

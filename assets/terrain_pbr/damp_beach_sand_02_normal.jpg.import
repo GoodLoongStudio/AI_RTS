@@ -3,27 +3,28 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dynj7fs358fu5"
-path="res://.godot/imported/damp_beach_sand_02_normal.jpg-c7d0ddbf7546e5f4c0fd9ca987618ce5.ctex"
+path.s3tc="res://.godot/imported/damp_beach_sand_02_normal.jpg-c7d0ddbf7546e5f4c0fd9ca987618ce5.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/terrain_pbr/damp_beach_sand_02_normal.jpg"
-dest_files=["res://.godot/imported/damp_beach_sand_02_normal.jpg-c7d0ddbf7546e5f4c0fd9ca987618ce5.ctex"]
+dest_files=["res://.godot/imported/damp_beach_sand_02_normal.jpg-c7d0ddbf7546e5f4c0fd9ca987618ce5.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
-compress/normal_map=0
+compress/normal_map=1
 compress/channel_pack=0
-mipmaps/generate=false
+mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

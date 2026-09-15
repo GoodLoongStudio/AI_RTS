@@ -24,6 +24,10 @@ const RocketeerUnit := "res://source/match/units/Rocketeer.tscn"
 const BarracksUnit := "res://source/match/units/Barracks.tscn"
 
 ## RA3 式生产分类。place=true 走蓝图放置（工人建造）；否则 producer 建筑排队生产。
+##
+## 【格子顺序 = 玩家找东西的顺序（2026-09-14 用户："建筑在上面，防御设施在下面"）】
+## 上半区放**生产/经济建筑**（基地/车厂/机场/兵营），下半区放**防御设施**（对地炮/对空炮/机枪塔）。
+## 改动这里只会挪格子位置，不影响任何玩法（点击行为由 `_on_cell_pressed` 按 scene 决定）。
 const TABS = [
 	{
 		"id": "structures", "caption": "建筑", "place": true,
@@ -31,10 +35,10 @@ const TABS = [
 			{"scene": CommandCenterUnit, "caption": "基地", "icon": "command_center"},
 			{"scene": VehicleFactoryUnit, "caption": "车厂", "icon": "vehicle_factory"},
 			{"scene": AircraftFactoryUnit, "caption": "机场", "icon": "aircraft_factory"},
+			{"scene": BarracksUnit, "caption": "兵营", "icon": "barracks"},
 			{"scene": AntiGroundTurretUnit, "caption": "对地炮", "icon": "anti_ground_turret"},
 			{"scene": AntiAirTurretUnit, "caption": "对空炮", "icon": "anti_air_turret"},
 			{"scene": MachineGunTurretUnit, "caption": "机枪塔", "icon": "machine_gun_turret"},
-			{"scene": BarracksUnit, "caption": "兵营", "icon": "barracks"},
 		],
 	},
 	{
@@ -70,7 +74,9 @@ const TABS = [
 ]
 
 const SIDEBAR_WIDTH := 288.0
-const CELL_SIZE := 58.0
+## 侧栏内边距 10+10 后的正方形边长，让小地图铺满、不再缩在扁框里。
+const MINIMAP_EDGE := SIDEBAR_WIDTH - 20.0
+const CELL_SIZE := 64.0
 const CELL_WIDTH := 123.0
 const GRID_COLUMNS := 2
 const GRID_CAPACITY := 12
@@ -159,6 +165,8 @@ func _process(delta):
 
 ## 把现有 Minimap 节点收编进侧栏顶部（调用方先从原父节点 remove_child）。
 func absorb_minimap(minimap_node: Control):
+	minimap_node.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	minimap_node.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_minimap_slot.add_child(minimap_node)
 
 
@@ -214,7 +222,9 @@ func _build_ui():
 
 	# 小地图槽。
 	_minimap_slot = PanelContainer.new()
-	_minimap_slot.custom_minimum_size = Vector2(0, 180)
+	_minimap_slot.custom_minimum_size = Vector2(MINIMAP_EDGE, MINIMAP_EDGE)
+	_minimap_slot.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_minimap_slot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_minimap_slot.add_theme_stylebox_override(
 		"panel", _make_cell_style(CELL_BG, CELL_EDGE, 4)
 	)
@@ -483,6 +493,9 @@ func _tab_by_id(tab_id: String):
 
 
 func _make_cell(item: Dictionary) -> Dictionary:
+	## 生产卡片。布局按用户口径：
+	## 左上图标（尽量放大）/ 右上状态角标 / 中部名称 / 底部造价·时间 / 右下队列数量。
+	## 卡片高度刻意压在 CELL_SIZE，保证 1280x720 下同屏能看到主要单位。
 	var button = Button.new()
 	button.custom_minimum_size = Vector2(CELL_WIDTH, CELL_SIZE)
 	_make_button_styles(button)
@@ -497,10 +510,10 @@ func _make_cell(item: Dictionary) -> Dictionary:
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		icon.offset_left = 5
-		icon.offset_top = 5
-		icon.offset_right = -5
-		icon.offset_bottom = -15
+		icon.offset_left = 3
+		icon.offset_top = 3
+		icon.offset_right = -3
+		icon.offset_bottom = -26
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		button.add_child(icon)
 	else:
@@ -508,23 +521,40 @@ func _make_cell(item: Dictionary) -> Dictionary:
 		caption.text = item.caption
 		caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		caption.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		caption.add_theme_font_size_override("font_size", 14)
+		caption.add_theme_font_size_override("font_size", 15)
 		caption.add_theme_color_override("font_color", Color(0.85, 0.88, 0.92))
 		caption.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		caption.offset_bottom = -12
+		caption.offset_bottom = -24
 		caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		button.add_child(caption)
 
+	# 单位名称：放在图标正下方，比造价更重要。
+	var name_label = Label.new()
+	name_label.text = str(item.caption)
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_label.add_theme_font_size_override("font_size", 11)
+	name_label.add_theme_color_override("font_color", ProductionTheme.TEXT)
+	name_label.clip_text = true
+	name_label.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	name_label.offset_top = -25
+	name_label.offset_bottom = -14
+	name_label.offset_left = 2
+	name_label.offset_right = -2
+	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(name_label)
+
+	# 造价 · 生产时间。
 	var cost = Label.new()
 	cost.text = _cost_caption(item)
-	cost.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cost.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	cost.add_theme_font_size_override("font_size", 10)
-	cost.add_theme_color_override("font_color", GOLD_DIM)
+	cost.add_theme_color_override("font_color", ProductionTheme.AMBER)
+	cost.clip_text = true
 	cost.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	cost.offset_top = -14
-	cost.offset_bottom = -2
-	cost.offset_left = 2
-	cost.offset_right = -2
+	cost.offset_bottom = -1
+	cost.offset_left = 4
+	cost.offset_right = -30
 	cost.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(cost)
 
@@ -537,23 +567,50 @@ func _make_cell(item: Dictionary) -> Dictionary:
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(shade)
 
-	# 队列数量角标。
+	# 队列数量角标（右下）。
 	var badge = Label.new()
 	badge.text = ""
 	badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	badge.add_theme_font_size_override("font_size", 12)
-	badge.add_theme_color_override("font_color", GOLD)
-	badge.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	badge.offset_left = -34
-	badge.offset_right = -4
-	badge.offset_top = 2
-	badge.offset_bottom = 18
+	badge.add_theme_font_size_override("font_size", 11)
+	badge.add_theme_color_override("font_color", ProductionTheme.CYAN)
+	badge.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	badge.offset_left = -30
+	badge.offset_right = -3
+	badge.offset_top = -14
+	badge.offset_bottom = -1
 	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(badge)
 
+	# 状态角标（右上）：字形 + 短标签，颜色随状态。字形一律 ASCII，
+	# 不依赖主题字体是否含 ✔ ✕ ⚠ 之类符号。
+	var state_badge = Label.new()
+	state_badge.text = ""
+	state_badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	state_badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	state_badge.add_theme_font_size_override("font_size", 10)
+	state_badge.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	state_badge.offset_left = -CELL_WIDTH + 2
+	state_badge.offset_right = -3
+	state_badge.offset_top = 2
+	state_badge.offset_bottom = 16
+	state_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(state_badge)
+
 	button.tooltip_text = _item_tooltip(item)
+	# 【2026-09-15 用户要求："图2这个详情UI是可以不要的"】**不再弹自绘详情卡**
+	# （「真实单位数据 / 当前状态 / AI 建议」那一大块）。原生 `tooltip_text` 保留：
+	# 悬停仍能看到"由谁生产 / 价格"一行；需要完整数据时看单位/建筑详情。
+	# 悬停连接已移除。`ProductionTooltip.gd` **不能删** —— `UnitDetailPanel` 等
+	# 仍在 preload 它复用 public static 格式化函数与中文词表。
+
 	return {
-		"item": item, "button": button, "shade": shade, "badge": badge,
+		"item": item,
+		"button": button,
+		"shade": shade,
+		"badge": badge,
+		"name_label": name_label,
+		"cost_label": cost,
+		"state_badge": state_badge,
 	}
 
 
@@ -691,7 +748,7 @@ func _on_cell_gui_input(event: InputEvent, item: Dictionary):
 ## 兜底自救：取消该生产建筑队列里的**队首**（不限类型）。
 ## 仅当"按同类型找不到"时才会走到这里，正常取消失效路径不受影响。
 func _cancel_head_of_any_queue(item: Dictionary) -> void:
-	for unit in _own_units_by_scene(item.producer):
+	for unit in _own_units_by_scene(item.get("producer")):
 		if not ("production_queue" in unit):
 			continue
 		var elements = unit.production_queue.get_elements()
@@ -825,11 +882,24 @@ func _own_units_by_scene(producer_scene) -> Array:
 
 
 func _queue_stats(item: Dictionary) -> Dictionary:
+	var empty := {
+		"count": 0,
+		"producers": 0,
+		"progress": 0.0,
+		"last_match": null,
+	}
+	# 建筑页是工人蓝图放置，条目没有 producer。用 item.producer 会每 0.4s 刷 SCRIPT ERROR，
+	# 大湖活局里光打栈就会把主线程打穿。
+	if item.get("place", false):
+		return empty
+	var producer = item.get("producer")
+	if producer == null:
+		return empty
 	var queued_count := 0
 	var producer_count := 0
 	var best_progress := 0.0
 	var last_match = null
-	for unit in _own_units_by_scene(item.producer):
+	for unit in _own_units_by_scene(producer):
 		producer_count += 1
 		if not ("production_queue" in unit):
 			continue
@@ -854,6 +924,11 @@ func _prototype_path(prototype) -> String:
 
 
 func _refresh_tabs():
+	# 【2026-09-14 用户报"我没有车间怎么能 UI 显示造这些坦克和载具"】：
+	# 没有对应生产设施的页签**整个藏起来** —— 原来只是把按钮置灰，但格子里的图标与价格
+	# 仍是亮的（Godot 的 disabled 样式只改按钮底，不改子控件），看起来就是"能造"。
+	# 发现路径不变：在"建筑"页造出车厂/兵营/机场，对应页签就会出现。
+	var available_tabs: Array = []
 	for tab in TABS:
 		var available := false
 		if tab.get("place", false):
@@ -861,36 +936,110 @@ func _refresh_tabs():
 		else:
 			available = not _own_units_by_scene(tab.producer).is_empty()
 			if not available:
-				# 页签内任一物品有其可用生产设施即解锁（如步兵页签的工人走主基地生产）
+				# 页签内任一物品有其可用生产设施即解锁（如"载具"页签的工人走主基地生产）
 				for item in tab.items:
 					if not item.get("place", false) and not _own_units_by_scene(
 						item.get("producer", tab.producer)
 					).is_empty():
 						available = true
 						break
+		if available:
+			available_tabs.append(str(tab.id))
 		var tab_button: Button = _tab_buttons[tab.id]
 		tab_button.disabled = not available
+		tab_button.visible = available
 		if not available:
 			tab_button.tooltip_text = str(tab.caption) + "（暂无可用的生产设施）"
 		else:
 			tab_button.tooltip_text = str(tab.caption)
+	# 当前页签已不可用（设施还没造 / 被打掉）→ 自动切到第一个可用页签，
+	# 否则会停在一个"整页空白"的网格上（比置灰更难懂）。
+	if not available_tabs.is_empty() and not available_tabs.has(_active_tab_id):
+		_select_tab(str(available_tabs[0]))
 
 
 func _refresh_cells():
 	for cell in _cells:
 		var item: Dictionary = cell.item
-		if item.get("place", false):
-			var has_worker: bool = not _own_workers().is_empty()
-			cell.button.disabled = not has_worker
-			continue
 		var stats = _queue_stats(item)
-		cell.button.disabled = stats.producers == 0
-		if stats.count == 0:
-			cell.badge.text = ""
+		# 拥有数量（同类型自建单位/建筑数）。放置类建筑同样有意义。
+		var owned: int = _own_units_by_scene(item.scene).size()
+		var state := _cell_state(item, stats)
+
+		# 可产判定沿用原有逻辑，不改动任何玩法行为。
+		if item.get("place", false):
+			cell.button.disabled = _own_workers().is_empty()
+		else:
+			cell.button.disabled = stats.producers == 0
+			# 【2026-09-15 用户要求】没有生产设施的项**不显示**：置灰只改底色，
+			# 图标与价格照旧是亮的 —— 看起来就是"没有车厂也能造坦克"。
+			# 发现路径不变：建筑页造出车厂/兵营/机场，对应格子就会出现。
+			cell.button.visible = stats.producers > 0
+
+		# 进度遮罩（原有 RA3 式自底向上填充，保留）。
+		var queued: int = int(stats.get("count", 0))
+		if queued == 0:
 			cell.shade.offset_top = 0
 		else:
-			cell.badge.text = "×%d" % stats.count
-			cell.shade.offset_top = -CELL_SIZE * stats.progress
+			cell.shade.offset_top = -CELL_SIZE * float(stats.get("progress", 0.0))
+
+		# 右下：拥有数量；右上：状态角标（字形 + 短标签，颜色随状态）。
+		cell.badge.text = "×%d" % owned if owned > 0 else ""
+		var glyph: String = ProductionTheme.state_glyph(state)
+		if state == ProductionTheme.STATE_READY:
+			# 一切正常时不堆文字，只留一个小字形，避免卡片噪声。
+			cell.state_badge.text = glyph
+		elif state == ProductionTheme.STATE_PRODUCING:
+			cell.state_badge.text = "%s×%d" % [glyph, queued]
+		else:
+			cell.state_badge.text = "%s%s" % [glyph, ProductionTheme.state_label(state)]
+		cell.state_badge.add_theme_color_override(
+			"font_color", ProductionTheme.state_color(state)
+		)
+		# 卡片描边随状态变化（与角标、字形、Tooltip 文本共同表达同一状态）。
+		cell.button.add_theme_stylebox_override(
+			"normal", ProductionTheme.card_style(state)
+		)
+		cell.button.add_theme_stylebox_override(
+			"hover", ProductionTheme.card_style(state, true)
+		)
+		cell.button.add_theme_stylebox_override(
+			"pressed", ProductionTheme.card_style(state, false, true)
+		)
+
+
+## 生产卡片状态：能用 ProductionCatalog 就用它（单一事实来源）；查不到退回本页原有粗判。
+func _cell_state(item: Dictionary, stats: Dictionary) -> String:
+	if item.get("place", false):
+		return ProductionTheme.STATE_LOCKED if _own_workers().is_empty() \
+			else ProductionTheme.STATE_READY
+	if int(stats.get("producers", 0)) == 0:
+		return ProductionTheme.STATE_LOCKED
+	if int(stats.get("count", 0)) > 0:
+		return ProductionTheme.STATE_PRODUCING
+	var item_id := str(item.get("icon", ""))
+	if item_id != "" and not ProductionCatalog.entry(item_id).is_empty():
+		var result = ProductionCatalog.state_of(item_id, {
+			"player": _local_player,
+			"producer": _first_producer(item),
+			"queue_items": int(stats.count),
+		})
+		if result is Dictionary and result.has("state"):
+			return str(result["state"])
+	return ProductionTheme.STATE_READY
+
+
+func _first_producer(item: Dictionary):
+	var producers := _own_units_by_scene(item.get("producer"))
+	return producers[0] if not producers.is_empty() else null
+
+
+# ---------------- 悬停 Tooltip（2026-09-15 已按用户要求移除） ----------------
+#
+# 原来这里用自绘 `ProductionTooltip` 弹一整块「真实单位数据 / 当前状态 / AI 建议」。
+# 用户要求去掉（"这个详情UI是可以不要的"）→ 悬停只留原生 `tooltip_text` 一行。
+# **注意**：`ProductionTooltip.gd` 不能删 —— `UnitDetailPanel` / `ProductionQueuePanel`
+# / `BaseStatusStrip` 还在 preload 它复用那批 public static 函数与中文词表。
 
 
 func _refresh_funds():

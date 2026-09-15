@@ -2,19 +2,206 @@
   "schema": "growth-definitions/1",
   "branches": {
     "combat": [
-      {"id":"combat_power","name":"战术火力","description":"提升部队战斗效率。","max_level":5,"costs":[1,1,2,2,3],"prerequisite":""},
-      {"id":"combat_guard","name":"战场韧性","description":"提高部队持续作战能力。","max_level":5,"costs":[1,2,2,3,3],"prerequisite":"combat_power"},
-      {"id":"combat_skill","name":"技能专精","description":"强化主动技能与副官协同。","max_level":3,"costs":[2,3,4],"prerequisite":"combat_guard"}
+      {
+        "id": "combat_power",
+        "name": "战术火力",
+        "description": "提升部队战斗效率。",
+        "max_level": 5,
+        "costs": [
+          1,
+          1,
+          2,
+          2,
+          3
+        ],
+        "prerequisite": ""
+      },
+      {
+        "id": "combat_guard",
+        "name": "战场韧性",
+        "description": "提高部队持续作战能力。",
+        "max_level": 5,
+        "costs": [
+          1,
+          2,
+          2,
+          3,
+          3
+        ],
+        "prerequisite": "combat_power"
+      },
+      {
+        "id": "combat_skill",
+        "name": "技能专精",
+        "description": "强化主动技能与副官协同。",
+        "max_level": 3,
+        "costs": [
+          2,
+          3,
+          4
+        ],
+        "prerequisite": "combat_guard"
+      },
+      {
+        "id": "combat_mobility",
+        "name": "机动作战",
+        "description": "提升部队移动与转场响应速度。",
+        "max_level": 4,
+        "costs": [
+          1,
+          2,
+          2,
+          3
+        ],
+        "prerequisite": "combat_power"
+      },
+      {
+        "id": "combat_command",
+        "name": "战术网络",
+        "description": "扩大副官技能覆盖并降低指挥冷却。",
+        "max_level": 4,
+        "costs": [
+          2,
+          2,
+          3,
+          4
+        ],
+        "prerequisite": "combat_skill"
+      }
     ],
     "economy": [
-      {"id":"economy_gather","name":"高效采集","description":"提升资源采集效率。","max_level":5,"costs":[1,1,2,2,3],"prerequisite":""},
-      {"id":"economy_stock","name":"资源储备","description":"提高资源上限与周转空间。","max_level":5,"costs":[1,2,2,3,3],"prerequisite":"economy_gather"},
-      {"id":"economy_production","name":"生产调度","description":"提升生产队列的运营效率。","max_level":3,"costs":[2,3,4],"prerequisite":"economy_stock"}
+      {
+        "id": "economy_gather",
+        "name": "高效采集",
+        "description": "提升资源采集效率。",
+        "max_level": 5,
+        "costs": [
+          1,
+          1,
+          2,
+          2,
+          3
+        ],
+        "prerequisite": ""
+      },
+      {
+        "id": "economy_stock",
+        "name": "资源储备",
+        "description": "提高资源上限与周转空间。",
+        "max_level": 5,
+        "costs": [
+          1,
+          2,
+          2,
+          3,
+          3
+        ],
+        "prerequisite": "economy_gather"
+      },
+      {
+        "id": "economy_production",
+        "name": "生产调度",
+        "description": "提升生产队列的运营效率。",
+        "max_level": 3,
+        "costs": [
+          2,
+          3,
+          4
+        ],
+        "prerequisite": "economy_stock"
+      },
+      {
+        "id": "economy_logistics",
+        "name": "后勤链路",
+        "description": "降低补给损耗并提升运输效率。",
+        "max_level": 4,
+        "costs": [
+          1,
+          2,
+          2,
+          3
+        ],
+        "prerequisite": "economy_stock"
+      },
+      {
+        "id": "economy_trade",
+        "name": "战略贸易",
+        "description": "提高多资源转换与市场收益。",
+        "max_level": 3,
+        "costs": [
+          2,
+          3,
+          4
+        ],
+        "prerequisite": "economy_production"
+      }
     ],
     "construction": [
-      {"id":"construction_speed","name":"快速施工","description":"缩短建筑施工时间。","max_level":5,"costs":[1,1,2,2,3],"prerequisite":""},
-      {"id":"construction_armor","name":"坚固工事","description":"提高建筑耐久与防守价值。","max_level":5,"costs":[1,2,2,3,3],"prerequisite":"construction_speed"},
-      {"id":"construction_network","name":"建设网络","description":"改善扩张与前线建设能力。","max_level":3,"costs":[2,3,4],"prerequisite":"construction_armor"}
+      {
+        "id": "construction_speed",
+        "name": "快速施工",
+        "description": "缩短建筑施工时间。",
+        "max_level": 5,
+        "costs": [
+          1,
+          1,
+          2,
+          2,
+          3
+        ],
+        "prerequisite": ""
+      },
+      {
+        "id": "construction_armor",
+        "name": "坚固工事",
+        "description": "提高建筑耐久与防守价值。",
+        "max_level": 5,
+        "costs": [
+          1,
+          2,
+          2,
+          3,
+          3
+        ],
+        "prerequisite": "construction_speed"
+      },
+      {
+        "id": "construction_network",
+        "name": "建设网络",
+        "description": "改善扩张与前线建设能力。",
+        "max_level": 3,
+        "costs": [
+          2,
+          3,
+          4
+        ],
+        "prerequisite": "construction_armor"
+      },
+      {
+        "id": "construction_fortify",
+        "name": "区域防御",
+        "description": "强化关键建筑的护盾与驻军容量。",
+        "max_level": 4,
+        "costs": [
+          1,
+          2,
+          2,
+          3
+        ],
+        "prerequisite": "construction_armor"
+      },
+      {
+        "id": "construction_frontier",
+        "name": "前线工程",
+        "description": "降低远端建造成本并提升占领速度。",
+        "max_level": 3,
+        "costs": [
+          2,
+          3,
+          4
+        ],
+        "prerequisite": "construction_network"
+      }
     ]
   }
 }

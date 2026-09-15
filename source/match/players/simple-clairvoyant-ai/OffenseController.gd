@@ -16,6 +16,8 @@ const FIELD_CONSTRUCTION := 1 << 4
 const FIELD_PRODUCTION := 1 << 5
 const FIELD_ORDER := 1 << 6
 const REFRESH_INTERVAL_S := 0.5
+const MAX_PLACEMENT_PROBES := 8
+const PLACEMENT_BACKOFF_MS := 8000
 const COMMAND_CENTER_TYPE_ID := "command_center"
 const WORKER_TYPE_ID := "worker"
 const VEHICLE_FACTORY_TYPE_ID := "vehicle_factory"
@@ -52,6 +54,7 @@ var _battlegroups := []
 var _setup_ticks_ms := 0
 var _defense_battlegroup = null
 var _defense_recalled_at_ms := 0
+var _placement_backoff_until_ms := 0
 
 @onready var _ai = get_parent()
 @onready var _balance = find_parent("Match").get_node("BalanceConfigRuntime")
@@ -365,11 +368,13 @@ func _provision_unit(
 	if not result.get("accepted", false):
 		# QueueFull 等拒绝: 5 秒退避后再试(否则每个刷新周期重试, 每秒上百次日志+事务风暴)。
 		_queue_full_backoff[metadata] = Time.get_ticks_msec() + 5000
-		push_warning("规则 AI 生产作战单位被拒绝(5s 退避)：%s" % result)
+		print("规则 AI 生产作战单位被拒绝(5s 退避)：%s" % result)
 
 
 ## 围绕己方 CommandCenter（失去基地时改用 Worker）尝试放置生产建筑。
 func _try_construct_structure(structure_type_id: String, own_entities: Array):
+	if Time.get_ticks_msec() < _placement_backoff_until_ms:
+		return
 	var workers: Array = own_entities.filter(
 		func(entity): return entity.get("type_id", "") == WORKER_TYPE_ID
 	)
@@ -388,7 +393,11 @@ func _try_construct_structure(structure_type_id: String, own_entities: Array):
 			candidates.append(center + Vector3(cos(angle) * radius, 0.0, sin(angle) * radius))
 	candidates.shuffle()
 	var last_result: Dictionary = {}
+	var probes := 0
 	for position in candidates:
+		if probes >= MAX_PLACEMENT_PROBES:
+			break
+		probes += 1
 		last_result = _command_gateway.PlaceStructure(
 			structure_type_id,
 			Transform3D(Basis.IDENTITY, position)
@@ -397,7 +406,8 @@ func _try_construct_structure(structure_type_id: String, own_entities: Array):
 			return
 		if last_result.get("primary_issue", "") == "InsufficientResources":
 			break
-	push_warning("规则 AI 放置生产建筑被拒绝：%s" % last_result)
+	_placement_backoff_until_ms = Time.get_ticks_msec() + PLACEMENT_BACKOFF_MS
+	print("规则 AI 放置生产建筑被拒绝：%s" % last_result)
 
 
 ## 在己方快照中确保指定生产建筑存在；施工蓝图已经计入数量。
@@ -407,6 +417,8 @@ func _enforce_structure_existence(
 	metadata: String,
 	own_entities: Array
 ):
+	if Time.get_ticks_msec() < _placement_backoff_until_ms:
+		return
 	var exists := own_entities.any(
 		func(entity): return entity.get("type_id", "") == structure_type_id
 	)

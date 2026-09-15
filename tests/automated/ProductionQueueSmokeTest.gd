@@ -13,15 +13,29 @@ func _ready():
 	MatchSignals.unit_production_finished.connect(_on_unit_production_finished)
 	var match_instance = MatchScene.instantiate()
 	add_child(match_instance)
-	await get_tree().process_frame
-	await get_tree().process_frame
-
-	var human = match_instance.get_node("Players/Human")
+	# 不能假设固定帧数就绪：`Match._ready` 的首个 await 是导航烘焙（Match.gd:80），
+	# 玩家与 C# 资源账户都排在它之后；固定等 2 帧会拿到未建立的账户，add_resources
+	# 触发 "resource account must be configured before use" 断言并让后续断言连环失败。
+	var _economy_runtime = match_instance.get_node_or_null("EconomyRuntime")
+	var human = null
+	var _waited := 0.0
+	while _waited < 30.0:
+		human = match_instance.get_node_or_null("Players/Human")
+		if human != null and _economy_runtime != null \
+				and not _economy_runtime.GetSnapshot(human).is_empty():
+			break
+		await get_tree().create_timer(0.1).timeout
+		_waited += 0.1
+	if human == null:
+		print("Production queue smoke test completed: %d failure(s)" % (_failures + 1))
+		push_error("Match 未在超时内为本地玩家建立 C# 资源账户")
+		SmokeTestExit.request(get_tree(), 1)
+		return
 	var factory = human.get_node("VehicleFactory")
 	var queue = factory.production_queue
 	var runtime = match_instance.get_node("ProductionRuntime")
 	_check(
-		human.add_resources({"resource_a": 3000, "resource_b": 3000}, "ScriptedAdjustment"),
+		human.add_resources({"resource_a": 3000}, "ScriptedAdjustment"),
 		"测试资源注入应成功"
 	)
 	var full_balance_a: int = human.resource_a

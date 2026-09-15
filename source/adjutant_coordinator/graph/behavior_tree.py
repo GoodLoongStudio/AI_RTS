@@ -457,12 +457,28 @@ def _scout_waypoint(bb: Blackboard):
     if not home:
         return None
     slot = _scout_slot(bb)
-    bearing = SCOUT_BEARINGS[slot % len(SCOUT_BEARINGS)]
     ring = 1 + slot // len(SCOUT_BEARINGS)
+    # 【方位随圈数旋转】固定 8 方位 + 半径封顶后，每 8 个槽位会**周期回到同一批点**
+    # （2026-09-15 用户实测"侦察航点一直重复同一个点"）；旋转后每圈覆盖的方位都不同。
+    bearing = SCOUT_BEARINGS[(slot + ring) % len(SCOUT_BEARINGS)]
     step = float(bb.get("scout_ring_step") or SCOUT_RING_STEP)
-    radius = min(step * ring, float(bb.get("scout_max_radius") or SCOUT_MAX_RADIUS))
-    return [round(float(home[0]) + bearing[0] * radius, 1),
-            round(float(home[1]) + bearing[1] * radius, 1)]
+    radius_cap = float(bb.get("scout_max_radius") or SCOUT_MAX_RADIUS)
+    bounds = bb.get("map_bounds")
+    if isinstance(bounds, (list, tuple)) and len(bounds) >= 2:
+        # 【覆盖全图】70m 固定上限只够在基地周围打转（地图动辄 200m+ 边长）；
+        # 上限按地图短边的 1/3 放宽，让航点逐步覆盖不同区域（仍受"不贴边"约束）。
+        try:
+            radius_cap = max(radius_cap,
+                             min(float(bounds[0]), float(bounds[1])) / 3.0)
+        except (TypeError, ValueError):
+            pass
+    radius = min(step * ring, radius_cap)
+    # 方位先**归一化**：对角方位（如 (1,1)）长度是 √2，直接乘半径会把这一圈的航点
+    # 放大 41%（原实现只覆盖过 (1,0)，加入方位轮换后才暴露；顺手修掉）。
+    dx, dy = float(bearing[0]), float(bearing[1])
+    norm = (dx * dx + dy * dy) ** 0.5 or 1.0
+    return [round(float(home[0]) + dx / norm * radius, 1),
+            round(float(home[1]) + dy / norm * radius, 1)]
 
 
 def _scout(bb: Blackboard) -> str:

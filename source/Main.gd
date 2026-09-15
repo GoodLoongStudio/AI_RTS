@@ -38,13 +38,20 @@ func _play_map_from_cmdline() -> String:
 	return ""
 
 
+func _playtest_host_port() -> int:
+	var args := OS.get_cmdline_user_args()
+	var port_index := args.find("--port")
+	if port_index >= 0 and port_index + 1 < args.size():
+		return int(args[port_index + 1])
+	# 评图开房不要占用玩家局服 24567 / 24571。
+	return 24691
+
+
 func _start_local_playtest(map_path: String) -> void:
 	if _logos != null:
 		_logos.queue_free()
 	NetSession.clear_auto_start_intent()
-	var err := NetSession.host()
-	if err != OK:
-		err = NetSession.host(NetSession.DEFAULT_PORT + 10)
+	var err := NetSession.host(_playtest_host_port())
 	if err != OK:
 		push_error("评图开房失败（端口可能被占用）：%s" % err)
 		get_tree().change_scene_to_file("res://source/main-menu/Main.tscn")
@@ -53,8 +60,12 @@ func _start_local_playtest(map_path: String) -> void:
 	var PlayerSettings = load("res://source/data-model/PlayerSettings.gd")
 	var LoadingScene = load("res://source/main-menu/Loading.tscn")
 	var match_settings = MatchSettings.new()
-	# 评图要看整张地形：关掉迷雾，避免山和坡道被黑幕挡住。
-	match_settings.visibility = match_settings.Visibility.FULL
+	# 评图/对局默认开战争迷雾。只有显式 `--no-fog` 才整图敞亮。
+	# `--play-fog` 保留给旧脚本，语义与默认相同。
+	if OS.get_cmdline_user_args().has("--no-fog"):
+		match_settings.visibility = match_settings.Visibility.FULL
+	else:
+		match_settings.visibility = match_settings.Visibility.PER_PLAYER
 	match_settings.visible_player = 0
 	match_settings.local_player_index = 0
 	var human = PlayerSettings.new()

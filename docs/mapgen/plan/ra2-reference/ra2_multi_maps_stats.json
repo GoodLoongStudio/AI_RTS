@@ -1,0 +1,8749 @@
+{
+ "source": "G:/Command & Conquer Red Alert 2/MULTI.MIX",
+ "parsed_at": "2026-09-03",
+ "map_count": 97,
+ "note": "waypoints 0..7 视为出生点；ore=overlay 102..121, gem=27..38（基于回忆的索引，未在本地 rules.ini 验证）",
+ "maps": [
+  {
+   "file": "002C4891.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    85,
+    85
+   ],
+   "local_size": [
+    2,
+    4,
+    81,
+    75
+   ],
+   "starts": [
+    [
+     83,
+     91
+    ],
+    [
+     81,
+     86
+    ],
+    [
+     84,
+     84
+    ],
+    [
+     87,
+     86
+    ]
+   ],
+   "start_pair_min": 3.6,
+   "start_pair_max": 7.1,
+   "ore_cells": 311,
+   "gem_cells": 190,
+   "level_hist": {
+    "3": 2126,
+    "4": 1104,
+    "5": 9528,
+    "6": 969,
+    "7": 319,
+    "8": 45,
+    "9": 256,
+    "10": 18
+   },
+   "start_levels": [
+    5,
+    5,
+    5,
+    5
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 20.8,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 36
+    },
+    {
+     "nearest": 22.7,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 23
+    },
+    {
+     "nearest": 26.2,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 27.0,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    }
+   ],
+   "n_terrain": 503,
+   "n_structures": 47,
+   "n_units": 24,
+   "neutral_structures": {
+    "CAMISC03": 3,
+    "CAFARM01": 2,
+    "CAFARM02": 3,
+    "CAMISC02": 2,
+    "CAMISC01": 1,
+    "CAMISC04": 3,
+    "CAAIRP": 1,
+    "CABHUT": 6,
+    "CAFRMA": 2,
+    "CATS01": 1,
+    "CABARN02": 1,
+    "CAHSE01": 2,
+    "CAHSE02": 1,
+    "CAHSE03": 2,
+    "CAHSE04": 2,
+    "CAEUR04": 1,
+    "CAGAS01": 2,
+    "CATEXS08": 1,
+    "CAWT01": 1,
+    "INGALITE": 8,
+    "CASTRT05": 1,
+    "CAMSC10": 1
+   },
+   "preview_size": "0,0,168,85",
+   "num_cells": 14365
+  },
+  {
+   "file": "048278C4.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    84,
+    92
+   ],
+   "local_size": [
+    2,
+    5,
+    80,
+    80
+   ],
+   "starts": [
+    [
+     149,
+     83
+    ],
+    [
+     30,
+     87
+    ],
+    [
+     79,
+     149
+    ],
+    [
+     92,
+     26
+    ]
+   ],
+   "start_pair_min": 79.0,
+   "start_pair_max": 123.7,
+   "ore_cells": 750,
+   "gem_cells": 38,
+   "level_hist": {
+    "3": 511,
+    "4": 8537,
+    "5": 1184,
+    "6": 197,
+    "7": 178,
+    "8": 4649,
+    "9": 98,
+    "10": 10
+   },
+   "start_levels": [
+    8,
+    4,
+    4,
+    4
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 10.2,
+     "within_10": 0,
+     "within_15": 44,
+     "within_25": 76
+    },
+    {
+     "nearest": 7.1,
+     "within_10": 12,
+     "within_15": 55,
+     "within_25": 83
+    },
+    {
+     "nearest": 12.0,
+     "within_10": 0,
+     "within_15": 39,
+     "within_25": 95
+    },
+    {
+     "nearest": 29.1,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    }
+   ],
+   "n_terrain": 276,
+   "n_structures": 4,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAOILD": 3,
+    "CAAIRP": 1
+   },
+   "preview_size": "0,0,166,91",
+   "num_cells": 15364
+  },
+  {
+   "file": "09B0D23B.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    84,
+    92
+   ],
+   "local_size": [
+    2,
+    5,
+    80,
+    80
+   ],
+   "starts": [
+    [
+     88,
+     160
+    ],
+    [
+     93,
+     29
+    ],
+    [
+     142,
+     96
+    ],
+    [
+     55,
+     95
+    ]
+   ],
+   "start_pair_min": 72.9,
+   "start_pair_max": 131.1,
+   "ore_cells": 572,
+   "gem_cells": 94,
+   "level_hist": {
+    "3": 101,
+    "4": 9638,
+    "5": 815,
+    "6": 48,
+    "7": 192,
+    "8": 4068,
+    "9": 489,
+    "10": 13
+   },
+   "start_levels": [
+    8,
+    8,
+    4,
+    4
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 17.2,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 57
+    },
+    {
+     "nearest": 9.2,
+     "within_10": 5,
+     "within_15": 44,
+     "within_25": 105
+    },
+    {
+     "nearest": 8.2,
+     "within_10": 3,
+     "within_15": 25,
+     "within_25": 102
+    },
+    {
+     "nearest": 12.0,
+     "within_10": 0,
+     "within_15": 19,
+     "within_25": 34
+    }
+   ],
+   "n_terrain": 193,
+   "n_structures": 6,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAOILD": 2,
+    "CAOUTP": 1
+   },
+   "preview_size": "0,0,166,91",
+   "num_cells": 15364
+  },
+  {
+   "file": "0A0F110D.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    131,
+    135
+   ],
+   "local_size": [
+    2,
+    5,
+    127,
+    124
+   ],
+   "starts": [
+    [
+     56,
+     134
+    ],
+    [
+     98,
+     94
+    ],
+    [
+     133,
+     56
+    ],
+    [
+     174,
+     97
+    ],
+    [
+     212,
+     135
+    ],
+    [
+     172,
+     174
+    ],
+    [
+     133,
+     213
+    ],
+    [
+     92,
+     171
+    ]
+   ],
+   "start_pair_min": 51.6,
+   "start_pair_max": 157.0,
+   "ore_cells": 0,
+   "gem_cells": 0,
+   "level_hist": {
+    "1": 44,
+    "2": 244,
+    "3": 208,
+    "4": 30783,
+    "5": 140,
+    "6": 204,
+    "7": 242,
+    "8": 3370
+   },
+   "start_levels": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "ore_per_start": null,
+   "n_terrain": 135,
+   "n_structures": 55,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAOILD": 32,
+    "CABHUT": 8,
+    "CAMSC07": 3,
+    "CAMSC09": 6,
+    "CAMSC08": 6
+   },
+   "preview_size": "0,0,260,135",
+   "num_cells": 35235
+  },
+  {
+   "file": "10D1801A.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    106,
+    114
+   ],
+   "local_size": [
+    2,
+    4,
+    102,
+    102
+   ],
+   "starts": [
+    [
+     61,
+     120
+    ],
+    [
+     81,
+     79
+    ],
+    [
+     118,
+     62
+    ],
+    [
+     162,
+     104
+    ],
+    [
+     150,
+     147
+    ],
+    [
+     104,
+     168
+    ]
+   ],
+   "start_pair_min": 40.7,
+   "start_pair_max": 106.9,
+   "ore_cells": 0,
+   "gem_cells": 0,
+   "level_hist": {
+    "0": 674,
+    "1": 237,
+    "2": 258,
+    "3": 290,
+    "4": 358,
+    "5": 4703,
+    "6": 1915,
+    "7": 222,
+    "8": 192,
+    "9": 349,
+    "10": 14160,
+    "11": 646,
+    "12": 45
+   },
+   "start_levels": [
+    10,
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "ore_per_start": null,
+   "n_terrain": 350,
+   "n_structures": 37,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAOILD": 36,
+    "CAMISC01": 1
+   },
+   "preview_size": "0,0,210,113",
+   "num_cells": 24049
+  },
+  {
+   "file": "110472BD.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    110,
+    70
+   ],
+   "local_size": [
+    2,
+    5,
+    106,
+    59
+   ],
+   "starts": [
+    [
+     75,
+     67
+    ],
+    [
+     114,
+     111
+    ],
+    [
+     54,
+     148
+    ],
+    [
+     140,
+     48
+    ]
+   ],
+   "start_pair_min": 58.8,
+   "start_pair_max": 131.9,
+   "ore_cells": 641,
+   "gem_cells": 1,
+   "level_hist": {
+    "0": 90,
+    "1": 584,
+    "2": 7141,
+    "3": 1410,
+    "4": 603,
+    "5": 62,
+    "6": 364,
+    "7": 2468,
+    "8": 2605,
+    "9": 3
+   },
+   "start_levels": [
+    7,
+    8,
+    2,
+    2
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 7.8,
+     "within_10": 18,
+     "within_15": 69,
+     "within_25": 82
+    },
+    {
+     "nearest": 9.4,
+     "within_10": 6,
+     "within_15": 56,
+     "within_25": 69
+    },
+    {
+     "nearest": 9.8,
+     "within_10": 2,
+     "within_15": 61,
+     "within_25": 76
+    },
+    {
+     "nearest": 8.9,
+     "within_10": 6,
+     "within_15": 63,
+     "within_25": 76
+    }
+   ],
+   "n_terrain": 570,
+   "n_structures": 5,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAAIRP": 1,
+    "CAOILD": 4
+   },
+   "preview_size": "0,0,218,69",
+   "num_cells": 15330
+  },
+  {
+   "file": "1240FA73.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    70,
+    83
+   ],
+   "local_size": [
+    2,
+    9,
+    66,
+    68
+   ],
+   "starts": [
+    [
+     54,
+     53
+    ],
+    [
+     94,
+     111
+    ]
+   ],
+   "start_pair_min": 70.5,
+   "start_pair_max": 70.5,
+   "ore_cells": 222,
+   "gem_cells": 31,
+   "level_hist": {
+    "2": 11537
+   },
+   "start_levels": [
+    2,
+    2
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 27.3,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 18.4,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 52
+    }
+   ],
+   "n_terrain": 288,
+   "n_structures": 95,
+   "n_units": 7,
+   "neutral_structures": {
+    "CARUS05": 9,
+    "CARUS06": 9,
+    "CARUS04": 11,
+    "CAEUR1": 4,
+    "CAEUR2": 3,
+    "CAMSC06": 2,
+    "CAGARD01": 1,
+    "CARUS02B": 12,
+    "CARUS02A": 11,
+    "CABHUT": 4,
+    "CAHOSP": 2,
+    "CAPARK01": 3,
+    "CAPARK02": 1,
+    "CAAIRP": 2,
+    "CAOILD": 16,
+    "CAWASH07": 3,
+    "CAWASH08": 2
+   },
+   "preview_size": "0,0,138,82",
+   "num_cells": 11537
+  },
+  {
+   "file": "13A28CEF.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    90,
+    110
+   ],
+   "local_size": [
+    5,
+    5,
+    81,
+    85
+   ],
+   "starts": [
+    [
+     84,
+     84
+    ],
+    [
+     84,
+     90
+    ],
+    [
+     94,
+     96
+    ],
+    [
+     99,
+     94
+    ],
+    [
+     101,
+     89
+    ],
+    [
+     97,
+     85
+    ],
+    [
+     93,
+     82
+    ],
+    [
+     86,
+     80
+    ]
+   ],
+   "start_pair_min": 4.5,
+   "start_pair_max": 19.1,
+   "ore_cells": 1237,
+   "gem_cells": 251,
+   "level_hist": {
+    "1": 1161,
+    "2": 984,
+    "3": 177,
+    "4": 120,
+    "5": 1338,
+    "6": 2847,
+    "7": 326,
+    "8": 201,
+    "9": 2926,
+    "10": 9610
+   },
+   "start_levels": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 21.1,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 33
+    },
+    {
+     "nearest": 22.1,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 15
+    },
+    {
+     "nearest": 17.5,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 62
+    },
+    {
+     "nearest": 17.0,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 86
+    },
+    {
+     "nearest": 15.5,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 63
+    },
+    {
+     "nearest": 20.4,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 24
+    },
+    {
+     "nearest": 21.5,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 27
+    },
+    {
+     "nearest": 17.5,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 74
+    }
+   ],
+   "n_terrain": 360,
+   "n_structures": 0,
+   "n_units": 0,
+   "neutral_structures": {},
+   "preview_size": "0,0,178,109",
+   "num_cells": 19690
+  },
+  {
+   "file": "14050701.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    131,
+    135
+   ],
+   "local_size": [
+    2,
+    5,
+    127,
+    124
+   ],
+   "starts": [
+    [
+     56,
+     134
+    ],
+    [
+     98,
+     94
+    ],
+    [
+     133,
+     56
+    ],
+    [
+     174,
+     97
+    ],
+    [
+     212,
+     135
+    ],
+    [
+     172,
+     174
+    ],
+    [
+     133,
+     213
+    ],
+    [
+     92,
+     171
+    ]
+   ],
+   "start_pair_min": 51.6,
+   "start_pair_max": 157.0,
+   "ore_cells": 0,
+   "gem_cells": 288,
+   "level_hist": {
+    "1": 23,
+    "2": 226,
+    "3": 247,
+    "4": 30783,
+    "5": 140,
+    "6": 212,
+    "7": 246,
+    "8": 3358
+   },
+   "start_levels": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "ore_per_start": null,
+   "n_terrain": 117,
+   "n_structures": 38,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAOILD": 8,
+    "CABHUT": 8,
+    "CAMSC09": 6,
+    "CAMSC08": 8,
+    "CAMSC07": 3,
+    "CAMSC06": 5
+   },
+   "preview_size": "0,0,260,135",
+   "num_cells": 35235
+  },
+  {
+   "file": "14245027.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    80,
+    83
+   ],
+   "local_size": [
+    2,
+    5,
+    76,
+    72
+   ],
+   "starts": [
+    [
+     114,
+     107
+    ],
+    [
+     98,
+     38
+    ],
+    [
+     70,
+     135
+    ],
+    [
+     59,
+     58
+    ]
+   ],
+   "start_pair_min": 43.8,
+   "start_pair_max": 101.0,
+   "ore_cells": 8,
+   "gem_cells": 0,
+   "level_hist": {
+    "4": 9463,
+    "5": 2749,
+    "6": 428,
+    "7": 102,
+    "8": 454,
+    "9": 1
+   },
+   "start_levels": [
+    4,
+    4,
+    4,
+    4
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 14.9,
+     "within_10": 0,
+     "within_15": 1,
+     "within_25": 1
+    },
+    {
+     "nearest": 16.3,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 2
+    },
+    {
+     "nearest": 7.1,
+     "within_10": 1,
+     "within_15": 1,
+     "within_25": 2
+    },
+    {
+     "nearest": 41.1,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    }
+   ],
+   "n_terrain": 1048,
+   "n_structures": 57,
+   "n_units": 0,
+   "neutral_structures": {
+    "CABHUT": 4,
+    "INYELWLAMP": 11,
+    "CAFARM01": 4,
+    "CAFARM02": 10,
+    "CAMISC04": 2,
+    "CAOUTP": 2,
+    "CAFRMA": 2,
+    "CATS01": 2,
+    "CAOILD": 18,
+    "CAEUR2": 1,
+    "CAEUR1": 1
+   },
+   "preview_size": "0,0,158,82",
+   "num_cells": 13197
+  },
+  {
+   "file": "1C6197A1.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    101,
+    75
+   ],
+   "local_size": [
+    3,
+    4,
+    96,
+    65
+   ],
+   "starts": [
+    [
+     34,
+     118
+    ],
+    [
+     117,
+     39
+    ],
+    [
+     87,
+     138
+    ]
+   ],
+   "start_pair_min": 56.6,
+   "start_pair_max": 114.6,
+   "ore_cells": 474,
+   "gem_cells": 71,
+   "level_hist": {
+    "2": 3932,
+    "3": 106,
+    "4": 256,
+    "5": 1849,
+    "6": 3866,
+    "7": 1090,
+    "8": 1770,
+    "9": 1861,
+    "10": 345
+   },
+   "start_levels": [
+    8,
+    9,
+    5
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 12.1,
+     "within_10": 0,
+     "within_15": 19,
+     "within_25": 128
+    },
+    {
+     "nearest": 11.2,
+     "within_10": 0,
+     "within_15": 25,
+     "within_25": 82
+    },
+    {
+     "nearest": 21.2,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 24
+    }
+   ],
+   "n_terrain": 179,
+   "n_structures": 25,
+   "n_units": 0,
+   "neutral_structures": {
+    "CABHUT": 10,
+    "CAMISC01": 2,
+    "CAOILD": 7,
+    "CAMISC02": 2,
+    "CAAIRP": 1,
+    "CAFARM01": 1,
+    "CAFARM02": 2
+   },
+   "preview_size": "0,0,200,75",
+   "num_cells": 15075
+  },
+  {
+   "file": "1D74054E.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    85,
+    92
+   ],
+   "local_size": [
+    2,
+    4,
+    81,
+    82
+   ],
+   "starts": [
+    [
+     92,
+     138
+    ],
+    [
+     40,
+     95
+    ],
+    [
+     92,
+     42
+    ],
+    [
+     137,
+     88
+    ]
+   ],
+   "start_pair_min": 64.4,
+   "start_pair_max": 97.3,
+   "ore_cells": 0,
+   "gem_cells": 0,
+   "level_hist": {
+    "4": 6302,
+    "5": 67,
+    "6": 52,
+    "7": 175,
+    "8": 8952
+   },
+   "start_levels": [
+    8,
+    8,
+    8,
+    8
+   ],
+   "ore_per_start": null,
+   "n_terrain": 146,
+   "n_structures": 44,
+   "n_units": 0,
+   "neutral_structures": {
+    "CABHUT": 12,
+    "CAOILD": 28,
+    "CAAIRP": 2,
+    "CAFARM06": 2
+   },
+   "preview_size": "0,0,168,92",
+   "num_cells": 15548
+  },
+  {
+   "file": "1EDDB3D9.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    84,
+    92
+   ],
+   "local_size": [
+    2,
+    5,
+    80,
+    80
+   ],
+   "starts": [
+    [
+     142,
+     98
+    ],
+    [
+     28,
+     91
+    ],
+    [
+     91,
+     39
+    ],
+    [
+     91,
+     143
+    ]
+   ],
+   "start_pair_min": 68.0,
+   "start_pair_max": 114.2,
+   "ore_cells": 615,
+   "gem_cells": 45,
+   "level_hist": {
+    "3": 18,
+    "4": 5655,
+    "5": 567,
+    "6": 288,
+    "7": 782,
+    "8": 6932,
+    "9": 982,
+    "10": 140
+   },
+   "start_levels": [
+    4,
+    4,
+    4,
+    8
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 7.1,
+     "within_10": 5,
+     "within_15": 32,
+     "within_25": 85
+    },
+    {
+     "nearest": 8.2,
+     "within_10": 13,
+     "within_15": 48,
+     "within_25": 59
+    },
+    {
+     "nearest": 14.9,
+     "within_10": 0,
+     "within_15": 2,
+     "within_25": 2
+    },
+    {
+     "nearest": 19.1,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 18
+    }
+   ],
+   "n_terrain": 351,
+   "n_structures": 5,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAOILD": 4,
+    "CAAIRP": 1
+   },
+   "preview_size": "0,0,166,91",
+   "num_cells": 15364
+  },
+  {
+   "file": "24F9398B.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    87,
+    67
+   ],
+   "local_size": [
+    2,
+    5,
+    83,
+    56
+   ],
+   "starts": [
+    [
+     58,
+     99
+    ],
+    [
+     99,
+     58
+    ]
+   ],
+   "start_pair_min": 58.0,
+   "start_pair_max": 58.0,
+   "ore_cells": 0,
+   "gem_cells": 0,
+   "level_hist": {
+    "2": 9864,
+    "3": 98,
+    "4": 92,
+    "5": 120,
+    "6": 1239,
+    "7": 12,
+    "8": 12,
+    "9": 28,
+    "10": 126
+   },
+   "start_levels": [
+    2,
+    2
+   ],
+   "ore_per_start": null,
+   "n_terrain": 260,
+   "n_structures": 33,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAMEX02": 1,
+    "CAMEX03": 6,
+    "CAMEX05": 2,
+    "CAOILD": 12,
+    "CAMSC08": 4,
+    "CAMSC09": 4,
+    "CAMSC07": 4
+   },
+   "preview_size": "0,0,172,67",
+   "num_cells": 11591
+  },
+  {
+   "file": "28894E78.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    98,
+    99
+   ],
+   "local_size": [
+    4,
+    5,
+    90,
+    87
+   ],
+   "starts": [
+    [
+     95,
+     51
+    ],
+    [
+     43,
+     87
+    ],
+    [
+     104,
+     148
+    ],
+    [
+     143,
+     100
+    ]
+   ],
+   "start_pair_min": 61.8,
+   "start_pair_max": 100.8,
+   "ore_cells": 246,
+   "gem_cells": 162,
+   "level_hist": {
+    "2": 4795,
+    "3": 3426,
+    "4": 379,
+    "5": 259,
+    "6": 505,
+    "7": 9138,
+    "8": 649,
+    "9": 154
+   },
+   "start_levels": [
+    7,
+    7,
+    7,
+    7
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 8.1,
+     "within_10": 8,
+     "within_15": 51,
+     "within_25": 57
+    },
+    {
+     "nearest": 5.0,
+     "within_10": 33,
+     "within_15": 57,
+     "within_25": 58
+    },
+    {
+     "nearest": 10.4,
+     "within_10": 0,
+     "within_15": 24,
+     "within_25": 59
+    },
+    {
+     "nearest": 6.0,
+     "within_10": 29,
+     "within_15": 54,
+     "within_25": 56
+    }
+   ],
+   "n_terrain": 512,
+   "n_structures": 0,
+   "n_units": 0,
+   "neutral_structures": {},
+   "preview_size": "0,0,194,98",
+   "num_cells": 19305
+  },
+  {
+   "file": "2DA96CE2.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    52,
+    53
+   ],
+   "local_size": [
+    2,
+    5,
+    47,
+    42
+   ],
+   "starts": [
+    [
+     38,
+     73
+    ],
+    [
+     71,
+     37
+    ]
+   ],
+   "start_pair_min": 48.8,
+   "start_pair_max": 48.8,
+   "ore_cells": 0,
+   "gem_cells": 0,
+   "level_hist": {
+    "0": 953,
+    "4": 4506
+   },
+   "start_levels": [
+    4,
+    4
+   ],
+   "ore_per_start": null,
+   "n_terrain": 260,
+   "n_structures": 50,
+   "n_units": 0,
+   "neutral_structures": {
+    "CABHUT": 4,
+    "INYELWLAMP": 2,
+    "CAMISC03": 2,
+    "CAMISC01": 6,
+    "CAMISC02": 5,
+    "CAMISC04": 2,
+    "CAAIRP": 1,
+    "CATEXS08": 1,
+    "CASTL01": 1,
+    "CASTL03": 1,
+    "CATEXS07": 1,
+    "CATEXS06": 1,
+    "CATEXS03": 1,
+    "CATEXS05": 1,
+    "CACHIG01": 1,
+    "CAMIAM01": 1,
+    "CAOILD": 18,
+    "CATEXS04": 1
+   },
+   "preview_size": "0,0,102,52",
+   "num_cells": 5459
+  },
+  {
+   "file": "2FF4B88F.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    84,
+    92
+   ],
+   "local_size": [
+    2,
+    5,
+    80,
+    80
+   ],
+   "starts": [
+    [
+     30,
+     95
+    ],
+    [
+     156,
+     87
+    ],
+    [
+     95,
+     153
+    ],
+    [
+     91,
+     27
+    ]
+   ],
+   "start_pair_min": 87.1,
+   "start_pair_max": 126.3,
+   "ore_cells": 1018,
+   "gem_cells": 47,
+   "level_hist": {
+    "3": 241,
+    "4": 6044,
+    "5": 331,
+    "6": 85,
+    "7": 324,
+    "8": 7741,
+    "9": 547,
+    "10": 51
+   },
+   "start_levels": [
+    8,
+    8,
+    8,
+    4
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 7.8,
+     "within_10": 24,
+     "within_15": 103,
+     "within_25": 136
+    },
+    {
+     "nearest": 19.2,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 54
+    },
+    {
+     "nearest": 15.8,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 86
+    },
+    {
+     "nearest": 11.3,
+     "within_10": 0,
+     "within_15": 39,
+     "within_25": 135
+    }
+   ],
+   "n_terrain": 264,
+   "n_structures": 1,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAOILD": 1
+   },
+   "preview_size": "0,0,166,91",
+   "num_cells": 15364
+  },
+  {
+   "file": "37E6A65A.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    84,
+    92
+   ],
+   "local_size": [
+    2,
+    5,
+    80,
+    80
+   ],
+   "starts": [
+    [
+     44,
+     85
+    ],
+    [
+     155,
+     88
+    ],
+    [
+     93,
+     30
+    ],
+    [
+     83,
+     140
+    ]
+   ],
+   "start_pair_min": 67.4,
+   "start_pair_max": 111.0,
+   "ore_cells": 586,
+   "gem_cells": 85,
+   "level_hist": {
+    "3": 85,
+    "4": 7372,
+    "5": 311,
+    "6": 69,
+    "7": 238,
+    "8": 6547,
+    "9": 560,
+    "10": 182
+   },
+   "start_levels": [
+    8,
+    4,
+    8,
+    4
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 7.1,
+     "within_10": 6,
+     "within_15": 26,
+     "within_25": 49
+    },
+    {
+     "nearest": 11.4,
+     "within_10": 0,
+     "within_15": 44,
+     "within_25": 75
+    },
+    {
+     "nearest": 11.2,
+     "within_10": 0,
+     "within_15": 32,
+     "within_25": 64
+    },
+    {
+     "nearest": 7.8,
+     "within_10": 9,
+     "within_15": 28,
+     "within_25": 44
+    }
+   ],
+   "n_terrain": 355,
+   "n_structures": 3,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAOILD": 3
+   },
+   "preview_size": "0,0,166,91",
+   "num_cells": 15364
+  },
+  {
+   "file": "388FACCC.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    84,
+    92
+   ],
+   "local_size": [
+    2,
+    5,
+    80,
+    80
+   ],
+   "starts": [
+    [
+     32,
+     99
+    ],
+    [
+     152,
+     89
+    ],
+    [
+     92,
+     149
+    ],
+    [
+     83,
+     37
+    ]
+   ],
+   "start_pair_min": 78.1,
+   "start_pair_max": 120.4,
+   "ore_cells": 768,
+   "gem_cells": 75,
+   "level_hist": {
+    "3": 1576,
+    "4": 10280,
+    "5": 250,
+    "6": 13,
+    "7": 126,
+    "8": 2580,
+    "9": 457,
+    "10": 82
+   },
+   "start_levels": [
+    4,
+    8,
+    4,
+    4
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 11.4,
+     "within_10": 0,
+     "within_15": 30,
+     "within_25": 78
+    },
+    {
+     "nearest": 8.6,
+     "within_10": 6,
+     "within_15": 45,
+     "within_25": 102
+    },
+    {
+     "nearest": 8.1,
+     "within_10": 12,
+     "within_15": 84,
+     "within_25": 133
+    },
+    {
+     "nearest": 12.6,
+     "within_10": 0,
+     "within_15": 25,
+     "within_25": 114
+    }
+   ],
+   "n_terrain": 396,
+   "n_structures": 33,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAOILD": 4,
+    "CABHUT": 2,
+    "CAHSE02": 1,
+    "CAPARK03": 1,
+    "CAHSE03": 1,
+    "CAHSE04": 1,
+    "CAHSE06": 1,
+    "CAHSE05": 2,
+    "CAHSE07": 1,
+    "CABARN02": 1,
+    "CAMOV01": 1,
+    "CAMOV02": 1,
+    "CAFARM01": 1,
+    "CAFARM02": 1,
+    "CAFRMA": 1,
+    "CAGAS01": 1,
+    "CAIND01": 1,
+    "CAFRMB": 1,
+    "CAPARK02": 2,
+    "CAMSC11": 1,
+    "CATS01": 1,
+    "INBLULMP": 5,
+    "INGALITE": 1
+   },
+   "preview_size": "0,0,166,91",
+   "num_cells": 15364
+  },
+  {
+   "file": "39FC2E67.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    85,
+    85
+   ],
+   "local_size": [
+    2,
+    4,
+    81,
+    75
+   ],
+   "starts": [
+    [
+     82,
+     87
+    ],
+    [
+     84,
+     85
+    ],
+    [
+     86,
+     87
+    ],
+    [
+     84,
+     89
+    ]
+   ],
+   "start_pair_min": 2.8,
+   "start_pair_max": 4.0,
+   "ore_cells": 0,
+   "gem_cells": 285,
+   "level_hist": {
+    "3": 2126,
+    "4": 1008,
+    "5": 10326,
+    "6": 635,
+    "7": 220,
+    "8": 41,
+    "9": 9
+   },
+   "start_levels": [
+    5,
+    5,
+    5,
+    5
+   ],
+   "ore_per_start": null,
+   "n_terrain": 689,
+   "n_structures": 51,
+   "n_units": 42,
+   "neutral_structures": {
+    "CACITY01": 3,
+    "CACITY03": 3,
+    "CACITY02": 1,
+    "CATEXS01": 1,
+    "CASWST01": 2,
+    "CACITY04": 1,
+    "CAMISC03": 2,
+    "CASIN01W": 3,
+    "CASIN01N": 5,
+    "CASIN01S": 3,
+    "CASIN01E": 2,
+    "CAFARM01": 2,
+    "CAFARM02": 5,
+    "CAMISC02": 4,
+    "CAMISC01": 2,
+    "CAOUTP": 1,
+    "CAMISC04": 3,
+    "CAAIRP": 1,
+    "CAHOSP": 1,
+    "CABHUT": 6
+   },
+   "preview_size": "0,0,168,85",
+   "num_cells": 14365
+  },
+  {
+   "file": "3AC27904.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    84,
+    92
+   ],
+   "local_size": [
+    2,
+    5,
+    80,
+    80
+   ],
+   "starts": [
+    [
+     152,
+     91
+    ],
+    [
+     31,
+     95
+    ],
+    [
+     94,
+     30
+    ],
+    [
+     93,
+     158
+    ]
+   ],
+   "start_pair_min": 84.2,
+   "start_pair_max": 128.0,
+   "ore_cells": 672,
+   "gem_cells": 44,
+   "level_hist": {
+    "3": 70,
+    "4": 3414,
+    "5": 402,
+    "6": 51,
+    "7": 207,
+    "8": 9475,
+    "9": 1537,
+    "10": 208
+   },
+   "start_levels": [
+    8,
+    8,
+    8,
+    8
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 13.3,
+     "within_10": 0,
+     "within_15": 6,
+     "within_25": 87
+    },
+    {
+     "nearest": 14.0,
+     "within_10": 0,
+     "within_15": 2,
+     "within_25": 79
+    },
+    {
+     "nearest": 11.4,
+     "within_10": 0,
+     "within_15": 37,
+     "within_25": 60
+    },
+    {
+     "nearest": 18.9,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 1
+    }
+   ],
+   "n_terrain": 419,
+   "n_structures": 3,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAOUTP": 1,
+    "CAOILD": 2
+   },
+   "preview_size": "0,0,166,91",
+   "num_cells": 15364
+  },
+  {
+   "file": "3E27A89C.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    120,
+    143
+   ],
+   "local_size": [
+    2,
+    7,
+    116,
+    130
+   ],
+   "starts": [
+    [
+     140,
+     204
+    ],
+    [
+     209,
+     142
+    ],
+    [
+     123,
+     63
+    ],
+    [
+     68,
+     118
+    ],
+    [
+     167,
+     101
+    ],
+    [
+     103,
+     163
+    ],
+    [
+     175,
+     173
+    ],
+    [
+     102,
+     95
+    ]
+   ],
+   "start_pair_min": 38.3,
+   "start_pair_max": 143.0,
+   "ore_cells": 0,
+   "gem_cells": 0,
+   "level_hist": {
+    "2": 22488,
+    "3": 410,
+    "4": 360,
+    "5": 755,
+    "6": 7133,
+    "7": 2882,
+    "8": 31,
+    "9": 29,
+    "10": 48,
+    "11": 41
+   },
+   "start_levels": [
+    7,
+    2,
+    6,
+    7,
+    6,
+    7,
+    7,
+    6
+   ],
+   "ore_per_start": null,
+   "n_terrain": 671,
+   "n_structures": 38,
+   "n_units": 0,
+   "neutral_structures": {
+    "CABHUT": 4,
+    "CAOILD": 34
+   },
+   "preview_size": "0,0,238,142",
+   "num_cells": 34177
+  },
+  {
+   "file": "416A42BC.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    84,
+    92
+   ],
+   "local_size": [
+    2,
+    5,
+    80,
+    80
+   ],
+   "starts": [
+    [
+     85,
+     140
+    ],
+    [
+     89,
+     38
+    ],
+    [
+     31,
+     98
+    ],
+    [
+     137,
+     87
+    ]
+   ],
+   "start_pair_min": 68.4,
+   "start_pair_max": 106.6,
+   "ore_cells": 607,
+   "gem_cells": 58,
+   "level_hist": {
+    "4": 15267,
+    "5": 38,
+    "8": 59
+   },
+   "start_levels": [
+    4,
+    4,
+    4,
+    4
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 13.2,
+     "within_10": 0,
+     "within_15": 3,
+     "within_25": 82
+    },
+    {
+     "nearest": 10.0,
+     "within_10": 1,
+     "within_15": 16,
+     "within_25": 79
+    },
+    {
+     "nearest": 16.3,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 1
+    },
+    {
+     "nearest": 31.3,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    }
+   ],
+   "n_terrain": 312,
+   "n_structures": 12,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAAIRP": 1,
+    "CAMSC03": 2,
+    "CAMSC02": 1,
+    "CAMSC04": 2,
+    "CAMSC05": 1,
+    "CAPARS14": 1,
+    "CAPARS13": 1,
+    "CAPARS10": 1,
+    "CAOILD": 2
+   },
+   "preview_size": "0,0,166,91",
+   "num_cells": 15364
+  },
+  {
+   "file": "49D8008E.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    84,
+    92
+   ],
+   "local_size": [
+    2,
+    5,
+    80,
+    80
+   ],
+   "starts": [
+    [
+     30,
+     95
+    ],
+    [
+     151,
+     90
+    ],
+    [
+     88,
+     150
+    ],
+    [
+     88,
+     32
+    ]
+   ],
+   "start_pair_min": 79.9,
+   "start_pair_max": 121.1,
+   "ore_cells": 599,
+   "gem_cells": 63,
+   "level_hist": {
+    "3": 26,
+    "4": 6639,
+    "5": 451,
+    "6": 77,
+    "7": 586,
+    "8": 7504,
+    "9": 79,
+    "10": 2
+   },
+   "start_levels": [
+    8,
+    4,
+    8,
+    4
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 5.0,
+     "within_10": 1,
+     "within_15": 1,
+     "within_25": 2
+    },
+    {
+     "nearest": 11.2,
+     "within_10": 0,
+     "within_15": 45,
+     "within_25": 119
+    },
+    {
+     "nearest": 9.2,
+     "within_10": 4,
+     "within_15": 40,
+     "within_25": 88
+    },
+    {
+     "nearest": 19.2,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 37
+    }
+   ],
+   "n_terrain": 419,
+   "n_structures": 4,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAOILD": 4
+   },
+   "preview_size": "0,0,166,91",
+   "num_cells": 15364
+  },
+  {
+   "file": "4CE823B1.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    81,
+    113
+   ],
+   "local_size": [
+    4,
+    7,
+    73,
+    100
+   ],
+   "starts": [
+    [
+     157,
+     104
+    ],
+    [
+     99,
+     148
+    ],
+    [
+     52,
+     96
+    ],
+    [
+     87,
+     36
+    ]
+   ],
+   "start_pair_min": 69.5,
+   "start_pair_max": 112.6,
+   "ore_cells": 419,
+   "gem_cells": 122,
+   "level_hist": {
+    "2": 282,
+    "3": 14320,
+    "4": 1410,
+    "5": 479,
+    "6": 433,
+    "7": 1200,
+    "8": 45,
+    "9": 19,
+    "10": 5
+   },
+   "start_levels": [
+    3,
+    3,
+    3,
+    3
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 5.8,
+     "within_10": 36,
+     "within_15": 85,
+     "within_25": 85
+    },
+    {
+     "nearest": 8.2,
+     "within_10": 15,
+     "within_15": 71,
+     "within_25": 101
+    },
+    {
+     "nearest": 7.6,
+     "within_10": 18,
+     "within_15": 70,
+     "within_25": 101
+    },
+    {
+     "nearest": 7.1,
+     "within_10": 33,
+     "within_15": 116,
+     "within_25": 132
+    }
+   ],
+   "n_terrain": 220,
+   "n_structures": 11,
+   "n_units": 0,
+   "neutral_structures": {
+    "CABHUT": 2,
+    "CAAIRP": 1,
+    "CAOUTP": 1,
+    "CAHOSP": 1,
+    "CAOILD": 6
+   },
+   "preview_size": "0,0,160,113",
+   "num_cells": 18193
+  },
+  {
+   "file": "51DC6BFA.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    84,
+    92
+   ],
+   "local_size": [
+    2,
+    5,
+    80,
+    80
+   ],
+   "starts": [
+    [
+     83,
+     121
+    ],
+    [
+     125,
+     101
+    ],
+    [
+     84,
+     60
+    ],
+    [
+     40,
+     84
+    ]
+   ],
+   "start_pair_min": 46.5,
+   "start_pair_max": 86.7,
+   "ore_cells": 885,
+   "gem_cells": 229,
+   "level_hist": {
+    "4": 15316,
+    "5": 47,
+    "6": 1
+   },
+   "start_levels": [
+    4,
+    4,
+    4,
+    4
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 11.7,
+     "within_10": 0,
+     "within_15": 20,
+     "within_25": 141
+    },
+    {
+     "nearest": 9.0,
+     "within_10": 11,
+     "within_15": 104,
+     "within_25": 305
+    },
+    {
+     "nearest": 18.9,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 95
+    },
+    {
+     "nearest": 12.4,
+     "within_10": 0,
+     "within_15": 40,
+     "within_25": 246
+    }
+   ],
+   "n_terrain": 43,
+   "n_structures": 1,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAOILD": 1
+   },
+   "preview_size": "0,0,166,91",
+   "num_cells": 15364
+  },
+  {
+   "file": "5387CB93.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    84,
+    92
+   ],
+   "local_size": [
+    2,
+    5,
+    80,
+    80
+   ],
+   "starts": [
+    [
+     93,
+     33
+    ],
+    [
+     83,
+     146
+    ],
+    [
+     129,
+     72
+    ],
+    [
+     47,
+     82
+    ]
+   ],
+   "start_pair_min": 53.1,
+   "start_pair_max": 113.4,
+   "ore_cells": 638,
+   "gem_cells": 70,
+   "level_hist": {
+    "3": 189,
+    "4": 9342,
+    "5": 257,
+    "6": 121,
+    "7": 341,
+    "8": 4784,
+    "9": 320,
+    "10": 10
+   },
+   "start_levels": [
+    4,
+    4,
+    4,
+    8
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 16.2,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 2
+    },
+    {
+     "nearest": 11.4,
+     "within_10": 0,
+     "within_15": 32,
+     "within_25": 123
+    },
+    {
+     "nearest": 14.8,
+     "within_10": 0,
+     "within_15": 1,
+     "within_25": 113
+    },
+    {
+     "nearest": 10.2,
+     "within_10": 0,
+     "within_15": 27,
+     "within_25": 106
+    }
+   ],
+   "n_terrain": 313,
+   "n_structures": 5,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAAIRP": 1,
+    "CAOILD": 4
+   },
+   "preview_size": "0,0,166,91",
+   "num_cells": 15364
+  },
+  {
+   "file": "5A46C555.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    131,
+    146
+   ],
+   "local_size": [
+    3,
+    5,
+    124,
+    135
+   ],
+   "starts": [
+    [
+     171,
+     77
+    ],
+    [
+     216,
+     130
+    ],
+    [
+     37,
+     140
+    ],
+    [
+     128,
+     43
+    ],
+    [
+     179,
+     198
+    ],
+    [
+     127,
+     216
+    ]
+   ],
+   "start_pair_min": 54.8,
+   "start_pair_max": 179.3,
+   "ore_cells": 6,
+   "gem_cells": 1,
+   "level_hist": {
+    "1": 231,
+    "2": 30668,
+    "3": 64,
+    "4": 43,
+    "5": 2366,
+    "6": 4417,
+    "7": 3,
+    "8": 3,
+    "9": 7,
+    "10": 304
+   },
+   "start_levels": [
+    2,
+    2,
+    2,
+    2,
+    2,
+    5
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 141.0,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 99.8,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 151.5,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 179.7,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 22.4,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 1
+    },
+    {
+     "nearest": 35.3,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    }
+   ],
+   "n_terrain": 933,
+   "n_structures": 62,
+   "n_units": 0,
+   "neutral_structures": {
+    "CABHUT": 20,
+    "CAOILD": 36,
+    "CAAIRP": 2,
+    "CAFARM02": 1,
+    "CAFARM01": 1,
+    "CAMISC01": 1,
+    "CAOUTP": 1
+   },
+   "preview_size": "0,0,260,146",
+   "num_cells": 38106
+  },
+  {
+   "file": "5B9337F2.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    85,
+    85
+   ],
+   "local_size": [
+    2,
+    4,
+    81,
+    75
+   ],
+   "starts": [
+    [
+     97,
+     120
+    ],
+    [
+     49,
+     97
+    ],
+    [
+     90,
+     31
+    ],
+    [
+     142,
+     88
+    ]
+   ],
+   "start_pair_min": 53.2,
+   "start_pair_max": 93.4,
+   "ore_cells": 311,
+   "gem_cells": 190,
+   "level_hist": {
+    "3": 2126,
+    "4": 1104,
+    "5": 9528,
+    "6": 969,
+    "7": 319,
+    "8": 45,
+    "9": 256,
+    "10": 18
+   },
+   "start_levels": [
+    5,
+    5,
+    5,
+    5
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 10.4,
+     "within_10": 0,
+     "within_15": 22,
+     "within_25": 79
+    },
+    {
+     "nearest": 8.5,
+     "within_10": 5,
+     "within_15": 38,
+     "within_25": 72
+    },
+    {
+     "nearest": 7.1,
+     "within_10": 16,
+     "within_15": 52,
+     "within_25": 69
+    },
+    {
+     "nearest": 9.0,
+     "within_10": 4,
+     "within_15": 47,
+     "within_25": 91
+    }
+   ],
+   "n_terrain": 503,
+   "n_structures": 47,
+   "n_units": 27,
+   "neutral_structures": {
+    "CAMISC03": 3,
+    "CAFARM01": 2,
+    "CAFARM02": 3,
+    "CAMISC02": 2,
+    "CAMISC01": 1,
+    "CAMISC04": 3,
+    "CAAIRP": 1,
+    "CABHUT": 6,
+    "CAFRMA": 2,
+    "CATS01": 1,
+    "CABARN02": 1,
+    "CAHSE01": 2,
+    "CAHSE02": 1,
+    "CAHSE03": 2,
+    "CAHSE04": 2,
+    "CAEUR04": 1,
+    "CAGAS01": 2,
+    "CATEXS08": 1,
+    "CAWT01": 1,
+    "INGALITE": 8,
+    "CASTRT05": 1,
+    "CAMSC10": 1
+   },
+   "preview_size": "0,0,168,85",
+   "num_cells": 14365
+  },
+  {
+   "file": "5DC0199D.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    101,
+    128
+   ],
+   "local_size": [
+    2,
+    4,
+    97,
+    118
+   ],
+   "starts": [
+    [
+     148,
+     129
+    ],
+    [
+     150,
+     129
+    ],
+    [
+     152,
+     129
+    ],
+    [
+     148,
+     117
+    ],
+    [
+     150,
+     117
+    ],
+    [
+     152,
+     117
+    ]
+   ],
+   "start_pair_min": 2.0,
+   "start_pair_max": 12.6,
+   "ore_cells": 376,
+   "gem_cells": 179,
+   "level_hist": {
+    "0": 921,
+    "1": 5168,
+    "2": 2309,
+    "3": 2575,
+    "4": 2659,
+    "5": 4499,
+    "6": 1024,
+    "7": 370,
+    "8": 612,
+    "9": 3128,
+    "10": 1815,
+    "11": 524,
+    "12": 124
+   },
+   "start_levels": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 32.6,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 33.0,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 33.5,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 20.9,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 35
+    },
+    {
+     "nearest": 21.5,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 30
+    },
+    {
+     "nearest": 22.4,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 24
+    }
+   ],
+   "n_terrain": 1307,
+   "n_structures": 13,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAFARM01": 2,
+    "CAFARM02": 2,
+    "CABHUT": 6,
+    "CAHSE01": 1,
+    "CAFRMA": 1,
+    "CATS01": 1
+   },
+   "preview_size": "0,0,200,128",
+   "num_cells": 25728
+  },
+  {
+   "file": "5EA314CD.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    84,
+    92
+   ],
+   "local_size": [
+    2,
+    5,
+    80,
+    80
+   ],
+   "starts": [
+    [
+     33,
+     95
+    ],
+    [
+     149,
+     81
+    ],
+    [
+     96,
+     153
+    ],
+    [
+     90,
+     40
+    ]
+   ],
+   "start_pair_min": 71.8,
+   "start_pair_max": 116.8,
+   "ore_cells": 457,
+   "gem_cells": 74,
+   "level_hist": {
+    "3": 18,
+    "4": 4234,
+    "5": 98,
+    "6": 50,
+    "7": 67,
+    "8": 10821,
+    "9": 70,
+    "10": 6
+   },
+   "start_levels": [
+    8,
+    8,
+    8,
+    8
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 35.7,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 18.0,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 27
+    },
+    {
+     "nearest": 15.3,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 52
+    },
+    {
+     "nearest": 21.1,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 2
+    }
+   ],
+   "n_terrain": 316,
+   "n_structures": 4,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAOILD": 4
+   },
+   "preview_size": "0,0,166,91",
+   "num_cells": 15364
+  },
+  {
+   "file": "607FF2C6.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    155,
+    83
+   ],
+   "local_size": [
+    2,
+    7,
+    151,
+    70
+   ],
+   "starts": [
+    [
+     72,
+     210
+    ],
+    [
+     32,
+     165
+    ],
+    [
+     45,
+     136
+    ],
+    [
+     100,
+     192
+    ],
+    [
+     195,
+     107
+    ],
+    [
+     130,
+     54
+    ],
+    [
+     162,
+     30
+    ],
+    [
+     210,
+     74
+    ]
+   ],
+   "start_pair_min": 31.8,
+   "start_pair_max": 201.2,
+   "ore_cells": 969,
+   "gem_cells": 171,
+   "level_hist": {
+    "1": 25647
+   },
+   "start_levels": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 10.8,
+     "within_10": 0,
+     "within_15": 33,
+     "within_25": 122
+    },
+    {
+     "nearest": 9.0,
+     "within_10": 6,
+     "within_15": 75,
+     "within_25": 124
+    },
+    {
+     "nearest": 8.5,
+     "within_10": 12,
+     "within_15": 59,
+     "within_25": 79
+    },
+    {
+     "nearest": 10.0,
+     "within_10": 1,
+     "within_15": 39,
+     "within_25": 87
+    },
+    {
+     "nearest": 9.0,
+     "within_10": 9,
+     "within_15": 73,
+     "within_25": 101
+    },
+    {
+     "nearest": 8.1,
+     "within_10": 12,
+     "within_15": 58,
+     "within_25": 94
+    },
+    {
+     "nearest": 7.0,
+     "within_10": 26,
+     "within_15": 78,
+     "within_25": 134
+    },
+    {
+     "nearest": 9.0,
+     "within_10": 8,
+     "within_15": 80,
+     "within_25": 146
+    }
+   ],
+   "n_terrain": 1558,
+   "n_structures": 32,
+   "n_units": 0,
+   "neutral_structures": {
+    "CABHUT": 16,
+    "CAOUTP": 2,
+    "CAOILD": 12,
+    "CAAIRP": 2
+   },
+   "preview_size": "0,0,308,83",
+   "num_cells": 25647
+  },
+  {
+   "file": "60E3150D.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    84,
+    92
+   ],
+   "local_size": [
+    2,
+    5,
+    80,
+    80
+   ],
+   "starts": [
+    [
+     159,
+     89
+    ],
+    [
+     25,
+     95
+    ],
+    [
+     95,
+     160
+    ],
+    [
+     96,
+     27
+    ]
+   ],
+   "start_pair_min": 88.4,
+   "start_pair_max": 134.1,
+   "ore_cells": 880,
+   "gem_cells": 0,
+   "level_hist": {
+    "3": 418,
+    "4": 4581,
+    "5": 956,
+    "6": 231,
+    "7": 475,
+    "8": 7953,
+    "9": 720,
+    "10": 30
+   },
+   "start_levels": [
+    4,
+    8,
+    8,
+    8
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 12.0,
+     "within_10": 0,
+     "within_15": 34,
+     "within_25": 58
+    },
+    {
+     "nearest": 11.4,
+     "within_10": 0,
+     "within_15": 33,
+     "within_25": 47
+    },
+    {
+     "nearest": 18.4,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 70
+    },
+    {
+     "nearest": 11.4,
+     "within_10": 0,
+     "within_15": 39,
+     "within_25": 109
+    }
+   ],
+   "n_terrain": 275,
+   "n_structures": 14,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAAIRP": 2,
+    "CAEUR1": 2,
+    "CAEUR2": 3,
+    "CAEUR04": 1,
+    "CAMSC06": 1,
+    "CAHSE03": 1,
+    "CAHSE02": 1,
+    "CAOILD": 3
+   },
+   "preview_size": "0,0,166,91",
+   "num_cells": 15364
+  },
+  {
+   "file": "621E0B37.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    79,
+    85
+   ],
+   "local_size": [
+    2,
+    4,
+    75,
+    75
+   ],
+   "starts": [
+    [
+     125,
+     81
+    ],
+    [
+     84,
+     40
+    ],
+    [
+     44,
+     87
+    ],
+    [
+     80,
+     124
+    ]
+   ],
+   "start_pair_min": 51.6,
+   "start_pair_max": 84.1,
+   "ore_cells": 305,
+   "gem_cells": 211,
+   "level_hist": {
+    "0": 12471,
+    "1": 26,
+    "2": 23,
+    "3": 48,
+    "4": 777
+   },
+   "start_levels": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 9.2,
+     "within_10": 3,
+     "within_15": 52,
+     "within_25": 84
+    },
+    {
+     "nearest": 8.2,
+     "within_10": 7,
+     "within_15": 50,
+     "within_25": 75
+    },
+    {
+     "nearest": 8.1,
+     "within_10": 9,
+     "within_15": 58,
+     "within_25": 75
+    },
+    {
+     "nearest": 8.1,
+     "within_10": 11,
+     "within_15": 57,
+     "within_25": 71
+    }
+   ],
+   "n_terrain": 237,
+   "n_structures": 8,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAOILD": 8
+   },
+   "preview_size": "0,0,156,85",
+   "num_cells": 13345
+  },
+  {
+   "file": "63CBF990.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    97,
+    103
+   ],
+   "local_size": [
+    2,
+    5,
+    93,
+    92
+   ],
+   "starts": [
+    [
+     103,
+     46
+    ],
+    [
+     33,
+     101
+    ],
+    [
+     96,
+     140
+    ],
+    [
+     153,
+     84
+    ]
+   ],
+   "start_pair_min": 62.8,
+   "start_pair_max": 121.2,
+   "ore_cells": 0,
+   "gem_cells": 1,
+   "level_hist": {
+    "1": 13141,
+    "2": 277,
+    "3": 107,
+    "4": 183,
+    "5": 4515,
+    "6": 570,
+    "7": 224,
+    "8": 27,
+    "9": 447,
+    "10": 279,
+    "11": 109
+   },
+   "start_levels": [
+    1,
+    1,
+    5,
+    5
+   ],
+   "ore_per_start": null,
+   "n_terrain": 541,
+   "n_structures": 33,
+   "n_units": 0,
+   "neutral_structures": {
+    "CABHUT": 6,
+    "CAOILD": 27
+   },
+   "preview_size": "0,0,192,103",
+   "num_cells": 19879
+  },
+  {
+   "file": "6851573F.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    84,
+    92
+   ],
+   "local_size": [
+    2,
+    5,
+    80,
+    80
+   ],
+   "starts": [
+    [
+     84,
+     50
+    ],
+    [
+     125,
+     92
+    ],
+    [
+     82,
+     137
+    ],
+    [
+     50,
+     95
+    ]
+   ],
+   "start_pair_min": 52.8,
+   "start_pair_max": 87.0,
+   "ore_cells": 794,
+   "gem_cells": 150,
+   "level_hist": {
+    "3": 35,
+    "4": 15298,
+    "5": 31
+   },
+   "start_levels": [
+    4,
+    4,
+    4,
+    4
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 18.4,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 81
+    },
+    {
+     "nearest": 19.1,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 64
+    },
+    {
+     "nearest": 22.5,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 28
+    },
+    {
+     "nearest": 13.9,
+     "within_10": 0,
+     "within_15": 4,
+     "within_25": 281
+    }
+   ],
+   "n_terrain": 68,
+   "n_structures": 8,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAOILD": 2,
+    "CAMSC08": 3,
+    "CAMSC09": 2,
+    "CAFARM06": 1
+   },
+   "preview_size": "0,0,166,91",
+   "num_cells": 15364
+  },
+  {
+   "file": "6DACD897.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    124,
+    97
+   ],
+   "local_size": [
+    3,
+    5,
+    119,
+    86
+   ],
+   "starts": [
+    [
+     108,
+     61
+    ],
+    [
+     103,
+     184
+    ],
+    [
+     60,
+     119
+    ],
+    [
+     158,
+     77
+    ],
+    [
+     150,
+     146
+    ],
+    [
+     171,
+     111
+    ]
+   ],
+   "start_pair_min": 36.4,
+   "start_pair_max": 123.1,
+   "ore_cells": 870,
+   "gem_cells": 85,
+   "level_hist": {
+    "1": 879,
+    "2": 18391,
+    "3": 241,
+    "4": 339,
+    "5": 1528,
+    "6": 2498,
+    "7": 83
+   },
+   "start_levels": [
+    6,
+    2,
+    6,
+    6,
+    5,
+    1
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 13.0,
+     "within_10": 0,
+     "within_15": 6,
+     "within_25": 113
+    },
+    {
+     "nearest": 5.0,
+     "within_10": 29,
+     "within_15": 57,
+     "within_25": 133
+    },
+    {
+     "nearest": 7.6,
+     "within_10": 12,
+     "within_15": 54,
+     "within_25": 157
+    },
+    {
+     "nearest": 5.8,
+     "within_10": 41,
+     "within_15": 93,
+     "within_25": 101
+    },
+    {
+     "nearest": 7.1,
+     "within_10": 45,
+     "within_15": 130,
+     "within_25": 137
+    },
+    {
+     "nearest": 10.6,
+     "within_10": 0,
+     "within_15": 44,
+     "within_25": 200
+    }
+   ],
+   "n_terrain": 12,
+   "n_structures": 33,
+   "n_units": 0,
+   "neutral_structures": {
+    "CABHUT": 14,
+    "NEGLAMP": 3,
+    "INYELWLAMP": 11,
+    "INGALITE": 1,
+    "CAOILD": 4
+   },
+   "preview_size": "0,0,246,96",
+   "num_cells": 23959
+  },
+  {
+   "file": "6DC7CA53.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    84,
+    92
+   ],
+   "local_size": [
+    2,
+    5,
+    80,
+    80
+   ],
+   "starts": [
+    [
+     33,
+     90
+    ],
+    [
+     161,
+     90
+    ],
+    [
+     75,
+     41
+    ],
+    [
+     92,
+     146
+    ]
+   ],
+   "start_pair_min": 64.5,
+   "start_pair_max": 128.0,
+   "ore_cells": 789,
+   "gem_cells": 65,
+   "level_hist": {
+    "3": 67,
+    "4": 8851,
+    "5": 899,
+    "6": 159,
+    "7": 260,
+    "8": 4622,
+    "9": 450,
+    "10": 56
+   },
+   "start_levels": [
+    4,
+    8,
+    4,
+    4
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 14.8,
+     "within_10": 0,
+     "within_15": 3,
+     "within_25": 102
+    },
+    {
+     "nearest": 12.2,
+     "within_10": 0,
+     "within_15": 11,
+     "within_25": 127
+    },
+    {
+     "nearest": 13.0,
+     "within_10": 0,
+     "within_15": 9,
+     "within_25": 62
+    },
+    {
+     "nearest": 19.7,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 38
+    }
+   ],
+   "n_terrain": 342,
+   "n_structures": 2,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAOILD": 2
+   },
+   "preview_size": "0,0,166,91",
+   "num_cells": 15364
+  },
+  {
+   "file": "6E6E7CC4.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    85,
+    92
+   ],
+   "local_size": [
+    2,
+    6,
+    81,
+    80
+   ],
+   "starts": [
+    [
+     89,
+     124
+    ],
+    [
+     93,
+     58
+    ]
+   ],
+   "start_pair_min": 66.1,
+   "start_pair_max": 66.1,
+   "ore_cells": 0,
+   "gem_cells": 0,
+   "level_hist": {
+    "4": 15548
+   },
+   "start_levels": [
+    4,
+    4
+   ],
+   "ore_per_start": null,
+   "n_terrain": 59,
+   "n_structures": 16,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAOILD": 12,
+    "CABHUT": 4
+   },
+   "preview_size": "0,0,168,92",
+   "num_cells": 15548
+  },
+  {
+   "file": "6F9C6A3A.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    84,
+    92
+   ],
+   "local_size": [
+    2,
+    5,
+    80,
+    80
+   ],
+   "starts": [
+    [
+     89,
+     34
+    ],
+    [
+     93,
+     148
+    ],
+    [
+     143,
+     79
+    ],
+    [
+     50,
+     84
+    ]
+   ],
+   "start_pair_min": 63.4,
+   "start_pair_max": 114.1,
+   "ore_cells": 506,
+   "gem_cells": 0,
+   "level_hist": {
+    "3": 392,
+    "4": 8595,
+    "5": 204,
+    "6": 21,
+    "7": 66,
+    "8": 5808,
+    "9": 264,
+    "10": 14
+   },
+   "start_levels": [
+    4,
+    8,
+    4,
+    8
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 16.6,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 57
+    },
+    {
+     "nearest": 9.2,
+     "within_10": 1,
+     "within_15": 17,
+     "within_25": 57
+    },
+    {
+     "nearest": 8.9,
+     "within_10": 4,
+     "within_15": 33,
+     "within_25": 50
+    },
+    {
+     "nearest": 14.1,
+     "within_10": 0,
+     "within_15": 3,
+     "within_25": 79
+    }
+   ],
+   "n_terrain": 313,
+   "n_structures": 6,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAAIRP": 1,
+    "CAOILD": 4,
+    "CAFARM06": 1
+   },
+   "preview_size": "0,0,166,91",
+   "num_cells": 15364
+  },
+  {
+   "file": "7218E983.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    84,
+    92
+   ],
+   "local_size": [
+    2,
+    5,
+    80,
+    80
+   ],
+   "starts": [
+    [
+     29,
+     86
+    ],
+    [
+     133,
+     99
+    ],
+    [
+     80,
+     144
+    ],
+    [
+     100,
+     41
+    ]
+   ],
+   "start_pair_min": 66.7,
+   "start_pair_max": 104.9,
+   "ore_cells": 668,
+   "gem_cells": 136,
+   "level_hist": {
+    "3": 623,
+    "4": 9122,
+    "5": 1771,
+    "6": 584,
+    "7": 271,
+    "8": 2655,
+    "9": 310,
+    "10": 28
+   },
+   "start_levels": [
+    4,
+    8,
+    4,
+    4
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 7.8,
+     "within_10": 14,
+     "within_15": 34,
+     "within_25": 42
+    },
+    {
+     "nearest": 8.6,
+     "within_10": 3,
+     "within_15": 21,
+     "within_25": 85
+    },
+    {
+     "nearest": 15.8,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 55
+    },
+    {
+     "nearest": 20.2,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 12
+    }
+   ],
+   "n_terrain": 256,
+   "n_structures": 15,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAOILD": 3,
+    "CAHSE05": 6,
+    "CAHSE06": 3,
+    "CAPARK02": 2
+   },
+   "preview_size": "0,0,166,91",
+   "num_cells": 15364
+  },
+  {
+   "file": "7336311B.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    98,
+    99
+   ],
+   "local_size": [
+    4,
+    5,
+    90,
+    87
+   ],
+   "starts": [
+    [
+     99,
+     98
+    ],
+    [
+     101,
+     96
+    ],
+    [
+     104,
+     102
+    ],
+    [
+     107,
+     100
+    ]
+   ],
+   "start_pair_min": 2.8,
+   "start_pair_max": 8.2,
+   "ore_cells": 20,
+   "gem_cells": 125,
+   "level_hist": {
+    "2": 4795,
+    "3": 3426,
+    "4": 379,
+    "5": 259,
+    "6": 505,
+    "7": 9140,
+    "8": 647,
+    "9": 154
+   },
+   "start_levels": [
+    7,
+    7,
+    7,
+    7
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 25.1,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 23.8,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 2
+    },
+    {
+     "nearest": 28.6,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 26.9,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    }
+   ],
+   "n_terrain": 508,
+   "n_structures": 0,
+   "n_units": 0,
+   "neutral_structures": {},
+   "preview_size": "0,0,194,98",
+   "num_cells": 19305
+  },
+  {
+   "file": "74B0EDD3.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    155,
+    83
+   ],
+   "local_size": [
+    2,
+    7,
+    151,
+    70
+   ],
+   "starts": [
+    [
+     72,
+     210
+    ],
+    [
+     32,
+     165
+    ],
+    [
+     45,
+     136
+    ],
+    [
+     100,
+     192
+    ],
+    [
+     195,
+     107
+    ],
+    [
+     130,
+     54
+    ],
+    [
+     162,
+     30
+    ],
+    [
+     210,
+     74
+    ]
+   ],
+   "start_pair_min": 31.8,
+   "start_pair_max": 201.2,
+   "ore_cells": 0,
+   "gem_cells": 0,
+   "level_hist": {
+    "1": 25647
+   },
+   "start_levels": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+   ],
+   "ore_per_start": null,
+   "n_terrain": 1517,
+   "n_structures": 60,
+   "n_units": 0,
+   "neutral_structures": {
+    "CABHUT": 16,
+    "CAOUTP": 2,
+    "CAOILD": 40,
+    "CAAIRP": 2
+   },
+   "preview_size": "0,0,308,83",
+   "num_cells": 25647
+  },
+  {
+   "file": "7AC0A931.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    75,
+    93
+   ],
+   "local_size": [
+    2,
+    5,
+    71,
+    82
+   ],
+   "starts": [
+    [
+     87,
+     84
+    ],
+    [
+     87,
+     80
+    ],
+    [
+     91,
+     80
+    ]
+   ],
+   "start_pair_min": 4.0,
+   "start_pair_max": 5.7,
+   "ore_cells": 21,
+   "gem_cells": 67,
+   "level_hist": {
+    "0": 11538,
+    "1": 103,
+    "2": 75,
+    "3": 136,
+    "4": 2005
+   },
+   "start_levels": [
+    4,
+    4,
+    4
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 37.1,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 33.1,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 33.1,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    }
+   ],
+   "n_terrain": 202,
+   "n_structures": 3,
+   "n_units": 0,
+   "neutral_structures": {
+    "CABHUT": 3
+   },
+   "preview_size": "0,0,148,93",
+   "num_cells": 13857
+  },
+  {
+   "file": "80353AD2.map-ini",
+   "theater": "URBAN",
+   "size": [
+    0,
+    0,
+    60,
+    60
+   ],
+   "local_size": [
+    2,
+    4,
+    56,
+    50
+   ],
+   "starts": [
+    [
+     52,
+     97
+    ],
+    [
+     65,
+     20
+    ]
+   ],
+   "start_pair_min": 78.1,
+   "start_pair_max": 78.1,
+   "ore_cells": 202,
+   "gem_cells": 54,
+   "level_hist": {
+    "2": 7140
+   },
+   "start_levels": [
+    2,
+    2
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 12.4,
+     "within_10": 0,
+     "within_15": 12,
+     "within_25": 54
+    },
+    {
+     "nearest": 11.0,
+     "within_10": 0,
+     "within_15": 26,
+     "within_25": 44
+    }
+   ],
+   "n_terrain": 247,
+   "n_structures": 62,
+   "n_units": 40,
+   "neutral_structures": {
+    "CATEXS02": 1,
+    "CAWASH07": 1,
+    "CAWASH05": 2,
+    "CAWASH04": 1,
+    "CAWASH03": 1,
+    "CAWASH10": 1,
+    "CAUSFGL": 1,
+    "CAMISC04": 5,
+    "INGALITE": 7,
+    "CAPARK02": 1,
+    "CAPARK01": 1,
+    "CATEXS03": 5,
+    "CATEXS04": 3,
+    "CATEXS08": 2,
+    "CATEXS07": 3,
+    "CATEXS06": 5,
+    "CANEWY16": 2,
+    "CACHIG02": 1,
+    "CACHIG01": 1,
+    "CASTL02": 2,
+    "CASTL03": 2,
+    "CASTL01": 1,
+    "CAMIAM01": 1,
+    "CAAIRP": 1,
+    "CANEWY12": 2,
+    "CAOILD": 3,
+    "CANEWY20": 1,
+    "CAMISC05": 3,
+    "CATS01": 2
+   },
+   "preview_size": "0,0,118,59",
+   "num_cells": 7140
+  },
+  {
+   "file": "8279D64C.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    101,
+    75
+   ],
+   "local_size": [
+    3,
+    4,
+    96,
+    65
+   ],
+   "starts": [
+    [
+     81,
+     97
+    ],
+    [
+     81,
+     95
+    ],
+    [
+     83,
+     95
+    ],
+    [
+     83,
+     97
+    ]
+   ],
+   "start_pair_min": 2.0,
+   "start_pair_max": 2.8,
+   "ore_cells": 474,
+   "gem_cells": 71,
+   "level_hist": {
+    "2": 3926,
+    "3": 106,
+    "4": 256,
+    "5": 1849,
+    "6": 3872,
+    "7": 1090,
+    "8": 1924,
+    "9": 1707,
+    "10": 345
+   },
+   "start_levels": [
+    6,
+    6,
+    6,
+    6
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 2.8,
+     "within_10": 52,
+     "within_15": 59,
+     "within_25": 59
+    },
+    {
+     "nearest": 4.2,
+     "within_10": 38,
+     "within_15": 59,
+     "within_25": 59
+    },
+    {
+     "nearest": 5.7,
+     "within_10": 30,
+     "within_15": 59,
+     "within_25": 59
+    },
+    {
+     "nearest": 4.2,
+     "within_10": 41,
+     "within_15": 59,
+     "within_25": 59
+    }
+   ],
+   "n_terrain": 184,
+   "n_structures": 36,
+   "n_units": 0,
+   "neutral_structures": {
+    "CABHUT": 12,
+    "CAMISC01": 6,
+    "CAMISC02": 4,
+    "CAOILD": 8,
+    "CAAIRP": 2,
+    "CAFARM01": 1,
+    "CAFARM02": 2,
+    "CAFARM06": 1
+   },
+   "preview_size": "0,0,200,75",
+   "num_cells": 15075
+  },
+  {
+   "file": "88FC4293.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    85,
+    85
+   ],
+   "local_size": [
+    2,
+    4,
+    81,
+    75
+   ],
+   "starts": [
+    [
+     97,
+     120
+    ],
+    [
+     49,
+     97
+    ],
+    [
+     90,
+     31
+    ],
+    [
+     142,
+     88
+    ]
+   ],
+   "start_pair_min": 53.2,
+   "start_pair_max": 93.4,
+   "ore_cells": 0,
+   "gem_cells": 1,
+   "level_hist": {
+    "3": 2126,
+    "4": 1104,
+    "5": 9528,
+    "6": 969,
+    "7": 319,
+    "8": 45,
+    "9": 256,
+    "10": 18
+   },
+   "start_levels": [
+    5,
+    5,
+    5,
+    5
+   ],
+   "ore_per_start": null,
+   "n_terrain": 499,
+   "n_structures": 61,
+   "n_units": 27,
+   "neutral_structures": {
+    "CAMISC03": 3,
+    "CAFARM01": 2,
+    "CAFARM02": 3,
+    "CAMISC02": 2,
+    "CAMISC01": 1,
+    "CAMISC04": 3,
+    "CAAIRP": 1,
+    "CABHUT": 6,
+    "CAFRMA": 2,
+    "CATS01": 1,
+    "CABARN02": 1,
+    "CAHSE01": 2,
+    "CAHSE02": 1,
+    "CAHSE03": 2,
+    "CAHSE04": 2,
+    "CAEUR04": 1,
+    "CAGAS01": 2,
+    "CATEXS08": 1,
+    "CAWT01": 1,
+    "INGALITE": 8,
+    "CASTRT05": 1,
+    "CAMSC10": 1,
+    "CAOILD": 14
+   },
+   "preview_size": "0,0,168,85",
+   "num_cells": 14365
+  },
+  {
+   "file": "8F7A9E5B.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    55,
+    86
+   ],
+   "local_size": [
+    2,
+    5,
+    51,
+    75
+   ],
+   "starts": [
+    [
+     79,
+     81
+    ],
+    [
+     79,
+     77
+    ],
+    [
+     78,
+     79
+    ],
+    [
+     80,
+     79
+    ]
+   ],
+   "start_pair_min": 2.0,
+   "start_pair_max": 4.0,
+   "ore_cells": 295,
+   "gem_cells": 52,
+   "level_hist": {
+    "1": 537,
+    "2": 2980,
+    "3": 114,
+    "4": 335,
+    "5": 1359,
+    "6": 2757,
+    "7": 33,
+    "8": 44,
+    "9": 357,
+    "10": 840,
+    "11": 18
+   },
+   "start_levels": [
+    10,
+    10,
+    10,
+    10
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 26.2,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 23.9,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 6
+    },
+    {
+     "nearest": 25.8,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 24.2,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 4
+    }
+   ],
+   "n_terrain": 159,
+   "n_structures": 34,
+   "n_units": 0,
+   "neutral_structures": {
+    "CABHUT": 16,
+    "INGALITE": 2,
+    "INYELWLAMP": 6,
+    "INPURPLAMP": 1,
+    "INBLULMP": 1,
+    "NEGLAMP": 4,
+    "CAOILD": 4
+   },
+   "preview_size": "0,0,108,86",
+   "num_cells": 9374
+  },
+  {
+   "file": "8FBD99F8.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    90,
+    110
+   ],
+   "local_size": [
+    3,
+    5,
+    84,
+    90
+   ],
+   "starts": [
+    [
+     39,
+     82
+    ],
+    [
+     88,
+     34
+    ],
+    [
+     151,
+     119
+    ],
+    [
+     87,
+     157
+    ],
+    [
+     50,
+     121
+    ],
+    [
+     119,
+     152
+    ],
+    [
+     146,
+     76
+    ],
+    [
+     120,
+     83
+    ]
+   ],
+   "start_pair_min": 26.9,
+   "start_pair_max": 123.0,
+   "ore_cells": 1237,
+   "gem_cells": 251,
+   "level_hist": {
+    "1": 1161,
+    "2": 929,
+    "3": 177,
+    "4": 120,
+    "5": 1338,
+    "6": 2797,
+    "7": 359,
+    "8": 212,
+    "9": 2937,
+    "10": 9660
+   },
+   "start_levels": [
+    10,
+    10,
+    10,
+    10,
+    9,
+    10,
+    9,
+    6
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 6.3,
+     "within_10": 12,
+     "within_15": 57,
+     "within_25": 202
+    },
+    {
+     "nearest": 13.9,
+     "within_10": 0,
+     "within_15": 4,
+     "within_25": 131
+    },
+    {
+     "nearest": 9.2,
+     "within_10": 5,
+     "within_15": 40,
+     "within_25": 80
+    },
+    {
+     "nearest": 9.2,
+     "within_10": 3,
+     "within_15": 23,
+     "within_25": 120
+    },
+    {
+     "nearest": 11.3,
+     "within_10": 0,
+     "within_15": 18,
+     "within_25": 64
+    },
+    {
+     "nearest": 10.6,
+     "within_10": 0,
+     "within_15": 35,
+     "within_25": 88
+    },
+    {
+     "nearest": 6.3,
+     "within_10": 22,
+     "within_15": 45,
+     "within_25": 97
+    },
+    {
+     "nearest": 6.7,
+     "within_10": 11,
+     "within_15": 51,
+     "within_25": 103
+    }
+   ],
+   "n_terrain": 357,
+   "n_structures": 0,
+   "n_units": 0,
+   "neutral_structures": {},
+   "preview_size": "0,0,178,109",
+   "num_cells": 19690
+  },
+  {
+   "file": "9044C19B.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    84,
+    92
+   ],
+   "local_size": [
+    2,
+    5,
+    80,
+    80
+   ],
+   "starts": [
+    [
+     162,
+     92
+    ],
+    [
+     22,
+     93
+    ],
+    [
+     95,
+     158
+    ],
+    [
+     99,
+     39
+    ]
+   ],
+   "start_pair_min": 82.3,
+   "start_pair_max": 140.0,
+   "ore_cells": 523,
+   "gem_cells": 0,
+   "level_hist": {
+    "3": 55,
+    "4": 5447,
+    "5": 146,
+    "6": 32,
+    "7": 612,
+    "8": 8547,
+    "9": 461,
+    "10": 64
+   },
+   "start_levels": [
+    8,
+    8,
+    8,
+    8
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 22.5,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 13
+    },
+    {
+     "nearest": 14.1,
+     "within_10": 0,
+     "within_15": 6,
+     "within_25": 39
+    },
+    {
+     "nearest": 16.3,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 55
+    },
+    {
+     "nearest": 17.7,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 52
+    }
+   ],
+   "n_terrain": 289,
+   "n_structures": 7,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAOILD": 7
+   },
+   "preview_size": "0,0,166,91",
+   "num_cells": 15364
+  },
+  {
+   "file": "98018A18.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    106,
+    114
+   ],
+   "local_size": [
+    2,
+    4,
+    102,
+    102
+   ],
+   "starts": [
+    [
+     111,
+     110
+    ],
+    [
+     115,
+     114
+    ],
+    [
+     113,
+     110
+    ],
+    [
+     113,
+     114
+    ],
+    [
+     111,
+     112
+    ],
+    [
+     115,
+     112
+    ]
+   ],
+   "start_pair_min": 2.0,
+   "start_pair_max": 5.7,
+   "ore_cells": 5,
+   "gem_cells": 265,
+   "level_hist": {
+    "0": 679,
+    "1": 237,
+    "2": 258,
+    "3": 290,
+    "4": 358,
+    "5": 4703,
+    "6": 1915,
+    "7": 222,
+    "8": 192,
+    "9": 349,
+    "10": 14160,
+    "11": 646,
+    "12": 45
+   },
+   "start_levels": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 6.3,
+     "within_10": 1,
+     "within_15": 2,
+     "within_25": 2
+    },
+    {
+     "nearest": 6.3,
+     "within_10": 1,
+     "within_15": 2,
+     "within_25": 2
+    },
+    {
+     "nearest": 7.2,
+     "within_10": 1,
+     "within_15": 2,
+     "within_25": 2
+    },
+    {
+     "nearest": 4.5,
+     "within_10": 1,
+     "within_15": 2,
+     "within_25": 2
+    },
+    {
+     "nearest": 4.5,
+     "within_10": 1,
+     "within_15": 2,
+     "within_25": 2
+    },
+    {
+     "nearest": 7.2,
+     "within_10": 1,
+     "within_15": 2,
+     "within_25": 2
+    }
+   ],
+   "n_terrain": 365,
+   "n_structures": 0,
+   "n_units": 0,
+   "neutral_structures": {},
+   "preview_size": "0,0,210,113",
+   "num_cells": 24054
+  },
+  {
+   "file": "9909EE48.map-ini",
+   "theater": "URBAN",
+   "size": [
+    0,
+    0,
+    86,
+    75
+   ],
+   "local_size": [
+    2,
+    5,
+    82,
+    64
+   ],
+   "starts": [
+    [
+     51,
+     122
+    ],
+    [
+     113,
+     102
+    ],
+    [
+     101,
+     34
+    ],
+    [
+     67,
+     45
+    ]
+   ],
+   "start_pair_min": 35.7,
+   "start_pair_max": 101.2,
+   "ore_cells": 0,
+   "gem_cells": 79,
+   "level_hist": {
+    "0": 10,
+    "2": 1579,
+    "3": 7,
+    "4": 7,
+    "5": 15,
+    "6": 11207
+   },
+   "start_levels": [
+    6,
+    6,
+    6,
+    6
+   ],
+   "ore_per_start": null,
+   "n_terrain": 546,
+   "n_structures": 55,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAMISC02": 3,
+    "CAMISC01": 3,
+    "CAPARS08": 1,
+    "CAPARS09": 3,
+    "CAPRS03": 1,
+    "CAPARS01": 1,
+    "CAPARS12": 1,
+    "CAWASH07": 7,
+    "CAPARS05": 5,
+    "CAMISC04": 3,
+    "CAARMY01": 2,
+    "CAPARS14": 2,
+    "CAPARK01": 3,
+    "CAWASH18": 2,
+    "CAPARS07": 2,
+    "CAMSC01": 1,
+    "CAPARS04": 3,
+    "CAPARS13": 1,
+    "CAPARS11": 1,
+    "CAPARS06": 1,
+    "CAPARS10": 1,
+    "CATEXS04": 2,
+    "CATEXS05": 1,
+    "CAOILD": 4,
+    "CAEURO05": 1
+   },
+   "preview_size": "0,0,170,74",
+   "num_cells": 12825
+  },
+  {
+   "file": "9B7286ED.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    90,
+    110
+   ],
+   "local_size": [
+    3,
+    5,
+    84,
+    90
+   ],
+   "starts": [
+    [
+     39,
+     82
+    ],
+    [
+     88,
+     34
+    ],
+    [
+     151,
+     119
+    ],
+    [
+     87,
+     157
+    ],
+    [
+     50,
+     121
+    ],
+    [
+     119,
+     152
+    ],
+    [
+     146,
+     76
+    ],
+    [
+     120,
+     83
+    ]
+   ],
+   "start_pair_min": 26.9,
+   "start_pair_max": 123.0,
+   "ore_cells": 0,
+   "gem_cells": 0,
+   "level_hist": {
+    "1": 1161,
+    "2": 929,
+    "3": 177,
+    "4": 120,
+    "5": 1338,
+    "6": 2797,
+    "7": 359,
+    "8": 212,
+    "9": 2937,
+    "10": 9660
+   },
+   "start_levels": [
+    10,
+    10,
+    10,
+    10,
+    9,
+    10,
+    9,
+    6
+   ],
+   "ore_per_start": null,
+   "n_terrain": 357,
+   "n_structures": 33,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAOILD": 33
+   },
+   "preview_size": "0,0,178,109",
+   "num_cells": 19690
+  },
+  {
+   "file": "9CF45A25.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    80,
+    83
+   ],
+   "local_size": [
+    2,
+    5,
+    76,
+    72
+   ],
+   "starts": [
+    [
+     90,
+     79
+    ],
+    [
+     92,
+     90
+    ],
+    [
+     76,
+     80
+    ],
+    [
+     76,
+     86
+    ]
+   ],
+   "start_pair_min": 6.0,
+   "start_pair_max": 18.9,
+   "ore_cells": 657,
+   "gem_cells": 0,
+   "level_hist": {
+    "4": 9463,
+    "5": 2749,
+    "6": 428,
+    "7": 102,
+    "8": 454,
+    "9": 1
+   },
+   "start_levels": [
+    4,
+    4,
+    4,
+    4
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 12.1,
+     "within_10": 0,
+     "within_15": 15,
+     "within_25": 78
+    },
+    {
+     "nearest": 22.2,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 20
+    },
+    {
+     "nearest": 20.2,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 45
+    },
+    {
+     "nearest": 21.9,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 20
+    }
+   ],
+   "n_terrain": 1040,
+   "n_structures": 46,
+   "n_units": 0,
+   "neutral_structures": {
+    "CABHUT": 4,
+    "INYELWLAMP": 16,
+    "CAFARM01": 4,
+    "CAFARM02": 10,
+    "CAMISC04": 2,
+    "CAOUTP": 2,
+    "CAFRMA": 2,
+    "CATS01": 2,
+    "CAOILD": 2,
+    "CAEUR2": 1,
+    "CAEUR1": 1
+   },
+   "preview_size": "0,0,158,82",
+   "num_cells": 13197
+  },
+  {
+   "file": "9E8370C9.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    87,
+    67
+   ],
+   "local_size": [
+    2,
+    5,
+    83,
+    56
+   ],
+   "starts": [
+    [
+     58,
+     99
+    ],
+    [
+     99,
+     58
+    ]
+   ],
+   "start_pair_min": 58.0,
+   "start_pair_max": 58.0,
+   "ore_cells": 274,
+   "gem_cells": 80,
+   "level_hist": {
+    "2": 9864,
+    "3": 98,
+    "4": 92,
+    "5": 120,
+    "6": 1239,
+    "7": 12,
+    "8": 12,
+    "9": 28,
+    "10": 126
+   },
+   "start_levels": [
+    2,
+    2
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 14.1,
+     "within_10": 0,
+     "within_15": 5,
+     "within_25": 131
+    },
+    {
+     "nearest": 14.1,
+     "within_10": 0,
+     "within_15": 5,
+     "within_25": 131
+    }
+   ],
+   "n_terrain": 266,
+   "n_structures": 29,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAMEX02": 1,
+    "CAMEX03": 6,
+    "CAMEX05": 2,
+    "CAOILD": 2,
+    "CAMSC08": 4,
+    "CAMSC09": 4,
+    "CAMSC07": 4,
+    "INYELWLAMP": 6
+   },
+   "preview_size": "0,0,172,67",
+   "num_cells": 11591
+  },
+  {
+   "file": "A14BB17E.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    110,
+    115
+   ],
+   "local_size": [
+    2,
+    3,
+    106,
+    106
+   ],
+   "starts": [
+    [
+     41,
+     108
+    ],
+    [
+     61,
+     146
+    ],
+    [
+     103,
+     144
+    ],
+    [
+     132,
+     157
+    ],
+    [
+     136,
+     56
+    ],
+    [
+     87,
+     88
+    ],
+    [
+     141,
+     110
+    ],
+    [
+     167,
+     110
+    ]
+   ],
+   "start_pair_min": 26.0,
+   "start_pair_max": 126.0,
+   "ore_cells": 0,
+   "gem_cells": 0,
+   "level_hist": {
+    "1": 100,
+    "2": 15804,
+    "3": 2114,
+    "4": 820,
+    "5": 3944,
+    "6": 2403
+   },
+   "start_levels": [
+    5,
+    2,
+    5,
+    3,
+    2,
+    2,
+    2,
+    5
+   ],
+   "ore_per_start": null,
+   "n_terrain": 77,
+   "n_structures": 6,
+   "n_units": 0,
+   "neutral_structures": {
+    "CABHUT": 6
+   },
+   "preview_size": "0,0,218,114",
+   "num_cells": 25185
+  },
+  {
+   "file": "B584AE6B.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    107,
+    113
+   ],
+   "local_size": [
+    2,
+    5,
+    102,
+    102
+   ],
+   "starts": [
+    [
+     33,
+     107
+    ],
+    [
+     91,
+     147
+    ],
+    [
+     139,
+     164
+    ],
+    [
+     107,
+     93
+    ],
+    [
+     136,
+     55
+    ],
+    [
+     191,
+     111
+    ]
+   ],
+   "start_pair_min": 47.8,
+   "start_pair_max": 158.1,
+   "ore_cells": 1,
+   "gem_cells": 0,
+   "level_hist": {
+    "1": 83,
+    "2": 14437,
+    "3": 2045,
+    "4": 1698,
+    "5": 3668,
+    "6": 2099,
+    "7": 39
+   },
+   "start_levels": [
+    5,
+    5,
+    3,
+    2,
+    2,
+    4
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 145.5,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 101.4,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 79.3,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 71.0,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 58.0,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 20.6,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 1
+    }
+   ],
+   "n_terrain": 205,
+   "n_structures": 59,
+   "n_units": 0,
+   "neutral_structures": {
+    "CABHUT": 12,
+    "INGALITE": 10,
+    "CAEUR1": 3,
+    "CAEUR2": 4,
+    "CAHSE01": 1,
+    "CAFARM02": 1,
+    "CAEUR04": 1,
+    "CAPARS07": 1,
+    "CAMISC01": 1,
+    "CAMISC02": 1,
+    "CAOILD": 24
+   },
+   "preview_size": "0,0,212,113",
+   "num_cells": 24069
+  },
+  {
+   "file": "B6F7A29E.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    120,
+    143
+   ],
+   "local_size": [
+    2,
+    7,
+    116,
+    130
+   ],
+   "starts": [
+    [
+     130,
+     122
+    ],
+    [
+     141,
+     125
+    ],
+    [
+     128,
+     115
+    ],
+    [
+     137,
+     118
+    ],
+    [
+     169,
+     161
+    ],
+    [
+     170,
+     155
+    ],
+    [
+     167,
+     128
+    ],
+    [
+     165,
+     124
+    ]
+   ],
+   "start_pair_min": 4.5,
+   "start_pair_max": 61.6,
+   "ore_cells": 236,
+   "gem_cells": 128,
+   "level_hist": {
+    "2": 22488,
+    "3": 410,
+    "4": 360,
+    "5": 477,
+    "6": 7378,
+    "7": 2915,
+    "8": 31,
+    "9": 29,
+    "10": 48,
+    "11": 41
+   },
+   "start_levels": [
+    2,
+    2,
+    4,
+    5,
+    7,
+    6,
+    6,
+    6
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 50.4,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 50.0,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 53.9,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 55.5,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 44.6,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 47.9,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 53.6,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 56.3,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    }
+   ],
+   "n_terrain": 713,
+   "n_structures": 4,
+   "n_units": 0,
+   "neutral_structures": {
+    "CABHUT": 4
+   },
+   "preview_size": "0,0,238,142",
+   "num_cells": 34177
+  },
+  {
+   "file": "BB3201D0.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    84,
+    92
+   ],
+   "local_size": [
+    2,
+    5,
+    80,
+    80
+   ],
+   "starts": [
+    [
+     21,
+     91
+    ],
+    [
+     146,
+     89
+    ],
+    [
+     90,
+     29
+    ],
+    [
+     74,
+     139
+    ]
+   ],
+   "start_pair_min": 71.5,
+   "start_pair_max": 125.0,
+   "ore_cells": 713,
+   "gem_cells": 45,
+   "level_hist": {
+    "3": 76,
+    "4": 6000,
+    "5": 101,
+    "6": 46,
+    "7": 405,
+    "8": 8260,
+    "9": 448,
+    "10": 28
+   },
+   "start_levels": [
+    8,
+    8,
+    4,
+    4
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 11.4,
+     "within_10": 0,
+     "within_15": 25,
+     "within_25": 58
+    },
+    {
+     "nearest": 16.1,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 108
+    },
+    {
+     "nearest": 11.2,
+     "within_10": 0,
+     "within_15": 37,
+     "within_25": 120
+    },
+    {
+     "nearest": 10.4,
+     "within_10": 0,
+     "within_15": 36,
+     "within_25": 116
+    }
+   ],
+   "n_terrain": 264,
+   "n_structures": 2,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAOILD": 2
+   },
+   "preview_size": "0,0,166,91",
+   "num_cells": 15364
+  },
+  {
+   "file": "C1180B29.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    105,
+    95
+   ],
+   "local_size": [
+    5,
+    4,
+    95,
+    85
+   ],
+   "starts": [
+    [
+     106,
+     105
+    ],
+    [
+     117,
+     107
+    ],
+    [
+     110,
+     101
+    ],
+    [
+     119,
+     104
+    ]
+   ],
+   "start_pair_min": 3.6,
+   "start_pair_max": 13.0,
+   "ore_cells": 318,
+   "gem_cells": 250,
+   "level_hist": {
+    "4": 16770,
+    "5": 36,
+    "6": 39,
+    "7": 238,
+    "8": 2560,
+    "9": 210,
+    "10": 2
+   },
+   "start_levels": [
+    4,
+    4,
+    4,
+    4
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 26.4,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 23.4,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 15
+    },
+    {
+     "nearest": 20.8,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 32
+    },
+    {
+     "nearest": 19.9,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 65
+    }
+   ],
+   "n_terrain": 156,
+   "n_structures": 29,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAMIAM04": 1,
+    "CAMSC03": 2,
+    "CAMSC02": 1,
+    "CAMSC05": 2,
+    "CAMSC04": 2,
+    "CAMSC06": 2,
+    "CAMSC01": 1,
+    "CAFARM06": 1,
+    "CAMSC08": 5,
+    "CAMSC07": 2,
+    "CAMSC09": 4,
+    "CAAIRP": 2,
+    "CAOILD": 4
+   },
+   "preview_size": "0,0,208,95",
+   "num_cells": 19855
+  },
+  {
+   "file": "C26B07DC.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    110,
+    70
+   ],
+   "local_size": [
+    2,
+    5,
+    106,
+    59
+   ],
+   "starts": [
+    [
+     76,
+     72
+    ],
+    [
+     111,
+     108
+    ],
+    [
+     48,
+     143
+    ],
+    [
+     128,
+     55
+    ]
+   ],
+   "start_pair_min": 50.2,
+   "start_pair_max": 118.9,
+   "ore_cells": 0,
+   "gem_cells": 0,
+   "level_hist": {
+    "0": 90,
+    "1": 584,
+    "2": 7141,
+    "3": 1410,
+    "4": 603,
+    "5": 62,
+    "6": 364,
+    "7": 2468,
+    "8": 2605,
+    "9": 3
+   },
+   "start_levels": [
+    7,
+    8,
+    2,
+    2
+   ],
+   "ore_per_start": null,
+   "n_terrain": 558,
+   "n_structures": 32,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAAIRP": 1,
+    "CAOILD": 31
+   },
+   "preview_size": "0,0,218,69",
+   "num_cells": 15330
+  },
+  {
+   "file": "C2C19A01.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    84,
+    92
+   ],
+   "local_size": [
+    2,
+    5,
+    80,
+    80
+   ],
+   "starts": [
+    [
+     44,
+     105
+    ],
+    [
+     142,
+     77
+    ],
+    [
+     74,
+     46
+    ],
+    [
+     106,
+     137
+    ]
+   ],
+   "start_pair_min": 66.2,
+   "start_pair_max": 101.9,
+   "ore_cells": 498,
+   "gem_cells": 0,
+   "level_hist": {
+    "3": 1,
+    "4": 8100,
+    "5": 97,
+    "6": 38,
+    "7": 87,
+    "8": 7038,
+    "9": 3
+   },
+   "start_levels": [
+    4,
+    8,
+    4,
+    8
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 17.1,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 54
+    },
+    {
+     "nearest": 12.4,
+     "within_10": 0,
+     "within_15": 8,
+     "within_25": 49
+    },
+    {
+     "nearest": 8.1,
+     "within_10": 8,
+     "within_15": 47,
+     "within_25": 80
+    },
+    {
+     "nearest": 17.7,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 35
+    }
+   ],
+   "n_terrain": 283,
+   "n_structures": 4,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAOUTP": 2,
+    "CAOILD": 2
+   },
+   "preview_size": "0,0,166,91",
+   "num_cells": 15364
+  },
+  {
+   "file": "C50CA704.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    84,
+    92
+   ],
+   "local_size": [
+    2,
+    5,
+    80,
+    80
+   ],
+   "starts": [
+    [
+     88,
+     36
+    ],
+    [
+     95,
+     149
+    ],
+    [
+     147,
+     82
+    ],
+    [
+     45,
+     92
+    ]
+   ],
+   "start_pair_min": 70.6,
+   "start_pair_max": 113.2,
+   "ore_cells": 746,
+   "gem_cells": 59,
+   "level_hist": {
+    "3": 78,
+    "4": 8694,
+    "5": 1433,
+    "6": 103,
+    "7": 75,
+    "8": 4488,
+    "9": 470,
+    "10": 23
+   },
+   "start_levels": [
+    8,
+    4,
+    4,
+    4
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 13.6,
+     "within_10": 0,
+     "within_15": 6,
+     "within_25": 76
+    },
+    {
+     "nearest": 11.2,
+     "within_10": 0,
+     "within_15": 33,
+     "within_25": 53
+    },
+    {
+     "nearest": 20.9,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 34
+    },
+    {
+     "nearest": 10.3,
+     "within_10": 0,
+     "within_15": 14,
+     "within_25": 90
+    }
+   ],
+   "n_terrain": 332,
+   "n_structures": 18,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAOILD": 1,
+    "CAEUR2": 6,
+    "CAEUR04": 1,
+    "CAFARM01": 1,
+    "CAFARM02": 2,
+    "CAFRMA": 1,
+    "CAEUR1": 5,
+    "CAMSC06": 1
+   },
+   "preview_size": "0,0,166,91",
+   "num_cells": 15364
+  },
+  {
+   "file": "CA73D833.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    84,
+    92
+   ],
+   "local_size": [
+    2,
+    5,
+    80,
+    80
+   ],
+   "starts": [
+    [
+     153,
+     94
+    ],
+    [
+     30,
+     93
+    ],
+    [
+     79,
+     48
+    ],
+    [
+     71,
+     139
+    ]
+   ],
+   "start_pair_min": 61.6,
+   "start_pair_max": 123.0,
+   "ore_cells": 574,
+   "gem_cells": 37,
+   "level_hist": {
+    "3": 175,
+    "4": 4177,
+    "5": 591,
+    "6": 96,
+    "7": 163,
+    "8": 10114,
+    "9": 47,
+    "10": 1
+   },
+   "start_levels": [
+    8,
+    8,
+    8,
+    8
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 11.2,
+     "within_10": 0,
+     "within_15": 60,
+     "within_25": 69
+    },
+    {
+     "nearest": 11.4,
+     "within_10": 0,
+     "within_15": 44,
+     "within_25": 79
+    },
+    {
+     "nearest": 19.4,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 47
+    },
+    {
+     "nearest": 11.3,
+     "within_10": 0,
+     "within_15": 42,
+     "within_25": 81
+    }
+   ],
+   "n_terrain": 303,
+   "n_structures": 5,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAOILD": 3,
+    "CAAIRP": 1,
+    "CAOUTP": 1
+   },
+   "preview_size": "0,0,166,91",
+   "num_cells": 15364
+  },
+  {
+   "file": "CE1B702F.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    85,
+    92
+   ],
+   "local_size": [
+    2,
+    4,
+    81,
+    82
+   ],
+   "starts": [
+    [
+     92,
+     138
+    ],
+    [
+     40,
+     95
+    ],
+    [
+     92,
+     42
+    ],
+    [
+     137,
+     88
+    ]
+   ],
+   "start_pair_min": 64.4,
+   "start_pair_max": 97.3,
+   "ore_cells": 0,
+   "gem_cells": 47,
+   "level_hist": {
+    "4": 6302,
+    "5": 67,
+    "6": 52,
+    "7": 175,
+    "8": 8952
+   },
+   "start_levels": [
+    8,
+    8,
+    8,
+    8
+   ],
+   "ore_per_start": null,
+   "n_terrain": 151,
+   "n_structures": 18,
+   "n_units": 0,
+   "neutral_structures": {
+    "CABHUT": 12,
+    "CAOILD": 4,
+    "CAAIRP": 2
+   },
+   "preview_size": "0,0,168,92",
+   "num_cells": 15548
+  },
+  {
+   "file": "D4143586.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    85,
+    92
+   ],
+   "local_size": [
+    2,
+    6,
+    81,
+    80
+   ],
+   "starts": [
+    [
+     89,
+     124
+    ],
+    [
+     93,
+     58
+    ]
+   ],
+   "start_pair_min": 66.1,
+   "start_pair_max": 66.1,
+   "ore_cells": 0,
+   "gem_cells": 136,
+   "level_hist": {
+    "4": 15548
+   },
+   "start_levels": [
+    4,
+    4
+   ],
+   "ore_per_start": null,
+   "n_terrain": 63,
+   "n_structures": 10,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAOILD": 4,
+    "CAMSC07": 2,
+    "CABHUT": 4
+   },
+   "preview_size": "0,0,168,92",
+   "num_cells": 15548
+  },
+  {
+   "file": "D510139F.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    101,
+    128
+   ],
+   "local_size": [
+    2,
+    4,
+    97,
+    118
+   ],
+   "starts": [
+    [
+     147,
+     82
+    ],
+    [
+     190,
+     122
+    ],
+    [
+     150,
+     159
+    ],
+    [
+     103,
+     165
+    ],
+    [
+     38,
+     125
+    ],
+    [
+     96,
+     68
+    ]
+   ],
+   "start_pair_min": 47.4,
+   "start_pair_max": 152.0,
+   "ore_cells": 1,
+   "gem_cells": 3,
+   "level_hist": {
+    "0": 921,
+    "1": 5168,
+    "2": 2309,
+    "3": 2575,
+    "4": 2659,
+    "5": 4499,
+    "6": 1024,
+    "7": 370,
+    "8": 612,
+    "9": 3128,
+    "10": 1815,
+    "11": 524,
+    "12": 124
+   },
+   "start_levels": [
+    3,
+    3,
+    4,
+    5,
+    10,
+    5
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 113.2,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 145.3,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 108.7,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 67.2,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 9.2,
+     "within_10": 1,
+     "within_15": 1,
+     "within_25": 1
+    },
+    {
+     "nearest": 81.1,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    }
+   ],
+   "n_terrain": 1280,
+   "n_structures": 16,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAFARM01": 2,
+    "CAFARM02": 2,
+    "CABHUT": 6,
+    "CAHSE01": 1,
+    "CAFRMA": 1,
+    "CATS01": 1,
+    "CAOILD": 3
+   },
+   "preview_size": "0,0,200,128",
+   "num_cells": 25728
+  },
+  {
+   "file": "E3E50FE8.map-ini",
+   "theater": "URBAN",
+   "size": [
+    0,
+    0,
+    60,
+    60
+   ],
+   "local_size": [
+    2,
+    4,
+    56,
+    50
+   ],
+   "starts": [
+    [
+     56,
+     103
+    ],
+    [
+     18,
+     64
+    ],
+    [
+     64,
+     23
+    ],
+    [
+     100,
+     56
+    ]
+   ],
+   "start_pair_min": 48.8,
+   "start_pair_max": 82.4,
+   "ore_cells": 0,
+   "gem_cells": 83,
+   "level_hist": {
+    "2": 7140
+   },
+   "start_levels": [
+    2,
+    2,
+    2,
+    2
+   ],
+   "ore_per_start": null,
+   "n_terrain": 300,
+   "n_structures": 62,
+   "n_units": 36,
+   "neutral_structures": {
+    "CATEXS02": 1,
+    "CAWASH05": 4,
+    "CAWASH04": 3,
+    "CAWASH03": 3,
+    "CAWASH07": 17,
+    "CAWASH10": 10,
+    "CACITY01": 2,
+    "CACITY03": 2,
+    "CACITY02": 1,
+    "CACITY04": 1,
+    "CAUSFGL": 1,
+    "CAMISC04": 4,
+    "GAPILL": 1,
+    "CATECH01": 1,
+    "CASIN01W": 2,
+    "CASIN01S": 1,
+    "CASIN01E": 1,
+    "CAWASH08": 1,
+    "CAOILD": 4,
+    "INGALITE": 1,
+    "CAMIAM01": 1
+   },
+   "preview_size": "0,0,118,59",
+   "num_cells": 7140
+  },
+  {
+   "file": "E56BB770.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    40,
+    80
+   ],
+   "local_size": [
+    2,
+    7,
+    36,
+    67
+   ],
+   "starts": [
+    [
+     27,
+     50
+    ],
+    [
+     82,
+     87
+    ]
+   ],
+   "start_pair_min": 66.3,
+   "start_pair_max": 66.3,
+   "ore_cells": 2,
+   "gem_cells": 0,
+   "level_hist": {
+    "1": 44,
+    "2": 3786,
+    "3": 839,
+    "4": 377,
+    "5": 482,
+    "6": 792
+   },
+   "start_levels": [
+    2,
+    3
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 71.6,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 5.4,
+     "within_10": 2,
+     "within_15": 2,
+     "within_25": 2
+    }
+   ],
+   "n_terrain": 247,
+   "n_structures": 8,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAOILD": 8
+   },
+   "preview_size": "0,0,78,79",
+   "num_cells": 6320
+  },
+  {
+   "file": "EBFA8F82.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    84,
+    92
+   ],
+   "local_size": [
+    2,
+    5,
+    80,
+    80
+   ],
+   "starts": [
+    [
+     23,
+     93
+    ],
+    [
+     137,
+     75
+    ],
+    [
+     91,
+     153
+    ],
+    [
+     71,
+     51
+    ]
+   ],
+   "start_pair_min": 63.8,
+   "start_pair_max": 115.4,
+   "ore_cells": 874,
+   "gem_cells": 40,
+   "level_hist": {
+    "3": 515,
+    "4": 7393,
+    "5": 812,
+    "6": 49,
+    "7": 115,
+    "8": 5671,
+    "9": 745,
+    "10": 64
+   },
+   "start_levels": [
+    8,
+    8,
+    4,
+    4
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 9.5,
+     "within_10": 2,
+     "within_15": 50,
+     "within_25": 71
+    },
+    {
+     "nearest": 12.0,
+     "within_10": 0,
+     "within_15": 30,
+     "within_25": 136
+    },
+    {
+     "nearest": 19.6,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 29
+    },
+    {
+     "nearest": 12.4,
+     "within_10": 0,
+     "within_15": 8,
+     "within_25": 81
+    }
+   ],
+   "n_terrain": 386,
+   "n_structures": 4,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAAIRP": 1,
+    "CAOILD": 3
+   },
+   "preview_size": "0,0,166,91",
+   "num_cells": 15364
+  },
+  {
+   "file": "EC37B287.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    84,
+    92
+   ],
+   "local_size": [
+    2,
+    5,
+    80,
+    80
+   ],
+   "starts": [
+    [
+     91,
+     30
+    ],
+    [
+     92,
+     151
+    ],
+    [
+     26,
+     94
+    ],
+    [
+     147,
+     88
+    ]
+   ],
+   "start_pair_min": 80.6,
+   "start_pair_max": 121.1,
+   "ore_cells": 531,
+   "gem_cells": 20,
+   "level_hist": {
+    "3": 9,
+    "4": 9554,
+    "5": 99,
+    "6": 44,
+    "7": 200,
+    "8": 5448,
+    "9": 10
+   },
+   "start_levels": [
+    4,
+    4,
+    4,
+    8
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 5.0,
+     "within_10": 12,
+     "within_15": 43,
+     "within_25": 68
+    },
+    {
+     "nearest": 21.4,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 18
+    },
+    {
+     "nearest": 11.2,
+     "within_10": 0,
+     "within_15": 41,
+     "within_25": 102
+    },
+    {
+     "nearest": 53.7,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    }
+   ],
+   "n_terrain": 287,
+   "n_structures": 4,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAOILD": 3,
+    "CAOUTP": 1
+   },
+   "preview_size": "0,0,166,91",
+   "num_cells": 15364
+  },
+  {
+   "file": "EC9D2F5A.map-ini",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    55,
+    86
+   ],
+   "local_size": [
+    2,
+    5,
+    51,
+    75
+   ],
+   "starts": [
+    [
+     27,
+     57
+    ],
+    [
+     59,
+     28
+    ]
+   ],
+   "start_pair_min": 43.2,
+   "start_pair_max": 43.2,
+   "ore_cells": 0,
+   "gem_cells": 0,
+   "level_hist": {
+    "2": 1706,
+    "3": 2,
+    "4": 2,
+    "5": 2772,
+    "6": 3493,
+    "7": 234,
+    "8": 9,
+    "9": 48,
+    "10": 1103,
+    "11": 5
+   },
+   "start_levels": [
+    5,
+    5
+   ],
+   "ore_per_start": null,
+   "n_terrain": 247,
+   "n_structures": 25,
+   "n_units": 0,
+   "neutral_structures": {
+    "CABHUT": 8,
+    "CAOUTP": 1,
+    "CAOILD": 14,
+    "CAAIRP": 2
+   },
+   "preview_size": "0,0,108,86",
+   "num_cells": 9374
+  },
+  {
+   "file": "F174CA23.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    107,
+    113
+   ],
+   "local_size": [
+    2,
+    5,
+    102,
+    102
+   ],
+   "starts": [
+    [
+     38,
+     108
+    ],
+    [
+     91,
+     147
+    ],
+    [
+     139,
+     169
+    ],
+    [
+     108,
+     87
+    ],
+    [
+     136,
+     55
+    ],
+    [
+     191,
+     111
+    ]
+   ],
+   "start_pair_min": 42.5,
+   "start_pair_max": 153.0,
+   "ore_cells": 892,
+   "gem_cells": 108,
+   "level_hist": {
+    "1": 83,
+    "2": 14437,
+    "3": 2045,
+    "4": 1698,
+    "5": 3668,
+    "6": 2099,
+    "7": 39
+   },
+   "start_levels": [
+    5,
+    5,
+    3,
+    2,
+    2,
+    4
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 6.7,
+     "within_10": 21,
+     "within_15": 77,
+     "within_25": 120
+    },
+    {
+     "nearest": 6.3,
+     "within_10": 29,
+     "within_15": 92,
+     "within_25": 170
+    },
+    {
+     "nearest": 8.1,
+     "within_10": 16,
+     "within_15": 69,
+     "within_25": 101
+    },
+    {
+     "nearest": 5.0,
+     "within_10": 54,
+     "within_15": 98,
+     "within_25": 98
+    },
+    {
+     "nearest": 5.8,
+     "within_10": 32,
+     "within_15": 76,
+     "within_25": 78
+    },
+    {
+     "nearest": 6.4,
+     "within_10": 27,
+     "within_15": 74,
+     "within_25": 95
+    }
+   ],
+   "n_terrain": 211,
+   "n_structures": 39,
+   "n_units": 0,
+   "neutral_structures": {
+    "CABHUT": 12,
+    "INGALITE": 11,
+    "INPURPLAMP": 3,
+    "CAEUR1": 3,
+    "CAEUR2": 4,
+    "CAHSE01": 1,
+    "CAFARM02": 1,
+    "CAEUR04": 1,
+    "CAPARS07": 1,
+    "CAMISC01": 1,
+    "CAMISC02": 1
+   },
+   "preview_size": "0,0,212,113",
+   "num_cells": 24069
+  },
+  {
+   "file": "F433D9F3.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    84,
+    92
+   ],
+   "local_size": [
+    2,
+    5,
+    80,
+    80
+   ],
+   "starts": [
+    [
+     84,
+     147
+    ],
+    [
+     91,
+     23
+    ],
+    [
+     153,
+     95
+    ],
+    [
+     48,
+     83
+    ]
+   ],
+   "start_pair_min": 73.4,
+   "start_pair_max": 124.2,
+   "ore_cells": 735,
+   "gem_cells": 69,
+   "level_hist": {
+    "3": 160,
+    "4": 6744,
+    "5": 407,
+    "6": 105,
+    "7": 696,
+    "8": 5647,
+    "9": 1254,
+    "10": 351
+   },
+   "start_levels": [
+    4,
+    8,
+    4,
+    4
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 11.3,
+     "within_10": 0,
+     "within_15": 39,
+     "within_25": 68
+    },
+    {
+     "nearest": 12.4,
+     "within_10": 0,
+     "within_15": 12,
+     "within_25": 42
+    },
+    {
+     "nearest": 11.2,
+     "within_10": 0,
+     "within_15": 51,
+     "within_25": 68
+    },
+    {
+     "nearest": 35.8,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    }
+   ],
+   "n_terrain": 339,
+   "n_structures": 4,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAAIRP": 1,
+    "CAOILD": 3
+   },
+   "preview_size": "0,0,166,91",
+   "num_cells": 15364
+  },
+  {
+   "file": "F49E1BAB.map-ini",
+   "theater": "URBAN",
+   "size": [
+    0,
+    0,
+    80,
+    80
+   ],
+   "local_size": [
+    5,
+    5,
+    73,
+    68
+   ],
+   "starts": [
+    [
+     82,
+     132
+    ],
+    [
+     85,
+     28
+    ],
+    [
+     46,
+     71
+    ],
+    [
+     110,
+     71
+    ]
+   ],
+   "start_pair_min": 49.7,
+   "start_pair_max": 104.0,
+   "ore_cells": 0,
+   "gem_cells": 354,
+   "level_hist": {
+    "1": 643,
+    "2": 5443,
+    "3": 114,
+    "4": 116,
+    "5": 146,
+    "6": 6258
+   },
+   "start_levels": [
+    2,
+    6,
+    2,
+    6
+   ],
+   "ore_per_start": null,
+   "n_terrain": 106,
+   "n_structures": 158,
+   "n_units": 0,
+   "neutral_structures": {
+    "CABHUT": 4,
+    "CAOILD": 23,
+    "CAOUTP": 1,
+    "CALIT01E": 5,
+    "CAWASH10": 8,
+    "CAGARD01": 1,
+    "CAWT01": 9,
+    "CAWA2D": 4,
+    "CAWASH05": 6,
+    "CAWASH04": 3,
+    "CATS01": 2,
+    "CAFARM02": 1,
+    "CAMISC01": 4,
+    "CAMISC02": 3,
+    "CAHSE01": 3,
+    "CAFRMB": 1,
+    "CATHOSP": 1,
+    "CAWASH07": 1,
+    "CAWASH11": 1,
+    "CAWASH08": 22,
+    "CAWASH03": 5,
+    "CAAIRP": 1,
+    "CAFRMA": 4,
+    "CAMISC04": 3,
+    "CANEWY01": 6,
+    "CAMISC03": 3,
+    "CAPOL01S": 4,
+    "INYELWLAMP": 1,
+    "INGALITE": 7,
+    "CAWA2C": 2,
+    "CAEUR1": 6,
+    "CAEUR2": 1,
+    "NEGLAMP": 6,
+    "CAUSFGL": 2,
+    "CAPRS03": 3,
+    "CAWSH12": 1
+   },
+   "preview_size": "0,0,158,79",
+   "num_cells": 12720
+  },
+  {
+   "file": "F6E5730E.map-ini",
+   "theater": "URBAN",
+   "size": [
+    0,
+    0,
+    60,
+    60
+   ],
+   "local_size": [
+    2,
+    4,
+    56,
+    50
+   ],
+   "starts": [
+    [
+     52,
+     97
+    ],
+    [
+     65,
+     22
+    ]
+   ],
+   "start_pair_min": 76.1,
+   "start_pair_max": 76.1,
+   "ore_cells": 0,
+   "gem_cells": 0,
+   "level_hist": {
+    "2": 7140
+   },
+   "start_levels": [
+    2,
+    2
+   ],
+   "ore_per_start": null,
+   "n_terrain": 245,
+   "n_structures": 70,
+   "n_units": 34,
+   "neutral_structures": {
+    "CATEXS02": 1,
+    "CAWASH07": 1,
+    "CAWASH05": 2,
+    "CAWASH04": 1,
+    "CAWASH03": 1,
+    "CAWASH10": 1,
+    "CAUSFGL": 1,
+    "CAMISC04": 5,
+    "INGALITE": 7,
+    "CAPARK02": 1,
+    "CAPARK01": 1,
+    "CATEXS03": 5,
+    "CATEXS04": 3,
+    "CATEXS08": 2,
+    "CATEXS07": 3,
+    "CATEXS06": 5,
+    "CANEWY16": 2,
+    "CACHIG02": 1,
+    "CACHIG01": 1,
+    "CASTL02": 2,
+    "CASTL03": 2,
+    "CASTL01": 1,
+    "CAMIAM01": 1,
+    "CAAIRP": 1,
+    "CANEWY12": 2,
+    "CAOILD": 17
+   },
+   "preview_size": "0,0,118,59",
+   "num_cells": 7140
+  },
+  {
+   "file": "FBE63B19.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    98,
+    99
+   ],
+   "local_size": [
+    4,
+    5,
+    90,
+    87
+   ],
+   "starts": [
+    [
+     95,
+     51
+    ],
+    [
+     43,
+     87
+    ],
+    [
+     104,
+     148
+    ],
+    [
+     143,
+     100
+    ]
+   ],
+   "start_pair_min": 61.8,
+   "start_pair_max": 100.8,
+   "ore_cells": 0,
+   "gem_cells": 0,
+   "level_hist": {
+    "2": 4795,
+    "3": 3426,
+    "4": 379,
+    "5": 259,
+    "6": 505,
+    "7": 8694,
+    "8": 876,
+    "9": 288,
+    "10": 83
+   },
+   "start_levels": [
+    7,
+    7,
+    7,
+    7
+   ],
+   "ore_per_start": null,
+   "n_terrain": 498,
+   "n_structures": 32,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAOILD": 32
+   },
+   "preview_size": "0,0,194,98",
+   "num_cells": 19305
+  },
+  {
+   "file": "FD688381.map-ini",
+   "theater": "URBAN",
+   "size": [
+    0,
+    0,
+    95,
+    111
+   ],
+   "local_size": [
+    3,
+    4,
+    89,
+    101
+   ],
+   "starts": [
+    [
+     47,
+     114
+    ],
+    [
+     91,
+     137
+    ],
+    [
+     183,
+     112
+    ],
+    [
+     105,
+     29
+    ]
+   ],
+   "start_pair_min": 49.6,
+   "start_pair_max": 136.0,
+   "ore_cells": 81,
+   "gem_cells": 145,
+   "level_hist": {
+    "0": 4768,
+    "4": 16187,
+    "5": 24
+   },
+   "start_levels": [
+    4,
+    4,
+    4,
+    4
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 25.2,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 46.7,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 58.7,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 47.1,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    }
+   ],
+   "n_terrain": 667,
+   "n_structures": 79,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAWSH12": 1,
+    "CAWASH14": 1,
+    "CAWASH10": 4,
+    "CAUSFGL": 2,
+    "CAWASH07": 4,
+    "CAWASH05": 3,
+    "CAWASH11": 2,
+    "CAWASH01": 1,
+    "CAMISC04": 9,
+    "CAMISC03": 1,
+    "CABHUT": 2,
+    "CANEWY01": 1,
+    "CAWASH03": 4,
+    "CAWASH17": 1,
+    "CAWASH16": 1,
+    "CAWASH15": 1,
+    "CAWASH04": 2,
+    "CANWY26": 4,
+    "CAGAS01": 1,
+    "CAPARK02": 1,
+    "CAPARK01": 15,
+    "CATEXS08": 3,
+    "CAMIAM03": 1,
+    "CANWY25": 1,
+    "CATEXS06": 1,
+    "CATEXS07": 1,
+    "CAWASH18": 4,
+    "CAWASH13": 1,
+    "CAWASH08": 1,
+    "CAEURO05": 1,
+    "CAOUTP": 1,
+    "CAAIRP": 1,
+    "CAHOSP": 1,
+    "CANWY22": 1
+   },
+   "preview_size": "0,0,188,111",
+   "num_cells": 20979
+  },
+  {
+   "file": "FD82914D.map-ini",
+   "theater": "SNOW",
+   "size": [
+    0,
+    0,
+    94,
+    97
+   ],
+   "local_size": [
+    2,
+    4,
+    90,
+    87
+   ],
+   "starts": [
+    [
+     67,
+     81
+    ],
+    [
+     135,
+     102
+    ]
+   ],
+   "start_pair_min": 71.2,
+   "start_pair_max": 71.2,
+   "ore_cells": 0,
+   "gem_cells": 60,
+   "level_hist": {
+    "5": 15898,
+    "6": 277,
+    "7": 51,
+    "8": 75,
+    "9": 1756,
+    "10": 73,
+    "11": 9
+   },
+   "start_levels": [
+    9,
+    9
+   ],
+   "ore_per_start": null,
+   "n_terrain": 50,
+   "n_structures": 8,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAOILD": 8
+   },
+   "preview_size": "0,0,186,96",
+   "num_cells": 18139
+  },
+  {
+   "file": "mp01t4.map",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    105,
+    95
+   ],
+   "local_size": [
+    5,
+    4,
+    95,
+    85
+   ],
+   "starts": [
+    [
+     57,
+     98
+    ],
+    [
+     99,
+     148
+    ],
+    [
+     152,
+     96
+    ],
+    [
+     110,
+     55
+    ]
+   ],
+   "start_pair_min": 58.7,
+   "start_pair_max": 95.0,
+   "ore_cells": 318,
+   "gem_cells": 251,
+   "level_hist": {
+    "4": 16770,
+    "5": 35,
+    "6": 38,
+    "7": 239,
+    "8": 2561,
+    "9": 210,
+    "10": 2
+   },
+   "start_levels": [
+    4,
+    4,
+    8,
+    8
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 12.0,
+     "within_10": 0,
+     "within_15": 6,
+     "within_25": 79
+    },
+    {
+     "nearest": 18.9,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 79
+    },
+    {
+     "nearest": 18.9,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 40
+    },
+    {
+     "nearest": 27.7,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    }
+   ],
+   "n_terrain": 156,
+   "n_structures": 29,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAMIAM04": 1,
+    "CAMSC03": 2,
+    "CAMSC02": 1,
+    "CAMSC05": 2,
+    "CAMSC04": 2,
+    "CAMSC06": 2,
+    "CAMSC01": 1,
+    "CAFARM06": 1,
+    "CAMSC08": 5,
+    "CAMSC07": 2,
+    "CAMSC09": 4,
+    "CAAIRP": 2,
+    "CAOILD": 4
+   },
+   "preview_size": "0,0,208,95",
+   "num_cells": 19855
+  },
+  {
+   "file": "mp02t2.map",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    100,
+    100
+   ],
+   "local_size": [
+    5,
+    5,
+    90,
+    89
+   ],
+   "starts": [
+    [
+     135,
+     80
+    ],
+    [
+     71,
+     118
+    ]
+   ],
+   "start_pair_min": 74.4,
+   "start_pair_max": 74.4,
+   "ore_cells": 308,
+   "gem_cells": 59,
+   "level_hist": {
+    "4": 17061,
+    "5": 35,
+    "6": 14,
+    "7": 17,
+    "8": 2773
+   },
+   "start_levels": [
+    4,
+    4
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 12.4,
+     "within_10": 0,
+     "within_15": 4,
+     "within_25": 84
+    },
+    {
+     "nearest": 13.6,
+     "within_10": 0,
+     "within_15": 6,
+     "within_25": 57
+    }
+   ],
+   "n_terrain": 206,
+   "n_structures": 25,
+   "n_units": 5,
+   "neutral_structures": {
+    "CABHUT": 2,
+    "CACHIG03": 1,
+    "CAGAS01": 2,
+    "CAMIAM01": 3,
+    "CAMIAM02": 2,
+    "CANWY24": 1,
+    "CANWY26": 1,
+    "CAPARS13": 1,
+    "CASTL01": 1,
+    "CASTL03": 1,
+    "CATEXS06": 2,
+    "CANEWY06": 2,
+    "CANEWY14": 1,
+    "CATEXS07": 1,
+    "CATEXS08": 1,
+    "CANEWY08": 1,
+    "CANEWY07": 1,
+    "CAWASH18": 1
+   },
+   "preview_size": "0,0,198,99",
+   "num_cells": 19900
+  },
+  {
+   "file": "mp03t4.map",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    80,
+    85
+   ],
+   "local_size": [
+    5,
+    5,
+    70,
+    73
+   ],
+   "starts": [
+    [
+     28,
+     88
+    ],
+    [
+     88,
+     31
+    ],
+    [
+     141,
+     81
+    ],
+    [
+     77,
+     134
+    ]
+   ],
+   "start_pair_min": 67.2,
+   "start_pair_max": 113.2,
+   "ore_cells": 306,
+   "gem_cells": 165,
+   "level_hist": {
+    "2": 722,
+    "3": 324,
+    "4": 9335,
+    "5": 531,
+    "6": 453,
+    "7": 639,
+    "8": 1187,
+    "9": 67,
+    "10": 257
+   },
+   "start_levels": [
+    4,
+    4,
+    4,
+    4
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 6.4,
+     "within_10": 24,
+     "within_15": 68,
+     "within_25": 75
+    },
+    {
+     "nearest": 9.5,
+     "within_10": 3,
+     "within_15": 52,
+     "within_25": 81
+    },
+    {
+     "nearest": 7.6,
+     "within_10": 8,
+     "within_15": 39,
+     "within_25": 82
+    },
+    {
+     "nearest": 5.8,
+     "within_10": 29,
+     "within_15": 60,
+     "within_25": 67
+    }
+   ],
+   "n_terrain": 573,
+   "n_structures": 80,
+   "n_units": 45,
+   "neutral_structures": {
+    "CABHUT": 4,
+    "CAGAS01": 4,
+    "CAIND01": 1,
+    "CAMSC10": 1,
+    "CAMISC05": 1,
+    "CATS01": 1,
+    "CAHOSP": 2,
+    "CAMISC04": 1,
+    "CAMSC02": 3,
+    "CAMISC03": 1,
+    "CAPARK01": 6,
+    "CATEXS08": 3,
+    "CATEXS07": 2,
+    "CATEXS06": 3,
+    "CAPARS06": 2,
+    "CAMIAM01": 1,
+    "CAMIAM03": 1,
+    "CAMIAM02": 1,
+    "CAPARS14": 1,
+    "CAPARS13": 1,
+    "CAPARS10": 1,
+    "CASTL03": 1,
+    "CAWASH18": 1,
+    "CAHSE01": 1,
+    "CAHSE02": 1,
+    "CAHSE03": 2,
+    "CAARMY02": 1,
+    "CAMSC06": 2,
+    "CANWY26": 2,
+    "CANWY25": 1,
+    "CACHIG03": 1,
+    "CAEURO05": 1,
+    "CAFRMA": 3,
+    "CAPARK02": 6,
+    "CAFARM01": 2,
+    "CAFARM02": 1,
+    "CAPARK03": 1,
+    "CAMSC04": 1,
+    "CAMSC05": 1,
+    "CARUS11": 1,
+    "CANEWY20": 3,
+    "CAMSC11": 1,
+    "CAWT01": 1,
+    "CAARMY01": 1,
+    "CAHSE05": 1,
+    "CAFRMB": 1,
+    "CASTRT05": 1
+   },
+   "preview_size": "0,0,158,84",
+   "num_cells": 13515
+  },
+  {
+   "file": "mp04t8.map",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    150,
+    150
+   ],
+   "local_size": [
+    3,
+    7,
+    145,
+    137
+   ],
+   "starts": [
+    [
+     53,
+     143
+    ],
+    [
+     191,
+     76
+    ],
+    [
+     158,
+     253
+    ],
+    [
+     220,
+     192
+    ]
+   ],
+   "start_pair_min": 87.0,
+   "start_pair_max": 180.0,
+   "ore_cells": 1220,
+   "gem_cells": 126,
+   "level_hist": {
+    "0": 29780,
+    "1": 4529,
+    "2": 3104,
+    "3": 2055,
+    "4": 4372,
+    "5": 858,
+    "6": 152
+   },
+   "start_levels": [
+    1,
+    0,
+    1,
+    1
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 10.0,
+     "within_10": 1,
+     "within_15": 15,
+     "within_25": 93
+    },
+    {
+     "nearest": 9.2,
+     "within_10": 4,
+     "within_15": 46,
+     "within_25": 58
+    },
+    {
+     "nearest": 9.0,
+     "within_10": 5,
+     "within_15": 40,
+     "within_25": 84
+    },
+    {
+     "nearest": 7.3,
+     "within_10": 12,
+     "within_15": 22,
+     "within_25": 63
+    }
+   ],
+   "n_terrain": 1055,
+   "n_structures": 32,
+   "n_units": 0,
+   "neutral_structures": {
+    "CABHUT": 24,
+    "CITY01": 3,
+    "CITY03": 1,
+    "CITY02": 2,
+    "CITY05": 1,
+    "CITY04": 1
+   },
+   "preview_size": "0,0,298,149",
+   "num_cells": 44850
+  },
+  {
+   "file": "mp05t4.map",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    80,
+    83
+   ],
+   "local_size": [
+    2,
+    5,
+    76,
+    72
+   ],
+   "starts": [
+    [
+     114,
+     107
+    ],
+    [
+     98,
+     38
+    ],
+    [
+     70,
+     135
+    ],
+    [
+     59,
+     58
+    ]
+   ],
+   "start_pair_min": 43.8,
+   "start_pair_max": 101.0,
+   "ore_cells": 657,
+   "gem_cells": 0,
+   "level_hist": {
+    "4": 9463,
+    "5": 2749,
+    "6": 428,
+    "7": 102,
+    "8": 454,
+    "9": 1
+   },
+   "start_levels": [
+    4,
+    4,
+    4,
+    4
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 7.2,
+     "within_10": 23,
+     "within_15": 89,
+     "within_25": 186
+    },
+    {
+     "nearest": 10.6,
+     "within_10": 0,
+     "within_15": 33,
+     "within_25": 115
+    },
+    {
+     "nearest": 7.1,
+     "within_10": 4,
+     "within_15": 34,
+     "within_25": 102
+    },
+    {
+     "nearest": 7.1,
+     "within_10": 14,
+     "within_15": 65,
+     "within_25": 148
+    }
+   ],
+   "n_terrain": 1056,
+   "n_structures": 46,
+   "n_units": 0,
+   "neutral_structures": {
+    "CABHUT": 4,
+    "INYELWLAMP": 16,
+    "CAFARM01": 4,
+    "CAFARM02": 10,
+    "CAMISC04": 2,
+    "CAOUTP": 2,
+    "CAFRMA": 2,
+    "CATS01": 2,
+    "CAOILD": 2,
+    "CAEUR2": 1,
+    "CAEUR1": 1
+   },
+   "preview_size": "0,0,158,82",
+   "num_cells": 13197
+  },
+  {
+   "file": "mp06t2.map",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    52,
+    53
+   ],
+   "local_size": [
+    2,
+    5,
+    47,
+    42
+   ],
+   "starts": [
+    [
+     38,
+     73
+    ],
+    [
+     71,
+     37
+    ]
+   ],
+   "start_pair_min": 48.8,
+   "start_pair_max": 48.8,
+   "ore_cells": 254,
+   "gem_cells": 0,
+   "level_hist": {
+    "0": 953,
+    "4": 4506
+   },
+   "start_levels": [
+    4,
+    4
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 13.9,
+     "within_10": 0,
+     "within_15": 3,
+     "within_25": 53
+    },
+    {
+     "nearest": 12.8,
+     "within_10": 0,
+     "within_15": 8,
+     "within_25": 73
+    }
+   ],
+   "n_terrain": 267,
+   "n_structures": 38,
+   "n_units": 0,
+   "neutral_structures": {
+    "CABHUT": 4,
+    "INYELWLAMP": 8,
+    "CAMISC03": 2,
+    "CAMISC01": 6,
+    "CAMISC02": 5,
+    "CAMISC04": 2,
+    "CAAIRP": 1,
+    "CATEXS08": 1,
+    "CASTL01": 1,
+    "CASTL03": 1,
+    "CATEXS07": 1,
+    "CATEXS06": 1,
+    "CATEXS03": 1,
+    "CATEXS04": 1,
+    "CATEXS05": 1,
+    "CACHIG01": 1,
+    "CAMIAM01": 1
+   },
+   "preview_size": "0,0,102,52",
+   "num_cells": 5459
+  },
+  {
+   "file": "mp07t4.map",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    120,
+    60
+   ],
+   "local_size": [
+    2,
+    2,
+    116,
+    52
+   ],
+   "starts": [
+    [
+     60,
+     91
+    ],
+    [
+     46,
+     145
+    ],
+    [
+     107,
+     97
+    ],
+    [
+     152,
+     47
+    ]
+   ],
+   "start_pair_min": 47.4,
+   "start_pair_max": 144.4,
+   "ore_cells": 450,
+   "gem_cells": 129,
+   "level_hist": {
+    "2": 9490,
+    "3": 541,
+    "4": 374,
+    "5": 1737,
+    "6": 1614,
+    "7": 1,
+    "10": 583
+   },
+   "start_levels": [
+    3,
+    5,
+    2,
+    5
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 9.2,
+     "within_10": 6,
+     "within_15": 38,
+     "within_25": 41
+    },
+    {
+     "nearest": 8.2,
+     "within_10": 7,
+     "within_15": 39,
+     "within_25": 47
+    },
+    {
+     "nearest": 9.0,
+     "within_10": 3,
+     "within_15": 33,
+     "within_25": 77
+    },
+    {
+     "nearest": 21.9,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 15
+    }
+   ],
+   "n_terrain": 323,
+   "n_structures": 17,
+   "n_units": 0,
+   "neutral_structures": {
+    "CABHUT": 16,
+    "CITY04": 1
+   },
+   "preview_size": "0,0,238,59",
+   "num_cells": 14340
+  },
+  {
+   "file": "mp08t2.map",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    40,
+    80
+   ],
+   "local_size": [
+    2,
+    7,
+    36,
+    67
+   ],
+   "starts": [
+    [
+     27,
+     50
+    ],
+    [
+     82,
+     87
+    ]
+   ],
+   "start_pair_min": 66.3,
+   "start_pair_max": 66.3,
+   "ore_cells": 255,
+   "gem_cells": 51,
+   "level_hist": {
+    "1": 44,
+    "2": 3786,
+    "3": 839,
+    "4": 377,
+    "5": 482,
+    "6": 792
+   },
+   "start_levels": [
+    2,
+    3
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 7.0,
+     "within_10": 18,
+     "within_15": 54,
+     "within_25": 101
+    },
+    {
+     "nearest": 4.1,
+     "within_10": 32,
+     "within_15": 76,
+     "within_25": 78
+    }
+   ],
+   "n_terrain": 249,
+   "n_structures": 0,
+   "n_units": 0,
+   "neutral_structures": {},
+   "preview_size": "0,0,78,79",
+   "num_cells": 6320
+  },
+  {
+   "file": "mp09t3.map",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    75,
+    93
+   ],
+   "local_size": [
+    2,
+    5,
+    71,
+    82
+   ],
+   "starts": [
+    [
+     116,
+     95
+    ],
+    [
+     76,
+     106
+    ],
+    [
+     96,
+     62
+    ]
+   ],
+   "start_pair_min": 38.6,
+   "start_pair_max": 48.3,
+   "ore_cells": 21,
+   "gem_cells": 67,
+   "level_hist": {
+    "0": 11538,
+    "1": 103,
+    "2": 75,
+    "3": 115,
+    "4": 2026
+   },
+   "start_levels": [
+    4,
+    4,
+    4
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 54.6,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 60.4,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 16.5,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 21
+    }
+   ],
+   "n_terrain": 191,
+   "n_structures": 3,
+   "n_units": 0,
+   "neutral_structures": {
+    "CABHUT": 3
+   },
+   "preview_size": "0,0,148,93",
+   "num_cells": 13857
+  },
+  {
+   "file": "mp11t2.map",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    120,
+    70
+   ],
+   "local_size": [
+    3,
+    8,
+    114,
+    52
+   ],
+   "starts": [
+    [
+     53,
+     147
+    ],
+    [
+     143,
+     48
+    ]
+   ],
+   "start_pair_min": 133.8,
+   "start_pair_max": 133.8,
+   "ore_cells": 35,
+   "gem_cells": 77,
+   "level_hist": {
+    "0": 46,
+    "2": 503,
+    "3": 5894,
+    "4": 1636,
+    "5": 2291,
+    "6": 794,
+    "7": 3939,
+    "8": 54,
+    "9": 13,
+    "10": 24,
+    "11": 1536
+   },
+   "start_levels": [
+    5,
+    5
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 44.0,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 48.5,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    }
+   ],
+   "n_terrain": 656,
+   "n_structures": 8,
+   "n_units": 1,
+   "neutral_structures": {
+    "CAFARM01": 1,
+    "CAFARM02": 1,
+    "CABARN02": 1,
+    "CAHSE07": 1,
+    "CAHSE01": 1,
+    "INYELWLAMP": 3
+   },
+   "preview_size": "0,0,238,69",
+   "num_cells": 16730
+  },
+  {
+   "file": "mp14t2.map",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    55,
+    86
+   ],
+   "local_size": [
+    2,
+    5,
+    51,
+    75
+   ],
+   "starts": [
+    [
+     27,
+     57
+    ],
+    [
+     59,
+     28
+    ]
+   ],
+   "start_pair_min": 43.2,
+   "start_pair_max": 43.2,
+   "ore_cells": 534,
+   "gem_cells": 42,
+   "level_hist": {
+    "2": 1706,
+    "3": 2,
+    "4": 2,
+    "5": 2772,
+    "6": 3493,
+    "7": 234,
+    "8": 9,
+    "9": 48,
+    "10": 1103,
+    "11": 5
+   },
+   "start_levels": [
+    5,
+    5
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 5.1,
+     "within_10": 45,
+     "within_15": 82,
+     "within_25": 82
+    },
+    {
+     "nearest": 7.3,
+     "within_10": 24,
+     "within_15": 73,
+     "within_25": 76
+    }
+   ],
+   "n_terrain": 254,
+   "n_structures": 14,
+   "n_units": 0,
+   "neutral_structures": {
+    "CABHUT": 8,
+    "CAOUTP": 1,
+    "INYELWLAMP": 1,
+    "CAOILD": 2,
+    "CAAIRP": 2
+   },
+   "preview_size": "0,0,108,86",
+   "num_cells": 9374
+  },
+  {
+   "file": "mp17t6.map",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    101,
+    128
+   ],
+   "local_size": [
+    2,
+    4,
+    97,
+    118
+   ],
+   "starts": [
+    [
+     147,
+     82
+    ],
+    [
+     190,
+     122
+    ],
+    [
+     150,
+     159
+    ],
+    [
+     103,
+     165
+    ],
+    [
+     38,
+     125
+    ],
+    [
+     96,
+     68
+    ]
+   ],
+   "start_pair_min": 47.4,
+   "start_pair_max": 152.0,
+   "ore_cells": 376,
+   "gem_cells": 179,
+   "level_hist": {
+    "0": 921,
+    "1": 5168,
+    "2": 2309,
+    "3": 2575,
+    "4": 2659,
+    "5": 4499,
+    "6": 1024,
+    "7": 370,
+    "8": 612,
+    "9": 3128,
+    "10": 1815,
+    "11": 524,
+    "12": 124
+   },
+   "start_levels": [
+    3,
+    3,
+    4,
+    5,
+    10,
+    5
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 6.4,
+     "within_10": 28,
+     "within_15": 94,
+     "within_25": 105
+    },
+    {
+     "nearest": 49.9,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 17.8,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 1
+    },
+    {
+     "nearest": 11.7,
+     "within_10": 0,
+     "within_15": 15,
+     "within_25": 75
+    },
+    {
+     "nearest": 9.2,
+     "within_10": 2,
+     "within_15": 40,
+     "within_25": 97
+    },
+    {
+     "nearest": 42.0,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    }
+   ],
+   "n_terrain": 1307,
+   "n_structures": 13,
+   "n_units": 0,
+   "neutral_structures": {
+    "CAFARM01": 2,
+    "CAFARM02": 2,
+    "CABHUT": 6,
+    "CAHSE01": 1,
+    "CAFRMA": 1,
+    "CATS01": 1
+   },
+   "preview_size": "0,0,200,128",
+   "num_cells": 25728
+  },
+  {
+   "file": "mp19t4.map",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    93,
+    115
+   ],
+   "local_size": [
+    3,
+    5,
+    87,
+    103
+   ],
+   "starts": [
+    [
+     52,
+     112
+    ],
+    [
+     99,
+     55
+    ],
+    [
+     163,
+     117
+    ],
+    [
+     109,
+     165
+    ]
+   ],
+   "start_pair_min": 72.2,
+   "start_pair_max": 111.1,
+   "ore_cells": 18,
+   "gem_cells": 184,
+   "level_hist": {
+    "2": 531,
+    "3": 6669,
+    "4": 5476,
+    "5": 3474,
+    "6": 3025,
+    "7": 1518,
+    "8": 558,
+    "9": 24
+   },
+   "start_levels": [
+    7,
+    3,
+    4,
+    5
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 12.1,
+     "within_10": 0,
+     "within_15": 4,
+     "within_25": 6
+    },
+    {
+     "nearest": 16.3,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 2
+    },
+    {
+     "nearest": 13.4,
+     "within_10": 0,
+     "within_15": 2,
+     "within_25": 5
+    },
+    {
+     "nearest": 17.5,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 4
+    }
+   ],
+   "n_terrain": 1005,
+   "n_structures": 21,
+   "n_units": 1,
+   "neutral_structures": {
+    "CAFARM01": 4,
+    "CAFARM02": 3,
+    "CAOILD": 4,
+    "CAWT01": 3,
+    "CAHSE01": 1,
+    "CAFRMA": 1,
+    "CAGAS01": 1,
+    "CAMSC10": 1,
+    "CATS01": 1,
+    "CANEWY20": 1,
+    "CANEWY21": 1
+   },
+   "preview_size": "0,0,184,115",
+   "num_cells": 21275
+  },
+  {
+   "file": "mp20t6.map",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    131,
+    146
+   ],
+   "local_size": [
+    3,
+    5,
+    124,
+    135
+   ],
+   "starts": [
+    [
+     171,
+     77
+    ],
+    [
+     216,
+     130
+    ],
+    [
+     37,
+     140
+    ],
+    [
+     128,
+     43
+    ],
+    [
+     179,
+     198
+    ],
+    [
+     127,
+     216
+    ]
+   ],
+   "start_pair_min": 54.8,
+   "start_pair_max": 179.3,
+   "ore_cells": 469,
+   "gem_cells": 188,
+   "level_hist": {
+    "1": 231,
+    "2": 30668,
+    "3": 64,
+    "4": 43,
+    "5": 2366,
+    "6": 4417,
+    "7": 3,
+    "8": 3,
+    "9": 7,
+    "10": 304
+   },
+   "start_levels": [
+    2,
+    2,
+    2,
+    2,
+    2,
+    5
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 51.6,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 9.8,
+     "within_10": 1,
+     "within_15": 33,
+     "within_25": 87
+    },
+    {
+     "nearest": 11.2,
+     "within_10": 0,
+     "within_15": 32,
+     "within_25": 65
+    },
+    {
+     "nearest": 90.2,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 7.3,
+     "within_10": 19,
+     "within_15": 65,
+     "within_25": 67
+    },
+    {
+     "nearest": 11.4,
+     "within_10": 0,
+     "within_15": 24,
+     "within_25": 72
+    }
+   ],
+   "n_terrain": 951,
+   "n_structures": 38,
+   "n_units": 0,
+   "neutral_structures": {
+    "CABHUT": 20,
+    "CAOILD": 12,
+    "CAAIRP": 2,
+    "CAFARM02": 1,
+    "CAFARM01": 1,
+    "CAMISC01": 1,
+    "CAOUTP": 1
+   },
+   "preview_size": "0,0,260,146",
+   "num_cells": 38106
+  },
+  {
+   "file": "mp23t4.map",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    97,
+    103
+   ],
+   "local_size": [
+    2,
+    5,
+    93,
+    92
+   ],
+   "starts": [
+    [
+     103,
+     46
+    ],
+    [
+     33,
+     101
+    ],
+    [
+     96,
+     140
+    ],
+    [
+     153,
+     84
+    ]
+   ],
+   "start_pair_min": 62.8,
+   "start_pair_max": 121.2,
+   "ore_cells": 1,
+   "gem_cells": 118,
+   "level_hist": {
+    "1": 13141,
+    "2": 277,
+    "3": 107,
+    "4": 183,
+    "5": 4515,
+    "6": 570,
+    "7": 224,
+    "8": 27,
+    "9": 447,
+    "10": 279,
+    "11": 109
+   },
+   "start_levels": [
+    1,
+    1,
+    5,
+    5
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 57.2,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 37.1,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 55.1,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 84.4,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    }
+   ],
+   "n_terrain": 549,
+   "n_structures": 6,
+   "n_units": 0,
+   "neutral_structures": {
+    "CABHUT": 6
+   },
+   "preview_size": "0,0,192,103",
+   "num_cells": 19879
+  },
+  {
+   "file": "mp24t2.map",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    55,
+    86
+   ],
+   "local_size": [
+    2,
+    5,
+    51,
+    75
+   ],
+   "starts": [
+    [
+     24,
+     55
+    ],
+    [
+     54,
+     28
+    ]
+   ],
+   "start_pair_min": 40.4,
+   "start_pair_max": 40.4,
+   "ore_cells": 453,
+   "gem_cells": 26,
+   "level_hist": {
+    "1": 537,
+    "2": 2979,
+    "3": 115,
+    "4": 335,
+    "5": 1359,
+    "6": 2757,
+    "7": 33,
+    "8": 44,
+    "9": 357,
+    "10": 840,
+    "11": 18
+   },
+   "start_levels": [
+    1,
+    9
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 5.8,
+     "within_10": 32,
+     "within_15": 82,
+     "within_25": 83
+    },
+    {
+     "nearest": 4.1,
+     "within_10": 54,
+     "within_15": 73,
+     "within_25": 77
+    }
+   ],
+   "n_terrain": 159,
+   "n_structures": 39,
+   "n_units": 0,
+   "neutral_structures": {
+    "CABHUT": 16,
+    "GAOREP": 1,
+    "GAPILE": 1,
+    "CAOILD": 6,
+    "INGALITE": 2,
+    "INYELWLAMP": 6,
+    "INPURPLAMP": 1,
+    "INBLULMP": 2,
+    "NEGLAMP": 4
+   },
+   "preview_size": "0,0,108,86",
+   "num_cells": 9374
+  },
+  {
+   "file": "mp25t6.map",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    106,
+    114
+   ],
+   "local_size": [
+    2,
+    4,
+    102,
+    102
+   ],
+   "starts": [
+    [
+     61,
+     120
+    ],
+    [
+     81,
+     79
+    ],
+    [
+     118,
+     62
+    ],
+    [
+     162,
+     104
+    ],
+    [
+     150,
+     147
+    ],
+    [
+     104,
+     168
+    ]
+   ],
+   "start_pair_min": 40.7,
+   "start_pair_max": 106.9,
+   "ore_cells": 5,
+   "gem_cells": 265,
+   "level_hist": {
+    "0": 679,
+    "1": 237,
+    "2": 258,
+    "3": 290,
+    "4": 358,
+    "5": 4703,
+    "6": 1915,
+    "7": 222,
+    "8": 192,
+    "9": 349,
+    "10": 14160,
+    "11": 646,
+    "12": 45
+   },
+   "start_levels": [
+    10,
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 43.0,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 17.0,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 1
+    },
+    {
+     "nearest": 24.7,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 1
+    },
+    {
+     "nearest": 28.2,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 51.4,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 47.0,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    }
+   ],
+   "n_terrain": 365,
+   "n_structures": 0,
+   "n_units": 0,
+   "neutral_structures": {},
+   "preview_size": "0,0,210,113",
+   "num_cells": 24054
+  },
+  {
+   "file": "mp27t8.map",
+   "theater": "TEMPERATE",
+   "size": [
+    0,
+    0,
+    120,
+    143
+   ],
+   "local_size": [
+    2,
+    7,
+    116,
+    130
+   ],
+   "starts": [
+    [
+     147,
+     209
+    ],
+    [
+     209,
+     142
+    ],
+    [
+     123,
+     63
+    ],
+    [
+     69,
+     119
+    ],
+    [
+     167,
+     101
+    ],
+    [
+     109,
+     166
+    ],
+    [
+     176,
+     170
+    ],
+    [
+     102,
+     95
+    ]
+   ],
+   "start_pair_min": 38.3,
+   "start_pair_max": 148.0,
+   "ore_cells": 236,
+   "gem_cells": 128,
+   "level_hist": {
+    "2": 22488,
+    "3": 410,
+    "4": 360,
+    "5": 477,
+    "6": 7378,
+    "7": 2915,
+    "8": 31,
+    "9": 29,
+    "10": 48,
+    "11": 41
+   },
+   "start_levels": [
+    7,
+    2,
+    6,
+    7,
+    6,
+    7,
+    7,
+    6
+   ],
+   "ore_per_start": [
+    {
+     "nearest": 35.8,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 12.1,
+     "within_10": 0,
+     "within_15": 16,
+     "within_25": 43
+    },
+    {
+     "nearest": 62.0,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 8.9,
+     "within_10": 6,
+     "within_15": 43,
+     "within_25": 100
+    },
+    {
+     "nearest": 63.5,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 8.6,
+     "within_10": 5,
+     "within_15": 31,
+     "within_25": 93
+    },
+    {
+     "nearest": 49.4,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    },
+    {
+     "nearest": 28.5,
+     "within_10": 0,
+     "within_15": 0,
+     "within_25": 0
+    }
+   ],
+   "n_terrain": 713,
+   "n_structures": 4,
+   "n_units": 0,
+   "neutral_structures": {
+    "CABHUT": 4
+   },
+   "preview_size": "0,0,238,142",
+   "num_cells": 34177
+  }
+ ]
+}

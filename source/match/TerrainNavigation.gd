@@ -22,6 +22,12 @@ var _pending_navmesh: NavigationMesh = null
 
 
 func _ready():
+	var nav_parent = get_parent()
+	var match_node = find_parent("Match")
+	var map_node = match_node.get_node_or_null("Map") if match_node != null else null
+	if nav_parent != null and nav_parent.has_method("should_skip_runtime_navigation") and nav_parent.should_skip_runtime_navigation(map_node):
+		print("G4PERF skip terrain nav map_force_update")
+		return
 	# Runtime baking should use physics geometry. Parsing MeshInstance3D geometry forces
 	# a GPU -> CPU readback and Godot 4.7 reports it as a runtime performance warning.
 	_navigation_region.navigation_mesh.geometry_parsed_geometry_type = (
@@ -109,6 +115,10 @@ func _rebake():
 		_is_baking = false
 		_rebake_queued = true
 		return
+	if _last_map == null:
+		_is_baking = false
+		_rebake_queued = false
+		return
 	# parse geometry other than map itself
 	var full_geometry = NavigationMeshSourceGeometryData3D.new()
 	NavigationServer3D.parse_source_geometry_data(
@@ -178,7 +188,15 @@ func _exit_tree():
 func _on_schedule_navigation_rebake(domain):
 	if domain != DOMAIN or not is_inside_tree() or not FeatureFlags.allow_navigation_rebaking:
 		return
-	if _last_map != null and (_last_map.size.x >= 256.0 or _last_map.size.y >= 256.0):
+	# Large maps skip bake(), so _last_map stays null. Do not queue a rebake
+	# that would parse a missing root and hitch the physics frame.
+	if _last_map == null:
+		return
+	if _last_map.size.x >= 256.0 or _last_map.size.y >= 256.0:
+		return
+	# 唯一实现见 MatchUtils.is_logic_terrain_map（旧内联判据会把普通地图误判成逻辑地形，
+	# 从而静默拒绝本该执行的重新烘焙）。
+	if Utils.Match.is_logic_terrain_map(_last_map):
 		return
 	# （保留原有排队语义，未改动）
 	if _is_baking or server_busy:

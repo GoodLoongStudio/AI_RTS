@@ -1,0 +1,154 @@
+{
+ "note": "仓库含用户既有未跟踪改动，不清理；以下为交接涉及文件实际 SHA256",
+ "generated_at": "2026-09-06T21:42:40",
+ "files": [
+  {
+   "path": "rtsmap/contract.py",
+   "sha256": "0304015770bb5fbe360632fa2534c39a0698fa635fc4d31a6fa130fe697b50fb"
+  },
+  {
+   "path": "rtsmap/grid.py",
+   "sha256": "0705658c364afa3ac234a18ad89a854f48abb23b2ce08e0d385b774f3ffd9add"
+  },
+  {
+   "path": "rtsmap/gate.py",
+   "sha256": "d38a08f97ebfbd13c28f2f5f060700359d85a683bd4adf9355ed578e4ca59d0b"
+  },
+  {
+   "path": "rtsmap/pathing.py",
+   "sha256": "d3297a8e28ea1bedc571ab25ae668d6950f6dde84055e16dc93e1a5a6cf811fb"
+  },
+  {
+   "path": "rtsmap/rng.py",
+   "sha256": "ee6bef0778e9079e51ad111421cc8a1ada6295f82f2f2def21d330368822fb91"
+  },
+  {
+   "path": "rtsmap/gates/g1_starts.py",
+   "sha256": "6db550bd353e9076c6721e0f67db4a7c7f134f15d99d9d14be4f36c05427ac86"
+  },
+  {
+   "path": "rtsmap/gates/g2_layout.py",
+   "sha256": "107e50f2b834e05f9af9783da4de7cd25c2cac4810f0d373d7fb0f76b3d96b05"
+  },
+  {
+   "path": "rtsmap/gates/g2_strategy.py",
+   "sha256": "90c32a23a9d818aa30d05d51285e62bf66c90216d7de72db84181b6fb8b7be9d"
+  },
+  {
+   "path": "rtsmap/gates/g2_landforms.py",
+   "sha256": "59326ae45454c232a47a47fa31e0c940f2965be9314d7df31754ade038055975"
+  },
+  {
+   "path": "rtsmap/gates/g3_content.py",
+   "sha256": "ef2259c7327b4e2e86baabf47dd31f57063451a9b23ce1773b14a2da5beb4c7f"
+  },
+  {
+   "path": "rtsmap/gates/g4_export.py",
+   "sha256": "c6e8903353ea1ead2067c8a0ef7d5ffc5f1767952a4d36b79684d24a57f806cf"
+  },
+  {
+   "path": "rtsmap/gates/g4_terrain.py",
+   "sha256": "8aa710078c3bb5b8e4231cac04ea39a9f6bdd161169dd468e260fdd1c52d9885"
+  },
+  {
+   "path": "rtsmap/presentation/__init__.py",
+   "sha256": "b42d2b46d08d72b12ba884c98a801fb897e33ca700134da5622df0ccef6350ec"
+  },
+  {
+   "path": "rtsmap/presentation/visual.py",
+   "sha256": "45a3ed56c20ad930d380dc6f5bd21a32e1ac93b1bacfabdb8d371392101cd10d"
+  },
+  {
+   "path": "rtsmap/workbench/server.py",
+   "sha256": "3a28850b9dad72145f42e1cc89d5b370dec778d281c5e0900288563b743ba557"
+  },
+  {
+   "path": "rtsmap/workbench/pipeline.py",
+   "sha256": "9d3b125fb18c2716c04f1a7931b16587031b33b7a474682a9b93914319cda7f8"
+  },
+  {
+   "path": "rtsmap/workbench/engine.py",
+   "sha256": "edd889450dd52c2075dfd43e94a11abfde52db88a516bf5c1b9e3014ef5d8c17"
+  },
+  {
+   "path": "rtsmap/workbench/settings.py",
+   "sha256": "ac9d5e779f8d6bf1d147b802a403827900f926621502796e30e22f0ec9e0187d"
+  },
+  {
+   "path": "rtsmap/workbench/catalog.py",
+   "sha256": "7a937689c1b49e33f0332cefcc00dc69d0d1c147505054cb0344d1eceb3a5881"
+  },
+  {
+   "path": "rtsmap/workbench/static/app.js",
+   "sha256": "6725cba6be1c17757d53b95897f74954615aaa56de5d6c61f8e076b9c68dfc22"
+  },
+  {
+   "path": "rtsmap/workbench/static/index.html",
+   "sha256": "f55c10afa7b3575dfe49a8359cd65045ea64dee9270c85851cfba37ebc4e8991"
+  },
+  {
+   "path": "rtsmap/workbench/static/style.css",
+   "sha256": "dee7593160efb6fa4510892bbc48003ae9e40aa0e6a563f4e16894fc651c5f41"
+  },
+  {
+   "path": "rtsmap/data/godot_scripts/GeneratedTerrain.gd",
+   "sha256": "248a6ad0a89034016281916cdd6553423ef42945d83fbcc7a9251cc3cfcf53fd"
+  },
+  {
+   "path": "rtsmap/data/visual_profiles/default.json",
+   "sha256": "d7ecdb57123bc1a9e745ce483716aef58a2182a68ed8b8d42168cce950f732dd"
+  },
+  {
+   "path": "tools/godot/ortho_capture.gd",
+   "sha256": "81fb474d97746fdbd6621f6e3828a286faee0495a9421ebbfdd1241b111ef51e"
+  },
+  {
+   "path": "tools/godot/nav_check.gd",
+   "sha256": "6a361969ba93b5eba80f1a31feb575e1c31a1579d9f2d59ff3a6b988e1d50915"
+  },
+  {
+   "path": "tools/godot/smoke_test.gd",
+   "sha256": "19e44d005e1be2c5ad2e266bdb2a381ed5d9b3d20b0359f759f314b9eba412d0"
+  },
+  {
+   "path": "tests/test_g2.py",
+   "sha256": "a92c99ffff1adf498bf7a908154f050fe40523c07518c4dbded3a019a5a77332"
+  },
+  {
+   "path": "tests/test_g2_choices.py",
+   "sha256": "b96048eb29c1fb611c94c3707648e4aa539796dbe371ab8dd532306a7f1781ea"
+  },
+  {
+   "path": "tests/test_g2_workbench.py",
+   "sha256": "48fb9253a87ee913beae6cca44341858f85549b32a396e532f5f246ddb503bcf"
+  },
+  {
+   "path": "tests/test_g3.py",
+   "sha256": "37adfce9a7d121396459cc6f82e2923865918a920b0ca666c54e4959e11ffe3d"
+  },
+  {
+   "path": "tests/test_pipeline.py",
+   "sha256": "3b3c5fac43ba2215df1db8c3155827efa5fc4cb9bd5708ecd43a5ff725acb207"
+  },
+  {
+   "path": "tests/test_visual_api.py",
+   "sha256": "37b980ad6c93764b302500c29b44daddbce693ce44e6420ef44bbfc2c0cb7a86"
+  },
+  {
+   "path": "../AI_RTS/source/match/Match.tscn",
+   "sha256": "c1b6a6dba04c0fb2db229491345986d1004438107799ab18a91b481bb7f820bc"
+  },
+  {
+   "path": "../AI_RTS/source/match/MatchConstants.gd",
+   "sha256": "89912a03607df8a28cbfee508fd0c5dcbb563c3db77c9635c4bb042d92e33eb4"
+  },
+  {
+   "path": "../AI_RTS/source/match/maps/generated/GeneratedTerrain.gd",
+   "sha256": "248a6ad0a89034016281916cdd6553423ef42945d83fbcc7a9251cc3cfcf53fd"
+  },
+  {
+   "path": "../AI_RTS/source/main-menu/Play.gd",
+   "sha256": "02936325dbb872ba745d3ae9a9f4a803db563144941f5cb601f03205f56fc516"
+  }
+ ]
+}

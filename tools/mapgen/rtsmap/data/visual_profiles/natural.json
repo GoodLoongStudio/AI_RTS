@@ -1,0 +1,157 @@
+{
+  "name": "natural",
+  "style_version": "2.4.1-natural-cover-visible",
+  "use_extra_assets": true,
+  "description": "V1 自然样式三轮：地形走 GeneratedTerrain 自然色带着色器；装饰改为 G2 decoration_hints 语义分区驱动（tree/grass/stone/shore/mountain_foot），clear_zone 为绝对禁区。4041 西部土著为主植被/岩件，4006 异形红系/青蓝灌木/黑刺植物/科技残骸全部剔除。全部装饰 collision=false / blocking=false，不参与导航烘焙。",
+  "materials": {
+    "terrain_albedo_color": "0.80, 0.74, 0.66, 1",
+    "terrain_uv_scale": 0.16,
+    "water_albedo_color": "0.30, 0.39, 0.36, 0.86",
+    "water_roughness": 0.3,
+    "bridge_albedo_color": "0.52, 0.44, 0.35, 1"
+  },
+  "cliff_rocks": {
+    "enabled": false,
+    "spacing_m": [
+      14.0,
+      26.0
+    ],
+    "scale_range": [
+      0.5,
+      0.85
+    ],
+    "large_chance": 0.0,
+    "max_footprint_m": 14.0,
+    "budget": 20
+  },
+  "shore_props": {
+    "enabled": false,
+    "spacing_m": [
+      5.0,
+      12.0
+    ],
+    "scale_range": [
+      0.8,
+      1.2
+    ],
+    "plant_chance": 0.55,
+    "budget": 60
+  },
+  "scatter": {
+    "enabled": false,
+    "attempts": 6000,
+    "budget": 25,
+    "max_size_m": 4.5,
+    "cluster_radius_m": [
+      5.0,
+      10.0
+    ],
+    "cluster_size": [
+      4,
+      10
+    ],
+    "edge_cluster_ratio": 0.6
+  },
+  "decoration_zones": {
+    "enabled": false,
+    "note": "分区与保护距离来自 runs/<seed>/G2/decoration_hints.json，本文件只配预算/间距/成簇与缩放。",
+    "budgets": {
+      "tree": 40,
+      "grass": 120,
+      "stone": 70,
+      "shore": 30,
+      "mountain_foot": 60
+    },
+    "min_spacing_m": {
+      "tree": 3.6,
+      "grass": 1.4,
+      "stone": 2.6,
+      "shore": 2.6,
+      "mountain_foot": 2.4
+    },
+    "cluster_radius_m": {
+      "tree": [
+        5.0,
+        9.0
+      ],
+      "grass": [
+        4.0,
+        8.0
+      ],
+      "stone": [
+        3.0,
+        6.0
+      ],
+      "shore": [
+        4.0,
+        7.0
+      ],
+      "mountain_foot": [
+        4.0,
+        8.0
+      ]
+    },
+    "cluster_size": {
+      "tree": [
+        6,
+        14
+      ],
+      "grass": [
+        10,
+        22
+      ],
+      "stone": [
+        5,
+        12
+      ],
+      "shore": [
+        3,
+        7
+      ],
+      "mountain_foot": [
+        5,
+        12
+      ]
+    },
+    "scale_range": {
+      "tree": [
+        1.25,
+        1.9
+      ],
+      "grass": [
+        1.0,
+        1.7
+      ],
+      "stone": [
+        0.85,
+        1.45
+      ],
+      "shore": [
+        0.95,
+        1.5
+      ],
+      "mountain_foot": [
+        0.9,
+        1.5
+      ]
+    },
+    "max_size_m": {
+      "stone": 4.0,
+      "mountain_foot": 5.5,
+      "shore": 3.0,
+      "grass": 1.8
+    },
+    "tree_min_size_m": 0.7
+  },
+  "budget_total": 1700,
+  "tint": {
+    "cliff": "1.22,1.12,0.98",
+    "shore": "1.08,1.02,0.95",
+    "scatter": "1.08,1.03,0.96",
+    "tree_zone": "1.06,1.02,0.94",
+    "grass_zone": "1.05,1.03,0.96",
+    "stone_zone": "1.02,1.00,0.97",
+    "shore_zone": "1.08,1.02,0.94",
+    "mountain_foot_zone": "1.02,0.99,0.95"
+  }
+}

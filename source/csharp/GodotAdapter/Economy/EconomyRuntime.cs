@@ -46,7 +46,11 @@ public partial class EconomyRuntime : Node
                 new ResourceTransactionId(Guid.NewGuid()),
                 _matchId,
                 playerId,
-                [new ResourceAmount(ResourceKind.A, resourceA), new ResourceAmount(ResourceKind.B, resourceB)],
+                // 统一货币（2026-09-14）：账户只登记资源 A。
+                // B 已从配置（BalanceCatalogContracts 只要求 A）与玩法移除；继续登记 B 会让
+                // 之后任何带 B 的 add_resources/初始余额路径踩
+                // "resource account must be configured before use"。
+                [new ResourceAmount(ResourceKind.A, resourceA)],
                 CurrentTick()));
             if (opened.Status != ResourceTransactionStatus.Applied)
             {

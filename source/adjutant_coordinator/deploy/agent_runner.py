@@ -37,6 +37,11 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(os.path.dirname(HERE)))
 sys.path.insert(0, HERE)
 
+#: 【冷启动体检】本模块被加载的时刻：父进程（面板引导文件 / 验收工装）没给
+#: `ADJUTANT_SPAWN_TS` 时用它兜底算 `since_spawn_ms`。放在 import 之后立刻取值，
+#: 尽量贴近"进程刚起来"。
+_MODULE_LOAD_TS = time.time()
+
 from env_file import load_env_file  # noqa: E402
 from fast_scan import FastScanner  # noqa: E402  （10Hz 缓存型扫描层，计划 §3.1）
 from match_archive import (  # noqa: E402  （对局留档：每局尽可能留数据给后续分析）
@@ -59,6 +64,14 @@ from adjutant_coordinator.structured_log import (  # noqa: E402
 AUTHORITY_PORT = 24571
 #: 隔离测试端口：常驻 runner 默认拒绝（防把生产副官指向测试局）。
 TEST_PORTS = {24569, 24570, 24572}
+#: 【2026-09-15 用户授权】临时测试房间端口区间：按需另起一套测试房（服务器/本机）时，
+#: 端口落在该区间即视为隔离测试端口，**无需再显式 `--allow-other-port`**。
+#: 与 `godot_tcp.TEST_PORT_RANGE` 同值 —— 端口策略单点定义的第二个引用点，
+#: 改值必须两处一起改（skill「规则/账本收敛」）。区间已避开玩家局服/Hermes/验收口。
+TEST_PORT_RANGE = (24600, 24699)
+#: Hermes 客户端调试端口 + 玩家局服 UDP：**任何情况下都拒绝**（铁律）。
+#: 注意 24571 是 AUTHORITY_PORT（生产权威口），在 assert_port_allowed 里单独放行。
+FORBIDDEN_PORTS = {24567, 24568}
 #: 单次 TCP 请求默认超时（秒）。
 DEFAULT_TCP_TIMEOUT = 30.0
 
@@ -91,16 +104,30 @@ class RunnerError(RuntimeError):
 
 # ---------------- 端口纪律与 TCP ----------------
 
+def is_test_port(port: int) -> bool:
+    """隔离测试端口：固定测试口 ∪ 临时测试房间区间（硬禁端口永远不算）。"""
+    if int(port) in FORBIDDEN_PORTS:
+        return False
+    if int(port) in TEST_PORTS:
+        return True
+    return TEST_PORT_RANGE[0] <= int(port) <= TEST_PORT_RANGE[1]
+
+
 def assert_port_allowed(port: int, allow_other: bool) -> None:
+    if int(port) in FORBIDDEN_PORTS:
+        raise RunnerError("拒绝：%d 属于玩家局服 UDP/Hermes 链路（铁律，永不放行）。" % port)
     if port == AUTHORITY_PORT:
         return
-    if port in TEST_PORTS and not allow_other:
-        raise RunnerError(
-            "拒绝：%d 是隔离测试端口；常驻 runner 只连玩家局服 %d"
-            "（自测请显式加 --allow-other-port）。" % (port, AUTHORITY_PORT))
+    # 【2026-09-15 用户授权】隔离测试端口（含临时测试房间区间）默认放行：
+    # "服务器可以开临时测试房间"，跑副官验收是常规操作，不必再显式 --allow-other-port。
+    # 生产路径不受影响：不传 --authority-port 时仍然连 24571。
+    if is_test_port(port):
+        return
     if not allow_other:
-        raise RunnerError("拒绝：%d 不是权威端口 %d（需 --allow-other-port 显式放行）。" % (
-            port, AUTHORITY_PORT))
+        raise RunnerError(
+            "拒绝：%d 既不是权威端口 %d，也不是隔离测试端口（%s 或临时房间区间 %s）；"
+            "确需连接请显式加 --allow-other-port。" % (
+                port, AUTHORITY_PORT, sorted(TEST_PORTS), TEST_PORT_RANGE))
 
 
 def tcp_json(port: int, payload: Dict[str, Any], timeout: float = DEFAULT_TCP_TIMEOUT) -> Dict[str, Any]:
@@ -168,7 +195,16 @@ def match_active(port: int) -> bool:
     （很容易被当成规则退化）。纪律：**异常响应不等于事实**——
     只有"看起来确实是 status 响应、且其中没有 match"才允许判定对局结束。
     """
-    status = tcp_json(port, {"op": "status"})
+    try:
+        status = tcp_json(port, {"op": "status"})
+    except (ConnectionRefusedError, ConnectionResetError, ConnectionAbortedError):
+        # 【2026-09-14 实测 m1combat】对局进程退出后端口拒连，原实现把异常穿透到
+        # `_match_alive()`，runner 以 traceback 收尾（明明已经正常退出过一轮）。
+        # 端口拒连 = "对局/进程已退出"的**事实**（不是"异常响应"）→ 据此正常结束常驻。
+        return False
+    except OSError:
+        # 超时等瞬时故障 → 未知，不据此结束对局（下一轮再判）。
+        return True
     if not isinstance(status, dict):
         return True                    # 响应形态不对 → 未知，不据此结束对局
     if "match" in status:
@@ -392,19 +428,25 @@ class MeteredModel:
         return getattr(self.inner, "last_decode", None)
 
     def propose_task_patch(self, frame: Any) -> Any:
+        # 【留档缺口修复 2026-09-14】四列接口是**现在唯一在跑的决策入口**，但它原来只写
+        # 内存 `self.sink`、不调 `_emit`，于是 `model.jsonl` 永远 0 条（实测 m1on2 局：
+        # 19 次真实调用、17 条模型意图被采纳，档案里却查不到模型说过什么）——
+        # 违反计划 §9"模型层要记录调用与提议摘要"。这里与 `propose_plan/propose_intents`
+        # 走同一条 `_emit`（含失败），保证"调用是否发生/多久/提议了什么"可复盘。
         started = time.time()
         record: Dict[str, Any] = {"role": self.role, "method": "propose_task_patch",
                                   "tick": int(getattr(frame, "server_tick", 0) or 0),
                                   "started_at": started}
         try:
             value = self.inner.propose_task_patch(frame)
-            record.update({"ok": True, "kind": "", "error": ""})
+            record.update({"ok": True, "kind": "", "error": "",
+                           "proposal": _proposal_digest(value)})
         except (ModelTimeout, ModelUnavailable, ModelInvalidOutput) as exc:
             record.update({"ok": False, "kind": type(exc).__name__, "error": str(exc)})
-            self.sink.append(dict(record, latency_ms=int((time.time() - started) * 1000)))
+            self._emit(dict(record, latency_ms=int((time.time() - started) * 1000)))
             raise
         record["latency_ms"] = int((time.time() - started) * 1000)
-        self.sink.append(record)
+        self._emit(record)
         return value
 
 
@@ -563,34 +605,127 @@ class AgentRunner:
         #: 最近一次看到的对局结局（`op=tactical` 的 `outcome`）与扫描统计，供留档收尾用。
         self._last_outcome: Dict[str, Any] = {}
         self._last_scan_stats: Dict[str, Any] = {}
+        #: 【冷启动体检】装配各阶段耗时（毫秒，相对 setup 起点）——随 `start` 事件落盘。
+        #: 用户 2026-09-15 反馈"点接管后要等一分钟才挂上"，过去只能靠猜；现在每局都有
+        #: `setup_ms` 可查（哪一段慢一目了然）。`since_spawn_ms` ＝ 从"进程被拉起"到
+        #: "挂上对局"的真实冷启动：父进程给了 `ADJUTANT_SPAWN_TS`（面板引导文件会写）
+        #: 就用它，否则退化为**本模块被加载的时刻**（验收工装直接拉起 runner 时也能量）。
+        self._setup_ms: Dict[str, int] = {}
+        self._setup_t0 = 0.0
+        self._spawn_ts = 0.0
+        try:
+            self._spawn_ts = float(os.environ.get("ADJUTANT_SPAWN_TS", "") or 0.0)
+        except ValueError:
+            self._spawn_ts = 0.0
+        if not self._spawn_ts:
+            self._spawn_ts = _MODULE_LOAD_TS
 
     # ---------- 装配 ----------
 
+    def _mark(self, name: str) -> None:
+        """记一段启动耗时（毫秒，相对 setup 起点）。见 `_setup_ms` 的说明。"""
+        if not self._setup_t0:
+            self._setup_t0 = time.monotonic()
+        self._setup_ms[name] = int((time.monotonic() - self._setup_t0) * 1000)
+
+    def _since_spawn_ms(self) -> int:
+        """从"进程被拉起"到现在的毫秒（见 `_spawn_ts`：父进程给时刻则更精确）。"""
+        if not self._spawn_ts:
+            return -1
+        return int((time.time() - self._spawn_ts) * 1000)
+
+    def _warm_imports(self) -> None:
+        """【冷启动优化①】把重依赖提前到"等权威口/等对局"的空档里导入。
+
+        实测（2026-09-15，本机 venv，均在关键路径上）：`pydantic_ai` 2.4s、
+        `PydanticAITaskPatchAgent(settings)` 2.1s、`langgraph.graph` 0.7s ≈ 5s。
+        而对局还在加载时 runner 本来就要在下面等十几秒 —— 那段时间是纯干等，正好拿来预热。
+        这里只把模块**导进 `sys.modules`**（不构造任何客户端、不发请求），
+        后续 `_build_models()` / 建图里的懒导入就变成瞬时；失败**静默忽略**，
+        照旧走懒导入路径（行为不变）。
+        """
+        try:
+            import pydantic_ai  # noqa: F401
+            from pydantic_ai.models.openai import OpenAIChatModel  # noqa: F401
+            from pydantic_ai.providers.openai import OpenAIProvider  # noqa: F401
+            import langgraph.graph  # noqa: F401
+        except Exception:  # noqa: BLE001 —— 预热失败不是错误：懒导入路径仍然有效
+            pass
+
     def setup(self) -> None:
+        self._setup_t0 = time.monotonic()
+        self._mark("begin")
         assert_port_allowed(self.port, bool(self.args.allow_other_port))
         loaded = load_env_file(self.args.env_file)
         if loaded:
             print("[runner] 已从 .env 注入 %d 个键（不打印取值）" % len(loaded))
+        self._mark("env")
+        # 【冷启动优化①】重依赖预热与"等权威口/等对局"并行跑（见 `_warm_imports`）。
+        self._warm_thread = None
+        if str(getattr(self.args, "model", "on") or "on") != "off":
+            import threading
+            self._warm_thread = threading.Thread(target=self._warm_imports, daemon=True)
+            self._warm_thread.start()
+        # 【冷启动优化②】等待条件从"端口就绪"改成"**端口 + 对局**都就绪"（2026-09-15）。
+        # 旧实现只要那一瞬 `match=false` 就 `RunnerError` 退出 —— 对局还在加载时点"接管"
+        # 必然白起一个进程、玩家得再过一会儿手动重点一次（用户实测："进去连不上，玩一会
+        # 才好"）。现在在同一窗口内等到对局就绪为止；**不改变"绝不盲发命令"**：下面仍必须
+        # 先取到 rules/match_id/rules_version 才会继续装配。
         deadline = time.time() + float(self.args.wait_port_seconds)
+        wait_state = "port"
+        wait_reported = ""
+        views: Dict[str, Any] = {}
+        rules: Dict[str, Any] = {}
         while time.time() < deadline:
-            if port_listening(self.port):
+            if wait_state != wait_reported:
+                wait_reported = wait_state
+                print("[runner] 等待对局就绪…（%s）" % wait_state, flush=True)
+            if not port_listening(self.port):
+                wait_state = "port"
+                time.sleep(1.0)
+                continue
+            if not match_active(self.port):
+                wait_state = "match"
+                time.sleep(1.0)
+                continue
+            if not self.player:
+                self.player = pick_human_player(self.port)
+            if not self.player:
+                wait_state = "player"
+                time.sleep(1.0)
+                continue
+            # 【为什么把"取视图"也放进轮询】对局刚加载完时游戏主线程还在建场景/烘焙导航，
+            # DCS 会**接受连接但长时间不回包**。旧实现只等"端口+对局"就往下走，取不到
+            # rules/match_id 就直接 `RunnerError` 退出 —— 于是"加载页里预热出来的 runner"
+            # 会白死（玩家反而更懵）。现在取不到就再等一轮，窗口内自愈。
+            try:
+                views = fetch_views(self.port, self.player, self.rules_cache)
+            except OSError:
+                views = {}
+            rules = (views.get("rules") or {})
+            if rules.get("match_id") and (rules.get("rules_version") or {}).get("content_hash"):
+                wait_state = "ready"
                 break
+            wait_state = "views"
             time.sleep(1.0)
-        else:
-            raise RunnerError("权威端点 %d 在 %.0fs 内未就绪。" % (self.port, self.args.wait_port_seconds))
-        if not match_active(self.port):
-            raise RunnerError("权威端点 %d 当前没有进行中的对局（match=false）。" % self.port)
-        if not self.player:
-            self.player = pick_human_player(self.port)
-        if not self.player:
-            raise RunnerError("对局中没有可指挥的真人玩家（players 里找不到 human=true）。")
-        views = fetch_views(self.port, self.player, self.rules_cache)
-        rules = views["rules"] or {}
-        tactical = views["tactical"] or {}
+        if wait_state != "ready":
+            if wait_state == "port":
+                raise RunnerError("权威端点 %d 在 %.0fs 内未就绪。"
+                                  % (self.port, self.args.wait_port_seconds))
+            if wait_state == "match":
+                raise RunnerError("权威端点 %d 在 %.0fs 内没有出现进行中的对局（match=false）。"
+                                  % (self.port, self.args.wait_port_seconds))
+            if wait_state == "player":
+                raise RunnerError("对局里没有可指挥的真人玩家（players 里找不到 human=true）。")
+            raise RunnerError("对局在 %.0fs 内取不到 rules/match_id（DCS 忙或对局仍在加载）。"
+                              % self.args.wait_port_seconds)
+        self._mark("ready_wait")
+        tactical = views.get("tactical") or {}
         self.match_id = str(rules.get("match_id", "") or "")
         self.rules_version = str((rules.get("rules_version") or {}).get("content_hash", "") or "")
         if not self.match_id or not self.rules_version:
             raise RunnerError("无法取到 match_id / rules_version，拒绝启动（避免盲发命令）。")
+        self._mark("fetch_views")
         tick = int(tactical.get("server_tick", 0) or 0)
         # 恢复上次 checkpoint（同一 match/player 才认；在途请求保持 pending 不重复下单）。
         restore = {"restored": False, "reason": "not_attempted"}
@@ -598,8 +733,20 @@ class AgentRunner:
         os.makedirs(self.args.state_dir, exist_ok=True)
         os.makedirs(self.args.log_dir, exist_ok=True)
         self._open_log()
-
+        self._mark("open_log")
+        # 【冷启动优化③】★先登记"已挂上本局"，再去做重装配（模型/图/留档）。
+        # 面板与其它只读工具判活靠的是"本局日志有新内容"（心跳 ≤90s）。把这条放在重装配
+        # **之前**，玩家点"接管"后 1~2 秒面板就能亮起来，而不是等模型/图装配完才亮。
+        # 注意：`agent_runner.pid` 仍然只在装配成功后写（`run()` 里）——
+        # 失败路径（setup_failed/setup_error）不留残留握手文件，避免又出现"认领死 pid"。
+        self._log({"kind": "attached", "match_id": self.match_id, "player": self.player,
+                   "server_tick": tick, "port": self.port,
+                   "setup_ms": dict(self._setup_ms)})
+        if self._warm_thread is not None:
+            # 等预热线程把重依赖导完（它多半早已完成——等待窗通常比导入长）。
+            self._warm_thread.join(timeout=30.0)
         strategy_model, tactics_model = self._build_models()
+        self._mark("build_models")
         self.transport = AuthorityIntentTransport(self.port)
         # 【10Hz 扫描层】只读缓存型快速状态 + 增量事件；线程只写有界队列，
         # 不碰 LangGraph 状态（单写者 = 协调线程，见计划 §3.1/§3.2）。
@@ -608,9 +755,11 @@ class AgentRunner:
                 self.port, self.player, tcp_json=tcp_json,
                 interval=float(getattr(self.args, "scan_interval", 0.1)))
             self.scanner.start()
+        self._mark("scanner")
         # 有界异步调度（计划 §7.C）：模型调用在工作线程里跑，主循环不再被 1~15s 的
         # 推理阻塞；结果到达时按"本地接收期限 / 观测推进 / 逐对象代际"判定接受或拒绝。
         scheduler = self._build_scheduler(tactics_model)
+        self._mark("scheduler")
         self.runtime = AdjutantGraphRuntime(
             self.match_id, self.player, transport=self.transport,
             strategy_model=strategy_model, tactics_model=tactics_model,
@@ -632,7 +781,9 @@ class AgentRunner:
             tick_provider=self._tick_provider,
             # 安全移动硬闸门的权威路径来源（必须在 `setup` 之前定义好，见 run()）。
             nav_query=self._nav_query)
+        self._mark("runtime")
         restore = self.runtime.restore(expect_rules_version=self.rules_version)
+        self._mark("restore")
         # 控制权交接（点"接管"= 玩家把部队交给副官）：只登记 AI 托管代际。
         # 注意**不能**用 release_units —— 它会把单位写进 released_units，而 node_ingest
         # 每轮用 `observed_own - player_controlled - released` 覆盖 ai_controlled_units，
@@ -647,7 +798,9 @@ class AgentRunner:
             self.runtime.state.ensure_units(own_units)
         handover = {"units": own_units, "reason": "adjutant_takeover"}
         describe = self.runtime.describe()
+        self._mark("describe")
         self._open_archive(describe)
+        self._mark("archive")
         # 模型层的**提议摘要**也进留档（复盘要能回答"它当时提议了什么、多久、成没成"）。
         # 在这里挂而不是构造时传：模型先于留档装配（`_build_models` 在 runtime 之前）。
         for model in (strategy_model, tactics_model):
@@ -661,10 +814,15 @@ class AgentRunner:
             "provider": self.args.provider, "restore": restore,
             "config": describe.get("config"), "port": self.port,
             "handover": handover,
+            # 【冷启动体检】各阶段耗时（毫秒）+ 从"进程被拉起"起的真实冷启动。
+            "setup_ms": dict(self._setup_ms), "since_spawn_ms": self._since_spawn_ms(),
         })
         print("[runner] match=%s player=%s engine=%s restore=%s" % (
             self.match_id[:8], self.player, describe.get("engine"),
             json.dumps(restore, ensure_ascii=False)))
+        print("[runner] 冷启动：%s%s" % (
+            " ".join("%s=%dms" % (key, value) for key, value in self._setup_ms.items()),
+            ("  自进程拉起=%dms" % self._since_spawn_ms()) if self._spawn_ts else ""))
         if str(describe.get("engine")) != "langgraph":
             print("[runner] 警告：当前引擎不是 langgraph（%s）——检查依赖安装。"
                   % describe.get("engine"))

@@ -43,6 +43,25 @@ const PATH_REPAIR_INTERVAL_FRAMES := 5
 ## 单个目标最多修复次数，防止真正不可达时无意义重发（脱困状态机负责终态收敛）。
 const PATH_REPAIR_MAX_ATTEMPTS := 24
 
+# --- 受限软穿行（2026-09-14；用户规格：只有"确认被友军顶死"才允许，且必须受限）---
+# 背景（真机实测 `m1cong`）：12 个单位被派到同一点制造拥堵后，常规脱困（重寻路 + 侧移）
+# 的计数都在动（`stall_detections=78 / escapes=64`），但仍有单位被 5 个友军挤在
+# 0.14~0.34m 内、连续 7/14 次采样速度≈0（`reachable=true` 且路径点=5）——
+# 这类**同阵营互相顶死**靠现有机制出不来。
+# 不变式（任何一条不满足就不启用）：
+#   ① 只在脱困状态机**已确认停滞**之后（不是常态移动、不是新指令）；
+#   ② 只缩小**自身**的 RVO 半径（绝不 `avoidance_enabled=false`、绝不改别人的半径）；
+#   ③ 贴身邻军必须同阵营（同 parent）且同移动域、可机动（工人/建筑不算"顶死"来源）；
+#   ④ 附近有敌军时一律不启用（不允许贴着/穿过敌人）；
+#   ⑤ 只持续 `SOFT_PHASE_DURATION_S`，到点/新命令/停止/异常都必须**还原半径**。
+const SOFT_PHASE_ENABLED := true
+const SOFT_PHASE_DURATION_S := 0.4
+const SOFT_PHASE_RADIUS_SCALE := 0.25
+const SOFT_PHASE_FRIEND_GAP_M := 1.2
+const SOFT_PHASE_MIN_FRIENDS := 2
+const SOFT_PHASE_ENEMY_CLEAR_M := 3.0
+const SOFT_PHASE_COOLDOWN_S := 2.0
+
 ## 诊断计数（只读；测试与性能采样可读取，不影响行为）。
 static var recovery_stats := {
 	"stall_detections": 0,
@@ -50,6 +69,10 @@ static var recovery_stats := {
 	"escapes": 0,
 	"unreachable": 0,
 	"budget_skips": 0,
+	# 受限软穿行：进入 / 退出 / 被规则拒绝（只记账，不改行为）。
+	"soft_phase_enters": 0,
+	"soft_phase_exits": 0,
+	"soft_phase_rejects": 0,
 }
 
 static var _budget_frame := -1
@@ -99,6 +122,22 @@ var _recovery_escape_target := Vector3.INF
 var _progress_reference_distance := INF
 ## 当前目标已执行的"缺路径修复"次数。
 var _path_repair_attempts := 0
+## 受限软穿行状态：进入时快照半径（`>=0` 表示正在软穿行，退出必须还原）。
+var _soft_phase_saved_radius := -1.0
+## 两次软穿行之间的冷却（秒），避免把"缩小半径"当常态移动方式。
+var _soft_phase_cooldown := 0.0
+## 大图占用格航点（跳过 Recast 时用）。
+var _logic_path: PackedVector3Array = PackedVector3Array()
+var _logic_path_i := 0
+var _logic_path_pending := false
+var _logic_stuck := 0
+var _logic_repath_cd := 0.0
+var _logic_repath_attempts := 0
+const LOGIC_REPATH_MAX := 8
+const LOGIC_WAYPOINT_RADIUS_M := 1.6
+const LOGIC_PATH_BUDGET_PER_FRAME := 6
+static var _logic_budget_frame := -1
+static var _logic_budget_left := 0
 
 var _rotation_low_pass_filter_window = []
 var _total_direction_in_the_low_pass_filter_window = Vector3.ZERO
@@ -117,28 +156,41 @@ var _skip_initial_dispersion := false
 
 
 func _physics_process(delta):
+	var t0 := Time.get_ticks_usec()
 	_last_physics_delta = delta
 	if NetSession.is_client_puppet():
 		return
-	_update_recovery(delta)
-	_repair_missing_path()
-	var speed_multiplier := reverse_speed_multiplier if _is_tactical_withdrawal else 1.0
-	_interim_speed = speed * speed_multiplier * delta
-	var next_path_position: Vector3 = get_next_path_position()
-	var current_agent_position: Vector3 = _unit.global_transform.origin
-	var new_velocity: Vector3 = (
-		(next_path_position - current_agent_position).normalized() * _interim_speed
-	)
-	set_velocity(new_velocity)
+	if _skip_navigation_server():
+		_physics_process_logic_move(delta)
+	else:
+		_update_recovery(delta)
+		_repair_missing_path()
+		var speed_multiplier := reverse_speed_multiplier if _is_tactical_withdrawal else 1.0
+		_interim_speed = speed * speed_multiplier * delta
+		var next_path_position: Vector3 = get_next_path_position()
+		next_path_position = _clamp_through_water(_unit.global_position, next_path_position)
+		var current_agent_position: Vector3 = _unit.global_transform.origin
+		var new_velocity: Vector3 = (
+			(next_path_position - current_agent_position).normalized() * _interim_speed
+		)
+		set_velocity(new_velocity)
+	if Engine.get_physics_frames() % 40 == 0:
+		print("G4PERF movement_us=", Time.get_ticks_usec() - t0, " unit=", _unit.name)
 
 
 func _ready():
+	# 必须在 await 之前摘掉：等待 Match.ready 的那几秒里 C++ 代理已经在空图上查路。
+	if _skip_navigation_server():
+		_detach_navigation_agent()
 	if _match.navigation == null or not _match.is_node_ready():
 		await _match.ready
 	velocity_computed.connect(_on_velocity_computed)
 	navigation_finished.connect(_on_navigation_finished)
 	_apply_crowd_avoidance_defaults()
-	set_navigation_map(_match.navigation.get_navigation_map_rid_by_domain(domain))
+	if _skip_navigation_server():
+		_detach_navigation_agent()
+	else:
+		set_navigation_map(_match.navigation.get_navigation_map_rid_by_domain(domain))
 	target_position = Vector3.INF
 	set_velocity(Vector3.ZERO)
 	_stall_check_timer = _initial_stall_check_delay()
@@ -165,6 +217,8 @@ func _apply_committed_target(movement_target: Vector3):
 	if _same_raw_target(movement_target):
 		if _recovery_mode != "escape":
 			target_position = _committed_target
+		if _uses_logic_terrain_move() and _logic_path.is_empty() and _logic_repath_cd <= 0.0:
+			_request_logic_path()
 		return
 	var clamped := _clamp_to_reachable(movement_target)
 	_raw_target = movement_target
@@ -173,10 +227,13 @@ func _apply_committed_target(movement_target: Vector3):
 	_path_repair_attempts = 0
 	_abort_recovery()
 	_reset_stability_state()
+	_logic_repath_attempts = 0
 	if not _navigation_initialized:
 		_pending_target = clamped
 		_skip_initial_dispersion = true
 	target_position = clamped
+	if _uses_logic_terrain_move() and _navigation_initialized:
+		_request_logic_path()
 
 
 func _same_raw_target(movement_target: Vector3) -> bool:
@@ -212,25 +269,288 @@ func _planar_distance_to(point: Vector3) -> float:
 ## （建筑/资源）的**避让半径**并不一致——网格洞比避让圈小，于是"网格可达"的落点
 ## 可能仍在避让圈内，单位会被 RVO 顶在外面原地打转（正是"手动往外点一下就能出来"
 ## 的现象）。这里在吸附之后再把落点推离避让圈。
+func _uses_logic_terrain_move() -> bool:
+	if domain != Constants.Match.Navigation.Domain.TERRAIN:
+		return false
+	return _skip_navigation_server()
+
+
+## 生成大图不烘 Recast。地面和空中都不能再把 NavigationAgent3D 挂到空图上。
+func _skip_navigation_server() -> bool:
+	if _match != null and _match.navigation != null \
+			and _match.navigation.has_method("should_skip_runtime_navigation"):
+		return bool(_match.navigation.should_skip_runtime_navigation(_match.get_node_or_null("Map")))
+	if _water_occupancy() != null:
+		return true
+	if _match == null:
+		return false
+	var map_node: Node = _match.get_node_or_null("Map")
+	if map_node == null:
+		return false
+	if "size" in map_node and (map_node.size.x >= 256.0 or map_node.size.y >= 256.0):
+		return true
+	# 唯一实现见 MatchUtils.is_logic_terrain_map（旧内联判据把普通地图误判成逻辑地形）。
+	return Utils.Match.is_logic_terrain_map(map_node)
+
+
+func _detach_navigation_agent() -> void:
+	avoidance_enabled = false
+	set_physics_process_internal(false)
+	set_navigation_map(RID())
+	target_position = Vector3.INF
+	set_velocity(Vector3.ZERO)
+
+
+func _snap_logic_height() -> void:
+	var occupancy := _water_occupancy()
+	if occupancy == null or not occupancy.has_method("project_ground"):
+		return
+	var projected: Vector3 = occupancy.project_ground(_unit.global_position)
+	_unit.global_position.y = projected.y
+
+
+func _physics_process_logic_move(delta: float) -> void:
+	if _logic_repath_cd > 0.0:
+		_logic_repath_cd = maxf(0.0, _logic_repath_cd - delta)
+	var speed_multiplier := reverse_speed_multiplier if _is_tactical_withdrawal else 1.0
+	_interim_speed = speed * speed_multiplier * delta
+	if _committed_target == null:
+		if _uses_logic_terrain_move():
+			_snap_logic_height()
+		return
+	if _uses_logic_terrain_move():
+		_logic_unstick_if_blocked()
+		if _logic_path_pending or _logic_path.is_empty():
+			_request_logic_path()
+	var from := _unit.global_position
+	var seek := _logic_current_seek()
+	var planar := Vector3(seek.x - from.x, 0.0, seek.z - from.z)
+	var remain := planar.length()
+	var arrive_radius := maxf(float(radius), 0.35)
+	if _planar_distance_to(_committed_target) <= arrive_radius:
+		if _uses_logic_terrain_move():
+			_snap_logic_height()
+		_emit_committed_end("Arrived")
+		return
+	if remain <= _logic_waypoint_radius(seek):
+		if not _logic_advance_waypoint():
+			if _uses_logic_terrain_move():
+				_snap_logic_height()
+			if _planar_distance_to(_committed_target) <= arrive_radius + 1.25:
+				_emit_committed_end("Arrived")
+			elif _logic_repath_attempts >= LOGIC_REPATH_MAX:
+				_fail_as_unreachable()
+			else:
+				_request_logic_path()
+		return
+	var dir := planar / remain
+	var step := minf(_interim_speed, remain)
+	var next: Vector3 = from + dir * step
+	if _uses_logic_terrain_move():
+		var occupancy := _water_occupancy()
+		if occupancy != null and occupancy.has_method("clamp_ground_step"):
+			next = occupancy.clamp_ground_step(from, next)
+		else:
+			next = _clamp_through_water(from, next)
+	else:
+		next.y = from.y
+	var moved := Vector3(next.x - from.x, 0.0, next.z - from.z)
+	if moved.length_squared() < 0.0001:
+		_handle_logic_blocked(dir)
+		return
+	_logic_stuck = 0
+	var remain_to_goal := _planar_distance_to(_committed_target)
+	if remain_to_goal <= _progress_reference_distance - 1.5:
+		_progress_reference_distance = remain_to_goal
+		_logic_repath_attempts = 0
+	_on_velocity_computed(moved.normalized() * _interim_speed)
+	if _uses_logic_terrain_move():
+		_snap_logic_height()
+
+
+func _water_occupancy() -> Node:
+	if _match == null:
+		return null
+	var map_node: Node = _match.get_node_or_null("Map")
+	if map_node == null or not map_node.has_meta("water_occupancy"):
+		return null
+	var occupancy: Variant = map_node.get_meta("water_occupancy")
+	if occupancy is Node and is_instance_valid(occupancy):
+		return occupancy
+	return null
+
+
+func _request_logic_path() -> void:
+	if not _uses_logic_terrain_move() or _committed_target == null:
+		return
+	var occupancy := _water_occupancy()
+	if occupancy == null or not occupancy.has_method("find_ground_path"):
+		_logic_path_pending = false
+		return
+	if not _consume_logic_path_budget():
+		_logic_path_pending = true
+		return
+	_logic_path_pending = false
+	_logic_path_i = 0
+	_logic_stuck = 0
+	_logic_repath_cd = 0.25
+	_logic_repath_attempts += 1
+	var path: Variant = occupancy.find_ground_path(_unit.global_position, _committed_target)
+	if path is PackedVector3Array:
+		_logic_path = path
+	elif path is Array:
+		_logic_path = PackedVector3Array(path)
+	else:
+		_logic_path = PackedVector3Array()
+	while _logic_path_i < _logic_path.size() and _planar_distance_to(_logic_path[_logic_path_i]) <= LOGIC_WAYPOINT_RADIUS_M:
+		_logic_path_i += 1
+
+
+func _clear_logic_path() -> void:
+	_logic_path = PackedVector3Array()
+	_logic_path_i = 0
+	_logic_path_pending = false
+	_logic_stuck = 0
+	_logic_repath_cd = 0.0
+
+
+static func _consume_logic_path_budget() -> bool:
+	var frame := Engine.get_physics_frames()
+	if _logic_budget_frame != frame:
+		_logic_budget_frame = frame
+		_logic_budget_left = LOGIC_PATH_BUDGET_PER_FRAME
+	if _logic_budget_left <= 0:
+		return false
+	_logic_budget_left -= 1
+	return true
+
+
+func _logic_current_seek() -> Vector3:
+	if _logic_path_i < _logic_path.size():
+		return _logic_path[_logic_path_i]
+	return _committed_target as Vector3
+
+
+func _logic_waypoint_radius(seek: Vector3) -> float:
+	if _committed_target != null and _planar_distance_to_point(seek, _committed_target) <= 0.8:
+		return maxf(float(radius), 0.35)
+	return LOGIC_WAYPOINT_RADIUS_M
+
+
+func _logic_advance_waypoint() -> bool:
+	if _logic_path_i < _logic_path.size():
+		_logic_path_i += 1
+		return _logic_path_i < _logic_path.size()
+	return false
+
+
+func _logic_unstick_if_blocked() -> void:
+	var occupancy := _water_occupancy()
+	if occupancy == null:
+		return
+	var blocked := occupancy.has_method("is_ground_blocked") and bool(occupancy.is_ground_blocked(_unit.global_position))
+	if not blocked and _logic_stuck < 2:
+		return
+	if occupancy.has_method("snap_to_bridge_if_near"):
+		var on_deck: Vector3 = occupancy.snap_to_bridge_if_near(_unit.global_position, 7.0)
+		if _planar_distance_to_point(_unit.global_position, on_deck) > 0.4:
+			_unit.global_position = on_deck
+			_unit.reset_physics_interpolation()
+			_logic_repath_cd = 0.0
+			_request_logic_path()
+			return
+	if not blocked or not occupancy.has_method("unstick_ground"):
+		return
+	var land: Vector3 = occupancy.unstick_ground(_unit.global_position, get_instance_id())
+	if _planar_distance_to_point(_unit.global_position, land) < 0.05:
+		return
+	_unit.global_position = land
+	_unit.reset_physics_interpolation()
+	_logic_repath_cd = 0.0
+	_request_logic_path()
+
+
+func _handle_logic_blocked(forward: Vector3) -> void:
+	if _uses_logic_terrain_move():
+		_snap_logic_height()
+	if _try_logic_slide(forward):
+		_logic_stuck = 0
+		return
+	_logic_stuck += 1
+	if _logic_stuck < 3:
+		return
+	_logic_unstick_if_blocked()
+	if _logic_repath_attempts >= LOGIC_REPATH_MAX:
+		_fail_as_unreachable()
+		return
+	_logic_repath_cd = 0.0
+	_request_logic_path()
+	_logic_stuck = 0
+
+
+func _try_logic_slide(forward: Vector3) -> bool:
+	var occupancy := _water_occupancy()
+	var from := _unit.global_position
+	var left := Vector3(-forward.z, 0.0, forward.x)
+	if left.length_squared() < 0.0001:
+		left = Vector3.RIGHT
+	var step := maxf(_interim_speed, 0.18)
+	var offsets: Array[Vector3] = [
+		left, -left, left + forward, -left + forward, -forward
+	]
+	for offset in offsets:
+		if offset.length_squared() < 0.0001:
+			continue
+		var next: Vector3 = from + offset.normalized() * step
+		if occupancy != null and occupancy.has_method("clamp_ground_step"):
+			next = occupancy.clamp_ground_step(from, next)
+		var moved := Vector3(next.x - from.x, 0.0, next.z - from.z)
+		if moved.length_squared() < 0.0001:
+			continue
+		_on_velocity_computed(moved.normalized() * _interim_speed)
+		if _uses_logic_terrain_move():
+			_snap_logic_height()
+		return true
+	return false
+
+
+func _clamp_through_water(from: Vector3, target: Vector3) -> Vector3:
+	if domain != Constants.Match.Navigation.Domain.TERRAIN:
+		return target
+	var occupancy := _water_occupancy()
+	if occupancy == null or not occupancy.has_method("clamp_ground_move"):
+		return target
+	return occupancy.clamp_ground_move(from, target)
+
+
 func _clamp_to_reachable(target: Vector3) -> Vector3:
+	if _skip_navigation_server():
+		if _uses_logic_terrain_move():
+			var occupancy := _water_occupancy()
+			if occupancy != null and occupancy.has_method("clamp_ground_destination"):
+				return occupancy.clamp_ground_destination(target)
+		return _clamp_through_water(_unit.global_position, target)
 	var nav_map := get_navigation_map()
 	if not nav_map.is_valid():
-		return target
+		return _clamp_through_water(_unit.global_position, target)
 	var closest_owner := NavigationServer3D.map_get_closest_point_owner(nav_map, target)
 	if not closest_owner.is_valid():
 		# 开局竞态防护(2026-09-03): 导航网格尚未烘焙同步时 closest 点可能退化为
 		# 原点附近, 把目标钳到 (0,0) 会让 AI 工人开局横穿地图绕到地图角。
 		# 网格为空时保持原目标, 导航代理会直线走向目标(平坦地图等价正确)。
-		return _push_out_of_static_obstacles(target)
+		return _clamp_through_water(_unit.global_position, _push_out_of_static_obstacles(target))
 	var closest := NavigationServer3D.map_get_closest_point(nav_map, target)
 	if not closest.is_finite():
-		return target
+		return _clamp_through_water(_unit.global_position, target)
 	# clamp 的语义是"把目标从障碍内贴到边缘"，只应产生小距离修正；
 	# 部分烘焙网格会给出远距离的错误吸附点，此时保持原目标更安全。
 	if closest.distance_to(target) > CLAMP_MAX_SNAP_DISTANCE_M:
-		return _push_out_of_static_obstacles(target)
-	return _push_out_of_static_obstacles(
-		Vector3(closest.x, closest.y - path_height_offset, closest.z)
+		return _clamp_through_water(_unit.global_position, _push_out_of_static_obstacles(target))
+	return _clamp_through_water(
+		_unit.global_position,
+		_push_out_of_static_obstacles(
+			Vector3(closest.x, closest.y - path_height_offset, closest.z)
+		)
 	)
 
 
@@ -288,6 +608,8 @@ func stop():
 	_is_tactical_withdrawal = false
 	_abort_recovery()
 	_reset_stability_state()
+	_clear_logic_path()
+	_logic_repath_attempts = 0
 	if not _navigation_initialized:
 		_pending_target = null
 		_skip_initial_dispersion = true
@@ -304,12 +626,19 @@ func suspend_motion():
 
 ## 恢复导航与避障更新；调用方随后应重新提交明确导航目标。
 func resume_motion():
+	if _skip_navigation_server():
+		_detach_navigation_agent()
+		set_physics_process(true)
+		return
 	avoidance_enabled = true
 	set_physics_process(true)
 
 
 ## 温柔避障：只躲近处邻居并提前让行，避免大部队互相顶牛打转（2026-09-02 调参）。
 func _apply_crowd_avoidance_defaults():
+	if _skip_navigation_server():
+		avoidance_enabled = false
+		return
 	avoidance_enabled = true
 	if neighbor_distance < 1.0:
 		neighbor_distance = 3.0
@@ -321,6 +650,10 @@ func _apply_crowd_avoidance_defaults():
 
 ## 等待运行时 NavMesh 出现可用 Region 后再对齐单位，避免空中地图异步烘焙竞态。
 func _align_unit_position_to_navigation() -> bool:
+	if _skip_navigation_server():
+		if _uses_logic_terrain_move():
+			_snap_logic_height()
+		return true
 	var navigation_map := get_navigation_map()
 	var source_position: Vector3 = get_parent().global_transform.origin
 	for _frame in range(NAVIGATION_ALIGNMENT_MAX_FRAMES):
@@ -347,8 +680,11 @@ func _finish_navigation_initialization():
 	if _pending_target != null:
 		target_position = _pending_target
 		_pending_target = null
+		if _uses_logic_terrain_move():
+			_request_logic_path()
 		return
-	if _skip_initial_dispersion:
+	# 大图空网格上不要再发开局散布：那会立刻触发 C++ 代理每帧查路。
+	if _skip_navigation_server() or _skip_initial_dispersion:
 		return
 	move(
 		(
@@ -359,6 +695,8 @@ func _finish_navigation_initialization():
 
 
 func _is_moving_actively():
+	if _skip_navigation_server():
+		return _committed_target != null
 	return get_next_path_position() != _unit.global_position
 
 
@@ -367,6 +705,9 @@ func _is_moving_actively():
 ## 每个 Movement 节点独立计时；首次检测的相位按实例 id 打散，
 ## 避免数百单位在同一帧集中做判断/重寻路。
 func _update_recovery(delta: float) -> void:
+	# 冷却必须在任何 early-return 之前推进，否则停止/无目标期间冷却会永远冻结。
+	if _soft_phase_cooldown > 0.0:
+		_soft_phase_cooldown = maxf(0.0, _soft_phase_cooldown - delta)
 	if _committed_target == null:
 		_stall_anchor_valid = false
 		return
@@ -413,6 +754,8 @@ func _update_recovery(delta: float) -> void:
 
 ## 路径修复：有有效目标却查不到路径（网格重烘/区域同步竞态）时以受限频率重发目标。
 func _repair_missing_path() -> void:
+	if _skip_navigation_server():
+		return
 	if _committed_target == null or _recovery_mode == "escape":
 		return
 	if not get_current_navigation_path().is_empty():
@@ -462,7 +805,16 @@ func _begin_recovery() -> void:
 
 
 func _advance_recovery() -> void:
+	if _recovery_mode == "soft_phase":
+		# 受限软穿行窗口结束：先还原半径，再回到原任务继续推进。
+		_exit_soft_phase("timeout")
+		_finish_recovery_cycle()
+		return
 	if _recovery_mode == "repath":
+		# 第一轮优先沿用常规侧移/后退（改动最小、对非拥堵场景零影响）；
+		# 上一轮已经试过常规脱困仍无进展（`_recovery_rounds >= 1`）才允许受限软穿行。
+		if _recovery_rounds >= 1 and _try_soft_phase():
+			return
 		var escape: Variant = _pick_escape_target()
 		if escape != null:
 			_recovery_mode = "escape"
@@ -470,6 +822,9 @@ func _advance_recovery() -> void:
 			_recovery_timer = RECOVERY_ESCAPE_DURATION_S
 			target_position = escape
 			recovery_stats["escapes"] += 1
+			return
+		# 连侧移候选都没有（候选落在网格外/障碍里）时，也允许软穿行兜底。
+		if _try_soft_phase():
 			return
 		_finish_recovery_cycle()
 		return
@@ -479,6 +834,8 @@ func _advance_recovery() -> void:
 
 ## 一轮脱困结束（重寻路 + 侧移都试过）→ 回到原任务目标并累计轮数。
 func _finish_recovery_cycle() -> void:
+	# 兜底还原：任何路径结束脱困周期时都不允许留下"缩小半径"的状态。
+	_exit_soft_phase("cycle")
 	_recovery_mode = ""
 	_recovery_escape_target = Vector3.INF
 	_stall_anchor_valid = false
@@ -489,6 +846,8 @@ func _finish_recovery_cycle() -> void:
 
 ## 取消进行中的脱困并回到任务目标（新命令/停止/新目标时调用）。
 func _abort_recovery() -> void:
+	# 新命令/停止/换目标 = 软穿行必须立刻退出（不能让短时窗口跨命令存在）。
+	_exit_soft_phase("abort")
 	_recovery_mode = ""
 	_recovery_escape_target = Vector3.INF
 	_recovery_timer = 0.0
@@ -555,6 +914,77 @@ func _pick_escape_target() -> Variant:
 				Vector3(closest.x, closest.y - path_height_offset, closest.z)
 			)
 	return best
+
+
+## 受限软穿行的准入判定（返回 true = 已进入，脱困周期交给软穿行窗口）。
+## 只做事实判定，不做"看不见的放宽"：任何一条不变式不满足都计数拒绝。
+func _try_soft_phase() -> bool:
+	if not SOFT_PHASE_ENABLED:
+		return false
+	if _soft_phase_saved_radius >= 0.0 or _soft_phase_cooldown > 0.0:
+		recovery_stats["soft_phase_rejects"] += 1
+		return false
+	var stats := _nearby_unit_stats()
+	if int(stats["friends"]) < SOFT_PHASE_MIN_FRIENDS or int(stats["enemies"]) > 0:
+		recovery_stats["soft_phase_rejects"] += 1
+		return false
+	_begin_soft_phase(stats)
+	return true
+
+
+## 统计贴身范围内的友军/敌军数量（只在脱困时调用，频率极低）。
+## 友军口径 = 同 parent（同阵营）+ 有 Movement 子节点（可机动）+ 同移动域；
+## 敌军口径 = 任意其它阵营单位进入 `SOFT_PHASE_ENEMY_CLEAR_M` 即计数（>0 就不启用）。
+func _nearby_unit_stats() -> Dictionary:
+	var friends: int = 0
+	var enemies: int = 0
+	var here: Vector3 = _unit.global_position
+	for other in get_tree().get_nodes_in_group("units"):
+		if other == _unit or not is_instance_valid(other):
+			continue
+		var other_3d := other as Node3D
+		if other_3d == null:
+			continue
+		var distance: float = here.distance_to(other_3d.global_position)
+		if other_3d.get_parent() != _unit.get_parent():
+			if distance <= SOFT_PHASE_ENEMY_CLEAR_M:
+				enemies += 1
+			continue
+		if distance > SOFT_PHASE_FRIEND_GAP_M:
+			continue
+		var other_movement := other_3d.find_child("Movement", false, false)
+		if other_movement == null or other_movement.get("domain") != domain:
+			continue
+		friends += 1
+	return {"friends": friends, "enemies": enemies}
+
+
+## 进入受限软穿行：只把**自身**半径缩到 `SOFT_PHASE_RADIUS_SCALE`，
+## 避开窗口结束后由 `_exit_soft_phase` 还原（不变式见文件头部 `SOFT_PHASE_*`）。
+func _begin_soft_phase(stats: Dictionary) -> void:
+	var base_radius: float = maxf(float(radius), 0.05)
+	_soft_phase_saved_radius = base_radius
+	radius = maxf(0.05, base_radius * SOFT_PHASE_RADIUS_SCALE)
+	_recovery_mode = "soft_phase"
+	_recovery_timer = SOFT_PHASE_DURATION_S
+	recovery_stats["soft_phase_enters"] += 1
+	print("[MOV][软穿行] %s 进入：友军贴身=%d 敌军近处=%d 半径 %.2f→%.2f 历时=%.2fs"
+		% [_unit.name, int(stats.get("friends", 0)), int(stats.get("enemies", 0)),
+		   base_radius, float(radius), SOFT_PHASE_DURATION_S])
+
+
+## 退出受限软穿行并**还原半径**（幂等：不在软穿行时什么都不做）。
+func _exit_soft_phase(reason: String) -> void:
+	if _soft_phase_saved_radius < 0.0:
+		return
+	radius = _soft_phase_saved_radius
+	_soft_phase_saved_radius = -1.0
+	if _recovery_mode == "soft_phase":
+		_recovery_mode = ""
+	_recovery_timer = 0.0
+	_soft_phase_cooldown = SOFT_PHASE_COOLDOWN_S
+	recovery_stats["soft_phase_exits"] += 1
+	print("[MOV][软穿行] %s 退出（%s）：半径还原 %.2f" % [_unit.name, reason, float(radius)])
 
 
 func _get_filtered_rotation_direction(safe_velocity: Vector3):
@@ -685,6 +1115,8 @@ func _emit_committed_end(reason: String):
 	_progress_reference_distance = INF
 	_is_tactical_withdrawal = false
 	_abort_recovery()
+	_clear_logic_path()
+	_logic_repath_attempts = 0
 	set_velocity(Vector3.ZERO)
 	_emit_movement_end(reason)
 

@@ -23,6 +23,7 @@ const PAGES := [
 	["成长升级", "res://source/main-menu/GrowthUpgrades.tscn", false],
 	["玩家画像", "res://source/main-menu/PlayerProfile.tscn", false],
 	["设置", "res://source/main-menu/Options.tscn", true],
+	["地图生成", "res://source/main-menu/MapGeneration.tscn", true],
 ]
 
 const DEFAULT_RESOLUTIONS := ["1280x720", "1600x900", "1920x1080"]

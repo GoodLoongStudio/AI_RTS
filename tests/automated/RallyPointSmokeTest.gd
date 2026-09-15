@@ -56,7 +56,7 @@ func _ready():
 	)
 	# ⚠️ 注入额必须覆盖造价：Worker/Drone 在 demo.balance.v1.json 里各 200 A，
 	# 原来的 10 A 会让 C# ProductionService 直接判 InsufficientResources（produce 静默返回 null）。
-	human.add_resources({"resource_a": 1000, "resource_b": 1000}, "ScriptedAdjustment")
+	human.add_resources({"resource_a": 1000}, "ScriptedAdjustment")
 	_check(command_center.production_queue.produce(WorkerScene) != null, "Worker 应成功入队")
 
 	var elapsed_seconds := 0.0
@@ -92,7 +92,7 @@ func _ready():
 		rally.SetTarget([aircraft_factory], resource, human)["status"] == "Accepted",
 		"AircraftFactory 应能保存资源实体集结目标"
 	)
-	human.add_resources({"resource_a": 1000, "resource_b": 1000}, "ScriptedAdjustment")
+	human.add_resources({"resource_a": 1000}, "ScriptedAdjustment")
 	_check(aircraft_factory.production_queue.produce(DroneScene) != null, "Drone 应成功入队")
 	elapsed_seconds = 0.0
 	while _produced_drone == null and elapsed_seconds < 12.0:

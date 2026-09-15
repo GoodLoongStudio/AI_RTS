@@ -1,0 +1,116 @@
+{
+ "schema_version": 2,
+ "generated_by": "GLM5.3Flash",
+ "date": "2026-09-06",
+ "round": "visual_execution",
+ "status": "READY_FOR_INTEGRATION_CHECK",
+ "previous_manifest": "v1 (BLOCKED_NO_VISUAL_API, 见 GLM_TO_QWEN_round1_handoff_check.md) 已作废",
+ "baseline_jobs": {
+  "16-0": {
+   "job_id": "bf4fbbf72daa472fa1bd2403a94c383e",
+   "visual_version": 6,
+   "seed": 20260906,
+   "profile": "natural 2.1.0",
+   "layout_seed": 16,
+   "terrain_seed": 0
+  },
+  "35-0": {
+   "job_id": "f61365bbb11049f0afd2aa1fc9477445",
+   "visual_version": 3,
+   "seed": 20260906,
+   "profile": "natural 2.1.0",
+   "layout_seed": 35,
+   "terrain_seed": 0
+  },
+  "47-0": {
+   "job_id": "f851a0dd6f1b4863b7833f6c5cac25f9",
+   "visual_version": 3,
+   "seed": 20260906,
+   "profile": "natural 2.1.0",
+   "layout_seed": 47,
+   "terrain_seed": 0
+  }
+ },
+ "four_defects": {
+  "monochrome_ground": {
+   "fix": "shader v2: fbm 宏观色斑 + 台地草原斑块 + 细噪声 + albedo 归一 tint",
+   "file": "GeneratedTerrain.gd",
+   "verified": "16-0 v6 ortho"
+  },
+  "black_jagged_shoreline": {
+   "fix": "隐藏 Map.tscn 黑垫板 BlackBackgroundFixingAntiAliasingBug（A/B 实验: 隐藏 vs 补缝平面，前者胜）",
+   "file": "GeneratedTerrain.gd _hide_redundant_ground_plates",
+   "verified": "47-0 v3 扫描线黑像素 10-11px -> 0; 对照图 47-0_before_after_bridge_river.png",
+   "root_cause_issue": "ISSUES.md#I8+I9"
+  },
+  "giant_white_rocks": {
+   "fix": "4041 暖色入池 + large_chance=0 + scale [0.5,0.85] + spacing [14,26] + budget 60",
+   "file": "visual_assets_extra.json + natural.json + visual.py",
+   "verified": "三图正交"
+  },
+  "mechanical_scatter": {
+   "fix": "budget 210 + 簇心 60% 崖脚偏置 + 簇参数化 + 池清理(剔红植/青灌/黑刺/科技件)",
+   "file": "visual.py + natural.json",
+   "verified": "三图正交"
+  }
+ },
+ "out_of_scope_files_modified_transparent": [
+  {
+   "file": "rtsmap/gates/g4_export.py",
+   "line": 401,
+   "change": "Visual 节点补 type=\"Node3D\"（修复 423 实例被丢弃）",
+   "issue": "ISSUES.md#I11"
+  },
+  {
+   "file": "rtsmap/workbench/pipeline.py",
+   "change": "rebuild_visual 引擎阶段 visual_profile 保持（job->stage->default 取值链），Codex F3 同源",
+   "issue": "ISSUES.md#I12"
+  }
+ ],
+ "verification": {
+  "contract_tests": "pytest tests/test_visual_api.py -> 4 passed (2026-09-06 晚, 池改动后)",
+  "nav_check": {
+   "16-0": "all_pass=true",
+   "35-0": "all_pass=true",
+   "47-0": "all_pass=false — 全部坡道 bottom->top 断，深探针证实 navmesh 真实裂缝(坡道中部 y~1.5 断)，桥/平地全通; ISSUES.md#I7 阻塞实战"
+  },
+  "gameplay": "未验证（无 smoke/对局）",
+  "reference_video": "未核对（拉取失败），reference_alignment=not_verified",
+  "forward_plus": "已复测(Vulkan 1.4.341): 修复前黑岸线在 Forward+ 同样存在(非GL特有), 修复后同样消失; 黑垫板隐藏在两渲染后端均必要且有效。证据 tmp_logs/glm_visual/fw47shore_RAW_unhide.png vs fw47shore_baseline.png",
+  "nav_arbitration": "nav_triple_probe.gd 充分等待复核: 16-0 坡道13/13+跨图6/6 真 pass; 35-0 坡道13/13+跨图6/6 真 pass; 47-0 坡道0/11 全断(gap≈坡道全长, 斜面整段缺失, region 2218 polys vs 35-0 3080) — I7 为真实几何缺陷"
+ },
+ "review_materials": {
+  "index": "review/index.html（sync_workbench_review.py 已刷新）",
+  "per_job": "review/G4/workbench/<job_id>/ 含正交/斜视/局部裁剪/before-after 对照 + job.json + nav_check.json + source.json",
+  "before_sources": {
+   "16-0": "workbench_output/<job>/g4/visual_v5/",
+   "35-0": "g4/visual_v2/",
+   "47-0": "g4/visual_v2/"
+  },
+  "archived_v2_local_shots": "review/G4/workbench/<job>/archive_visual_v2/（上一轮旧局部图，保留为历史）"
+ },
+ "asset_dependencies": {
+  "track_A_4006": "res://assets/models/scifi-worlds/4006_科幻世界/PolygonSciFiWorlds/Models/*（图集 PolygonScifiWorlds_Texture_01_A）",
+  "track_B_4041": "res://assets/models/scifi-worlds/4041_*/（图集 PolygonWesternFrontier Texture_01_A；23 个 FBX 已在 AI_RTS 含 .import）",
+  "rules": "两包原生尺度差 2-3x 禁止统一 scale；单图集不跨包；条目级 scale_range 在 visual_assets_extra.json"
+ },
+ "diagnostic_tools": [
+  "tmp_logs/glm_visual/rebuild_job.py（固定 seed 重建）",
+  "tmp_logs/glm_visual/capture_extras.py（局部裁剪+局部斜视+前后对照一键）",
+  "tmp_logs/glm_visual/shore_fix_experiment.gd（岸线 A/B 实验脚本）",
+  "tmp_logs/glm_visual/nav_47_ramp_probe.gd（47-0 坡道连通仲裁探针）",
+  "tmp_logs/glm_visual/glm_oblique_capture.gd（诊断斜视截图）",
+  "tmp_logs/glm_visual/nav_deep_probe.gd（导航深探针）"
+ ],
+ "not_done": [
+  "G3 层观感污染（红植/晶体/科技件/崩壁城墙）——保护文件，ISSUES.md#I10 待 Qwen",
+  "47-0 坡道 navmesh 修复——ISSUES.md#I7 待 Qwen",
+  "Forward+ 下黑垫板隐藏影响验证——ISSUES.md#I9 待 Qwen",
+  "git 提交/推送——按用户指令不做"
+ ],
+ "audit_summary_v1_kept": {
+  "uv_audit": "64/64 项全部有 UV，零白模风险（v1 轮 audit.gd）",
+  "visual_verdicts": "4006 Grass/Fern/Flower=红色异形植物、Greeble/Junk=科技残骸，均已在视觉层池剔除",
+  "integration": "4041 轨 23 件已整轨启用（natural profile）"
+ }
+}

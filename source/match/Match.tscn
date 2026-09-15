@@ -192,7 +192,7 @@ script = ExtResource("30_simulation_clock")
 [node name="Players" type="Node3D" parent="."]
 
 [node name="IsometricCamera3D" type="Camera3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 49.5996, 20.0000, 55.0000)
+transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 49.5996, 25.0000, 55.0000)
 projection = 1
 current = true
 size = 21.25
@@ -356,10 +356,10 @@ script = ExtResource("17_0bfte")
 
 [node name="MarginContainer" type="MarginContainer" parent="HUD/MarginContainer/Minimap"]
 layout_mode = 2
-theme_override_constants/margin_left = 5
-theme_override_constants/margin_top = 5
-theme_override_constants/margin_right = 5
-theme_override_constants/margin_bottom = 5
+theme_override_constants/margin_left = 2
+theme_override_constants/margin_top = 2
+theme_override_constants/margin_right = 2
+theme_override_constants/margin_bottom = 2
 
 [node name="MinimapViewport" type="SubViewport" parent="HUD/MarginContainer/Minimap/MarginContainer"]
 disable_3d = true
@@ -415,7 +415,10 @@ antialiased = true
 
 [node name="MinimapTextureRect" type="TextureRect" parent="HUD/MarginContainer/Minimap/MarginContainer"]
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 texture = SubResource("ViewportTexture_8q44e")
+expand_mode = 1
 stretch_mode = 5
 
 [node name="TopLeftColumn" type="VBoxContainer" parent="HUD"]

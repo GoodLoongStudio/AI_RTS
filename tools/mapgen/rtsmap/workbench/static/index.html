@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RTS 地图工作台</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M4 25 14 8l11 6 11 15-15 6Z"/><path d="m10 25 6-10 8 5 5 8-9 1Z"/><path d="m17 24 3-4 4 5"/></svg><div><h1>RTS 地图工作台</h1><p>一键生成可在游戏中运行的完整地图</p></div><span id="version" class="version">G1–G4</span></div>
+    <div class="topmeta"><span>256 × 256 m</span><span>4 人对战</span><span class="local"><i></i> 本地生成</span></div>
+  </header>
+  <main class="workspace">
+    <aside class="parameters">
+      <div class="panel-title"><h2>地图设置</h2><button id="reset" class="text-button" type="button">恢复默认</button></div>
+      <form id="generator-form">
+        <fieldset id="settings">
+          <section class="seed-section">
+            <div id="simple-controls"></div>
+            <p id="layout-caption" class="hint"></p>
+          </section>
+          <details class="advanced-settings"><summary>更多设置 <span>地形细节与地图编号</span></summary>
+          <section class="seed-section">
+            <label class="field-label" for="terrain-seed">地貌编号</label>
+            <div class="seed-input"><input id="terrain-seed" name="terrain_seed" type="number" min="0" max="2147483647" step="1" value="0" required><button id="random-seed" type="button" title="换一个地貌 Seed" aria-label="随机地貌 Seed">⤨ 换一个</button></div>
+            <p class="hint">保留出生布局，只换地貌。相同版本、布局、编号和设置可复现地图。</p>
+            <button id="replay-settings" class="secondary" type="button" disabled>按编号复现</button>
+          </section>
+          <div id="controls"></div></details>
+          <div class="fixed-note"><span class="fixed-icon">▱</span><div><strong>平顶台地 · 高差 3m</strong><p>出生保护与连通、公平检查保持开启。</p></div></div>
+        </fieldset>
+        <div class="generate-footer"><p id="dirty" class="hint">调整设置后，点击生成查看变化。</p><div class="generate-buttons"><button id="generate" class="primary" type="submit"><span>生成完整地图</span><span aria-hidden="true">↗</span></button><button id="generate-g2" class="secondary" type="button" title="只生成地形预览（调参用，不导出游戏地图）">快速预览地形</button></div><p class="footer-hint">完整地图：出生布局→地形→资源→游戏场景与导航验收；每次自动随机安排出生点和地貌</p></div>
+      </form>
+    </aside>
+    <section class="center-column" aria-label="地图工作区">
+      <div class="stage">
+        <div class="stage-toolbar"><div class="view-tabs" role="group" aria-label="预览图层"><button data-layer="g4_ortho" class="active" aria-pressed="true">最终顶视</button><button data-layer="g4_iso45" aria-pressed="false">45°轴测</button><button data-layer="g4_oblique" aria-pressed="false">斜视参考</button><button data-layer="g3" aria-pressed="false">资源</button><button data-layer="overview" aria-pressed="false">地形逻辑</button><button data-layer="strategy" aria-pressed="false">路线</button></div><div class="zoom-tools"><button id="zoom-out" title="缩小" aria-label="缩小地图">−</button><button id="fit" title="适应窗口">适应</button><button id="zoom-in" title="放大" aria-label="放大地图">＋</button></div></div>
+        <div id="progress" class="progress-banner" hidden role="status"><span class="spinner"></span><div><strong id="progress-phase">准备生成</strong><p id="progress-detail">当前预览保持显示</p></div><span id="elapsed">0s</span></div>
+        <div id="viewport" class="viewport" tabindex="0" aria-label="地图预览，滚轮缩放，拖动平移"><div id="map-transform" class="map-transform"><img id="map-image" alt="地图预览" draggable="false" hidden></div><div id="empty" class="empty"><span>▱</span><h2>生成你的第一张地图</h2><p>调整左侧偏好，点击“生成完整地图”。</p></div></div>
+        <div class="stage-caption"><div><span id="map-status" class="status neutral">准备就绪</span><span id="map-title">选择参数后生成</span></div><span class="gesture-hint">滚轮缩放 · 拖动查看</span></div>
+      </div>
+      <section class="history-panel"><div class="history-heading"><h2>生成记录 <span id="history-count">0</span></h2><span>点击切换与比较</span></div><div id="history" class="history"></div></section>
+    </section>
+    <aside class="inspector">
+      <div class="panel-title"><h2>地图检查</h2><span id="check-count" class="small-mono">—</span></div>
+      <div id="result-empty" class="inspector-empty">生成后会显示实际指标与验收结果。</div>
+      <div id="result" hidden>
+        <div id="result-summary" class="result-summary"></div>
+        <div id="stage-list" class="stage-list" hidden></div>
+        <div id="metrics" class="metrics"></div>
+        <div id="failed" class="failed" hidden></div>
+        <details class="checks-details"><summary>详细检查 <span id="checks-icon">✓</span></summary><div id="checks" class="checks"></div></details>
+        <div class="result-actions"><button id="use-settings" class="secondary">载入这张图的参数</button><div><a id="export-config" class="small-link" download>导出参数</a><a id="export-map" class="small-link" download>下载地图包 ↗</a></div></div>
+        <div class="result-actions" id="job-actions" hidden><button id="retry-job" class="secondary" type="button">重试本任务</button><button id="rebuild-visual" class="secondary" type="button" title="逻辑地图不变，只重新生成视觉装饰与截图">只重建视觉</button></div>
+        <p class="inspection-note" id="inspection-note">完整地图任务包含引擎加载与导航验收；5 分钟 AI 对局为独立测试，未运行时如实标注。</p>
+      </div>
+      <div class="import-section"><label for="import-config" class="import-label">↥ 导入参数文件</label><input id="import-config" type="file" accept=".json,application/json" hidden><p class="hint">使用之前导出的 JSON 继续调节。</p></div>
+    </aside>
+  </main>
+  <div id="toast" class="toast" role="alert" hidden></div>
+</body>
+</html>

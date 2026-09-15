@@ -25,6 +25,13 @@ DEFAULT_RESERVE_PERCENT = 20
 KIND_A = "A"
 KIND_B = "B"
 
+#: 【唯一开关】B 已从玩法移除（建造/出售退款只用 resource_a，见 `Structure.gd`）。
+#: 观测里可能仍带着 b（旧地图上的 B 矿、工人承载字段），但副官**不许**把它当经济：
+#: 一旦把 b 带进余额/预留，`ensure_reserves()` 会按"余额里有什么就建什么预留"的通用写法
+#: 自动生成 B 预留，面板也会显示 "B 预留…"（2026-09-14 用户实测反馈"副官还在思考经济 B"）。
+#: 将来若恢复第二种资源，**只改这一行**（并同步 `AdjutantButton._apply_reserve_view` 的展示白名单）。
+ACTIVE_KINDS: Tuple[str, ...] = (KIND_A,)
+
 
 def normalize_balance(observation: Optional[Dict[str, Any]]) -> Dict[str, int]:
     """从观测里取本玩家余额（tactical.balance 优先，回落到 strategic.resources）。"""
@@ -38,6 +45,8 @@ def normalize_balance(observation: Optional[Dict[str, Any]]) -> Dict[str, int]:
     balance: Dict[str, int] = {}
     for key, value in (raw or {}).items():
         name = str(key).upper()
+        if name not in ACTIVE_KINDS:
+            continue
         try:
             balance[name] = int(value)
         except (TypeError, ValueError):
@@ -48,8 +57,13 @@ def normalize_balance(observation: Optional[Dict[str, Any]]) -> Dict[str, int]:
 def _normalize_kinds(values: Optional[Dict[str, Any]]) -> Dict[str, int]:
     out: Dict[str, int] = {}
     for key, value in (values or {}).items():
+        name = str(key).upper()
+        # 同 ACTIVE_KINDS：非现行资源（如已移除的 B）一律不进入副官的预留账本，
+        # 否则面板会显示"B 预留…"、模型也会以为 B 是可用经济。
+        if name not in ACTIVE_KINDS:
+            continue
         try:
-            out[str(key).upper()] = int(value)
+            out[name] = int(value)
         except (TypeError, ValueError):
             continue
     return out
@@ -85,7 +99,13 @@ def ensure_reserves(state: Dict[str, Any], balance: Dict[str, int], *,
     if state.get("reserves_initialized"):
         return False
     ratio = max(0, min(100, int(percent)))
-    reserves = {kind: int(amount) * ratio // 100 for kind, amount in (balance or {}).items()}
+    # 只对**现行资源**建预留（见 ACTIVE_KINDS）：即便调用方直接塞进带 B 的余额字典，
+    # 也不许把 B 写进账本 —— 这是"副官不思考经济 B"的最后一道闸。
+    reserves = {
+        kind: int(amount) * ratio // 100
+        for kind, amount in (balance or {}).items()
+        if str(kind).upper() in ACTIVE_KINDS
+    }
     state["reserves"] = reserves
     state["reserves_initialized"] = True
     state["reserves_percent"] = ratio

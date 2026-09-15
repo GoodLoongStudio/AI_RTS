@@ -1,0 +1,13 @@
+{
+ "cell_m": 1.0,
+ "height_data": "res://source/match/maps/generated/reloc-verify/height_data.bin",
+ "height_data_sha256": "4708a71bac1836dff64e794cd465331e5b1f6bda17de3ff8c33a18e05dce3bf2",
+ "map_id": "reloc-verify",
+ "name": "Generated reloc-verify",
+ "path": "res://source/match/maps/generated/reloc-verify/map_reloc-verify.tscn",
+ "players": 4,
+ "size": [
+  256,
+  256
+ ]
+}

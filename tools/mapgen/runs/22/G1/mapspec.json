@@ -1,0 +1,148 @@
+{
+ "accepted": false,
+ "adjacent_angle_gaps_deg": [
+  37.6426,
+  62.0379,
+  99.0094,
+  161.3101
+ ],
+ "algo_version": "2.0.0",
+ "attempts": 200,
+ "center_dists": [
+  117.5331,
+  118.6355,
+  112.6823,
+  99.902
+ ],
+ "constraints": {
+  "angle_gap": {
+   "limit": [
+    45.0,
+    150.0
+   ],
+   "pass": false,
+   "value": [
+    37.6426,
+    161.3101
+   ]
+  },
+  "center_gap": {
+   "limit": 0.0,
+   "pass": true,
+   "value": 99.902
+  },
+  "center_ratio": {
+   "limit": 99.0,
+   "pass": true,
+   "value": 1.1875
+  },
+  "margin": {
+   "limit": 12.0,
+   "pass": true,
+   "value": 12.8274
+  },
+  "min_pair": {
+   "limit": 89.6,
+   "pass": false,
+   "value": 72.6996
+  },
+  "nn_ratio": {
+   "limit": 1.3,
+   "pass": false,
+   "value": 2.4085
+  },
+  "territory_ratio": {
+   "cells": [
+    24744,
+    16082,
+    13968,
+    10742
+   ],
+   "limit": 1.3,
+   "pass": false,
+   "value": 2.3035
+  }
+ },
+ "corner_flags": [
+  false,
+  false,
+  false,
+  false
+ ],
+ "gate": "G1",
+ "gate_seed": 6910872827000934619,
+ "master_seed": 22,
+ "min_pair": 72.6996,
+ "pair_dist_matrix": [
+  [
+   Infinity,
+   233.0344,
+   175.0977,
+   214.4875
+  ],
+  [
+   233.0344,
+   Infinity,
+   176.8262,
+   72.6996
+  ],
+  [
+   175.0977,
+   176.8262,
+   Infinity,
+   110.0955
+  ],
+  [
+   214.4875,
+   72.6996,
+   110.0955,
+   Infinity
+  ]
+ ],
+ "params": {
+  "angle_max": 150.0,
+  "angle_min": 45.0,
+  "candidates": 32,
+  "center_gap": 0.0,
+  "center_ratio": 99.0,
+  "margin": 12.0,
+  "max_attempts": 200,
+  "min_pair_factor": 0.35,
+  "nn_ratio": 1.3,
+  "territory_ratio": 1.3,
+  "top_frac": 0.7
+ },
+ "polar_angles_deg": [
+  -11.5025,
+  149.8076,
+  -110.5119,
+  -172.5498
+ ],
+ "reject_reason": "min_pair",
+ "rot_sym_err": 0.2242,
+ "sampler": "A",
+ "starts": [
+  [
+   243.17,
+   104.56
+  ],
+  [
+   25.46,
+   187.66
+  ],
+  [
+   88.52,
+   22.46
+  ],
+  [
+   28.94,
+   115.05
+  ]
+ ],
+ "territory_cells": [
+  24744,
+  16082,
+  13968,
+  10742
+ ]
+}

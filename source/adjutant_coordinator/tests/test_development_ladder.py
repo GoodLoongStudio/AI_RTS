@@ -504,5 +504,89 @@ class BoundaryTest(unittest.TestCase):
         self.assertEqual(item["generation"], 0)
 
 
+class ProduceGapTest(unittest.TestCase):
+    """生产缺口口径 = **现有 + 队列 + 在途**（2026-09-15 用户要求）。
+
+    回归背景：只数现有单位时，刚下发的兵还没出现在观测里 → `counts` 恒 0 →
+    "数量最少者优先"会连续多轮押同一个产品；车/机一落地就记 1、步兵有存量，
+    于是长期偏向车辆与飞机（用户实测"AI 不喜欢生产小步兵"）。
+    """
+
+    def test_soldier_shortage_rule(self):
+        self.assertTrue(rf.soldier_shortage(0, 5))      # 完全没有步兵 → 必须补
+        self.assertTrue(rf.soldier_shortage(1, 9))      # 占比 11% < 34% → 补
+        self.assertFalse(rf.soldier_shortage(3, 3))     # 3 兵 0 车 → 该补车（既有回归守这条）
+        self.assertFalse(rf.soldier_shortage(4, 10))    # 占比 40% ≥ 34%
+
+    def test_produce_totals_counts_queue_and_inflight(self):
+        by_name = {"U1": {"type": "soldier"}, "U2": {"type": "tank"}}
+        tactical = {"production": [{"producer": "F1", "items": [
+            {"definition_id": "soldier"},
+            {"product_type_id": "tank"},          # 旧名也要能读（唯一口径兼容）
+        ]}]}
+        st = {"active_intents": [
+            {"action": "produce", "state": "active",
+             "target": {"scene": "res://units/Tank.tscn"}},
+            {"action": "produce", "state": "expired",     # 非 live → 不计
+             "target": {"scene": "res://units/Tank.tscn"}},
+            {"action": "move", "state": "active",         # 非 produce → 不计
+             "target": {"scene": "res://units/Tank.tscn"}},
+        ]}
+        scene_index = {"soldier": "res://units/Soldier.tscn",
+                       "tank": "res://units/Tank.tscn"}
+        totals = rf.produce_totals(by_name, tactical, st, scene_index)
+        self.assertEqual(totals.get("soldier"), 2)   # 1 现有 + 1 队列
+        self.assertEqual(totals.get("tank"), 3)      # 1 现有 + 1 队列 + 1 在途
+        self.assertEqual(totals.get("worker", 0), 0)
+
+
+class ReconReplacementTest(unittest.TestCase):
+    """侦察补充：专职侦察没了 → 用空闲机场补一架无人机（2026-09-15 用户要求）。
+
+    回归背景：`PRODUCT_LADDER` 刻意不含 drone，于是"专职侦察一死，整局再没有侦察"。
+    """
+
+    def _call(self, *, live_types=(), queued=0, inflight=0, factory="Unit_8"):
+        by_name = {}
+        ai_units = []
+        for index, kind in enumerate(live_types):
+            name = "U_%d" % index
+            by_name[name] = {"type": kind}
+            ai_units.append(name)
+        if factory:
+            by_name[factory] = {"type": "aircraft_factory"}
+            ai_units.append(factory)
+        tactical = {}
+        if queued:
+            tactical = {"production": [{"producer": factory,
+                                        "items": [{"definition_id": "drone"}] * queued}]}
+        intents = [{"intent_id": "i-%d" % index, "action": "produce", "state": "active",
+                    "unit_ids": [factory],
+                    "target": {"scene": "res://units/Drone.tscn"}}
+                   for index in range(inflight)]
+        st = {"active_intents": intents}
+        return rf.recon_produce_intent(
+            st, by_name, {"ai_units": ai_units, "own_types": ["aircraft_factory"]},
+            tactical, {"drone": "res://units/Drone.tscn"},
+            free_producers=[factory] if factory else [],
+            usable_producers={factory} if factory else set(),
+            production_views={}, tick=1000)
+
+    def test_adds_drone_when_no_probe_alive(self):
+        # 返回 `(producer, scene)`：意图由阶梯在本地构造（`_intent` 是带 tick 的闭包）。
+        self.assertEqual(self._call(live_types=["soldier", "tank"]),
+                         ("Unit_8", "res://units/Drone.tscn"))
+
+    def test_no_drone_when_probe_alive(self):
+        self.assertIsNone(self._call(live_types=["drone", "soldier"]))
+
+    def test_no_drone_when_queued_or_inflight(self):
+        self.assertIsNone(self._call(live_types=["soldier"], queued=1))
+        self.assertIsNone(self._call(live_types=["soldier"], inflight=1))
+
+    def test_no_drone_without_idle_factory(self):
+        self.assertIsNone(self._call(live_types=["soldier"], factory=""))
+
+
 if __name__ == "__main__":
     unittest.main()

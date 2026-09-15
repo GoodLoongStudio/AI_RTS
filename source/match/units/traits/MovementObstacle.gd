@@ -8,7 +8,15 @@ extends NavigationObstacle3D
 
 
 func _ready():
+	if _uses_logic_terrain():
+		avoidance_enabled = false
+		affect_navigation_mesh = false
+		set_physics_process_internal(false)
+		set_navigation_map(RID())
+		return
 	await get_tree().process_frame  # wait for navigation to be operational
+	if _match == null or _match.navigation == null:
+		return
 	set_navigation_map(_match.navigation.get_navigation_map_rid_by_domain(domain))
 	_align_unit_position_to_navigation()
 	if "is_under_construction" in _unit and _unit.is_under_construction():
@@ -16,6 +24,16 @@ func _ready():
 		_unit.constructed.connect(_affect_navigation_if_needed)
 	else:
 		_affect_navigation_if_needed()
+
+
+func _uses_logic_terrain() -> bool:
+	if _match == null:
+		return false
+	var map_node: Node = _match.get_node_or_null("Map")
+	if map_node == null:
+		return false
+	var generated: Node = map_node.find_child("Terrain", true, false)
+	return generated != null and str(generated.get("height_data_path")) != ""
 
 
 func _exit_tree():

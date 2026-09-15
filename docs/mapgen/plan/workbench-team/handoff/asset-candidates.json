@@ -1,0 +1,2342 @@
+{
+ "schema_version": 1,
+ "generated_by": "GLM5.3Flash",
+ "date": "2026-09-06",
+ "purpose": "G4 自然感素材候选池（只读研究成果）。Qwen 视觉接口冻结后按此池接入，GLM 负责最终筛选/密度/成簇规则。",
+ "measurement_method": "4006: rtsmap/data/assets_catalog.json（现有管线实测）；4041: Godot 4.7.1 headless 真实导入合并 AABB（tmp_logs/glm_measure_4041/measure.gd）",
+ "cross_pack_warning": "两包原生尺度差约 2–3×，且各包一个独立图集；禁止跨包共用默认图集，禁止统一 scale 系数跨包套用。",
+ "track_A_4006_primary": {
+  "note": "主选：与现有游戏资产同包（4006），风格延续零风险；暖意由地面材质/光照 profile 提供。",
+  "count": 33,
+  "items": [
+   {
+    "id": "A_4006:SM_Env_Cliff_Flat_01",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Env_Cliff_Flat_01.fbx",
+    "godot_res_path": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Env_Cliff_Flat_01.fbx",
+    "atlas": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png",
+    "size_xyz": [
+     31.393,
+     24.6,
+     30.068
+    ],
+    "min_y": -12.3,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\提炼_科幻战争与角色\\01_科幻战争_4006\\环境\\SM_Env_Cliff_Flat_01.png",
+    "usage": "主崖面：台地边缘主体崖壁",
+    "placement": "cliff_line",
+    "allowed_scale": [
+     0.1,
+     0.3
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": true,
+    "size_source": "catalog_4006",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "ScifiMat"
+     ],
+     "tris": 246
+    },
+    "visual_verdict": "灰岩平顶崖块，自然✓（预览实看）",
+    "integration_status": "already_in_game_assets"
+   },
+   {
+    "id": "A_4006:SM_Env_Cliff_Flat_02",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Env_Cliff_Flat_02.fbx",
+    "godot_res_path": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Env_Cliff_Flat_02.fbx",
+    "atlas": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png",
+    "size_xyz": [
+     27.15,
+     23.276,
+     34.418
+    ],
+    "min_y": -11.638,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\提炼_科幻战争与角色\\01_科幻战争_4006\\环境\\SM_Env_Cliff_Flat_02.png",
+    "usage": "主崖面变体",
+    "placement": "cliff_line",
+    "allowed_scale": [
+     0.1,
+     0.3
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": true,
+    "size_source": "catalog_4006",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "ScifiMat"
+     ],
+     "tris": 230
+    },
+    "visual_verdict": "待单件预览/引擎内核验",
+    "integration_status": "already_in_game_assets"
+   },
+   {
+    "id": "A_4006:SM_Env_Cliff_Flat_03",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Env_Cliff_Flat_03.fbx",
+    "godot_res_path": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Env_Cliff_Flat_03.fbx",
+    "atlas": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png",
+    "size_xyz": [
+     40.709,
+     31.393,
+     46.55
+    ],
+    "min_y": -15.696,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\提炼_科幻战争与角色\\01_科幻战争_4006\\环境\\SM_Env_Cliff_Flat_03.png",
+    "usage": "主崖面（大）",
+    "placement": "cliff_line",
+    "allowed_scale": [
+     0.1,
+     0.25
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": true,
+    "size_source": "catalog_4006",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "ScifiMat"
+     ],
+     "tris": 246
+    },
+    "visual_verdict": "灰岩大板，自然✓（预览实看）",
+    "integration_status": "already_in_game_assets"
+   },
+   {
+    "id": "A_4006:SM_Env_Cliff_Flat_05",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Env_Cliff_Flat_05.fbx",
+    "godot_res_path": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Env_Cliff_Flat_05.fbx",
+    "atlas": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png",
+    "size_xyz": [
+     39.85,
+     43.51,
+     44.163
+    ],
+    "min_y": -25.937,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\提炼_科幻战争与角色\\01_科幻战争_4006\\环境\\SM_Env_Cliff_Flat_05.png",
+    "usage": "主崖面（高变体）",
+    "placement": "cliff_line",
+    "allowed_scale": [
+     0.08,
+     0.2
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": true,
+    "size_source": "catalog_4006",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "ScifiMat"
+     ],
+     "tris": 370
+    },
+    "visual_verdict": "待单件预览/引擎内核验",
+    "integration_status": "already_in_game_assets"
+   },
+   {
+    "id": "A_4006:SM_Env_Cliff_Rough_01",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Env_Cliff_Rough_01.fbx",
+    "godot_res_path": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Env_Cliff_Rough_01.fbx",
+    "atlas": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png",
+    "size_xyz": [
+     28.509,
+     23.305,
+     13.527
+    ],
+    "min_y": -11.191,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\提炼_科幻战争与角色\\01_科幻战争_4006\\环境\\SM_Env_Cliff_Rough_01.png",
+    "usage": "辅助崖块：打斷平直崖線",
+    "placement": "cliff_line",
+    "allowed_scale": [
+     0.1,
+     0.3
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": true,
+    "size_source": "catalog_4006",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "ScifiMat"
+     ],
+     "tris": 1548
+    },
+    "visual_verdict": "待单件预览/引擎内核验",
+    "integration_status": "already_in_game_assets"
+   },
+   {
+    "id": "A_4006:SM_Env_Cliff_Rough_02",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Env_Cliff_Rough_02.fbx",
+    "godot_res_path": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Env_Cliff_Rough_02.fbx",
+    "atlas": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png",
+    "size_xyz": [
+     43.439,
+     29.9,
+     24.504
+    ],
+    "min_y": -15.003,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\提炼_科幻战争与角色\\01_科幻战争_4006\\环境\\SM_Env_Cliff_Rough_02.png",
+    "usage": "辅助崖块（长条）",
+    "placement": "cliff_line",
+    "allowed_scale": [
+     0.1,
+     0.25
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": true,
+    "size_source": "catalog_4006",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "ScifiMat"
+     ],
+     "tris": 1674
+    },
+    "visual_verdict": "待单件预览/引擎内核验",
+    "integration_status": "already_in_game_assets"
+   },
+   {
+    "id": "A_4006:SM_Env_Cliff_Curved_01",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Env_Cliff_Curved_01.fbx",
+    "godot_res_path": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Env_Cliff_Curved_01.fbx",
+    "atlas": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png",
+    "size_xyz": [
+     21.418,
+     18.695,
+     15.889
+    ],
+    "min_y": -3.288,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\提炼_科幻战争与角色\\01_科幻战争_4006\\环境\\SM_Env_Cliff_Curved_01.png",
+    "usage": "转角/内凹崖",
+    "placement": "cliff_line",
+    "allowed_scale": [
+     0.12,
+     0.3
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": true,
+    "size_source": "catalog_4006",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "ScifiMat"
+     ],
+     "tris": 294
+    },
+    "visual_verdict": "待单件预览/引擎内核验",
+    "integration_status": "already_in_game_assets"
+   },
+   {
+    "id": "A_4006:SM_Env_Cliff_Curved_02",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Env_Cliff_Curved_02.fbx",
+    "godot_res_path": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Env_Cliff_Curved_02.fbx",
+    "atlas": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png",
+    "size_xyz": [
+     22.236,
+     17.322,
+     16.015
+    ],
+    "min_y": -3.288,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\提炼_科幻战争与角色\\01_科幻战争_4006\\环境\\SM_Env_Cliff_Curved_02.png",
+    "usage": "转角/内凹崖变体",
+    "placement": "cliff_line",
+    "allowed_scale": [
+     0.12,
+     0.3
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": true,
+    "size_source": "catalog_4006",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "ScifiMat"
+     ],
+     "tris": 344
+    },
+    "visual_verdict": "待单件预览/引擎内核验",
+    "integration_status": "already_in_game_assets"
+   },
+   {
+    "id": "A_4006:SM_Env_Rock_Large_01",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Env_Rock_Large_01.fbx",
+    "godot_res_path": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Env_Rock_Large_01.fbx",
+    "atlas": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png",
+    "size_xyz": [
+     15.192,
+     23.369,
+     16.296
+    ],
+    "min_y": -6.98,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\提炼_科幻战争与角色\\01_科幻战争_4006\\环境\\SM_Env_Rock_Large_01.png",
+    "usage": "大岩：崖脚/崖顶锚固体",
+    "placement": "cliff_line",
+    "allowed_scale": [
+     0.15,
+     0.35
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": true,
+    "size_source": "catalog_4006",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "ScifiMat"
+     ],
+     "tris": 968
+    },
+    "visual_verdict": "灰岩大块，自然✓（预览实看）",
+    "integration_status": "already_in_game_assets"
+   },
+   {
+    "id": "A_4006:SM_Env_Rock_Large_02",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Env_Rock_Large_02.fbx",
+    "godot_res_path": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Env_Rock_Large_02.fbx",
+    "atlas": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png",
+    "size_xyz": [
+     16.704,
+     20.552,
+     17.999
+    ],
+    "min_y": -3.381,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\提炼_科幻战争与角色\\01_科幻战争_4006\\环境\\SM_Env_Rock_Large_02.png",
+    "usage": "大岩变体",
+    "placement": "cliff_line",
+    "allowed_scale": [
+     0.15,
+     0.35
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": true,
+    "size_source": "catalog_4006",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "ScifiMat"
+     ],
+     "tris": 986
+    },
+    "visual_verdict": "待单件预览/引擎内核验",
+    "integration_status": "already_in_game_assets"
+   },
+   {
+    "id": "A_4006:SM_Env_Rock_Large_03",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Env_Rock_Large_03.fbx",
+    "godot_res_path": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Env_Rock_Large_03.fbx",
+    "atlas": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png",
+    "size_xyz": [
+     13.671,
+     13.777,
+     14.482
+    ],
+    "min_y": -3.138,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\提炼_科幻战争与角色\\01_科幻战争_4006\\环境\\SM_Env_Rock_Large_03.png",
+    "usage": "大岩变体（矮胖）",
+    "placement": "cliff_line",
+    "allowed_scale": [
+     0.15,
+     0.35
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": true,
+    "size_source": "catalog_4006",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "ScifiMat"
+     ],
+     "tris": 954
+    },
+    "visual_verdict": "待单件预览/引擎内核验",
+    "integration_status": "already_in_game_assets"
+   },
+   {
+    "id": "A_4006:SM_Env_Rock_01",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Env_Rock_01.fbx",
+    "godot_res_path": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Env_Rock_01.fbx",
+    "atlas": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png",
+    "size_xyz": [
+     13.243,
+     17.255,
+     8.262
+    ],
+    "min_y": -6.601,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\提炼_科幻战争与角色\\01_科幻战争_4006\\环境\\SM_Env_Rock_01.png",
+    "usage": "中岩：崖脚散布",
+    "placement": "cliff_line",
+    "allowed_scale": [
+     0.2,
+     0.6
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": true,
+    "size_source": "catalog_4006",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "ScifiMat"
+     ],
+     "tris": 194
+    },
+    "visual_verdict": "待单件预览/引擎内核验",
+    "integration_status": "already_in_game_assets"
+   },
+   {
+    "id": "A_4006:SM_Env_Rock_02",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Env_Rock_02.fbx",
+    "godot_res_path": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Env_Rock_02.fbx",
+    "atlas": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png",
+    "size_xyz": [
+     8.392,
+     14.408,
+     9.031
+    ],
+    "min_y": -4.411,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\提炼_科幻战争与角色\\01_科幻战争_4006\\环境\\SM_Env_Rock_02.png",
+    "usage": "中岩",
+    "placement": "cliff_line",
+    "allowed_scale": [
+     0.2,
+     0.6
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": true,
+    "size_source": "catalog_4006",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "ScifiMat"
+     ],
+     "tris": 86
+    },
+    "visual_verdict": "待单件预览/引擎内核验",
+    "integration_status": "already_in_game_assets"
+   },
+   {
+    "id": "A_4006:SM_Env_Rock_04",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Env_Rock_04.fbx",
+    "godot_res_path": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Env_Rock_04.fbx",
+    "atlas": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png",
+    "size_xyz": [
+     4.467,
+     7.928,
+     4.319
+    ],
+    "min_y": -1.809,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\提炼_科幻战争与角色\\01_科幻战争_4006\\环境\\SM_Env_Rock_04.png",
+    "usage": "小中岩：地面点缀",
+    "placement": "surface",
+    "allowed_scale": [
+     0.3,
+     0.8
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": true,
+    "size_source": "catalog_4006",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "ScifiMat"
+     ],
+     "tris": 70
+    },
+    "visual_verdict": "干净砾石，自然✓（预览实看）",
+    "integration_status": "already_in_game_assets"
+   },
+   {
+    "id": "A_4006:SM_Env_Rock_06",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Env_Rock_06.fbx",
+    "godot_res_path": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Env_Rock_06.fbx",
+    "atlas": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png",
+    "size_xyz": [
+     4.553,
+     7.956,
+     5.124
+    ],
+    "min_y": -1.74,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\提炼_科幻战争与角色\\01_科幻战争_4006\\环境\\SM_Env_Rock_06.png",
+    "usage": "小中岩",
+    "placement": "surface",
+    "allowed_scale": [
+     0.3,
+     0.8
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": true,
+    "size_source": "catalog_4006",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "ScifiMat"
+     ],
+     "tris": 54
+    },
+    "visual_verdict": "待单件预览/引擎内核验",
+    "integration_status": "already_in_game_assets"
+   },
+   {
+    "id": "A_4006:SM_Env_Rock_08",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Env_Rock_08.fbx",
+    "godot_res_path": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Env_Rock_08.fbx",
+    "atlas": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png",
+    "size_xyz": [
+     2.86,
+     6.091,
+     2.943
+    ],
+    "min_y": -1.071,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\提炼_科幻战争与角色\\01_科幻战争_4006\\环境\\SM_Env_Rock_08.png",
+    "usage": "小岩",
+    "placement": "surface",
+    "allowed_scale": [
+     0.3,
+     0.9
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": true,
+    "size_source": "catalog_4006",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "ScifiMat"
+     ],
+     "tris": 42
+    },
+    "visual_verdict": "待单件预览/引擎内核验",
+    "integration_status": "already_in_game_assets"
+   },
+   {
+    "id": "A_4006:SM_Env_Rock_Spike_01",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Env_Rock_Spike_01.fbx",
+    "godot_res_path": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Env_Rock_Spike_01.fbx",
+    "atlas": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png",
+    "size_xyz": [
+     6.866,
+     15.35,
+     7.466
+    ],
+    "min_y": -1.261,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\提炼_科幻战争与角色\\01_科幻战争_4006\\环境\\SM_Env_Rock_Spike_01.png",
+    "usage": "尖岩点缀（克制使用）",
+    "placement": "cliff_line",
+    "allowed_scale": [
+     0.25,
+     0.5
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": true,
+    "size_source": "catalog_4006",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "ScifiMat"
+     ],
+     "tris": 148
+    },
+    "visual_verdict": "尖碑形立岩，点缀用（预览实看）",
+    "integration_status": "already_in_game_assets"
+   },
+   {
+    "id": "A_4006:SM_Env_Rock_Spike_03",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Env_Rock_Spike_03.fbx",
+    "godot_res_path": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Env_Rock_Spike_03.fbx",
+    "atlas": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png",
+    "size_xyz": [
+     6.796,
+     13.462,
+     6.973
+    ],
+    "min_y": -1.167,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\提炼_科幻战争与角色\\01_科幻战争_4006\\环境\\SM_Env_Rock_Spike_03.png",
+    "usage": "尖岩点缀变体",
+    "placement": "cliff_line",
+    "allowed_scale": [
+     0.25,
+     0.5
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": true,
+    "size_source": "catalog_4006",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "ScifiMat"
+     ],
+     "tris": 144
+    },
+    "visual_verdict": "待单件预览/引擎内核验",
+    "integration_status": "already_in_game_assets"
+   },
+   {
+    "id": "A_4006:SM_Generic_Small_Rocks_01",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Generic_Small_Rocks_01.fbx",
+    "godot_res_path": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Generic_Small_Rocks_01.fbx",
+    "atlas": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png",
+    "size_xyz": [
+     1.306,
+     0.095,
+     1.632
+    ],
+    "min_y": -0.025,
+    "origin_note": "原点接近底部/贴地",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\提炼_科幻战争与角色\\01_科幻战争_4006\\环境\\SM_Generic_Small_Rocks_01.png",
+    "usage": "扁平碎石贴片：崖脚/坡道边过渡",
+    "placement": "surface",
+    "allowed_scale": [
+     0.5,
+     2.0
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": false,
+    "size_source": "catalog_4006",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "lambert1"
+     ],
+     "tris": 180
+    },
+    "visual_verdict": "灰色碎石撒布，自然✓（预览实看）",
+    "integration_status": "needs_copy_by_asset_interface"
+   },
+   {
+    "id": "A_4006:SM_Generic_Small_Rocks_02",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Generic_Small_Rocks_02.fbx",
+    "godot_res_path": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Generic_Small_Rocks_02.fbx",
+    "atlas": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png",
+    "size_xyz": [
+     2.041,
+     0.095,
+     1.97
+    ],
+    "min_y": -0.025,
+    "origin_note": "原点接近底部/贴地",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\提炼_科幻战争与角色\\01_科幻战争_4006\\环境\\SM_Generic_Small_Rocks_02.png",
+    "usage": "扁平碎石贴片",
+    "placement": "surface",
+    "allowed_scale": [
+     0.5,
+     2.0
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": false,
+    "size_source": "catalog_4006",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "lambert1"
+     ],
+     "tris": 200
+    },
+    "visual_verdict": "待单件预览/引擎内核验",
+    "integration_status": "needs_copy_by_asset_interface"
+   },
+   {
+    "id": "A_4006:SM_Env_Ground_Greeble_01",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Env_Ground_Greeble_01.fbx",
+    "godot_res_path": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Env_Ground_Greeble_01.fbx",
+    "atlas": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png",
+    "size_xyz": [
+     1.826,
+     0.553,
+     1.789
+    ],
+    "min_y": -0.12,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\提炼_科幻战争与角色\\01_科幻战争_4006\\环境\\SM_Env_Ground_Greeble_01.png",
+    "usage": "地面碎件：地表层次",
+    "placement": "surface",
+    "allowed_scale": [
+     0.5,
+     1.5
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": false,
+    "size_source": "catalog_4006",
+    "status": "excluded_by_visual_audit（科技残骸，非自然物）",
+    "uv_audit": {
+     "surfaces": 2,
+     "has_uv": true,
+     "materials": [
+      "Base_Lambert1"
+     ],
+     "tris": 312
+    },
+    "visual_verdict": "科技六边底座带青光纹——非自然物（预览实看）",
+    "integration_status": "already_in_game_assets"
+   },
+   {
+    "id": "A_4006:SM_Env_Ground_Greeble_02",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Env_Ground_Greeble_02.fbx",
+    "godot_res_path": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Env_Ground_Greeble_02.fbx",
+    "atlas": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png",
+    "size_xyz": [
+     1.826,
+     0.231,
+     1.789
+    ],
+    "min_y": -0.081,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\提炼_科幻战争与角色\\01_科幻战争_4006\\环境\\SM_Env_Ground_Greeble_02.png",
+    "usage": "地面碎件（扁）",
+    "placement": "surface",
+    "allowed_scale": [
+     0.5,
+     1.5
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": false,
+    "size_source": "catalog_4006",
+    "status": "excluded_by_visual_audit（科技残骸，非自然物）",
+    "uv_audit": {
+     "surfaces": 2,
+     "has_uv": true,
+     "materials": [
+      "Base_Lambert1"
+     ],
+     "tris": 120
+    },
+    "visual_verdict": "科技残骸带条纹——非自然物（预览实看）",
+    "integration_status": "already_in_game_assets"
+   },
+   {
+    "id": "A_4006:SM_Env_Ground_Greeble_04",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Env_Ground_Greeble_04.fbx",
+    "godot_res_path": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Env_Ground_Greeble_04.fbx",
+    "atlas": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png",
+    "size_xyz": [
+     3.901,
+     0.359,
+     3.644
+    ],
+    "min_y": -0.123,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\提炼_科幻战争与角色\\01_科幻战争_4006\\环境\\SM_Env_Ground_Greeble_04.png",
+    "usage": "地面碎件（大）",
+    "placement": "surface",
+    "allowed_scale": [
+     0.5,
+     1.5
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": false,
+    "size_source": "catalog_4006",
+    "status": "excluded_by_visual_audit（科技残骸，非自然物）",
+    "uv_audit": {
+     "surfaces": 2,
+     "has_uv": true,
+     "materials": [
+      "Base_Lambert1"
+     ],
+     "tris": 152
+    },
+    "visual_verdict": "警戒条纹篷布残骸——非自然物（预览实看）",
+    "integration_status": "already_in_game_assets"
+   },
+   {
+    "id": "A_4006:SM_Env_Ground_Junk_04",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Env_Ground_Junk_04.fbx",
+    "godot_res_path": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Env_Ground_Junk_04.fbx",
+    "atlas": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png",
+    "size_xyz": [
+     3.092,
+     0.757,
+     3.074
+    ],
+    "min_y": -0.165,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\提炼_科幻战争与角色\\01_科幻战争_4006\\环境\\SM_Env_Ground_Junk_04.png",
+    "usage": "小碎石堆：崖脚碎屑",
+    "placement": "surface",
+    "allowed_scale": [
+     0.5,
+     1.5
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": false,
+    "size_source": "catalog_4006",
+    "status": "excluded_by_visual_audit（科技残骸，非自然物）",
+    "uv_audit": {
+     "surfaces": 2,
+     "has_uv": true,
+     "materials": [
+      "SciFi_Planets_SCAV_SHD",
+      "SciFi_Planets_SHD"
+     ],
+     "tris": 905
+    },
+    "visual_verdict": "电路纹科技残骸（双材质 SCAV+SHD）——非自然物（预览实看）",
+    "integration_status": "already_in_game_assets"
+   },
+   {
+    "id": "A_4006:SM_Env_Ground_Junk_05",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Env_Ground_Junk_05.fbx",
+    "godot_res_path": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Env_Ground_Junk_05.fbx",
+    "atlas": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png",
+    "size_xyz": [
+     3.813,
+     0.401,
+     3.606
+    ],
+    "min_y": -0.0,
+    "origin_note": "原点接近底部/贴地",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\提炼_科幻战争与角色\\01_科幻战争_4006\\环境\\SM_Env_Ground_Junk_05.png",
+    "usage": "小碎石堆（扁）",
+    "placement": "surface",
+    "allowed_scale": [
+     0.5,
+     1.5
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": false,
+    "size_source": "catalog_4006",
+    "status": "excluded_by_visual_audit（科技残骸，非自然物）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "ScifiMat1"
+     ],
+     "tris": 63
+    },
+    "visual_verdict": "蓝色窗纹暗岩，疑似建筑碎片——非自然物（预览实看）",
+    "integration_status": "already_in_game_assets"
+   },
+   {
+    "id": "A_4006:SM_Env_Blob_01",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Env_Blob_01.fbx",
+    "godot_res_path": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Env_Blob_01.fbx",
+    "atlas": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png",
+    "size_xyz": [
+     1.885,
+     0.033,
+     1.706
+    ],
+    "min_y": 0.0,
+    "origin_note": "原点接近底部/贴地",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\提炼_科幻战争与角色\\01_科幻战争_4006\\环境\\SM_Env_Blob_01.png",
+    "usage": "低频地斑候选（UV/材质核对后再启用）",
+    "placement": "surface",
+    "allowed_scale": [
+     0.8,
+     2.0
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": false,
+    "size_source": "catalog_4006",
+    "status": "needs_material_tint（需接口调色支持）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Base_Lambert1"
+     ],
+     "tris": 50
+    },
+    "visual_verdict": "深蓝灰扁平多边形地贴；需材质调色支持才可作低频地斑（预览实看）",
+    "integration_status": "needs_copy_by_asset_interface"
+   },
+   {
+    "id": "A_4006:SM_Env_Blob_03",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Env_Blob_03.fbx",
+    "godot_res_path": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Env_Blob_03.fbx",
+    "atlas": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png",
+    "size_xyz": [
+     1.4,
+     0.033,
+     1.181
+    ],
+    "min_y": 0.0,
+    "origin_note": "原点接近底部/贴地",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\提炼_科幻战争与角色\\01_科幻战争_4006\\环境\\SM_Env_Blob_03.png",
+    "usage": "低频地斑候选",
+    "placement": "surface",
+    "allowed_scale": [
+     0.8,
+     2.0
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": false,
+    "size_source": "catalog_4006",
+    "status": "needs_material_tint（需接口调色支持）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Base_Lambert1"
+     ],
+     "tris": 28
+    },
+    "visual_verdict": "待单件预览/引擎内核验",
+    "integration_status": "needs_copy_by_asset_interface"
+   },
+   {
+    "id": "A_4006:SM_Env_Plant_Fern_01",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Env_Plant_Fern_01.fbx",
+    "godot_res_path": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Env_Plant_Fern_01.fbx",
+    "atlas": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png",
+    "size_xyz": [
+     2.6,
+     1.006,
+     2.987
+    ],
+    "min_y": -0.3,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\提炼_科幻战争与角色\\01_科幻战争_4006\\环境\\SM_Env_Plant_Fern_01.png",
+    "usage": "蕨类：崖脚/水岸成簇",
+    "placement": "cluster_veg",
+    "allowed_scale": [
+     0.5,
+     1.5
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": false,
+    "size_source": "catalog_4006",
+    "status": "accent_only（异形红系，仅风格点缀，默认不进主池）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Base_Lambert3"
+     ],
+     "tris": 140
+    },
+    "visual_verdict": "暗红异形蕨（非绿色）；仅作异形风格点缀（预览实看）",
+    "integration_status": "already_in_game_assets"
+   },
+   {
+    "id": "A_4006:SM_Env_Plant_Fern_02",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Env_Plant_Fern_02.fbx",
+    "godot_res_path": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Env_Plant_Fern_02.fbx",
+    "atlas": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png",
+    "size_xyz": [
+     4.263,
+     1.137,
+     4.071
+    ],
+    "min_y": -0.3,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\提炼_科幻战争与角色\\01_科幻战争_4006\\环境\\SM_Env_Plant_Fern_02.png",
+    "usage": "蕨类（大）",
+    "placement": "cluster_veg",
+    "allowed_scale": [
+     0.5,
+     1.2
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": false,
+    "size_source": "catalog_4006",
+    "status": "accent_only（异形红系，仅风格点缀，默认不进主池）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Base_Lambert3"
+     ],
+     "tris": 248
+    },
+    "visual_verdict": "待单件预览/引擎内核验",
+    "integration_status": "already_in_game_assets"
+   },
+   {
+    "id": "A_4006:SM_Env_Grass_01",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Env_Grass_01.fbx",
+    "godot_res_path": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Env_Grass_01.fbx",
+    "atlas": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png",
+    "size_xyz": [
+     1.93,
+     1.169,
+     1.73
+    ],
+    "min_y": -0.197,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\提炼_科幻战争与角色\\01_科幻战争_4006\\环境\\SM_Env_Grass_01.png",
+    "usage": "草簇（非碰撞）",
+    "placement": "cluster_veg",
+    "allowed_scale": [
+     0.6,
+     1.5
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": false,
+    "size_source": "catalog_4006",
+    "status": "accent_only（异形红系，仅风格点缀，默认不进主池）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Base_Lambert3"
+     ],
+     "tris": 96
+    },
+    "visual_verdict": "红色异形尖刺植物，名不副实；仅点缀/待风格拍板（预览实看）",
+    "integration_status": "needs_copy_by_asset_interface"
+   },
+   {
+    "id": "A_4006:SM_Env_Grass_04",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Env_Grass_04.fbx",
+    "godot_res_path": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Env_Grass_04.fbx",
+    "atlas": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png",
+    "size_xyz": [
+     0.999,
+     1.129,
+     1.224
+    ],
+    "min_y": -0.157,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\提炼_科幻战争与角色\\01_科幻战争_4006\\环境\\SM_Env_Grass_04.png",
+    "usage": "草簇（小，非碰撞）",
+    "placement": "cluster_veg",
+    "allowed_scale": [
+     0.6,
+     1.8
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": false,
+    "size_source": "catalog_4006",
+    "status": "accent_only（异形红系，仅风格点缀，默认不进主池）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Base_Lambert3"
+     ],
+     "tris": 36
+    },
+    "visual_verdict": "待单件预览/引擎内核验",
+    "integration_status": "needs_copy_by_asset_interface"
+   },
+   {
+    "id": "A_4006:SM_Env_Plant_Flower_01",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Env_Plant_Flower_01.fbx",
+    "godot_res_path": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Env_Plant_Flower_01.fbx",
+    "atlas": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png",
+    "size_xyz": [
+     0.913,
+     1.56,
+     0.911
+    ],
+    "min_y": -0.158,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\提炼_科幻战争与角色\\01_科幻战争_4006\\环境\\SM_Env_Plant_Flower_01.png",
+    "usage": "小花点缀",
+    "placement": "cluster_veg",
+    "allowed_scale": [
+     0.6,
+     1.5
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": false,
+    "size_source": "catalog_4006",
+    "status": "accent_only（异形红系，仅风格点缀，默认不进主池）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Base_Lambert3"
+     ],
+     "tris": 505
+    },
+    "visual_verdict": "暗红黑异形花苞；仅点缀（预览实看）",
+    "integration_status": "already_in_game_assets"
+   },
+   {
+    "id": "A_4006:SM_Env_Plant_Flower_02",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Env_Plant_Flower_02.fbx",
+    "godot_res_path": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Env_Plant_Flower_02.fbx",
+    "atlas": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png",
+    "size_xyz": [
+     0.792,
+     1.236,
+     0.791
+    ],
+    "min_y": -0.141,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\提炼_科幻战争与角色\\01_科幻战争_4006\\环境\\SM_Env_Plant_Flower_02.png",
+    "usage": "小花点缀",
+    "placement": "cluster_veg",
+    "allowed_scale": [
+     0.6,
+     1.5
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": false,
+    "size_source": "catalog_4006",
+    "status": "accent_only（异形红系，仅风格点缀，默认不进主池）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Base_Lambert3"
+     ],
+     "tris": 448
+    },
+    "visual_verdict": "待单件预览/引擎内核验",
+    "integration_status": "already_in_game_assets"
+   },
+   {
+    "id": "A_4006:SM_Env_Ground_Blob_01",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\SM_Env_Ground_Blob_01.fbx",
+    "godot_res_path": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Env_Ground_Blob_01.fbx",
+    "atlas": "res://assets/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png",
+    "size_xyz": [
+     9.157,
+     1.888,
+     9.089
+    ],
+    "min_y": -1.048,
+    "origin_note": "min_y=-1.048，底部在原点下方，摆放需 y_offset=-min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\提炼_科幻战争与角色\\01_科幻战争_4006\\环境\\SM_Env_Ground_Blob_01.png",
+    "usage": "低频大地斑候选（9.2m，需材质调色）",
+    "placement": "surface",
+    "allowed_scale": [
+     0.5,
+     1.5
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": true,
+    "size_source": "catalog_4006",
+    "status": "needs_material_tint（需接口调色支持）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "ScifiMat1"
+     ],
+     "tris": 222
+    },
+    "visual_verdict": "待单件预览/引擎内核验",
+    "integration_status": "needs_copy_by_asset_interface"
+   }
+  ],
+  "active_count": 23,
+  "total_count": 34
+ },
+ "track_B_4041_warm_alternative": {
+  "note": "备选：暖砂岩整套（含崖壁/岩/旱植/芦苇），契合『岩土偏暖』；启用需用户/总控对风格拍板，且必须用自己的图集。",
+  "count": 28,
+  "items": [
+   {
+    "id": "B_4041:SM_Env_Quarry_Wall_Straight_01",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4041_西部土著\\PolygonWesternFrontier\\Models\\SM_Env_Quarry_Wall_Straight_01.fbx",
+    "godot_res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_Quarry_Wall_Straight_01.fbx",
+    "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+    "size_xyz": [
+     15.076,
+     5.116,
+     4.835
+    ],
+    "min_y": -0.706,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\预览图\\地形\\4041_西部土著_地形.png（合集）",
+    "usage": "暖砂崖壁直段：台地崖线主体（备选风格）",
+    "placement": "cliff_line",
+    "allowed_scale": [
+     0.6,
+     1.2
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": null,
+    "size_source": "measured_godot471",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Frontier"
+     ],
+     "tris": 930
+    },
+    "visual_verdict": "包级核验：4041 Demo 场景+地形总表暖砂色调、图集生效；单件待引擎内核验"
+   },
+   {
+    "id": "B_4041:SM_Env_Quarry_Wall_Straight_02",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4041_西部土著\\PolygonWesternFrontier\\Models\\SM_Env_Quarry_Wall_Straight_02.fbx",
+    "godot_res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_Quarry_Wall_Straight_02.fbx",
+    "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+    "size_xyz": [
+     14.932,
+     5.044,
+     5.094
+    ],
+    "min_y": -0.635,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\预览图\\地形\\4041_西部土著_地形.png（合集）",
+    "usage": "暖砂崖壁直段",
+    "placement": "cliff_line",
+    "allowed_scale": [
+     0.6,
+     1.2
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": null,
+    "size_source": "measured_godot471",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Frontier"
+     ],
+     "tris": 934
+    },
+    "visual_verdict": "包级核验：4041 Demo 场景+地形总表暖砂色调、图集生效；单件待引擎内核验"
+   },
+   {
+    "id": "B_4041:SM_Env_Quarry_Wall_Curved_01",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4041_西部土著\\PolygonWesternFrontier\\Models\\SM_Env_Quarry_Wall_Curved_01.fbx",
+    "godot_res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_Quarry_Wall_Curved_01.fbx",
+    "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+    "size_xyz": [
+     16.159,
+     4.974,
+     6.802
+    ],
+    "min_y": -0.564,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\预览图\\地形\\4041_西部土著_地形.png（合集）",
+    "usage": "暖砂崖壁弧段",
+    "placement": "cliff_line",
+    "allowed_scale": [
+     0.6,
+     1.2
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": null,
+    "size_source": "measured_godot471",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Frontier"
+     ],
+     "tris": 936
+    },
+    "visual_verdict": "包级核验：4041 Demo 场景+地形总表暖砂色调、图集生效；单件待引擎内核验"
+   },
+   {
+    "id": "B_4041:SM_Env_Quarry_Wall_Round_01",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4041_西部土著\\PolygonWesternFrontier\\Models\\SM_Env_Quarry_Wall_Round_01.fbx",
+    "godot_res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_Quarry_Wall_Round_01.fbx",
+    "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+    "size_xyz": [
+     9.564,
+     4.632,
+     9.49
+    ],
+    "min_y": -0.222,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\预览图\\地形\\4041_西部土著_地形.png（合集）",
+    "usage": "暖砂崖壁转角",
+    "placement": "cliff_line",
+    "allowed_scale": [
+     0.6,
+     1.2
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": null,
+    "size_source": "measured_godot471",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Frontier"
+     ],
+     "tris": 739
+    },
+    "visual_verdict": "包级核验：4041 Demo 场景+地形总表暖砂色调、图集生效；单件待引擎内核验"
+   },
+   {
+    "id": "B_4041:SM_Env_Quarry_Wall_End_01",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4041_西部土著\\PolygonWesternFrontier\\Models\\SM_Env_Quarry_Wall_End_01.fbx",
+    "godot_res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_Quarry_Wall_End_01.fbx",
+    "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+    "size_xyz": [
+     13.512,
+     4.557,
+     4.466
+    ],
+    "min_y": -0.222,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\预览图\\地形\\4041_西部土著_地形.png（合集）",
+    "usage": "暖砂崖壁端头",
+    "placement": "cliff_line",
+    "allowed_scale": [
+     0.6,
+     1.2
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": null,
+    "size_source": "measured_godot471",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Frontier"
+     ],
+     "tris": 642
+    },
+    "visual_verdict": "包级核验：4041 Demo 场景+地形总表暖砂色调、图集生效；单件待引擎内核验"
+   },
+   {
+    "id": "B_4041:SM_Env_RockFlat_01",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4041_西部土著\\PolygonWesternFrontier\\Models\\SM_Env_RockFlat_01.fbx",
+    "godot_res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_RockFlat_01.fbx",
+    "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+    "size_xyz": [
+     2.442,
+     1.205,
+     2.035
+    ],
+    "min_y": -0.849,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\预览图\\地形\\4041_西部土著_地形.png（合集）",
+    "usage": "暖色扁岩：崖脚/岸线",
+    "placement": "cliff_line",
+    "allowed_scale": [
+     0.4,
+     1.2
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": null,
+    "size_source": "measured_godot471",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Frontier"
+     ],
+     "tris": 78
+    },
+    "visual_verdict": "包级核验：4041 Demo 场景+地形总表暖砂色调、图集生效；单件待引擎内核验"
+   },
+   {
+    "id": "B_4041:SM_Env_RockFlat_03",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4041_西部土著\\PolygonWesternFrontier\\Models\\SM_Env_RockFlat_03.fbx",
+    "godot_res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_RockFlat_03.fbx",
+    "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+    "size_xyz": [
+     3.956,
+     2.046,
+     5.16
+    ],
+    "min_y": -0.522,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\预览图\\地形\\4041_西部土著_地形.png（合集）",
+    "usage": "暖色扁岩",
+    "placement": "cliff_line",
+    "allowed_scale": [
+     0.4,
+     1.0
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": null,
+    "size_source": "measured_godot471",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Frontier"
+     ],
+     "tris": 268
+    },
+    "visual_verdict": "包级核验：4041 Demo 场景+地形总表暖砂色调、图集生效；单件待引擎内核验"
+   },
+   {
+    "id": "B_4041:SM_Env_RockFlat_05",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4041_西部土著\\PolygonWesternFrontier\\Models\\SM_Env_RockFlat_05.fbx",
+    "godot_res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_RockFlat_05.fbx",
+    "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+    "size_xyz": [
+     7.492,
+     2.453,
+     5.586
+    ],
+    "min_y": -0.538,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\预览图\\地形\\4041_西部土著_地形.png（合集）",
+    "usage": "暖色扁岩（大）",
+    "placement": "cliff_line",
+    "allowed_scale": [
+     0.4,
+     1.0
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": null,
+    "size_source": "measured_godot471",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Frontier"
+     ],
+     "tris": 278
+    },
+    "visual_verdict": "包级核验：4041 Demo 场景+地形总表暖砂色调、图集生效；单件待引擎内核验"
+   },
+   {
+    "id": "B_4041:SM_Env_RockTall_01",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4041_西部土著\\PolygonWesternFrontier\\Models\\SM_Env_RockTall_01.fbx",
+    "godot_res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_RockTall_01.fbx",
+    "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+    "size_xyz": [
+     10.249,
+     7.734,
+     6.356
+    ],
+    "min_y": 0.0,
+    "origin_note": "原点接近底部/贴地",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\预览图\\地形\\4041_西部土著_地形.png（合集）",
+    "usage": "暖色立岩（min_y=0 原点在底）",
+    "placement": "cliff_line",
+    "allowed_scale": [
+     0.3,
+     0.8
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": null,
+    "size_source": "measured_godot471",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Frontier"
+     ],
+     "tris": 308
+    },
+    "visual_verdict": "包级核验：4041 Demo 场景+地形总表暖砂色调、图集生效；单件待引擎内核验"
+   },
+   {
+    "id": "B_4041:SM_Env_RockTall_02",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4041_西部土著\\PolygonWesternFrontier\\Models\\SM_Env_RockTall_02.fbx",
+    "godot_res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_RockTall_02.fbx",
+    "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+    "size_xyz": [
+     15.968,
+     7.531,
+     7.257
+    ],
+    "min_y": 0.0,
+    "origin_note": "原点接近底部/贴地",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\预览图\\地形\\4041_西部土著_地形.png（合集）",
+    "usage": "暖色立岩（大）",
+    "placement": "cliff_line",
+    "allowed_scale": [
+     0.3,
+     0.7
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": null,
+    "size_source": "measured_godot471",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Frontier"
+     ],
+     "tris": 295
+    },
+    "visual_verdict": "包级核验：4041 Demo 场景+地形总表暖砂色调、图集生效；单件待引擎内核验"
+   },
+   {
+    "id": "B_4041:SM_Env_Quarry_Rocks_01",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4041_西部土著\\PolygonWesternFrontier\\Models\\SM_Env_Quarry_Rocks_01.fbx",
+    "godot_res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_Quarry_Rocks_01.fbx",
+    "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+    "size_xyz": [
+     3.315,
+     1.733,
+     1.927
+    ],
+    "min_y": -0.866,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\预览图\\地形\\4041_西部土著_地形.png（合集）",
+    "usage": "采石场岩块",
+    "placement": "surface",
+    "allowed_scale": [
+     0.5,
+     1.5
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": null,
+    "size_source": "measured_godot471",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Frontier"
+     ],
+     "tris": 250
+    },
+    "visual_verdict": "包级核验：4041 Demo 场景+地形总表暖砂色调、图集生效；单件待引擎内核验"
+   },
+   {
+    "id": "B_4041:SM_Env_Quarry_Rocks_02",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4041_西部土著\\PolygonWesternFrontier\\Models\\SM_Env_Quarry_Rocks_02.fbx",
+    "godot_res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_Quarry_Rocks_02.fbx",
+    "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+    "size_xyz": [
+     6.812,
+     2.371,
+     2.216
+    ],
+    "min_y": -1.185,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\预览图\\地形\\4041_西部土著_地形.png（合集）",
+    "usage": "采石场岩块（长）",
+    "placement": "surface",
+    "allowed_scale": [
+     0.5,
+     1.5
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": null,
+    "size_source": "measured_godot471",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Frontier"
+     ],
+     "tris": 500
+    },
+    "visual_verdict": "包级核验：4041 Demo 场景+地形总表暖砂色调、图集生效；单件待引擎内核验"
+   },
+   {
+    "id": "B_4041:SM_Env_Quarry_Rocks_03",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4041_西部土著\\PolygonWesternFrontier\\Models\\SM_Env_Quarry_Rocks_03.fbx",
+    "godot_res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_Quarry_Rocks_03.fbx",
+    "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+    "size_xyz": [
+     6.971,
+     3.968,
+     3.373
+    ],
+    "min_y": -1.984,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\预览图\\地形\\4041_西部土著_地形.png（合集）",
+    "usage": "采石场岩块（大）",
+    "placement": "surface",
+    "allowed_scale": [
+     0.5,
+     1.2
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": null,
+    "size_source": "measured_godot471",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Frontier"
+     ],
+     "tris": 1200
+    },
+    "visual_verdict": "包级核验：4041 Demo 场景+地形总表暖砂色调、图集生效；单件待引擎内核验"
+   },
+   {
+    "id": "B_4041:SM_Env_RockSmall_01",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4041_西部土著\\PolygonWesternFrontier\\Models\\SM_Env_RockSmall_01.fbx",
+    "godot_res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_RockSmall_01.fbx",
+    "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+    "size_xyz": [
+     0.711,
+     0.144,
+     0.574
+    ],
+    "min_y": -0.026,
+    "origin_note": "原点接近底部/贴地",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\预览图\\地形\\4041_西部土著_地形.png（合集）",
+    "usage": "小碎石（min_y≈0 贴地）",
+    "placement": "surface",
+    "allowed_scale": [
+     0.8,
+     2.0
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": null,
+    "size_source": "measured_godot471",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Frontier"
+     ],
+     "tris": 74
+    },
+    "visual_verdict": "包级核验：4041 Demo 场景+地形总表暖砂色调、图集生效；单件待引擎内核验"
+   },
+   {
+    "id": "B_4041:SM_Env_RockSmall_02",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4041_西部土著\\PolygonWesternFrontier\\Models\\SM_Env_RockSmall_02.fbx",
+    "godot_res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_RockSmall_02.fbx",
+    "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+    "size_xyz": [
+     0.814,
+     0.238,
+     0.604
+    ],
+    "min_y": -0.028,
+    "origin_note": "原点接近底部/贴地",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\预览图\\地形\\4041_西部土著_地形.png（合集）",
+    "usage": "小碎石",
+    "placement": "surface",
+    "allowed_scale": [
+     0.8,
+     2.0
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": null,
+    "size_source": "measured_godot471",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Frontier"
+     ],
+     "tris": 68
+    },
+    "visual_verdict": "包级核验：4041 Demo 场景+地形总表暖砂色调、图集生效；单件待引擎内核验"
+   },
+   {
+    "id": "B_4041:SM_Env_RockSmall_03",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4041_西部土著\\PolygonWesternFrontier\\Models\\SM_Env_RockSmall_03.fbx",
+    "godot_res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_RockSmall_03.fbx",
+    "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+    "size_xyz": [
+     0.658,
+     0.313,
+     0.65
+    ],
+    "min_y": -0.062,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\预览图\\地形\\4041_西部土著_地形.png（合集）",
+    "usage": "小碎石",
+    "placement": "surface",
+    "allowed_scale": [
+     0.8,
+     2.0
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": null,
+    "size_source": "measured_godot471",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Frontier"
+     ],
+     "tris": 46
+    },
+    "visual_verdict": "包级核验：4041 Demo 场景+地形总表暖砂色调、图集生效；单件待引擎内核验"
+   },
+   {
+    "id": "B_4041:SM_Env_Bush_01",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4041_西部土著\\PolygonWesternFrontier\\Models\\SM_Env_Bush_01.fbx",
+    "godot_res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_Bush_01.fbx",
+    "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+    "size_xyz": [
+     0.494,
+     0.783,
+     0.487
+    ],
+    "min_y": -0.08,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\预览图\\地形\\4041_西部土著_地形.png（合集）",
+    "usage": "灌木簇",
+    "placement": "cluster_veg",
+    "allowed_scale": [
+     0.8,
+     2.0
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": null,
+    "size_source": "measured_godot471",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Frontier"
+     ],
+     "tris": 218
+    },
+    "visual_verdict": "包级核验：4041 Demo 场景+地形总表暖砂色调、图集生效；单件待引擎内核验"
+   },
+   {
+    "id": "B_4041:SM_Env_Shrub_01",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4041_西部土著\\PolygonWesternFrontier\\Models\\SM_Env_Shrub_01.fbx",
+    "godot_res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_Shrub_01.fbx",
+    "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+    "size_xyz": [
+     0.583,
+     0.606,
+     0.603
+    ],
+    "min_y": -0.069,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\预览图\\地形\\4041_西部土著_地形.png（合集）",
+    "usage": "灌木",
+    "placement": "cluster_veg",
+    "allowed_scale": [
+     0.8,
+     2.0
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": null,
+    "size_source": "measured_godot471",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Frontier"
+     ],
+     "tris": 64
+    },
+    "visual_verdict": "包级核验：4041 Demo 场景+地形总表暖砂色调、图集生效；单件待引擎内核验"
+   },
+   {
+    "id": "B_4041:SM_Env_ShrubGrass_01",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4041_西部土著\\PolygonWesternFrontier\\Models\\SM_Env_ShrubGrass_01.fbx",
+    "godot_res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_ShrubGrass_01.fbx",
+    "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+    "size_xyz": [
+     0.34,
+     0.569,
+     0.332
+    ],
+    "min_y": -0.157,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\预览图\\地形\\4041_西部土著_地形.png（合集）",
+    "usage": "草灌",
+    "placement": "cluster_veg",
+    "allowed_scale": [
+     0.8,
+     2.5
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": null,
+    "size_source": "measured_godot471",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Frontier"
+     ],
+     "tris": 54
+    },
+    "visual_verdict": "包级核验：4041 Demo 场景+地形总表暖砂色调、图集生效；单件待引擎内核验"
+   },
+   {
+    "id": "B_4041:SM_Env_Grass_Desert_01",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4041_西部土著\\PolygonWesternFrontier\\Models\\SM_Env_Grass_Desert_01.fbx",
+    "godot_res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_Grass_Desert_01.fbx",
+    "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+    "size_xyz": [
+     0.599,
+     0.714,
+     0.567
+    ],
+    "min_y": -0.096,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\预览图\\地形\\4041_西部土著_地形.png（合集）",
+    "usage": "旱草簇",
+    "placement": "cluster_veg",
+    "allowed_scale": [
+     0.8,
+     2.0
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": null,
+    "size_source": "measured_godot471",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Frontier"
+     ],
+     "tris": 150
+    },
+    "visual_verdict": "包级核验：4041 Demo 场景+地形总表暖砂色调、图集生效；单件待引擎内核验"
+   },
+   {
+    "id": "B_4041:SM_Env_Grass_Shrub_01",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4041_西部土著\\PolygonWesternFrontier\\Models\\SM_Env_Grass_Shrub_01.fbx",
+    "godot_res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_Grass_Shrub_01.fbx",
+    "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+    "size_xyz": [
+     1.323,
+     0.878,
+     1.417
+    ],
+    "min_y": -0.045,
+    "origin_note": "原点接近底部/贴地",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\预览图\\地形\\4041_西部土著_地形.png（合集）",
+    "usage": "草簇（大）",
+    "placement": "cluster_veg",
+    "allowed_scale": [
+     0.6,
+     1.5
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": null,
+    "size_source": "measured_godot471",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Frontier"
+     ],
+     "tris": 1342
+    },
+    "visual_verdict": "包级核验：4041 Demo 场景+地形总表暖砂色调、图集生效；单件待引擎内核验"
+   },
+   {
+    "id": "B_4041:SM_Env_Flower_01",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4041_西部土著\\PolygonWesternFrontier\\Models\\SM_Env_Flower_01.fbx",
+    "godot_res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_Flower_01.fbx",
+    "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+    "size_xyz": [
+     0.333,
+     0.432,
+     0.368
+    ],
+    "min_y": -0.116,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\预览图\\地形\\4041_西部土著_地形.png（合集）",
+    "usage": "小花点缀",
+    "placement": "cluster_veg",
+    "allowed_scale": [
+     0.8,
+     2.0
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": null,
+    "size_source": "measured_godot471",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Frontier"
+     ],
+     "tris": 78
+    },
+    "visual_verdict": "包级核验：4041 Demo 场景+地形总表暖砂色调、图集生效；单件待引擎内核验"
+   },
+   {
+    "id": "B_4041:SM_Env_Reeds_01",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4041_西部土著\\PolygonWesternFrontier\\Models\\SM_Env_Reeds_01.fbx",
+    "godot_res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_Reeds_01.fbx",
+    "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+    "size_xyz": [
+     0.735,
+     2.207,
+     0.977
+    ],
+    "min_y": -0.631,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\预览图\\地形\\4041_西部土著_地形.png（合集）",
+    "usage": "芦苇：水岸专用",
+    "placement": "shore",
+    "allowed_scale": [
+     0.8,
+     1.8
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": null,
+    "size_source": "measured_godot471",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Frontier"
+     ],
+     "tris": 90
+    },
+    "visual_verdict": "包级核验：4041 Demo 场景+地形总表暖砂色调、图集生效；单件待引擎内核验"
+   },
+   {
+    "id": "B_4041:SM_Env_Tree_Desert_01",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4041_西部土著\\PolygonWesternFrontier\\Models\\SM_Env_Tree_Desert_01.fbx",
+    "godot_res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_Tree_Desert_01.fbx",
+    "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+    "size_xyz": [
+     3.079,
+     5.514,
+     4.779
+    ],
+    "min_y": -0.165,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\预览图\\地形\\4041_西部土著_地形.png（合集）",
+    "usage": "旱树：成簇地标（克制）",
+    "placement": "cluster_veg",
+    "allowed_scale": [
+     0.5,
+     1.0
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": null,
+    "size_source": "measured_godot471",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Frontier"
+     ],
+     "tris": 2050
+    },
+    "visual_verdict": "包级核验：4041 Demo 场景+地形总表暖砂色调、图集生效；单件待引擎内核验"
+   },
+   {
+    "id": "B_4041:SM_Env_Tree_Clump_01",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4041_西部土著\\PolygonWesternFrontier\\Models\\SM_Env_Tree_Clump_01.fbx",
+    "godot_res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_Tree_Clump_01.fbx",
+    "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+    "size_xyz": [
+     8.096,
+     10.5,
+     8.175
+    ],
+    "min_y": 0.0,
+    "origin_note": "原点接近底部/贴地",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\预览图\\地形\\4041_西部土著_地形.png（合集）",
+    "usage": "树丛（大，边缘用）",
+    "placement": "cluster_veg",
+    "allowed_scale": [
+     0.4,
+     0.8
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": null,
+    "size_source": "measured_godot471",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Frontier"
+     ],
+     "tris": 1240
+    },
+    "visual_verdict": "包级核验：4041 Demo 场景+地形总表暖砂色调、图集生效；单件待引擎内核验"
+   },
+   {
+    "id": "B_4041:SM_Env_Tree_Stump_01",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4041_西部土著\\PolygonWesternFrontier\\Models\\SM_Env_Tree_Stump_01.fbx",
+    "godot_res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_Tree_Stump_01.fbx",
+    "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+    "size_xyz": [
+     0.772,
+     2.281,
+     0.746
+    ],
+    "min_y": -0.137,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\预览图\\地形\\4041_西部土著_地形.png（合集）",
+    "usage": "树桩",
+    "placement": "cluster_veg",
+    "allowed_scale": [
+     0.6,
+     1.2
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": null,
+    "size_source": "measured_godot471",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Frontier"
+     ],
+     "tris": 110
+    },
+    "visual_verdict": "包级核验：4041 Demo 场景+地形总表暖砂色调、图集生效；单件待引擎内核验"
+   },
+   {
+    "id": "B_4041:SM_Env_TreeDead_Fallen_01",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4041_西部土著\\PolygonWesternFrontier\\Models\\SM_Env_TreeDead_Fallen_01.fbx",
+    "godot_res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_TreeDead_Fallen_01.fbx",
+    "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+    "size_xyz": [
+     6.45,
+     2.456,
+     3.464
+    ],
+    "min_y": -0.274,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\预览图\\地形\\4041_西部土著_地形.png（合集）",
+    "usage": "倒木：崖脚/林缘",
+    "placement": "cluster_veg",
+    "allowed_scale": [
+     0.5,
+     1.0
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": null,
+    "size_source": "measured_godot471",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Frontier"
+     ],
+     "tris": 306
+    },
+    "visual_verdict": "包级核验：4041 Demo 场景+地形总表暖砂色调、图集生效；单件待引擎内核验"
+   },
+   {
+    "id": "B_4041:SM_Env_Quarry_Ground_01",
+    "source_path": "G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4041_西部土著\\PolygonWesternFrontier\\Models\\SM_Env_Quarry_Ground_01.fbx",
+    "godot_res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_Quarry_Ground_01.fbx",
+    "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+    "size_xyz": [
+     11.186,
+     0.947,
+     9.787
+    ],
+    "min_y": -0.27,
+    "origin_note": "原点高于模型底部：摆放需 y_offset = -min_y*scale",
+    "preview": "G:\\AIRTS\\AI_RTS\\初选素材包\\预览图\\地形\\4041_西部土著_地形.png（合集）",
+    "usage": "岩地贴片：局部地表变化",
+    "placement": "surface",
+    "allowed_scale": [
+     0.6,
+     1.5
+    ],
+    "allowed_yaw_deg": [
+     0,
+     360
+    ],
+    "catalog_blocking": null,
+    "size_source": "measured_godot471",
+    "status": "ready（候选就绪）",
+    "uv_audit": {
+     "surfaces": 1,
+     "has_uv": true,
+     "materials": [
+      "Frontier"
+     ],
+     "tris": 108
+    },
+    "visual_verdict": "包级核验：4041 Demo 场景+地形总表暖砂色调、图集生效；单件待引擎内核验"
+   }
+  ],
+  "active_count": 28,
+  "total_count": 28
+ },
+ "excluded": [
+  {
+   "what": "SM_Env_Cliff_Flat_04.fbx",
+   "why": "原生高 90.2m / min_y -75.0，超尺度，第一轮不用"
+  },
+  {
+   "what": "SM_Env_Cliff_Curved_Large_01.fbx",
+   "why": "原生 88.8×46.8×137.1m，巨型，第一轮不用"
+  },
+  {
+   "what": "SM_Env_Crater_Edge_01..04",
+   "why": "55–70m 巨坑边缘，超尺度"
+  },
+  {
+   "what": "SM_Env_Ground_Junk_01/02/03",
+   "why": "23–61m 巨型废墟堆，超尺度"
+  },
+  {
+   "what": "SM_Decal_Graffiti_01..07",
+   "why": "涂鸦贴花，非自然物"
+  },
+  {
+   "what": "SM_Bld_*（含 Corp_Wall/Platform_Barrier/Fort_Wall 等）",
+   "why": "建筑/围墙不得充当自然地形（任务禁令）"
+  },
+  {
+   "what": "角色/载具/武器合集（BR_*、Characters 等）",
+   "why": "非环境资产"
+  },
+  {
+   "what": "SM_Env_Plant_{Kelp,Coral,Mushroom,Spiral,Hallowed,Fester,Bulb,Large_Spiral}_*",
+   "why": "异形巨植干扰 RTS 可读性，第一轮不进"
+  },
+  {
+   "what": "4041: SM_Env_Mound_*（Flattop/Hill/Slope/Ramp/Large）",
+   "why": "程序地形替代物；与 Qwen 真实地形网格冲突，仅结构方授权后可考虑"
+  },
+  {
+   "what": "4041: SM_Env_River_*/Road_*/Mine_*/Quarry_Wall_Ramp",
+   "why": "河道/道路/矿井结构件，不归视觉层"
+  }
+ ],
+ "scale_reference": {
+  "plateau_step_m": 3.0,
+  "note": "4006 崖件原高 18–44m，scale 0.12–0.18 时崖面主体 ≈3m 台地高差；4041 崩壁原高 ≈5m，scale 0.6 直接对应。崖体有效包围体不得侵占坡口/桥头/通路净空（≥3m 通道语义由工程校验）。"
+ },
+ "style_note": "肉眼核验修正：4006『Grass/Fern/Flower』实为红色异形系植物（名不副实），『Ground_Greeble/Junk』实为科技残骸（已剔）；4006 自然物=岩崖+碎石干净可用。若要自然草原/荒漠植被感，主选 B 轨 4041（旱植/灌木/芦苇已包级核验），或在引擎内核验后以 A 轨异形植做受控点缀。",
+ "placement_budget": {
+  "note": "实例三角开销极低（最大单件 2050 tris），全图 dressing 万级实例仍在现代 GPU 预算内；硬上限由 Qwen 契约测试给（01 文档接口第 9 条），本表 tris 字段供其计算。",
+  "max_tris_single_item": 2050
+ }
+}

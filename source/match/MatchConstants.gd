@@ -18,12 +18,12 @@ const MAPS = {
 		"players": 8,
 		"size": Vector2i(100, 100),
 	},
-	# 当前 G4 评图：大湖 seed16。DISCOVER_GENERATED_MAPS 仍关，只挂这一张。
-	"res://source/match/maps/generated/16-0-7d337ce8be/map_16-0-7d337ce8be.tscn":
+	# G4 四人图只挂 256×256。512 旧包已删，不要再登记。
+	"res://source/match/maps/generated/16-0-1ca6e21aa1/map_16-0-1ca6e21aa1.tscn":
 	{
 		"name": "G4 大湖 seed16",
 		"players": 4,
-		"size": Vector2i(2048, 2048),
+		"size": Vector2i(256, 256),
 	},
 }
 
@@ -66,10 +66,15 @@ static func _load_generated_maps() -> Dictionary:
 					f.close()
 					if parsed is Dictionary and parsed.has("path"):
 						var size_arr: Array = parsed.get("size", [256, 256])
+						var players := int(parsed.get("players", 4))
+						var size := Vector2i(int(size_arr[0]), int(size_arr[1]))
+						# 四人生成图只收 256×256，避免旧 512 包或残包又出现在菜单里。
+						if players == 4 and size != Vector2i(256, 256):
+							continue
 						result[parsed["path"]] = {
 							"name": str(parsed.get("name", entry)),
-							"players": int(parsed.get("players", 4)),
-							"size": Vector2i(int(size_arr[0]), int(size_arr[1])),
+							"players": players,
+							"size": size,
 						}
 		entry = dir.get_next()
 	dir.list_dir_end()

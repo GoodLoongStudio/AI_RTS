@@ -12,6 +12,8 @@ const VISIBILITY_RECALC_SNAPSHOTS := 2
 const HumanScript := preload("res://source/match/players/human/Human.gd")
 # 命令可视化（纯表现层）：客户端侧动态挂载，画副官指令的信标与路径；专用服不挂载。
 const CommandVisualizerScript := preload("res://source/match/hud/CommandVisualizer.gd")
+# 客户端 HP 首次同步标记：见 `_apply_authoritative_hp` 的注释（防"建造误播受击"）。
+const NET_HP_SYNCED_META := "net_authoritative_hp_synced"
 
 var _match: Node = null
 var _frame := 0
@@ -296,9 +298,19 @@ func _server_tick() -> void:
 	if not _live:
 		return
 	_frame += 1
+	if not _has_remote_human():
+		return
 	if _frame % SNAPSHOT_INTERVAL_FRAMES != 0:
 		return
 	_broadcast_snapshot()
+
+
+func _has_remote_human() -> bool:
+	var mine := multiplayer.get_unique_id()
+	for peer_id in NetSession.human_peer_ids():
+		if int(peer_id) != mine:
+			return true
+	return false
 
 
 func _client_interp_tick() -> void:
@@ -377,6 +389,28 @@ func get_authoritative_fire_policy(unit) -> String:
 	return str(_authoritative_fire_policy_by_path.get(str(_match.get_path_to(unit)), "FireAtWill"))
 
 
+## 把权威 hp 写进**客户端**单位。
+##
+## 为什么不能直接 `unit.hp = value`：客户端单位 `_ready` 后会被平衡配置设成**满血**
+##（`BalanceConfigRuntime` 的 `unit.Set("hp", definition.MaxHp)`），而施工中的建筑
+## 权威血量是 **1** —— 直赋等于"血量下降"，`Unit._set_hp` 会广播 `unit_damaged`，
+## 旁白随即误播「基地遭到攻击」（2026-09-15 用户实测：每次建造都会响）。
+## 权威端走的是 `mark_as_under_construction` → `set_hp_without_damage(1)`，所以单机不中，
+## 只在联机客户端命中。
+##
+## 规则：**首次**把权威 hp 写进单位 = 初始化，不算受击（走 set_hp_without_damage）；
+## 之后的下降才是真受击，保持原有"遭到攻击"播报（联机客户端没有别的受击事件源）。
+func _apply_authoritative_hp(unit: Node, value: float) -> void:
+	if not ("hp" in unit):
+		return
+	if not unit.has_meta(NET_HP_SYNCED_META):
+		unit.set_meta(NET_HP_SYNCED_META, true)
+		if unit.has_method("set_hp_without_damage"):
+			unit.set_hp_without_damage(value)
+			return
+	unit.hp = value
+
+
 func apply_client_snapshot(
 	units_payload: Array, resources_payload: Array, server_frame: int
 ) -> void:
@@ -406,7 +440,7 @@ func apply_client_snapshot(
 			_interp_prev_yaw[path] = _interp_target_yaw.get(path, float(item["yaw"]))
 			_interp_target_yaw[path] = float(item["yaw"])
 		if item.has("hp") and item["hp"] != null and "hp" in unit:
-			unit.hp = float(item["hp"])
+			_apply_authoritative_hp(unit, float(item["hp"]))
 		if item.has("action") and unit.has_method("apply_presentation_action"):
 			unit.apply_presentation_action(str(item["action"]))
 		# 施工进度：只改外观与进度镜像，**不动 hp**（客户端 hp 由上面的快照结算）。
@@ -955,7 +989,7 @@ func _spawn_unit(
 	# 物理插值开启后，进树后的瞬移需显式 reset，避免从原点滑到出生位的拖影。
 	unit.reset_physics_interpolation()
 	if "hp" in unit and hp != null:
-		unit.hp = float(hp)
+		_apply_authoritative_hp(unit, float(hp))
 	if _match.has_method("_setup_unit_groups"):
 		_match._setup_unit_groups(unit, parent)
 	MatchSignals.unit_spawned.emit(unit)

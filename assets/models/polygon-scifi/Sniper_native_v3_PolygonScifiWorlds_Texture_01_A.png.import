@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dkcb3yjk75h4t"
-path="res://.godot/imported/Sniper_native_v3_PolygonScifiWorlds_Texture_01_A.png-f8e097fee1b8d85c2bfe8c8bba430e4b.ctex"
+path.s3tc="res://.godot/imported/Sniper_native_v3_PolygonScifiWorlds_Texture_01_A.png-f8e097fee1b8d85c2bfe8c8bba430e4b.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "748e80b0c3e5d748085bdd3753dfdb05"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/polygon-scifi/Sniper_native_v3_PolygonScifiWorlds_Texture_01_A.png"
-dest_files=["res://.godot/imported/Sniper_native_v3_PolygonScifiWorlds_Texture_01_A.png-f8e097fee1b8d85c2bfe8c8bba430e4b.ctex"]
+dest_files=["res://.godot/imported/Sniper_native_v3_PolygonScifiWorlds_Texture_01_A.png-f8e097fee1b8d85c2bfe8c8bba430e4b.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -40,4 +41,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=1
+detect_3d/compress_to=0

@@ -7,7 +7,7 @@ func _initialize() -> void:
 	call_deferred("_run")
 
 func _run() -> void:
-	var map_path := "res://source/match/maps/generated/16-0-7d337ce8be/map_16-0-7d337ce8be.tscn"
+	var map_path := "res://source/match/maps/generated/16-0-1ca6e21aa1/map_16-0-1ca6e21aa1.tscn"
 	var packed: PackedScene = load(map_path)
 	if packed == null:
 		push_error("capture: map load failed")

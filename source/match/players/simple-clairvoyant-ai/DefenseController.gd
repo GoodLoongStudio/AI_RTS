@@ -9,6 +9,8 @@ const FIELD_POSITION := 1 << 0
 const FIELD_TYPE := 1 << 1
 const FIELD_RELATION := 1 << 2
 const REFRESH_INTERVAL_S := 1.0 / 60.0 * 30.0
+const MAX_PLACEMENT_PROBES := 8
+const PLACEMENT_BACKOFF_MS := 8000
 const COMMAND_CENTER_TYPE_ID := "command_center"
 const WORKER_TYPE_ID := "worker"
 const AG_TURRET_TYPE_ID := "anti_ground_turret"
@@ -20,6 +22,7 @@ var _command_gateway = null
 var _number_of_pending_ag_turret_resource_requests := 0
 var _number_of_pending_aa_turret_resource_requests := 0
 var _clear_streak := 0
+var _placement_backoff_until_ms := 0
 
 @onready var _ai = get_parent()
 @onready var _balance = find_parent("Match").get_node("BalanceConfigRuntime")
@@ -101,6 +104,8 @@ func _enforce_structure_count(
 
 ## 围绕己方指挥中心尝试一组随机化候选位置，并提交首个合法放置。
 func _try_construct_turret(unit_type_id: String, own_entities: Array):
+	if Time.get_ticks_msec() < _placement_backoff_until_ms:
+		return
 	if not own_entities.any(func(entity): return entity.get("type_id", "") == WORKER_TYPE_ID):
 		return
 	var command_centers: Array = own_entities.filter(
@@ -116,7 +121,11 @@ func _try_construct_turret(unit_type_id: String, own_entities: Array):
 			candidates.append(center + Vector3(cos(angle) * radius, 0.0, sin(angle) * radius))
 	candidates.shuffle()
 	var last_result: Dictionary = {}
+	var probes := 0
 	for position in candidates:
+		if probes >= MAX_PLACEMENT_PROBES:
+			break
+		probes += 1
 		last_result = _command_gateway.PlaceStructure(
 			unit_type_id,
 			Transform3D(Basis.IDENTITY, position)
@@ -125,7 +134,8 @@ func _try_construct_turret(unit_type_id: String, own_entities: Array):
 			return
 		if last_result.get("primary_issue", "") == "InsufficientResources":
 			break
-	push_warning("规则 AI 放置防御建筑被拒绝：%s" % last_result)
+	_placement_backoff_until_ms = Time.get_ticks_msec() + PLACEMENT_BACKOFF_MS
+	print("规则 AI 放置防御建筑被拒绝：%s" % last_result)
 
 
 ## 查询准确己方实体；查询失败时返回显式空集合并保留诊断。
@@ -141,6 +151,9 @@ func _get_own_entities() -> Array:
 
 
 func _on_refresh_timer_timeout():
+	if Time.get_ticks_msec() < _placement_backoff_until_ms:
+		_refresh_threat_scan()
+		return
 	_enforce_number_of_ag_turrets()
 	_enforce_number_of_aa_turrets()
 	_refresh_threat_scan()

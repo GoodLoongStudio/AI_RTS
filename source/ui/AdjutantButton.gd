@@ -185,17 +185,113 @@ func _on_node_added(node: Node) -> void:
 	node.tree_exiting.connect(func(): _installed = false)
 
 
+## 外部托管容器（2026-09-14 用户要求："副官 UI 状态显示和按钮全部放左上角专属区域"）。
+## 由"岚"面板（`AICommandHUD`）把自己的左上角槽位传进来，本面板与按钮 reparent 过去。
+var _container: Control = null
+## 对局里的"岚"面板（`$HUD/AICommandHUD`），用于把副官真实状态同步到它的标题行。
+var _agent_hud: Node = null
+
+
+## 把副官面板与按钮交给外部容器托管（"岚"面板的左上角专属区调用）。
+##
+## 为什么用"交出控件"而不是重写一套 UI：`AdjutantButton` 是副官链路的**数据与控制源**
+## （runner 启停、`hud_status` 解析、权威调用、预留调整），这些逻辑不能动；
+## 合并只改**父子关系** —— 控件 reparent 到容器里，表现随新布局走。
+##
+## 时序：本节点是 autoload，控件在 `_install`（Match 入场景时，`call_deferred`）里创建。
+## 因此这里允许**提前登记容器**：控件还没建时记住目标，等 `_install` 建好后立即挂过去。
+func attach_ui_to(container: Control) -> bool:
+	_container = container if (container != null and is_instance_valid(container)) else null
+	if _container == null:
+		return false
+	if _panel == null or not is_instance_valid(_panel):
+		return false  # 控件尚未创建：已登记，_install 末尾会自行挂载
+	_apply_container_layout()
+	return true
+
+
+## 把已创建的控件挂到登记的容器下（幂等）。没有登记容器时保持原来的 HUD 直挂行为。
+## 一律**延迟到帧末**执行：调用点常常正处于"父节点正在装配子节点"的窗口
+## （"岚"面板刚 add_child 出槽位、或本面板刚建完控件），此时 reparent 会报
+## "Parent node is busy adding/removing children"（冒烟测试实测）。
+func _apply_container_layout() -> void:
+	if _container == null or not is_instance_valid(_container):
+		return
+	_do_apply_container_layout.call_deferred()
+
+
+func _do_apply_container_layout() -> void:
+	if not _container_ready():
+		return
+	for control in [_panel, _button, _test_button]:
+		var node := control as Control
+		if node == null or not is_instance_valid(node):
+			continue
+		var parent := node.get_parent()
+		if parent == null:
+			# 还没进树：直接挂进专属区（正常路径，见 _install 的 ui_parent）。
+			_container.add_child(node)
+		elif parent != _container:
+			# 【2026-09-14 修：左上角两块副官 UI 重叠的真因】原实现在这里**跳过搬家**，
+			# 而本 autoload 的 `_install` 由 `node_added("Match")` 的 deferred 触发、
+			# **早于**"岚"面板创建（它排在 Match._ready 的导航烘焙之后）⇒ 控件必然先挂
+			# HUD；等容器登记时又拒绝搬家 ⇒ 合并**从未生效**：副官状态面板 (8,36) 与
+			# "岚"面板专属区 (8,36) 永久重叠（用户截图实测）。
+			# 改为允许搬家；窗口期临时摘掉 `UISfx` 的 node_added 监听，避免它把
+			# hover/pressed 音效**重复连接**（UISfx 无幂等检查，且该模块不可改）。
+			_reparent_without_sfx_noise(node, _container)
+		node.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		node.position = Vector2.ZERO
+		node.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+
+## 容器是否已登记且有效。
+func _container_ready() -> bool:
+	return _container != null and is_instance_valid(_container)
+
+
+## 把控件搬进容器，同时避免 `UISfx` 因 `node_added` 重复连接音效信号（按钮双响）。
+## 只静音 UISfx 自己的监听（按 callable 宿主对象过滤），其它 node_added 监听者不受影响。
+func _reparent_without_sfx_noise(node: Control, new_parent: Node) -> void:
+	var tree := get_tree()
+	var sfx := get_node_or_null("/root/UISfx")
+	var muted: Array[Callable] = []
+	if tree != null and sfx != null:
+		for conn in tree.node_added.get_connections():
+			var callable: Callable = conn["callable"]
+			if callable.get_object() == sfx:
+				muted.append(callable)
+		for cb in muted:
+			tree.node_added.disconnect(cb)
+	node.reparent(new_parent)
+	if tree != null:
+		for cb in muted:
+			tree.node_added.connect(cb)
+
+
 func _install(match_node: Node) -> void:
+	# 【2026-09-14 修：无头/专用服**不装**面板】专用服没有玩家、没有鼠标，装上面板只会
+	# 每 5 秒去探一堆候选端口：实测服务器日志被 `[ADJ] 权威端回复不是合法 JSON（port=24580,
+	# …）` + `Parse JSON failed` 刷屏 —— 24580 上跑的是 nginx，回的是 HTML，永远解析失败。
+	# 与相机同口径（`IsometricCamera3D._ready()`）：headless 一律不装、不轮询。
+	if DisplayServer.get_name() == "headless" or NetSession.is_dedicated_server():
+		_installed = false
+		set_process(false)
+		return
 	var hud: CanvasLayer = match_node.get_node_or_null("HUD")
 	if hud == null:
 		_installed = false
 		return
+	# 优先直接建进"岚"面板登记的左上角专属区（时序上岚面板先建、先 attach_ui_to）。
+	# 刻意"一次到位"而不是先挂 HUD 再搬家：reparent 会让 `UISfx` 在 node_added 时
+	# 重复连接音效信号（`Signal 'pressed' is already connected` 噪声，音效模块不可改）。
+	var ui_parent: Node = _container if (_container != null and is_instance_valid(_container)) else hud
 	_button = Button.new()
 	_button.text = "AI 副官：接管"
 	_button.tooltip_text = "让服务器上的 Hermes AI 全权托管本局（采集/建造/出兵/进攻）"
 	_button.position = Vector2(470, 8)
 	_button.z_index = 100
-	hud.add_child(_button)
+	ui_parent.add_child(_button)
 	_button.pressed.connect(_on_pressed)
 
 	_test_button = Button.new()
@@ -208,14 +304,14 @@ func _install(match_node: Node) -> void:
 	# 位置放到副官面板正下方：原来在 (620,8) 会压住右上角帧率与侧栏（截图实测重叠）。
 	_test_button.position = Vector2(8, 252)
 	_test_button.z_index = 100
-	hud.add_child(_test_button)
+	ui_parent.add_child(_test_button)
 	_test_button.pressed.connect(_on_test_pressed)
 
 	# 左上角实时思考状态面板：始终显示（监督服务器端 hermes 副官）。
 	_panel = PanelContainer.new()
 	_panel.position = Vector2(8, 36)
-	_panel.custom_minimum_size = Vector2(280, 210)
-	_panel.size = Vector2(280, 210)
+	# 高度自适应内容（原来硬编码 210：进专属区后配合 VBox 会留大片空白）。
+	_panel.custom_minimum_size = Vector2(280, 0)
 	_panel.visible = true
 	_panel.z_index = 100
 	var style := StyleBoxFlat.new()
@@ -245,7 +341,7 @@ func _install(match_node: Node) -> void:
 	vbox.add_child(_reason_label)
 	vbox.add_child(_result_label)
 	_build_reserve_row(vbox)
-	hud.add_child(_panel)
+	ui_parent.add_child(_panel)
 	_set_panel_texts(PANEL_IDLE, PANEL_DASH, PANEL_DASH, PANEL_DASH)
 	_reserve_label.text = "预留：等待对局"
 
@@ -270,6 +366,8 @@ func _install(match_node: Node) -> void:
 	add_child(_tail_timer)
 	_tail_timer.start()
 	_query_status()
+	# 若"岚"面板已经登记了左上角槽位，立即把本面板与按钮挂过去（合并布局）。
+	_apply_container_layout()
 
 
 func _on_pressed() -> void:
@@ -290,6 +388,8 @@ func _on_pressed() -> void:
 ## ---------- 本机 runner 进程管理 ----------
 ## 只管理**本次会话创建**的进程，退出/重开对局时结束；绝不结束无关的游戏或推理进程。
 var _runner_pid := -1
+## 上一次判活时清理掉的"上一局残留" pid（0 = 没清过）。只用于自检文案如实说明。
+var _stale_pid_cleared := -1
 ## 该 pid 是否**由本按钮创建**（`OS.create_process`）。认领来的外部 runner 为 false：
 ## 退出对局时不杀它，但玩家点"停止"仍会尽力杀（那是明确指令）。
 var _runner_owned := false
@@ -304,17 +404,30 @@ var _last_state_logged := ""
 
 ## 读本机 runner 配置：user://adjutant_local.cfg（结构化，便于换机器/换路径）；
 ## 缺失时按仓库相对布局自动探测一次（G:\AIRTS 约定）。
+##
+## 【2026-09-14 修：正常入口"接管"点了没反应的第二真因】
+## 本机 `user://adjutant_local.cfg` 是**历史遗留的半份配置**（实测只有一行
+## `authority_port=24579`）。原实现"文件能读就完全用文件"，于是 python/src_root/
+## work_dir/env_file 全空 → `OS.create_process("")` 报 "Could not create child process"
+## （连模型 `--env-file` 也不会带上）。现在改为：**文件里的键是覆盖项，缺的必备项
+## 一律用仓库约定自动探测补齐**；如果连自动探测都拿不到，调用方按"未配置"处理。
 func _load_runner_config() -> Dictionary:
 	var cfg := ConfigFile.new()
-	if cfg.load(RUNNER_CFG_PATH) == OK:
-		return {
-			"python": str(cfg.get_value("runner", "python", "")),
-			"src_root": str(cfg.get_value("runner", "src_root", "")),
-			"work_dir": str(cfg.get_value("runner", "work_dir", "")),
-			"authority_port": int(cfg.get_value("runner", "authority_port", 24579)),
-			"player": str(cfg.get_value("runner", "player", "")),
-		}
-	return _autodetect_runner_config()
+	if cfg.load(RUNNER_CFG_PATH) != OK:
+		return _autodetect_runner_config()
+	var loaded := {
+		"python": str(cfg.get_value("runner", "python", "")),
+		"src_root": str(cfg.get_value("runner", "src_root", "")),
+		"work_dir": str(cfg.get_value("runner", "work_dir", "")),
+		"authority_port": int(cfg.get_value("runner", "authority_port", 24579)),
+		"player": str(cfg.get_value("runner", "player", "")),
+	}
+	var fallback := _autodetect_runner_config()
+	# GDScript 没有元组字面量：这里必须用**数组**（`("a","b")` 会直接 Parse Error）。
+	for key in ["python", "src_root", "work_dir", "env_file"]:
+		if str(loaded.get(key, "")).is_empty() and not str(fallback.get(key, "")).is_empty():
+			loaded[key] = fallback[key]
+	return loaded
 
 
 func _autodetect_runner_config() -> Dictionary:
@@ -356,14 +469,22 @@ func _start_local_runner() -> void:
 		push_warning("[ADJ] 没探测到在跑的权威端，按配置端口 %d 启动 runner" % authority_port)
 	var log_dir := ProjectSettings.globalize_path(RUNNER_LOG_DIR)
 	DirAccess.make_dir_recursive_absolute(log_dir)
+	# ⚠**不要**在这里放 `-m adjutant_coordinator.deploy.agent_runner`：引导文件已经
+	# `from ... import main` 直接调用了，这两个参数会被 runner 自己的 argparse 当成
+	# "unrecognized arguments"（实测 exit=2，面板显示"启动失败"）。列表只放 runner 参数。
 	var args: PackedStringArray = [
-		"-m", "adjutant_coordinator.deploy.agent_runner",
 		"--authority-port", str(authority_port),
 		"--provider", "real",
 		"--state-dir", log_dir,
 		"--log-dir", log_dir,
 		"--pidfile", log_dir.path_join("agent_runner.pid"),
 		"--engine", "langgraph",
+		# 【2026-09-14 修：正常入口"接管"点了没反应的第三真因】
+		# runner 的端口纪律只放行生产局服 24571；本机面板解析出来的权威口是
+		# **本进程 DCS**（正常游玩=24579，带 --debugport=N 时=N）。不带这个开关时
+		# runner 装配阶段直接 `RunnerError` 退出 → 面板显示"启动失败/已停止"。
+		# 这里显式放行"本机面板自己解析出来的权威口"（与验收工具 runner_ctl 同口径）。
+		"--allow-other-port",
 	]
 	# 本机副官配置：指向本地 Ollama（单模型、直连、不走代理与隧道）。
 	var env_file := str(cfg.get("env_file", ""))
@@ -373,12 +494,33 @@ func _start_local_runner() -> void:
 	if not str(cfg["player"]).is_empty():
 		args.append("--player")
 		args.append(str(cfg["player"]))
-	# 用 -c 先切工作目录并注入 sys.path，避免依赖 OS.create_process 的 cwd（其不支持）。
-	var bootstrap := ("import os,sys;os.chdir(r'%s');sys.path.insert(0,r'%s');"
-		+ "sys.argv=['agent_runner']+%s;"
-		+ "from adjutant_coordinator.deploy.agent_runner import main;sys.exit(main())"
-		% [cfg["work_dir"], cfg["src_root"], JSON.stringify(args)])
-	_runner_pid = OS.create_process(str(cfg["python"]), PackedStringArray(["-c", bootstrap]), false)
+	# 先切工作目录并注入 sys.path（OS.create_process 不支持 cwd）。
+	# 【2026-09-14 修：正常入口"接管"点了没反应 —— 两处真因一起换成"引导文件"】
+	#   ① `%` 只作用于紧邻的字符串字面量：`"a" + "b" + "c" % [...]` 会拿 3 个参数去格式化
+	#      `"c"`（0 个占位符）→ `String formatting error`，`%s` 原样保留 → 启动必然失败；
+	#   ② 就算格式化对了，`-c <多行源码>` 在 Windows 命令行里还要过一遍引号转义
+	#      （源码里含 JSON 双引号）→ 子进程秒退、且**看不到任何输出**（GUI 父进程不转发）。
+	# 现在改为：把引导源码**写成文件**，只把文件路径作为唯一参数传给 python
+	# （不含空格/引号的路径参数不需要转义）——这是同类问题里唯一"不会再犯"的形态。
+	var bootstrap_path := ProjectSettings.globalize_path(RUNNER_LOG_DIR).path_join(
+		"runner_bootstrap.py")
+	var bootstrap_file := FileAccess.open(bootstrap_path, FileAccess.WRITE)
+	if bootstrap_file == null:
+		push_warning("[ADJ] 无法写入 runner 引导文件：%s" % bootstrap_path)
+		_set_panel_texts("runner 引导文件不可写", PANEL_DASH, PANEL_DASH, PANEL_DASH)
+		return
+	bootstrap_file.store_string("\n".join([
+		"import os, sys",
+		"os.chdir(%s)" % JSON.stringify(str(cfg["work_dir"])),
+		"sys.path.insert(0, %s)" % JSON.stringify(str(cfg["src_root"])),
+		"sys.argv = ['agent_runner'] + %s" % JSON.stringify(args),
+		"from adjutant_coordinator.deploy.agent_runner import main",
+		"sys.exit(main())",
+		"",
+	]))
+	bootstrap_file.close()
+	_runner_pid = OS.create_process(str(cfg["python"]), PackedStringArray([bootstrap_path]),
+		false)
 	if _runner_pid <= 0:
 		push_warning("[ADJ] 本机 runner 启动失败")
 		_set_panel_texts("runner 启动失败", PANEL_DASH, PANEL_DASH, PANEL_DASH)
@@ -416,13 +558,24 @@ func _on_test_pressed() -> void:
 	_test_button.disabled = true
 	_test_button.text = "自检中…"
 	_test_button.modulate = Color.WHITE
+	# 【2026-09-15 修：开局"副官连不上"的误导来源之一】本面板刚起的 runner 是**冷启动**：
+	# 要等权威口就绪 + 建图 + 模型预热（实测 30~65 秒）才写 pidfile。这段时间里去读 pidfile
+	# 会读到**上一局残留**的死 pid → 自检报"心跳超时（pid=48220）"，玩家以为副官坏了
+	# （2026-09-15 用户实测截图即此）。所以先看"自己手里的进程"，如实说"正在启动"。
+	if _runner_owned and _runner_pid > 0 and OS.is_process_running(_runner_pid):
+		_show_test_result(true, "✓ runner 正在启动（pid=%d；还没挂上对局，通常 30~60 秒）"
+			% _runner_pid, Color(1, 0.85, 0.4))
+		return
 	var pid := _read_runner_pidfile()
 	if pid <= 0:
-		_show_test_result(false, "✗ 没有运行中的 runner（pidfile 缺失或内容非法）",
-			Color(1, 0.4, 0.4))
+		var hint := "点「AI 副官：接管」启动"
+		if _stale_pid_cleared > 0:
+			hint = "已自动清理上一局残留记录（pid=%d）；%s" % [_stale_pid_cleared, hint]
+		_show_test_result(false, "✗ 没有运行中的副官：%s" % hint, Color(1, 0.4, 0.4))
 		return
 	if not _runner_heartbeat_fresh():
-		_show_test_result(false, "✗ runner 心跳超时（pid=%d，日志超过 %d 秒没更新）"
+		_show_test_result(false,
+			"✗ runner 心跳超时（pid=%d，日志超过 %d 秒没更新）—— 刚点过「接管」的话再等等；否则点「停止」后重新「接管」"
 			% [pid, int(LIVENESS_FRESH_SECONDS)], Color(1, 0.4, 0.4))
 		return
 	# 权威端口是加分项、不是必需项：runner 可能在别的端口，或对局尚未就绪。
@@ -714,7 +867,30 @@ func _query_status() -> void:
 		# （2026-09-11 用户反馈：接管成功要给明确反馈，否则不知道该不该等）。
 		_update_status_line()
 	if not alive:
+		# 【2026-09-15 修：进新对局"副官连不上"的真因之一 —— 残留握手文件】
+		# 上一局的 runner 正常退出时**不会**删掉固定路径的 `agent_runner.pid`（实测：
+		# 22:56 那局的 pid=48220 一直留到 01:57 新 runner 才覆盖）。于是新对局里面板会
+		# 一遍遍认领这个已经死掉的 pid：自检报"心跳超时（pid=48220）"，玩家以为副官在跑，
+		# 其实整局没人指挥。处理：判活为"死"就**顺手删掉残留记录**（只删内容等于该 pid 的
+		# 那份，绝不误删；本面板自己起的 runner 因为 `is_process_running` 为真，
+		# 不会走到这里）。
+		if _runner_pid > 0 and _clear_stale_pidfile(_runner_pid):
+			_stale_pid_cleared = _runner_pid
 		_runner_pid = -1
+
+
+## 删掉"上一局残留"的握手文件（仅当文件内容仍等于 `expected_pid` 时才删，绝不误删别人的）。
+## 返回是否真的删掉了。
+func _clear_stale_pidfile(expected_pid: int) -> bool:
+	var path := ProjectSettings.globalize_path(RUNNER_LOG_DIR).path_join("agent_runner.pid")
+	if not FileAccess.file_exists(path):
+		return false
+	if _read_runner_pidfile() != expected_pid:
+		return false
+	var ok := DirAccess.remove_absolute(path) == OK
+	if ok:
+		print("[PANEL] 清理上一局残留的副官记录（pid=%d）" % expected_pid)
+	return ok
 
 
 ## 权威端是否报告"**本局**有副官挂上了"（不看本机 pidfile）。
@@ -956,18 +1132,46 @@ func _restore_button() -> void:
 	_button.modulate = Color(1.0, 0.55, 0.55) if _active else Color.WHITE
 
 
-## 面板标题显示运行状态 + 引擎：面板正文只反映日志内容，不足以判断"到底有没有在跑"。
+## 找到对局里的"岚"面板（`$HUD/AICommandHUD`），用于把副官真实状态同步到它的标题行。
+func _find_agent_hud() -> Node:
+	if _agent_hud != null and is_instance_valid(_agent_hud):
+		return _agent_hud
+	var tree := get_tree()
+	if tree == null:
+		return null
+	var scene := tree.current_scene
+	if scene == null:
+		return null
+	var found := scene.find_child("AICommandHUD", true, false)
+	if found != null and found.has_method("set_adjutant_state_text"):
+		_agent_hud = found
+	return _agent_hud
+
+
 func _update_status_line() -> void:
 	if _title_label == null or not is_instance_valid(_title_label):
 		return
 	var engine_label: String = {"langgraph": "LangGraph", "hermes": "Hermes"}.get(_engine, _engine)
 	var state := "运行中" if _active else "已停止"
-	if _active and _external_runner:
+	# 【2026-09-15】本面板刚起的 runner 在挂上对局前（冷启动 30~65 秒）如实显示"启动中"，
+	# 而不是先报"运行中"让人以为已经在指挥（实测这一分钟里玩家会以为副官坏了）。
+	if _active and _runner_owned and not _runner_heartbeat_fresh():
+		state = "启动中（等待挂上对局…）"
+	elif _active and _external_runner:
 		# 如实说明"在跑的不是本面板起的那个"：玩家看到命令在下、面板却不该撒谎说"没启动"。
 		state = "运行中（外部进程）"
 	elif _active and not _engine.is_empty():
 		state += "（%s）" % engine_label
-	_title_label.text = "🔹 AI 副官 · %s" % state
+	# 【2026-09-15 去重复】外层"岚 · AI副官"已是标题，这里只显示运行状态
+	#（运行中 / 已停止 / 运行中（外部进程）），避免同屏出现两个"AI 副官"。
+	_title_label.text = "🔹 %s" % state
+	# 【2026-09-15 用户要求：AI 副官 UI 必须同步】"岚"面板标题行原来恒显示常量
+	# "● 副官已接入，正在观察"（副官在分派任务时也不变）——这里把**真实状态**同步过去。
+	var agent_hud: Node = _find_agent_hud()
+	if agent_hud != null:
+		agent_hud.set_adjutant_state_text(
+			"● 副官%s" % state if _active else "● 副官尚未启动"
+		)
 	# 结论变化时**留一行日志**（玩家能看到、我也能据此核对面板到底怎么判断的）：
 	# 用户两次问过"副官没开怎么还在操作" —— 面板的判断依据必须可查，而不是只在屏幕上。
 	if state != _last_state_logged:
@@ -1116,18 +1320,11 @@ func _build_reserve_row(vbox: VBoxContainer) -> void:
 	_reserve_label = _make_panel_label()
 	_reserve_label.text = "预留：—"
 	vbox.add_child(_reserve_label)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 2)
-	vbox.add_child(row)
-	for kind in ["A", "B"]:
-		for direction in [-1, 1]:
-			var step := int(RESERVE_STEP.get(kind, 10))
-			var button := Button.new()
-			button.text = "%s%s%d" % [kind, "-" if direction < 0 else "+", step]
-			button.add_theme_font_size_override("font_size", 11)
-			button.pressed.connect(_on_reserve_button.bind(str(kind), int(direction)))
-			row.add_child(button)
-			_reserve_buttons.append(button)
+	# 【2026-09-15 用户要求删除】预留调整按钮行（A-10/A+10/B-10/B+10）不再创建：
+	# ① 统一货币后 B 已无意义（地图无 B 矿、权威端只认 A）；
+	# ② 与面板"预算"文本重复，且属低频调试入口（用户截图红框指出）。
+	# `_reserve_label`（预算显示）仍保留 —— 多处引用它，删掉会空引用。
+	# 如需恢复：把下面的 `row` + 双层 for 循环恢复即可（`_on_reserve_button` 仍在）。
 
 
 func _on_reserve_button(kind: String, direction: int) -> void:
@@ -1174,7 +1371,10 @@ func _apply_reserve_view(payload: Dictionary) -> void:
 	_reserve_values = payload.get("reserves", {}) if payload.get("reserves", {}) is Dictionary else {}
 	_balance_values = payload.get("balance", {}) if payload.get("balance", {}) is Dictionary else {}
 	var parts: Array = []
-	for kind in ["A", "B"]:
+	# 只显示**现行资源**：B 已从玩法移除（建造/退款只用 A），继续显示"B 预留/余额"
+	# 会让玩家以为副官还在考虑它（2026-09-14 用户实测反馈）。
+	# 与 `graph/reserves.py` 的 `ACTIVE_KINDS` 同口径，恢复第二种资源时两处一起改。
+	for kind in ["A"]:
 		parts.append("%s 预留%d/余额%d" % [kind, int(_reserve_values.get(kind, 0)),
 			int(_balance_values.get(kind, 0))])
 	_reserve_label.text = "预留：%s" % " ".join(parts)
@@ -1404,3 +1604,5 @@ func _set_panel_texts(state_text: String, action_text: String, why_text: String,
 	_action_label.text = "最近行动：%s" % action_text
 	_reason_label.text = "为什么：%s" % why_text
 	_result_label.text = "执行结果：%s" % result_text
+
+# __write_probe__

@@ -18,7 +18,8 @@ static func find_valid_position_radially_yet_skip_starting_radius(
 	shuffle: bool,
 	navigation_map_rid: RID,
 	scene_tree,
-	max_ring_count: int = -1
+	max_ring_count: int = -1,
+	occupancy = null
 ):
 	var starting_position_yless = starting_position * Vector3(1, 0, 1)
 	var units = (
@@ -31,7 +32,7 @@ static func find_valid_position_radially_yet_skip_starting_radius(
 	if (
 		is_zero_approx(starting_radius)
 		and _is_agent_placement_position_valid(
-			starting_position_yless, radius, units, navigation_map_rid
+			starting_position_yless, radius, units, navigation_map_rid, occupancy
 		)
 	):
 		return starting_position_yless
@@ -58,7 +59,7 @@ static func find_valid_position_radially_yet_skip_starting_radius(
 			radial_positions.shuffle()
 		for radial_position in radial_positions:
 			if _is_agent_placement_position_valid(
-				radial_position, radius, units, navigation_map_rid
+				radial_position, radius, units, navigation_map_rid, occupancy
 			):
 				return radial_position
 	if max_ring_count < 0:
@@ -66,7 +67,9 @@ static func find_valid_position_radially_yet_skip_starting_radius(
 	return Vector3.INF
 
 
-static func validate_agent_placement_position(position, radius, existing_units, navigation_map_rid):
+static func validate_agent_placement_position(
+	position, radius, existing_units, navigation_map_rid, occupancy = null
+):
 	for existing_unit in existing_units:
 		if (
 			(existing_unit.global_position * Vector3(1, 0, 1)).distance_to(
@@ -81,6 +84,13 @@ static func validate_agent_placement_position(position, radius, existing_units, 
 			points_expected_to_be_navigable.append(
 				position + Vector3(x, 0, z).normalized() * radius
 			)
+	if occupancy != null and occupancy.has_method("is_ground_blocked"):
+		for point_expected_to_be_navigable in points_expected_to_be_navigable:
+			if occupancy.is_ground_blocked(point_expected_to_be_navigable):
+				return NOT_NAVIGABLE
+		return VALID
+	if not navigation_map_rid.is_valid():
+		return NOT_NAVIGABLE
 	for point_expected_to_be_navigable in points_expected_to_be_navigable:
 		if not (point_expected_to_be_navigable * Vector3(1, 0, 1)).is_equal_approx(
 			(
@@ -95,9 +105,11 @@ static func validate_agent_placement_position(position, radius, existing_units, 
 
 
 static func _is_agent_placement_position_valid(
-	position, radius, existing_units, navigation_map_rid
+	position, radius, existing_units, navigation_map_rid, occupancy = null
 ):
 	return (
-		validate_agent_placement_position(position, radius, existing_units, navigation_map_rid)
+		validate_agent_placement_position(
+			position, radius, existing_units, navigation_map_rid, occupancy
+		)
 		== VALID
 	)

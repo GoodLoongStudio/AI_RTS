@@ -29,6 +29,9 @@ uniform sampler2D macro_sand_tex : source_color, filter_linear_mipmap, repeat_en
 uniform sampler2D macro_gravel_tex : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D macro_rock_tex : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D macro_wet_shore_tex : source_color, filter_linear_mipmap, repeat_enable;
+// Runtime fast path: moving the RTS camera must remain cheap on integrated
+// GPUs.  The detailed layered path is retained for review renders.
+uniform bool performance_mode = true;
 uniform bool use_macro_albedo = false;
 uniform float macro_strength = 1.0;
 
@@ -53,6 +56,9 @@ uniform vec3 top_tint = vec3(1.0);
 uniform float mask_from_tex = 0.0;
 uniform sampler2D mask_tex : filter_linear, repeat_disable;
 uniform float mask_world_size = 2048.0;
+// 对局单位约 2m。性能模式原先用 1800 review 米一张宏图，512m 图只重复约 1 次。
+// 颗粒按世界米平铺，宏图只保留省域色调。
+uniform float ground_tile_meters = 50.0;
 
 varying vec3 p;
 varying vec3 wn;
@@ -105,6 +111,14 @@ vec3 triplanar(sampler2D t, vec3 pos, vec3 n, float s) {
  w/=max(dot(w,vec3(1.0)),1e-4);
  return texture(t,pos.zy*s).rgb*w.x+texture(t,pos.xz*s).rgb*w.y+texture(t,pos.xy*s).rgb*w.z;
 }
+// 世界米平铺：两套旋转 UV 互消单张沙纹的轴向条带。
+vec3 sample_tiled(sampler2D t, vec2 wxz, float meters) {
+ float m = max(meters, 0.5);
+ vec2 uv0 = wxz / m;
+ vec2 uv1 = vec2(wxz.x * 0.809 + wxz.y * 0.588, -wxz.x * 0.588 + wxz.y * 0.809) / (m * 1.17);
+ // 偏一档 mip：正交俯视下原图颗粒会收成斜向条纹。
+ return mix(textureLod(t, uv0, 1.6).rgb, textureLod(t, uv1, 1.6).rgb, 0.5);
+}
 
 void vertex() {
  p = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz / showcase_world_scale;
@@ -152,10 +166,46 @@ void fragment() {
  float flatness = clamp(wnr.y, 0.0, 1.0);
  float steep = 1.0 - smoothstep(0.52, 0.86, flatness);
  vec2 base_uv = p.xz;
+ vec2 wxz = p.xz * max(showcase_world_scale, 1e-4);
+ float tile_m = max(ground_tile_meters, 1.0);
+ if (performance_mode) {
+  // 省纹理，但仍按掩码/高度上色。掩码全零时不能把整张地当成水面，
+  // 改用缩放后的世界高度（水面 0、平地≈2.34、台地≈14）。
+  // p 是 review 米；乘回 showcase_world_scale 才是单位所在的世界米。
+  // 不要用 sand_uniform：那张图几乎没有地景结构，50m 一张从对局镜头看就是纯色。
+  vec2 world_xz = wxz;
+  vec2 tile_uv0 = abs(fract(world_xz / tile_m) * 2.0 - 1.0);
+  vec2 tile_uv1 = abs(fract((world_xz + vec2(19.0, -13.0)) / tile_m) * 2.0 - 1.0);
+  vec3 ground = mix(
+      texture(macro_albedo, tile_uv0).rgb,
+      texture(ramp_tex, tile_uv1).rgb,
+      0.28);
+  ground *= vec3(0.96, 0.94, 0.88);
+  float water_d = min(shore_d, lake_d);
+  float masks_live = step(0.5, abs(plateau_d) + abs(shore_d) + abs(lake_d));
+  float water_m = mix(
+      1.0 - smoothstep(-1.0, 1.6, h),
+      1.0 - smoothstep(-1.5, 7.0, water_d),
+      masks_live);
+  float bank_m = mix(
+      (1.0 - water_m) * (1.0 - smoothstep(0.4, 2.2, h)),
+      (1.0 - smoothstep(3.0, 16.0, water_d)) * (1.0 - water_m),
+      masks_live);
+  float top_m = smoothstep(ground_height + 3.0, top_height - 1.0, h) * (1.0 - steep);
+  float cliff_m = steep * smoothstep(ground_height - 0.5, ground_height + 6.0, h);
+  vec3 col = ground;
+  col = mix(col, mix(ground, vec3(0.38, 0.52, 0.24), 0.70), clamp(top_m, 0.0, 1.0));
+  col = mix(col, vec3(0.30, 0.22, 0.15), clamp(cliff_m, 0.0, 1.0) * 0.82);
+  col = mix(col, vec3(0.56, 0.48, 0.30), clamp(bank_m, 0.0, 1.0));
+  col = mix(col, vec3(0.14, 0.34, 0.52), clamp(water_m, 0.0, 1.0));
+  ALBEDO = col;
+  ROUGHNESS = 0.92;
+  SPECULAR = 0.05;
+ } else {
  // Two mirrored, offset macro tiles keep 150–400 m landform variation visible
  // from the in-game RTS camera without exposing a hard repeat seam.
- vec2 macro_uv0 = abs(fract(base_uv / 950.0) * 2.0 - 1.0);
- vec2 macro_uv1 = abs(fract((base_uv + vec2(430.0,-270.0)) / 950.0) * 2.0 - 1.0);
+ vec2 macro_uv0 = abs(fract(base_uv / 1800.0) * 2.0 - 1.0);
+ vec2 macro_uv1 = abs(fract((base_uv + vec2(730.0,-510.0)) / 1800.0) * 2.0 - 1.0);
  vec3 macro_sand = mix(texture(macro_sand_tex, macro_uv0).rgb,
                         texture(macro_sand_tex, macro_uv1).rgb, 0.32);
  vec3 macro_gravel = mix(texture(macro_gravel_tex, macro_uv0).rgb,
@@ -176,8 +226,8 @@ void fragment() {
  // --- 1. main desert floor: pale grey-beige sand with real regional variety --
  // 主层尺度 20m -> 67m：20m 平铺时贴图自带的沙纹在近距离读作"水波"（实测
  // 多轮 UV 扰动/法线调整均无效——诊断确认来自该采样），放大后读作沙丘波纹。
- vec3 ground = texture(sand_tex, base_uv * 0.015).rgb;
- ground = mix(ground, texture(detail_tex, base_uv * 0.026).rgb,
+ vec3 ground = texture(sand_tex, base_uv * 0.009).rgb;
+ ground = mix(ground, texture(detail_tex, base_uv * 0.014).rgb,
               smoothstep(0.35, 0.80, macro2) * 0.58);
  // Cool dust flats read as hardpan pans between the dune belts.  This single
  // field is the main "large colour block" driver of the whole map.
@@ -224,14 +274,9 @@ void fragment() {
   // detail_tex(sand_01) 本身是"横向沙纹照片"，平铺后形成水波状重复（实测
   // 多轮扰动无效）。改用 dense_sand 的多尺度叠加：同图不同频 -> 均匀沙地 +
   // 颗粒层次，无跨图拼接、无方向性沙纹。
-  ground = mix(ground, texture(sand_tex, uv_g * 0.018).rgb, 0.14 + 0.16 * (1.0 - macro_far));
-  ground = mix(ground, texture(sand_tex, uv_g * 0.155).rgb,
-               0.13 * (1.0 - macro_far));
-  // detail2(gray_rocks) 在 0.45 频率 = 每 2.2m 平铺 —— 实测这正是 60m 视野里
-  // "2m 级横向波纹"的来源（与网格间距同量级，最刺眼）。降到 0.11（每 9m）
-  // 并减半权重，只保留颗粒而不形成周期纹。
-  vec3 d2a = texture(detail2_tex, uv_g * 0.110).rgb;
-  vec3 d2b = texture(detail2_tex, uv_g * 0.107 + vec2(0.31, 0.17)).rgb;
+  ground = mix(ground, sample_tiled(sand_tex, wxz, tile_m), 0.72 * (1.0 - macro_far));
+  vec3 d2a = sample_tiled(detail2_tex, wxz, tile_m * 1.8);
+  vec3 d2b = sample_tiled(detail2_tex, wxz + vec2(3.1, -2.4), tile_m * 1.95);
   ground = mix(ground, mix(d2a, d2b, 0.5), 0.06 * (1.0 - macro_far));
  }
 
@@ -343,9 +388,10 @@ vec3 rock = triplanar(rock_tex, p, wnr, 0.018);
 rock = mix(rock, triplanar(detail2_tex, p, wnr, 0.30), 0.32);
 // Bedding follows world height but is warped hard by the band noise - a bare
 // sin(h*k) paints contour stripes around the whole range at every zoom.
-float m_strata = sin(h * 0.55 + rock_band * 7.0 + macro2 * 2.2) * 0.5 + 0.5;
-float m_dip = sin((p.x * 0.35 + p.z * 0.24) * 0.22 + macro3 * 2.0) * 0.5 + 0.5;
-rock *= 0.80 + 0.24 * m_strata + 0.10 * m_dip;
+// Avoid contour-like striping at RTS distance; use subtle stochastic breakup.
+float m_strata = 0.5 + (rock_band - 0.5) * 0.18;
+float m_dip = 0.5 + (macro3 - 0.5) * 0.12;
+rock *= 0.94 + 0.05 * m_strata + 0.03 * m_dip;
 // Four rock zones keyed to slope / altitude, with only fine-grain noise as
 // disturbance - large low-frequency band noise paints mildew-style blotches
 // across the range, so it drives nothing here:
@@ -370,11 +416,11 @@ rock_zone = mix(rock_zone, ridge_red, altitude * (1.0 - steepness * 0.45) * 0.85
 // alternating), warped by two noise fields so the bands dip, thin and pinch out
 // instead of reading as clean contour lines. This is what makes a mountain read
 // as ROCK rather than as a sculpted dune.
-float strata_band = sin(h * 0.42 + rock_band * 7.0 + facet * 2.4 + macro3 * 1.6) * 0.5 + 0.5;
+float strata_band = 0.5 + (rock_band - 0.5) * 0.22 + (facet - 0.5) * 0.10;
 vec3 bed_a = vec3(0.24, 0.165, 0.115);
 vec3 bed_b = vec3(0.52, 0.385, 0.27);
 rock_zone = mix(rock_zone, mix(bed_a, bed_b, strata_band),
-    smoothstep(0.06, 0.40, rock_in) * 0.82 * (0.45 + 0.55 * m_strata));
+    smoothstep(0.06, 0.40, rock_in) * 0.28 * (0.45 + 0.55 * m_strata));
 // ~90 m lithological patches + ~40 m facet shading break the tone into rock
 // faces; without them the whole range reads as one poured-clay surface.
 float litho = value_noise(base_uv * 0.011 + vec2(3.0, 33.0));
@@ -455,13 +501,28 @@ float scree = smoothstep(0.58, 0.90, value_noise(base_uv * 0.045 + vec2(53.0, 11
  col = mix(col, ramp, clamp(ramp_m, 0.0, 1.0));
  col = mix(col, shorec, clamp(lake_band, 0.0, 1.0) * 0.92 * (1.0 - rock_in));
  col = mix(col, bank, clamp(river_band, 0.0, 1.0) * 0.92 * (1.0 - rock_in));
+ // 大图删掉了 269 块水面网格，湖色必须画在地形上。lake_band 用 max(lake_d,0)，
+ // 湖心仍是岸沙；这里按岸距/湖距把水面铺回去。
+ float water_d = min(shore_d, lake_d);
+ float masks_live = step(0.5, abs(plateau_d) + abs(shore_d) + abs(lake_d));
+ float water_m = mix(
+     1.0 - smoothstep(-1.0, 1.6, h),
+     1.0 - smoothstep(-1.2, 3.0, water_d),
+     masks_live);
+ float water_amt = clamp(water_m, 0.0, 1.0) * (1.0 - rock_in);
+ float wdepth = mix(
+     clamp(1.0 - smoothstep(-2.4, 0.4, h), 0.0, 1.0),
+     clamp(1.0 - smoothstep(-22.0, -1.0, water_d), 0.0, 1.0),
+     masks_live);
+ vec3 water_col = mix(vec3(0.09, 0.30, 0.36), vec3(0.02, 0.06, 0.12), wdepth);
+ float ripple = texture(sand_normal, wxz / max(tile_m * 0.55, 1.0)).r;
+ water_col *= 0.90 + ripple * 0.20;
+ col = mix(col, water_col, water_amt);
  // 云影统一作用在合成结果上：原先只乘在 ground 上，随后被 top/cliff 等
  // mix 覆盖 -> 台地顶成了"没有层次的均匀亮板"（实测台地顶 158 均匀 vs
  // 平地 76~160 有色域变化）。移到此处后所有地表层共享大尺度明暗。
- col *= 1.0 - smoothstep(0.48, 0.86, cloud) * 0.16;
-	// Warm sci-fi lighting otherwise pushes the albedo toward orange; keep the
-	// terrain in the requested warm-grey / muted rose-brown range.
-	col *= vec3(1.05, 0.99, 0.90);
+ col *= mix(1.0, 1.0 - smoothstep(0.48, 0.86, cloud) * 0.16, 1.0 - water_amt);
+	col *= mix(vec3(1.05, 0.99, 0.90), vec3(1.0), water_amt);
 
  // --- wet lips, road wear and per-layer roughness --------------------------
  float wet = clamp(max(lake_band * 0.85, river_band), 0.0, 1.0);
@@ -478,6 +539,7 @@ float scree = smoothstep(0.58, 0.90, value_noise(base_uv * 0.045 + vec2(53.0, 11
  }
  col = mix(col, col * vec3(1.03, 1.01, 0.97), traffic * 0.35);
  rough = mix(rough, 0.44, wet);
+ rough = mix(rough, 0.22, water_amt);
  rough = mix(rough, 0.86, clamp(ramp_m, 0.0, 1.0));
  rough = mix(rough, 0.82, clamp(top_m, 0.0, 1.0));
  rough = mix(rough, 0.94, rock_in);
@@ -500,14 +562,15 @@ float scree = smoothstep(0.58, 0.90, value_noise(base_uv * 0.045 + vec2(53.0, 11
  }
  ALBEDO = col;
  ROUGHNESS = clamp(rough, 0.1, 1.0);
- SPECULAR = 0.22;
+ SPECULAR = mix(0.22, 0.72, water_amt);
  METALLIC = 0.0;
 
  // 法线贴图 20m 平铺在光照下会形成规则条纹（实测水平波纹的主因）：
  // 扰动 UV + 双尺度混合后周期互消，保留颗粒感而去掉条纹。
- vec3 n_sand = normalize(mix(texture(sand_normal, uv_g * 0.050).xyz,
-                             texture(sand_normal, uv_g * 0.113 + vec2(0.41, 0.23)).xyz,
+ vec3 n_sand = normalize(mix(texture(sand_normal, wxz / max(tile_m * 3.2, 24.0)).xyz,
+                             texture(sand_normal, wxz / max(tile_m * 4.6, 32.0) + vec2(0.41, 0.23)).xyz,
                              0.5) * 2.0 - 1.0 + vec3(0.0, 1.0, 0.0));
+ n_sand = normalize(mix(vec3(0.0, 1.0, 0.0), n_sand, 0.32));
  vec3 n_rock = triplanar(rock_normal, p, wnr, 0.062) * 2.0 - 1.0;
  vec3 n_cliff = triplanar(cliff_normal, p, wnr, 0.070) * 2.0 - 1.0;
  vec3 nrm = n_sand;
@@ -536,4 +599,6 @@ float scree = smoothstep(0.58, 0.90, value_noise(base_uv * 0.045 + vec2(53.0, 11
  vec3 bumped = normalize(wnr + vec3(nrm.x, 0.0, nrm.y)
      * normal_strength * (1.0 + 8.0 * rock_in));
  NORMAL = normalize((VIEW_MATRIX * vec4(bumped, 0.0)).xyz);
+ }
 }
+

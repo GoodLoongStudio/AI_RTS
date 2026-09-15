@@ -152,10 +152,20 @@ public partial class CommandRuntime : Node
         {
             return;
         }
-        _construction.Advance(checked((long)Engine.GetPhysicsFrames()));
+        var frames = Engine.GetPhysicsFrames();
+        var started = Time.GetTicksUsec();
+        _construction.Advance(checked((long)frames));
         var now = _simulationClock.GetMilliseconds();
         _commands.AdvanceSkillEffects(now);
-        _commands.EvaluateAutomaticSkills(_matchId, now);
+        // 自动技能不必每物理步全表扫描；20Hz 下每 4 步一次 ≈ 5Hz，冷却仍按模拟毫秒。
+        if (frames % 4UL == 0UL)
+        {
+            _commands.EvaluateAutomaticSkills(_matchId, now);
+        }
+        if (frames <= 2UL || frames % 40UL == 0UL)
+        {
+            GD.Print($"G4PERF command_runtime_us={Time.GetTicksUsec() - started} frames={frames}");
+        }
     }
 
     /// <inheritdoc />

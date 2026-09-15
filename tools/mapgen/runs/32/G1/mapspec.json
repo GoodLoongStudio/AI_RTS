@@ -1,0 +1,148 @@
+{
+ "accepted": false,
+ "adjacent_angle_gaps_deg": [
+  39.283,
+  68.5124,
+  97.9078,
+  154.2968
+ ],
+ "algo_version": "2.0.0",
+ "attempts": 200,
+ "center_dists": [
+  74.5621,
+  117.1961,
+  102.1585,
+  71.726
+ ],
+ "constraints": {
+  "angle_gap": {
+   "limit": [
+    45.0,
+    150.0
+   ],
+   "pass": false,
+   "value": [
+    39.283,
+    154.2968
+   ]
+  },
+  "center_gap": {
+   "limit": 0.0,
+   "pass": true,
+   "value": 71.726
+  },
+  "center_ratio": {
+   "limit": 99.0,
+   "pass": true,
+   "value": 1.6339
+  },
+  "margin": {
+   "limit": 12.0,
+   "pass": true,
+   "value": 38.0155
+  },
+  "min_pair": {
+   "limit": 89.6,
+   "pass": false,
+   "value": 49.2448
+  },
+  "nn_ratio": {
+   "limit": 1.3,
+   "pass": false,
+   "value": 3.3654
+  },
+  "territory_ratio": {
+   "cells": [
+    20013,
+    12748,
+    21746,
+    11029
+   ],
+   "limit": 1.3,
+   "pass": false,
+   "value": 1.9717
+  }
+ },
+ "corner_flags": [
+  false,
+  false,
+  false,
+  false
+ ],
+ "gate": "G1",
+ "gate_seed": 12038101862452810344,
+ "master_seed": 32,
+ "min_pair": 49.2448,
+ "pair_dist_matrix": [
+  [
+   Infinity,
+   156.9575,
+   172.4029,
+   49.2448
+  ],
+  [
+   156.9575,
+   Infinity,
+   165.7277,
+   112.7888
+  ],
+  [
+   172.4029,
+   165.7277,
+   Infinity,
+   172.7024
+  ],
+  [
+   49.2448,
+   112.7888,
+   172.7024,
+   Infinity
+  ]
+ ],
+ "params": {
+  "angle_max": 150.0,
+  "angle_min": 45.0,
+  "candidates": 32,
+  "center_gap": 0.0,
+  "center_ratio": 99.0,
+  "margin": 12.0,
+  "max_attempts": 200,
+  "min_pair_factor": 0.35,
+  "nn_ratio": 1.3,
+  "territory_ratio": 1.3,
+  "top_frac": 0.7
+ },
+ "polar_angles_deg": [
+  147.6376,
+  39.8422,
+  -58.0656,
+  108.3546
+ ],
+ "reject_reason": "min_pair",
+ "rot_sym_err": 0.2213,
+ "sampler": "A",
+ "starts": [
+  [
+   65.02,
+   167.91
+  ],
+  [
+   217.98,
+   203.08
+  ],
+  [
+   182.04,
+   41.3
+  ],
+  [
+   105.41,
+   196.08
+  ]
+ ],
+ "territory_cells": [
+  20013,
+  12748,
+  21746,
+  11029
+ ]
+}

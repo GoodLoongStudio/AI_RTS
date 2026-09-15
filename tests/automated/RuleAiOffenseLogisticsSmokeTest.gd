@@ -34,7 +34,7 @@ func _ready():
 	while rule_ai._economy_runtime == null and Time.get_ticks_msec() < eco_wait_deadline:
 		await get_tree().physics_frame
 	var income_applied: bool = rule_ai.add_resources(
-		{"resource_a": 10000, "resource_b": 10000},
+		{"resource_a": 10000},
 		"ScriptedAdjustment"
 	)
 	_check(income_applied,

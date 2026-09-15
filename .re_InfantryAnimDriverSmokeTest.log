@@ -1,0 +1,187 @@
+Godot Engine v4.7.1.stable.mono.official.a13da4feb - https://godotengine.org
+
+SCRIPT ERROR: Parse Error: Expected statement, found "Indent" instead.
+   at: GDScript::reload (res://source/match/hud/Minimap.gd:153)
+ERROR: Failed to load script "res://source/match/hud/Minimap.gd" with error "Parse error".
+   at: load (modules/gdscript/gdscript_resource_format.cpp:46)
+[DBGCTL] 调试控制端点已启动 127.0.0.1:24880
+[godot_ai game_helper] registered mcp capture (debugger active=false, logger=true)
+WARNING: Parent path './DetachTransform/Geometry/SM_Veh_Turret_Large_01' for node 'ProjectileOrigin' has vanished when instantiating: 'res://source/match/units/AntiGroundTurret.tscn'.
+   at: instantiate (scene/resources/packed_scene.cpp:213)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://tests/automated/InfantryAnimDriverSmokeTest.gd:37)
+WARNING: Parent path './DetachTransform/Geometry/SM_Veh_Turret_Large_01' for node 'MuzzleL' has vanished when instantiating: 'res://source/match/units/AntiGroundTurret.tscn'.
+   at: instantiate (scene/resources/packed_scene.cpp:213)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://tests/automated/InfantryAnimDriverSmokeTest.gd:37)
+WARNING: Parent path './DetachTransform/Geometry/SM_Veh_Turret_Large_01' for node 'MuzzleR' has vanished when instantiating: 'res://source/match/units/AntiGroundTurret.tscn'.
+   at: instantiate (scene/resources/packed_scene.cpp:213)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://tests/automated/InfantryAnimDriverSmokeTest.gd:37)
+WARNING: Parent path './DetachTransform/Geometry/SM_Veh_Turret_Medium_01' for node 'ProjectileOrigin' has vanished when instantiating: 'res://source/match/units/AntiAirTurret.tscn'.
+   at: instantiate (scene/resources/packed_scene.cpp:213)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://tests/automated/InfantryAnimDriverSmokeTest.gd:37)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=2 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=1 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=3 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=4 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=4 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=8 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=11 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+[INPUT] UnitActionsController waiting for local player player=Human
+WARNING: Property agent_height is ceiled to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:367)
+NAVDBG air polygons=2 vertices=4 rid_valid=true region_on_our_map=true map_active=true
+NAVDBG bake map=/root/InfantryAnimDriverSmokeTest/Match/Map StaticBody3D in subtree=0
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+NAVDBG polygons=58 vertices=48
+[ECO] PublishSnapshot player=bbbcb08a a=0
+[INPUT] UnitActionsController enabled player=Human
+PASS 基线场景 9 个人类单位应在超时前全部加入 units 分组（实际 9）
+PASS 基线场景停火策略应至少被一个单位接受（status=Accepted）
+PASS 场景坦克应处于停火，避免击杀测试目标
+[GATHER] action _ready unit=Worker resource=true
+[GATHER] 进入 MOVING_TO_RESOURCE, resource=ResourceA14:<Area3D#216979737710>
+[GATHER] 到达资源点, 开始采集 unit=Worker
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+PASS 步兵应加入 units 分组
+PASS GLB 自带材质，不应再有 SyntyMaterialBinder
+PASS GLB 模型应带 AnimationPlayer
+PASS 应有剪辑 Idle
+PASS 应有剪辑 Run
+PASS 应有剪辑 Hit
+PASS 应有剪辑 HitHeavy
+PASS 应有剪辑 Fire
+PASS 应有剪辑 Crawl
+PASS 应有剪辑 Death
+NAVDBG polygons=58 vertices=48
+[GATHER] Worker 满载回城
+PASS 待命应播 Idle（实际 Idle）
+PASS 应接受移动命令
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+NAVDBG polygons=58 vertices=48
+MOVE_DIAG elapsed=0.3 accumulated=1.11m saw_clip=true
+PASS 单位应实际位移（1.11m）
+PASS 移动中应出现 Run 剪辑
+PASS 受击应短暂覆盖为 Hit（实际 Hit）
+PASS 受击测试不应把步兵打死
+PASS 轻受击长度应为 0.3s
+PASS 连续子弹应立即重启冲击，不能被同名动作吞掉
+PASS 连续中弹后的短促受击应仍在播放
+PASS 停止且受击窗口过后应回 Idle（实际 Idle）
+[ACT] Unit_2 puppet=false in_tree=true locked=false script=res://source/match/units/actions/WaitingForTargets.gd
+[ACT] Unit_2 attached child=false
+[ACT] Unit_2 已 add_child: in_tree=true
+PASS 射程外普通攻击命令应被接受
+PASS 射程外追击应播放 Run，不能提前播放 Fire
+PASS 进入射程后应由真实投射物发出 attack_fired
+PASS 停稳后的实际发射应播放 Fire
+[DAMAGE] source=bbbcb08a-119b-4fdd-a4a3-6de2877cddca target=Unit_2 owner=FireTimingEnemy amount=0.5 mode=IntendedTargetOnly
+PASS 应等到第 2 次真实发射
+[DAMAGE] source=bbbcb08a-119b-4fdd-a4a3-6de2877cddca target=Unit_2 owner=FireTimingEnemy amount=0.5 mode=IntendedTargetOnly
+PASS 应等到第 3 次真实发射
+PASS 连续真实发射应重启仍在播放的 Fire
+[DAMAGE] source=bbbcb08a-119b-4fdd-a4a3-6de2877cddca target=Unit_2 owner=FireTimingEnemy amount=0.5 mode=IntendedTargetOnly
+PASS 应等到第 4 次真实发射
+[DAMAGE] source=bbbcb08a-119b-4fdd-a4a3-6de2877cddca target=Unit_2 owner=FireTimingEnemy amount=0.5 mode=IntendedTargetOnly
+PASS 二倍速 Fire 不应被计时器二次缩短
+PASS 仍处攻击冷却时，单发结束应回 Idle 且不能自行重播
+PASS 真实地面发射应恰好触发一次 attack_fired
+PASS 地面射击也应播放 Fire
+PASS 暂停期间 Fire 应保持原进度不推进
+PASS 恢复后 Fire 应正常收尾回 Idle，不卡死
+PASS 同帧中弹与开火应保留 Hit 优先级
+[DAMAGE] source=bbbcb08a-119b-4fdd-a4a3-6de2877cddca target=Unit_2 owner=FireTimingEnemy amount=0.5 mode=IntendedTargetOnly
+PASS 受击结束不得补播已丢弃的开火事件
+PASS 受击后新的真实发射应再次播放 Fire
+PASS 射击后移动应切换 Run，并产生实际位移
+PASS 移动中的发射不得抢占全身 Run 造成站姿滑行
+[DAMAGE] source=bbbcb08a-119b-4fdd-a4a3-6de2877cddca target=Unit_2 owner=FireTimingEnemy amount=0.5 mode=IntendedTargetOnly
+PASS 移动开火后停止不得补播旧射击（应直接回 Idle）
+PASS 移动停止后应回 Idle，不补播移动中的射击
+[DAMAGE] source=bbbcb08a-119b-4fdd-a4a3-6de2877cddca target=Unit_2 owner=FireTimingEnemy amount=0.5 mode=IntendedTargetOnly
+PASS 无新发射时应保持 Idle
+PASS 强制实体攻击命令应被接受
+PASS 停火策略下的强制实体攻击仍应由真实投射物触发 attack_fired
+PASS 强制实体攻击也应播放 Fire
+[DAMAGE] source=bbbcb08a-119b-4fdd-a4a3-6de2877cddca target=Unit_2 owner=FireTimingEnemy amount=0.5 mode=IntendedTargetOnly
+PASS 强制地面攻击命令应被接受
+PASS 强制地面攻击应由真实投射物触发 attack_fired
+PASS 强制地面攻击也应播放 Fire
+PASS 每个开火事件之前必须已有真实投射物，且一弹一事件（10/10）
+FIRE_MONITOR entries=[9188, 10976, 11974, 13242, 14392]
+FIRE_MONITOR shots=[9121, 9729, 10338, 10948, 11621, 12772, 13209, 13302, 14312, 15611]
+PASS 每次进入 Fire 播放都必须有真实发射事件兜底（全程监视）
+PASS 未致死高伤害应使用短促受击，不能炸飞后复活
+PASS 存活受击结束后恢复 Idle
+[TINT] apply_team_tint (1.0, 0.0, 0.0, 1.0) on Geometry
+[TINT] override meshes=11 tint=(1.0, 0.0, 0.0, 1.0)
+[ACT] Unit_3 puppet=false in_tree=true locked=false script=res://source/match/units/actions/WaitingForTargets.gd
+[ACT] Unit_3 attached child=false
+[ACT] Unit_3 已 add_child: in_tree=true
+[DAMAGE] source=beaa0403-7683-496e-a180-65da89272ae1 target=Unit_0 owner=Human amount=3.5 mode=Area
+[DAMAGE] source=beaa0403-7683-496e-a180-65da89272ae1 target=Unit_3 owner=ReactionTestEnemy amount=1.75 mode=Area
+PASS 致死爆炸应立即移除战斗单位
+PASS 单位销毁后仍应保留一个死亡视觉
+PASS 真实炮弹致死应选择爆炸击飞死亡
+PASS 死亡视觉不得继续参战或保留碰撞
+PASS 炸飞方向应背离炮弹来向
+PASS 死亡视觉应继续播放腾空过程
+PASS 炸飞播完后应保持死亡姿态，不重播或站起
+PASS 死亡视觉应在定格后清理
+[DAMAGE] source=beaa0403-7683-496e-a180-65da89272ae1 target=Unit_5 owner=Human amount=0.5 mode=IntendedTargetOnly
+PASS 致死子弹应移除战斗单位
+PASS 真实步枪致死应普通倒地，不能因血量比例而被当成爆炸
+PASS 普通死亡视觉也应自动清理
+InfantryAnimDriverSmokeTest completed: 0 failure(s)
+[EXIT-TRACE] EXIT_TREE：场景树收尾（tick=1114，场景=unknown，对局结果=无该节点）
+[EXIT-TRACE] PREDELETE：引擎收尾（Globals 释放，tick=unknown(已脱离场景树)）
+ERROR: 3 RID allocations of type '13NavObstacle3D' were leaked at exit.
+ERROR: 3 RID allocations of type '10NavAgent3D' were leaked at exit.
+ERROR: 3 RID allocations of type 'P11GodotArea3D' were leaked at exit.
+ERROR: 1 RID allocations of type 'P12GodotShape3D' were leaked at exit.
+ERROR: 3 RID allocations of type 'N13RendererDummy15MaterialStorage13DummyMaterialE' were leaked at exit.
+ERROR: 1 RID allocations of type 'N13RendererDummy15MaterialStorage11DummyShaderE' were leaked at exit.
+ERROR: 8 RID allocations of type 'N13RendererDummy9DummyMeshE' were leaked at exit.
+ERROR: 9 RID allocations of type 'N17RendererSceneCull8InstanceE' were leaked at exit.
+ERROR: Pages in use exist at exit in PagedAllocator: N20RasterizerSceneDummy21GeometryInstanceDummyE
+   at: ~PagedAllocator (./core/templates/paged_allocator.h:170)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: 63 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2536)
+ERROR: 15 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

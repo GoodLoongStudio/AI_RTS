@@ -751,6 +751,14 @@ RELAY_REPLAN_TICKS = 300
 #: 而路线在 `RELAY_REPLAN_TICKS` 内会被复用，稳态下几乎不重复查询。
 NAV_QUERIES_PER_TICK = 6
 
+#: **单人意图的保底配额**（在 `NAV_QUERIES_PER_TICK` 之外额外允许的查询次数）。
+#: 为什么必须保底（2026-09-15 用户实测）：配额是**整个闸门一轮共享**的 ——
+#: 前面的大部队推进把 6 次吃光后，**后面的单人侦察/单人前探**会被判
+#: `squad_unverified` 拦下，"一个人、一条路"却永远出不了门。
+#: 单人一次只要 1 次查询，给它一条独立额度既不打爆 DCS（单线程），
+#: 又能保证侦察线每一轮都有推进机会。
+SOLO_QUERY_RESERVE = 3
+
 
 def needs_replan(state: Dict[str, Any], unit: str, target: Sequence[float],
                  nav_revision: int, tick: int) -> bool:
@@ -764,6 +772,28 @@ def needs_replan(state: Dict[str, Any], unit: str, target: Sequence[float],
     if len(old_target) >= 2 and point_distance(old_target, target) > 0.5:
         return True
     return int(tick) - int(previous.get("last_replan_tick", 0) or 0) >= RELAY_REPLAN_TICKS
+
+
+def route_stale_only(state: Dict[str, Any], unit: str, target: Sequence[float],
+                     nav_revision: int) -> bool:
+    """旧路线只是"到了例行重规划间隔"（**目标与网格都没变**）→ 仍然可用。
+
+    与 `needs_replan` 的分工：那个函数回答"要不要重新算"（含例行间隔），
+    本函数回答"**旧的还能不能用**"。配额不足时（`SOLO_QUERY_RESERVE` 也用完）
+    用它兜底：复用旧路，而不是把"明明有路可走"的单位判成
+    `squad_unverified` 拦下来（2026-09-15 用户实测：侦察单位被长期拦截）。
+
+    注意：目标变了 / 网格换版 → 返回 False（必须重新规划，不能拿旧路当新目标）。
+    """
+    previous = previous_route(state, unit)
+    if not previous or not bool(previous.get("ok")):
+        return False
+    if int(previous.get("nav_revision", -1)) != int(nav_revision):
+        return False
+    old_target = previous.get("target") or []
+    if len(old_target) >= 2 and point_distance(old_target, target) > 0.5:
+        return False
+    return len(previous.get("relay_point") or []) >= 2
 
 
 #: 一条已批准的中继跳**最长复用时长**（tick，默认 1800 ≈ 30 秒）。

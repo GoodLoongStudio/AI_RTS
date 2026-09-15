@@ -1,0 +1,148 @@
+{
+ "accepted": false,
+ "adjacent_angle_gaps_deg": [
+  19.7721,
+  58.6571,
+  98.9509,
+  182.6199
+ ],
+ "algo_version": "2.0.0",
+ "attempts": 200,
+ "center_dists": [
+  30.7961,
+  134.646,
+  113.9293,
+  55.4155
+ ],
+ "constraints": {
+  "angle_gap": {
+   "limit": [
+    45.0,
+    150.0
+   ],
+   "pass": false,
+   "value": [
+    19.7721,
+    182.6199
+   ]
+  },
+  "center_gap": {
+   "limit": 0.0,
+   "pass": true,
+   "value": 30.7961
+  },
+  "center_ratio": {
+   "limit": 99.0,
+   "pass": true,
+   "value": 4.3722
+  },
+  "margin": {
+   "limit": 12.0,
+   "pass": true,
+   "value": 24.5067
+  },
+  "min_pair": {
+   "limit": 89.6,
+   "pass": false,
+   "value": 47.3697
+  },
+  "nn_ratio": {
+   "limit": 1.3,
+   "pass": false,
+   "value": 3.2377
+  },
+  "territory_ratio": {
+   "cells": [
+    20998,
+    14692,
+    12129,
+    17717
+   ],
+   "limit": 1.3,
+   "pass": false,
+   "value": 1.7312
+  }
+ },
+ "corner_flags": [
+  false,
+  true,
+  false,
+  false
+ ],
+ "gate": "G1",
+ "gate_seed": 5466633776933169955,
+ "master_seed": 28,
+ "min_pair": 47.3697,
+ "pair_dist_matrix": [
+  [
+   Infinity,
+   163.5414,
+   85.5852,
+   47.3697
+  ],
+  [
+   163.5414,
+   Infinity,
+   248.5108,
+   153.3697
+  ],
+  [
+   85.5852,
+   248.5108,
+   Infinity,
+   116.2673
+  ],
+  [
+   47.3697,
+   153.3697,
+   116.2673,
+   Infinity
+  ]
+ ],
+ "params": {
+  "angle_max": 150.0,
+  "angle_min": 45.0,
+  "candidates": 32,
+  "center_gap": 0.0,
+  "center_ratio": 99.0,
+  "margin": 12.0,
+  "max_attempts": 200,
+  "min_pair_factor": 0.35,
+  "nn_ratio": 1.3,
+  "territory_ratio": 1.3,
+  "top_frac": 0.7
+ },
+ "polar_angles_deg": [
+  -152.1607,
+  50.2312,
+  -132.3886,
+  149.1821
+ ],
+ "reject_reason": "min_pair",
+ "rot_sym_err": 0.1764,
+ "sampler": "A",
+ "starts": [
+  [
+   100.77,
+   113.62
+  ],
+  [
+   214.13,
+   231.49
+  ],
+  [
+   51.19,
+   43.85
+  ],
+  [
+   80.41,
+   156.39
+  ]
+ ],
+ "territory_cells": [
+  20998,
+  14692,
+  12129,
+  17717
+ ]
+}

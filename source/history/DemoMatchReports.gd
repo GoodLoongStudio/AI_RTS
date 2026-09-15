@@ -133,8 +133,8 @@ const MAPS := [
 	{"name": "Big Arena", "path": "res://source/match/maps/BigArena.tscn", "players": 8, "size": "100×100"},
 	{
 		"name": "G4 大湖 seed16",
-		"path": "res://source/match/maps/generated/16-0-7d337ce8be/map_16-0-7d337ce8be.tscn",
-		"players": 4, "size": "2048×2048",
+		"path": "res://source/match/maps/generated/16-0-1ca6e21aa1/map_16-0-1ca6e21aa1.tscn",
+		"players": 4, "size": "256×256",
 	},
 ]
 

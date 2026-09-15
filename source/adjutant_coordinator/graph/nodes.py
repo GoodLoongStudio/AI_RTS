@@ -1884,6 +1884,9 @@ def _blocked_move_fallbacks(state: Dict[str, Any], ctx: NodeContext,
         if chosen == movement_mod.FALLBACK_WAIT:
             movement_mod.record_fallback(state, action=movement_mod.FALLBACK_WAIT,
                                          reason=note)
+            # 【等待后必须能重规划】作废缓存路线：否则下一轮"复用旧路 → 再撞同一个墙
+            # → 再等"，表现为每轮都在等同一个原因、永远不会换路（2026-09-15 用户要求）。
+            movement_mod.invalidate_route(state, str(member), reason="fallback_wait")
             continue
         target: Dict[str, Any] = ({"pos": [float(target_pos[0]), float(target_pos[1])]}
                                   if target_pos and
@@ -2046,8 +2049,25 @@ def _gate_movement(state: Dict[str, Any], ctx: NodeContext,
                     nav_revision=movement_mod.parse_nav_revision(
                         cached.get("nav_revision")),
                     relay_point=[float(relay[0]), float(relay[1])])
-            elif queries + 1 > movement_mod.NAV_QUERIES_PER_TICK:
-                # 配额不够验证**整队** → 本轮不推进（"验了一半就走"比不走更危险）。
+            elif (queries + 1 > movement_mod.NAV_QUERIES_PER_TICK
+                  and movement_mod.route_stale_only(state, member, goal, revision)):
+                # 【配额不足 + 旧路仍可用 → 复用，不拦】例行重规划（RELAY_REPLAN_TICKS）
+                # 只是"该重算了"，不代表路径失效；拦下来会让"明明有路可走的单位"
+                # 落进 `squad_unverified` → 再被降级成 wait（2026-09-15 用户实测问题）。
+                relay = cached.get("relay_point") or []
+                plan = movement_mod.RoutePlan(
+                    ok=True, unit=member, squad=list(units),
+                    route_id=str(cached.get("route_id", "")),
+                    nav_revision=movement_mod.parse_nav_revision(
+                        cached.get("nav_revision")),
+                    relay_point=[float(relay[0]), float(relay[1])])
+                stats = state.setdefault("movement_stats", {})
+                stats["replan_deferred"] = int(stats.get("replan_deferred", 0)) + 1
+            elif queries + 1 > movement_mod.NAV_QUERIES_PER_TICK + (
+                    movement_mod.SOLO_QUERY_RESERVE if len(units) == 1 else 0):
+                # 配额不够验证**整队**（单人则用 `SOLO_QUERY_RESERVE` 保底额度）→ 本轮不推进
+                # （"验了一半就走"比不走更危险）。单人保底的理由：配额是整轮共享的，
+                # 大部队推进吃光后，侦察/单人前探会被永远排在门外。
                 member_block = {"intent_id": str(intent.get("intent_id", "")),
                                 "reason": "movement_gated:%s" % movement_mod.REJECT_SQUAD_UNVERIFIED,
                                 "unit": member, "squad": list(units),
@@ -2079,10 +2099,15 @@ def _gate_movement(state: Dict[str, Any], ctx: NodeContext,
             blocked.append(member_block)
             # 【受阻降级的接入点 ①】推进被拦下 → 给出四个合法归宿之一
             # （回基地 / 集结 / 守卫 / 等待），而不是"丢弃意图、下一轮再试"。
-            kept.extend(_blocked_move_fallbacks(
-                state, ctx, intent, units=units,
-                reason=str(member_block.get("detail", "")), tick=tick,
-                budget=fallback_budget))
+            # 例外：`squad_unverified` 只是"本轮配额不够验证"，**不是"路径不可行"** ——
+            # 它不进降级（否则每轮都记一次 fallback_wait，把等待账刷爆而原因根本不是"走不通"）；
+            # 下一轮规则地板会重新生成推进意图，配合 `SOLO_QUERY_RESERVE` 与旧路复用
+            # （`route_stale_only`）自动接着走（2026-09-15 用户要求）。
+            if str(member_block.get("detail", "")) != movement_mod.REJECT_SQUAD_UNVERIFIED:
+                kept.extend(_blocked_move_fallbacks(
+                    state, ctx, intent, units=units,
+                    reason=str(member_block.get("detail", "")), tick=tick,
+                    budget=fallback_budget))
             continue
         # 全队只认**一个**中继点 = 各成员中最保守的那一跳；队形散了就先集结。
         # 【单人**不判**散开】`squad_scatter` 语义只属于"队伍"：单人的中继点由
@@ -2694,6 +2719,20 @@ def _apply_receipt_to_state(state: Dict[str, Any], intent_id: str,
                 del blocked[:-8]
             _decide(state, "spot_rejected", pos=point, kind=reject_kind,
                     status=str(status), count=count,
+                    reason=str(receipt.get("reason", ""))[:40])
+    elif reject_kind in placement.SITE_KINDS:
+        # 【工地不存在 → 清账】（见 `placement.REJECT_SITE`）：**一次被拒就立刻拉黑**这个工地的
+        # 续建前缀（`rule-finish-site-<工地>`），阶梯侧据此把它移出 `unfinished_buildings`。
+        # 为什么必须清账（2026-09-14 真机 a 局）：工地 `Unit_5` 已完工/失效，但我们的观测把它
+        # 一直当"未完工"；阶梯"有未完工工地就先续建"这一步**短路了后面所有步骤** →
+        # 整局不再开新工地、闲工人也一直用不上（玩家看到的"有建设需求但工人不去建"）。
+        prefix = placement.intent_prefix(record.get("intent_id", ""))
+        if prefix:
+            count = ledger.add(reject_kind, prefix, tick_now, ban_now=True,
+                               ban_ticks=placement.SITE_BAN_TICKS)
+            _decide(state, "site_gone", intent_prefix=prefix, count=count,
+                    site=str((record.get("target") or {}).get("entity_id", "")
+                             if isinstance(record.get("target"), dict) else ""),
                     reason=str(receipt.get("reason", ""))[:40])
     elif reject_kind in placement.PREFIX_BAN_KINDS:
         # 含 `REJECT_UNSPECIFIED`（只有 status、没有原因）：链路没给信息时，

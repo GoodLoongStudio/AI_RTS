@@ -20,6 +20,7 @@ const PAGES := [
 	["05_growth_upgrades", "res://source/main-menu/GrowthUpgrades.tscn"],
 	["06_player_profile", "res://source/main-menu/PlayerProfile.tscn"],
 	["07_options", "res://source/main-menu/Options.tscn"],
+	["09_map_generation", "res://source/main-menu/MapGeneration.tscn"],
 ]
 
 

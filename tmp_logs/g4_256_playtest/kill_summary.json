@@ -1,0 +1,39 @@
+{
+  "moved_ok": true,
+  "built_ok": true,
+  "enemy_dead": false,
+  "minimap_ok": false,
+  "fog_visible": true,
+  "spawn_visual": {
+    "exists": true,
+    "pil": false
+  },
+  "final_visual": {
+    "exists": true,
+    "pil": false
+  },
+  "fog_end": {
+    "fog_circle_count": 29,
+    "fog_visible": true,
+    "mapped_units": 29,
+    "ok": true,
+    "revealed_units": 30,
+    "viewport_size": [
+      512,
+      512
+    ]
+  },
+  "final_enemy": 0,
+  "outcome": {
+    "kind": "InProgress",
+    "local_human_side_id": "7edf2956-c33c-403e-8d45-d55939604f47",
+    "local_result": "InProgress",
+    "status": "Accepted",
+    "surviving_side_ids": [
+      "7edf2956-c33c-403e-8d45-d55939604f47",
+      "f320bf29-1970-403a-8043-930d1bddeda6"
+    ],
+    "version": 55,
+    "winning_side_ids": []
+  }
+}

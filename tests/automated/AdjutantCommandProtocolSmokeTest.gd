@@ -26,10 +26,20 @@ func _ready():
 		return
 	_match = MatchScene.instantiate()
 	add_child(_match)
-	await get_tree().create_timer(0.7).timeout
-
-	var human = _match.get_node("Players/Human")
-	human.add_resources({"resource_a": 10000, "resource_b": 10000}, "ScriptedAdjustment")
+	# 不能假设固定时长就绪：`Match._ready` 的首个 await 是导航烘焙（Match.gd:80），
+	# 玩家与 C# 资源账户都排在它之后；账户未建立时 add_resources 会触发
+	# "resource account must be configured before use" 断言，并让后续断言连环失败。
+	var _economy_runtime = _match.get_node_or_null("EconomyRuntime")
+	var human = null
+	var _waited := 0.0
+	while _waited < 30.0:
+		human = _match.get_node_or_null("Players/Human")
+		if human != null and _economy_runtime != null \
+				and not _economy_runtime.GetSnapshot(human).is_empty():
+			break
+		await get_tree().create_timer(0.1).timeout
+		_waited += 0.1
+	human.add_resources({"resource_a": 10000}, "ScriptedAdjustment")
 	_load_context()
 
 	# ---------- 身份与授权 ----------

@@ -210,9 +210,12 @@ func _bind() -> void:
 			_reason.text = "推荐理由：%s" % str(first.get("reason", "—"))
 
 	if _evidence != null:
-		_evidence.text = "数据依据：%s · 模型 %s" % [
-			_evidence_text(profile, reports), str(profile.get("model_version", "未知")),
-		]
+		# `str(null)` 是字面量 "<null>"：模型版本缺失时说「未知」，绝不把 "<null>" 印到脸上。
+		var model_version = profile.get("model_version", null)
+		var model_text: String = str(model_version) if model_version != null else "未知"
+		if model_text.strip_edges().is_empty():
+			model_text = "未知"
+		_evidence.text = "数据依据：%s · 模型 %s" % [_evidence_text(profile, reports), model_text]
 	if _time != null:
 		_time.text = "生成时间：%s" % ("未知" if stamp.is_empty() else stamp)
 
@@ -258,7 +261,7 @@ func _recent_text(reports: Array) -> String:
 		var report = reports[index]
 		if not (report is Dictionary):
 			continue
-		var outcome := str((report as Dictionary).get("outcome", "unknown"))
+		var outcome = (report as Dictionary).get("outcome", null)
 		if outcome == "victory":
 			wins += 1
 		elif outcome == "defeat":
@@ -270,7 +273,7 @@ func _recent_text(reports: Array) -> String:
 	]
 
 
-func _outcome_mark(outcome: String) -> String:
+func _outcome_mark(outcome: Variant) -> String:
 	if outcome == "victory":
 		return "胜"
 	if outcome == "defeat":

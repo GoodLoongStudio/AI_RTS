@@ -15,7 +15,7 @@ extends Node
 @export var albedo_texture: Texture2D
 @export var albedo_color: Color = Color.WHITE
 ## 阵营色混合强度：0 = 原图集，1 = 纯阵营色
-@export_range(0.0, 1.0, 0.05) var team_tint_strength := 1.0
+@export_range(0.0, 1.0, 0.05) var team_tint_strength := 0.55
 
 static var _shared_materials := {}
 

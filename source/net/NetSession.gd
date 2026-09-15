@@ -6,6 +6,7 @@ const DEFAULT_HOST := "101.43.121.102"
 const DEFAULT_PORT := 24567
 const MAX_PLAYERS := 4
 const MAP_PATH := "res://source/match/maps/PlainAndSimple.tscn"
+var selected_map_path: String = MAP_PATH
 const NetCommandProxyScript := preload("res://source/net/NetCommandProxy.gd")
 
 const SLOT_EMPTY := 0
@@ -60,6 +61,7 @@ signal status_changed(text)
 signal match_starting
 signal player_dropped(slot: int)  # 复核 P1-2：对局中玩家掉线（服务器发出，slot 为其阵营槽位）
 signal lobby_updated(slots: Array)  # RA3 式大厅：4 槽位全量状态广播
+signal lobby_map_changed(path: String)
 
 
 func is_networked() -> bool:
@@ -287,6 +289,7 @@ func _reset_peer() -> void:
 	_slot_kinds = [SLOT_EMPTY, SLOT_EMPTY, SLOT_EMPTY, SLOT_EMPTY]
 	_names.clear()
 	last_lobby_slots = []
+	selected_map_path = MAP_PATH
 	_match_started = false
 	_peer_device.clear()
 	_device_peer.clear()
@@ -718,8 +721,54 @@ func _launch_match() -> void:
 	for peer_id in _slots.keys():
 		peer_ids.append(int(peer_id))
 		slot_ids.append(int(_slots[peer_id]))
-	print("联机: 开局，人类 %d，槽位 %s，配置 %s" % [humans, str(slot_ids), str(kinds)])
-	_rpc_start_match.rpc(humans, peer_ids, slot_ids, kinds, passive_ai_test_server)
+	# 地图守门：服务器发出的最终地图路径必须是合法登记地图，否则回退默认。
+	# 服务器与所有客户端加载同一路径（_rpc_start_match 携带），不再各自兜底不同结果。
+	var map_path := validated_map_path(selected_map_path)
+	print("联机: 开局，人类 %d，槽位 %s，配置 %s，地图 %s" % [humans, str(slot_ids), str(kinds), map_path])
+	_rpc_start_match.rpc(humans, peer_ids, slot_ids, kinds, passive_ai_test_server, map_path)
+
+
+## 地图路径守门（唯一实现）：必须同时登记在 `Constants.Match.ALL_MAPS` 且资源可加载，
+## 否则回退默认地图。服务器开局、客户端加载共用同一判定：非法路径不崩溃、不静默用错图。
+func validated_map_path(path: String) -> String:
+	if Constants.Match.ALL_MAPS.has(path) and ResourceLoader.exists(path):
+		return path
+	push_warning("非法地图路径 %s，回退默认地图 %s" % [path, MAP_PATH])
+	return MAP_PATH
+
+## 房主改图（唯一入口）。两种拓扑都要把所有客户端同步到同一张图：
+## - 本机 listen server / 专用服自身即权威：**服务器直接广播**（`_rpc_lobby_map` 是
+##   authority+call_local，本地与所有客户端一起更新）。旧实现只发 `_rpc_set_lobby_map`
+##   （call_remote），客户端收到后因 `is_server()==false` 直接 return ⇒ 本机房主切图
+##   时其他客户端**永远收不到同步**（2026-09-14 双进程实测）。
+## - 客户端房主（专用服场景）：先上行 `_rpc_set_lobby_map`，由服务器校验房主身份后广播。
+func set_lobby_map(path: String) -> void:
+	if not is_networked() or not is_room_owner():
+		return
+	if not Constants.Match.ALL_MAPS.has(path):
+		return
+	selected_map_path = path
+	lobby_map_changed.emit(path)
+	if is_server():
+		_rpc_lobby_map.rpc(path)
+	else:
+		_rpc_set_lobby_map.rpc(path)
+
+@rpc("any_peer", "call_remote", "reliable")
+func _rpc_set_lobby_map(path: String) -> void:
+	if not is_server() or _match_started:
+		return
+	var sender_slot := slot_of(multiplayer.get_remote_sender_id())
+	if not _is_room_owner_slot(sender_slot) or not Constants.Match.ALL_MAPS.has(path):
+		return
+	selected_map_path = path
+	_rpc_lobby_map.rpc(path)
+
+@rpc("authority", "reliable", "call_local")
+func _rpc_lobby_map(path: String) -> void:
+	if Constants.Match.ALL_MAPS.has(path):
+		selected_map_path = path
+		lobby_map_changed.emit(path)
 
 
 @rpc("any_peer", "reliable")
@@ -832,7 +881,8 @@ func _rpc_start_match(
 	peer_ids: PackedInt32Array,
 	slot_ids: PackedInt32Array,
 	kinds: PackedInt32Array,
-	passive_ai_test: bool = false
+	passive_ai_test: bool = false,
+	map_path: String = MAP_PATH
 ) -> void:
 	self.passive_ai_test = passive_ai_test
 	var my_id := multiplayer.get_unique_id()
@@ -841,10 +891,10 @@ func _rpc_start_match(
 			local_slot = slot_ids[i]
 			break
 	match_starting.emit()
-	_start_loading(kinds)
+	_start_loading(kinds, map_path)
 
 
-func _start_loading(kinds: PackedInt32Array) -> void:
+func _start_loading(kinds: PackedInt32Array, map_path: String = MAP_PATH) -> void:
 	var MatchSettings = load("res://source/data-model/MatchSettings.gd")
 	var PlayerSettings = load("res://source/data-model/PlayerSettings.gd")
 	var LoadingScene = load("res://source/main-menu/Loading.tscn")
@@ -878,7 +928,7 @@ func _start_loading(kinds: PackedInt32Array) -> void:
 		match_settings.players.append(player_settings)
 	var loading = LoadingScene.instantiate()
 	loading.match_settings = match_settings
-	loading.map_path = MAP_PATH
+	loading.map_path = validated_map_path(map_path)
 	var tree := get_tree()
 	# 复核 2026-08-31：重开局时旧 Match 尚未释放完，新 Match 会被改名 @Match@2，
 	# 与服务器约定的 /root/Match/NetSync RPC 路径永久错开——表现为「单位点不动」。

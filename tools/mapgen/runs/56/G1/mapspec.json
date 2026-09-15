@@ -1,0 +1,148 @@
+{
+ "accepted": false,
+ "adjacent_angle_gaps_deg": [
+  19.7785,
+  101.1521,
+  104.8241,
+  134.2452
+ ],
+ "algo_version": "2.0.0",
+ "attempts": 200,
+ "center_dists": [
+  84.3121,
+  115.1168,
+  130.3666,
+  110.109
+ ],
+ "constraints": {
+  "angle_gap": {
+   "limit": [
+    45.0,
+    150.0
+   ],
+   "pass": false,
+   "value": [
+    19.7785,
+    134.2452
+   ]
+  },
+  "center_gap": {
+   "limit": 0.0,
+   "pass": true,
+   "value": 84.3121
+  },
+  "center_ratio": {
+   "limit": 99.0,
+   "pass": true,
+   "value": 1.5462
+  },
+  "margin": {
+   "limit": 12.0,
+   "pass": true,
+   "value": 12.9249
+  },
+  "min_pair": {
+   "limit": 89.6,
+   "pass": false,
+   "value": 38.9946
+  },
+  "nn_ratio": {
+   "limit": 1.3,
+   "pass": false,
+   "value": 4.897
+  },
+  "territory_ratio": {
+   "cells": [
+    25439,
+    9246,
+    17257,
+    13594
+   ],
+   "limit": 1.3,
+   "pass": false,
+   "value": 2.7514
+  }
+ },
+ "corner_flags": [
+  false,
+  false,
+  true,
+  false
+ ],
+ "gate": "G1",
+ "gate_seed": 7524782411758933686,
+ "master_seed": 56,
+ "min_pair": 38.9946,
+ "pair_dist_matrix": [
+  [
+   Infinity,
+   155.2897,
+   198.6006,
+   169.6349
+  ],
+  [
+   155.2897,
+   Infinity,
+   217.4676,
+   38.9946
+  ],
+  [
+   198.6006,
+   217.4676,
+   Infinity,
+   190.9574
+  ],
+  [
+   169.6349,
+   38.9946,
+   190.9574,
+   Infinity
+  ]
+ ],
+ "params": {
+  "angle_max": 150.0,
+  "angle_min": 45.0,
+  "candidates": 32,
+  "center_gap": 0.0,
+  "center_ratio": 99.0,
+  "margin": 12.0,
+  "max_attempts": 200,
+  "min_pair_factor": 0.35,
+  "nn_ratio": 1.3,
+  "territory_ratio": 1.3,
+  "top_frac": 0.7
+ },
+ "polar_angles_deg": [
+  -167.3055,
+  91.5423,
+  -33.0603,
+  71.7638
+ ],
+ "reject_reason": "min_pair",
+ "rot_sym_err": 0.2169,
+ "sampler": "A",
+ "starts": [
+  [
+   45.75,
+   109.47
+  ],
+  [
+   124.9,
+   243.08
+  ],
+  [
+   237.26,
+   56.88
+  ],
+  [
+   162.46,
+   232.58
+  ]
+ ],
+ "territory_cells": [
+  25439,
+  9246,
+  17257,
+  13594
+ ]
+}

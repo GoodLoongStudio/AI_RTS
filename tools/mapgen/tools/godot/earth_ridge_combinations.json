@@ -1,0 +1,7 @@
+{
+  "variants": [
+    {"id":"arc_ridge","label":"弧形山脊","shape":"arc","radius":38.0,"pieces":[{"x":0,"z":0,"angle":0,"length_m":102,"width_m":31,"height_m":25,"bend_m":0}],"probes":[[0,8],[-27,-4],[27,-4]]},
+    {"id":"offset_ridges","label":"错列双山脊","shape":"pieces","pieces":[{"x":-14,"z":-23,"angle":-0.17,"length_m":100,"width_m":31,"height_m":25,"bend_m":2.8},{"x":17,"z":24,"angle":0.15,"length_m":90,"width_m":29,"height_m":23,"bend_m":3.0}],"probes":[[-14,-23],[17,24]]},
+    {"id":"mountain_cluster","label":"独立山群","shape":"pieces","pieces":[{"x":-42,"z":-23,"angle":-0.35,"length_m":47,"width_m":34,"height_m":24,"bend_m":2.0},{"x":15,"z":-27,"angle":0.20,"length_m":46,"width_m":37,"height_m":28,"bend_m":1.5},{"x":40,"z":24,"angle":-0.75,"length_m":42,"width_m":30,"height_m":22,"bend_m":1.0},{"x":-20,"z":26,"angle":0.37,"length_m":48,"width_m":36,"height_m":26,"bend_m":1.8}],"probes":[[-42,-23],[15,-27],[40,24],[-20,26]]}
+  ]
+}

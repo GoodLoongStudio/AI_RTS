@@ -1,60 +1,45 @@
-extends "res://source/ui/MenuPage.gd"
+extends "res://source/main-menu/MatchSetupPage.gd"
 
+## 在线匹配页（统一大厅布局的 online 实例，共享布局见 MatchSetupPage.tscn/.gd）。
+##
 ## RA3 式联机大厅：左侧 4 个玩家槽位（颜色/昵称/准备状态，房主可加撤 AI），
-## 右侧地图卡，顶部昵称，底部连接与开局按钮。槽位状态由服务器全量广播。
-
-const SLOT_EMPTY := 0
-const SLOT_HUMAN := 1
-const SLOT_AI := 2
-
-@onready var _host_edit: LineEdit = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/HostRow/HostEdit
-@onready var _port_edit: LineEdit = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/HostRow/PortEdit
-@onready var _status_label: Label = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/StatusLabel
-@onready var _ready_button: Button = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ReadyRow/ReadyButton
-@onready var _solo_button: Button = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ReadyRow/SoloButton
-@onready var _join_button: Button = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/JoinRow/JoinButton
-@onready var _name_edit: LineEdit = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/TitleRow/NameRow/NameEdit
-@onready var _slots_box: VBoxContainer = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/MainRow/SlotsBox
-
-var _slot_rows: Array = []
-var _last_connection_state := false
+## 右侧地图卡（预览/名称/人数/尺寸，仅房主可选），顶部昵称，底部准备与房主开局。
+## 槽位与地图状态由服务器全量广播；客户端只读展示，不覆盖服务器状态。
 
 
-func _ready() -> void:
+func _extend_ready() -> void:
 	_host_edit.text = NetSession.DEFAULT_HOST
 	_port_edit.text = str(NetSession.DEFAULT_PORT)
 	_name_edit.text = NetSession.local_player_name
 	_status_label.text = NetSession.get_status()
 	NetSession.status_changed.connect(_on_status_changed)
 	NetSession.lobby_updated.connect(_on_lobby_updated)
-	_build_slot_rows()
+	NetSession.lobby_map_changed.connect(_on_lobby_map_changed)
 	_refresh_connection_ui()
+	var args := OS.get_cmdline_user_args()
 	# 正式联机入口默认直接连接云端局服，避免玩家误进入本机 listen server。
 	# 自动化仍可用 --autojoin 覆盖为连接后立即开局；本机房仅显式调试参数开放。
-	if not NetSession.is_networked() and not OS.get_cmdline_user_args().has("--allow-local-host") \
-			and not OS.get_cmdline_user_args().has("--autolobby"):
+	if not NetSession.is_networked() and not args.has("--allow-local-host") \
+			and not args.has("--autolobby"):
 		call_deferred("_on_join_button_pressed")
-	# 调试钩子：-- --autolobby 直接本机开房，供自动化截图与自测。
-	if "--autolobby" in OS.get_cmdline_user_args():
-		NetSession.host(_port())
+	# 调试钩子：-- --autolobby 直接本机开房（可带 --port N 指定端口），供自动化截图与自测。
+	if args.has("--autolobby"):
+		var port := _automation_port()
+		_port_edit.text = str(port)
+		NetSession.host(port)
 	# 调试钩子：-- --autojoin（或 res://autojoin.txt 存在）直接加入默认服务器并立即开局，
 	# 供 Godot MCP 一键开出「已在对局中」的游戏窗口。
-	if "--autojoin" in OS.get_cmdline_user_args():
+	if args.has("--autojoin"):
 		_auto_join_solo()
 	# 调试控制端点已改为 autoload 自挂载（project.godot 注册，带 --debugport 才启用），
 	# 客户端与专用服进程均可使用，此处不再手动挂载。
-	if "--autoshot" in OS.get_cmdline_user_args():
+	if args.has("--autoshot"):
 		_auto_screenshot()
-	if "--smokeclient" in OS.get_cmdline_user_args():
+	if args.has("--smokeclient"):
 		# 冒烟监控挂 root（不随场景切换释放），逻辑全在 SmokeClient.gd。
 		var smoke := Node.new()
 		smoke.set_script(load("res://source/net/SmokeClient.gd"))
 		get_tree().root.add_child.call_deferred(smoke)
-	# 防御性 viewport 适配：菜单面板被 CenterContainer 居中，但若 viewport 极端窄/矮
-	# （如窗口被手动缩很小），custom_minimum_size 写死的宽高仍会越过 viewport 边界，
-	# 导致顶部/底部被裁。clamp 到 viewport - margin 让 panel 永远在屏内。
-	_clamp_to_viewport()
-	get_viewport().size_changed.connect(_clamp_to_viewport)
 
 
 func _process(_delta: float) -> void:
@@ -66,111 +51,24 @@ func _process(_delta: float) -> void:
 		_refresh_connection_ui()
 
 
-func _clamp_to_viewport() -> void:
-	var panel := get_node_or_null("CenterContainer/PanelContainer")
-	if panel == null:
+# ---------------- 地图选择（房主权威 + 客户端只读同步） ----------------
+
+## 房主改图：走服务器权威广播；客户端下拉本身不可用（_map_select.disabled）。
+func _on_map_changed(path: String) -> void:
+	if not NetSession.is_networked() or not NetSession.is_room_owner():
 		return
-	var viewport_rect := get_viewport().get_visible_rect()
-	var margin := 40.0
-	var max_w := maxf(360.0, viewport_rect.size.x - margin * 2.0)
-	var max_h := maxf(360.0, viewport_rect.size.y - margin * 2.0)
-	var cur: Vector2 = panel.custom_minimum_size
-	panel.custom_minimum_size = Vector2(minf(cur.x, max_w), minf(cur.y, max_h))
+	NetSession.set_lobby_map(path)
 
 
-func _auto_screenshot() -> void:
-	await get_tree().create_timer(1.5).timeout
-	await RenderingServer.frame_post_draw
-	var img := get_viewport().get_texture().get_image()
-	img.save_png("G:/AIRTS/临时文件夹/deploy_ai_rts/lobby_preview.png")
-	print("LOBBY_SHOT saved")
-	get_tree().quit()
+## 客户端收到服务器地图同步：只更新展示，不回写服务器状态。
+func _on_lobby_map_changed(path: String) -> void:
+	var idx := _map_paths.find(path)
+	if _map_select != null and idx >= 0:
+		_map_select.select(idx)
+	_refresh_map_view()
 
 
-func _exit_tree() -> void:
-	if NetSession.status_changed.is_connected(_on_status_changed):
-		NetSession.status_changed.disconnect(_on_status_changed)
-	if NetSession.lobby_updated.is_connected(_on_lobby_updated):
-		NetSession.lobby_updated.disconnect(_on_lobby_updated)
-
-
-func _port() -> int:
-	return int(_port_edit.text)
-
-
-func _build_slot_rows() -> void:
-	for i in range(NetSession.MAX_PLAYERS):
-		var panel := PanelContainer.new()
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 10)
-		var color_rect := ColorRect.new()
-		color_rect.custom_minimum_size = Vector2(8, 30)
-		color_rect.color = _slot_color(i)
-		row.add_child(color_rect)
-		var index_label := Label.new()
-		index_label.text = "%d" % (i + 1)
-		row.add_child(index_label)
-		var name_label := Label.new()
-		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		name_label.text = "空位"
-		row.add_child(name_label)
-		var state_label := Label.new()
-		state_label.text = ""
-		row.add_child(state_label)
-		var toggle_button := Button.new()
-		toggle_button.text = "＋AI"
-		toggle_button.visible = false
-		toggle_button.pressed.connect(_on_slot_toggle_pressed.bind(i))
-		row.add_child(toggle_button)
-		panel.add_child(row)
-		_slots_box.add_child(panel)
-		_slot_rows.append({"color": color_rect, "name": name_label, "state": state_label, "toggle": toggle_button})
-
-
-func _slot_color(i: int) -> Color:
-	var colors = Constants.Player.COLORS
-	if i < colors.size():
-		return colors[i]
-	return Color(0.5, 0.5, 0.5)
-
-
-func _on_lobby_updated(slots: Array) -> void:
-	var am_host := NetSession.is_room_owner()
-	for i in range(_slot_rows.size()):
-		if i >= slots.size():
-			continue
-		var entry: Dictionary = slots[i]
-		var kind := int(entry.get("kind", NetSession.SLOT_EMPTY))
-		var row: Dictionary = _slot_rows[i]
-		var name_label: Label = row["name"]
-		var state_label: Label = row["state"]
-		var toggle: Button = row["toggle"]
-		match kind:
-			NetSession.SLOT_HUMAN:
-				name_label.text = str(entry.get("name", "指挥官"))
-				state_label.text = "已准备" if bool(entry.get("ready", false)) else "未准备"
-			NetSession.SLOT_AI:
-				name_label.text = "简单 AI"
-				state_label.text = "补位"
-			_:
-				name_label.text = "空位"
-				state_label.text = ""
-		# 只有房主能切空槽 ↔ AI；人类占用的槽不可动。
-		if am_host and not NetSession.is_dedicated_server():
-			toggle.visible = kind != NetSession.SLOT_HUMAN
-			toggle.text = "撤 AI" if kind == NetSession.SLOT_AI else "＋AI"
-		else:
-			toggle.visible = false
-	_refresh_connection_ui()
-
-
-func _on_slot_toggle_pressed(slot: int) -> void:
-	if slot >= NetSession.last_lobby_slots.size():
-		return
-	var kind := int(NetSession.last_lobby_slots[slot].get("kind", NetSession.SLOT_EMPTY))
-	var next_kind := NetSession.SLOT_EMPTY if kind == NetSession.SLOT_AI else NetSession.SLOT_AI
-	NetSession.host_set_slot_kind(slot, next_kind)
-
+# ---------------- 连接状态与大厅控件 ----------------
 
 func _refresh_connection_ui() -> void:
 	var connected := NetSession.is_networked()
@@ -179,25 +77,18 @@ func _refresh_connection_ui() -> void:
 	# 两段式流程（2026-09-05）：未连接只给「加入局服」；
 	# 进房后才出现 地图/槽位/准备，开局按钮仅房主可见。
 	_join_button.visible = not connected
-	var local_host_button := get_node_or_null(
-		"CenterContainer/PanelContainer/MarginContainer/VBoxContainer/JoinRow/LocalHostButton"
-	) as Button
-	if local_host_button != null:
-		# 本机 listen server 不属于 Hermes 云端托管链路；仅显式调试时显示。
-		local_host_button.visible = not connected and OS.get_cmdline_user_args().has("--allow-local-host")
-	_host_edit.get_parent().visible = not connected
+	# 本机 listen server 不属于 Hermes 云端托管链路；仅显式调试时显示。
+	_local_host_button.visible = not connected \
+		and OS.get_cmdline_user_args().has("--allow-local-host")
+	_host_row.visible = not connected
 	_ready_button.visible = connected
-	var solo_btn := get_node_or_null("CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ReadyRow/SoloButton") as Button
-	if solo_btn != null:
-		solo_btn.visible = connected and is_host
-	var main_row := get_node_or_null("CenterContainer/PanelContainer/MarginContainer/VBoxContainer/MainRow")
-	if main_row != null:
-		main_row.visible = connected
+	_start_button.visible = connected and is_host
+	_main_row.visible = connected
 	_name_edit.editable = not connected
-
-
-func _on_name_edit_text_changed(new_text: String) -> void:
-	NetSession.set_local_name(new_text)
+	if _map_select != null:
+		_map_select.disabled = not connected or not is_host
+	# 连接/断开/重连后都要把准备按钮文案拉回权威状态。
+	_refresh_ready_button()
 
 
 func _on_status_changed(text: String) -> void:
@@ -219,8 +110,7 @@ func _on_join_button_pressed() -> void:
 
 
 ## 本机开房（单人测试）：不连云服，本机即服即玩；默认只保留本机人类。
-## AI 必须由房主在槽位上显式点击「＋AI」后才加入，避免单人演示出现
-## 未请求的电脑玩家和第三方单位。
+## AI 必须由房主在槽位上显式点击「＋AI」后才加入。
 func _on_local_host_button_pressed() -> void:
 	NetSession.clear_auto_start_intent()
 	var err := NetSession.host(_port())
@@ -231,14 +121,68 @@ func _on_local_host_button_pressed() -> void:
 
 
 func _on_ready_button_pressed() -> void:
-	NetSession.set_ready(true)
-	_ready_button.text = "已准备"
+	# 准备状态必须**可撤销**（用户 2026-09-15 要求：“已准备也要能取消准备”）。
+	# 判据取**权威大厅快照**而不是本地翻转：服务器可能拒绝、或状态被他人改动，
+	# 本地翻转会与实际状态脱节（按钮显示“已准备”而服务器认的是“未准备”）。
+	NetSession.set_ready(not _local_ready())
+	_refresh_ready_button()
 
 
-func _on_solo_button_pressed() -> void:
+## 本机玩家（自身槽位）当前是否已准备；没有权威快照时按未准备处理。
+func _local_ready() -> bool:
+	var slot := NetSession.local_slot
+	if slot < 0 or slot >= NetSession.last_lobby_slots.size():
+		return false
+	return bool((NetSession.last_lobby_slots[slot] as Dictionary).get("ready", false))
+
+
+## 准备按钮文案由权威状态驱动：未准备 →「准备」，已准备 →「取消准备」。
+## 文案写清“点下去会发生什么”，玩家不必猜同一个按钮第二次点的语义。
+func _refresh_ready_button() -> void:
+	if not NetSession.is_networked():
+		_ready_button.text = "准备"
+		return
+	_ready_button.text = "取消准备" if _local_ready() else "准备"
+
+
+## 大厅广播后同步按钮文案（槽位卡片由父类刷新，这里只补按钮）。
+func _on_lobby_updated(slots: Array) -> void:
+	super(slots)
+	_refresh_ready_button()
+
+
+func _on_start_button_pressed() -> void:
 	# 立即开局 = 正式单人对局：不隐式添加 AI，开局仅主基地+1无人机+2工人。
 	# 需要电脑时由房主先在大厅槽位显式添加 AI，再点击此按钮。
 	NetSession.start_solo(false, false)
+
+
+func _on_name_edit_text_changed(new_text: String) -> void:
+	NetSession.set_local_name(new_text)
+
+
+func _port() -> int:
+	return int(_port_edit.text)
+
+
+## 自动化端口覆盖：--port N 优先（供验收脚本隔离端口，避免占用玩家/默认端口）。
+func _automation_port() -> int:
+	var args := OS.get_cmdline_user_args()
+	var index := args.find("--port")
+	if index >= 0 and index + 1 < args.size() and str(args[index + 1]).is_valid_int():
+		return int(args[index + 1])
+	return _port()
+
+
+# ---------------- 调试钩子 ----------------
+
+func _auto_screenshot() -> void:
+	await get_tree().create_timer(1.5).timeout
+	await RenderingServer.frame_post_draw
+	var img := get_viewport().get_texture().get_image()
+	img.save_png("G:/AIRTS/临时文件夹/deploy_ai_rts/lobby_preview.png")
+	print("LOBBY_SHOT saved")
+	get_tree().quit()
 
 
 ## 调试钩子：--autojoin 或 res://autojoin.txt 存在时，直接加入默认服务器并立即开局，
@@ -272,17 +216,3 @@ func _auto_join_solo() -> void:
 			NetSession.start_solo()
 			return
 	_status_label.text = "自动加入超时"
-
-
-func _on_back_button_pressed() -> void:
-	# 复核 2026-09-02：返回在任何连接状态下都必须生效。先断会话（幂等安全），
-	# 切场景用 call_deferred 排到帧末——断连过程中的信号重入不再可能打断导航。
-	if NetSession.is_networked() and not NetSession.is_dedicated_server():
-		NetSession.disconnect_session()
-	get_tree().change_scene_to_file.call_deferred("res://source/main-menu/Main.tscn")
-
-
-## ESC 回退（MenuPage 基类）：与"返回"按钮同一条路径（断开会话 + 回主菜单）。
-func _on_escape() -> bool:
-	_on_back_button_pressed()
-	return true

@@ -1,0 +1,20 @@
+{
+ "algo_version": "7.2.0",
+ "controls": {
+  "cover_cluster_max": 10,
+  "landform_elongation": 1.2,
+  "landform_recess": 0.2,
+  "landform_softness": 0.16,
+  "layout_attempts": 8,
+  "neutral_plateau_scale": 1.0,
+  "obstacle_percent": 15,
+  "plateau_max": 5,
+  "plateau_ramp_width": 8,
+  "river_bend_scale": 1.0,
+  "river_crossings": 3,
+  "river_width": 14
+ },
+ "layout_seed": 16,
+ "schema_version": 1,
+ "terrain_seed": 0
+}

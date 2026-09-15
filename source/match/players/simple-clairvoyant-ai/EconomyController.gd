@@ -11,16 +11,19 @@ const FIELD_CONSTRUCTION := 1 << 4
 const FIELD_PRODUCTION := 1 << 5
 const FIELD_ORDER := 1 << 6
 const REFRESH_INTERVAL_S := 0.5
+const MAX_PLACEMENT_PROBES := 8
+const PLACEMENT_BACKOFF_MS := 8000
 const COMMAND_CENTER_TYPE_ID := "command_center"
 const WORKER_TYPE_ID := "worker"
+## 统一货币（2026-09-14）：B 已从玩法移除，AI 只认 resource_a。
 const RESOURCE_A_TYPE_ID := "resource_a"
-const RESOURCE_B_TYPE_ID := "resource_b"
 
 var _world_query_runtime = null
 var _query_session_id := ""
 var _command_gateway = null
 var _number_of_pending_cc_resource_requests := 0
 var _number_of_pending_worker_resource_requests := 0
+var _placement_backoff_until_ms := 0
 
 @onready var _ai = get_parent()
 @onready var _balance = find_parent("Match").get_node("BalanceConfigRuntime")
@@ -85,6 +88,8 @@ func _count_idle_workers(own_entities: Array) -> int:
 ## - 有 CC 时条件触发：未达上限 + 无待处理扩张请求 + 工人全部在岗 + 双资源余额过门槛。
 ## 一次只请求一座（串行扩张），规避 ConstructionWorksController 单工地短路。
 func _enforce_number_of_ccs(own_entities: Array, idle_worker_count: int):
+	if Time.get_ticks_msec() < _placement_backoff_until_ms:
+		return
 	var current_count := own_entities.filter(
 		func(entity): return entity.get("type_id", "") == COMMAND_CENTER_TYPE_ID
 	).size()
@@ -105,17 +110,19 @@ func _enforce_number_of_ccs(own_entities: Array, idle_worker_count: int):
 	_number_of_pending_cc_resource_requests += 1
 
 
-## 双资源余额均达到扩张门槛才允许开分矿。
+## 扩张门槛：只要求资源 A 达到 _ai.expansion_resource_threshold。
+##
+## 【统一货币 2026-09-14】原口径是"resource_a 与 resource_b 都 ≥ 门槛"（A=资金、B=电力的
+## 双资源时代产物）。B 已从玩法移除（地图无 B 矿、权威观测只导出 A）⇒ 若继续 `and` B，
+## 这个条件**永远不会成立、AI 永不扩张**。门槛语义不变：确认资源已稳定入账
+## （不是"攒够建造费"——建造费另经 `resources_required` 请求）。
 func _economy_meets_expansion_threshold() -> bool:
 	var result: Dictionary = _world_query_runtime.GetOwnEconomy(_query_session_id)
 	if result.get("status", "") != "Accepted":
 		return false
 	var balances: Dictionary = result.get("economy", {}).get("balances", {})
 	var threshold: float = _ai.expansion_resource_threshold
-	return (
-		balances.get("resource_a", 0.0) >= threshold
-		and balances.get("resource_b", 0.0) >= threshold
-	)
+	return balances.get("resource_a", 0.0) >= threshold
 
 
 ## 统计已部署及所有生产队列中的 Worker，并为数量缺口提交资源请求。
@@ -157,7 +164,6 @@ func _assign_idle_workers_to_resources(own_entities: Array):
 	workers.sort_custom(func(left, right): return left["id"] < right["id"])
 	var assigned_counts_by_type := {
 		RESOURCE_A_TYPE_ID: 0,
-		RESOURCE_B_TYPE_ID: 0,
 	}
 	var assigned_counts_by_node := {}
 	for worker in workers:
@@ -176,12 +182,8 @@ func _assign_idle_workers_to_resources(own_entities: Array):
 	for worker in workers:
 		if worker.get("order", null) != null:
 			continue
-		var preferred_type := (
-			RESOURCE_A_TYPE_ID
-			if assigned_counts_by_type[RESOURCE_A_TYPE_ID] <= assigned_counts_by_type[RESOURCE_B_TYPE_ID]
-			else RESOURCE_B_TYPE_ID
-		)
-		var resource := _find_visible_resource(worker["position"], preferred_type, assigned_counts_by_node)
+		# 统一货币：场上只有资源 A 一种矿，原来在这里做的 A/B 均衡分配不再需要。
+		var resource := _find_visible_resource(worker["position"], RESOURCE_A_TYPE_ID, assigned_counts_by_node)
 		if resource.is_empty():
 			continue
 		var result: Dictionary = _command_gateway.Gather(
@@ -210,8 +212,7 @@ func _find_visible_resource(
 		push_warning("rule AI resource query was rejected: %s" % result.get("error", "Unknown"))
 		return {}
 	var resources: Array = result["entities"].filter(
-		func(entity):
-			return entity.get("type_id", "") in [RESOURCE_A_TYPE_ID, RESOURCE_B_TYPE_ID]
+		func(entity): return entity.get("type_id", "") == RESOURCE_A_TYPE_ID
 	)
 	if resources.is_empty():
 		return {}
@@ -250,11 +251,13 @@ func _try_produce_worker(own_entities: Array):
 		WORKER_TYPE_ID
 	)
 	if not result.get("accepted", false):
-		push_warning("规则 AI 生产 Worker 被拒绝：%s" % result)
+		print("规则 AI 生产 Worker 被拒绝：%s" % result)
 
 
 ## 围绕指定中心（扩张=选定的远处资源簇；重建=残余 Worker）尝试放置新 CommandCenter。
 func _try_construct_cc(own_entities: Array, preferred_center: Vector3 = Vector3.INF):
+	if Time.get_ticks_msec() < _placement_backoff_until_ms:
+		return
 	var workers: Array = own_entities.filter(
 		func(entity): return entity.get("type_id", "") == WORKER_TYPE_ID
 	)
@@ -277,7 +280,11 @@ func _try_construct_cc(own_entities: Array, preferred_center: Vector3 = Vector3.
 			candidates.append(center + Vector3(cos(angle) * radius, 0.0, sin(angle) * radius))
 	candidates.shuffle()
 	var last_result: Dictionary = {}
+	var probes := 0
 	for position in candidates:
+		if probes >= MAX_PLACEMENT_PROBES:
+			break
+		probes += 1
 		last_result = _command_gateway.PlaceStructure(
 			COMMAND_CENTER_TYPE_ID,
 			Transform3D(Basis.IDENTITY, position)
@@ -286,7 +293,8 @@ func _try_construct_cc(own_entities: Array, preferred_center: Vector3 = Vector3.
 			return
 		if last_result.get("primary_issue", "") == "InsufficientResources":
 			break
-	push_warning("规则 AI 放置 CommandCenter 被拒绝：%s" % last_result)
+	_placement_backoff_until_ms = Time.get_ticks_msec() + PLACEMENT_BACKOFF_MS
+	print("规则 AI 放置 CommandCenter 被拒绝：%s" % last_result)
 
 
 ## 扩张选址：以主 CC 为心做大半径扫描，取「距所有己方 CC 至少 20m」中最远的资源簇位置。
@@ -309,7 +317,7 @@ func _find_expansion_site(own_entities: Array) -> Vector3:
 	var best_position := Vector3.INF
 	var best_distance := 400.0  # 20m 平方下限：新基地必须与现有基地保持距离
 	for entity in result.get("entities", []):
-		if entity.get("type_id", "") not in [RESOURCE_A_TYPE_ID, RESOURCE_B_TYPE_ID]:
+		if entity.get("type_id", "") != RESOURCE_A_TYPE_ID:
 			continue
 		var position: Vector3 = entity["position"]
 		var too_close := false

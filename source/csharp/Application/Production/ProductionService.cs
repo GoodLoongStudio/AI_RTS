@@ -15,6 +15,8 @@ public sealed class ProductionService : IProductionService
     private readonly IResourceAccountService _accounts;
     private readonly Dictionary<ProductionItemId, ItemRuntime> _items = new();
     private readonly Dictionary<UnitId, List<ProductionItemId>> _queues = new();
+    private readonly Dictionary<ProductionItemId, long> _nextDeployTick = new();
+    private const long DeployRetryIntervalTicks = 10;
     private long _lastAdvancedTick = -1;
 
     /// <summary>建立使用统一定义、生产建筑、部署和资源账户端口的 Match 级服务。</summary>
@@ -255,12 +257,19 @@ public sealed class ProductionService : IProductionService
     /// <summary>尝试部署队首；受阻时保留状态，成功时只完成一次并启动下一项。</summary>
     private void TryComplete(ProductionItemSnapshot item, long simulationTick)
     {
+        if (_nextDeployTick.TryGetValue(item.ItemId, out var nextTick) &&
+            simulationTick < nextTick)
+        {
+            return;
+        }
         var deployment = _deployment.TryDeploy(item);
         if (deployment.Status != ProductionDeploymentStatus.Deployed ||
             deployment.ProducedUnitId is not { } producedUnitId)
         {
+            _nextDeployTick[item.ItemId] = checked(simulationTick + DeployRetryIntervalTicks);
             return;
         }
+        _nextDeployTick.Remove(item.ItemId);
         item = Update(item with
         {
             State = ProductionItemState.Completed,

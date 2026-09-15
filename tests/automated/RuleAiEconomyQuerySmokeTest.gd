@@ -13,12 +13,16 @@ var _failures := 0
 func _ready():
 	var match_instance = MatchScene.instantiate()
 	add_child(match_instance)
-	await get_tree().process_frame
-	await get_tree().physics_frame
-	await get_tree().process_frame
-	await get_tree().process_frame
-
-	var rule_ai = match_instance.get_node("Players/SimpleClairvoyantAI")
+	# 不能假设固定帧数就绪：`Match._ready` 的首个 await 是导航烘焙（Match.gd:80
+	# `await _setup_subsystems_dependent_on_map()`），玩家创建、查询运行时注入与
+	# C# 资源账户都排在它之后；固定等 4 帧时会读到 null，第 33 行对 null 调用
+	# GetOwnForces 会崩断 _ready（无完成标记 → 测试挂到超时）。
+	var rule_ai = await _await_rule_ai_ready(match_instance)
+	if rule_ai == null or rule_ai.get("_world_query_runtime") == null:
+		print("Rule AI economy query smoke test completed: %d failure(s)" % (_failures + 1))
+		push_error("Match 未在超时内完成规则 AI 注入（查询运行时/资源账户）")
+		SmokeTestExit.request(get_tree(), 1)
+		return
 	_check(rule_ai.get("_world_query_runtime") != null,
 		"Match 应向传统规则 AI 注入公共查询 Runtime")
 	_check(not String(rule_ai.get("_query_session_id")).is_empty(),
@@ -152,3 +156,20 @@ func _check(condition: bool, message: String):
 	_failures += 1
 	print("FAIL: %s" % message)
 	push_error(message)
+
+
+## 等待 Match 完成异步初始化（玩家创建 + 查询运行时注入 + C# 资源账户）。
+## 判定取注入链路的两个终态；超时返回当前节点并报错，不会无限等待（不掩盖真实失败）。
+func _await_rule_ai_ready(match_instance: Node, timeout_s := 30.0):
+	var waited := 0.0
+	var rule_ai = null
+	while waited < timeout_s:
+		rule_ai = match_instance.get_node_or_null("Players/SimpleClairvoyantAI")
+		if rule_ai != null \
+				and rule_ai.get("_world_query_runtime") != null \
+				and rule_ai.get("_economy_runtime") != null:
+			return rule_ai
+		await get_tree().create_timer(0.1).timeout
+		waited += 0.1
+	push_error("Match 未在 %.0fs 内完成规则 AI 注入（查询运行时/资源账户）" % timeout_s)
+	return rule_ai

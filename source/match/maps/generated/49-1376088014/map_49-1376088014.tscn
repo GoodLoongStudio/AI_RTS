@@ -3,7 +3,7 @@
 [ext_resource type="PackedScene" uid="uid://b7c1crf36x1li" path="res://source/match/Map.tscn" id="1_map"]
 [ext_resource type="Material" uid="uid://co8vfcoqqs5i8" path="res://source/match/resources/materials/terrain.material.tres" id="2_mat"]
 [ext_resource type="PackedScene" uid="uid://bf3jjdafqvh0w" path="res://source/match/units/non-player/ResourceA.tscn" id="3_resa"]
-[ext_resource type="PackedScene" uid="uid://bufgjfa3ne3uk" path="res://source/match/units/non-player/ResourceB.tscn" id="4_resb"]
+
 [ext_resource type="Script" path="res://source/match/maps/generated/GeneratedTerrain.gd" id="5_terrain"]
 [ext_resource type="Script" path="res://source/match/maps/generated/ApplyAtlas.gd" id="6_apply"]
 [ext_resource type="Texture2D" path="res://assets/models/scifi-worlds/generated/ridge_rock.png" id="7_ridge_tex"]
@@ -27503,26 +27503,14 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 233.500, 0.600, 208.500)
 [node name="ResourceA9" parent="Resources" instance=ExtResource("3_resa")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 198.500, 0.600, 58.500)
 
-[node name="ResourceB10" parent="Resources" instance=ExtResource("4_resb")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 203.500, 0.600, 54.500)
-
 [node name="ResourceA11" parent="Resources" instance=ExtResource("3_resa")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 85.500, 0.600, 186.500)
-
-[node name="ResourceB12" parent="Resources" instance=ExtResource("4_resb")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 79.500, 0.600, 181.500)
 
 [node name="ResourceA13" parent="Resources" instance=ExtResource("3_resa")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52.500, 0.600, 94.500)
 
-[node name="ResourceB14" parent="Resources" instance=ExtResource("4_resb")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44.500, 0.600, 89.500)
-
 [node name="ResourceA15" parent="Resources" instance=ExtResource("3_resa")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 238.500, 0.600, 169.500)
-
-[node name="ResourceB16" parent="Resources" instance=ExtResource("4_resb")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 217.500, 0.600, 168.500)
 
 [node name="ResourceA17" parent="Resources" instance=ExtResource("3_resa")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 117.500, 3.239, 32.500)
@@ -27535,18 +27523,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 152.500, 3.600, 214.500)
 
 [node name="ResourceA20" parent="Resources" instance=ExtResource("3_resa")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 56.500, 0.600, 152.500)
-
-[node name="ResourceB21" parent="Resources" instance=ExtResource("4_resb")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 115.500, 0.600, 51.500)
-
-[node name="ResourceB22" parent="Resources" instance=ExtResource("4_resb")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 203.500, 0.600, 130.500)
-
-[node name="ResourceB23" parent="Resources" instance=ExtResource("4_resb")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 149.500, 3.600, 212.500)
-
-[node name="ResourceB24" parent="Resources" instance=ExtResource("4_resb")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52.500, 0.600, 150.500)
 
 [node name="Decorations" parent="." index="3"]
 script = ExtResource("6_apply")

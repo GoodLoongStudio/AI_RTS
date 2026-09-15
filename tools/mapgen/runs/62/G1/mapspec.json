@@ -1,0 +1,148 @@
+{
+ "accepted": false,
+ "adjacent_angle_gaps_deg": [
+  57.0244,
+  66.0741,
+  87.8238,
+  149.0778
+ ],
+ "algo_version": "2.0.0",
+ "attempts": 200,
+ "center_dists": [
+  124.5886,
+  97.1574,
+  50.1308,
+  122.9043
+ ],
+ "constraints": {
+  "angle_gap": {
+   "limit": [
+    45.0,
+    150.0
+   ],
+   "pass": true,
+   "value": [
+    57.0244,
+    149.0778
+   ]
+  },
+  "center_gap": {
+   "limit": 0.0,
+   "pass": true,
+   "value": 50.1308
+  },
+  "center_ratio": {
+   "limit": 99.0,
+   "pass": true,
+   "value": 2.4853
+  },
+  "margin": {
+   "limit": 12.0,
+   "pass": true,
+   "value": 28.8146
+  },
+  "min_pair": {
+   "limit": 89.6,
+   "pass": false,
+   "value": 81.5519
+  },
+  "nn_ratio": {
+   "limit": 1.3,
+   "pass": false,
+   "value": 2.0588
+  },
+  "territory_ratio": {
+   "cells": [
+    12344,
+    11437,
+    25269,
+    16486
+   ],
+   "limit": 1.3,
+   "pass": false,
+   "value": 2.2094
+  }
+ },
+ "corner_flags": [
+  true,
+  false,
+  false,
+  true
+ ],
+ "gate": "G1",
+ "gate_seed": 6717029860143093508,
+ "master_seed": 62,
+ "min_pair": 81.5519,
+ "pair_dist_matrix": [
+  [
+   Infinity,
+   123.0595,
+   157.6602,
+   171.6533
+  ],
+  [
+   123.0595,
+   Infinity,
+   81.5519,
+   214.4562
+  ],
+  [
+   157.6602,
+   81.5519,
+   Infinity,
+   167.8978
+  ],
+  [
+   171.6533,
+   214.4562,
+   167.8978,
+   Infinity
+  ]
+ ],
+ "params": {
+  "angle_max": 150.0,
+  "angle_min": 45.0,
+  "candidates": 32,
+  "center_gap": 0.0,
+  "center_ratio": 99.0,
+  "margin": 12.0,
+  "max_attempts": 200,
+  "min_pair_factor": 0.35,
+  "nn_ratio": 1.3,
+  "territory_ratio": 1.3,
+  "top_frac": 0.7
+ },
+ "polar_angles_deg": [
+  127.2404,
+  -166.6855,
+  -109.6612,
+  39.4166
+ ],
+ "reject_reason": "min_pair",
+ "rot_sym_err": 0.1861,
+ "sampler": "A",
+ "starts": [
+  [
+   52.6,
+   227.19
+  ],
+  [
+   33.45,
+   105.63
+  ],
+  [
+   111.13,
+   80.79
+  ],
+  [
+   222.95,
+   206.04
+  ]
+ ],
+ "territory_cells": [
+  12344,
+  11437,
+  25269,
+  16486
+ ]
+}

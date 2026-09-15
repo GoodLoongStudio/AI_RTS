@@ -68,6 +68,13 @@ MERGEABLE_ACTIONS = (
     "defend", "hold", "stop",
 )
 
+#: 同一(动作 + 目标 + 任务)的**合并单位数上限**：超过就**另起一组**（同目标拆成多条命令）。
+#: 为什么必须限（2026-09-15 用户实测："AI 总把部队聚在一起"）：行为树是"每单位一条意图"，
+#: 同目标的全被并成一条"大军"命令 —— 十几个单位同进同退、一起抱团。
+#: 取 4：与验收口径"2~4 个单位即可独立行动"一致；真正需要集火同一目标时
+#: （`attack` 同 entity_id）仍在同一目标下拆组，各组各自推进。
+MERGE_UNIT_LIMIT = 4
+
 
 def merge_same_orders(
     candidates: List[Dict[str, Any]],
@@ -104,7 +111,8 @@ def merge_same_orders(
     - `unit_ids` 去重并**排序**（确定性，便于测试与排查）。
     """
     merged: List[Dict[str, Any]] = []
-    heads: Dict[Tuple[str, str, str, bool], Dict[str, Any]] = {}
+    #: 一个合并键可以有**多个组**：每组最多 `MERGE_UNIT_LIMIT` 个单位（见常量注释）。
+    groups: Dict[Tuple[str, str, str, bool], List[Dict[str, Any]]] = {}
     traces: List[Dict[str, Any]] = []
     for intent in candidates:
         action = str(intent.get("action", ""))
@@ -118,15 +126,24 @@ def merge_same_orders(
                json.dumps(intent.get("target") or {}, ensure_ascii=False, sort_keys=True),
                str(intent.get("task_id", "")),
                bool(intent.get("emergency", False)))
-        head = heads.get(key)
+        incoming = [str(u) for u in (intent.get("unit_ids") or [])]
+        bucket = groups.setdefault(key, [])
+        # 挑一个"并进去后仍不超上限"的组；没有就**另起一组**（同目标拆成多条命令）。
+        head = next((group for group in bucket
+                     if len(set(group["unit_ids"]) | set(incoming)) <= MERGE_UNIT_LIMIT),
+                    None)
         if head is None:
             clone = dict(intent)
-            clone["unit_ids"] = sorted({str(u) for u in (intent.get("unit_ids") or [])})
+            clone["unit_ids"] = sorted(set(incoming))
             clone["merged_from"] = [str(intent.get("intent_id", ""))]
-            heads[key] = clone
+            bucket.append(clone)
             merged.append(clone)
+            if len(bucket) > 1:
+                # 第 2 组起留痕：验收要能看出"同目标被拆成多组、不再是抱团大军"。
+                traces.append({"split": True, "into": str(clone.get("intent_id", "")),
+                               "action": action, "units": list(clone["unit_ids"]),
+                               "group": len(bucket)})
             continue
-        incoming = [str(u) for u in (intent.get("unit_ids") or [])]
         head["unit_ids"] = sorted(set(head["unit_ids"]) | set(incoming))
         head["expires_tick"] = min(int(head.get("expires_tick", 0)),
                                    int(intent.get("expires_tick", 0)))

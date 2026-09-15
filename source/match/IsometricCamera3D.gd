@@ -2,6 +2,9 @@ extends Camera3D
 
 const EXPECTED_X_ROTATION_DEGREES = -45.0
 const EXPECTED_PROJECTION = PROJECTION_ORTHOGONAL
+## 所有地图开局同一档：正交 size 与镜头离地高度。
+const OPENING_SIZE := 21.25
+const OPENING_HEIGHT := 25.0
 
 @export_group("Size")
 @export var size_min = 1
@@ -45,7 +48,7 @@ func _ready():
 		is_equal_approx(rotation_degrees.x, EXPECTED_X_ROTATION_DEGREES), "unexptected X rotation"
 	)
 	_apply_user_camera_options()
-	_align_camera_properties_to_current_size()
+	apply_unified_opening_view()
 	_input_runtime.connect("ActionPressed", _on_input_action_pressed)
 	MatchSignals.unit_died.connect(_on_followed_unit_died)
 	# 窗口大小变化会改变宽高比，拉远上限与视野夹紧需随之重算。
@@ -160,16 +163,30 @@ func set_map_extents(extents: Vector2):
 	set_size_safely(size)
 
 
-## 生成大地图：镜头必须高过台地/山体，far 必须覆盖整张图，否则正交视锥裁空。
+## 生成大地图：只放宽拉远上限。开局姿态与普通图相同，不把 far 拉到地图对角线。
 func configure_for_large_terrain(map_size: Vector2, peak_world_y: float = 80.0) -> void:
-	visible_height_max = maxf(visible_height_max, peak_world_y)
 	visible_height_min = minf(visible_height_min, -20.0)
 	size_max = maxf(size_max, minf(map_size.x, map_size.y) * 0.16)
 	set_map_extents(map_size)
-	var start_size := clampf(90.0, size_min, _effective_size_max())
-	set_size_safely(start_size)
-	far = maxf(far, map_size.length() + peak_world_y * 4.0 + 512.0)
-	near = maxf(near, 0.5)
+	force_opening_isometric()
+
+
+## 正交、俯角 -45°、偏航 0：视线在地面上垂直于世界 X（屏幕底边水平线）。
+## 大图若把 far 拉到 1000m+，45° 视盒会扫到地图边缘那层没有厚度的高度场，
+## 看起来就像山脉空壳。
+func force_opening_isometric() -> void:
+	projection = EXPECTED_PROJECTION
+	rotation_degrees = Vector3(EXPECTED_X_ROTATION_DEGREES, default_y_rotation_degrees, 0.0)
+	near = 0.5
+	if is_equal_approx(size, OPENING_SIZE):
+		_align_camera_properties_to_current_size()
+		_align_position_to_bounding_planes()
+	else:
+		set_size_safely(OPENING_SIZE)
+
+
+func apply_unified_opening_view() -> void:
+	force_opening_isometric()
 
 
 ## 拉远上限：正交 size 是垂直视线平面的高度，30° 俯角下地面可见纵深约
@@ -243,6 +260,18 @@ func set_position_safely(target_position: Vector3):
 
 
 func get_ray_intersection(mouse_pos: Vector2) -> Variant:
+	var match_root := get_parent()
+	var map_node: Node = match_root.get_node_or_null("Map") if match_root != null else null
+	if map_node != null and map_node.has_meta("water_occupancy"):
+		var occupancy: Variant = map_node.get_meta("water_occupancy")
+		if occupancy is Node and occupancy.has_method("intersect_ground_ray"):
+			return occupancy.intersect_ground_ray(
+				project_ray_origin(mouse_pos), project_ray_normal(mouse_pos)
+			)
+		if occupancy is Node and occupancy.has_method("project_ground"):
+			var plane_hit = get_ray_intersection_with_plane(mouse_pos, reference_plane_for_rotation)
+			if plane_hit != null:
+				return occupancy.project_ground(plane_hit)
 	return get_ray_intersection_with_plane(mouse_pos, reference_plane_for_rotation)
 
 
@@ -447,6 +476,9 @@ func _is_rotating() -> bool:
 
 func _calculate_pivot_point() -> Vector3:
 	var screen_center_pos_2d = get_viewport().size / 2.0
+	var grounded = get_ray_intersection(screen_center_pos_2d)
+	if grounded != null:
+		return grounded
 	return get_ray_intersection_with_plane(screen_center_pos_2d, reference_plane_for_rotation)
 
 
@@ -460,12 +492,10 @@ func _align_camera_properties_to_size(a_size: float):
 
 
 func _align_camera_position_to_size(a_size: float):
-	var alpha_degrees = 60
-	var beta_degrees = 90 - alpha_degrees
+	# 开局固定 25m；拉远/拉近只按 size 差补高度，不再被山峰峰值抬高整段镜头。
 	var target_height = (
-		a_size * sin(deg_to_rad(alpha_degrees)) / 2.0
-		+ sin(deg_to_rad(beta_degrees))
-		+ visible_height_max
+		OPENING_HEIGHT
+		+ (a_size - OPENING_SIZE) * sin(deg_to_rad(60.0)) / 2.0
 	)
 	var target_camera_plane = Plane(Vector3.UP, target_height)
 	var camera_ray_normal = project_ray_normal(Vector2(0, 0))
@@ -487,8 +517,11 @@ func _align_camera_far_to_size(a_size: float):
 	var ray_intersection = min_visible_plane.intersects_ray(camera_ray_begin, camera_ray_normal)
 	if ray_intersection != null:
 		far = ceil(ray_intersection.distance_to(camera_ray_begin))
-	if _map_extents != Vector2.ZERO:
-		far = maxf(far, _map_extents.length() + absf(visible_height_max) * 4.0)
+	# 只按当前正交视野和俯角留余量，不按地图对角线扩 far。
+	var pitch := deg_to_rad(absf(EXPECTED_X_ROTATION_DEGREES))
+	var size_far := (OPENING_HEIGHT + maxf(a_size, OPENING_SIZE)) / maxf(sin(pitch), 0.35) + 24.0
+	far = maxf(far, size_far)
+	far = minf(far, 160.0)
 
 
 func _align_position_to_bounding_planes():

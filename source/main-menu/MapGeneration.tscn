@@ -1,0 +1,234 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://source/main-menu/MapGeneration.gd" id="1"]
+[ext_resource type="Theme" path="res://source/resources/main_menu.theme" id="2"]
+[ext_resource type="PackedScene" path="res://source/main-menu/Background.tscn" id="3"]
+
+[node name="MapGeneration" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2")
+script = ExtResource("1")
+
+[node name="Background" parent="." instance=ExtResource("3")]
+layout_mode = 1
+
+[node name="SafeMargin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 16
+
+[node name="Root" type="VBoxContainer" parent="SafeMargin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TopBar" type="HBoxContainer" parent="SafeMargin/Root"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="TitleBox" type="VBoxContainer" parent="SafeMargin/Root/TopBar"]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 1.4
+theme_override_constants/separation = 2
+
+[node name="Title" type="Label" parent="SafeMargin/Root/TopBar/TitleBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "RTS 地图工作台"
+clip_text = true
+text_overrun_behavior = 3
+
+[node name="Subtitle" type="Label" parent="SafeMargin/Root/TopBar/TitleBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "一键生成可在游戏中运行的完整地图 · G1 → G4"
+
+[node name="Meta" type="Label" parent="SafeMargin/Root/TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+vertical_alignment = 1
+text = "256 × 256 m    4 人对战    本地生成"
+
+[node name="WorkbenchButton" type="Button" parent="SafeMargin/Root/TopBar"]
+custom_minimum_size = Vector2(168, 44)
+layout_mode = 2
+text = "重试生成服务"
+
+[node name="BackButton" type="Button" parent="SafeMargin/Root/TopBar"]
+custom_minimum_size = Vector2(140, 44)
+layout_mode = 2
+text = "返回主菜单"
+
+[node name="Body" type="HBoxContainer" parent="SafeMargin/Root"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="ParamsCard" type="PanelContainer" parent="SafeMargin/Root/Body"]
+custom_minimum_size = Vector2(340, 0)
+layout_mode = 2
+size_flags_horizontal = 0
+clip_contents = true
+
+[node name="ParamsCol" type="VBoxContainer" parent="SafeMargin/Root/Body/ParamsCard"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ParamsScroll" type="ScrollContainer" parent="SafeMargin/Root/Body/ParamsCard/ParamsCol"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 1
+follow_focus = true
+
+[node name="ParamsBox" type="VBoxContainer" parent="SafeMargin/Root/Body/ParamsCard/ParamsCol/ParamsScroll"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="GenerateFooter" type="VBoxContainer" parent="SafeMargin/Root/Body/ParamsCard/ParamsCol"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="GenerateButton" type="Button" parent="SafeMargin/Root/Body/ParamsCard/ParamsCol/GenerateFooter"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+text = "生成完整地图"
+
+[node name="PreviewButton" type="Button" parent="SafeMargin/Root/Body/ParamsCard/ParamsCol/GenerateFooter"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+text = "快速预览地形"
+
+[node name="ReplayButton" type="Button" parent="SafeMargin/Root/Body/ParamsCard/ParamsCol/GenerateFooter"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+disabled = true
+text = "按编号复现"
+
+[node name="CenterCol" type="VBoxContainer" parent="SafeMargin/Root/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="LayerRow" type="HBoxContainer" parent="SafeMargin/Root/Body/CenterCol"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="ProgressBanner" type="PanelContainer" parent="SafeMargin/Root/Body/CenterCol"]
+visible = false
+layout_mode = 2
+
+[node name="ProgressBox" type="VBoxContainer" parent="SafeMargin/Root/Body/CenterCol/ProgressBanner"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="ProgressPhase" type="Label" parent="SafeMargin/Root/Body/CenterCol/ProgressBanner/ProgressBox"]
+layout_mode = 2
+text = "准备生成"
+
+[node name="ProgressDetail" type="Label" parent="SafeMargin/Root/Body/CenterCol/ProgressBanner/ProgressBox"]
+layout_mode = 2
+autowrap_mode = 3
+text = "当前预览保持显示"
+
+[node name="PreviewAspect" type="AspectRatioContainer" parent="SafeMargin/Root/Body/CenterCol"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+ratio = 1.0
+stretch_mode = 2
+
+[node name="Viewport" type="PanelContainer" parent="SafeMargin/Root/Body/CenterCol/PreviewAspect"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+clip_contents = true
+
+[node name="Preview" type="TextureRect" parent="SafeMargin/Root/Body/CenterCol/PreviewAspect/Viewport"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Empty" type="Label" parent="SafeMargin/Root/Body/CenterCol/PreviewAspect/Viewport"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+text = "调整左侧设置，点击「生成完整地图」。
+完整流水线：出生布局 → 地形 → 资源 → 场景导出 → 引擎验收。"
+
+[node name="LegendBar" type="HFlowContainer" parent="SafeMargin/Root/Body/CenterCol"]
+layout_mode = 2
+theme_override_constants/h_separation = 14
+theme_override_constants/v_separation = 6
+
+[node name="Caption" type="HBoxContainer" parent="SafeMargin/Root/Body/CenterCol"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="MapStatus" type="Label" parent="SafeMargin/Root/Body/CenterCol/Caption"]
+layout_mode = 2
+text = "准备就绪"
+
+[node name="MapTitle" type="Label" parent="SafeMargin/Root/Body/CenterCol/Caption"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "选择参数后生成"
+
+[node name="HistoryHead" type="Label" parent="SafeMargin/Root/Body/CenterCol"]
+layout_mode = 2
+text = "生成记录"
+
+[node name="HistoryScroll" type="ScrollContainer" parent="SafeMargin/Root/Body/CenterCol"]
+custom_minimum_size = Vector2(0, 96)
+layout_mode = 2
+vertical_scroll_mode = 0
+horizontal_scroll_mode = 1
+follow_focus = true
+
+[node name="HistoryRow" type="HBoxContainer" parent="SafeMargin/Root/Body/CenterCol/HistoryScroll"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="InspectCard" type="PanelContainer" parent="SafeMargin/Root/Body"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_horizontal = 0
+clip_contents = true
+
+[node name="InspectScroll" type="ScrollContainer" parent="SafeMargin/Root/Body/InspectCard"]
+layout_mode = 2
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 1
+follow_focus = true
+
+[node name="InspectBox" type="VBoxContainer" parent="SafeMargin/Root/Body/InspectCard/InspectScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[connection signal="pressed" from="SafeMargin/Root/TopBar/WorkbenchButton" to="." method="_on_start_workbench"]
+[connection signal="pressed" from="SafeMargin/Root/TopBar/BackButton" to="." method="_on_back_pressed"]
+[connection signal="pressed" from="SafeMargin/Root/Body/ParamsCard/ParamsCol/GenerateFooter/GenerateButton" to="." method="_on_generate_full"]
+[connection signal="pressed" from="SafeMargin/Root/Body/ParamsCard/ParamsCol/GenerateFooter/PreviewButton" to="." method="_on_generate_g2"]
+[connection signal="pressed" from="SafeMargin/Root/Body/ParamsCard/ParamsCol/GenerateFooter/ReplayButton" to="." method="_on_replay_pressed"]

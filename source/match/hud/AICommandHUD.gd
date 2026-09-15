@@ -33,6 +33,10 @@ var _chat_log: RichTextLabel
 var _input: LineEdit
 var _command_hint: Label
 var _agent_state: Label
+## 左上角"副官专属区"里留给 `AdjutantButton`（副官链路的数据与控制源）的槽位：
+## 它会把状态面板（四行 + 预留）与按钮（接管/停止、本机链路自检）reparent 进来，
+## 使单机与联机共用同一块区域（2026-09-14 用户要求）。
+var _adjutant_slot: VBoxContainer = null
 var _context_label: Label
 var _hero_focus_card: Button
 var _last_f1_press_msec := -100000
@@ -106,11 +110,20 @@ func _on_input_action_pressed(action_id: String):
 
 func _build_ui():
 	var left := VBoxContainer.new()
-	left.position = Vector2(18, 210)
+	# 下移给左上角"副官专属区"让位（该区含状态面板与按钮，高度约 400px）。
+	left.position = Vector2(18, 470)
 	left.size = Vector2(255, 360)
 	left.add_theme_constant_override("separation", 8)
 	left.mouse_filter = Control.MOUSE_FILTER_STOP
+	# 【2026-09-15 用户要求删除】"作战小队"整列不再显示（用户原话："现在 AI 副官都没有，哪来的作战小队？"）。
+	# 这套编组是**副官接管之前的老设计**，实测为僵尸 UI：
+	#   · `legacy_ai_squad_1/2/3` **没有任何生产代码往里加单位**（`Unit.gd` 只在单位死亡时 remove_from_group）；
+	#   · 副官协调器 `graph/squads.py` 明确声明"不读、不写、不复用"这些组；
+	#   · `squad_status` 只是面板本地默认值，永远显示 "· 0 待命"。
+	# 控件仍创建（`_refresh_squad_ui` / `_update_hero_focus_card` 会写入），仅不显示。
+	# 如需恢复：把下面的 `left.visible` 改回 true。
 	add_child(left)
+	left.visible = false
 
 	var left_title := Label.new()
 	left_title.text = "先锋单位" if _is_hero_mode() else "作战小队"
@@ -118,7 +131,7 @@ func _build_ui():
 	left.add_child(left_title)
 	for squad_id in _control_ids():
 		var card := Button.new()
-		card.custom_minimum_size = Vector2(250, 82)
+		card.custom_minimum_size = Vector2(250, 52)
 		card.text = "%s\n待命" % _control_display(squad_id)
 		card.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		card.pressed.connect(_select_squad.bind(squad_id))
@@ -128,10 +141,12 @@ func _build_ui():
 	if _is_hero_mode():
 		_build_hero_focus_card()
 
+	# 左上角：副官专属区域（2026-09-14 用户要求："副官 UI 状态显示和按钮全部放到左上角"）。
+	# 变量名沿用 right（历史命名），实际锚在左上；高度自适应内容。
 	var right := PanelContainer.new()
-	right.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	right.position = Vector2(-450, 62)
-	right.size = Vector2(430, 690)
+	right.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	right.position = Vector2(8, 36)
+	right.custom_minimum_size = Vector2(300, 0)
 	right.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(right)
 	var right_box := VBoxContainer.new()
@@ -149,10 +164,19 @@ func _build_ui():
 	_agent_state.text = STATE_ONLINE
 	title_row.add_child(_agent_state)
 
-	_context_label = Label.new()
-	_context_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_context_label.custom_minimum_size = Vector2(405, 66)
-	right_box.add_child(_context_label)
+	# 【2026-09-15 用户要求：副官 UI 常驻 + 分区】专属区按「标题 → 状态 → 控制 → 询问」
+	# 排布：状态面板与接管/自检按钮（`AdjutantButton`，autoload）紧贴标题下方。
+	# 提前登记容器：它的控件可能晚于本面板创建，登记后由它自己补挂（见 attach_ui_to）。
+	_adjutant_slot = VBoxContainer.new()
+	_adjutant_slot.add_theme_constant_override("separation", 4)
+	right_box.add_child(_adjutant_slot)
+	var adjutant := get_node_or_null("/root/AdjutantButton")
+	if adjutant != null and adjutant.has_method("attach_ui_to"):
+		adjutant.attach_ui_to(_adjutant_slot)
+
+	# 状态/控制区与下方询问区之间加分隔线，避免此前"全挤成一坨"的观感。
+	var control_separator := HSeparator.new()
+	right_box.add_child(control_separator)
 
 	var quick_row := HBoxContainer.new()
 	quick_row.add_theme_constant_override("separation", 6)
@@ -173,31 +197,56 @@ func _build_ui():
 	status_button.pressed.connect(_ask_mock_agent.bind("STATUS"))
 	quick_row.add_child(status_button)
 
-	_chat_log = RichTextLabel.new()
-	_chat_log.bbcode_enabled = true
-	_chat_log.fit_content = false
-	_chat_log.scroll_active = true
-	_chat_log.custom_minimum_size = Vector2(405, 430)
-	right_box.add_child(_chat_log)
+	# 【2026-09-15 用户要求删除】副官简报（当前阶段/目标/最近决定/风险评估/等待确认）与
+	# "副官理解：X 队 · 状态" 两块不再显示：它们与专属区的状态面板、左侧作战小队卡片内容重复，
+	# 是左上角"太长"的主要来源（用户截图红框指出）。
+	# 控件仍创建（`_refresh_agent_context` / `_refresh_squad_ui` 会往里写文本，不创建会空引用），
+	# 只是不参与布局（Container 会跳过不可见子节点）。如需恢复：`visible` 改回 true。
+	_context_label = Label.new()
+	_context_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_context_label.custom_minimum_size = Vector2(284, 0)
+	_context_label.add_theme_font_size_override("font_size", 13)
+	_context_label.visible = false
+	right_box.add_child(_context_label)
+
 	_command_hint = Label.new()
 	_command_hint.text = "副官理解：%s · 待命" % _control_display(1)
 	_command_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_command_hint.add_theme_font_size_override("font_size", 13)
+	_command_hint.visible = false
 	right_box.add_child(_command_hint)
 
 	var bottom := PanelContainer.new()
 	bottom.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	bottom.offset_left = 290
-	bottom.offset_right = -470
-	bottom.offset_top = -160
+	# 【2026-09-15 用户要求】聊天区收窄到约屏幕 70% 宽（用户红框标注的右边界）：
+	# 原来 -18 会一直贴到右侧栏、铺满底部；1920 宽下右边界约在 x≈1330。
+	bottom.offset_right = -590
+	# 【2026-09-15 用户要求】聊天区压缩到"输入行 + 一两行记录"（用户红框标注的高度）。
+	# ⚠ 曾被另一会话覆盖回 -300（时间戳 1:08），如再次变回说明又被覆盖，需协调。
+	bottom.offset_top = -110
 	bottom.offset_bottom = -18
 	bottom.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(bottom)
 	var bottom_box := VBoxContainer.new()
 	bottom_box.add_theme_constant_override("separation", 8)
 	bottom.add_child(bottom_box)
+	# 对话框（2026-09-14 用户要求："底部可以有个对话框交互"）：聊天记录在底部、可滚动。
+	_chat_log = RichTextLabel.new()
+	_chat_log.bbcode_enabled = true
+	_chat_log.fit_content = false
+	_chat_log.scroll_active = true
+	# 【2026-09-15 用户要求】聊天记录区压缩到约两行高（红框标注的尺寸）。
+	_chat_log.custom_minimum_size = Vector2(0, 44)
+	bottom_box.add_child(_chat_log)
 	var cmd_row := HBoxContainer.new()
 	cmd_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	cmd_row.add_theme_constant_override("separation", 8)
+	# 【2026-09-15 用户要求删除】6 个快捷命令按钮（移动/攻击/防守/侦察/撤退/停止）不再显示：
+	# 同样的操作可用输入框自然语言（"二队向右侦察"）或直接选中单位右键完成，它们只是占着
+	# 对话区中间一排（用户截图红框指出）。控件仍创建（`_refresh_command_captions` 会写入
+	# 快捷键文案），仅不参与布局。如需恢复：`visible` 改回 true。
+	cmd_row.visible = false
 	bottom_box.add_child(cmd_row)
 	_command_buttons.clear()
 	for item in [
@@ -214,6 +263,7 @@ func _build_ui():
 		cmd_row.add_child(button)
 		_command_buttons.append({"button": button, "action_id": item[0], "label": item[1]})
 	_refresh_command_captions()
+
 	var input_row := HBoxContainer.new()
 	bottom_box.add_child(input_row)
 	_input = LineEdit.new()
@@ -593,10 +643,11 @@ func _refresh_agent_context():
 	if _context_label == null:
 		return
 	_current_phase = _infer_phase()
-	_context_label.text = (
-		"当前阶段：%s\n当前目标：%s\n最近决定：%s\n风险评估：%s\n%s"
-		% [_current_phase, _current_objective, _latest_decision, _current_risk, _wait_confirm_text()]
-	)
+	# 【2026-09-15 精简】原来这里 5 行（当前阶段/当前目标/最近决定/风险评估/等待确认）与
+	# `AdjutantButton` 的状态面板（当前状态/副官行动/为什么/执行结果）**说的是同一件事**，
+	# 左上角因此堆成一大块。现在压成一行：只留本面板特有的"阶段"与"目标"；
+	# 风险评估（快捷按钮+状态面板已覆盖）、最近决定、等待确认（状态面板已覆盖）不再重复。
+	_context_label.text = "当前阶段：%s ｜ 目标：%s" % [_current_phase, _current_objective]
 
 
 ## 从当前待确认命令与小队状态推断副官阶段，让玩家一眼看懂副官在做什么

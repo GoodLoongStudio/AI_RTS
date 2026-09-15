@@ -6,6 +6,13 @@ const FADE_ALBEDO_ALPHA := 0.38
 
 var _occluders: Array[GeometryInstance3D] = []
 var _faded: Dictionary = {}
+const UPDATE_INTERVAL := 0.12
+const MAX_OCCLUDER_DISTANCE := 180.0
+const MAX_TARGET_DISTANCE := 220.0
+const LARGE_MAP_EDGE_DISABLE := 256.0
+var _update_elapsed := UPDATE_INTERVAL
+var _force_refresh := true
+var _disabled_for_large_map := false
 
 
 func _ready():
@@ -20,15 +27,31 @@ func _ready():
 
 
 func _process(_delta):
+	if _disabled_for_large_map:
+		return
+	_update_elapsed += _delta
+	if _update_elapsed < UPDATE_INTERVAL and not _force_refresh:
+		return
+	_update_elapsed = fmod(_update_elapsed, UPDATE_INTERVAL)
+	_force_refresh = false
 	_apply_fade(_find_blocking_occluders())
 
 
 func _refresh_occluders():
+	_force_refresh = true
 	_restore_all()
 	_occluders.clear()
 	var match_root = find_parent("Match")
 	if match_root == null:
 		return
+	var map_node := match_root.get_node_or_null("Map")
+	if map_node != null and "size" in map_node:
+		var map_size: Vector2 = map_node.size
+		if maxf(map_size.x, map_size.y) >= LARGE_MAP_EDGE_DISABLE:
+			_disabled_for_large_map = true
+			set_process(false)
+			print("[G4PERF] building occlusion disabled for large map %.0fx%.0f" % [map_size.x, map_size.y])
+			return
 	var decorations = match_root.get_node_or_null("Map/Decorations")
 	if decorations != null:
 		for mesh in decorations.find_children("*", "MeshInstance3D", true, false):
@@ -51,12 +74,18 @@ func _find_blocking_occluders() -> Dictionary:
 	if camera == null:
 		return blocking
 	var camera_origin: Vector3 = camera.global_position
+	var max_occluder_distance_sq := MAX_OCCLUDER_DISTANCE * MAX_OCCLUDER_DISTANCE
+	var max_target_distance_sq := MAX_TARGET_DISTANCE * MAX_TARGET_DISTANCE
 	for unit in get_tree().get_nodes_in_group("units"):
 		if not _unit_should_stay_visible(unit):
+			continue
+		if unit.global_position.distance_squared_to(camera_origin) > max_target_distance_sq:
 			continue
 		var target: Vector3 = unit.global_position + Vector3(0, 0.7, 0)
 		for occluder in _occluders:
 			if not is_instance_valid(occluder) or unit.is_ancestor_of(occluder):
+				continue
+			if occluder.global_position.distance_squared_to(camera_origin) > max_occluder_distance_sq:
 				continue
 			if _segment_hits_occluder(camera_origin, target, occluder):
 				blocking[occluder] = true

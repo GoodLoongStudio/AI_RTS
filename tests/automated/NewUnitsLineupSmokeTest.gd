@@ -7,6 +7,16 @@ extends Node
 const MatchScene = preload("res://tests/manual/TestAllUnits.tscn")
 const HelicopterScene = preload("res://source/match/units/Helicopter.tscn")
 const APCScene = preload("res://source/match/units/APC.tscn")
+# 补齐 Ra3Sidebar.TABS 中缺失图标的单位/建筑（见下方 roster）。
+const BarracksScene = preload("res://source/match/units/Barracks.tscn")
+const AntiGroundTurretScene = preload("res://source/match/units/AntiGroundTurret.tscn")
+const AntiAirTurretScene = preload("res://source/match/units/AntiAirTurret.tscn")
+const MachineGunTurretScene = preload("res://source/match/units/MachineGunTurret.tscn")
+const InfantryScene = preload("res://source/match/units/Infantry.tscn")
+const SniperScene = preload("res://source/match/units/Sniper.tscn")
+const RocketeerScene = preload("res://source/match/units/Rocketeer.tscn")
+const HeavyTankScene = preload("res://source/match/units/HeavyTank.tscn")
+const TransportTruckScene = preload("res://source/match/units/TransportTruck.tscn")
 
 var _failures := 0
 var _produced_drop_ships: Array = []
@@ -39,10 +49,21 @@ func _ready():
 		"直升机应在 40s 内从机场部署（实际 %d）" % _produced_drop_ships.size()
 	)
 
-	# 逐单位生成渲染图标（仅新单位；既有单位图标不动）
+	# 逐单位生成渲染图标：覆盖 Ra3Sidebar.TABS 全部 17 个 icon key，缺失的补齐、已有的刷新。
 	# 位置用已验证的空地 z=8 一带（TestAllUnits 建筑区之外）
+	# entry[0] = 输出文件名，必须与 Ra3Sidebar.TABS 的 icon key 完全一致
+	# entry[2] = 可选正交相机 size（省略用默认 3.2）：步兵小、建筑大，否则会被裁切
 	var roster = [
-		["apc", APCScene],
+		["apc", APCScene, 2.8],
+		["barracks", BarracksScene, 7.0],
+		["anti_ground_turret", AntiGroundTurretScene, 2.2],
+		["anti_air_turret", AntiAirTurretScene, 2.6],
+		["machine_gun_turret", MachineGunTurretScene, 2.6],
+		["soldier", InfantryScene, 0.9],
+		["sniper", SniperScene, 0.9],
+		["rocketeer", RocketeerScene, 0.9],
+		["heavy_tank", HeavyTankScene, 4.2],
+		["transport_truck", TransportTruckScene, 3.0],
 	]
 	# 用独立 SubViewport 渲染图标：共享 3D 世界但不带 HUD/侧栏
 	var sub = SubViewport.new()
@@ -75,8 +96,15 @@ func _ready():
 		# 只把网格拷进隔离世界渲染，规避地图建筑/导航漂移干扰
 		var copy = geometry.duplicate()
 		sub.add_child(copy)
+		# Geometry 根节点自带模型缩放（载具 0.6 / 步兵 0.45…），必须保留；
+		# 但炮塔的 Geometry 挂在 DetachTransform 下、被 PositionSynchronizer(RemoteTransform3D)
+		# 接管，运行时 global 已被拉到单位世界坐标 (12,0,12)，直接拷会飞出取景框（图标全透明）。
+		# 换算成「相对单位原点」的变换，两种结构都能还原作者意图的局部变换。
+		copy.transform = unit.global_transform.affine_inverse() * geometry.global_transform
+		# 每个单位单独取景：模型大小差异大（步兵 ~0.5m、兵营 ~5m）
+		camera.size = float(entry[2]) if entry.size() > 2 else 3.2
 		camera.look_at_from_position(
-			Vector3(0.0, 1.1, 2.6), Vector3(0.0, 0.4, 0.0), Vector3.UP
+			Vector3(2.2, 3.0, 3.2), Vector3(0.0, 0.45, 0.0), Vector3.UP
 		)
 		await RenderingServer.frame_post_draw
 		var image = sub.get_texture().get_image()

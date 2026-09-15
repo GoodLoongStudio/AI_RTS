@@ -1,0 +1,747 @@
+[gd_scene load_steps=66 format=3]
+
+[ext_resource type="PackedScene" uid="uid://b7c1crf36x1li" path="res://source/match/Map.tscn" id="1_map"]
+[ext_resource type="Material" uid="uid://co8vfcoqqs5i8" path="res://source/match/resources/materials/terrain.material.tres" id="2_mat"]
+[ext_resource type="PackedScene" uid="uid://bf3jjdafqvh0w" path="res://source/match/units/non-player/ResourceA.tscn" id="3_resa"]
+[ext_resource type="Script" path="res://source/match/maps/generated/GeneratedTerrain.gd" id="5_terrain"]
+[ext_resource type="Script" path="res://source/match/maps/generated/ApplyAtlas.gd" id="6_apply"]
+[ext_resource type="Texture2D" path="res://assets/models/scifi-worlds/generated/ridge_rock.png" id="7_ridge_tex"]
+[ext_resource type="Shader" path="res://source/match/maps/generated/showcase_water.gdshader" id="8_water"]
+[ext_resource type="Texture2D" path="res://assets/terrain_pbr/dense_sand_diff.jpg" id="9_wdiff"]
+[ext_resource type="Texture2D" path="res://assets/terrain_pbr/dense_sand_normal.jpg" id="10_wnorm"]
+[ext_resource type="PackedScene" uid="uid://fs134wyip4jc" path="res://assets/models/scifi-worlds/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Bld_Bridge_01.fbx" id="10000"]
+[ext_resource type="PackedScene" uid="uid://dj3cgcmqidsvk" path="res://assets/models/scifi-worlds/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Bld_Bridge_End_01.fbx" id="10001"]
+[ext_resource type="PackedScene" uid="uid://cmloxns7y0xn5" path="res://assets/models/scifi-worlds/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Bld_Bridge_Rail_01.fbx" id="10002"]
+[ext_resource type="PackedScene" uid="uid://bhuprwkxlje3o" path="res://assets/models/scifi-worlds/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Bld_Bridge_Rail_Pillar_01.fbx" id="10003"]
+
+[sub_resource type="StandardMaterial3D" id="Mat_ground"]
+albedo_color = Color(0.80, 0.74, 0.66, 1)
+shading_mode = 0
+roughness = 1.0
+
+[sub_resource type="ShaderMaterial" id="Mat_water"]
+shader = ExtResource("8_water")
+shader_parameter/rock_tex = ExtResource("9_wdiff")
+shader_parameter/sand_normal = ExtResource("10_wnorm")
+shader_parameter/mask_from_tex = 1.0
+shader_parameter/mask_world_size = 256.0
+shader_parameter/showcase_world_scale = 1.0
+shader_parameter/terrain_depth = false
+
+[sub_resource type="StandardMaterial3D" id="Mat_bridge"]
+albedo_color = Color(0.52, 0.44, 0.35, 1)
+roughness = 0.95
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_s0"]
+size = Vector3(12.0, 2.90, 4.0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_s1"]
+size = Vector3(20.0, 0.50, 4.0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_s2"]
+size = Vector3(12.0, 0.50, 4.0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_s3"]
+size = Vector3(8.0, 4.18, 4.0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_s4"]
+size = Vector3(8.0, 2.86, 4.0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_s5"]
+size = Vector3(20.0, 0.50, 4.0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_s6"]
+size = Vector3(4.0, 1.77, 4.0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_s7"]
+size = Vector3(16.0, 0.50, 4.0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_s8"]
+size = Vector3(20.0, 7.35, 4.0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_s9"]
+size = Vector3(8.0, 3.76, 4.0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_s10"]
+size = Vector3(8.0, 2.24, 4.0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_s11"]
+size = Vector3(12.0, 0.50, 4.0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_s12"]
+size = Vector3(16.0, 2.90, 4.0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_s13"]
+size = Vector3(8.0, 0.50, 4.0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_s14"]
+size = Vector3(8.0, 0.50, 4.0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_s15"]
+size = Vector3(20.0, 1.85, 4.0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_s16"]
+size = Vector3(20.0, 0.50, 4.0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_s17"]
+size = Vector3(4.0, 2.90, 4.0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_s18"]
+size = Vector3(8.0, 1.37, 4.0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_s19"]
+size = Vector3(20.0, 0.50, 4.0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_s20"]
+size = Vector3(4.0, 1.77, 4.0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_s21"]
+size = Vector3(16.0, 0.50, 4.0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_bw0_0"]
+size = Vector3(8.70, 1.00, 0.97)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_bw0_1"]
+size = Vector3(8.70, 1.00, 0.97)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_bw0_2"]
+size = Vector3(8.70, 1.00, 0.97)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_bw0_3"]
+size = Vector3(8.70, 1.00, 8.48)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_bw0_4"]
+size = Vector3(8.70, 1.00, 0.97)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_bw0_5"]
+size = Vector3(8.70, 1.00, 0.97)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_bw0_6"]
+size = Vector3(8.70, 1.00, 0.97)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_brc0_0"]
+size = Vector3(0.65, 1.2, 14.00)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_brc0_1"]
+size = Vector3(0.65, 1.2, 14.00)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_bw1_0"]
+size = Vector3(8.70, 1.00, 0.97)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_bw1_1"]
+size = Vector3(8.70, 1.00, 0.97)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_bw1_2"]
+size = Vector3(8.70, 1.00, 0.97)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_bw1_3"]
+size = Vector3(8.70, 1.00, 8.48)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_bw1_4"]
+size = Vector3(8.70, 1.00, 0.97)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_bw1_5"]
+size = Vector3(8.70, 1.00, 0.97)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_bw1_6"]
+size = Vector3(8.70, 1.00, 0.97)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_brc1_0"]
+size = Vector3(0.65, 1.2, 14.00)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_brc1_1"]
+size = Vector3(0.65, 1.2, 14.00)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_bw2_0"]
+size = Vector3(8.70, 1.00, 0.97)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_bw2_1"]
+size = Vector3(8.70, 1.00, 0.97)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_bw2_2"]
+size = Vector3(8.70, 1.00, 0.97)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_bw2_3"]
+size = Vector3(8.70, 1.00, 8.48)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_bw2_4"]
+size = Vector3(8.70, 1.00, 0.97)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_bw2_5"]
+size = Vector3(8.70, 1.00, 0.97)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_bw2_6"]
+size = Vector3(8.70, 1.00, 0.97)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_brc2_0"]
+size = Vector3(0.65, 1.2, 14.00)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_brc2_1"]
+size = Vector3(0.65, 1.2, 14.00)
+
+[node name="Map" instance=ExtResource("1_map")]
+size = Vector2(256.0, 256.0)
+scale = Vector3(1.000000, 1.000000, 1.000000)
+
+[node name="Terrain" parent="Geometry" index="1"]
+script = ExtResource("5_terrain")
+height_data_path = "res://source/match/maps/generated/reloc-verify/height_data.bin"
+semantic_span = 256.0
+world_scale = 1.0000
+terrain_albedo = Color(0.80, 0.74, 0.66, 1)
+
+[node name="Marker3D" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 58.220, 0.056, 179.480)
+
+[node name="Marker3D2" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 84.220, 0.056, 54.600)
+
+[node name="Marker3D3" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 180.790, 7.539, 191.520)
+
+[node name="Marker3D4" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 210.170, 0.056, 96.300)
+
+[node name="ResourceA" parent="Resources" instance=ExtResource("3_resa")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 66.220, 0.156, 185.480)
+
+[node name="ResourceA2" parent="Resources" instance=ExtResource("3_resa")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 51.220, 0.156, 174.480)
+
+[node name="ResourceA3" parent="Resources" instance=ExtResource("3_resa")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 92.220, 0.152, 60.600)
+
+[node name="ResourceA4" parent="Resources" instance=ExtResource("3_resa")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 77.220, 0.156, 49.600)
+
+[node name="ResourceA5" parent="Resources" instance=ExtResource("3_resa")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 188.407, 7.195, 198.444)
+
+[node name="ResourceA6" parent="Resources" instance=ExtResource("3_resa")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 172.866, 0.160, 186.137)
+
+[node name="ResourceA7" parent="Resources" instance=ExtResource("3_resa")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 218.170, 0.150, 102.300)
+
+[node name="ResourceA8" parent="Resources" instance=ExtResource("3_resa")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 203.170, 0.156, 91.300)
+
+[node name="Decorations" parent="." index="3"]
+script = ExtResource("6_apply")
+
+[node name="Visual" type="Node3D" parent="." index="4"]
+script = ExtResource("6_apply")
+metadata/style_version = "2.4.1-natural-cover-visible"
+
+[node name="Collision" type="Node3D" parent="." index="5"]
+
+[node name="Solid0" type="StaticBody3D" parent="Collision" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 106.0, 1.56, 42.0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Collision/Solid0"]
+shape = SubResource("BoxShape3D_s0")
+
+[node name="Solid1" type="StaticBody3D" parent="Collision" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 106.0, 7.70, 46.0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Collision/Solid1"]
+shape = SubResource("BoxShape3D_s1")
+
+[node name="Solid2" type="StaticBody3D" parent="Collision" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 70.0, 5.83, 62.0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Collision/Solid2"]
+shape = SubResource("BoxShape3D_s2")
+
+[node name="Solid3" type="StaticBody3D" parent="Collision" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 100.0, 3.91, 62.0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Collision/Solid3"]
+shape = SubResource("BoxShape3D_s3")
+
+[node name="Solid4" type="StaticBody3D" parent="Collision" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 112.0, 4.57, 62.0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Collision/Solid4"]
+shape = SubResource("BoxShape3D_s4")
+
+[node name="Solid5" type="StaticBody3D" parent="Collision" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 106.0, 7.89, 66.0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Collision/Solid5"]
+shape = SubResource("BoxShape3D_s5")
+
+[node name="Solid6" type="StaticBody3D" parent="Collision" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 78.0, 5.12, 78.0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Collision/Solid6"]
+shape = SubResource("BoxShape3D_s6")
+
+[node name="Solid7" type="StaticBody3D" parent="Collision" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72.0, 7.73, 82.0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Collision/Solid7"]
+shape = SubResource("BoxShape3D_s7")
+
+[node name="Solid8" type="StaticBody3D" parent="Collision" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 210.0, 2.32, 110.0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Collision/Solid8"]
+shape = SubResource("BoxShape3D_s8")
+
+[node name="Solid9" type="StaticBody3D" parent="Collision" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 204.0, 4.12, 126.0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Collision/Solid9"]
+shape = SubResource("BoxShape3D_s9")
+
+[node name="Solid10" type="StaticBody3D" parent="Collision" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 216.0, 4.88, 126.0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Collision/Solid10"]
+shape = SubResource("BoxShape3D_s10")
+
+[node name="Solid11" type="StaticBody3D" parent="Collision" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 210.0, 7.17, 130.0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Collision/Solid11"]
+shape = SubResource("BoxShape3D_s11")
+
+[node name="Solid12" type="StaticBody3D" parent="Collision" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60.0, 3.43, 146.0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Collision/Solid12"]
+shape = SubResource("BoxShape3D_s12")
+
+[node name="Solid13" type="StaticBody3D" parent="Collision" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52.0, 7.28, 150.0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Collision/Solid13"]
+shape = SubResource("BoxShape3D_s13")
+
+[node name="Solid14" type="StaticBody3D" parent="Collision" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64.0, 7.38, 150.0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Collision/Solid14"]
+shape = SubResource("BoxShape3D_s14")
+
+[node name="Solid15" type="StaticBody3D" parent="Collision" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 58.0, 5.08, 166.0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Collision/Solid15"]
+shape = SubResource("BoxShape3D_s15")
+
+[node name="Solid16" type="StaticBody3D" parent="Collision" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 158.0, 5.82, 182.0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Collision/Solid16"]
+shape = SubResource("BoxShape3D_s16")
+
+[node name="Solid17" type="StaticBody3D" parent="Collision" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 154.0, 4.15, 198.0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Collision/Solid17"]
+shape = SubResource("BoxShape3D_s17")
+
+[node name="Solid18" type="StaticBody3D" parent="Collision" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 164.0, 5.32, 198.0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Collision/Solid18"]
+shape = SubResource("BoxShape3D_s18")
+
+[node name="Solid19" type="StaticBody3D" parent="Collision" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 158.0, 7.75, 202.0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Collision/Solid19"]
+shape = SubResource("BoxShape3D_s19")
+
+[node name="Solid20" type="StaticBody3D" parent="Collision" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 190.0, 5.12, 206.0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Collision/Solid20"]
+shape = SubResource("BoxShape3D_s20")
+
+[node name="Solid21" type="StaticBody3D" parent="Collision" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 184.0, 7.73, 210.0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Collision/Solid21"]
+shape = SubResource("BoxShape3D_s21")
+
+[node name="Bridge0" type="Node3D" parent="."]
+script = ExtResource("6_apply")
+
+[node name="P0_deck" parent="Bridge0" instance=ExtResource("10000")]
+transform = Transform3D(0.9951, 0, 0.0000, 0, 1.0000, 0, -0.0000, 0, 0.8482, 48.000, 1.303, 98.759)
+metadata/atlas = "res://assets/models/scifi-worlds/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png"
+
+[node name="P1_end" parent="Bridge0" instance=ExtResource("10001")]
+transform = Transform3D(-0.9951, 0, 0.0000, 0, 1.0000, 0, -0.0000, 0, -1.0000, 48.000, 1.303, 98.759)
+metadata/atlas = "res://assets/models/scifi-worlds/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png"
+
+[node name="P2_end" parent="Bridge0" instance=ExtResource("10001")]
+transform = Transform3D(0.9951, 0, 0.0000, 0, 1.0000, 0, -0.0000, 0, 1.0000, 48.000, 1.303, 107.241)
+metadata/atlas = "res://assets/models/scifi-worlds/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png"
+
+[node name="P3_rail" parent="Bridge0" instance=ExtResource("10002")]
+transform = Transform3D(0.6729, 0, 0.0000, 0, 1.0000, 0, -0.0000, 0, 1.4000, 52.675, 1.303, 96.000)
+metadata/atlas = "res://assets/models/scifi-worlds/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png"
+
+[node name="P4_rail" parent="Bridge0" instance=ExtResource("10002")]
+transform = Transform3D(0.6729, 0, 0.0000, 0, 1.0000, 0, -0.0000, 0, 1.4000, 43.325, 1.303, 96.000)
+metadata/atlas = "res://assets/models/scifi-worlds/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png"
+
+[node name="P5_pillar" parent="Bridge0" instance=ExtResource("10003")]
+transform = Transform3D(1.0000, 0, 0.0000, 0, 1.0000, 0, -0.0000, 0, 1.0000, 52.675, 1.303, 96.400)
+metadata/atlas = "res://assets/models/scifi-worlds/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png"
+
+[node name="P6_pillar" parent="Bridge0" instance=ExtResource("10003")]
+transform = Transform3D(1.0000, 0, 0.0000, 0, 1.0000, 0, -0.0000, 0, 1.0000, 43.325, 1.303, 96.400)
+metadata/atlas = "res://assets/models/scifi-worlds/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png"
+
+[node name="P7_pillar" parent="Bridge0" instance=ExtResource("10003")]
+transform = Transform3D(1.0000, 0, 0.0000, 0, 1.0000, 0, -0.0000, 0, 1.0000, 52.675, 1.303, 109.600)
+metadata/atlas = "res://assets/models/scifi-worlds/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png"
+
+[node name="P8_pillar" parent="Bridge0" instance=ExtResource("10003")]
+transform = Transform3D(1.0000, 0, 0.0000, 0, 1.0000, 0, -0.0000, 0, 1.0000, 43.325, 1.303, 109.600)
+metadata/atlas = "res://assets/models/scifi-worlds/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png"
+
+[node name="WalkB0_0" type="StaticBody3D" parent="Bridge0" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1.0, 0, 0.0, 0, 1.0, 0, -0.0, 0, 1.0, 48.000, 0.220, 96.460)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bridge0/WalkB0_0"]
+shape = SubResource("BoxShape3D_bw0_0")
+
+[node name="WalkB0_1" type="StaticBody3D" parent="Bridge0" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1.0, 0, 0.0, 0, 1.0, 0, -0.0, 0, 1.0, 48.000, 0.453, 97.379)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bridge0/WalkB0_1"]
+shape = SubResource("BoxShape3D_bw0_1")
+
+[node name="WalkB0_2" type="StaticBody3D" parent="Bridge0" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1.0, 0, 0.0, 0, 1.0, 0, -0.0, 0, 1.0, 48.000, 0.686, 98.299)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bridge0/WalkB0_2"]
+shape = SubResource("BoxShape3D_bw0_2")
+
+[node name="WalkB0_3" type="StaticBody3D" parent="Bridge0" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1.0, 0, 0.0, 0, 1.0, 0, -0.0, 0, 1.0, 48.000, 0.803, 103.000)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bridge0/WalkB0_3"]
+shape = SubResource("BoxShape3D_bw0_3")
+
+[node name="WalkB0_4" type="StaticBody3D" parent="Bridge0" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1.0, 0, 0.0, 0, 1.0, 0, -0.0, 0, 1.0, 48.000, 0.686, 107.701)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bridge0/WalkB0_4"]
+shape = SubResource("BoxShape3D_bw0_4")
+
+[node name="WalkB0_5" type="StaticBody3D" parent="Bridge0" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1.0, 0, 0.0, 0, 1.0, 0, -0.0, 0, 1.0, 48.000, 0.453, 108.620)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bridge0/WalkB0_5"]
+shape = SubResource("BoxShape3D_bw0_5")
+
+[node name="WalkB0_6" type="StaticBody3D" parent="Bridge0" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1.0, 0, 0.0, 0, 1.0, 0, -0.0, 0, 1.0, 48.000, 0.220, 109.540)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bridge0/WalkB0_6"]
+shape = SubResource("BoxShape3D_bw0_6")
+
+[node name="RailC0_0" type="StaticBody3D" parent="Bridge0"]
+collision_layer = 1
+collision_mask = 0
+transform = Transform3D(1.0, 0, 0.0, 0, 1.0, 0, -0.0, 0, 1.0, 52.675, 1.303, 103.000)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bridge0/RailC0_0"]
+shape = SubResource("BoxShape3D_brc0_0")
+
+[node name="RailC0_1" type="StaticBody3D" parent="Bridge0"]
+collision_layer = 1
+collision_mask = 0
+transform = Transform3D(1.0, 0, 0.0, 0, 1.0, 0, -0.0, 0, 1.0, 43.325, 1.303, 103.000)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bridge0/RailC0_1"]
+shape = SubResource("BoxShape3D_brc0_1")
+
+[node name="Bridge1" type="Node3D" parent="."]
+script = ExtResource("6_apply")
+
+[node name="P0_deck" parent="Bridge1" instance=ExtResource("10000")]
+transform = Transform3D(0.9951, 0, 0.0000, 0, 1.0000, 0, -0.0000, 0, 0.8482, 128.000, 1.303, 98.759)
+metadata/atlas = "res://assets/models/scifi-worlds/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png"
+
+[node name="P1_end" parent="Bridge1" instance=ExtResource("10001")]
+transform = Transform3D(-0.9951, 0, 0.0000, 0, 1.0000, 0, -0.0000, 0, -1.0000, 128.000, 1.303, 98.759)
+metadata/atlas = "res://assets/models/scifi-worlds/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png"
+
+[node name="P2_end" parent="Bridge1" instance=ExtResource("10001")]
+transform = Transform3D(0.9951, 0, 0.0000, 0, 1.0000, 0, -0.0000, 0, 1.0000, 128.000, 1.303, 107.241)
+metadata/atlas = "res://assets/models/scifi-worlds/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png"
+
+[node name="P3_rail" parent="Bridge1" instance=ExtResource("10002")]
+transform = Transform3D(0.6729, 0, 0.0000, 0, 1.0000, 0, -0.0000, 0, 1.4000, 132.675, 1.303, 96.000)
+metadata/atlas = "res://assets/models/scifi-worlds/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png"
+
+[node name="P4_rail" parent="Bridge1" instance=ExtResource("10002")]
+transform = Transform3D(0.6729, 0, 0.0000, 0, 1.0000, 0, -0.0000, 0, 1.4000, 123.325, 1.303, 96.000)
+metadata/atlas = "res://assets/models/scifi-worlds/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png"
+
+[node name="P5_pillar" parent="Bridge1" instance=ExtResource("10003")]
+transform = Transform3D(1.0000, 0, 0.0000, 0, 1.0000, 0, -0.0000, 0, 1.0000, 132.675, 1.303, 96.400)
+metadata/atlas = "res://assets/models/scifi-worlds/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png"
+
+[node name="P6_pillar" parent="Bridge1" instance=ExtResource("10003")]
+transform = Transform3D(1.0000, 0, 0.0000, 0, 1.0000, 0, -0.0000, 0, 1.0000, 123.325, 1.303, 96.400)
+metadata/atlas = "res://assets/models/scifi-worlds/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png"
+
+[node name="P7_pillar" parent="Bridge1" instance=ExtResource("10003")]
+transform = Transform3D(1.0000, 0, 0.0000, 0, 1.0000, 0, -0.0000, 0, 1.0000, 132.675, 1.303, 109.600)
+metadata/atlas = "res://assets/models/scifi-worlds/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png"
+
+[node name="P8_pillar" parent="Bridge1" instance=ExtResource("10003")]
+transform = Transform3D(1.0000, 0, 0.0000, 0, 1.0000, 0, -0.0000, 0, 1.0000, 123.325, 1.303, 109.600)
+metadata/atlas = "res://assets/models/scifi-worlds/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png"
+
+[node name="WalkB1_0" type="StaticBody3D" parent="Bridge1" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1.0, 0, 0.0, 0, 1.0, 0, -0.0, 0, 1.0, 128.000, 0.220, 96.460)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bridge1/WalkB1_0"]
+shape = SubResource("BoxShape3D_bw1_0")
+
+[node name="WalkB1_1" type="StaticBody3D" parent="Bridge1" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1.0, 0, 0.0, 0, 1.0, 0, -0.0, 0, 1.0, 128.000, 0.453, 97.379)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bridge1/WalkB1_1"]
+shape = SubResource("BoxShape3D_bw1_1")
+
+[node name="WalkB1_2" type="StaticBody3D" parent="Bridge1" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1.0, 0, 0.0, 0, 1.0, 0, -0.0, 0, 1.0, 128.000, 0.686, 98.299)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bridge1/WalkB1_2"]
+shape = SubResource("BoxShape3D_bw1_2")
+
+[node name="WalkB1_3" type="StaticBody3D" parent="Bridge1" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1.0, 0, 0.0, 0, 1.0, 0, -0.0, 0, 1.0, 128.000, 0.803, 103.000)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bridge1/WalkB1_3"]
+shape = SubResource("BoxShape3D_bw1_3")
+
+[node name="WalkB1_4" type="StaticBody3D" parent="Bridge1" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1.0, 0, 0.0, 0, 1.0, 0, -0.0, 0, 1.0, 128.000, 0.686, 107.701)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bridge1/WalkB1_4"]
+shape = SubResource("BoxShape3D_bw1_4")
+
+[node name="WalkB1_5" type="StaticBody3D" parent="Bridge1" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1.0, 0, 0.0, 0, 1.0, 0, -0.0, 0, 1.0, 128.000, 0.453, 108.620)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bridge1/WalkB1_5"]
+shape = SubResource("BoxShape3D_bw1_5")
+
+[node name="WalkB1_6" type="StaticBody3D" parent="Bridge1" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1.0, 0, 0.0, 0, 1.0, 0, -0.0, 0, 1.0, 128.000, 0.220, 109.540)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bridge1/WalkB1_6"]
+shape = SubResource("BoxShape3D_bw1_6")
+
+[node name="RailC1_0" type="StaticBody3D" parent="Bridge1"]
+collision_layer = 1
+collision_mask = 0
+transform = Transform3D(1.0, 0, 0.0, 0, 1.0, 0, -0.0, 0, 1.0, 132.675, 1.303, 103.000)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bridge1/RailC1_0"]
+shape = SubResource("BoxShape3D_brc1_0")
+
+[node name="RailC1_1" type="StaticBody3D" parent="Bridge1"]
+collision_layer = 1
+collision_mask = 0
+transform = Transform3D(1.0, 0, 0.0, 0, 1.0, 0, -0.0, 0, 1.0, 123.325, 1.303, 103.000)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bridge1/RailC1_1"]
+shape = SubResource("BoxShape3D_brc1_1")
+
+[node name="Bridge2" type="Node3D" parent="."]
+script = ExtResource("6_apply")
+
+[node name="P0_deck" parent="Bridge2" instance=ExtResource("10000")]
+transform = Transform3D(0.9951, 0, 0.0000, 0, 1.0000, 0, -0.0000, 0, 0.8482, 208.000, 8.800, 98.759)
+metadata/atlas = "res://assets/models/scifi-worlds/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png"
+
+[node name="P1_end" parent="Bridge2" instance=ExtResource("10001")]
+transform = Transform3D(-0.9951, 0, 0.0000, 0, 1.0000, 0, -0.0000, 0, -1.0000, 208.000, 8.800, 98.759)
+metadata/atlas = "res://assets/models/scifi-worlds/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png"
+
+[node name="P2_end" parent="Bridge2" instance=ExtResource("10001")]
+transform = Transform3D(0.9951, 0, 0.0000, 0, 1.0000, 0, -0.0000, 0, 1.0000, 208.000, 8.800, 107.241)
+metadata/atlas = "res://assets/models/scifi-worlds/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png"
+
+[node name="P3_rail" parent="Bridge2" instance=ExtResource("10002")]
+transform = Transform3D(0.6729, 0, 0.0000, 0, 1.0000, 0, -0.0000, 0, 1.4000, 212.675, 8.800, 96.000)
+metadata/atlas = "res://assets/models/scifi-worlds/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png"
+
+[node name="P4_rail" parent="Bridge2" instance=ExtResource("10002")]
+transform = Transform3D(0.6729, 0, 0.0000, 0, 1.0000, 0, -0.0000, 0, 1.4000, 203.325, 8.800, 96.000)
+metadata/atlas = "res://assets/models/scifi-worlds/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png"
+
+[node name="P5_pillar" parent="Bridge2" instance=ExtResource("10003")]
+transform = Transform3D(1.0000, 0, 0.0000, 0, 1.0000, 0, -0.0000, 0, 1.0000, 212.675, 8.800, 96.400)
+metadata/atlas = "res://assets/models/scifi-worlds/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png"
+
+[node name="P6_pillar" parent="Bridge2" instance=ExtResource("10003")]
+transform = Transform3D(1.0000, 0, 0.0000, 0, 1.0000, 0, -0.0000, 0, 1.0000, 203.325, 8.800, 96.400)
+metadata/atlas = "res://assets/models/scifi-worlds/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png"
+
+[node name="P7_pillar" parent="Bridge2" instance=ExtResource("10003")]
+transform = Transform3D(1.0000, 0, 0.0000, 0, 1.0000, 0, -0.0000, 0, 1.0000, 212.675, 8.800, 109.600)
+metadata/atlas = "res://assets/models/scifi-worlds/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png"
+
+[node name="P8_pillar" parent="Bridge2" instance=ExtResource("10003")]
+transform = Transform3D(1.0000, 0, 0.0000, 0, 1.0000, 0, -0.0000, 0, 1.0000, 203.325, 8.800, 109.600)
+metadata/atlas = "res://assets/models/scifi-worlds/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png"
+
+[node name="WalkB2_0" type="StaticBody3D" parent="Bridge2" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1.0, 0, 0.0, 0, 1.0, 0, -0.0, 0, 1.0, 208.000, 1.472, 96.460)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bridge2/WalkB2_0"]
+shape = SubResource("BoxShape3D_bw2_0")
+
+[node name="WalkB2_1" type="StaticBody3D" parent="Bridge2" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1.0, 0, 0.0, 0, 1.0, 0, -0.0, 0, 1.0, 208.000, 4.203, 97.379)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bridge2/WalkB2_1"]
+shape = SubResource("BoxShape3D_bw2_1")
+
+[node name="WalkB2_2" type="StaticBody3D" parent="Bridge2" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1.0, 0, 0.0, 0, 1.0, 0, -0.0, 0, 1.0, 208.000, 6.934, 98.299)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bridge2/WalkB2_2"]
+shape = SubResource("BoxShape3D_bw2_2")
+
+[node name="WalkB2_3" type="StaticBody3D" parent="Bridge2" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1.0, 0, 0.0, 0, 1.0, 0, -0.0, 0, 1.0, 208.000, 8.300, 103.000)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bridge2/WalkB2_3"]
+shape = SubResource("BoxShape3D_bw2_3")
+
+[node name="WalkB2_4" type="StaticBody3D" parent="Bridge2" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1.0, 0, 0.0, 0, 1.0, 0, -0.0, 0, 1.0, 208.000, 8.183, 107.701)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bridge2/WalkB2_4"]
+shape = SubResource("BoxShape3D_bw2_4")
+
+[node name="WalkB2_5" type="StaticBody3D" parent="Bridge2" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1.0, 0, 0.0, 0, 1.0, 0, -0.0, 0, 1.0, 208.000, 7.950, 108.620)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bridge2/WalkB2_5"]
+shape = SubResource("BoxShape3D_bw2_5")
+
+[node name="WalkB2_6" type="StaticBody3D" parent="Bridge2" groups=["terrain_navigation_input"]]
+collision_layer = 2
+collision_mask = 0
+transform = Transform3D(1.0, 0, 0.0, 0, 1.0, 0, -0.0, 0, 1.0, 208.000, 7.717, 109.540)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bridge2/WalkB2_6"]
+shape = SubResource("BoxShape3D_bw2_6")
+
+[node name="RailC2_0" type="StaticBody3D" parent="Bridge2"]
+collision_layer = 1
+collision_mask = 0
+transform = Transform3D(1.0, 0, 0.0, 0, 1.0, 0, -0.0, 0, 1.0, 212.675, 8.800, 103.000)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bridge2/RailC2_0"]
+shape = SubResource("BoxShape3D_brc2_0")
+
+[node name="RailC2_1" type="StaticBody3D" parent="Bridge2"]
+collision_layer = 1
+collision_mask = 0
+transform = Transform3D(1.0, 0, 0.0, 0, 1.0, 0, -0.0, 0, 1.0, 203.325, 8.800, 103.000)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bridge2/RailC2_1"]
+shape = SubResource("BoxShape3D_brc2_1")
+
+[node name="WaterBody" type="Node3D" parent="." index="6"]

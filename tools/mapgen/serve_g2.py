@@ -1,0 +1,32 @@
+"""Start the local G2 map workbench: python serve_g2.py --open."""
+import argparse
+from pathlib import Path
+import webbrowser
+
+from rtsmap.workbench.server import make_server
+
+
+def main():
+    from rtsmap.pathing_native import warmup
+    warmup()
+    from rtsmap.workbench.catalog import prepare_g1_library
+    prepare_g1_library(Path(__file__).resolve().parent)
+    parser = argparse.ArgumentParser(description='G2 地图调参工作台')
+    parser.add_argument('--port', type=int, default=8765)
+    parser.add_argument('--open', action='store_true', help='启动后打开浏览器')
+    args = parser.parse_args()
+    server = make_server(Path(__file__).resolve().parent, args.port)
+    url = f'http://127.0.0.1:{server.server_port}'
+    print(f'G2 workbench: {url}\nPress Ctrl+C to stop.', flush=True)
+    if args.open:
+        webbrowser.open(url)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.server_close()
+
+
+if __name__ == '__main__':
+    main()

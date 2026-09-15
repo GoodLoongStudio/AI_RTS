@@ -72,6 +72,18 @@ REJECT_TARGET = "target"
 #: OTHER 是"给了原因但我们不认识"（记账即可），UNSPECIFIED 是"什么都没给" ——
 #: 对它重发同一条命令是**纯噪音**，必须按前缀停发。
 REJECT_UNSPECIFIED = "unspecified"
+#: **工地不存在 / 已完工 / 已失效**（实测原文错误码：`ConstructionSiteNotFound`）。
+#: 修正维度与其它类别都不同：换点没用、换工人没用、换目标也没用 ——
+#: 这个"工地"在权威端已经不是一个可施工的现场了，唯一正确的动作是
+#: **把这个工地从"未完工清单"里清账**（并停发它的续建意图），否则：
+#:   2026-09-14 真机实测 a局：阶梯输入 `unfinished_buildings=['Unit_5']` 从 tick 3k 挂到 26k，
+#:   `rule-finish-site-Unit_5-*` 每 10~20 秒重发一次、每次都是 `ConstructionSiteNotFound`，
+#:   而阶梯"有未完工工地就先续建"这一步**短路了后面所有步骤** →
+#:   整局不再开新工地、闲工人（Unit_2）也一直用不上 = 玩家看到的"有建设需求但工人不去建"。
+REJECT_SITE = "site"
+#: 工地类拒绝的拉黑时长（tick）：**几乎等于本局不再重试**（100 tick/s 下 ≈ 30 分钟）。
+#: 依据：工地不存在是**终态**（已完工 / 已被摧毁）；留一个上限只是为了让账本数值可解释。
+SITE_BAN_TICKS = 180_000
 
 #: 几何类拒绝：都可以靠"换一个点"解决。
 GEOMETRY_KINDS = (REJECT_GEOMETRY, REJECT_VISION, REJECT_OCCUPANCY)
@@ -79,8 +91,10 @@ GEOMETRY_KINDS = (REJECT_GEOMETRY, REJECT_VISION, REJECT_OCCUPANCY)
 CONTENT_KINDS = (REJECT_CONTRACT, REJECT_CAPABILITY)
 #: 目标类拒绝：**换目标**才能解决（同一条命令对这个目标永远打不了）。
 TARGET_KINDS = (REJECT_TARGET,)
-#: 按**意图前缀**停发的类别（= 内容类 + 无原因）。这些拒绝换点/换单位都没用。
-PREFIX_BAN_KINDS = CONTENT_KINDS + (REJECT_UNSPECIFIED,)
+#: 工地类拒绝：**清账**（把该工地移出未完工清单 + 停发它的续建意图）。见 `REJECT_SITE`。
+SITE_KINDS = (REJECT_SITE,)
+#: 按**意图前缀**停发的类别（= 内容类 + 无原因 + 工地类）。这些拒绝换点/换单位都没用。
+PREFIX_BAN_KINDS = CONTENT_KINDS + (REJECT_UNSPECIFIED, REJECT_SITE)
 
 #: 状态名本身不携带"为什么被拒"，归类前先剥掉。
 #: 不剥的话，`"Rejected "`（空原因）会被当成一个"没见过的新原因"而混进 OTHER。
@@ -111,6 +125,11 @@ _REASON_MAP: Tuple[Tuple[str, str], ...] = (
     ("WeaponCannotTargetDomain", REJECT_TARGET),
     ("武器无法攻击该目标", REJECT_TARGET),
     ("地面/空中不匹配", REJECT_TARGET),
+    # 工地类（见 REJECT_SITE）：权威端明确说"这个现场不是一个可施工的工地"。
+    ("ConstructionSiteNotFound", REJECT_SITE),
+    ("ConstructionAlreadyCompleted", REJECT_SITE),
+    ("ConstructionSiteNotActive", REJECT_SITE),
+    ("SiteNotFound", REJECT_SITE),
 )
 
 
@@ -385,15 +404,24 @@ class RejectionLedger:
     def __init__(self) -> None:
         self.entries: Dict[str, Dict[str, Any]] = {}
 
-    def add(self, kind: str, key: str, tick: int = 0) -> int:
-        """记一次拒绝，返回该键的累计次数。"""
+    def add(self, kind: str, key: str, tick: int = 0, ban_now: bool = False,
+            ban_ticks: Optional[int] = None) -> int:
+        """记一次拒绝，返回该键的累计次数。
+
+        `ban_now=True`：这一类拒绝**一次就够**（例：`ConstructionSiteNotFound` ——
+        工地已经不存在了，再等 3 次只是白烧 3 轮命令），立刻拉黑；
+        `ban_ticks` 覆盖默认拉黑时长（工地类用 `SITE_BAN_TICKS`）。
+        """
         entry = self.entries.setdefault(str(key), {"kind": str(kind), "count": 0,
                                                    "last_tick": 0, "banned_until": 0})
         entry["kind"] = str(kind)
         entry["count"] = int(entry["count"]) + 1
         entry["last_tick"] = int(tick)
+        if ban_now:
+            entry["count"] = max(int(entry["count"]), self.BAN_AFTER)
         if int(entry["count"]) >= self.BAN_AFTER:
-            entry["banned_until"] = int(tick) + self.BAN_TICKS
+            window = self.BAN_TICKS if ban_ticks is None else int(ban_ticks)
+            entry["banned_until"] = int(tick) + window
         return int(entry["count"])
 
     def is_banned(self, key: str, tick: Optional[int] = None) -> bool:
@@ -509,7 +537,8 @@ __all__ = [
     "BUILD_BOUND_MARGIN_M", "VISION_SAFE_RADIUS_M", "MIN_OWN_CLEARANCE_M",
     "REJECT_GEOMETRY", "REJECT_VISION", "REJECT_OCCUPANCY", "REJECT_CONTRACT",
     "REJECT_CAPABILITY", "REJECT_STALE", "REJECT_OTHER", "REJECT_TARGET",
-    "GEOMETRY_KINDS", "CONTENT_KINDS", "TARGET_KINDS", "RejectionLedger",
+    "REJECT_SITE", "SITE_BAN_TICKS",
+    "GEOMETRY_KINDS", "CONTENT_KINDS", "TARGET_KINDS", "SITE_KINDS", "RejectionLedger",
     "candidate_spots", "clamp_into_bounds",
     "classify_rejection", "filter_rejected", "first_own_distance", "has_bounds",
     "in_bounds",

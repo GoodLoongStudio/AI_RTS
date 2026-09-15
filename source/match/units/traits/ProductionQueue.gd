@@ -229,9 +229,19 @@ func on_authoritative_item_removed(item):
 ## 尝试在有限搜索范围内部署完成单位；受阻时返回 null 供 C# 稍后重试。
 func try_deploy_authoritative(unit_prototype):
 	var produced_unit = unit_prototype.instantiate()
-	var navigation_map = find_parent("Match").navigation.get_navigation_map_rid_by_domain(
-		produced_unit.movement_domain
-	)
+	var match_node = find_parent("Match")
+	var occupancy = null
+	var navigation_map := RID()
+	if match_node != null and match_node.navigation != null \
+			and match_node.navigation.has_method("should_skip_runtime_navigation") \
+			and match_node.navigation.should_skip_runtime_navigation(match_node.map):
+		var map_node = match_node.get_node_or_null("Map")
+		if map_node != null and map_node.has_meta("water_occupancy"):
+			occupancy = map_node.get_meta("water_occupancy")
+	elif match_node != null and match_node.navigation != null:
+		navigation_map = match_node.navigation.get_navigation_map_rid_by_domain(
+			produced_unit.movement_domain
+		)
 	var placement_position = (
 		Utils
 		. Match
@@ -246,12 +256,15 @@ func try_deploy_authoritative(unit_prototype):
 			false,
 			navigation_map,
 			get_tree(),
-			24
+			24,
+			occupancy
 		)
 	)
 	if placement_position == Vector3.INF:
 		produced_unit.free()
 		return null
+	if occupancy != null and occupancy.has_method("project_ground"):
+		placement_position = occupancy.project_ground(placement_position)
 	MatchSignals.setup_and_spawn_unit.emit(
 		produced_unit, Transform3D(Basis(), placement_position), _unit.player
 	)

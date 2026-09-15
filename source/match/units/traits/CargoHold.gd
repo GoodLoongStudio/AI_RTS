@@ -13,6 +13,8 @@ const BOARDING_META := "boarding_transport"
 
 var _transport: Node3D = null
 var _passengers: Array = []
+const BOARDING_SCAN_INTERVAL := 0.10
+var _boarding_scan_elapsed := BOARDING_SCAN_INTERVAL
 
 
 func _ready():
@@ -22,6 +24,10 @@ func _ready():
 func _process(_delta):
 	if _transport == null or not is_instance_valid(_transport):
 		return
+	_boarding_scan_elapsed += _delta
+	if _boarding_scan_elapsed < BOARDING_SCAN_INTERVAL:
+		return
+	_boarding_scan_elapsed = fmod(_boarding_scan_elapsed, BOARDING_SCAN_INTERVAL)
 	# 接应已标记登车的步兵：进入 3 米内即装载
 	if _passengers.size() >= capacity:
 		return
@@ -39,7 +45,7 @@ func _process(_delta):
 			continue
 		if not _is_loadable_infantry(unit):
 			continue
-		if _transport.global_position.distance_to(unit.global_position) <= LOAD_RADIUS:
+		if _transport.global_position.distance_squared_to(unit.global_position) <= LOAD_RADIUS * LOAD_RADIUS:
 			load_unit(unit)
 
 

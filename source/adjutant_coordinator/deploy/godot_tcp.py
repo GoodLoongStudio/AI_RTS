@@ -14,10 +14,34 @@ import subprocess
 import time
 from typing import Any, Dict, List, Optional
 
-#: 玩家局服 / Hermes 客户端调试端口：永不允许连接。
+#: 玩家局服 / Hermes 客户端调试端口：永不允许连接（铁律，别改）。
 FORBIDDEN_PORTS = {24567, 24568, 24571}
 #: 允许的隔离测试端口（局服 UDP 24569、测试客户端 24570、测试局服调试 24572）。
 ALLOWED_PORTS = {24569, 24570, 24572}
+#: 临时测试房间端口区间（2026-09-15 用户授权："服务器可以开临时测试房间"）。
+#: 区间内任意端口都算隔离测试端口：允许按需另起"临时房间 + 临时客户端"，
+#: 不必和本机其它会话抢固定的 24569/24570/24572。**FORBIDDEN_PORTS 始终优先**。
+#: 区间取值避开：玩家局服 24567/24571、Hermes 24568、面板默认权威口 24579、
+#: 验收端口段 24589+ 与 SmokeClient 默认口 24599。区间与 agent_runner 同值
+#: （端口策略必须单点定义：改这里前先看 `graph`/`deploy` 有没有第二份）。
+TEST_PORT_RANGE = (24600, 24699)
+
+
+def is_test_port(port: int) -> bool:
+    """该端口是否属于隔离测试范围（硬禁端口永远不算）。"""
+    if int(port) in FORBIDDEN_PORTS:
+        return False
+    if int(port) in ALLOWED_PORTS:
+        return True
+    return TEST_PORT_RANGE[0] <= int(port) <= TEST_PORT_RANGE[1]
+
+
+def assert_allowed(port: int) -> None:
+    if int(port) in FORBIDDEN_PORTS:
+        raise PortNotAllowed("拒绝：%d 属于玩家局服/Hermes 链路，禁止连接。" % port)
+    if not is_test_port(port):
+        raise PortNotAllowed("拒绝：%d 不在隔离测试白名单 %s，也不在临时房间区间 %s 内。" % (
+            port, sorted(ALLOWED_PORTS), TEST_PORT_RANGE))
 
 DEFAULT_REPO = "/home/ubuntu/AI_RTS"
 DEFAULT_GODOT = ("/home/ubuntu/godot/Godot_v4.7.1-stable_mono_linux_x86_64/"
@@ -116,9 +140,17 @@ def ensure_test_client(client_dbg: int = 24570, match_port: int = 24569,
     return {"networked": networked, "client_dbg": client_dbg}
 
 
-def start_match(client_dbg: int = 24570, with_ai: bool = True) -> Dict[str, Any]:
+def start_match(client_dbg: int = 24570, with_ai: bool = True,
+                passive_ai_test: bool = False) -> Dict[str, Any]:
+    """开局。
+
+    `passive_ai_test` 默认 **False** = 电脑正常参战（会采集/建造/生产，并**主动进攻**）。
+    2026-09-15 用户要求"电脑也取消降智商"：此前这里硬编码 True，导致所有经本模块
+    开的测试局里电脑永远是 `is_passive_test_ai()`（`SimpleClairvoyantAI` 只发展不打人），
+    "副官 vs 电脑整局对抗"根本打不起来。需要安静的练发展局时再显式传 True。
+    """
     return tcp_json(client_dbg, {"op": "start", "with_ai": with_ai,
-                                 "passive_ai_test": True}, timeout=30)
+                                 "passive_ai_test": passive_ai_test}, timeout=30)
 
 
 def wait_match(authority_dbg: int = 24572, timeout_s: float = 60.0) -> bool:

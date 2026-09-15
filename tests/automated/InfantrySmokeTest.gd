@@ -33,7 +33,7 @@ func _ready():
 	var queue = barracks.production_queue
 	var runtime = match_instance.get_node("ProductionRuntime")
 	_check(
-		human.add_resources({"resource_a": 3000, "resource_b": 3000}, "ScriptedAdjustment"),
+		human.add_resources({"resource_a": 3000}, "ScriptedAdjustment"),
 		"测试资源注入应成功"
 	)
 

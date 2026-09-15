@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "kit_policy": "g2_anchored_modular",
+  "kits": {
+    "bridge_4006_single_tier": {
+      "source_pack": "4006_科幻世界",
+      "pieces": [
+        {"role": "deck_middle", "asset": "SM_Bld_Bridge_01.fbx", "repeat": true},
+        {"role": "end_cap", "asset": "SM_Bld_Bridge_End_01.fbx", "repeat": false},
+        {"role": "rail", "asset": "SM_Bld_Bridge_Rail_01.fbx", "repeat": true},
+        {"role": "rail_pillar", "asset": "SM_Bld_Bridge_Rail_Pillar_01.fbx", "repeat": true},
+        {"role": "support", "asset": "SM_Bld_Bridge_Strut_01.fbx", "repeat": true}
+      ],
+      "anchors": ["bridge_a", "bridge_b"],
+      "constraints": {"tiers": 1, "deck_width_m": 8.0, "max_piece_scale_delta": 0.12}
+    }
+  }
+}

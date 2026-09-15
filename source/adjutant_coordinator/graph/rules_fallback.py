@@ -476,6 +476,151 @@ def combat_production_allowed(state: Dict[str, Any], tactical, tick: int,
         note_army_cap(state, deployed, queued, tick)
         return False
     return True
+
+
+def queue_item_product(item) -> str:
+    """生产队列项的产品类型 id（**唯一实现**）。
+
+    `definition_id` 是权威字段；`product_type_id` 是旧名（实测恒空）。
+    以前同文件两处口径不同（并行填充的工人队列只认旧名 → 恒 0 → 目标工人数永远算不够），
+    统一到这里：新增任何"读队列项类型"的地方只许调用本函数。
+    """
+    if not isinstance(item, dict):
+        return ""
+    return str(item.get("definition_id") or item.get("product_type_id") or "")
+
+
+def produce_totals(by_name: Dict[str, Any], tactical, state,
+                   scene_index: Optional[Dict[str, str]] = None) -> Dict[str, int]:
+    """按产品类型统计"**现有 + 队列 + 在途**"（生产缺口的唯一口径）。
+
+    为什么必须三项都算（2026-09-15 用户要求"按当前数量 + 队列 + 在途算缺口"）：
+    只数现有单位时，刚下发的兵还没出现在观测里 → `counts` 恒 0 →
+    "数量最少者优先"会**连续多轮押同一个产品**；而车/机一落地就记 1、
+    步兵有存量，于是长期偏向车辆与飞机（用户实测"AI 不喜欢生产小步兵"）。
+
+    - 现有：观测里我方单位（`by_name`）；
+    - 队列：`tactical["production"][*]["items"]`（权威事实，字段口径见 `queue_item_product`）；
+    - 在途：本协调器已下发、权威尚未结算完的 `produce` 意图（按 `target.scene` 反查产品）。
+    """
+    totals: Dict[str, int] = {}
+    for info in (by_name or {}).values():
+        key = str((info or {}).get("type", ""))
+        if key:
+            totals[key] = totals.get(key, 0) + 1
+    for entry in (tactical or {}).get("production") or []:
+        if not isinstance(entry, dict):
+            continue
+        for item in entry.get("items") or []:
+            key = queue_item_product(item)
+            if key:
+                totals[key] = totals.get(key, 0) + 1
+    scene_to_product: Dict[str, str] = {}
+    for product, scene in (scene_index or {}).items():
+        if scene:
+            scene_to_product[str(scene)] = str(product)
+    for intent in (state or {}).get("active_intents") or []:
+        if not isinstance(intent, dict):
+            continue
+        if str(intent.get("action", "")) != ACTION_PRODUCE:
+            continue
+        if str(intent.get("state", "")) not in LIVE_INTENT_STATES:
+            continue
+        target = intent.get("target")
+        scene = str(target.get("scene", "")) if isinstance(target, dict) else ""
+        product = scene_to_product.get(scene, "")
+        if product:
+            totals[product] = totals.get(product, 0) + 1
+    return totals
+
+
+#: 基础步兵（soldier）的**最低占比**：低于它（或干脆没有步兵）→ 保底补一个。
+#: 为什么要有（2026-09-15 用户实测"AI 不喜欢生产小步兵"）：阶梯 2 只按"数量最少"选级，
+#: 车/机一落地就记 1、步兵有存量 → 长期偏向车辆与飞机（实测一局 8 分钟没出过兵）。
+#: **为什么用占比而不是绝对下限**：绝对下限（如"至少 4 个"）会压掉
+#: "3 兵 + 0 坦 → 该补坦克"这类正常的多兵种轮转（既有回归测试正守这条）；
+#: 用户要的是"别长期偏向车辆"，不是"步兵永远优先"。
+SOLDIER_SHARE = 0.34
+
+
+def soldier_shortage(soldier_total: int, combat_total: int) -> bool:
+    """基础步兵是否"数量不足"（口径 = 现有 + 队列 + 在途，需保底补一个）。
+
+    判据：**完全没有步兵**，或步兵占比低于 `SOLDIER_SHARE`。
+    """
+    if int(soldier_total) <= 0:
+        return True
+    if int(combat_total) <= 0:
+        return False
+    return float(int(soldier_total)) / float(int(combat_total)) < SOLDIER_SHARE
+
+
+#: 侦察单位的**最低在编数**（现役专职 + 在途/队列无人机 < 它 → 触发专用补充生产）。
+#: 为什么需要（2026-09-15 用户实测"不持续侦察全图"）：`PRODUCT_LADDER` 刻意不含 drone，
+#: 于是"专职侦察一死，整局再没有侦察"；这里给一条**有上限**的专用补充档，
+#: 只补到 `RECON_MIN_PROBES` 为止，不会像作战单位那样堆积。
+RECON_MIN_PROBES = 1
+
+
+def recon_produce_intent(state: Dict[str, Any], by_name: Dict[str, Dict[str, Any]],
+                         inputs: Dict[str, Any], tactical, scene_index,
+                         *, free_producers: List[str], usable_producers,
+                         production_views, tick: int
+                         ) -> Optional[Tuple[str, str]]:
+    """专职侦察不足时**该补一架无人机**（有上限，不是堆量）。
+
+    返回 `(producer, drone_scene)`；没有缺口 / 没有空闲机场 → None。
+    口径：现役专职（drone/scout，未阵亡）+ 队列里的 drone + 在途 drone
+    < `RECON_MIN_PROBES` → 用**空闲机场**补一架。
+
+    为什么单独成档、不塞进 `PRODUCT_LADDER`（那边注释明确不加 drone 防堆积）：
+    侦察必须"独立配额"（2026-09-15 用户要求"不能被建造/采集/军事挤掉"），
+    但也不能变成无上限生产。找不到空闲机场 → 返回 None（不硬塞、不抢造兵产能）。
+    """
+    drone_scene = str((scene_index or {}).get("drone", ""))
+    if not drone_scene:
+        return None
+    live = 0
+    for name in inputs.get("ai_units") or []:
+        info = by_name.get(name) or {}
+        if str(info.get("type", "")) not in PROBE_TYPES:
+            continue
+        if info.get("confirmed_dead"):
+            continue
+        live += 1
+    queued_drones = 0
+    for entry in (tactical or {}).get("production") or []:
+        if not isinstance(entry, dict):
+            continue
+        for item in entry.get("items") or []:
+            if queue_item_product(item) == "drone":
+                queued_drones += 1
+    inflight = 0
+    for intent in (state.get("active_intents") or []):
+        if not isinstance(intent, dict):
+            continue
+        if str(intent.get("action", "")) != ACTION_PRODUCE:
+            continue
+        if str(intent.get("state", "")) not in LIVE_INTENT_STATES:
+            continue
+        target = intent.get("target")
+        scene = str(target.get("scene", "")) if isinstance(target, dict) else ""
+        if scene == drone_scene:
+            inflight += 1
+    in_service = live + queued_drones + inflight
+    if in_service >= RECON_MIN_PROBES:
+        return None
+    producer = next((name for name in free_producers
+                     if str((by_name.get(name) or {}).get("type", "")) == "aircraft_factory"
+                     and name in usable_producers
+                     and _queue_size_of(production_views, name) < PRODUCER_QUEUE_CAP), "")
+    if not producer:
+        return None
+    # 只返回"该造什么、谁来造"；意图由调用方构造 —— 阶梯里的 `_intent` 是带
+    # tick/snapshot 的**局部闭包**，模块级函数拿不到它（已踩一次 NameError）。
+    return (producer, drone_scene)
+
+
 #: 整批里出现这些动作，才算"这批已经在发展"，否则补阶梯。
 DEVELOPMENT_ACTIONS = (ACTION_BUILD, ACTION_PRODUCE, ACTION_ATTACK)
 #: **可被发展动作抢占**的低优先动作：这些动作占用的单位不算"忙"。
@@ -1177,9 +1322,17 @@ def ladder_inputs(state: Dict[str, Any], *, tactical=None, rules=None) -> Dict[s
                    if info["type"] and not info["gather"]}
     # 未完工的工地：**只有显式 constructed=False** 才算（None=未知，不当未完工，
     # 否则会把"观测没给该字段"误判成工地，导致反复派工去"施工"）。
+    #
+    # 【2026-09-14 修：幽灵工地】权威端已经回过 `ConstructionSiteNotFound` 的工地
+    # （= 已完工/已失效，见 `placement.REJECT_SITE`）**必须移出清单**：否则阶梯 1.5
+    # "有未完工工地就先续建"会短路后面所有步骤 —— 实测 a 局 `Unit_5` 从 tick 3k 挂到
+    # 26k，整局不再开新工地、闲工人也用不上（玩家反馈"有建设需求但工人不去建"）。
+    ledger = placement.ledger_from_state(state)
+    ledger_tick = int(state.get("server_tick", 0) or 0)
     unfinished = [name for name, info in by_name.items()
                   if info["type"] and not info["gather"]
-                  and info.get("constructed") is False]
+                  and info.get("constructed") is False
+                  and not ledger.is_banned("rule-finish-site-%s" % name, ledger_tick)]
     # 可用于生产的设施：constructed 不是 False（None=未知仍放行，交由权威端裁决）。
     constructed_producers = [name for name, info in by_name.items()
                              if info.get("queue") and info.get("constructed") is not False]
@@ -1291,6 +1444,18 @@ def military_waypoint(base, *, bounds=None, enemies=(), ring: int = 1,
         if nearest[0] <= 1e-3:
             return None
         direction = (nearest[1] - base_x, nearest[2] - base_z)
+        # 【多方向铺开】朝敌人的**大方向**不变，按"圈号"给一个交替的小角度偏置：
+        # 调用方按单位序号分批给 ring（`1 + index // 4`，每 4 个单位一环），
+        # 相邻两环分向两侧 → 部队铺成"朝敌人的扇形"，而不是一条纵队挤在同一目标上
+        #（2026-09-15 用户要求"拆成多个小队、前往不同方向/不同接触区域"）。
+        # 角度固定 ±18°：仍在"朝最近敌人"这条依据之内（不是凭空撒点）；
+        # 半径与边界约束（下面的 `radius_cap`）一律不变。
+        if int(ring) > 1:
+            angle = math.radians(18.0 if int(ring) % 2 == 0 else -18.0)
+            cos_a, sin_a = math.cos(angle), math.sin(angle)
+            dir_x, dir_z = direction
+            direction = (dir_x * cos_a - dir_z * sin_a,
+                         dir_x * sin_a + dir_z * cos_a)
         # 情报点（非实时）→ 要真的走过去，站位比"看得见时"更靠前。
         standoff = ADVANCE_SEARCH_ENEMY_STANDOFF if from_intel else ADVANCE_ENEMY_STANDOFF
         if from_intel:
@@ -1782,18 +1947,17 @@ def _parallel_intents(state: Dict[str, Any], *, tactical=None, rules=None,
         if not isinstance(entry, dict):
             continue
         for item in entry.get("items") or []:
-            if str((item or {}).get("product_type_id", "")) == worker_id:
+            # 统一口径（`queue_item_product`）：旧名 `product_type_id` 实测恒空，
+            # 只认它会让"已排队的工人"永远算 0 → 目标工人数被重复下单。
+            if queue_item_product(item) == worker_id:
                 queued_workers += 1
     producing = {str(unit)
                  for intent in (state.get("active_intents") or [])
                  if str(intent.get("action", "")) == ACTION_PRODUCE
                  and str(intent.get("state", "")) in LIVE_INTENT_STATES
                  for unit in (intent.get("unit_ids") or [])}
-    counts: Dict[str, int] = {}
-    for info in by_name.values():
-        key = str(info.get("type", ""))
-        if key:
-            counts[key] = counts.get(key, 0) + 1
+    # 生产缺口口径 = 现有 + 队列 + 在途（与阶梯 2 共用 `produce_totals`，唯一实现）。
+    counts = produce_totals(by_name, tactical, state, scene_index)
     # 兵力上限（与阶梯 2 同口径、同记账函数）：达到上限时生产轨**不再补作战单位**。
     # 判一次即可（本函数内兵力不会变），避免每个设施各算一次。
     combat_ids = combat_types_of(state, rules)
@@ -2299,6 +2463,19 @@ def _development_intents_raw(state: Dict[str, Any], *, tactical=None, rules=None
     for name in sorted(usable_producers):
         if name not in producing_units and name not in free_producers:
             free_producers.append(name)
+    # 【侦察补充档】专职侦察没了就补无人机 —— 优先于常规补兵：
+    # 侦察是独立配额线（2026-09-15 用户要求），不能被建造/采集/军事任务长期挤掉。
+    recon_option = recon_produce_intent(
+        state, by_name, inputs, tactical, scene_index,
+        free_producers=free_producers, usable_producers=usable_producers,
+        production_views=production_views, tick=tick)
+    if recon_option is not None:
+        recon_producer, recon_scene = recon_option
+        return [_intent("rule-produce-recon-%s-%d" % (recon_producer, tick),
+                        ACTION_PRODUCE, recon_producer,
+                        {"scene": recon_scene, "producer": recon_producer}, 3,
+                        "侦察补充：专职侦察在编不足，机场补无人机",
+                        "rule-produce-drone")]
     for product, producer_type in PRODUCT_LADDER:
         if producer_type not in own_types:
             continue
@@ -2319,19 +2496,29 @@ def _development_intents_raw(state: Dict[str, Any], *, tactical=None, rules=None
         if not combat_production_allowed(state, tactical, tick, rules):
             options = [item for item in options if item[0] not in combat_ids]
     if options:
-        counts: Dict[str, int] = {}
-        for info in by_name.values():
-            key = str(info.get("type", ""))
-            if key:
-                counts[key] = counts.get(key, 0) + 1
-        product, producer, scene = min(options,
-                                       key=lambda item: counts.get(item[0], 0))
+        # 【缺口口径 = 现有 + 队列 + 在途】只数现有会让"刚下单的产品"被重复押注，
+        # 也让车/机（一落地就计数）长期挤掉步兵（2026-09-15 用户要求）。
+        totals = produce_totals(by_name, tactical, state, scene_index)
+        combat_total = sum(int(totals.get(product_id, 0) or 0)
+                           for product_id, _producer_type in PRODUCT_LADDER)
+        soldier_option = next((item for item in options if item[0] == "soldier"), None)
+        # 【基础步兵保底】没步兵或占比过低时优先补步兵；其余情况照常按缺口轮转（多兵种不变）。
+        if soldier_option is not None and soldier_shortage(
+                int(totals.get("soldier", 0) or 0), combat_total):
+            product, producer, scene = soldier_option
+            rationale = ("发展阶梯：基础步兵 %d/%d 不足（无步兵或占比 < %.0f%%），优先补步兵"
+                         % (int(totals.get("soldier", 0) or 0), combat_total,
+                            SOLDIER_SHARE * 100.0))
+        else:
+            product, producer, scene = min(
+                options, key=lambda item: int(totals.get(item[0], 0) or 0))
+            rationale = ("发展阶梯：现有+队列+在途 %s 最少（%d），补充 %s"
+                         % (product, int(totals.get(product, 0) or 0), product))
         # 同样带 tick：生产被拒（如队列已满/资源不足）后要有机会重试，
         # 不能被游戏侧按 intent_id 幂等缓存成"永远同一个回执"。
         return [_intent("rule-produce-%s-%s-%d" % (product, producer, tick), ACTION_PRODUCE,
                         producer, {"scene": scene, "producer": producer}, 3,
-                        "发展阶梯：现有 %s 最少，补充 %s" % (product, product),
-                        "rule-produce-%s" % product)]
+                        rationale, "rule-produce-%s" % product)]
 
     # 阶梯 3：兵力达标且有可见敌人 → 出击（打谁由"最近"这一事实决定，不做威胁评估）。
     # 【整局主线】出击只在**施压/收束**阶段由规则发起（手册：集结 → 前压 → 进攻，

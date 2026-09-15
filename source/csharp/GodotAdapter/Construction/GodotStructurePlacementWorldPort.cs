@@ -66,7 +66,7 @@ internal sealed class GodotStructurePlacementWorldPort : IStructurePlacementWorl
         {
             issues.Add(StructurePlacementIssue.NotVisible);
         }
-        if (!Navigable(center, footprint.Radius))
+        if (!Navigable(center, footprint.Radius) || WaterBlocked(center, footprint.Radius))
         {
             issues.Add(StructurePlacementIssue.SurfaceNotBuildable);
         }
@@ -140,15 +140,83 @@ internal sealed class GodotStructurePlacementWorldPort : IStructurePlacementWorl
         return true;
     }
 
+    /// <summary>生成地图把水面当逻辑禁行区，不建 200+ 块水面碰撞。</summary>
+    private bool WaterBlocked(Vector3 center, float radius)
+    {
+        var map = _match.GetNodeOrNull("Map");
+        if (map == null || !map.HasMeta("water_occupancy"))
+        {
+            return false;
+        }
+        if (map.GetMeta("water_occupancy").AsGodotObject() is not Node occupancy ||
+            !occupancy.HasMethod("is_water_blocked"))
+        {
+            return false;
+        }
+        foreach (var point in SampleCircle(center, radius))
+        {
+            if (occupancy.Call("is_water_blocked", point).AsBool())
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /// <summary>检查采样点均落在当前地表导航区域内。</summary>
     private bool Navigable(Vector3 center, float radius)
     {
+        // 256+ 生成图跳过 navmesh；台地顶用高度/坡度判定，不能再拿空导航当不可造。
+        if (UsesLogicSurface())
+        {
+            return SurfaceBuildable(center, radius);
+        }
         var navigation = _match.GetNode<Node>("Navigation");
         var mapRid = navigation.Call("get_navigation_map_rid_by_domain", TerrainDomain).AsRid();
         foreach (var point in SampleCircle(center, radius))
         {
             var closest = NavigationServer3D.MapGetClosestPoint(mapRid, point);
             if (PlanarDistance(point, closest) > 0.05f)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /// <summary>256+ 生成图跳过导航烘焙，用高度/坡度代替 navmesh。</summary>
+    private bool UsesLogicSurface()
+    {
+        var map = _match.GetNodeOrNull("Map");
+        if (map == null)
+        {
+            return false;
+        }
+        var size = map.Get("size");
+        if (size.VariantType != Variant.Type.Vector2)
+        {
+            return false;
+        }
+        var mapSize = size.AsVector2();
+        return mapSize.X >= 256.0f || mapSize.Y >= 256.0f;
+    }
+
+    /// <summary>台地顶和平地可造，水面与陡坡不可造。</summary>
+    private bool SurfaceBuildable(Vector3 center, float radius)
+    {
+        var map = _match.GetNodeOrNull("Map");
+        if (map == null || !map.HasMeta("water_occupancy"))
+        {
+            return true;
+        }
+        if (map.GetMeta("water_occupancy").AsGodotObject() is not Node occupancy ||
+            !occupancy.HasMethod("is_surface_buildable"))
+        {
+            return true;
+        }
+        foreach (var point in SampleCircle(center, radius))
+        {
+            if (!occupancy.Call("is_surface_buildable", point).AsBool())
             {
                 return false;
             }
@@ -210,7 +278,8 @@ internal sealed class GodotStructurePlacementWorldPort : IStructurePlacementWorl
         IReadOnlySet<Node3D> displaced,
         IEnumerable<Vector3> reserved)
     {
-        if (!InsideMap(candidate, radius) || !Navigable(candidate, radius))
+        if (!InsideMap(candidate, radius) || !Navigable(candidate, radius) ||
+            WaterBlocked(candidate, radius))
         {
             return false;
         }

@@ -14,19 +14,22 @@ extends Node3D
 ## payload（由权威端 NetSync.broadcast_order_visual 下发）：
 ##   {action: String, units: Array[String], target: [x, z], source: "adjutant"|"player", tick: int}
 
-const LIFETIME := 5.0
-const FADE_TIME := 1.2
+# 2026-09-14 用户第二次实测反馈：副官连续下命令时信标会"排队"留在场上（一条命 5 秒 +
+# 每 2~3 秒一条新命令 → 视觉上连成一串"轨迹"），且每个信标太亮太大。
+# 收紧为：存活 2.4 秒 / 淡出更快 / 更小更淡（外环直径 3m→2m，环与光柱透明度约减半）。
+const LIFETIME := 2.4
+const FADE_TIME := 0.7
 const BEACON_RAISE_TIME := 0.3
 
 #: 信标尺寸。2026-09-11 用户实测反馈"信标太大了"：原先光柱 9m 高、外环直径 6.8m，
 #: 一次命令就把基地和半个屏幕盖住 → 整体缩到约 40%（3.2m 高 / 外环直径 3m），
-#: 保留"看得见"但不再遮挡战场。
-const BEACON_HEIGHT := 3.2
-const BEACON_PILLAR_ALPHA := 0.22
+#: 保留"看得见"但不再遮挡战场。2026-09-14 再缩一轮：2.0m 高 / 外环直径 2m。
+const BEACON_HEIGHT := 2.0
+const BEACON_PILLAR_ALPHA := 0.10
 const RING_Y := 0.06
 const PATH_Y := 0.12
-const PATH_WIDTH := 0.32
-const PATH_ALPHA := 0.7
+const PATH_WIDTH := 0.20
+const PATH_ALPHA := 0.32
 
 const FADED_CIRCLE_SHADER := preload("res://source/shaders/3d/faded_circle.gdshader")
 
@@ -98,8 +101,8 @@ func _spawn_pulse(action: String, unit_names: Array, target: Vector3) -> void:
 func _add_beacon(pulse: Node3D, color: Color, action: String, unit_names: Array,
 		materials: Array) -> void:
 	for ring in [
-		{"radius": 1.5, "width": 6.0, "alpha": 0.4},
-		{"radius": 0.7, "width": 8.0, "alpha": 0.7},
+		{"radius": 1.0, "width": 5.0, "alpha": 0.22},
+		{"radius": 0.45, "width": 6.5, "alpha": 0.4},
 	]:
 		var ring_node := MeshInstance3D.new()
 		var plane := PlaneMesh.new()
@@ -149,12 +152,12 @@ func _add_beacon(pulse: Node3D, color: Color, action: String, unit_names: Array,
 	var label := Label3D.new()
 	label.text = _label_text(action, unit_names)
 	# 字号跟着信标一起收小（原 42/16 在缩放前尺寸下才合适）。
-	label.font_size = 30
-	label.outline_size = 10
+	label.font_size = 26
+	label.outline_size = 9
 	label.pixel_size = 0.018
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.no_depth_test = true
-	label.modulate = Color(1.0, 1.0, 1.0, 0.95)
+	label.modulate = Color(1.0, 1.0, 1.0, 0.8)
 	label.outline_modulate = Color(0.05, 0.05, 0.08, 0.85)
 	label.position.y = BEACON_HEIGHT + 0.8
 	pulse.add_child(label)

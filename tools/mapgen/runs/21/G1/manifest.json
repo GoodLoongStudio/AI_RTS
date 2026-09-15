@@ -1,0 +1,28 @@
+{
+ "algo_version": "2.0.0",
+ "approved": false,
+ "approved_at": null,
+ "approved_note": null,
+ "created_at": "2026-09-04T14:09:03",
+ "gate": "G1",
+ "gate_seed": 3285543157875193148,
+ "input_hash": null,
+ "master_seed": 21,
+ "output_hash": {
+  "mapgrid.npz": "09f3086a2ed80440f88acb3c3b42eb59e538bf1c7bb7123e0c7ef70b5a033d18",
+  "mapspec.json": "9b6ba296b521fa226cb9881eb8f520c2460d77113e9b51368a86ade829e98f75"
+ },
+ "params": {
+  "angle_max": 150.0,
+  "angle_min": 45.0,
+  "candidates": 32,
+  "center_gap": 0.0,
+  "center_ratio": 99.0,
+  "margin": 12.0,
+  "max_attempts": 200,
+  "min_pair_factor": 0.35,
+  "nn_ratio": 1.3,
+  "territory_ratio": 1.3,
+  "top_frac": 0.7
+ }
+}

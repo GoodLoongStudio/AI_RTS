@@ -76,17 +76,19 @@ func _on_selection_changed(topdown_polygon_2d):
 	var units_to_highlight = _get_controlled_units_from_navigation_domain_within_topdown_polygon_2d(
 		Constants.Match.Navigation.Domain.TERRAIN, topdown_polygon_2d
 	)
+	# 【2026-09-14 修：**框选彻底失效**的真因】空域平面的重投影失败时**只跳过空军那一半**，
+	# 绝不能像原来那样整次放弃：`Air.Y` 从 1.5 抬到 40 之后，相机在 y=20、视线朝下 45°，
+	# 射线**永远不可能**与 y=40 的平面相交 → 每个点都返回 null → 整个框选（连地面单位）
+	# 都被丢弃，玩家看到的就是"框选没反应 / 一直未选中单位"。
 	var air_topdown_polygon_2d = _rebase_topdown_polygon_2d_to_different_plane(
 		topdown_polygon_2d, Constants.Match.Air.PLANE
 	)
-	if air_topdown_polygon_2d == null:
-		# 与原来"重投影报错中止"等价：本次高亮刷新整体放弃。
-		return
-	units_to_highlight.merge(
-		_get_controlled_units_from_navigation_domain_within_topdown_polygon_2d(
-			Constants.Match.Navigation.Domain.AIR, air_topdown_polygon_2d
+	if air_topdown_polygon_2d != null:
+		units_to_highlight.merge(
+			_get_controlled_units_from_navigation_domain_within_topdown_polygon_2d(
+				Constants.Match.Navigation.Domain.AIR, air_topdown_polygon_2d
+			)
 		)
-	)
 	var units_not_to_highlight_anymore = Utils.Set.subtracted(
 		_highlighted_units, units_to_highlight
 	)
@@ -108,15 +110,14 @@ func _on_selection_finished(topdown_polygon_2d):
 	var units_to_select = _get_controlled_units_from_navigation_domain_within_topdown_polygon_2d(
 		Constants.Match.Navigation.Domain.TERRAIN, topdown_polygon_2d
 	)
+	# 同上：空域重投影失败只跳过空军那一半，**地面单位必须照常结算**（否则框选全废）。
 	var air_topdown_polygon_2d = _rebase_topdown_polygon_2d_to_different_plane(
 		topdown_polygon_2d, Constants.Match.Air.PLANE
 	)
-	if air_topdown_polygon_2d == null:
-		# 与原来"重投影报错中止"等价：本次框选不再结算。
-		return
-	units_to_select.merge(
-		_get_controlled_units_from_navigation_domain_within_topdown_polygon_2d(
-			Constants.Match.Navigation.Domain.AIR, air_topdown_polygon_2d
+	if air_topdown_polygon_2d != null:
+		units_to_select.merge(
+			_get_controlled_units_from_navigation_domain_within_topdown_polygon_2d(
+				Constants.Match.Navigation.Domain.AIR, air_topdown_polygon_2d
+			)
 		)
-	)
 	Utils.Match.select_units(units_to_select)

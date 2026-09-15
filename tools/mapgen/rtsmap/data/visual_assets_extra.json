@@ -1,0 +1,554 @@
+{
+  "schema_version": 1,
+  "generated_by": "GLM5.3Flash visual round (2026-09-06)",
+  "source_pack": "4041_西部土著 / PolygonWesternFrontier",
+  "measurement": "Godot 4.7.1 headless 合并 AABB 实测（tmp_logs/glm_measure_4041/measure.gd）",
+  "notes": [
+    "每包单图集：仅用本包 PolygonWesternFrontier_Texture_01_A，跨包混贴=白模事故",
+    "scale_range 已含尺度补偿：4041 植被原生 0.3-2m，放大量程使图面可读，且不超 allowed_scale",
+    "V1 未入池：SM_Env_Quarry_Ground_01, SM_Env_TreeDead_Fallen_01, SM_Env_Tree_Clump_01, SM_Env_Tree_Desert_01（大树遮挡/占地与地表贴片坡地穿模风险，留 V2 评估）",
+    "2026-09-06 二轮：移除 SM_Env_Flower_01（暖红小点加剧撒点噪声感）；4006 Shrub/Kelp 同步剔除（青蓝/黑刺）"
+  ],
+  "entries": [
+    {
+      "res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_Quarry_Wall_Straight_01.fbx",
+      "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+      "name": "SM_Env_Quarry_Wall_Straight_01",
+      "size": [
+        15.076,
+        5.116,
+        4.835
+      ],
+      "min_y": -0.706,
+      "blocking": true,
+      "terrain_types": [
+        1
+      ],
+      "pools": [
+        "cliff"
+      ],
+      "scale_range": [
+        0.6,
+        1.0
+      ],
+      "usage": "暖砂崖壁直段：台地崖线主体（备选风格）"
+    },
+    {
+      "res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_Quarry_Wall_Straight_02.fbx",
+      "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+      "name": "SM_Env_Quarry_Wall_Straight_02",
+      "size": [
+        14.932,
+        5.044,
+        5.094
+      ],
+      "min_y": -0.635,
+      "blocking": true,
+      "terrain_types": [
+        1
+      ],
+      "pools": [
+        "cliff"
+      ],
+      "scale_range": [
+        0.6,
+        1.0
+      ],
+      "usage": "暖砂崖壁直段"
+    },
+    {
+      "res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_Quarry_Wall_Curved_01.fbx",
+      "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+      "name": "SM_Env_Quarry_Wall_Curved_01",
+      "size": [
+        16.159,
+        4.974,
+        6.802
+      ],
+      "min_y": -0.564,
+      "blocking": true,
+      "terrain_types": [
+        1
+      ],
+      "pools": [
+        "cliff"
+      ],
+      "scale_range": [
+        0.6,
+        1.0
+      ],
+      "usage": "暖砂崖壁弧段"
+    },
+    {
+      "res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_Quarry_Wall_Round_01.fbx",
+      "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+      "name": "SM_Env_Quarry_Wall_Round_01",
+      "size": [
+        9.564,
+        4.632,
+        9.49
+      ],
+      "min_y": -0.222,
+      "blocking": true,
+      "terrain_types": [
+        1
+      ],
+      "pools": [
+        "cliff"
+      ],
+      "scale_range": [
+        0.6,
+        1.0
+      ],
+      "usage": "暖砂崖壁转角"
+    },
+    {
+      "res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_Quarry_Wall_End_01.fbx",
+      "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+      "name": "SM_Env_Quarry_Wall_End_01",
+      "size": [
+        13.512,
+        4.557,
+        4.466
+      ],
+      "min_y": -0.222,
+      "blocking": true,
+      "terrain_types": [
+        1
+      ],
+      "pools": [
+        "cliff"
+      ],
+      "scale_range": [
+        0.6,
+        1.0
+      ],
+      "usage": "暖砂崖壁端头"
+    },
+    {
+      "res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_RockFlat_01.fbx",
+      "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+      "name": "SM_Env_RockFlat_01",
+      "size": [
+        2.442,
+        1.205,
+        2.035
+      ],
+      "min_y": -0.849,
+      "blocking": true,
+      "terrain_types": [
+        1
+      ],
+      "pools": [
+        "cliff",
+        "shore"
+      ],
+      "scale_range": [
+        0.6,
+        1.2
+      ],
+      "usage": "暖色扁岩：崖脚/岸线"
+    },
+    {
+      "res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_RockFlat_03.fbx",
+      "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+      "name": "SM_Env_RockFlat_03",
+      "size": [
+        3.956,
+        2.046,
+        5.16
+      ],
+      "min_y": -0.522,
+      "blocking": true,
+      "terrain_types": [
+        1
+      ],
+      "pools": [
+        "cliff"
+      ],
+      "scale_range": [
+        0.5,
+        1.0
+      ],
+      "usage": "暖色扁岩"
+    },
+    {
+      "res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_RockFlat_05.fbx",
+      "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+      "name": "SM_Env_RockFlat_05",
+      "size": [
+        7.492,
+        2.453,
+        5.586
+      ],
+      "min_y": -0.538,
+      "blocking": true,
+      "terrain_types": [
+        1
+      ],
+      "pools": [
+        "cliff"
+      ],
+      "scale_range": [
+        0.5,
+        0.9
+      ],
+      "usage": "暖色扁岩（大）"
+    },
+    {
+      "res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_RockTall_01.fbx",
+      "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+      "name": "SM_Env_RockTall_01",
+      "size": [
+        10.249,
+        7.734,
+        6.356
+      ],
+      "min_y": 0.0,
+      "blocking": true,
+      "terrain_types": [
+        1
+      ],
+      "pools": [
+        "cliff"
+      ],
+      "scale_range": [
+        0.3,
+        0.6
+      ],
+      "usage": "暖色立岩（min_y=0 原点在底）"
+    },
+    {
+      "res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_RockTall_02.fbx",
+      "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+      "name": "SM_Env_RockTall_02",
+      "size": [
+        15.968,
+        7.531,
+        7.257
+      ],
+      "min_y": 0.0,
+      "blocking": true,
+      "terrain_types": [
+        1
+      ],
+      "pools": [
+        "cliff"
+      ],
+      "scale_range": [
+        0.3,
+        0.5
+      ],
+      "usage": "暖色立岩（大）"
+    },
+    {
+      "res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_Quarry_Rocks_01.fbx",
+      "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+      "name": "SM_Env_Quarry_Rocks_01",
+      "size": [
+        3.315,
+        1.733,
+        1.927
+      ],
+      "min_y": -0.866,
+      "blocking": true,
+      "terrain_types": [
+        1
+      ],
+      "pools": [
+        "cliff",
+        "shore",
+        "scatter"
+      ],
+      "scale_range": [
+        0.5,
+        1.2
+      ],
+      "usage": "采石场岩块"
+    },
+    {
+      "res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_Quarry_Rocks_02.fbx",
+      "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+      "name": "SM_Env_Quarry_Rocks_02",
+      "size": [
+        6.812,
+        2.371,
+        2.216
+      ],
+      "min_y": -1.185,
+      "blocking": true,
+      "terrain_types": [
+        1
+      ],
+      "pools": [
+        "cliff"
+      ],
+      "scale_range": [
+        0.5,
+        1.0
+      ],
+      "usage": "采石场岩块（长）"
+    },
+    {
+      "res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_Quarry_Rocks_03.fbx",
+      "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+      "name": "SM_Env_Quarry_Rocks_03",
+      "size": [
+        6.971,
+        3.968,
+        3.373
+      ],
+      "min_y": -1.984,
+      "blocking": true,
+      "terrain_types": [
+        1
+      ],
+      "pools": [
+        "cliff"
+      ],
+      "scale_range": [
+        0.4,
+        0.8
+      ],
+      "usage": "采石场岩块（大）"
+    },
+    {
+      "res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_RockSmall_01.fbx",
+      "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+      "name": "SM_Env_RockSmall_01",
+      "size": [
+        0.711,
+        0.144,
+        0.574
+      ],
+      "min_y": -0.026,
+      "blocking": false,
+      "terrain_types": [
+        1
+      ],
+      "pools": [
+        "shore",
+        "scatter"
+      ],
+      "scale_range": [
+        1.0,
+        2.0
+      ],
+      "usage": "小碎石（min_y≈0 贴地）"
+    },
+    {
+      "res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_RockSmall_02.fbx",
+      "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+      "name": "SM_Env_RockSmall_02",
+      "size": [
+        0.814,
+        0.238,
+        0.604
+      ],
+      "min_y": -0.028,
+      "blocking": false,
+      "terrain_types": [
+        1
+      ],
+      "pools": [
+        "shore",
+        "scatter"
+      ],
+      "scale_range": [
+        1.0,
+        2.0
+      ],
+      "usage": "小碎石"
+    },
+    {
+      "res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_RockSmall_03.fbx",
+      "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+      "name": "SM_Env_RockSmall_03",
+      "size": [
+        0.658,
+        0.313,
+        0.65
+      ],
+      "min_y": -0.062,
+      "blocking": false,
+      "terrain_types": [
+        1
+      ],
+      "pools": [
+        "shore",
+        "scatter"
+      ],
+      "scale_range": [
+        1.0,
+        2.0
+      ],
+      "usage": "小碎石"
+    },
+    {
+      "res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_Bush_01.fbx",
+      "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+      "name": "SM_Env_Bush_01",
+      "size": [
+        0.494,
+        0.783,
+        0.487
+      ],
+      "min_y": -0.08,
+      "blocking": false,
+      "terrain_types": [
+        1
+      ],
+      "pools": [
+        "shore_veg",
+        "scatter"
+      ],
+      "scale_range": [
+        1.5,
+        2.0
+      ],
+      "usage": "灌木簇"
+    },
+    {
+      "res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_Shrub_01.fbx",
+      "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+      "name": "SM_Env_Shrub_01",
+      "size": [
+        0.583,
+        0.606,
+        0.603
+      ],
+      "min_y": -0.069,
+      "blocking": false,
+      "terrain_types": [
+        1
+      ],
+      "pools": [
+        "shore_veg",
+        "scatter"
+      ],
+      "scale_range": [
+        1.5,
+        2.0
+      ],
+      "usage": "灌木"
+    },
+    {
+      "res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_ShrubGrass_01.fbx",
+      "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+      "name": "SM_Env_ShrubGrass_01",
+      "size": [
+        0.34,
+        0.569,
+        0.332
+      ],
+      "min_y": -0.157,
+      "blocking": false,
+      "terrain_types": [
+        1
+      ],
+      "pools": [
+        "shore_veg",
+        "scatter"
+      ],
+      "scale_range": [
+        1.8,
+        2.5
+      ],
+      "usage": "草灌"
+    },
+    {
+      "res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_Grass_Desert_01.fbx",
+      "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+      "name": "SM_Env_Grass_Desert_01",
+      "size": [
+        0.599,
+        0.714,
+        0.567
+      ],
+      "min_y": -0.096,
+      "blocking": false,
+      "terrain_types": [
+        1
+      ],
+      "pools": [
+        "shore_veg",
+        "scatter"
+      ],
+      "scale_range": [
+        1.5,
+        2.0
+      ],
+      "usage": "旱草簇"
+    },
+    {
+      "res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_Grass_Shrub_01.fbx",
+      "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+      "name": "SM_Env_Grass_Shrub_01",
+      "size": [
+        1.323,
+        0.878,
+        1.417
+      ],
+      "min_y": -0.045,
+      "blocking": false,
+      "terrain_types": [
+        1
+      ],
+      "pools": [
+        "shore_veg",
+        "scatter"
+      ],
+      "scale_range": [
+        1.2,
+        1.5
+      ],
+      "usage": "草簇（大）"
+    },
+    {
+      "res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_Reeds_01.fbx",
+      "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+      "name": "SM_Env_Reeds_01",
+      "size": [
+        0.735,
+        2.207,
+        0.977
+      ],
+      "min_y": -0.631,
+      "blocking": false,
+      "terrain_types": [
+        1
+      ],
+      "pools": [
+        "shore_veg"
+      ],
+      "scale_range": [
+        1.2,
+        1.8
+      ],
+      "usage": "芦苇：水岸专用"
+    },
+    {
+      "res_path": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/SM_Env_Tree_Stump_01.fbx",
+      "atlas": "res://assets/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png",
+      "name": "SM_Env_Tree_Stump_01",
+      "size": [
+        0.772,
+        2.281,
+        0.746
+      ],
+      "min_y": -0.137,
+      "blocking": false,
+      "terrain_types": [
+        1
+      ],
+      "pools": [
+        "scatter"
+      ],
+      "scale_range": [
+        0.8,
+        1.2
+      ],
+      "usage": "树桩"
+    }
+  ]
+}

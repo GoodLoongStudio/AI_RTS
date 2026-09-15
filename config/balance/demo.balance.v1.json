@@ -5,10 +5,6 @@
   {
    "kind": "A",
    "collectionDurationMilliseconds": 200
-  },
-  {
-   "kind": "B",
-   "collectionDurationMilliseconds": 200
   }
  ],
  "warheads": [

@@ -188,7 +188,9 @@ public partial class AdjutantObservationRuntime : Node
         }
 
         var resources = new Godot.Collections.Array();
-        foreach (var kind in new[] { ResourceKind.A, ResourceKind.B })
+        // 统一货币（2026-09-14）：观测只导出资源 A。B 已从配置与玩法移除，
+        // 继续导出会让副官"看到并思考经济 B"（用户实测反馈）。
+        foreach (var kind in new[] { ResourceKind.A })
         {
             var definition = catalog.FindResource(kind);
             if (definition is null)

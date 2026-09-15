@@ -1,0 +1,147 @@
+[
+  {
+    "example": "default",
+    "job_id": "96efd1373e3e4ea69479fb4ad8fba997",
+    "config": {
+      "schema_version": 1,
+      "algo_version": "7.2.0",
+      "layout_seed": 16,
+      "terrain_seed": 0,
+      "controls": {
+        "neutral_plateau_scale": 1.0,
+        "plateau_max": 5,
+        "landform_elongation": 1.2,
+        "landform_recess": 0.2,
+        "landform_softness": 0.16,
+        "plateau_ramp_width": 8,
+        "river_width": 14,
+        "river_bend_scale": 1.0,
+        "river_crossings": 3,
+        "obstacle_percent": 15,
+        "cover_cluster_max": 10,
+        "layout_attempts": 8
+      }
+    },
+    "result": {
+      "version": "7.2.0",
+      "all_pass": true,
+      "solid_percent": 14.5,
+      "plateaus": 5,
+      "crossings": 3,
+      "neutral_ratio": 1.3603073402172048,
+      "expansion_ratio": 1.004848776596652,
+      "neighbor_ratio": 1.1160541118990859,
+      "min_route_width": 7.5,
+      "chosen_attempt": 1,
+      "checks": {
+        "solid_frac_pass": true,
+        "solid_comp_pass": true,
+        "max_block_pass": true,
+        "open_single_pass": true,
+        "keypoints_pass": true,
+        "struct_connect_pass": true,
+        "plateau_full_pass": true,
+        "plateau_strategy_pass": true,
+        "plateau_ramps_pass": true,
+        "home_plateau_pass": true,
+        "water_connected_pass": true,
+        "water_crossings_pass": true,
+        "crossing_count_pass": true,
+        "water_semantics_pass": true,
+        "contest_fair_pass": true,
+        "plateau_fair_pass": true,
+        "expansion_fair_pass": true,
+        "neutral_contest_pass": true,
+        "flank_width_pass": true,
+        "routes_clear_pass": true,
+        "route_alternatives_pass": true,
+        "bridge_width_pass": true,
+        "home_clear_pass": true,
+        "path_fairness_pass": true
+      },
+      "attempts": [
+        {
+          "attempt": 1,
+          "failed_checks": []
+        }
+      ]
+    },
+    "duration": 7.4
+  },
+  {
+    "example": "wide-passages",
+    "job_id": "b0480a9d63494c5e9b7db34d3a7cfbee",
+    "config": {
+      "schema_version": 1,
+      "algo_version": "7.2.0",
+      "layout_seed": 16,
+      "terrain_seed": 101,
+      "controls": {
+        "neutral_plateau_scale": 1.0,
+        "plateau_max": 5,
+        "landform_elongation": 1.2,
+        "landform_recess": 0.2,
+        "landform_softness": 0.16,
+        "plateau_ramp_width": 10,
+        "river_width": 14,
+        "river_bend_scale": 1.0,
+        "river_crossings": 4,
+        "obstacle_percent": 15,
+        "cover_cluster_max": 10,
+        "layout_attempts": 8
+      }
+    },
+    "result": {
+      "version": "7.2.0",
+      "all_pass": true,
+      "solid_percent": 14.1,
+      "plateaus": 5,
+      "crossings": 4,
+      "neutral_ratio": 1.198080859754592,
+      "expansion_ratio": 1.0022835731608084,
+      "neighbor_ratio": 1.1868043421548509,
+      "min_route_width": 7.5,
+      "chosen_attempt": 2,
+      "checks": {
+        "solid_frac_pass": true,
+        "solid_comp_pass": true,
+        "max_block_pass": true,
+        "open_single_pass": true,
+        "keypoints_pass": true,
+        "struct_connect_pass": true,
+        "plateau_full_pass": true,
+        "plateau_strategy_pass": true,
+        "plateau_ramps_pass": true,
+        "home_plateau_pass": true,
+        "water_connected_pass": true,
+        "water_crossings_pass": true,
+        "crossing_count_pass": true,
+        "water_semantics_pass": true,
+        "contest_fair_pass": true,
+        "plateau_fair_pass": true,
+        "expansion_fair_pass": true,
+        "neutral_contest_pass": true,
+        "flank_width_pass": true,
+        "routes_clear_pass": true,
+        "route_alternatives_pass": true,
+        "bridge_width_pass": true,
+        "home_clear_pass": true,
+        "path_fairness_pass": true
+      },
+      "attempts": [
+        {
+          "attempt": 1,
+          "failed_checks": [
+            "open_single_pass",
+            "plateau_strategy_pass"
+          ]
+        },
+        {
+          "attempt": 2,
+          "failed_checks": []
+        }
+      ]
+    },
+    "duration": 13.6
+  }
+]

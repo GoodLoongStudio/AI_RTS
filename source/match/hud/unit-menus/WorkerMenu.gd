@@ -17,69 +17,59 @@ func _ready():
 	var balance = find_parent("Match").get_node("BalanceConfigRuntime")
 	var ag_turret_properties = balance.GetUnitDisplaySnapshot(AntiGroundTurretUnit)
 	var ag_turret_cost = balance.GetConstructionCost(AntiGroundTurretUnit)
-	_ag_turret_button.tooltip_text = ("{0} - {1}\n{2} HP, {3} DPS\n{4}: {5}, {6}: {7}".format(
+	_ag_turret_button.tooltip_text = ("{0} - {1}\n{2} HP, {3} DPS\n{4}: {5}".format(
 		[
 			tr("AG_TURRET"),
 			tr("AG_TURRET_DESCRIPTION"),
 			ag_turret_properties["hp_max"],
 			ag_turret_properties["attack_damage"] * ag_turret_properties["attack_interval"],
 			tr("RESOURCE_A"),
-			ag_turret_cost["resource_a"],
-			tr("RESOURCE_B"),
-			ag_turret_cost["resource_b"]
+			ag_turret_cost["resource_a"]
 		]
 	))
 	var aa_turret_properties = balance.GetUnitDisplaySnapshot(AntiAirTurretUnit)
 	var aa_turret_cost = balance.GetConstructionCost(AntiAirTurretUnit)
-	_aa_turret_button.tooltip_text = ("{0} - {1}\n{2} HP, {3} DPS\n{4}: {5}, {6}: {7}".format(
+	_aa_turret_button.tooltip_text = ("{0} - {1}\n{2} HP, {3} DPS\n{4}: {5}".format(
 		[
 			tr("AA_TURRET"),
 			tr("AA_TURRET_DESCRIPTION"),
 			aa_turret_properties["hp_max"],
 			aa_turret_properties["attack_damage"] * aa_turret_properties["attack_interval"],
 			tr("RESOURCE_A"),
-			aa_turret_cost["resource_a"],
-			tr("RESOURCE_B"),
-			aa_turret_cost["resource_b"]
+			aa_turret_cost["resource_a"]
 		]
 	))
 	var cc_properties = balance.GetUnitDisplaySnapshot(CommandCenterUnit)
 	var cc_cost = balance.GetConstructionCost(CommandCenterUnit)
-	_cc_button.tooltip_text = ("{0} - {1}\n{2} HP\n{3}: {4}, {5}: {6}".format(
+	_cc_button.tooltip_text = ("{0} - {1}\n{2} HP\n{3}: {4}".format(
 		[
 			tr("CC"),
 			tr("CC_DESCRIPTION"),
 			cc_properties["hp_max"],
 			tr("RESOURCE_A"),
-			cc_cost["resource_a"],
-			tr("RESOURCE_B"),
-			cc_cost["resource_b"]
+			cc_cost["resource_a"]
 		]
 	))
 	var vehicle_factory_properties = balance.GetUnitDisplaySnapshot(VehicleFactoryUnit)
 	var vehicle_factory_cost = balance.GetConstructionCost(VehicleFactoryUnit)
-	_vehicle_factory_button.tooltip_text = ("{0} - {1}\n{2} HP\n{3}: {4}, {5}: {6}".format(
+	_vehicle_factory_button.tooltip_text = ("{0} - {1}\n{2} HP\n{3}: {4}".format(
 		[
 			tr("VEHICLE_FACTORY"),
 			tr("VEHICLE_FACTORY_DESCRIPTION"),
 			vehicle_factory_properties["hp_max"],
 			tr("RESOURCE_A"),
-			vehicle_factory_cost["resource_a"],
-			tr("RESOURCE_B"),
-			vehicle_factory_cost["resource_b"]
+			vehicle_factory_cost["resource_a"]
 		]
 	))
 	var aircraft_factory_properties = balance.GetUnitDisplaySnapshot(AircraftFactoryUnit)
 	var aircraft_factory_cost = balance.GetConstructionCost(AircraftFactoryUnit)
-	_aircraft_factory_button.tooltip_text = ("{0} - {1}\n{2} HP\n{3}: {4}, {5}: {6}".format(
+	_aircraft_factory_button.tooltip_text = ("{0} - {1}\n{2} HP\n{3}: {4}".format(
 		[
 			tr("AIRCRAFT_FACTORY"),
 			tr("AIRCRAFT_FACTORY_DESCRIPTION"),
 			aircraft_factory_properties["hp_max"],
 			tr("RESOURCE_A"),
-			aircraft_factory_cost["resource_a"],
-			tr("RESOURCE_B"),
-			aircraft_factory_cost["resource_b"]
+			aircraft_factory_cost["resource_a"]
 		]
 	))
 

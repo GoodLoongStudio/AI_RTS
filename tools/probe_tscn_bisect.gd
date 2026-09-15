@@ -6,7 +6,7 @@ extends SceneTree
 ##   Godot_v4.7.1-stable_mono_win64_console.exe --headless --path G:/AIRTS/AI_RTS \
 ##     --script res://tools/probe_tscn_bisect.gd
 
-const SRC := "G:/AIRTS/AI_RTS/source/match/maps/generated/16-0-7d337ce8be/map_16-0-7d337ce8be.tscn"
+const SRC := "G:/AIRTS/AI_RTS/source/match/maps/generated/16-0-1ca6e21aa1/map_16-0-1ca6e21aa1.tscn"
 
 
 func _initialize() -> void:

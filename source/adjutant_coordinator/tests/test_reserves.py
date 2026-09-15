@@ -54,7 +54,8 @@ class InitializeTest(unittest.TestCase):
         state = {}
         created = reserves.ensure_reserves(state, {"A": 1000, "B": 45})
         self.assertTrue(created)
-        self.assertEqual(state["reserves"], {"A": 200, "B": 9})
+        # B 已从玩法移除（见 reserves.ACTIVE_KINDS）：余额里带 B 也不建 B 预留。
+        self.assertEqual(state["reserves"], {"A": 200})
 
     def test_second_call_does_not_recompute_from_current_balance(self):
         # 方案明文：不能每次花费后按剩余余额重算。
@@ -75,7 +76,8 @@ class PlayerAdjustTest(unittest.TestCase):
         state = {}
         reserves.ensure_reserves(state, {"A": 1000, "B": 100})
         updated = reserves.set_reserves(state, {"A": 50})
-        self.assertEqual(updated, {"A": 50, "B": 20})
+        # 只保留现行资源（B 已移除，不再出现"B 预留"）；A 的部分更新语义不变。
+        self.assertEqual(updated, {"A": 50})
 
     def test_zero_means_unrestricted(self):
         state = {}
@@ -178,7 +180,7 @@ class ApplyBudgetTest(unittest.TestCase):
         reserves.apply_budget(state, [produce()], rules=RULES, observation=OBS,
                               live_states=(INTENT_ACTIVE,))
         self.assertTrue(state["reserves_initialized"])
-        self.assertEqual(state["reserves"], {"A": 200, "B": 8})
+        self.assertEqual(state["reserves"], {"A": 200})
 
 
 class AuthorityReserveTest(unittest.TestCase):
@@ -229,7 +231,7 @@ class AuthorityReserveTest(unittest.TestCase):
         observation = {"strategic": {"resources": {"a": 10, "b": 20},
                                      "reserves": {"a": 4}}}
         self.assertEqual(reserves.normalize_reserve_setting(observation), {"A": 4})
-        self.assertEqual(reserves.normalize_balance(observation), {"A": 10, "B": 20})
+        self.assertEqual(reserves.normalize_balance(observation), {"A": 10})
 
     def test_missing_reserves_key_returns_none(self):
         self.assertIsNone(reserves.normalize_reserve_setting(
@@ -255,9 +257,40 @@ class PersistenceTest(unittest.TestCase):
         self.assertEqual(restored.task_progress["intents"]["i-1"]["status"], "in_progress")
 
     def test_balance_prefers_tactical_then_strategic(self):
-        self.assertEqual(reserves.normalize_balance(OBS), {"A": 1000, "B": 40})
+        self.assertEqual(reserves.normalize_balance(OBS), {"A": 1000})
         self.assertEqual(reserves.normalize_balance(
             {"strategic": {"resources": {"a": 7}}}), {"A": 7})
+
+
+class RemovedResourceKindTest(unittest.TestCase):
+    """类级守门：B 已从玩法移除，副官任何入口都不许让 B 进入余额/预留账本。
+
+    背景（2026-09-14 用户实测）：地图上还有 B 矿、观测里还带着 b，于是
+    `ensure_reserves()` 按"余额里有什么就建什么预留"的通用写法自动生成了 B 预留，
+    面板显示 "B 预留…"，副官看起来"还在思考经济 B"。
+    唯一开关是 `reserves.ACTIVE_KINDS`；本测试保证 B 从**每一条**路径都漏不回来。
+    """
+
+    def test_removed_kind_never_enters_balance_or_reserves(self):
+        # 1) 观测余额：tactical 与 strategic 两条来源都要过滤
+        self.assertEqual(reserves.normalize_balance(OBS), {"A": 1000})
+        self.assertEqual(
+            reserves.normalize_balance({"strategic": {"resources": {"a": 5, "b": 9}}}), {"A": 5})
+        # 2) 权威端下发的预留设定
+        self.assertEqual(
+            reserves.normalize_reserve_setting({"tactical": {"reserves": {"a": 1, "b": 2}}}),
+            {"A": 1})
+        # 3) 本地初始化：调用方直接塞带 B 的余额
+        state = {}
+        reserves.ensure_reserves(state, {"A": 1000, "B": 45})
+        self.assertEqual(state["reserves"], {"A": 200})
+        # 4) 玩家调整：请求里带 B 也要被忽略
+        updated = reserves.set_reserves(state, {"B": 999})
+        self.assertNotIn("B", updated)
+        # 5) 面板快照（AdjutantButton 读它渲染"预留：…"）
+        snapshot = reserves.snapshot(state, OBS)
+        for key in ("balance", "reserves", "spendable"):
+            self.assertNotIn("B", snapshot[key], "快照 %s 不该再出现已移除的资源" % key)
 
 
 if __name__ == "__main__":

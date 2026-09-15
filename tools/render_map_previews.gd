@@ -42,9 +42,11 @@ void vertex() {
 
 void fragment() {
 	float t = clamp((v_height - water_y) / band_span, 0.0, 1.0);
-	vec3 low = vec3(0.33, 0.42, 0.30);
-	vec3 mid = vec3(0.62, 0.55, 0.37);
-	vec3 high = vec3(0.74, 0.72, 0.68);
+	// 【2026-09-15 用户反馈：预览图与实际地图配色不符（实际是废土沙色，预览是灰绿）】
+	// 换成游戏内 showcase_land 的沙地/棕土色系（sand_uniform_diff / brown_mud_02 / moon_dusted）。
+	vec3 low = vec3(0.55, 0.38, 0.24);
+	vec3 mid = vec3(0.78, 0.58, 0.36);
+	vec3 high = vec3(0.86, 0.78, 0.64);
 	vec3 land = mix(mix(low, mid, smoothstep(0.0, 0.55, t)), high, smoothstep(0.55, 1.0, t));
 	// 水线必须用**权威水高**判定，不能用"取景包围盒最低点"：
 	// 平地地图整体在 y=0，用包围盒最低点会把整张图误判成水面（2026-09-15 实测）。
@@ -159,9 +161,11 @@ func _synth_from_heightfield(map_path: String, out_path: String, label: String) 
 	var image := Image.create(size, size, false, Image.FORMAT_RGB8)
 	var step := float(side) / float(size)
 	var light := Vector3(-0.55, 0.72, -0.42).normalized()
-	var low_c := Color(0.33, 0.42, 0.30)
-	var mid_c := Color(0.62, 0.55, 0.37)
-	var high_c := Color(0.74, 0.72, 0.68)
+	# 【2026-09-15 用户反馈】与上方 shader 同口径：改成游戏内废土沙色系，
+	# 不再用"灰绿→土黄→灰白"（那是离线预览临时配色，和实际地图对不上）。
+	var low_c := Color(0.55, 0.38, 0.24)
+	var mid_c := Color(0.78, 0.58, 0.36)
+	var high_c := Color(0.86, 0.78, 0.64)
 	var water_c := Color(0.15, 0.31, 0.45)
 	for py in range(size):
 		for px in range(size):

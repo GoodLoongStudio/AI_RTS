@@ -55,7 +55,13 @@ public partial class ProductionRuntime : Node
         {
             return;
         }
+        var started = Time.GetTicksUsec();
         _service.Advance(CurrentTick());
+        var frames = Engine.GetPhysicsFrames();
+        if (frames <= 2UL || frames % 40UL == 0UL)
+        {
+            GD.Print($"G4PERF production_runtime_us={Time.GetTicksUsec() - started} frames={frames}");
+        }
     }
 
     /// <summary>由 Legacy ProductionQueue 节点注册所属建筑和稳定定义。</summary>

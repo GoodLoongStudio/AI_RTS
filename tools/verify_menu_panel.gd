@@ -20,6 +20,7 @@ const SCENES := {
 	"Online": "res://source/main-menu/Online.tscn",
 	"Play": "res://source/main-menu/Play.tscn",
 	"Credits": "res://source/main-menu/Credits.tscn",
+	"MapGeneration": "res://source/main-menu/MapGeneration.tscn",
 }
 
 var _failures := 0
@@ -91,12 +92,14 @@ func _check(scene_name: String, res: Vector2i) -> void:
 	for i in range(8):
 		await process_frame
 
-	var panel_paths := ["PanelContainer", "CenterContainer/PanelContainer"]
+	var panel_paths := ["PanelContainer", "CenterContainer/PanelContainer", "SafeMargin"]
 	var panel: Control = null
 	for p in panel_paths:
 		panel = _last_inst.get_node_or_null(p) as Control
 		if panel != null:
 			break
+	if panel == null and _last_inst is Control:
+		panel = _last_inst
 	if panel == null:
 		push_error("[%s @ %dx%d] 找不到 panel" % [scene_name, res.x, res.y])
 		_failures += 1

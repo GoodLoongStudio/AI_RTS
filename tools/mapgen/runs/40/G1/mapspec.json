@@ -1,0 +1,148 @@
+{
+ "accepted": false,
+ "adjacent_angle_gaps_deg": [
+  57.9429,
+  69.4031,
+  101.5426,
+  131.1115
+ ],
+ "algo_version": "2.0.0",
+ "attempts": 200,
+ "center_dists": [
+  146.7207,
+  113.9997,
+  68.4887,
+  125.3822
+ ],
+ "constraints": {
+  "angle_gap": {
+   "limit": [
+    45.0,
+    150.0
+   ],
+   "pass": true,
+   "value": [
+    57.9429,
+    131.1115
+   ]
+  },
+  "center_gap": {
+   "limit": 0.0,
+   "pass": true,
+   "value": 68.4887
+  },
+  "center_ratio": {
+   "limit": 99.0,
+   "pass": true,
+   "value": 2.1423
+  },
+  "margin": {
+   "limit": 12.0,
+   "pass": true,
+   "value": 14.1776
+  },
+  "min_pair": {
+   "limit": 89.6,
+   "pass": true,
+   "value": 106.2816
+  },
+  "nn_ratio": {
+   "limit": 1.3,
+   "pass": false,
+   "value": 1.4668
+  },
+  "territory_ratio": {
+   "cells": [
+    14231,
+    20900,
+    20074,
+    10331
+   ],
+   "limit": 1.3,
+   "pass": false,
+   "value": 2.023
+  }
+ },
+ "corner_flags": [
+  true,
+  false,
+  false,
+  false
+ ],
+ "gate": "G1",
+ "gate_seed": 14597198994570352794,
+ "master_seed": 40,
+ "min_pair": 106.2816,
+ "pair_dist_matrix": [
+  [
+   Infinity,
+   237.7364,
+   195.9828,
+   155.8987
+  ],
+  [
+   237.7364,
+   Infinity,
+   144.261,
+   235.5649
+  ],
+  [
+   195.9828,
+   144.261,
+   Infinity,
+   106.2816
+  ],
+  [
+   155.8987,
+   235.5649,
+   106.2816,
+   Infinity
+  ]
+ ],
+ "params": {
+  "angle_max": 150.0,
+  "angle_min": 45.0,
+  "candidates": 32,
+  "center_gap": 0.0,
+  "center_ratio": 99.0,
+  "margin": 12.0,
+  "max_attempts": 200,
+  "min_pair_factor": 0.35,
+  "nn_ratio": 1.3,
+  "territory_ratio": 1.3,
+  "top_frac": 0.7
+ },
+ "polar_angles_deg": [
+  -44.6066,
+  -175.7181,
+  82.7393,
+  24.7965
+ ],
+ "reject_reason": "territory_ratio",
+ "rot_sym_err": 0.2685,
+ "sampler": "A",
+ "starts": [
+  [
+   232.46,
+   24.97
+  ],
+  [
+   14.32,
+   119.49
+  ],
+  [
+   136.66,
+   195.94
+  ],
+  [
+   241.82,
+   180.58
+  ]
+ ],
+ "territory_cells": [
+  14231,
+  20900,
+  20074,
+  10331
+ ]
+}

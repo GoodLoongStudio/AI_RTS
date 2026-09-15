@@ -27,7 +27,7 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="PanelContainer" type="PanelContainer" parent="CenterContainer"]
-custom_minimum_size = Vector2(540, 500)
+custom_minimum_size = Vector2(540, 580)
 layout_mode = 2
 mouse_filter = 0
 clip_contents = true
@@ -72,6 +72,11 @@ layout_mode = 2
 custom_minimum_size = Vector2(0, 52)
 text = "成长系统"
 
+[node name="MapGenButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 52)
+text = "地图生成"
+
 [node name="OptionsButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 52)
@@ -84,6 +89,7 @@ text = "退出游戏"
 
 [connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/PlayButton" to="." method="_on_play_button_pressed"]
 [connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/OnlineButton" to="." method="_on_online_button_pressed"]
-[connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/OptionsButton" to="." method="_on_options_button_pressed"]
 [connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/GrowthButton" to="." method="_on_growth_button_pressed"]
+[connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/MapGenButton" to="." method="_on_map_gen_button_pressed"]
+[connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/OptionsButton" to="." method="_on_options_button_pressed"]
 [connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/QuitButton" to="." method="_on_quit_button_pressed"]

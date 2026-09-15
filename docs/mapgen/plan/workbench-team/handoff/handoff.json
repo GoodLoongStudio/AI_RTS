@@ -1,0 +1,238 @@
+{
+ "schema_version": 1,
+ "status": "READY_FOR_VISUAL",
+ "stage_versions": {
+  "G1": "2.0.0",
+  "G2": "7.5.0",
+  "G3": "2.2.0",
+  "G4": "2.0.0"
+ },
+ "visual_api_version": "1.0.0",
+ "project_root": "G:/AIRTS/RTS_Map_Tool",
+ "game_project": "G:/AIRTS/AI_RTS",
+ "working_directory": "G:/AIRTS/RTS_Map_Tool",
+ "start_command": "python serve_g2.py --port 8766 --open   (或双击 启动地图工作台.bat)",
+ "rebuild_visual_command": "POST /api/jobs/<id>/rebuild_visual {\"visual_seed\":N}  (或 pytest tests/test_visual_api.py)",
+ "verify_command": "python -m pytest tests/test_g2.py tests/test_g2_choices.py tests/test_g3.py tests/test_pipeline.py tests/test_visual_api.py -q",
+ "allowed_visual_files": [
+  "rtsmap/presentation/visual.py",
+  "rtsmap/data/visual_profiles/*.json",
+  "rtsmap/data/godot_scripts/GeneratedTerrain.gd (材质/贴图部分)"
+ ],
+ "protected_files": [
+  "rtsmap/contract.py",
+  "rtsmap/grid.py",
+  "rtsmap/gates/g2_layout.py",
+  "rtsmap/gates/g2_strategy.py",
+  "rtsmap/gates/g3_content.py",
+  "rtsmap/gates/g4_terrain.py",
+  "rtsmap/gates/g4_export.py (结构/碰撞/导航部分)",
+  "runs/**/G1/** (G1 源只读)"
+ ],
+ "samples": [
+  {
+   "label": "A_no_water",
+   "job_id": "bf4fbbf72daa472fa1bd2403a94c383e",
+   "map_id": "16-0",
+   "layout_seed": 16,
+   "terrain_seed": 0,
+   "config": {
+    "schema_version": 2,
+    "algo_version": "7.5.0",
+    "layout_seed": 16,
+    "terrain_seed": 0,
+    "player_spacing": "any",
+    "controls": {
+     "river_enabled": 0,
+     "lake_count": 0,
+     "lake_area": 3000,
+     "neutral_plateau_scale": 1.0,
+     "plateau_max": 5,
+     "landform_elongation": 1.2,
+     "landform_recess": 0.2,
+     "landform_softness": 0.16,
+     "plateau_ramp_width": 8,
+     "river_width": 18,
+     "river_bend_scale": 1.0,
+     "river_crossings": 3,
+     "obstacle_percent": 15,
+     "cover_cluster_max": 10,
+     "layout_attempts": 16
+    },
+    "target": "full"
+   },
+   "g2_algo": "7.5.0",
+   "artifacts": {
+    "g2_npz": "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\bf4fbbf72daa472fa1bd2403a94c383e\\runs\\16\\G2\\mapgrid.npz",
+    "g3_npz": "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\bf4fbbf72daa472fa1bd2403a94c383e\\runs\\16\\G3\\mapgrid.npz",
+    "scene": "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\bf4fbbf72daa472fa1bd2403a94c383e\\g4\\16-0\\map_16-0.tscn",
+    "installed_scene": "res://source/match/maps/generated/16-0/map_16-0.tscn",
+    "height_data": "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\bf4fbbf72daa472fa1bd2403a94c383e\\g4\\16-0\\height_data.bin",
+    "ortho": "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\bf4fbbf72daa472fa1bd2403a94c383e\\shots\\16-0_ortho.png",
+    "oblique": "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\bf4fbbf72daa472fa1bd2403a94c383e\\shots\\16-0_oblique.png",
+    "nav_check": "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\bf4fbbf72daa472fa1bd2403a94c383e\\nav_check.json",
+    "smoke": "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\bf4fbbf72daa472fa1bd2403a94c383e\\smoke\\smoke_report.json",
+    "bundle": "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\bf4fbbf72daa472fa1bd2403a94c383e\\map_bundle_16-0.zip"
+   },
+   "hashes": {
+    "g2_npz": "a82494a288ba88ee7369a6c2f40ac133c406df382785deba0cd761aa50590cfe",
+    "g3_npz": "4b3d6b9c4362ad8900a0fc6acfe2293fbb75f14e2c8dd72bcc068b0fcfb17a63",
+    "height_data": "3e98e32f75636bc2567da6cb19725454a4a2ebbe89dea38000a481636586f4fd"
+   },
+   "nav": {
+    "all_pass": true,
+    "targets": 63,
+    "paths": 52,
+    "bake_s": 0.26
+   },
+   "smoke": {
+    "status": "done",
+    "mining_players": 0,
+    "stuck": 35,
+    "units": 145,
+    "nav_all": true
+   }
+  },
+  {
+   "label": "B_river_bridge",
+   "job_id": "f61365bbb11049f0afd2aa1fc9477445",
+   "map_id": "35-0",
+   "layout_seed": 35,
+   "terrain_seed": 0,
+   "config": {
+    "schema_version": 2,
+    "algo_version": "7.5.0",
+    "layout_seed": 35,
+    "terrain_seed": 0,
+    "player_spacing": "any",
+    "controls": {
+     "river_enabled": 1,
+     "lake_count": 0,
+     "lake_area": 3000,
+     "neutral_plateau_scale": 1.0,
+     "plateau_max": 5,
+     "landform_elongation": 1.2,
+     "landform_recess": 0.2,
+     "landform_softness": 0.16,
+     "plateau_ramp_width": 8,
+     "river_width": 18,
+     "river_bend_scale": 1.0,
+     "river_crossings": 3,
+     "obstacle_percent": 15,
+     "cover_cluster_max": 10,
+     "layout_attempts": 16
+    },
+    "target": "full"
+   },
+   "g2_algo": "7.5.0",
+   "artifacts": {
+    "g2_npz": "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\f61365bbb11049f0afd2aa1fc9477445\\runs\\35\\G2\\mapgrid.npz",
+    "g3_npz": "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\f61365bbb11049f0afd2aa1fc9477445\\runs\\35\\G3\\mapgrid.npz",
+    "scene": "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\f61365bbb11049f0afd2aa1fc9477445\\g4\\35-0\\map_35-0.tscn",
+    "installed_scene": "res://source/match/maps/generated/35-0/map_35-0.tscn",
+    "height_data": "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\f61365bbb11049f0afd2aa1fc9477445\\g4\\35-0\\height_data.bin",
+    "ortho": "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\f61365bbb11049f0afd2aa1fc9477445\\shots\\35-0_ortho.png",
+    "oblique": "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\f61365bbb11049f0afd2aa1fc9477445\\shots\\35-0_oblique.png",
+    "nav_check": "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\f61365bbb11049f0afd2aa1fc9477445\\nav_check.json",
+    "smoke": "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\f61365bbb11049f0afd2aa1fc9477445\\smoke\\smoke_report.json",
+    "bundle": "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\f61365bbb11049f0afd2aa1fc9477445\\map_bundle_35-0.zip"
+   },
+   "hashes": {
+    "g2_npz": "17e08f0da7faca474c5208be20dba6703d946c8b9b1031fccd06445d690913e9",
+    "g3_npz": "7517e48323d6ff02c43b1c6cf51d699e4022963782b6a14eef280061fcd94e5c",
+    "height_data": "60a45b21440ab587675d7ec712c32740339288cbdbc637465445298a3eb42f13"
+   },
+   "nav": {
+    "all_pass": true,
+    "targets": 69,
+    "paths": 55,
+    "bake_s": 0.28
+   },
+   "smoke": {
+    "status": "done",
+    "mining_players": 0,
+    "stuck": 39,
+    "units": 184,
+    "nav_all": true
+   }
+  },
+  {
+   "label": "C_lake_plateau",
+   "job_id": "f851a0dd6f1b4863b7833f6c5cac25f9",
+   "map_id": "47-0",
+   "layout_seed": 47,
+   "terrain_seed": 0,
+   "config": {
+    "schema_version": 2,
+    "algo_version": "7.5.0",
+    "layout_seed": 47,
+    "terrain_seed": 0,
+    "player_spacing": "any",
+    "controls": {
+     "river_enabled": 1,
+     "lake_count": 2,
+     "lake_area": 3000,
+     "neutral_plateau_scale": 1.0,
+     "plateau_max": 5,
+     "landform_elongation": 1.2,
+     "landform_recess": 0.2,
+     "landform_softness": 0.16,
+     "plateau_ramp_width": 8,
+     "river_width": 18,
+     "river_bend_scale": 1.0,
+     "river_crossings": 3,
+     "obstacle_percent": 15,
+     "cover_cluster_max": 10,
+     "layout_attempts": 16
+    },
+    "target": "full"
+   },
+   "g2_algo": "7.5.0",
+   "artifacts": {
+    "g2_npz": "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\f851a0dd6f1b4863b7833f6c5cac25f9\\runs\\47\\G2\\mapgrid.npz",
+    "g3_npz": "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\f851a0dd6f1b4863b7833f6c5cac25f9\\runs\\47\\G3\\mapgrid.npz",
+    "scene": "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\f851a0dd6f1b4863b7833f6c5cac25f9\\g4\\47-0\\map_47-0.tscn",
+    "installed_scene": "res://source/match/maps/generated/47-0/map_47-0.tscn",
+    "height_data": "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\f851a0dd6f1b4863b7833f6c5cac25f9\\g4\\47-0\\height_data.bin",
+    "ortho": "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\f851a0dd6f1b4863b7833f6c5cac25f9\\shots\\47-0_ortho.png",
+    "oblique": "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\f851a0dd6f1b4863b7833f6c5cac25f9\\shots\\47-0_oblique.png",
+    "nav_check": "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\f851a0dd6f1b4863b7833f6c5cac25f9\\nav_check.json",
+    "smoke": "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\f851a0dd6f1b4863b7833f6c5cac25f9\\smoke\\smoke_report.json",
+    "bundle": "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\f851a0dd6f1b4863b7833f6c5cac25f9\\map_bundle_47-0.zip"
+   },
+   "hashes": {
+    "g2_npz": "3d53544204fe882fbf7dfe39552ec01b007a5d78935a6ddb399473924400b6d1",
+    "g3_npz": "a2fe753d1cbdc7e81639aaf1a5432e2c29eb9060253cb292bfd2d6b37bf81c05",
+    "height_data": "634a30820f1874f7fdacd237e92b87c50e478a2c86de6945cf6407e9741b48d5"
+   },
+   "nav": {
+    "all_pass": true,
+    "targets": 64,
+    "paths": 51,
+    "bake_s": 0.28
+   },
+   "smoke": {
+    "status": "done",
+    "mining_players": 0,
+    "stuck": 37,
+    "units": 182,
+    "nav_all": true
+   }
+  }
+ ],
+ "test_logs": [
+  "tmp_logs/regression.log",
+  "tmp_logs/baselines.log",
+  "tmp_logs/baselines_AC.log",
+  "tmp_logs/wfix_check2.log",
+  "tmp_logs/scan_layouts.json"
+ ],
+ "known_issues": [
+  "开放单面高度场 trimesh 在 gl_compatibility 下黑面（bake_test/ortho 实测）；基线可视面用与碰撞同源的高度板盒顶；GLM 应升级 trimesh+贴图+光照。",
+  "seed16 河+双湖 为已知空间冲突（NoTerrainCandidate），不缩湖；适配布局 14/47 可通过双湖。",
+  "未导入贴图时装饰实例呈白色；Godot --import 后正常。",
+  "参考视频未能播放（reference_alignment=not_verified）。"
+ ],
+ "video_reference_verified": false,
+ "missing_baselines": []
+}

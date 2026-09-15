@@ -1,0 +1,51 @@
+{
+  "name": "default",
+  "style_version": "1.0.0",
+  "description": "默认自然样式：岩土偏暖低多边形基线（03-视觉目标文档），崖脚连续岩体 + 岸边过渡 + 克制开阔地装饰。GLM 可复制本文件为新 profile 调整。",
+  "materials": {
+    "terrain_albedo_color": "0.80, 0.72, 0.60, 1",
+    "terrain_uv_scale": 0.16,
+    "water_albedo_color": "0.30, 0.39, 0.36, 0.86",
+    "water_roughness": 0.25,
+    "bridge_albedo_color": "0.55, 0.47, 0.38, 1"
+  },
+  "cliff_rocks": {
+    "enabled": true,
+    "spacing_m": [
+      5.0,
+      11.0
+    ],
+    "scale_range": [
+      0.85,
+      1.15
+    ],
+    "large_chance": 0.25,
+    "max_footprint_m": 26.0,
+    "budget": 170
+  },
+  "shore_props": {
+    "enabled": true,
+    "spacing_m": [
+      6.0,
+      14.0
+    ],
+    "scale_range": [
+      0.8,
+      1.2
+    ],
+    "plant_chance": 0.35,
+    "budget": 130
+  },
+  "scatter": {
+    "enabled": true,
+    "attempts": 8000,
+    "budget": 350,
+    "max_size_m": 4.5
+  },
+  "budget_total": 700,
+  "tint": {
+    "cliff": "1.26,1.10,0.88",
+    "shore": "1.18,1.05,0.90",
+    "scatter": ""
+  }
+}

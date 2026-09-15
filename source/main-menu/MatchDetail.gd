@@ -106,7 +106,9 @@ func _missing_for(prefix: String) -> Array:
 
 
 func _bind_header() -> void:
-	var outcome := str(_report.get("outcome", "unknown"))
+	# 收原始 Variant 而不是 `str(x, "unknown")`：后者会把「未记录胜负」变成字面量 "<null>"，
+	# 再被标签表回落成「未知」—— 把「没有这个值」说成「明确未知」，语义被悄悄改写。
+	var outcome = _report.get("outcome", null)
 	var accent := _outcome_color(outcome)
 	var duration := MatchReportSchema.duration_text(_report.get("duration_seconds", null))
 	var title := get_node_or_null(ROOT + "/TopBar/Title") as Label
@@ -231,11 +233,11 @@ func _build_overview(body: Node) -> void:
 	ReportWidgets.missing_note(info, _missing_for("map") + _missing_for("adjutant") + _missing_for("commander"))
 
 	var result := ReportWidgets.section(body, "胜负与关键目标",
-		_outcome_color(str(_report.get("outcome", "unknown"))))
+		_outcome_color(_report.get("outcome", null)))
 	var condition := _text_or_null(_report.get("victory_condition", null))
 	var reason := _text_or_null(_report.get("defeat_reason", null))
 	ReportWidgets.kv_grid(result, [
-		["胜负结果", MatchReportSchema.outcome_label(str(_report.get("outcome", "unknown")))],
+		["胜负结果", MatchReportSchema.outcome_label(_report.get("outcome", null))],
 		["胜利条件", condition],
 		["失败原因", reason],
 	], 1)
@@ -1072,7 +1074,10 @@ func _event_color(label: String) -> String:
 	return "8ea7ad"
 
 
-func _outcome_color(outcome: String) -> Color:
+func _outcome_color(outcome: Variant) -> Color:
+	# 收 Variant：null 必须落到 MUTED，而不是被调用方 str() 成 "<null>" 再回落成「未知」。
+	if outcome == null:
+		return SystemUIStyle.MUTED
 	if outcome == "victory":
 		return SystemUIStyle.GREEN
 	if outcome == "defeat":

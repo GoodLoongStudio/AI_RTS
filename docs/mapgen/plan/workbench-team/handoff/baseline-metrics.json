@@ -1,0 +1,139 @@
+{
+ "generated_at": "2026-09-06T21:42:40",
+ "samples": [
+  {
+   "label": "A_no_water",
+   "map_id": "16-0",
+   "heightfield": {
+    "ground_level": 0.6,
+    "max_height": 3.6,
+    "max_step_all_m": 1.358,
+    "max_step_walkable_m": 0.0,
+    "min_height": 0.6,
+    "plateau_level": 3.6,
+    "vertex_shape": [
+     257,
+     257
+    ],
+    "walkable_slope_step_ok": true,
+    "water_level": -2.4
+   },
+   "visual_stats": {
+    "budget_total": 700,
+    "cliff": 170,
+    "scatter": 253,
+    "shore": 0,
+    "total": 423
+   },
+   "visual_style": "1.0.0",
+   "instance_count": 1778,
+   "nav_bake_s": 0.26,
+   "smoke_bake_s": 0.488,
+   "screenshot": {
+    "camera": "ortho top 1920x1920 size=256; oblique perspective fov45; local checkpoints --center/--radius",
+    "renderer": "gl_compatibility",
+    "paths": [
+     "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\bf4fbbf72daa472fa1bd2403a94c383e\\shots\\16-0_local_plateau_oblique.png",
+     "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\bf4fbbf72daa472fa1bd2403a94c383e\\shots\\16-0_local_ramp.png",
+     "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\bf4fbbf72daa472fa1bd2403a94c383e\\shots\\16-0_oblique.png",
+     "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\bf4fbbf72daa472fa1bd2403a94c383e\\shots\\16-0_ortho.png"
+    ]
+   },
+   "frame_perf": {
+    "frames_moving": 0,
+    "frames_with_interp_lag": 0,
+    "lag_avg_m": 0.0,
+    "lag_max_m": 0.0,
+    "peak_unit": "",
+    "physics_ticks_per_second": 60,
+    "render_fps": 14.9,
+    "setting_physics_interpolation": true,
+    "total_rebakes": 28,
+    "total_spawns": 43,
+    "total_spikes": 103
+   }
+  },
+  {
+   "label": "B_river_bridge",
+   "map_id": "35-0",
+   "heightfield": {
+    "ground_level": 0.6,
+    "max_height": 3.6,
+    "max_step_all_m": 1.5,
+    "max_step_walkable_m": 0.525,
+    "min_height": -2.4,
+    "plateau_level": 3.6,
+    "vertex_shape": [
+     257,
+     257
+    ],
+    "walkable_slope_step_ok": true,
+    "water_level": -2.4
+   },
+   "visual_stats": {
+    "budget_total": 700,
+    "cliff": 170,
+    "scatter": 264,
+    "shore": 57,
+    "total": 491
+   },
+   "visual_style": "1.0.0",
+   "instance_count": 1385,
+   "nav_bake_s": 0.28,
+   "smoke_bake_s": 0.522,
+   "screenshot": {
+    "camera": "ortho top 1920x1920 size=256; oblique perspective fov45; local checkpoints --center/--radius",
+    "renderer": "gl_compatibility",
+    "paths": [
+     "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\f61365bbb11049f0afd2aa1fc9477445\\shots\\35-0_local_bridge.png",
+     "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\f61365bbb11049f0afd2aa1fc9477445\\shots\\35-0_local_plateau_oblique.png",
+     "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\f61365bbb11049f0afd2aa1fc9477445\\shots\\35-0_local_ramp.png",
+     "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\f61365bbb11049f0afd2aa1fc9477445\\shots\\35-0_oblique.png",
+     "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\f61365bbb11049f0afd2aa1fc9477445\\shots\\35-0_ortho.png"
+    ]
+   },
+   "frame_perf": null
+  },
+  {
+   "label": "C_lake_plateau",
+   "map_id": "47-0",
+   "heightfield": {
+    "ground_level": 0.6,
+    "max_height": 3.6,
+    "max_step_all_m": 1.5,
+    "max_step_walkable_m": 0.525,
+    "min_height": -2.4,
+    "plateau_level": 3.6,
+    "vertex_shape": [
+     257,
+     257
+    ],
+    "walkable_slope_step_ok": true,
+    "water_level": -2.4
+   },
+   "visual_stats": {
+    "budget_total": 700,
+    "cliff": 29,
+    "scatter": 265,
+    "shore": 130,
+    "total": 424
+   },
+   "visual_style": "1.0.0",
+   "instance_count": 1537,
+   "nav_bake_s": 0.28,
+   "smoke_bake_s": 0.656,
+   "screenshot": {
+    "camera": "ortho top 1920x1920 size=256; oblique perspective fov45; local checkpoints --center/--radius",
+    "renderer": "gl_compatibility",
+    "paths": [
+     "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\f851a0dd6f1b4863b7833f6c5cac25f9\\shots\\47-0_local_bridge.png",
+     "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\f851a0dd6f1b4863b7833f6c5cac25f9\\shots\\47-0_local_plateau_oblique.png",
+     "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\f851a0dd6f1b4863b7833f6c5cac25f9\\shots\\47-0_local_ramp.png",
+     "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\f851a0dd6f1b4863b7833f6c5cac25f9\\shots\\47-0_oblique.png",
+     "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\f851a0dd6f1b4863b7833f6c5cac25f9\\shots\\47-0_ortho.png"
+    ]
+   },
+   "frame_perf": null
+  }
+ ]
+}

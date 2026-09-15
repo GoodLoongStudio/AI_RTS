@@ -251,6 +251,8 @@ var _core := {"tier": 0, "low_seconds": 0.0, "high_seconds": 0.0, "cooldown": 0.
 	"reason": "start", "verify_left": 0.0, "verify_from": 0, "no_effect_left": 0.0}
 var _window_seconds := 0.0
 var _applied_tier := -1
+##: G4 大地图进局后禁止把阴影/高度雾加回去。离开对局必须解锁。
+var _large_map_lock := false
 ##: 预热剩余时间（启动/切场景后重置）：见 `WARMUP_SECONDS`。
 var _warmup_left := WARMUP_SECONDS
 var _last_scene: Node = null
@@ -262,6 +264,8 @@ var _toast_layer: CanvasLayer
 var _toast_label: Label
 var _toast_left := 0.0
 const TOAST_SECONDS := 4.0
+const LIVE_PERF_PATH := "user://g4_live_perf.json"
+var _live_dump_left := 0.0
 
 
 func _ready() -> void:
@@ -353,6 +357,10 @@ func _process(delta: float) -> void:
 	_units_all = get_tree().get_nodes_in_group("units").size()
 	_units = _units_own if _units_own > 0 else _units_all
 	_refresh_hud(delta)                      # 屏上反馈每帧刷新（内部自带 0.25s 节流）
+	_live_dump_left -= delta
+	if _live_dump_left <= 0.0:
+		_live_dump_left = 2.0
+		_dump_live_perf()
 	_window_seconds += delta
 	if _window_seconds < 0.25:
 		return
@@ -389,6 +397,21 @@ func _snapshot() -> Dictionary:
 	}
 
 
+func lock_large_map_presentation() -> void:
+	_large_map_lock = true
+	var apply_tier := _applied_tier if _applied_tier >= 0 else tier
+	_apply_tier(apply_tier, "large_map_lock")
+	print("[PERF] large_map_lock volumetric=off sdfgi=off shadows=tier")
+
+
+func unlock_large_map_presentation() -> void:
+	if not _large_map_lock:
+		return
+	_large_map_lock = false
+	if enabled and _applied_tier >= 0:
+		_apply_tier(_applied_tier, "large_map_unlock")
+
+
 ## 应用某一档（幂等）。**只读场景、只改渲染开关**，不碰游戏逻辑。
 func _apply_tier(new_tier: int, reason: String) -> void:
 	var index := clampi(new_tier, 0, TIERS.size() - 1)
@@ -399,15 +422,24 @@ func _apply_tier(new_tier: int, reason: String) -> void:
 		viewport.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
 		viewport.msaa_3d = int(spec["msaa"])
 		viewport.mesh_lod_threshold = float(spec["lod"])
+	var use_shadows := bool(spec["shadows"])
+	var use_fog := bool(spec["fog"])
 	var environment := _environment()
 	if environment != null:
 		environment.ssao_enabled = bool(spec["ssao"])
 		environment.glow_enabled = bool(spec["glow"])
-		environment.fog_enabled = bool(spec["fog"])
-		environment.sdfgi_enabled = bool(spec["sdfgi"])
+		environment.fog_enabled = use_fog
+		environment.sdfgi_enabled = bool(spec["sdfgi"]) and not _large_map_lock
+		if _large_map_lock:
+			environment.volumetric_fog_enabled = false
+			environment.ssr_enabled = false
+			environment.sdfgi_enabled = false
+			environment.ssao_enabled = false
 	RenderingServer.directional_shadow_atlas_set_size(int(spec["shadow_atlas"]), true)
 	for light in _directional_lights():
-		light.shadow_enabled = bool(spec["shadows"])
+		light.shadow_enabled = use_shadows
+		if _large_map_lock and light is DirectionalLight3D:
+			(light as DirectionalLight3D).directional_shadow_max_distance = 80.0
 	var previous := _applied_tier
 	tier = index
 	_applied_tier = index
@@ -419,6 +451,16 @@ func _apply_tier(new_tier: int, reason: String) -> void:
 		_toast_left = TOAST_SECONDS
 	print("[PERF] 画质 → %s（tier=%d scale=%.2f units=%d fps=%.0f）原因=%s"
 		% [tier_name(index), index, float(spec["scale"]), _units, _fps_ema, reason])
+
+
+func _dump_live_perf() -> void:
+	var file := FileAccess.open(LIVE_PERF_PATH, FileAccess.WRITE)
+	if file == null:
+		return
+	var payload := stats()
+	payload["scene"] = str(_last_scene.name) if _last_scene != null else ""
+	payload["written_at"] = Time.get_datetime_string_from_system()
+	file.store_string(JSON.stringify(payload))
 
 
 func _environment() -> Environment:
@@ -461,6 +503,7 @@ func stats() -> Dictionary:
 		"down_fps": down_fps,
 		# 载入/未进入稳态（给右上角状态行加"（载入中）"，解释"为什么现在帧率低、画质没动"）。
 		"warmup": _in_warmup(),
+		"large_map_lock": _large_map_lock,
 	}
 
 

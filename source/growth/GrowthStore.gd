@@ -2,7 +2,9 @@ extends Node
 
 const SAVE_PATH := "user://growth_state.json"
 const PROFILE_PATH := "user://player_profile.json"
+const REPORTS_PATH := "user://match_reports.json"
 const MAX_GROWTH_PER_MATCH := 8
+const LOCAL_PLAYER_ID := "local_player_demo"
 
 var DEFINITIONS := {
 	"combat": [
@@ -24,11 +26,15 @@ var DEFINITIONS := {
 
 var state: Dictionary = {"available_points": 12, "levels": {}, "earned_total": 12, "spent_total": 0}
 var profile: Dictionary = {}
+var match_reports: Array = []
 
 func _ready() -> void:
 	_load_definitions()
 	_load_json(SAVE_PATH, "state")
 	_load_json(PROFILE_PATH, "profile")
+	_load_json(REPORTS_PATH, "reports")
+	if match_reports.is_empty() and profile.is_empty():
+		_seed_demo_profile()
 
 func _load_definitions() -> void:
 	var file := FileAccess.open("res://config/growth_definitions.json", FileAccess.READ)
@@ -45,13 +51,14 @@ func _load_json(path: String, target: String) -> void:
 	if file == null:
 		return
 	var parsed = JSON.parse_string(file.get_as_text())
+	if target == "reports":
+		if parsed is Array: match_reports = parsed
+		return
 	if parsed is Dictionary:
-		if target == "state":
-			state = parsed
-		else:
-			profile = parsed
+		if target == "state": state = parsed
+		else: profile = parsed
 
-func _save_json(path: String, value: Dictionary) -> bool:
+func _save_json(path: String, value: Variant) -> bool:
 	var file := FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
 		return false
@@ -124,3 +131,25 @@ func save_profile_snapshot(snapshot: Dictionary) -> bool:
 
 func get_profile_snapshot() -> Dictionary:
 	return profile.duplicate(true)
+
+func ingest_match_reports(reports: Array) -> Dictionary:
+	match_reports = reports.duplicate(true)
+	_save_json(REPORTS_PATH, match_reports)
+	var snapshot := MatchReportAdapter.build_profile_snapshot(LOCAL_PLAYER_ID, match_reports, state.get("levels", {}))
+	save_profile_snapshot(snapshot)
+	return snapshot
+
+func regenerate_profile() -> Dictionary:
+	return ingest_match_reports(match_reports)
+
+func _seed_demo_profile() -> void:
+	match_reports = [
+		{"match_id":"demo-001","outcome":"victory","resources":{"gathered":1280,"spent":1060},"production":{"units":34,"routes":["机械化步兵","无人机"]},"construction":{"structures":12,"value":0.72},"combat":{"damage_dealt":8420,"damage_taken":5160,"units_lost":11},"key_events":["快速扩张","中期反攻"],"growth_levels":{"combat_power":2,"economy_gather":1}},
+		{"match_id":"demo-002","outcome":"victory","resources":{"gathered":1540,"spent":1320},"production":{"units":41,"routes":["装甲车","炮台"]},"construction":{"structures":16,"value":0.84},"combat":{"damage_dealt":10300,"damage_taken":6220,"units_lost":14},"key_events":["前线筑垒","资源压制"],"growth_levels":{"combat_power":2,"construction_speed":1}},
+		{"match_id":"demo-003","outcome":"defeat","resources":{"gathered":980,"spent":910},"production":{"units":25,"routes":["侦察机","步兵"]},"construction":{"structures":8,"value":0.48},"combat":{"damage_dealt":4980,"damage_taken":7810,"units_lost":22},"key_events":["侦察开局","高风险突袭"],"growth_levels":{"economy_gather":2}},
+		{"match_id":"demo-004","outcome":"victory","resources":{"gathered":1710,"spent":1450},"production":{"units":46,"routes":["坦克","无人机"]},"construction":{"structures":14,"value":0.76},"combat":{"damage_dealt":11800,"damage_taken":6040,"units_lost":13},"key_events":["稳定运营","侧翼进攻"],"growth_levels":{"combat_guard":1,"economy_stock":1}}
+	]
+	_save_json(REPORTS_PATH, match_reports)
+	var levels: Dictionary = state.get("levels", {}).duplicate(true)
+	var snapshot := MatchReportAdapter.build_profile_snapshot(LOCAL_PLAYER_ID, match_reports, levels)
+	save_profile_snapshot(snapshot)

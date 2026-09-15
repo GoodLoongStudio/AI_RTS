@@ -34,6 +34,22 @@ addons/godot_ai/
 __pycache__/
 *.pyc
 
+# Mapgen local runtime
+tools/mapgen/.venv-g2/
+tools/mapgen/workbench_output/
+tools/mapgen/runs/*/G2/
+tools/mapgen/runs/*/G3/
+tools/mapgen/runs/*/G4/
+tools/mapgen/runs/*_summary/
+tools/mapgen/runs/assets/
+tools/mapgen/runs/_test_determinism/
+tools/mapgen/runs_512/
+engine.local.json
+**/engine.local.json
+
+# Commercial / huge source pack — play via assets/models/scifi-worlds
+初选素材包/
+
 # 系统 UI 取证截图（本地产物，勿提交）
 tmp_ui_shots/
 服务器信息.md

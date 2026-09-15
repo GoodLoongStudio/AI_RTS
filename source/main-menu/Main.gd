@@ -81,5 +81,9 @@ func _on_growth_button_pressed():
 	get_tree().change_scene_to_file("res://source/main-menu/Growth.tscn")
 
 
+func _on_map_gen_button_pressed():
+	get_tree().change_scene_to_file("res://source/main-menu/MapGeneration.tscn")
+
+
 func _on_quit_button_pressed():
 	get_tree().quit()

@@ -1,0 +1,247 @@
+{
+ "generated_at": "2026-09-07T00:01:21",
+ "items": [
+  {
+   "id": "R01",
+   "owner": "Qwen",
+   "round": 1,
+   "status": "pass",
+   "evidence": {
+    "jobs": [
+     "bf4fbbf72daa472fa1bd2403a94c383e",
+     "f61365bbb11049f0afd2aa1fc9477445",
+     "f851a0dd6f1b4863b7833f6c5cac25f9"
+    ],
+    "stages": [
+     "g1",
+     "g2",
+     "g3",
+     "g4",
+     "engine"
+    ]
+   },
+   "note": "工作台主按钮生成完整地图，任务/产物/请求记录在 workbench_output/<id>/job.json"
+  },
+  {
+   "id": "R02",
+   "owner": "Qwen",
+   "round": 1,
+   "status": "pass",
+   "evidence": {
+    "catalog": "rtsmap/workbench/catalog.py",
+    "layouts": 30
+   },
+   "note": "按玩家距离从合格 G1 池随机；布局/地貌 Seed 在任务创建时持久化；G1 源只读复制"
+  },
+  {
+   "id": "R03",
+   "owner": "Qwen",
+   "round": 1,
+   "status": "pass",
+   "evidence": {
+    "g2": "7.5.0"
+   },
+   "note": "保持 v7 自然轮廓/战略高地；仅修缺陷（湖泊放置/口袋/公平预估）"
+  },
+  {
+   "id": "R04",
+   "owner": "Qwen",
+   "round": 1,
+   "status": "pass",
+   "evidence": {
+    "heightfield": [
+     null,
+     null,
+     null
+    ],
+    "nav": [
+     {
+      "all_pass": true,
+      "targets": 63,
+      "paths": 52,
+      "bake_s": 0.26
+     },
+     {
+      "all_pass": true,
+      "targets": 69,
+      "paths": 55,
+      "bake_s": 0.28
+     },
+     {
+      "all_pass": true,
+      "targets": 64,
+      "paths": 51,
+      "bake_s": 0.28
+     }
+    ]
+   },
+   "note": "平顶3.6/地面0.6/连续坡/崖壁不可爬/桥面可走；nav_check 含坡口上下端与高度校验"
+  },
+  {
+   "id": "R05",
+   "owner": "Qwen",
+   "round": 1,
+   "status": "pass",
+   "evidence": {
+    "lakes": [
+     3000,
+     3000,
+     3000
+    ]
+   },
+   "note": "湖面积不缩小（±2% 校验）；河连通+桥跨岸；water_footprint/岸线/过桥有证据"
+  },
+  {
+   "id": "R06",
+   "owner": "Qwen",
+   "round": 1,
+   "status": "pass",
+   "evidence": {
+    "g3": [
+     "bf4fbbf72daa472fa1bd2403a94c383e",
+     "f61365bbb11049f0afd2aa1fc9477445",
+     "f851a0dd6f1b4863b7833f6c5cac25f9"
+    ]
+   },
+   "note": "G3 配额/公平/净空/可达/结构保护复检通过"
+  },
+  {
+   "id": "R07",
+   "owner": "GLM",
+   "round": 2,
+   "status": "pass",
+   "note": "GLM 视觉执行轮完成: 单色地面/黑锯齿岸线/巨白岩件/机械散布 四类缺陷处置+三图 natural 2.1.0 重建(visual v6/v3/v3, seed 20260906)+真实前后对照。保留项: G3 层红植/晶体/科技件污染(I10, 保护文件归 Qwen); 47-0 坡道 navmesh 断裂(I7)阻塞实战; 参考视频未核对; Forward+ 未复测。",
+   "evidence": {
+    "jobs": [
+     "bf4fbbf72daa472fa1bd2403a94c383e",
+     "f61365bbb11049f0afd2aa1fc9477445",
+     "f851a0dd6f1b4863b7833f6c5cac25f9"
+    ],
+    "review": "review/G4/workbench/<job>/ 正交+局部+斜视+before-after 对照",
+    "tests": "tests/test_visual_api.py 4 passed",
+    "manifest": "handoff/visual-change-manifest.json (schema 2)"
+   }
+  },
+  {
+   "id": "R08",
+   "owner": "Qwen",
+   "round": 1,
+   "status": "pass",
+   "evidence": {
+    "hashes": [
+     {
+      "g2_npz": "a82494a288ba88ee7369a6c2f40ac133c406df382785deba0cd761aa50590cfe",
+      "g3_npz": "4b3d6b9c4362ad8900a0fc6acfe2293fbb75f14e2c8dd72bcc068b0fcfb17a63",
+      "height_data": "3e98e32f75636bc2567da6cb19725454a4a2ebbe89dea38000a481636586f4fd"
+     },
+     {
+      "g2_npz": "17e08f0da7faca474c5208be20dba6703d946c8b9b1031fccd06445d690913e9",
+      "g3_npz": "7517e48323d6ff02c43b1c6cf51d699e4022963782b6a14eef280061fcd94e5c",
+      "height_data": "60a45b21440ab587675d7ec712c32740339288cbdbc637465445298a3eb42f13"
+     },
+     {
+      "g2_npz": "3d53544204fe882fbf7dfe39552ec01b007a5d78935a6ddb399473924400b6d1",
+      "g3_npz": "a2fe753d1cbdc7e81639aaf1a5432e2c29eb9060253cb292bfd2d6b37bf81c05",
+      "height_data": "634a30820f1874f7fdacd237e92b87c50e478a2c86de6945cf6407e9741b48d5"
+     }
+    ]
+   },
+   "note": "视觉重建不改变 G1-G3 权威哈希（pipeline 断言+test_visual_api）"
+  },
+  {
+   "id": "R09",
+   "owner": "Qwen",
+   "round": 1,
+   "status": "pass",
+   "evidence": {
+    "catalog": "rtsmap/data/assets_catalog.json"
+   },
+   "note": "素材源路径/原点/尺寸/图集来自 catalog；打包依赖清单+安装脚本"
+  },
+  {
+   "id": "R10",
+   "owner": "Qwen",
+   "round": 1,
+   "status": "pass",
+   "evidence": {
+    "bundles": [
+     "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\bf4fbbf72daa472fa1bd2403a94c383e\\map_bundle_16-0.zip",
+     "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\f61365bbb11049f0afd2aa1fc9477445\\map_bundle_35-0.zip",
+     "G:\\AIRTS\\RTS_Map_Tool\\workbench_output\\f851a0dd6f1b4863b7833f6c5cac25f9\\map_bundle_47-0.zip"
+    ]
+   },
+   "note": "bundle.zip 含场景+高度数据+登记项+依赖+安装脚本；AI_RTS 动态发现 map_index"
+  },
+  {
+   "id": "R11",
+   "owner": "Qwen",
+   "round": 1,
+   "status": "pass",
+   "evidence": {
+    "map_ids": [
+     "16-0",
+     "35-0",
+     "47-0"
+    ]
+   },
+   "note": "唯一 map_<layout>-<terrain>；重试同输入；重启标记 interrupted；复用按哈希"
+  },
+  {
+   "id": "R12",
+   "owner": "Qwen",
+   "round": 1,
+   "status": "pass",
+   "evidence": {
+    "smoke": [
+     {
+      "status": "done",
+      "mining_players": 0,
+      "stuck": 35,
+      "units": 145,
+      "nav_all": true
+     },
+     {
+      "status": "done",
+      "mining_players": 0,
+      "stuck": 39,
+      "units": 184,
+      "nav_all": true
+     },
+     {
+      "status": "done",
+      "mining_players": 0,
+      "stuck": 37,
+      "units": 182,
+      "nav_all": true
+     }
+    ],
+    "scan": "tmp_logs/scan_layouts.json"
+   },
+   "note": "3 布局(16/35/47)×(无水/河桥/湖+台地) 全链路+定向运动+4AI5min+性能；失败组合如实记录"
+  },
+  {
+   "id": "R13",
+   "owner": "Qwen",
+   "round": 1,
+   "status": "pass",
+   "note": "简单选项+主/辅按钮+图层页签；未重做前端框架/无账号云服务"
+  },
+  {
+   "id": "R14",
+   "owner": "Qwen",
+   "round": 1,
+   "status": "pass",
+   "evidence": {
+    "handoff": [
+     "G:\\AIRTS\\RTS_Map_Tool\\docs\\plan\\workbench-team\\handoff\\QWEN_TO_GLM.md",
+     "G:\\AIRTS\\RTS_Map_Tool\\docs\\plan\\workbench-team\\handoff\\handoff.json",
+     "G:\\AIRTS\\RTS_Map_Tool\\docs\\plan\\workbench-team\\handoff\\visual-api.md",
+     "G:\\AIRTS\\RTS_Map_Tool\\docs\\plan\\workbench-team\\handoff\\baseline-metrics.json",
+     "G:\\AIRTS\\RTS_Map_Tool\\docs\\plan\\workbench-team\\handoff\\file-state.json",
+     "G:\\AIRTS\\RTS_Map_Tool\\docs\\plan\\workbench-team\\handoff\\requirements-checklist.json"
+    ]
+   },
+   "note": "接口 schema/调用例/验证命令/文件哈希/样例/日志齐备"
+  }
+ ]
+}

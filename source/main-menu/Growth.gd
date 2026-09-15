@@ -32,13 +32,9 @@ func _ready() -> void:
 		"profile",
 		_on_profile_pressed,
 	)
-	_add_card(
-		"历史对局",
-		"逐场详细报告：经济 / 生产 / 战斗 / 时间线，以及对应的 Hermes 赛后分析",
-		SystemUIStyle.GREEN,
-		"recon",
-		_on_history_pressed,
-	)
+	# 【2026-09-15 用户要求："把这个入口去掉吧"】成长页**不再挂**「历史对局」入口。
+	# 历史对局页面本身（`MatchHistory.tscn` / `MatchDetail.tscn`）保留：玩家画像页里
+	# 仍有「查看历史对局」按钮可达（要一起去掉的话，连那边一起删即可）。
 	var first := cards.get_child(0) as Button
 	if first != null:
 		first.grab_focus()
@@ -171,13 +167,6 @@ func _on_upgrades_pressed() -> void:
 
 func _on_profile_pressed() -> void:
 	get_tree().change_scene_to_file("res://source/main-menu/PlayerProfile.tscn")
-
-
-func _on_history_pressed() -> void:
-	## 历史对局列表页的「返回」要回到成长页（从哪来回哪去）。
-	MatchHistoryNav.return_scene = "res://source/main-menu/Growth.tscn"
-	MatchHistoryNav.reset()
-	get_tree().change_scene_to_file("res://source/main-menu/MatchHistory.tscn")
 
 
 func _on_back_pressed() -> void:

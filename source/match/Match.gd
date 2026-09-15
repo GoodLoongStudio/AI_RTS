@@ -47,6 +47,16 @@ var visible_players = null:
 @onready var _battlefield_event_runtime = $BattlefieldEventRuntime
 @onready var _simulation_clock = $SimulationClock
 
+## 大地图进局前的物理追帧上限。默认 8 步：一步 60ms 时会追满 8 步 ≈ 500ms → 2 FPS。
+var _prev_max_physics_steps := 8
+var _prev_physics_ticks := 60
+var _prev_physics_interpolation := true
+## 最近一次物理帧里，从本节点到 SceneTree.physics_frame 之间的脚本耗时（毫秒）。
+## 用来拆开 TIME_PHYSICS_PROCESS：引擎物理服务器 vs 节点 _physics_process。
+var last_physics_script_ms := 0.0
+var _physics_script_t0_us := 0
+var _physics_script_armed := false
+
 
 ## 返回当前战局模拟毫秒；树暂停时不会继续增加。
 func get_simulation_msec() -> int:
@@ -61,6 +71,33 @@ func is_simulation_paused() -> bool:
 func _enter_tree():
 	assert(settings != null, "match cannot start without settings, see examples in tests/manual/")
 	assert(map != null, "match cannot start without map, see examples in tests/manual/")
+	# 父节点 _enter_tree 早于子节点 _ready。大地图必须在第一帧绘制前关掉
+	# 全屏高度雾片，否则卡住时玩家看到的就是那张肉色雾片。
+	# 256 图战争迷雾走 512² 视口，这里不能拆 CombinedViewport。
+	_lock_large_map_before_first_frame()
+	if _is_large_generated_map():
+		process_physics_priority = -100000
+		set_physics_process(true)
+		var tree := get_tree()
+		if tree != null and not tree.physics_frame.is_connected(_on_large_map_physics_frame):
+			tree.physics_frame.connect(_on_large_map_physics_frame)
+
+
+func _lock_large_map_before_first_frame() -> void:
+	if not _is_large_generated_map():
+		return
+	# 物理一步若超过 16ms，默认最多追 8 步。大地图作者碰撞还在时会锁死在 2 FPS。
+	# 逻辑地形不再需要 60Hz 物理：一步脚本+空世界就够，追帧只会把 8FPS 再打穿。
+	_prev_max_physics_steps = Engine.max_physics_steps_per_frame
+	_prev_physics_ticks = Engine.physics_ticks_per_second
+	Engine.max_physics_steps_per_frame = 1
+	Engine.physics_ticks_per_second = 20
+	var tree := get_tree()
+	if tree != null:
+		_prev_physics_interpolation = tree.physics_interpolation
+		tree.physics_interpolation = false
+		print("G4PERF physics_interpolation=", tree.physics_interpolation)
+	_strip_height_fog_mesh()
 
 
 func _ready():
@@ -81,7 +118,12 @@ func _ready():
 	_setup_players()
 	_setup_player_units()
 	_control_group_runtime.Configure(get_local_player())
-	if FeatureFlags.handle_match_end:
+	# 胜负判定**只在权威端**跑（单机 / 本机房主 / 专用服）。
+	# 客户端不许做判定：迷雾下客户端看不到敌方单位，`LastSurvivingSideRule` 会把
+	# "看不到"误当成"敌方全灭" → 开局没多久就判自己胜利、还经 `_rpc_match_over`
+	# 上报给服务器，服务器照单广播并 5 秒后回收专用服
+	#（2026-09-15 实测：副官 vs 电脑整局在 ~19 秒被判"胜利"收场，根本打不起来）。
+	if FeatureFlags.handle_match_end and (not NetSession.is_networked() or NetSession.is_server()):
 		_match_outcome_runtime.Initialize(_players, get_local_player())
 	var players_in_group = get_tree().get_nodes_in_group("players")
 	var visible_index = settings.visible_player
@@ -91,24 +133,27 @@ func _ready():
 	_query_runtime.Initialize(_players, get_local_player())
 	_register_spawn_points_with_query_runtime()
 	_battlefield_event_runtime.Initialize(get_local_player())
+	_camera.force_opening_isometric()
+	if fog_of_war != null and fog_of_war.has_method("refresh_now"):
+		fog_of_war.refresh_now()
 	_move_camera_to_initial_position()
-	if settings.visibility == settings.Visibility.FULL or _is_large_generated_map():
-		# FULL / 生成大地图：关掉战争迷雾遮罩。
-		# 2048m 图上遮罩视口和深度解算会让整屏 ALPHA=1（进局全黑）。
-		fog_of_war.visible = false
-		var unit_visibility_handler = find_child("UnitVisibilityHandler", true, false)
-		if unit_visibility_handler != null:
-			unit_visibility_handler.visible = false
-		var minimap_fog_mask = find_child("FogOfWarMask", true, false)
-		if minimap_fog_mask != null:
-			minimap_fog_mask.visible = false
+	if _is_large_generated_map():
+		_apply_large_map_playable_presentation()
+	if settings.visibility == settings.Visibility.FULL:
+		_disable_war_fog()
+	call_deferred("_move_camera_to_initial_position")
 	if not _is_dedicated_or_headless():
 		_setup_ra3_sidebar()
 		_setup_selection_portrait_panel()
 		_setup_command_cursor()
-		_setup_music_director()
-		if not NetSession.is_networked():
-			_setup_ai_command_hud()
+		# 对局音乐按当前产品要求关闭；菜单音乐独立播放。
+		# 2026-09-14 用户要求"两种模式的副官 UI 必须一致"：这里去掉了历史上的
+		# `if not NetSession.is_networked()` —— 那行是 2026-08-29 "联机 Demo 架构落地"
+		# 时加的，副作用是**单机（本机开房，is_networked()==true）也不挂"岚"面板**，
+		# 于是玩家在单机里只看得到旧的四行面板、在联机里才看得到"岚"，两套 UI 打架。
+		# 面板挂载后默认隐藏（`set_interface_visible(false)`），玩家用 Tab /
+		# 侧栏"显示 AI 副官"按钮开合，不会抢占原有 HUD 的位置。
+		_setup_ai_command_hud()
 		_setup_traditional_unit_command_hud()
 	else:
 		$HUD.visible = false
@@ -135,33 +180,33 @@ func _setup_ai_command_hud():
 	var ai_command_hud = AICommandHUD.new()
 	ai_command_hud.name = "AICommandHUD"
 	$HUD.add_child(ai_command_hud)
-	_setup_ai_command_hud_toggle(ai_command_hud)
+	var apply_visibility: Callable = _setup_ai_command_hud_toggle(ai_command_hud)
+	# 【2026-09-14 用户要求：副官 UI 常驻】面板创建即显示。切换按钮/Tab 只控制副官 UI
+	# 自身的显示/隐藏，**不再**与 RA3 侧栏、传统命令栏互斥（互斥会让玩家"打开副官就
+	# 看不到侧栏"，实际效果是两套 HUD 打架）。
+	apply_visibility.call(true)
 
 
-func _setup_ai_command_hud_toggle(ai_command_hud: Control):
+func _setup_ai_command_hud_toggle(ai_command_hud: Control) -> Callable:
 	var toggle_button := Button.new()
 	toggle_button.name = "AICommandHUDToggle"
-	toggle_button.text = "显示 AI 副官"
-	toggle_button.tooltip_text = "Tab：普通 RTS HUD ↔ AI 副官 HUD"
+	toggle_button.text = "隐藏 AI 副官"
+	toggle_button.tooltip_text = "Tab：显示 / 隐藏 AI 副官面板（副官 UI 常驻，不再与传统 HUD 互斥）"
 	toggle_button.custom_minimum_size = Vector2(168, 40)
 	toggle_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	var apply_visibility := func(should_show: bool):
 		ai_command_hud.set_interface_visible(should_show)
 		toggle_button.text = "隐藏 AI 副官" if should_show else "显示 AI 副官"
-		# 必须用挂载时保存的引用：RA3 布局下命令面板被侧栏收编，
-		# `$HUD.get_node_or_null("TraditionalUnitCommandHUD")` 恒为 null ⇒
-		# 切换到 AI 副官时既没隐藏传统命令栏、也没取消进行中的指定模式
-		# （维修/出售光标会一直挂在 AI 副官面板上）——2026-09-14 修复。
+		# 【2026-09-14 常驻改造】原来这里把传统命令栏与 RA3 侧栏按 `not should_show`
+		# 隐藏（两套 HUD 互斥）。用户要求副官 UI 常驻 ⇒ 不再隐藏它们，只做一件事：
+		# 显示副官面板时取消进行中的指挥指定模式，避免维修/出售光标挂在副官面板上。
+		# （必须用挂载时保存的引用：RA3 布局下命令面板被侧栏收编，
+		#  `$HUD.get_node_or_null("TraditionalUnitCommandHUD")` 恒为 null。）
 		var command_hud: Control = _traditional_unit_command_hud
 		if command_hud == null:
 			command_hud = $HUD.get_node_or_null("TraditionalUnitCommandHUD")
-		if command_hud != null:
-			command_hud.visible = not should_show
-			if should_show and command_hud.actions_controller != null:
-				command_hud.actions_controller.cancel_command_targeting()
-		# AI 副官面板占据屏幕右侧，与 RA3 侧栏互斥显示。
-		if _ra3_sidebar != null:
-			_ra3_sidebar.visible = not should_show
+		if should_show and command_hud != null and command_hud.actions_controller != null:
+			command_hud.actions_controller.cancel_command_targeting()
 	toggle_button.pressed.connect(
 		func(): apply_visibility.call(not ai_command_hud.is_interface_visible())
 	)
@@ -177,6 +222,7 @@ func _setup_ai_command_hud_toggle(ai_command_hud: Control):
 		_ra3_sidebar.add_function_button(toggle_button)
 	else:
 		$HUD/TopLeftColumn.add_child(toggle_button)
+	return apply_visibility
 
 
 ## 红警3 风格右侧指挥侧栏：收编小地图与资金显示；原左上资源列、右下生产格退场。
@@ -198,6 +244,9 @@ func _setup_ra3_sidebar():
 	var top_left_column = $HUD.get_node_or_null("TopLeftColumn")
 	if top_left_column != null:
 		top_left_column.visible = false
+	var minimap_node = find_child("Minimap", true, false)
+	if minimap_node != null and minimap_node.has_method("_sync_minimap_fog_mask"):
+		minimap_node.call_deferred("_sync_minimap_fog_mask")
 
 
 ## 红警3 式左侧选中单位头像栏：框选后逐个显示头像，点击头像单独选中该单位。
@@ -263,20 +312,30 @@ func _get_visible_players():
 func _setup_subsystems_dependent_on_map():
 	var map_terrain := map.find_child("Terrain") as MeshInstance3D
 	assert(map_terrain != null and map_terrain.mesh != null, "map must provide a Terrain MeshInstance3D")
-	_terrain.update_shape(map_terrain.mesh)
-	# 地图网格顶点写在**语义域**里，由 Map 基座的 scale=world_scale 放大成世界米；
-	# 而本 Terrain 碰撞体挂在 Match 根下（无缩放），所以必须补回同一缩放，
-	# 否则碰撞/导航比可视地形小 world_scale 倍（地图 4 倍时碰撞只有 1/4 范围，
-	# 表现为地形与导航脱节）。2026-09-14 与 GeneratedTerrain 的 2 倍顶点间距
-	# bug 一并修正。
-	_terrain.scale = map.scale
-	# Runtime navmesh baking should consume the terrain collider rather than reading
-	# the visual MeshInstance3D back from the GPU. Layer 2 matches the terrain navmesh mask.
-	_terrain.collision_layer = 2
-	_terrain.add_to_group("terrain_navigation_input")
-	fog_of_war.resize(map.size)
+	# G4 large maps intentionally skip runtime navigation baking. Their visual
+	# height mesh is 1025x1025; building a Bullet trimesh from it costs tens of
+	# milliseconds per physics frame. Units use collision_mask=0 and Terrain's
+	# input handler has a ray-plane fallback, so omit this collider on large maps.
+	if _uses_logic_terrain() or map.size.x >= 256.0 or map.size.y >= 256.0:
+		# 生成图不烘导航，也不要 trimesh。高度用采样，禁行走格子。
+		# 再 update_shape 只会把 ConcavePolygon 送进 PhysicsServer，活局 physics_ms 又回到 50+。
+		_terrain.disable_runtime_collision()
+		_purge_large_map_authoring_nodes()
+	else:
+		_terrain.update_shape(map_terrain.mesh)
+		# 地图网格顶点写在**语义域**里，由 Map 基座的 scale=world_scale 放大成世界米；
+		# 而本 Terrain 碰撞体挂在 Match 根下（无缩放），所以必须补回同一缩放，
+		# 否则碰撞/导航比可视地形小 world_scale 倍（地图 4 倍时碰撞只有 1/4 范围，
+		# 表现为地形与导航脱节）。2026-09-14 与 GeneratedTerrain 的 2 倍顶点间距
+		# bug 一并修正。
+		_terrain.scale = map.scale
+		# Runtime navmesh baking should consume the terrain collider rather than reading
+		# the visual MeshInstance3D back from the GPU. Layer 2 matches the terrain navmesh mask.
+		_terrain.collision_layer = 2
+		_terrain.add_to_group("terrain_navigation_input")
 	_recalculate_camera_bounding_planes(map.size)
 	_configure_view_for_generated_map()
+	fog_of_war.resize(map.size)
 	await navigation.setup(map)
 
 
@@ -291,33 +350,150 @@ func _is_large_generated_map() -> bool:
 	return map != null and (map.size.x >= 256.0 or map.size.y >= 256.0)
 
 
+func _uses_logic_terrain() -> bool:
+	# 唯一实现见 MatchUtils.is_logic_terrain_map（旧内联判据把普通地图误判成逻辑地形，
+	# 进而跳过导航烘焙、使建造全被拒）。
+	return Utils.Match.is_logic_terrain_map(map)
+
+
+func _purge_large_map_authoring_nodes() -> void:
+	# G4 导出留着几百个 Solid*/Walk* 作者碰撞和 269 块水面。只改 layer /
+	# visible 节点仍在 PhysicsServer / RenderingServer 里：真机 706 个静态体
+	# → 物理一步 56–61ms，再按 60Hz 追帧就锁死在 2 FPS。必须立刻 free。
+	if map == null:
+		return
+	var collision_removed := _free_all_children(map.get_node_or_null("Collision"))
+	var water_removed := _free_all_children(map.get_node_or_null("WaterBody"))
+	print(
+		"G4PERF map_collision_removed=",
+		collision_removed,
+		" water_removed=",
+		water_removed
+	)
+
+
+func _free_all_children(parent: Node) -> int:
+	if parent == null:
+		return 0
+	var removed := parent.get_child_count()
+	while parent.get_child_count() > 0:
+		var child: Node = parent.get_child(parent.get_child_count() - 1)
+		parent.remove_child(child)
+		child.free()
+	return removed
+
+
 func _configure_view_for_generated_map() -> void:
 	if not _is_large_generated_map():
 		return
-	# 山体世界高约 200m；镜头必须在峰顶之上，far 覆盖 2048m 对角线。
-	_camera.configure_for_large_terrain(map.size, 220.0)
+	_camera.configure_for_large_terrain(map.size)
+	# 必须在导航烘焙之前锁表现：烘焙期间 Match 已进场景树，否则先黑/先卡。
+	_apply_large_map_playable_presentation()
+	print(
+		"LARGE_MAP view size=",
+		map.size,
+		" cam_far=",
+		_camera.far,
+		" cam_size=",
+		_camera.size,
+		" cam_rot=",
+		_camera.rotation_degrees
+	)
+
+
+## 只锁“能玩”需要的渲染开关，不改地形网格或寻路。
+func _apply_large_map_playable_presentation() -> void:
 	var sun := get_node_or_null("DirectionalLight3D") as DirectionalLight3D
 	if sun != null:
-		sun.directional_shadow_max_distance = maxf(sun.directional_shadow_max_distance, 4000.0)
-	# 必须在导航烘焙之前关掉遮罩：烘焙期间 Match 已进场景树，否则先黑十几秒。
-	fog_of_war.visible = false
+		# 整图 cascade 仍贵，但完全关阴影会让模型和地形变成平涂。
+		# 只把阴影距离收到镜头附近；bias/pancake 过大时建筑脚下没有接触影。
+		sun.shadow_enabled = true
+		sun.directional_shadow_max_distance = 80.0
+		sun.shadow_bias = 0.04
+		sun.shadow_normal_bias = 1.0
+		sun.directional_shadow_pancake_size = 8.0
+		sun.light_energy = 1.35
+	_strip_height_fog_mesh()
+	var env_node := get_node_or_null("WorldEnvironment") as WorldEnvironment
+	if env_node != null and env_node.environment != null:
+		var environment := env_node.environment
+		environment.volumetric_fog_enabled = false
+		environment.fog_enabled = true
+		environment.fog_density = 0.0012
+		environment.ssr_enabled = false
+		environment.sdfgi_enabled = false
+		environment.ambient_light_energy = 0.38
+		environment.background_energy_multiplier = 0.9
+		environment.adjustment_saturation = 0.96
+		# 正交俯视 + 沙地颗粒上开 SSAO，会打出斜向条纹（活局截图已证实）。
+		environment.ssao_enabled = false
+		environment.glow_enabled = true
+		environment.tonemap_exposure = 1.0
+	var diagnostic := find_child("DiagnosticHUD", true, false)
+	if diagnostic == null:
+		diagnostic = find_child("DiagnosticHud", true, false)
+	if diagnostic != null:
+		diagnostic.visible = false
+		diagnostic.set_physics_process(false)
+		diagnostic.set_process(false)
+	var governor := get_node_or_null("/root/PerformanceGovernor")
+	if governor != null and governor.has_method("lock_large_map_presentation"):
+		governor.lock_large_map_presentation()
+
+
+func _strip_height_fog_mesh() -> void:
+	var height_fog := get_node_or_null("Fog") as MeshInstance3D
+	if height_fog == null:
+		return
+	height_fog.visible = false
+	height_fog.process_mode = Node.PROCESS_MODE_DISABLED
+	height_fog.extra_cull_margin = 0.0
+	height_fog.queue_free()
+
+
+func _disable_war_fog() -> void:
+	if fog_of_war != null and fog_of_war.has_method("set_runtime_enabled"):
+		fog_of_war.set_runtime_enabled(false)
+	elif fog_of_war != null:
+		fog_of_war.visible = false
 	var unit_visibility_handler = find_child("UnitVisibilityHandler", true, false)
 	if unit_visibility_handler != null:
 		unit_visibility_handler.visible = false
 	var minimap_fog_mask = find_child("FogOfWarMask", true, false)
 	if minimap_fog_mask != null:
 		minimap_fog_mask.visible = false
-	var env_node := get_node_or_null("WorldEnvironment") as WorldEnvironment
-	if env_node != null and env_node.environment != null:
-		env_node.environment.volumetric_fog_enabled = false
-	print(
-		"LARGE_MAP view fog_off size=",
-		map.size,
-		" cam_far=",
-		_camera.far,
-		" cam_size=",
-		_camera.size
-	)
+
+
+func _physics_process(_delta) -> void:
+	_physics_script_t0_us = Time.get_ticks_usec()
+	_physics_script_armed = true
+
+
+func _on_large_map_physics_frame() -> void:
+	if not _physics_script_armed or _physics_script_t0_us <= 0:
+		return
+	_physics_script_armed = false
+	last_physics_script_ms = float(Time.get_ticks_usec() - _physics_script_t0_us) / 1000.0
+	if Engine.get_physics_frames() % 40 == 0:
+		print(
+			"G4PERF physics_script_ms=",
+			snappedf(last_physics_script_ms, 0.01),
+			" engine_physics_ms=",
+			snappedf(Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0, 0.01)
+		)
+
+
+func _exit_tree() -> void:
+	Engine.max_physics_steps_per_frame = _prev_max_physics_steps
+	Engine.physics_ticks_per_second = _prev_physics_ticks
+	var tree := get_tree()
+	if tree != null:
+		tree.physics_interpolation = _prev_physics_interpolation
+		if tree.physics_frame.is_connected(_on_large_map_physics_frame):
+			tree.physics_frame.disconnect(_on_large_map_physics_frame)
+	var governor := get_node_or_null("/root/PerformanceGovernor")
+	if governor != null and governor.has_method("unlock_large_map_presentation"):
+		governor.unlock_large_map_presentation()
 
 
 func _setup_players():
@@ -419,9 +595,55 @@ func _register_spawn_points_with_query_runtime() -> void:
 	_query_runtime.RegisterSpawnPoints(positions)
 
 
+## 把出生变换投到真实地形高度（2026-09-15 方案 A：修"单位浮空"）。
+##
+## 背景：出生点的 y 是**生成期写入地图的预设值**，与运行时地形可能差 0.5m 以上
+## （生成器假设"作者盒顶与高度场共面"，但 9-14 实测该假设并不处处成立：
+##  盒顶比块内地形最低点高 p50 +0.62m / p90 +2.46m），于是单位出生即浮空。
+##
+## 大图已删 Collision 且不建 trimesh，物理射线打不中；生成图改用 sample_height。
+## 手摆小图仍走碰撞射线。
+func _sample_generated_height(at: Vector3) -> float:
+	if map == null:
+		return at.y
+	var generated: Node = map.find_child("Terrain", true, false)
+	if generated != null and generated.has_method("sample_height"):
+		return float(generated.call("sample_height", at.x, at.z))
+	return at.y
+
+
+func _grounded_spawn_transform(spawn_transform: Transform3D) -> Transform3D:
+	var origin := spawn_transform.origin
+	if _uses_logic_terrain():
+		return Transform3D(
+			spawn_transform.basis,
+			Vector3(origin.x, _sample_generated_height(origin), origin.z)
+		)
+	var terrain_body: Node3D = (
+		(_terrain if _terrain != null else find_child("Terrain", true, false)) as Node3D
+	)
+	if terrain_body == null:
+		return spawn_transform
+	var world: World3D = terrain_body.get_world_3d()
+	if world == null:
+		return spawn_transform
+	var params := PhysicsRayQueryParameters3D.create(
+		Vector3(origin.x, origin.y + 200.0, origin.z), Vector3(origin.x, origin.y - 200.0, origin.z)
+	)
+	params.collision_mask = 2
+	params.collide_with_areas = false
+	var hit: Dictionary = world.direct_space_state.intersect_ray(params)
+	if hit.is_empty():
+		return spawn_transform
+	var ground_y: float = (hit["position"] as Vector3).y
+	return Transform3D(spawn_transform.basis, Vector3(origin.x, ground_y, origin.z))
+
+
 func _spawn_player_units(player, spawn_transform):
 	# 开局：主基地 + 1 无人机 + 2 工人（2026-09-05 用户设定：
 	# 无人机恢复 1 架，其余建筑/单位一律由工人建造/生产）。
+	# 【2026-09-15 修"单位浮空"】出生点投到真实地形高度（无人机高度由自身飞行逻辑决定，不受影响）。
+	spawn_transform = _grounded_spawn_transform(spawn_transform)
 	_setup_and_spawn_unit(CommandCenter.instantiate(), spawn_transform, player, false)
 	_setup_and_spawn_unit(
 		Drone.instantiate(), spawn_transform.translated(Vector3(-2, 0, -2)), player
@@ -513,7 +735,9 @@ func _move_camera_to_initial_position():
 
 func _move_camera_to_map_center():
 	var map_size: Vector2 = map.size
-	_camera.set_position_safely(Vector3(map_size.x / 2.0, 0.0, map_size.y / 2.0))
+	var center := Vector3(map_size.x / 2.0, 0.0, map_size.y / 2.0)
+	center.y = _sample_generated_height(center)
+	_camera.set_position_safely(center)
 
 
 func _move_camera_to_player_units_crowd_pivot(player):
@@ -527,6 +751,7 @@ func _move_camera_to_player_units_crowd_pivot(player):
 		_move_camera_to_map_center()
 		return
 	var crowd_pivot = Utils.Match.Unit.Movement.calculate_aabb_crowd_pivot_yless(player_units)
+	crowd_pivot.y = _sample_generated_height(crowd_pivot)
 	_camera.set_position_safely(crowd_pivot)
 
 

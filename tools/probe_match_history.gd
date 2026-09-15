@@ -51,6 +51,7 @@ func _run() -> void:
 	await _prepare_isolated_store()
 	await _check_legacy_json_file()
 	await _check_facets_exclude_missing()
+	await _check_no_placeholder_leak()
 	for spec in _requested_resolutions():
 		await _check_layout(spec)
 	await _check_empty_state()
@@ -456,6 +457,90 @@ func _check_facets_exclude_missing() -> void:
 	store.remove(str(report.get("report_id", "")))
 	_check((store.reports as Array).size() == before, "筛选项检查后档案已还原（%d 场）" % before)
 
+## null 绝不许以字面量形式漏到 UI：`str(null)` 是 "<null>"，它会一路印到玩家脸上。
+## 实测踩过：详情页把「未记录胜负」经 `str(x, "unknown")` 变成 "<null>"，再被标签表
+## 回落成「未知」—— 既不是「—」也不是「未知」，语义被悄悄改写。
+## 这条断言直接对应需求里的**不允许因数据缺失而编造统计**。
+## 在**探针自己的隔离档案**上跑，跑完还原，不影响后续版面断言。
+func _check_no_placeholder_leak() -> void:
+	var store: Node = get_node_or_null("/root/MatchReportStore")
+	if store == null:
+		_check(false, "MatchReportStore autoload 可用（占位符泄漏检查）")
+		return
+	var before := (store.reports as Array).size()
+
+	# 1) 造一份"胜负/模式/难度/地图全缺"的报告 —— 等价于半途退出的真实形状。
+	var recorder: Node = load("res://source/history/MatchReportRecorder.gd").new()
+	add_child(recorder)
+	recorder.begin({
+		"player_id": "probe_leak", "match_id": "probe-leak",
+		"mode": null, "difficulty": null,
+		"adjutant": {"type": null, "level": null},
+		"map": {"name": null, "path": null},
+	})
+	var report: Dictionary = recorder.build_report()
+	recorder.free()
+	# 记录器拿不到结果时写 "unknown"（=「明确未知」），这是对的，不属于本条要覆盖的通路。
+	# 真正会产出 null（=「没有这个值」）的是**旧版本/残缺 JSON 归一化**，所以这里显式置 null。
+	# 两种形状在 UI 上必须是不同的字：null →「—」，「unknown」→「未知」，不允许被 str() 抹平。
+	report["outcome"] = null
+	_check(report.has("outcome") and report["outcome"] == null, "稀疏报告带 outcome 键且值为 null")
+	# report_id 必须在 upsert 之前取出来：GDScript 的 var 声明不下沉，
+	# 先用后声明是 Parse Error（且脚本加载失败会让探针进程挂住不退出）。
+	var report_id := str(report.get("report_id", ""))
+	store.upsert(report)
+	_check(store.get_report(report_id).get("outcome", "缺失") == null,
+		"归一化不会把 null 的 outcome 补成 \"unknown\"")
+	var report_id := str(report.get("report_id", ""))
+
+	# 2) 列表页：整页文本不许出现字面量占位符。
+	var history_scene := load("res://source/main-menu/MatchHistory.tscn") as PackedScene
+	if history_scene == null:
+		_check(false, "列表页场景可加载（占位符泄漏检查）")
+	else:
+		var page = history_scene.instantiate()
+		add_child(page)
+		await get_tree().process_frame
+		await get_tree().process_frame
+		var text := _collect_text(page)
+		_check(not text.contains("<null>"),
+			"列表页不渲染字面量 <null> —— %s" % _context_around(text, "<null>"))
+		_check(not text.contains("<Object"),
+			"列表页不渲染字面量 <Object…> —— %s" % _context_around(text, "<Object"))
+		page.queue_free()
+		await get_tree().process_frame
+
+	# 3) 详情页：整体扫一遍，并单独核对「胜负结果」这一格的具体取值。
+	MatchHistoryNav.open_detail(report_id)
+	var detail_scene := load("res://source/main-menu/MatchDetail.tscn") as PackedScene
+	if detail_scene == null:
+		_check(false, "详情页场景可加载（占位符泄漏检查）")
+	else:
+		var detail = detail_scene.instantiate()
+		add_child(detail)
+		await get_tree().process_frame
+		await get_tree().process_frame
+		await get_tree().process_frame
+		var detail_text := _collect_text(detail)
+		_check(not detail_text.contains("<null>"),
+			"详情页不渲染字面量 <null> —— %s" % _context_around(detail_text, "<null>"))
+		var labels := _labels_of(detail)
+		var outcome_value := "(没有找到「胜负结果」这一格)"
+		for index in range(labels.size() - 1):
+			if labels[index] == "胜负结果":
+				outcome_value = labels[index + 1]
+				break
+		_check(outcome_value == "—",
+			"未记录的胜负在详情页渲染成「—」（实际「%s」）" % outcome_value)
+		detail.queue_free()
+		await get_tree().process_frame
+
+	# 还原：后面的版面断言要求隔离档案恰好是 10 场 Demo。
+	store.remove(report_id)
+	_check((store.reports as Array).size() == before,
+		"占位符泄漏检查后档案已还原（%d 场）" % before)
+
+
 # ==================== 版面层 ====================
 
 ## 版面条令（与既有 probe_system_ui 同一口径）：
@@ -743,6 +828,16 @@ func _collect_text(node: Node) -> String:
 	for label in node.find_children("*", "Label", true, false):
 		parts.append(str((label as Label).text))
 	return " ".join(parts)
+
+
+## 从长文本里截出占位符附近的窗口：断言变红时直接看出是哪一个字段漏出来的。
+func _context_around(text: String, needle: String, span: int = 60) -> String:
+	var at := text.find(needle)
+	if at < 0:
+		return "（未找到 %s）" % needle
+	var from := maxi(0, at - span)
+	var to := mini(text.length(), at + needle.length() + span)
+	return "…%s…" % text.substr(from, to - from)
 
 
 const ROOT_HISTORY := "CenterContainer/PanelContainer/MarginContainer/VBoxContainer"

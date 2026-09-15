@@ -250,6 +250,9 @@ locale/translations=PackedStringArray("res://assets/translations/match.en.transl
 [physics]
 
 common/physics_interpolation=true
+# 不要开 physics/3d/run_on_separate_thread。
+# 大图活局 physics_objects 已是 0，卡的是主线程脚本，不是 Bullet。
+# 打开后 _physics_process（Movement 写坐标）会和主线程 _process（相机/HUD/副官）抢节点。
 
 [rendering]
 

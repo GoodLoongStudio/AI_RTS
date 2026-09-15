@@ -71,6 +71,17 @@ const ADJUTANT_INTENT_LIMIT := 128
 var _adjutant_reserves := {}
 const ADJUTANT_RESERVE_PERCENT := 20
 
+## 副官观测里的**现行资源**白名单（唯一开关）。
+##
+## B 已从玩法移除（建造/出售退款只用 `resource_a`，见 `Structure.gd`），但地图上还有 B 矿、
+## 单位字段里还有 `resource_b`。副官**不许**看到/预留它，否则会出现"面板显示 B 预留、
+## 副官还在思考经济 B"（2026-09-14 用户实测反馈）。
+## Python 侧同款开关：`adjutant_coordinator/graph/reserves.py` 的 `ACTIVE_KINDS`
+## —— 恢复第二种资源时**两处一起改**。
+## ⚠ 通用只读诊断（`op=status` 的 `balance.b`、`all_balances.b`）**保持原样**，
+## 那是外部工具/排查依赖的口径，不在本白名单范围内。
+const ADJUTANT_RESOURCE_KINDS := ["A"]
+
 
 ## 本进程**实际监听**的权威端口（0 = 未启用/监听失败）。只读访问器。
 ##
@@ -196,6 +207,8 @@ func _dispatch(line: String) -> String:
 			return _op_key(parsed)
 		"screenshot":
 			return _op_screenshot(parsed)
+		"camera":
+			return _op_camera(match_node, parsed)
 		"fog":
 			return _op_fog(match_node, parsed)
 		"fog_status":
@@ -241,6 +254,8 @@ func _dispatch(line: String) -> String:
 			return JSON.stringify(_op_adjutant_reserves(match_node, parsed))
 		"perf":
 			return JSON.stringify(_op_perf(match_node, parsed))
+		"physics_isolate":
+			return JSON.stringify(_op_physics_isolate(match_node, parsed))
 		"lobby":
 			return JSON.stringify(_op_lobby())
 		"controller":
@@ -319,6 +334,30 @@ func _op_screenshot(parsed) -> String:
 	]})
 
 
+func _op_camera(match_node, parsed) -> String:
+	if match_node == null:
+		return JSON.stringify({"error": "no match scene"})
+	var cam = match_node.get_node_or_null("IsometricCamera3D")
+	if cam == null:
+		return JSON.stringify({"error": "no camera"})
+	if parsed.has("size") and cam.has_method("set_size_safely"):
+		cam.set_size_safely(float(parsed.get("size")))
+	if parsed.has("look_at") and cam.has_method("set_position_safely"):
+		var look = parsed.get("look_at")
+		if look is Array and look.size() >= 2:
+			var target := Vector3(float(look[0]), 0.0, float(look[look.size() - 1]))
+			if look.size() >= 3:
+				target = Vector3(float(look[0]), float(look[1]), float(look[2]))
+			if match_node.has_method("_sample_generated_height"):
+				target.y = match_node._sample_generated_height(target)
+			cam.set_position_safely(target)
+	return JSON.stringify({
+		"ok": true,
+		"pos": [cam.global_position.x, cam.global_position.y, cam.global_position.z],
+		"size": cam.size,
+	})
+
+
 func _op_fog(match_node, parsed) -> String:
 	if match_node == null:
 		return JSON.stringify({"error": "no match scene"})
@@ -327,7 +366,12 @@ func _op_fog(match_node, parsed) -> String:
 	if fog == null:
 		return JSON.stringify({"error": "no fog of war"})
 	var enabled := bool(parsed.get("enabled", not fog.visible))
-	fog.visible = enabled
+	if fog.has_method("set_runtime_enabled"):
+		fog.set_runtime_enabled(enabled)
+		if enabled and match_node.get("map") != null:
+			fog.resize(match_node.map.size)
+	else:
+		fog.visible = enabled
 	if visibility != null:
 		visibility.visible = enabled
 	return JSON.stringify({"ok": true, "enabled": enabled})
@@ -511,6 +555,8 @@ func _op_build(match_node, parsed) -> String:
 	if pos_raw.is_empty():
 		pos_raw = [0.0, 0.0]
 	var position := Vector3(float(pos_raw[0]), 0.0, float(pos_raw[1]))
+	if match_node != null and match_node.has_method("_sample_generated_height"):
+		position.y = float(match_node._sample_generated_height(position))
 	var scene_path := str(parsed.get("scene", "res://source/match/units/VehicleFactory.tscn"))
 	# ---------- 续建路由（2026-09-12 已授权，见 docs/程序文档/AI副官_当前执行入口.md Q6） ----------
 	# 背景（实测）：`build` 走 `StructurePlacementRuntime.Place()` = **新建一座**；
@@ -831,7 +877,8 @@ func _collect_status_lite(match_node, player, out: Dictionary, full_vision: bool
 		})
 	if player != null:
 		out["local_player_name"] = str(player.name)
-		out["balance"] = {"a": int(player.resource_a), "b": int(player.resource_b)}
+		# 统一货币（2026-09-14 用户口径："我再不想看到 B 资源"）：诊断输出也不出现 B。
+	out["balance"] = {"a": int(player.resource_a)}
 	var counts := {"total": 0, "mine": 0, "scouted_enemy": 0, "mine_by_type": {}}
 	var production: Array = []
 	for unit in get_tree().get_nodes_in_group("units"):
@@ -910,7 +957,8 @@ func _collect_status(match_node, parsed = null) -> Dictionary:
 		return out
 	out["local_player_name"] = str(player.name)
 	out["player_nodes"] = get_tree().get_nodes_in_group("players").map(func(p): return str(p.name))
-	out["balance"] = {"a": int(player.resource_a), "b": int(player.resource_b)}
+	# 统一货币（2026-09-14 用户口径："我再不想看到 B 资源"）：诊断输出也不出现 B。
+	out["balance"] = {"a": int(player.resource_a)}
 	out["ra3_sidebar_ui"] = _collect_sidebar_ui()
 	out["all_balances"] = get_tree().get_nodes_in_group("players").map(
 		func(p): return {
@@ -1527,10 +1575,12 @@ func _op_tactical(match_node, parsed) -> Dictionary:
 	header["production"] = production
 	header["truncated"] = truncated
 	header["next_offset"] = offset + limit if truncated else -1
-	header["balance"] = {
-		"a": int(player.resource_a) if "resource_a" in player else 0,
-		"b": int(player.resource_b) if "resource_b" in player else 0,
-	}
+	# 只下发**现行资源**（B 已移除；白名单 ADJUTANT_RESOURCE_KINDS，与 _adjutant_balance_of 同口径）。
+	var balance_view: Dictionary = {}
+	for kind in ADJUTANT_RESOURCE_KINDS:
+		var balance_field := "resource_" + str(kind).to_lower()
+		balance_view[str(kind).to_lower()] = int(player.get(balance_field)) if balance_field in player else 0
+	header["balance"] = balance_view
 	# 玩家资源预留随观测一起下发：协调器据此限制副官花费（方案 §6 由权威端定义）。
 	# 未初始化时这里会按当前余额建立 20% 基线，语义与 op=adjutant_reserves 完全一致。
 	header["reserves"] = _adjutant_reserve_state(match_node, player).get("values", {})
@@ -1694,10 +1744,12 @@ func _op_strategic(match_node, parsed) -> Dictionary:
 				"scene_path": str(construction.get("blueprint_scene_path", "")),
 			})
 
-	header["resources"] = {
-		"a": int(player.resource_a) if "resource_a" in player else 0,
-		"b": int(player.resource_b) if "resource_b" in player else 0,
-	}
+	# 只下发**现行资源**（B 已移除；白名单 ADJUTANT_RESOURCE_KINDS，与 _adjutant_balance_of 同口径）。
+	var resources_view: Dictionary = {}
+	for kind in ADJUTANT_RESOURCE_KINDS:
+		var resource_field := "resource_" + str(kind).to_lower()
+		resources_view[str(kind).to_lower()] = int(player.get(resource_field)) if resource_field in player else 0
+	header["resources"] = resources_view
 	# 战略视图同样带预留：战略层规划时就能看到"副官可用额度"，而不是先规划再被拒。
 	header["reserves"] = _adjutant_reserve_state(match_node, player).get("values", {})
 	header["enemy_balances_masked"] = true
@@ -2165,11 +2217,13 @@ func _adjutant_ledger_evict_one() -> bool:
 
 
 ## 本玩家当前余额（与 op=tactical 的 balance 同源，不另建经济账）。
+## 只含现行资源（见 ADJUTANT_RESOURCE_KINDS）：B 已移除，既不下发给副官，也不进预留账本。
 func _adjutant_balance_of(player) -> Dictionary:
-	return {
-		"A": int(player.resource_a) if "resource_a" in player else 0,
-		"B": int(player.resource_b) if "resource_b" in player else 0,
-	}
+	var out: Dictionary = {}
+	for kind in ADJUTANT_RESOURCE_KINDS:
+		var field := "resource_" + str(kind).to_lower()
+		out[str(kind)] = int(player.get(field)) if field in player else 0
+	return out
 
 
 ## 读取（必要时初始化）本局该玩家的预留额度。
@@ -2183,6 +2237,9 @@ func _adjutant_reserve_state(match_node, player) -> Dictionary:
 		var balance := _adjutant_balance_of(player)
 		var values := {}
 		for kind in balance.keys():
+			# 已移除的资源（B）不允许进入预留账本（白名单见 ADJUTANT_RESOURCE_KINDS）。
+			if str(kind).to_upper() not in ADJUTANT_RESOURCE_KINDS:
+				continue
 			# 向下取整：预留必须是整数量级，不能出现小数余额。
 			values[kind] = int(balance[kind]) * ADJUTANT_RESERVE_PERCENT / 100
 		_adjutant_reserves[view_key] = {
@@ -2215,6 +2272,9 @@ func _op_adjutant_reserves(match_node, parsed) -> Dictionary:
 				"reason": "reserves 必须是 {资源类型: 绝对额度} 字典（如 {\"A\": 500}）。"}
 		var values: Dictionary = reserve_state.get("values", {})
 		for kind in params.keys():
+			# 只接受现行资源（B 已移除）：对已移除资源设定预留一律忽略，不回错、不写账本。
+			if str(kind).to_upper() not in ADJUTANT_RESOURCE_KINDS:
+				continue
 			values[str(kind).to_upper()] = int(params[kind])
 		reserve_state["values"] = values
 		reserve_state["initialized"] = true
@@ -2333,6 +2393,21 @@ func _op_perf(match_node, parsed) -> Dictionary:
 		"fps": Engine.get_frames_per_second(),
 		"process_ms": snappedf(Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, 0.01),
 		"physics_ms": snappedf(Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0, 0.01),
+		"physics_objects": int(Performance.get_monitor(Performance.PHYSICS_3D_ACTIVE_OBJECTS)),
+		"physics_pairs": int(Performance.get_monitor(Performance.PHYSICS_3D_COLLISION_PAIRS)),
+		"draw_objects": int(Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)),
+		"draw_primitives": int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)),
+		"nav_ms": snappedf(Performance.get_monitor(Performance.TIME_NAVIGATION_PROCESS) * 1000.0, 0.01),
+		"nav_static_obstacles": _nav_static_obstacle_count(match_node),
+		"gpu": RenderingServer.get_video_adapter_name(),
+		"gpu_vendor": RenderingServer.get_video_adapter_vendor(),
+		"cpu_threads": OS.get_processor_count(),
+		"physics_ticks": Engine.physics_ticks_per_second,
+		"max_physics_steps": Engine.max_physics_steps_per_frame,
+		"physics_script_ms": snappedf(_match_physics_script_ms(match_node), 0.01),
+		"physics_2d_objects": int(Performance.get_monitor(Performance.PHYSICS_2D_ACTIVE_OBJECTS)),
+		"physics_2d_pairs": int(Performance.get_monitor(Performance.PHYSICS_2D_COLLISION_PAIRS)),
+		"physics_nodes": _physics_processing_names(match_node),
 		"nodes": int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT)),
 		"orphans": int(Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)),
 		"objects": int(Performance.get_monitor(Performance.OBJECT_COUNT)),
@@ -2353,10 +2428,67 @@ func _op_perf(match_node, parsed) -> Dictionary:
 	}
 
 
+func _match_physics_script_ms(match_node) -> float:
+	if match_node == null or not ("last_physics_script_ms" in match_node):
+		return -1.0
+	return float(match_node.last_physics_script_ms)
+
+
+func _physics_processing_names(root: Node) -> Array:
+	var names: Array = []
+	if root == null:
+		return names
+	var stack: Array = [root]
+	while not stack.is_empty() and names.size() < 40:
+		var node: Node = stack.pop_back()
+		if node.is_physics_processing():
+			names.append(str(node.name))
+		for child in node.get_children():
+			stack.append(child)
+	return names
+
+
+func _op_physics_isolate(match_node, parsed) -> Dictionary:
+	if match_node == null:
+		return {"ok": false, "reason": "no_match"}
+	var enabled = bool(parsed.get("enabled", false))
+	var changed: Array = []
+	for raw_name in parsed.get("nodes", []):
+		var node_name := str(raw_name)
+		var node: Node = match_node.get_node_or_null(node_name)
+		if node == null:
+			node = match_node.find_child(node_name, true, false)
+		if node == null:
+			continue
+		node.set_physics_process(enabled)
+		changed.append(str(node.get_path()))
+	if bool(parsed.get("movements", false)):
+		for unit in match_node.get_tree().get_nodes_in_group("units"):
+			var movement = unit.find_child("Movement", false, false)
+			if movement != null:
+				movement.set_physics_process(enabled)
+				changed.append(str(movement.get_path()))
+	return {
+		"ok": true,
+		"enabled": enabled,
+		"changed": changed,
+		"changed_count": changed.size(),
+	}
+
+
 ## 帧率治理统计（autoload `PerformanceGovernor`）。
 ##
 ## 没有它时（老版本 / 单测环境 / 专用服）返回**明确的空档位**而不是编造数字 ——
 ## "没数据"与"档位 0"在复盘里必须能分开（本仓纪律：事实缺失不许当通过）。
+func _nav_static_obstacle_count(match_node) -> int:
+	if match_node == null or not ("navigation" in match_node):
+		return -1
+	var nav = match_node.navigation
+	if nav == null or not nav.has_method("static_obstacle_count"):
+		return -1
+	return int(nav.static_obstacle_count())
+
+
 func _governor_stats() -> Dictionary:
 	var node := get_node_or_null("/root/PerformanceGovernor")
 	if node == null or not node.has_method("stats"):
@@ -2534,7 +2666,11 @@ func _fast_sample_movement(unit, unit_name: String, pos: Vector3) -> void:
 		_fast_unreachable.erase(unit_name)
 	if bool(_fast_move_reported.get(unit_name, false)):
 		return
-	var finished := bool(agent.is_navigation_finished())
+	var skip_nav: bool = (
+		agent.has_method("_skip_navigation_server")
+		and bool(agent.call("_skip_navigation_server"))
+	)
+	var finished := false if skip_nav else bool(agent.is_navigation_finished())
 	var distance := Vector2(pos.x - target.x, pos.z - target.z).length()
 	if finished or distance <= ARRIVAL_EPS_M:
 		_fast_move_reported[unit_name] = true
@@ -2543,6 +2679,8 @@ func _fast_sample_movement(unit, unit_name: String, pos: Vector3) -> void:
 			"pos": [_round2(pos.x), _round2(pos.z)],
 			"distance": _round2(distance),
 			"navigation_finished": finished})
+		return
+	if skip_nav:
 		return
 	# 【性能护栏】可达性查询分槽：只有落到本采样槽的单位才做这次**真寻路**。
 	# 为什么必须限：它是"每单位每 100ms 一次真寻路"，大规模部队下就是每秒上千次查询

@@ -17,9 +17,18 @@ func _ready():
 	rule_ai.expansion_resource_threshold = 0
 	rule_ai.workers_per_command_center = 2
 	add_child(match_instance)
-	await get_tree().process_frame
-	await get_tree().physics_frame
-	await get_tree().process_frame
+	# 不能假设固定帧数就绪：`Match._ready` 的首个 await 是导航烘焙（Match.gd:80），
+	# 玩家创建、查询运行时注入与 C# 资源账户都排在它之后；固定等 3 帧时 AI 还没拿到
+	# 这些依赖，门控断言会全部打反（current_count == 0 走"无条件重建"分支）。
+	rule_ai = await _await_rule_ai_ready(match_instance, rule_ai)
+	if rule_ai.get("_world_query_runtime") == null or rule_ai.get("_economy_runtime") == null:
+		print("Rule AI expansion smoke test completed: %d failure(s)" % (_failures + 1))
+		push_error("Match 未在超时内完成规则 AI 注入（查询运行时/资源账户）")
+		SmokeTestExit.request(get_tree(), 1)
+		return
+	# 还要等 AI 的初始单位生成完成，否则 `_enforce_number_of_ccs` 会走"无条件重建"分支
+	# （EconomyController.gd:91），把两个门控断言的期望值打反。
+	await _await_ai_has_command_center(rule_ai)
 
 	var economy = rule_ai.get_node("EconomyController")
 
@@ -43,13 +52,19 @@ func _ready():
 	rule_ai.max_command_centers = 3
 
 	# 管线：视为资源已获准，provision 后应在限定时间内出现第二座 CC 蓝图。
-	# 走游戏自身资源通道注入（PlaceStructure 有权威余额校验，绕不过它）
-	var granted: bool = rule_ai.add_resources({"resource_a": 100.0, "resource_b": 100.0})
-	_check(granted, "Phase1: 资源通道应能向规则 AI 注入余额")
-	economy.set("_number_of_pending_cc_resource_requests", 1)
+	# 走游戏自身资源通道注入（PlaceStructure 有权威余额校验，绕不过它）。
+	# 统一货币（2026-09-14）：B 已移除，资源账户只注册了 A；只注入 A（带 resource_b
+	# 会触发 C# 的 "resource account must be configured before use" 断言）。
+	# 注入额必须覆盖 CC 真实建造成本：`_try_construct_cc` 在 InsufficientResources
+	# 时会直接 break（EconomyController.gd:283），原先固定注入 100 与成本 2400 不匹配，
+	# 会让"第二座 CC 蓝图"断言必然失败（与统一货币无关的测试期望错误）。
 	var balance = match_instance.get_node("BalanceConfigRuntime")
 	var cc_scene = load("res://source/match/units/CommandCenter.tscn")
-	economy.call("provision", balance.GetConstructionCost(cc_scene), "cc")
+	var cc_cost: Dictionary = balance.GetConstructionCost(cc_scene)
+	var granted: bool = rule_ai.add_resources({"resource_a": int(cc_cost["resource_a"]) * 2})
+	_check(granted, "Phase1: 资源通道应能向规则 AI 注入余额")
+	economy.set("_number_of_pending_cc_resource_requests", 1)
+	economy.call("provision", cc_cost, "cc")
 	var second_cc := false
 	var waited := 0.0
 	while waited < 12.0:
@@ -83,3 +98,31 @@ func _check(condition: bool, message: String):
 	_failures += 1
 	print("FAIL: %s" % message)
 	push_error(message)
+
+
+## 等待 Match 完成异步初始化（玩家创建 + 查询运行时注入 + C# 资源账户）。
+## 判定取注入链路的两个终态；超时返回当前节点并报错，不会无限等待（不掩盖真实失败）。
+func _await_rule_ai_ready(match_instance: Node, rule_ai = null, timeout_s := 30.0):
+	var waited := 0.0
+	while waited < timeout_s:
+		if rule_ai == null:
+			rule_ai = match_instance.get_node_or_null("Players/SimpleClairvoyantAI")
+		if rule_ai != null \
+				and rule_ai.get("_world_query_runtime") != null \
+				and rule_ai.get("_economy_runtime") != null:
+			return rule_ai
+		await get_tree().create_timer(0.1).timeout
+		waited += 0.1
+	push_error("Match 未在 %.0fs 内完成规则 AI 注入（查询运行时/资源账户）" % timeout_s)
+	return rule_ai
+
+
+## 等待 AI 生成第一座 CommandCenter（扩张门控断言的前提）。
+func _await_ai_has_command_center(rule_ai, timeout_s := 30.0) -> void:
+	var waited := 0.0
+	while waited < timeout_s:
+		if _count_own_cc(rule_ai) >= 1:
+			return
+		await get_tree().create_timer(0.2).timeout
+		waited += 0.2
+	push_error("AI 未在 %.0fs 内生成 CommandCenter" % timeout_s)

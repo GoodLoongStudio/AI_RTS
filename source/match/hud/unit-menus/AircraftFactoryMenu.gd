@@ -13,29 +13,25 @@ func _ready():
 	var balance = find_parent("Match").get_node("BalanceConfigRuntime")
 	var helicopter_properties = balance.GetUnitDisplaySnapshot(HelicopterUnit)
 	var helicopter_cost = balance.GetProductionCost(HelicopterUnit)
-	_helicopter_button.tooltip_text = ("{0} - {1}\n{2} HP, {3} DPS\n{4}: {5}, {6}: {7}".format(
+	_helicopter_button.tooltip_text = ("{0} - {1}\n{2} HP, {3} DPS\n{4}: {5}".format(
 		[
 			tr("HELICOPTER"),
 			tr("HELICOPTER_DESCRIPTION"),
 			helicopter_properties["hp_max"],
 			helicopter_properties["attack_damage"] * helicopter_properties["attack_interval"],
 			tr("RESOURCE_A"),
-			helicopter_cost["resource_a"],
-			tr("RESOURCE_B"),
-			helicopter_cost["resource_b"]
+			helicopter_cost["resource_a"]
 		]
 	))
 	var drone_properties = balance.GetUnitDisplaySnapshot(DroneUnit)
 	var drone_cost = balance.GetProductionCost(DroneUnit)
-	_drone_button.tooltip_text = ("{0} - {1}\n{2} HP\n{3}: {4}, {5}: {6}".format(
+	_drone_button.tooltip_text = ("{0} - {1}\n{2} HP\n{3}: {4}".format(
 		[
 			tr("DRONE"),
 			tr("DRONE_DESCRIPTION"),
 			drone_properties["hp_max"],
 			tr("RESOURCE_A"),
-			drone_cost["resource_a"],
-			tr("RESOURCE_B"),
-			drone_cost["resource_b"]
+			drone_cost["resource_a"]
 		]
 	))
 

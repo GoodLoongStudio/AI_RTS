@@ -609,12 +609,6 @@ public sealed class UnitCommandService(
             return;
         }
 
-        var context = new CommandContext(
-            new CommandId(Guid.NewGuid()),
-            match,
-            snapshot.Value.OwnerId,
-            0,
-            simulationMilliseconds);
         if (skill.ActivationCondition != SkillEffectCondition.Always &&
             !SkillEffectConditions.IsSatisfied(
                 units, skill, unitId, null, skill.ActivationCondition))
@@ -634,6 +628,12 @@ public sealed class UnitCommandService(
             return;
         }
 
+        var context = new CommandContext(
+            new CommandId(Guid.NewGuid()),
+            match,
+            snapshot.Value.OwnerId,
+            0,
+            simulationMilliseconds);
         BeginSkill(context, unitId, skill, null, null);
     }
 

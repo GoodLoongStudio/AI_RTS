@@ -8,6 +8,14 @@ extends Node3D
 
 
 func _ready():
+	var nav_parent = get_parent()
+	var match_node = find_parent("Match")
+	var map_node = match_node.get_node_or_null("Map") if match_node != null else null
+	if nav_parent != null and nav_parent.has_method("should_skip_runtime_navigation") \
+			and nav_parent.should_skip_runtime_navigation(map_node):
+		release_navigation_map()
+		print("G4PERF skip air nav map")
+		return
 	assert(_safety_checks())
 	_ensure_navigation_map()
 	_reference_static_collider_shape.global_transform.origin.y = Constants.Match.Air.Y

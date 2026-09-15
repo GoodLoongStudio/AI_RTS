@@ -355,5 +355,31 @@ class MergeSameOrdersTest(unittest.TestCase):
                         str(again.dropped))
 
 
+class MergeUnitLimitTest(unittest.TestCase):
+    """合并规模上限（2026-09-15 用户实测："AI 总把部队聚在一起"）。
+
+    行为树是"每单位一条意图"，同目标的全被并成一条"大军"命令；限 4 之后
+    同目标会拆成多条命令（≈ 2~4 人一队各自行动）。
+    """
+
+    def test_merges_at_most_limit_units_per_group(self):
+        intents = [make_intent("i-%d" % index, "move", units=["Unit_%d" % index],
+                               target={"pos": [5.0, 5.0]}) for index in range(6)]
+        merged, traces = merge_same_orders(intents)
+        self.assertEqual(len(merged), 2)                      # 6 = 4 + 2
+        self.assertEqual(sorted(len(item["unit_ids"]) for item in merged), [2, 4])
+        self.assertTrue(any(trace.get("split") for trace in traces),
+                        "拆组必须留痕（验收要看得到）")
+
+    def test_single_group_still_merges_normally(self):
+        merged, traces = merge_same_orders([
+            make_intent("i-a", "move", units=["Unit_1"]),
+            make_intent("i-b", "move", units=["Unit_2"]),
+        ])
+        self.assertEqual(len(merged), 1)
+        self.assertEqual(merged[0]["unit_ids"], ["Unit_1", "Unit_2"])
+        self.assertFalse(any(trace.get("split") for trace in traces))
+
+
 if __name__ == "__main__":
     unittest.main()

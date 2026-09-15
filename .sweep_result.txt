@@ -1,0 +1,51 @@
+AdjutantCommandProtocolSmokeTest.tscn      exit=139  completed: 0 failure(s)        泄漏=0  解析错误=0  
+AdjutantCredentialSmokeTest.tscn           exit=0    completed: 0 failure(s)        泄漏=0  解析错误=0  
+AdjutantObservationSmokeTest.tscn          exit=0    completed: 0 failure(s)        泄漏=0  解析错误=0  
+BalanceConfigRuntimeSmokeTest.tscn         exit=1    completed: 3 failure(s)        泄漏=0  解析错误=0  ERROR: Balance config runtime assertion failed: HUD 显示快照应读取 Tank Catalog 数值
+BattlefieldEventCameraSmokeTest.tscn       exit=1    completed: 4 failure(s)        泄漏=0  解析错误=0  ERROR: Battlefield event camera assertion failed: Space 应将镜头跳离原位置
+BuildingOcclusionFadeSmokeTest.tscn        exit=1    completed: 1 failure(s)        泄漏=0  解析错误=0  ERROR: Building occlusion fade assertion failed: 挡住单位的建筑应换成半透明材质
+CommandCenterWorkerProductionSmokeTest.tscn exit=0    completed: 0 failure(s)        泄漏=0  解析错误=0  
+CSharpCommandSmokeTest.tscn                exit=0    completed: 0 failure(s)        泄漏=0  解析错误=0  
+EntityForceMoveSmokeTest.tscn              exit=0    completed: 0 failure(s)        泄漏=0  解析错误=0  
+EscReturnSmokeTest.tscn                    exit=0    completed: 0 failure(s)        泄漏=7  解析错误=0  
+HelicopterCommandSmokeTest.tscn            exit=0    completed: 0 failure(s)        泄漏=0  解析错误=0  
+InfantryAnimDriverSmokeTest.tscn           exit=124  <无汇总>                    泄漏=0  解析错误=0  ERROR: BUG: Unreferenced static string to 0: _exit_world
+InfantrySmokeTest.tscn                     exit=0    completed: 0 failure(s)        泄漏=0  解析错误=0  
+LegacyHudVisibilitySmokeTest.tscn          exit=0    completed: 0 failure(s)        泄漏=0  解析错误=0  
+LocalAvoidanceSmokeTest.tscn               exit=1    completed: 1 failure(s)        泄漏=0  解析错误=0  ERROR: Local avoidance assertion failed: 多单位集结应真正到达（states=Unreachable/Unreachable）
+MatchOutcomeRuntimeSmokeTest.tscn          exit=0    completed: 0 failure(s)        泄漏=0  解析错误=0  
+MovementRecoverySmokeTest.tscn             exit=0    completed: 0 failure(s)        泄漏=0  解析错误=0  
+MovementScaleSmokeTest.tscn                exit=0    completed: 0 failure(s)        泄漏=0  解析错误=0  
+MultiUnitCommandSmokeTest.tscn             exit=0    completed: 0 failure(s)        泄漏=0  解析错误=0  
+NavigationStabilitySmokeTest.tscn          exit=0    completed: 0 failure(s)        泄漏=0  解析错误=0  
+NetInfantrySmokeTest.tscn                  exit=1    <无汇总>                    泄漏=0  解析错误=0  ERROR: Net infantry assertion failed: 联机对局应完成加载并出现 Match
+ProjectileLifecycleSmokeTest.tscn          exit=124  <无汇总>                    泄漏=0  解析错误=0  
+RuleAiAggressionSmokeTest.tscn             exit=0    completed: 0 failure(s)        泄漏=0  解析错误=0  
+RuleAiBattlegroupSmokeTest.tscn            exit=0    completed: 0 failure(s)        泄漏=0  解析错误=0  
+RuleAiDefenseSmokeTest.tscn                exit=0    completed: 0 failure(s)        泄漏=0  解析错误=0  
+RuleAiEconomyQuerySmokeTest.tscn           exit=124  <无汇总>                    泄漏=0  解析错误=0  FAIL: Match 应向传统规则 AI 注入公共查询 Runtime
+RuleAiExpansionSmokeTest.tscn              exit=1    completed: 4 failure(s)        泄漏=0  解析错误=0  FAIL: Phase1: 有 idle worker 时不得触发扩张
+RuleAiIntelligenceSmokeTest.tscn           exit=0    completed: 0 failure(s)        泄漏=0  解析错误=0  
+RuleAiOffenseLogisticsSmokeTest.tscn       exit=0    completed: 0 failure(s)        泄漏=0  解析错误=0  
+RuntimePlacementSmokeTest.tscn             exit=0    completed: 0 failure(s)        泄漏=0  解析错误=0  
+StructurePlacementSmokeTest.tscn           exit=0    completed: 0 failure(s)        泄漏=0  解析错误=0  
+TankCombatPolicySmokeTest.tscn             exit=0    completed: 0 failure(s)        泄漏=0  解析错误=0  
+TankCommandBridgeSmokeTest.tscn            exit=1    completed: 1 failure(s)        泄漏=0  解析错误=0  ERROR: Tank command bridge assertion failed: 传统命令栏应存在以显示不可达
+TankEntityAttackMoveSmokeTest.tscn         exit=0    completed: 0 failure(s)        泄漏=0  解析错误=0  
+TankForceAttackSmokeTest.tscn              exit=124  <无汇总>                    泄漏=0  解析错误=0  ERROR: Tank force attack assertion failed: 演示模式显式攻击己方目标不应造成友伤
+TankGroundAttackMoveSmokeTest.tscn         exit=0    completed: 0 failure(s)        泄漏=0  解析错误=0  
+TankMoveFireSmokeTest.tscn                 exit=0    completed: 0 failure(s)        泄漏=0  解析错误=0  
+TankOrdinaryAttackSmokeTest.tscn           exit=1    completed: 1 failure(s)        泄漏=0  解析错误=0  ERROR: Tank ordinary attack assertion failed: Stop 不得删除已经发射且仍在飞行的炮弹伤害
+TankReturnToBaseSmokeTest.tscn             exit=0    completed: 0 failure(s)        泄漏=0  解析错误=0  
+TankTacticalWithdrawSmokeTest.tscn         exit=0    completed: 0 failure(s)        泄漏=0  解析错误=0  
+TraditionalUnitCommandHudSmokeTest.tscn    exit=0    completed: 0 failure(s)        泄漏=0  解析错误=0  
+TurretAimingSmokeTest.tscn                 exit=0    completed: 0 failure(s)        泄漏=0  解析错误=0  
+UISfxSmokeTest.tscn                        exit=0    completed: 0 failure(s)        泄漏=7  解析错误=0  
+WorkerEngagementPolicySmokeTest.tscn       exit=0    completed: 0 failure(s)        泄漏=0  解析错误=0  
+WorkerGatherSmokeTest.tscn                 exit=0    completed: 0 failure(s)        泄漏=0  解析错误=0  
+WorldQueryRuntimeSmokeTest.tscn            exit=124  <无汇总>                    泄漏=0  解析错误=0  FAIL: Match 组合根应为 Human 签发标准查询会话
+MachineGunTurretSmokeTest.tscn             exit=0    completed: 0 failure(s)        泄漏=0  解析错误=1  ERROR: Failed to load script "res://source/match/Terrain.gd" with error "Parse error".
+NewUnitsLineupSmokeTest.tscn               exit=124  <无汇总>                    泄漏=0  解析错误=1  ERROR: Failed to load script "res://source/match/Terrain.gd" with error "Parse error".
+UnitRegistrationConsistencySmokeTest.tscn  exit=0    completed: 0 failure(s)        泄漏=0  解析错误=0  
+SniperRocketeerSmokeTest.tscn              exit=0    completed: 0 failure(s)        泄漏=0  解析错误=1  ERROR: Failed to load script "res://source/match/Terrain.gd" with error "Parse error".
+PerformanceGovernorSmokeTest.tscn          exit=0    completed: 0 failure(s)        泄漏=0  解析错误=0  

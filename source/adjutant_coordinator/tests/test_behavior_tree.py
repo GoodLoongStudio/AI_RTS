@@ -280,13 +280,14 @@ class ScoutTest(unittest.TestCase):
         # `target` 必须是 dict（契约）—— 写成裸坐标会被契约校验拒绝。
         self.assertIsInstance(target, dict)
         self.assertIn("pos", target)
-        slot = TICK // behavior_tree.SCOUT_HOLD_TICKS
-        bearing = behavior_tree.SCOUT_BEARINGS[slot % len(behavior_tree.SCOUT_BEARINGS)]
-        expected = behavior_tree.SCOUT_RING_STEP * (
-            (bearing[0] ** 2 + bearing[1] ** 2) ** 0.5)
+        # 航点距圆心 = `SCOUT_RING_STEP × 圈数`（**与方位无关**）。
+        # 2026-09-15 起：方位随圈数旋转；且方位做了归一化（对角方位不再把半径放大 √2）。
+        # 旧断言"自己按 slot 推方位再算期望"会与旋转后的实现脱节，故改为按圈数断言。
+        slots = TICK // behavior_tree.SCOUT_HOLD_TICKS
+        ring = 1 + slots // len(behavior_tree.SCOUT_BEARINGS)
         x, z = target["pos"]
         distance = ((x - 10.0) ** 2 + (z - 10.0) ** 2) ** 0.5
-        self.assertAlmostEqual(distance, expected, places=1,
+        self.assertAlmostEqual(distance, behavior_tree.SCOUT_RING_STEP * ring, places=1,
                               msg="航点必须落在以观测到的基地为圆心的第一圈上")
 
     def test_waypoint_and_intent_id_are_stable_within_slot(self):

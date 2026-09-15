@@ -33,8 +33,10 @@ func _apply(node: Node, tex: Texture2D, tint: Color = Color(1, 1, 1)) -> void:
 			var mat := StandardMaterial3D.new()
 			mat.albedo_texture = tex
 			mat.albedo_color = tint
-			mat.roughness = 1.0
-			mat.metallic = 0.0
+			mat.roughness = 0.38
+			mat.metallic = 0.28
+			mat.specular_mode = BaseMaterial3D.SPECULAR_SCHLICK_GGX
+			mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 			_mat_cache[key] = mat
 		mi.material_override = _mat_cache[key]
 	for c in node.get_children():

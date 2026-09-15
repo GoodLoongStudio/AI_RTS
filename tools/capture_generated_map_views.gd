@@ -13,7 +13,7 @@ extends SceneTree
 ##     --resolution 1920x1080 --position -4000,-4000 \
 ##     --script res://tools/capture_generated_map_views.gd
 
-const MAP_PATH := "res://source/match/maps/generated/16-0-7d337ce8be/map_16-0-7d337ce8be.tscn"
+const MAP_PATH := "res://source/match/maps/generated/16-0-1ca6e21aa1/map_16-0-1ca6e21aa1.tscn"
 const OUT_DIR := "G:/AIRTS/RTS_Map_Tool/review/G4/g2_large_lake_kits"
 const PREFIX := "g133"
 

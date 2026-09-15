@@ -10,6 +10,11 @@ var _static_obstacles = []
 
 func _ready():
 	await _match.ready
+	# setup() 在大图上会跳过烘焙和整图避障；_ready 不能在 Match 就绪后再挂回去。
+	# 整图避障多边形 + 空网格上的 RVO，会把进局后的帧率打穿。
+	if should_skip_runtime_navigation(_match.map):
+		print("NAVDBG skip static obstacles on logic/large map size=", _match.map.size)
+		return
 	_setup_static_obstacles()
 
 
@@ -20,17 +25,51 @@ func get_navigation_map_rid_by_domain(domain):
 	}[domain]
 
 
+func _uses_logic_terrain(map) -> bool:
+	# 唯一实现见 MatchUtils.is_logic_terrain_map：旧内联判据把普通地图的 Terrain 节点
+	# （没有 height_data_path 属性 → get() 返回 null → str(null)="<null>"）误判成逻辑地形，
+	# 导致 50x50/100x100 普通图也被跳过烘焙、建造全被拒。别再写回内联版本。
+	return Utils.Match.is_logic_terrain_map(map)
+
+
+func should_skip_runtime_navigation(map) -> bool:
+	if map == null:
+		return false
+	if _uses_logic_terrain(map):
+		return true
+	return map.size.x >= 256.0 or map.size.y >= 256.0
+
+
+func static_obstacle_count() -> int:
+	return _static_obstacles.size()
+
+
 func setup(map):
 	assert(_static_obstacles.is_empty())
 	# 2048m 图用 Match.tscn 里 0.3 cell 去烘 Recast，栅格超限会 0xC0000005。
 	# 评图先进局看地形；寻路烘焙另立专项（更大 cell + 按高度封顶 AABB）。
-	if map.size.x >= 256.0 or map.size.y >= 256.0:
-		print("NAVDBG skip bake on large map size=", map.size)
-		_setup_static_obstacles()
+	if should_skip_runtime_navigation(map):
+		print("NAVDBG skip bake on logic/large map size=", map.size)
+		_disable_navigation_regions()
 		return
 	await air.bake(map)
 	await terrain.bake(map)
 	_setup_static_obstacles()
+
+
+func _disable_navigation_regions() -> void:
+	for host in [air, terrain]:
+		if host == null:
+			continue
+		var region: Node = host.find_child("NavigationRegion3D", true, false)
+		if region is NavigationRegion3D:
+			region.enabled = false
+	if terrain != null and "navigation_map_rid" in terrain and terrain.navigation_map_rid.is_valid():
+		NavigationServer3D.map_set_active(terrain.navigation_map_rid, false)
+		print("G4PERF terrain_nav_map_active=false")
+	if air != null and air.has_method("release_navigation_map"):
+		air.release_navigation_map()
+		print("G4PERF air_nav_map_released")
 
 
 ## 复制烘焙参数到新 NavigationMesh，避免重开对局时改到 PackedScene 里那份已烘焙网格。

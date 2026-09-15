@@ -18,6 +18,7 @@ const MENU_PAGE_SCRIPTS := [
 	"res://source/main-menu/Options.gd",
 	"res://source/main-menu/Credits.gd",
 	"res://source/main-menu/Growth.gd",
+	"res://source/main-menu/MapGeneration.gd",
 	"res://source/main-menu/GrowthUpgrades.gd",
 	"res://source/main-menu/PlayerProfile.gd",
 	"res://source/main-menu/MatchHistory.gd",

@@ -261,7 +261,7 @@ func _show_empty(headline: String, detail: String) -> void:
 
 
 func _build_row(report: Dictionary) -> Button:
-	var outcome := str(report.get("outcome", "unknown"))
+	var outcome = report.get("outcome", null)
 	var accent := _outcome_color(outcome)
 	var button := Button.new()
 	button.custom_minimum_size = Vector2(0, ROW_HEIGHT)
@@ -376,7 +376,9 @@ func _row_style(accent: Color, mode: int) -> StyleBoxFlat:
 	return style
 
 
-func _outcome_color(outcome: String) -> Color:
+func _outcome_color(outcome: Variant) -> Color:
+	if outcome == null:
+		return SystemUIStyle.MUTED
 	if outcome == "victory":
 		return SystemUIStyle.GREEN
 	if outcome == "defeat":

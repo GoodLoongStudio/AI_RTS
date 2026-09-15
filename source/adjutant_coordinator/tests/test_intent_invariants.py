@@ -253,5 +253,48 @@ class RejectionLedgerGateTest(unittest.TestCase):
         self.assertNotIn("4,6", [placement.spot_key(spot) for spot in ok])
 
 
+class GhostConstructionSiteTest(unittest.TestCase):
+    """权威端说"工地不存在"之后必须**清账**（2026-09-14 真机 a 局的玩家反馈）。
+
+    现场：观测一直把已完工/已失效的工地当"未完工" → 阶梯 1.5 每 10~20 秒重发一次
+    `rule-finish-site-<工地>`（每次都被 `ConstructionSiteNotFound` 拒）→ 这一步
+    **短路了后面所有步骤** → 整局不再开新工地、闲工人也用不上
+    （玩家原话："有建设需求的话相邻的工人为什么不会去很快的建设"）。
+    """
+
+    def test_site_not_found_is_its_own_class_and_bans_at_once(self):
+        self.assertEqual(placement.classify_rejection("Rejected ConstructionSiteNotFound"),
+                         placement.REJECT_SITE)
+        self.assertEqual(placement.classify_rejection("ConstructionAlreadyCompleted"),
+                         placement.REJECT_SITE)
+        self.assertIn(placement.REJECT_SITE, placement.SITE_KINDS)
+        self.assertIn(placement.REJECT_SITE, placement.PREFIX_BAN_KINDS)
+        ledger = placement.RejectionLedger()
+        ledger.add(placement.REJECT_SITE, "rule-finish-site-Unit_5", 10, ban_now=True,
+                   ban_ticks=placement.SITE_BAN_TICKS)
+        self.assertTrue(ledger.is_banned("rule-finish-site-Unit_5", 11),
+                        "工地不存在必须**一次就拉黑**（再等 3 次只是白烧命令）")
+
+    def test_ghost_site_is_removed_from_unfinished_after_clearing(self):
+        tactical = {"entities": [
+            unit("Unit_0", "command_center", queue=True, pos=(10, 0, 7)),
+            unit("Unit_2", "worker", construct=True, gather=True, pos=(12, 0, 8)),
+            {"kind": "unit_self", "name": "Unit_5", "unit_type": "barracks",
+             "construct": False, "gather": False, "queue": False, "constructed": False,
+             "pos": [14, 0, 7]},
+        ]}
+        state = ladder_state(["Unit_0", "Unit_2"], bounds=[60.0, 60.0])
+        before = rf.ladder_inputs(state, tactical=tactical, rules=RULES)
+        self.assertEqual(before["unfinished_buildings"], ["Unit_5"],
+                         "前提：没清账时应能看到这个工地")
+        ledger = placement.RejectionLedger()
+        ledger.add(placement.REJECT_SITE, "rule-finish-site-Unit_5", 1000, ban_now=True,
+                   ban_ticks=placement.SITE_BAN_TICKS)
+        placement.ledger_to_state(ledger, state)
+        after = rf.ladder_inputs(state, tactical=tactical, rules=RULES)
+        self.assertEqual(after["unfinished_buildings"], [],
+                         "工地已不存在 → 必须移出未完工清单，否则短路整条发展阶梯")
+
+
 if __name__ == "__main__":
     unittest.main()

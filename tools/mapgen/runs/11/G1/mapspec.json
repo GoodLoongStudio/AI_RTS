@@ -1,0 +1,148 @@
+{
+ "accepted": false,
+ "adjacent_angle_gaps_deg": [
+  71.9417,
+  75.0194,
+  94.0476,
+  118.9913
+ ],
+ "algo_version": "2.0.0",
+ "attempts": 200,
+ "center_dists": [
+  39.2909,
+  124.7013,
+  108.2556,
+  82.9173
+ ],
+ "constraints": {
+  "angle_gap": {
+   "limit": [
+    45.0,
+    150.0
+   ],
+   "pass": true,
+   "value": [
+    71.9417,
+    118.9913
+   ]
+  },
+  "center_gap": {
+   "limit": 0.0,
+   "pass": true,
+   "value": 39.2909
+  },
+  "center_ratio": {
+   "limit": 99.0,
+   "pass": true,
+   "value": 3.1738
+  },
+  "margin": {
+   "limit": 12.0,
+   "pass": true,
+   "value": 25.3435
+  },
+  "min_pair": {
+   "limit": 89.6,
+   "pass": true,
+   "value": 94.2283
+  },
+  "nn_ratio": {
+   "limit": 1.3,
+   "pass": false,
+   "value": 1.387
+  },
+  "territory_ratio": {
+   "cells": [
+    20521,
+    13972,
+    15212,
+    15831
+   ],
+   "limit": 1.3,
+   "pass": false,
+   "value": 1.4687
+  }
+ },
+ "corner_flags": [
+  false,
+  true,
+  false,
+  false
+ ],
+ "gate": "G1",
+ "gate_seed": 4794838808433862579,
+ "master_seed": 11,
+ "min_pair": 94.2283,
+ "pair_dist_matrix": [
+  [
+   Infinity,
+   163.449,
+   103.0826,
+   94.2283
+  ],
+  [
+   163.449,
+   Infinity,
+   200.887,
+   130.6909
+  ],
+  [
+   103.0826,
+   200.887,
+   Infinity,
+   189.7709
+  ],
+  [
+   94.2283,
+   130.6909,
+   189.7709,
+   Infinity
+  ]
+ ],
+ "params": {
+  "angle_max": 150.0,
+  "angle_min": 45.0,
+  "candidates": 32,
+  "center_gap": 0.0,
+  "center_ratio": 99.0,
+  "margin": 12.0,
+  "max_attempts": 200,
+  "min_pair_factor": 0.35,
+  "nn_ratio": 1.3,
+  "territory_ratio": 1.3,
+  "top_frac": 0.7
+ },
+ "polar_angles_deg": [
+  -44.4754,
+  124.5916,
+  -116.417,
+  49.5723
+ ],
+ "reject_reason": "territory_ratio",
+ "rot_sym_err": 0.2044,
+ "sampler": "A",
+ "starts": [
+  [
+   156.04,
+   100.47
+  ],
+  [
+   57.2,
+   230.66
+  ],
+  [
+   79.84,
+   31.05
+  ],
+  [
+   181.77,
+   191.12
+  ]
+ ],
+ "territory_cells": [
+  20521,
+  13972,
+  15212,
+  15831
+ ]
+}

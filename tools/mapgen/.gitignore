@@ -1,0 +1,14 @@
+.venv-g2/
+workbench_output/
+runs/*/G2/
+runs/*/G3/
+runs/*/G4/
+runs/*_summary/
+runs/assets/
+runs/_test_determinism/
+runs_512/
+__pycache__/
+.pytest_cache/
+*.pyc
+*.log
+rtsmap/workbench/engine.local.json

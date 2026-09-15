@@ -1,0 +1,3 @@
+这些是历史副本。G4 禁止调用 install_runtime_scripts()，
+否则会覆盖游戏内 source/match/maps/generated/GeneratedTerrain.gd
+（带 semantic_span 的现行版本）。

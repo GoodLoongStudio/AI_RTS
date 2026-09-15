@@ -178,5 +178,8 @@ public static class DemoBalanceRequirements
             new("anti_air_turret"),
             new("barracks")
         }.ToFrozenSet(),
-        new[] { ResourceKind.A, ResourceKind.B }.ToFrozenSet());
+        // 统一货币（2026-09-14 用户口径："我再不想看到 B 资源了，游戏的设计是统一货币的"）：
+        // 配置档案**只要求资源 A**。B 若仍出现在配置文件里会被忽略（loader 保持兼容解析），
+        // 但缺 B 不再算配置错误 —— 否则删掉 B 之后整份配置会降级、单位成本与 HUD 全部失效。
+        new[] { ResourceKind.A }.ToFrozenSet());
 }
