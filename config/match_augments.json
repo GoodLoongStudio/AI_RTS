@@ -35,10 +35,10 @@
     {
       "id": "aug_supply_cache",
       "name": "工程备料",
-      "summary": "立刻获得 250 资金，方便铺建筑。",
+      "summary": "立刻获得 5000 资金，方便铺建筑。",
       "tag": "construction",
       "rarity": "silver",
-      "effect": {"type": "resource_grant", "resource_a": 250}
+      "effect": {"type": "resource_grant", "resource_a": 5000}
     },
     {
       "id": "aug_fortify",
