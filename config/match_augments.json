@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "rounds": [
+    {"at_msec": 90000},
+    {"at_msec": 240000},
+    {"at_msec": 420000}
+  ],
+  "offer_size": 3,
+  "countdown_seconds": 20,
+  "cards": [
+    {
+      "id": "aug_cash_drop",
+      "name": "应急拨款",
+      "summary": "立刻获得 5000 资金。",
+      "tag": "economy",
+      "rarity": "silver",
+      "effect": {"type": "resource_grant", "resource_a": 5000}
+    },
+    {
+      "id": "aug_gather_plus",
+      "name": "高效开采",
+      "summary": "工人交货量提升 25%。",
+      "tag": "economy",
+      "rarity": "silver",
+      "effect": {"type": "gather_mult", "value": 1.25}
+    },
+    {
+      "id": "aug_double_haul",
+      "name": "满载而归",
+      "summary": "工人交货量提升 50%。",
+      "tag": "economy",
+      "rarity": "gold",
+      "effect": {"type": "gather_mult", "value": 1.5}
+    },
+    {
+      "id": "aug_supply_cache",
+      "name": "工程备料",
+      "summary": "立刻获得 250 资金，方便铺建筑。",
+      "tag": "construction",
+      "rarity": "silver",
+      "effect": {"type": "resource_grant", "resource_a": 250}
+    },
+    {
+      "id": "aug_fortify",
+      "name": "加固工事",
+      "summary": "己方建筑最大生命提升 20%。",
+      "tag": "construction",
+      "rarity": "silver",
+      "effect": {"type": "hp_mult", "value": 1.2, "scope": "structure"}
+    },
+    {
+      "id": "aug_citadel",
+      "name": "要塞化",
+      "summary": "己方建筑最大生命提升 35%。",
+      "tag": "construction",
+      "rarity": "gold",
+      "effect": {"type": "hp_mult", "value": 1.35, "scope": "structure"}
+    },
+    {
+      "id": "aug_wide_eyes",
+      "name": "开阔视野",
+      "summary": "己方单位视野提升 25%。",
+      "tag": "scout",
+      "rarity": "silver",
+      "effect": {"type": "sight_mult", "value": 1.25}
+    },
+    {
+      "id": "aug_longwatch",
+      "name": "远望",
+      "summary": "己方单位视野提升 50%。",
+      "tag": "scout",
+      "rarity": "gold",
+      "effect": {"type": "sight_mult", "value": 1.5}
+    },
+    {
+      "id": "aug_sharpened",
+      "name": "磨锋",
+      "summary": "己方作战单位伤害提升 15%。",
+      "tag": "military",
+      "rarity": "silver",
+      "effect": {"type": "damage_mult", "value": 1.15, "scope": "unit"}
+    },
+    {
+      "id": "aug_iron_hide",
+      "name": "铁甲",
+      "summary": "己方作战单位最大生命提升 15%。",
+      "tag": "military",
+      "rarity": "silver",
+      "effect": {"type": "hp_mult", "value": 1.15, "scope": "unit"}
+    },
+    {
+      "id": "aug_warpath",
+      "name": "战争路径",
+      "summary": "己方作战单位伤害提升 25%。",
+      "tag": "military",
+      "rarity": "gold",
+      "effect": {"type": "damage_mult", "value": 1.25, "scope": "unit"}
+    },
+    {
+      "id": "aug_veterans",
+      "name": "老兵编制",
+      "summary": "己方作战单位最大生命提升 25%。",
+      "tag": "military",
+      "rarity": "gold",
+      "effect": {"type": "hp_mult", "value": 1.25, "scope": "unit"}
+    }
+  ]
+}
