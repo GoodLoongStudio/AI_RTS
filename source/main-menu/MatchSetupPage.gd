@@ -5,7 +5,7 @@ extends "res://source/ui/MenuPage.gd"
 ## 【2026-09-14 统一大厅 UI】Play.tscn / Online.tscn 不再各写一套布局：
 ## 两者都是本场景的继承场景，只覆写根脚本与 mode 参数。
 ##   - mode = "offline"（Play）：单机模式。默认本机房主，隐藏服务器地址/端口/连接状态/
-##     准备等在线控件；地图可选、4 个槽位用下拉选 Human / Simple AI / None；
+##     准备等在线控件；地图可选、4 个槽位用下拉选 指挥官 / 简单 AI / 中等 AI / 困难 AI / 空位；
 ##     开始走 NetSession.host() + Loading.tscn 原链路。
 ##   - mode = "online"（Online）：在线匹配。保留昵称、连接状态、加入局服、准备、
 ##     房主立即开局、房主增删 AI 槽位、房主改图（服务器权威同步、其他客户端只读）。
@@ -25,7 +25,13 @@ const OptionsScene = preload("res://source/main-menu/Options.tscn")
 const MODE_OFFLINE := "offline"
 const MODE_ONLINE := "online"
 
-const SLOT_OPTION_LABELS := ["None", "Human", "Simple AI"]
+const SLOT_OPTIONS := [
+	{"id": Constants.PlayerType.NONE, "label": "空位"},
+	{"id": Constants.PlayerType.HUMAN, "label": "指挥官"},
+	{"id": Constants.PlayerType.AI_EASY, "label": "简单 AI"},
+	{"id": Constants.PlayerType.SIMPLE_CLAIRVOYANT_AI, "label": "中等 AI"},
+	{"id": Constants.PlayerType.AI_HARD, "label": "困难 AI"},
+]
 
 ## 地图预览：正方形 256²；缺缩略图时用 4×4 占位棋盘，颜色按地图路径派生。
 const PREVIEW_TILE_COUNT := 16
@@ -47,6 +53,7 @@ const VBOX_PATH := "CenterContainer/PanelContainer/MarginContainer/VBoxContainer
 @onready var _title: Label = get_node(VBOX_PATH + "/TitleRow/Title")
 @onready var _name_row: HBoxContainer = get_node(VBOX_PATH + "/TitleRow/NameRow")
 @onready var _name_edit: LineEdit = get_node(VBOX_PATH + "/TitleRow/NameRow/NameEdit")
+@onready var _random_map_button: Button = get_node(VBOX_PATH + "/TitleRow/RandomMapButton")
 @onready var _hint: Label = get_node(VBOX_PATH + "/Hint")
 @onready var _main_row: HBoxContainer = get_node(VBOX_PATH + "/MainRow")
 @onready var _slots_box: VBoxContainer = get_node(VBOX_PATH + "/MainRow/SlotsBox")
@@ -72,6 +79,7 @@ var _slot_rows: Array = []
 var _slot_selects: Array = []
 var _options_panel: Control = null
 var _last_connection_state := false
+var _random_map_mode := false
 
 
 func _ready() -> void:
@@ -167,10 +175,11 @@ func _apply_mode() -> void:
 	_local_host_button.visible = false
 	_start_button.text = "立即开局（房主开局）" if online else "开始游戏"
 	_map_hint.text = "仅房主可修改地图" if online else "地图可自由切换"
+	_random_map_button.visible = not online
 	if online:
 		_hint.text = "对局一律走腾讯云权威服。房主可改地图、增删 AI，并点「立即开局」开始对局。"
 	else:
-		_hint.text = "在本机创建对局：选择地图与玩家槽位，点「开始游戏」进入对局。"
+		_hint.text = "选择地图与槽位后点「开始游戏」。点「随机地图」只是选中随机模式，开局时才会生成。"
 		_map_select.disabled = false
 
 
@@ -226,14 +235,45 @@ func _apply_map_popup_style() -> void:
 	popup.min_size = Vector2(MAP_POPUP_MIN_WIDTH, 0)
 
 
+func _on_random_map_toggled(pressed: bool) -> void:
+	_set_random_map_mode(pressed)
+
+
+func _set_random_map_mode(enabled: bool) -> void:
+	_random_map_mode = enabled
+	if _random_map_button.button_pressed != enabled:
+		_random_map_button.set_pressed_no_signal(enabled)
+	_map_select.disabled = enabled and mode != MODE_ONLINE
+	if enabled:
+		_hint.text = "已进入随机地图模式。点「开始游戏」后才会生成并进入对局。"
+		_map_hint.text = "开局时现生成，现在还没有这张图"
+	elif mode != MODE_ONLINE:
+		_hint.text = "选择地图与槽位后点「开始游戏」。点「随机地图」只是选中随机模式，开局时才会生成。"
+		_map_hint.text = "地图可自由切换"
+	_refresh_map_view()
+
+
+## 单机页覆写：按当前槽位开局；随机模式在加载页里现生成。
+func _on_random_match_requested() -> void:
+	_set_random_map_mode(true)
+
+
 func _on_map_selected(index: int) -> void:
 	if index < 0 or index >= _map_paths.size():
+		return
+	if _random_map_mode:
+		_set_random_map_mode(false)
 		return
 	_refresh_map_view()
 	_on_map_changed(str(_map_paths[index]))
 
 
 func _refresh_map_view() -> void:
+	if _random_map_mode:
+		_map_title.text = "随机地图"
+		_map_sub.text = "开局时生成 · 4人"
+		_rebuild_random_map_preview()
+		return
 	var index := _map_select.selected
 	if index < 0 or index >= _map_paths.size():
 		return
@@ -241,6 +281,30 @@ func _refresh_map_view() -> void:
 	_map_title.text = MatchSetupShared.map_label(path)
 	_map_sub.text = MatchSetupShared.map_summary(path)
 	_rebuild_map_preview(path)
+
+
+func _rebuild_random_map_preview() -> void:
+	for child in _map_preview.get_children():
+		_map_preview.remove_child(child)
+		child.free()
+	var frame := Control.new()
+	frame.custom_minimum_size = PREVIEW_BOX_SIZE
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var bg := ColorRect.new()
+	bg.color = Color.BLACK
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.add_child(bg)
+	var mark := Label.new()
+	mark.text = "?"
+	mark.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	mark.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	mark.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	mark.add_theme_font_size_override("font_size", 108)
+	mark.add_theme_color_override("font_color", Color(0.86, 0.90, 0.93))
+	mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.add_child(mark)
+	_map_preview.add_child(frame)
 
 
 ## 地图预览：优先用 tools/render_map_previews.gd **离线渲染真实地图**得到的缩略图
@@ -268,17 +332,18 @@ func _rebuild_map_preview(path: String) -> void:
 ## 所以再用 `Image.load_from_file` 直读兜底，避免【图明明在却显示占位棋盘】。
 func _load_map_preview_texture(path: String) -> Texture2D:
 	var res_path := MatchSetupShared.preview_path(path)
+	var abs_path := ProjectSettings.globalize_path(res_path)
+	# 必须先读盘：覆盖 PNG 后 Godot 的 .ctex 常常还是旧卡通图，
+	# ResourceLoader.exists + load() 会让大厅预览看起来“完全没变”。
+	if FileAccess.file_exists(abs_path):
+		var image := Image.load_from_file(abs_path)
+		if image != null and not image.is_empty():
+			return ImageTexture.create_from_image(image)
 	if ResourceLoader.exists(res_path):
 		var resource = load(res_path)
 		if resource is Texture2D:
 			return resource
-	var abs_path := ProjectSettings.globalize_path(res_path)
-	if not FileAccess.file_exists(abs_path):
-		return null
-	var image := Image.load_from_file(abs_path)
-	if image == null or image.is_empty():
-		return null
-	return ImageTexture.create_from_image(image)
+	return null
 
 
 ## 占位棋盘（旧行为，保留为兜底）：颜色由地图路径确定性派生，同图同色、切图变色。
@@ -345,11 +410,15 @@ func _build_slot_rows() -> void:
 		else:
 			var select := OptionButton.new()
 			select.name = "SlotSelect%d" % i
-			for label in SLOT_OPTION_LABELS:
-				select.add_item(label)
-			select.selected = _default_offline_slot_kind(i)
+			for option in SLOT_OPTIONS:
+				select.add_item(str(option["label"]), int(option["id"]))
+			_set_slot_controller_id(select, _default_offline_slot_kind(i))
 			select.item_selected.connect(_on_offline_slot_selected.bind(i))
 			row.add_child(select)
+			# 【2026-09-15 用户要求】下拉弹出要**完整显示所有选项**（共 5 个：空位/指挥官/
+			# 简单 AI/中等 AI/困难 AI），"非必要不要让用户去滚轮"。运行时新建的控件不会被
+			# `MenuPage` 的 apply 覆盖（它只遍历建树时已存在的节点），所以这里单独套统一口径。
+			SystemUIStyle.style_option_popup(select)
 			_slot_selects.append(select)
 			entry["select"] = select
 		card.add_child(row)
@@ -375,29 +444,43 @@ func _slot_color(i: int) -> Color:
 	return Color(0.5, 0.5, 0.5)
 
 
-## 单机槽位默认配置（沿用旧 Play 页：槽 1 人类、槽 3 简单 AI，其余空）。
+## 单机槽位默认：1 号指挥官，3 号简单 AI，其余空。
 func _default_offline_slot_kind(i: int) -> int:
 	match i:
 		0:
 			return Constants.PlayerType.HUMAN
 		2:
-			return Constants.PlayerType.SIMPLE_CLAIRVOYANT_AI
+			return Constants.PlayerType.AI_EASY
 		_:
 			return Constants.PlayerType.NONE
 
 
-## 单机槽位下拉：与旧 Play 页同一套规则（唯一 Human 顶掉其他 Human；不足 2 个玩家禁开局）。
-func _on_offline_slot_selected(selected_option_id: int, slot: int) -> void:
+func _slot_controller_id(select: OptionButton) -> int:
+	if select.selected < 0:
+		return Constants.PlayerType.NONE
+	return select.get_item_id(select.selected)
+
+
+func _set_slot_controller_id(select: OptionButton, controller: int) -> void:
+	for i in range(select.item_count):
+		if select.get_item_id(i) == controller:
+			select.select(i)
+			return
+
+
+## 单机槽位下拉：唯一 Human 顶掉其他 Human；不足 2 个玩家禁开局。
+func _on_offline_slot_selected(_selected_index: int, slot: int) -> void:
 	_start_button.disabled = false
+	var selected_option_id := _slot_controller_id(_slot_selects[slot])
 	if selected_option_id == Constants.PlayerType.HUMAN:
 		for i in range(_slot_selects.size()):
-			if i != slot and _slot_selects[i].selected == Constants.PlayerType.HUMAN:
-				_slot_selects[i].selected = Constants.PlayerType.SIMPLE_CLAIRVOYANT_AI
+			if i != slot and _slot_controller_id(_slot_selects[i]) == Constants.PlayerType.HUMAN:
+				_set_slot_controller_id(_slot_selects[i], Constants.PlayerType.AI_EASY)
 				_sync_offline_slot_label(i)
 	elif selected_option_id == Constants.PlayerType.NONE:
 		var active := 0
 		for select in _slot_selects:
-			if select.selected != Constants.PlayerType.NONE:
+			if _slot_controller_id(select) != Constants.PlayerType.NONE:
 				active += 1
 		if active < 2:
 			_start_button.disabled = true
@@ -409,11 +492,15 @@ func _sync_offline_slot_label(i: int) -> void:
 		return
 	var select: OptionButton = _slot_selects[i]
 	var name_label: Label = _slot_rows[i]["name"]
-	match select.selected:
+	match _slot_controller_id(select):
 		Constants.PlayerType.HUMAN:
 			name_label.text = "指挥官（你）" if i == 0 else "指挥官 %d" % (i + 1)
-		Constants.PlayerType.SIMPLE_CLAIRVOYANT_AI:
+		Constants.PlayerType.AI_EASY:
 			name_label.text = "简单 AI"
+		Constants.PlayerType.SIMPLE_CLAIRVOYANT_AI:
+			name_label.text = "中等 AI"
+		Constants.PlayerType.AI_HARD:
+			name_label.text = "困难 AI"
 		_:
 			name_label.text = "空位"
 

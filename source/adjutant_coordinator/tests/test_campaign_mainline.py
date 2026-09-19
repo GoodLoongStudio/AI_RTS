@@ -545,16 +545,19 @@ class InterruptStackTest(unittest.TestCase):
         self.assertEqual({item["action"] for item in defended}, {"defend"})
 
     def test_far_line_is_not_recalled_when_base_is_raided(self):
-        """T07：基地受袭只召回附近单位；远处作战线不得被拉去打家里的敌人。"""
+        """T07：家里回防圈已满配额时，远处作战线不得被拉去打家里的敌人。"""
         from adjutant_coordinator.graph import behavior_tree as bt
         state = base_state(600)
-        state["ai_controlled_units"] = ["Unit_near", "Unit_far"]
+        state["ai_controlled_units"] = [
+            "Unit_near1", "Unit_near2", "Unit_near3", "Unit_far"]
         state["campaign_state"] = {
             "interrupt_stack": [{"kind": "base_under_attack", "status": "active",
                                  "units": ["Unit_0"]}]}
         entities = [
             unit("Unit_0", "command_center", queue=True, pos=(0.0, 0.0, 0.0)),
-            unit("Unit_near", "soldier", pos=(6.0, 0.0, 6.0)),
+            unit("Unit_near1", "soldier", pos=(6.0, 0.0, 6.0)),
+            unit("Unit_near2", "soldier", pos=(8.0, 0.0, 4.0)),
+            unit("Unit_near3", "soldier", pos=(4.0, 0.0, 8.0)),
             unit("Unit_far", "soldier", pos=(80.0, 0.0, 80.0)),
             enemy("E_raid", (5.0, 0.0, 5.0)),
         ]
@@ -573,9 +576,64 @@ class InterruptStackTest(unittest.TestCase):
         self.assertNotEqual(far_merged.get("action"), "defend")
         self.assertNotEqual((far_merged.get("target") or {}).get("entity_id"), "E_raid")
         near_merged = next((item for item in merged
-                            if "Unit_near" in (item.get("unit_ids") or [])), None)
+                            if "Unit_near1" in (item.get("unit_ids") or [])), None)
         self.assertIsNotNone(near_merged)
         self.assertIn(near_merged.get("action"), ("defend", "attack"))
+
+    def test_visible_enemy_near_base_synthesizes_interrupt(self):
+        """真机没有 base_under_attack 事件：建筑附近见敌也必须压受袭中断。"""
+        state = base_state()
+        entities = [unit("Unit_0", "command_center", queue=True),
+                    unit("Unit_2", "soldier", pos=(80.0, 0.0, 80.0)),
+                    enemy("E_1", (5.0, 0.0, 5.0))]
+        campaign = cm.update(state, observation(entities), 0)
+        kinds = [str(item.get("kind")) for item in campaign.get("interrupt_stack") or []]
+        self.assertIn("base_under_attack", kinds)
+        self.assertGreaterEqual(int(campaign.get("under_attack_total", 0) or 0), 1)
+        facts = cm.build_facts(state, observation(entities), 0)
+        facts["enemy_positions"] = [[5.0, 5.0]]
+        retrieved = decision_map.retrieve(facts, campaign)
+        self.assertIn("D10", {item["id"] for item in retrieved["available"]})
+
+    def test_structure_damage_synthesizes_interrupt(self):
+        """指挥中心掉血、视野里暂时没有敌人，也要回防。"""
+        state = base_state()
+        entities = [unit("Unit_0", "command_center", queue=True),
+                    unit("Unit_2", "soldier", pos=(80.0, 0.0, 80.0))]
+        events = [{"event_id": "d1", "kind": "damage", "server_tick": 50,
+                   "unit": "Unit_0", "unit_type": "command_center",
+                   "hp": 80.0, "delta": -20.0}]
+        campaign = cm.update(state, observation(entities, tick=50, events=events), 50)
+        kinds = [str(item.get("kind")) for item in campaign.get("interrupt_stack") or []]
+        self.assertIn("base_under_attack", kinds)
+
+    def test_field_enemy_does_not_synthesize_base_raid(self):
+        """路上见敌不得合成基地受袭，否则又变成全军回防。"""
+        state = base_state()
+        entities = [unit("Unit_0", "command_center", queue=True),
+                    unit("Unit_2", "soldier", pos=(80.0, 0.0, 80.0)),
+                    enemy("E_1", (90.0, 0.0, 90.0))]
+        campaign = cm.update(state, observation(entities), 0)
+        kinds = [str(item.get("kind")) for item in campaign.get("interrupt_stack") or []]
+        self.assertNotIn("base_under_attack", kinds)
+
+    def test_empty_home_recalls_far_unit_when_raided(self):
+        """家里没作战单位时，最近的野外兵必须收到 defend。"""
+        from adjutant_coordinator.graph import behavior_tree as bt
+        state = base_state(600)
+        entities = [
+            unit("Unit_0", "command_center", queue=True, pos=(0.0, 0.0, 0.0)),
+            unit("Unit_far", "soldier", pos=(80.0, 0.0, 80.0)),
+            enemy("E_raid", (5.0, 0.0, 5.0)),
+        ]
+        cm.update(state, observation(entities, tick=600), 600)
+        state["ai_controlled_units"] = ["Unit_far"]
+        merged = bt.micro_intents(state, tactical=tactical(entities, tick=600),
+                                  rules=RULES_VIEW)
+        far = next((item for item in merged
+                    if "Unit_far" in (item.get("unit_ids") or [])), None)
+        self.assertIsNotNone(far)
+        self.assertEqual(far.get("action"), "defend")
 
     def test_defense_stops_after_interrupt_clears(self):
         """T07：威胁解除后近处单位不再回防。"""
@@ -661,7 +719,7 @@ class BranchSelectionTest(unittest.TestCase):
         state = self._state()
         campaign = state["campaign_state"]
         before = cm.summary(campaign)
-        # D12（进攻）要求"作战单位达集结规模 + 有可见敌人" → 此时不满足。
+        # D12（进攻）要求"有作战单位 + 有可见敌人或敌情" → 此时不满足。
         self.assertNotIn("D12", campaign["decision_available"])
         result = cm.note_model_branch(state, "D12", 601)
         self.assertFalse(result["accepted"])
@@ -859,10 +917,20 @@ class RichOpeningParityTest(unittest.TestCase):
         self.assertEqual(rf.bank_a({}), 0)
 
     def test_poor_bank_keeps_produce_first_veto(self):
-        """穷局纪律保留：钱只够一头时，先补兵、不铺新工地。"""
+        """穷局纪律保留：钱只够一头时，先补兵、不铺**产能/扩建**工地。
+
+        【2026-09-15 用户："生产建筑造完就造些塔"】穷局不再清空整条建造序列 ——
+        防御塔保留（单价低、穷局正需要），只让产能/扩建让位。故本用例断言
+        "除塔以外没有 build"，而不是"一条 build 都没有"。
+        """
         out = rf.development_intents(self._state(), tactical=self._tactical(1000),
                                      rules=RULES_VIEW, server_tick=600, snapshot_id=5)
-        self.assertNotIn("build", [item["action"] for item in out])
+        builds = [item for item in out if item["action"] == "build"]
+        towers = [item for item in builds if "turret" in str(item)]
+        self.assertEqual(
+            len(builds), len(towers),
+            "穷局只允许保留防御塔，不该铺产能/扩建：%s"
+            % [b for b in builds if b not in towers])
 
     def test_rich_bank_builds_and_produces_in_parallel(self):
         """富局**不二选一**：一边补兵一边继续铺产能/防御/分基地。"""
@@ -971,7 +1039,13 @@ class LadderRegressionTest(unittest.TestCase):
                        "producer": "Unit_4"}}]
         out = rf.development_intents(state, tactical=tactical(self._entities()),
                                      rules=RULES_VIEW, server_tick=600)
-        self.assertEqual([item for item in out if item["action"] == "produce"], [])
+        # 【2026-09-15 收紧到本意】并行填充轨现在也会给**其它空闲的指挥中心**补工人
+        # （用户要求「闲置工人优先采矿」的前提是先把工人造出来；旧实现整局不产工人）。
+        # 因此"一条 produce 都没有"过宽 —— 本用例要防的是**同一设施重复下发**。
+        repeats = [item for item in out
+                   if item["action"] == "produce"
+                   and "Unit_4" in (item.get("unit_ids") or [])]
+        self.assertEqual(repeats, [])
 
     def test_probe_never_targets_static_buildings(self):
         """扩张前探只能派**会动的**单位：静态建筑发 move 必被权威端拒。
@@ -1136,7 +1210,7 @@ class DecisionMapTest(unittest.TestCase):
         manual_ids = {str(node["node"]) for node in decision_map.DECISION_NODES}
         for expected in ("ECO-01", "ECO-02", "BLD-01", "BLD-02", "BLD-03",
                          "SCT-01", "SCT-02", "SCT-03",
-                         "ARM-01", "DEF-01", "ATK-01", "ATK-02", "RET-01", "REG-01"):
+                         "ARM-01", "DEF-01", "ATK-01", "ADV-01", "ATK-02", "RET-01", "REG-01"):
             self.assertIn(expected, manual_ids, expected)
         for node in decision_map.DECISION_NODES:
             self.assertTrue(node.get("preconditions"), node["id"])
@@ -1174,6 +1248,48 @@ class DecisionMapTest(unittest.TestCase):
         retrieved = decision_map.retrieve(facts, state["campaign_state"])
         available = {item["id"] for item in retrieved["available"]}
         self.assertIn("D10", available)
+
+    def test_military_nodes_do_not_target_main_base_anchor(self):
+        """D11/D13/D14/D15 的集结撤退目标必须是 location，只有 D10 防守用 anchor。"""
+        by_id = {node["id"]: node for node in decision_map.DECISION_NODES}
+        for node_id in ("D11", "D13", "D14", "D15"):
+            kinds = {item["target"] for item in by_id[node_id]["candidates"]}
+            self.assertNotIn("anchor", kinds, node_id)
+            self.assertIn("location", kinds, node_id)
+        defend_kinds = {item["target"] for item in by_id["D10"]["candidates"]}
+        self.assertIn("anchor", defend_kinds)
+
+    def test_scattered_units_unlock_forward_rally_not_home_gather(self):
+        state = base_state()
+        entities = [
+            unit("Unit_0", "command_center", queue=True, pos=(0.0, 0.0, 0.0)),
+            unit("Unit_2", "soldier", pos=(50.0, 0.0, 50.0)),
+            unit("Unit_3", "soldier", pos=(80.0, 0.0, 80.0)),
+        ]
+        campaign = cm.update(state, observation(entities), 0)
+        facts = cm.build_facts(state, observation(entities), 0)
+        self.assertTrue(facts["units_scattered"])
+        retrieved = decision_map.retrieve(facts, campaign, limit=len(
+            decision_map.DECISION_NODES))
+        available = {item["id"] for item in retrieved["available"]}
+        self.assertIn("D11", available)
+        self.assertIn("D15", available)
+        self.assertNotIn("D12", available)
+
+    def test_visible_enemy_unlocks_attack_without_massing_at_home(self):
+        state = base_state()
+        entities = [
+            unit("Unit_0", "command_center", queue=True),
+            unit("Unit_2", "soldier", pos=(20.0, 0.0, 20.0)),
+            enemy("E_1", (40.0, 0.0, 40.0)),
+        ]
+        campaign = cm.update(state, observation(entities), 0)
+        facts = cm.build_facts(state, observation(entities), 0)
+        retrieved = decision_map.retrieve(facts, campaign, limit=len(
+            decision_map.DECISION_NODES))
+        available = {item["id"] for item in retrieved["available"]}
+        self.assertIn("D12", available)
+        self.assertNotIn("D11", available)
 
 
 if __name__ == "__main__":  # pragma: no cover

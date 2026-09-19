@@ -118,7 +118,8 @@
    "cooldownMilliseconds": 1500,
    "rangeMeters": 7.0,
    "targetDomains": [
-    "terrain"
+    "terrain",
+    "air"
    ],
    "warheadId": "cannon_splash"
   },

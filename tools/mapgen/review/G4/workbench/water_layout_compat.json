@@ -1,0 +1,126 @@
+{
+  "missing": [
+    "crossed/close",
+    "crossed/standard",
+    "crossed/far",
+    "single_lake/close",
+    "single_lake/standard",
+    "single_lake/far",
+    "single_two_lakes/close",
+    "single_two_lakes/standard",
+    "single_two_lakes/far",
+    "crossed_lake/close",
+    "crossed_lake/standard",
+    "crossed_lake/far",
+    "separate_lake/close",
+    "separate_lake/standard",
+    "separate_lake/far",
+    "two_lakes/close",
+    "two_lakes/standard",
+    "two_lakes/far"
+  ],
+  "report": [
+    {
+      "combo": "crossed",
+      "bands": {
+        "close": {
+          "ok": null,
+          "tried": 19
+        },
+        "standard": {
+          "ok": null,
+          "tried": 6
+        },
+        "far": {
+          "ok": null,
+          "tried": 5
+        }
+      }
+    },
+    {
+      "combo": "single_lake",
+      "bands": {
+        "close": {
+          "ok": null,
+          "tried": 19
+        },
+        "standard": {
+          "ok": null,
+          "tried": 6
+        },
+        "far": {
+          "ok": null,
+          "tried": 5
+        }
+      }
+    },
+    {
+      "combo": "single_two_lakes",
+      "bands": {
+        "close": {
+          "ok": null,
+          "tried": 19
+        },
+        "standard": {
+          "ok": null,
+          "tried": 6
+        },
+        "far": {
+          "ok": null,
+          "tried": 5
+        }
+      }
+    },
+    {
+      "combo": "crossed_lake",
+      "bands": {
+        "close": {
+          "ok": null,
+          "tried": 19
+        },
+        "standard": {
+          "ok": null,
+          "tried": 6
+        },
+        "far": {
+          "ok": null,
+          "tried": 5
+        }
+      }
+    },
+    {
+      "combo": "separate_lake",
+      "bands": {
+        "close": {
+          "ok": null,
+          "tried": 19
+        },
+        "standard": {
+          "ok": null,
+          "tried": 6
+        },
+        "far": {
+          "ok": null,
+          "tried": 5
+        }
+      }
+    },
+    {
+      "combo": "two_lakes",
+      "bands": {
+        "close": {
+          "ok": null,
+          "tried": 19
+        },
+        "standard": {
+          "ok": null,
+          "tried": 6
+        },
+        "far": {
+          "ok": null,
+          "tried": 5
+        }
+      }
+    }
+  ]
+}

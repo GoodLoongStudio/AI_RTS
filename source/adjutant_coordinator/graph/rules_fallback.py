@@ -34,6 +34,26 @@ MAX_GATHER_INTENTS = 8
 #: 依据：`NotVisible` 是建造被拒的头号原因，视野半径是 5m 量级
 #: （"基地+5m"能建成兵营，8/12/16m 全被拒）；"别堵住部队"由净空排序解决。
 BUILD_PLACEMENT_RADII_FLOOR: Tuple[float, ...] = (4.0, 6.0, 8.0)
+#: 防御塔至少离开指挥中心这么远（米）：更近就是"套在家门口"。
+TURRET_MIN_HQ_M = 6.0
+#: 防御塔沿方位外探的硬上限（米）：**收窄到基地附近**。
+#: 【2026-09-15 晚 用户实测】"AI副官让防御塔造的位置太靠外面了，这不对的" ——
+#: 原上限 24/26m 配合"离基地越远越优先"的打分，塔会一路建到视野边缘、脱离基地支援。
+TURRET_MAX_HQ_M = 16.0
+#: 防御塔"内圈"半径（米）：距指挥中心 < 此值算"留在基地内"。唯一实现在 `placement`。
+#: 用户 2026-09-15 口径："优先建到基地外围，基地内会保留少量防御塔"。
+TURRET_INNER_HQ_M = placement.TURRET_INNER_RADIUS_M
+#: 已有塔当视野锚点时的外推半径 / 上限（米）：塔视野 **16m**（2026-09-15 用户口径，
+#: 一度误做成 64 已改回）⇒ 沿既有塔最多再往外 ~16m 建造，留 0.8 安全余量取 13。
+#: 上限仍略放宽（有塔当锚点能看到更远），但配合 `placement.turret_band_rank` 的
+#: "出带即降级"打分，不会再把塔越建越远。
+TURRET_VISION_WITH_ANCHOR_M = 13.0
+TURRET_MAX_HQ_WITH_ANCHOR_M = 18.0
+#: 按类型名识别固定防御（地板与模型共用同一套外围选址）。
+TURRET_TYPE_IDS = ("anti_air_turret", "anti_ground_turret")
+_STRUCTURE_TYPE_HINTS = (
+    "command_center", "barracks", "vehicle_factory", "aircraft_factory",
+) + TURRET_TYPE_IDS
 #: 工人少于该数量时，基地尝试补工人。
 WORKER_TARGET = 4
 #: 每座"会造工人的建筑"（指挥中心）的目标工人数。
@@ -863,6 +883,138 @@ def pick_build_spot(by_name, resources, anchor, blocked=None, bounds=None,
     return []
 
 
+def is_turret_building(building: Any) -> bool:
+    """建筑 / 场景 id 是否是固定防御塔。"""
+    text = str(building or "").lower()
+    return any(token in text for token in TURRET_TYPE_IDS) or "turret" in text
+
+
+def _structure_anchors(by_name) -> List[Tuple[float, float]]:
+    """己方不动建筑坐标（指挥中心、产线、已有塔），给外围环当外推锚点。"""
+    out: List[Tuple[float, float]] = []
+    for info in (by_name or {}).values():
+        kind = str((info or {}).get("type", ""))
+        if not any(token in kind for token in _STRUCTURE_TYPE_HINTS) and not info.get("queue"):
+            continue
+        if not info.get("pos"):
+            continue
+        out.append(_pos2d(info))
+    return out
+
+
+def _approach_vector(anchor, bounds=None, enemies=None) -> Tuple[float, float]:
+    """塔优先朝向：最近可见敌人，否则地图中心，再否则正东。"""
+    ax, az = float(anchor[0]), float(anchor[1])
+    best = None
+    for enemy in enemies or ():
+        if not isinstance(enemy, (list, tuple)) or len(enemy) < 2:
+            continue
+        try:
+            ex, ez = float(enemy[0]), float(enemy[1])
+        except (TypeError, ValueError):
+            continue
+        distance = (ex - ax) ** 2 + (ez - az) ** 2
+        if best is None or distance < best[0]:
+            best = (distance, (ex - ax, ez - az))
+    if best is not None:
+        return best[1]
+    if placement.has_bounds(bounds):
+        return (float(bounds[0]) / 2.0 - ax, float(bounds[1]) / 2.0 - az)
+    return (1.0, 0.0)
+
+
+def collect_turret_candidates(by_name, anchor, blocked=None, bounds=None,
+                              enemies=None) -> List[Tuple[float, float]]:
+    """防御塔候选：当前己方视野能伸到的最外圈（几何仍走 `placement`）。
+
+    视野锚点分两档（用户 2026-09-15："塔优先建到基地外围"）：
+    - 己方**还没有塔**：沿用保守的 8m 量级，第一座塔必须落在基地/工人眼皮下；
+    - **已有塔**：塔视野 16→64 后它能提供视野，下一座沿它继续外推（半径与上限同时放大）。
+    """
+    if anchor is None:
+        return []
+    units = [_pos2d(info) for info in (by_name or {}).values() if info.get("pos")]
+    approach = _approach_vector(anchor, bounds, enemies)
+    has_anchor = any(is_turret_building(info.get("type"))
+                     for info in (by_name or {}).values())
+    return placement.collect_perimeter_candidates(
+        (float(anchor[0]), float(anchor[1])),
+        bounds=bounds,
+        own_points=units,
+        rejected=blocked,
+        extra_origins=_structure_anchors(by_name),
+        bearings=(approach,),
+        min_radius=TURRET_MIN_HQ_M,
+        max_radius=TURRET_MAX_HQ_WITH_ANCHOR_M if has_anchor else TURRET_MAX_HQ_M,
+        ring_radii=(6.0, 8.0),
+        vision_radius=(TURRET_VISION_WITH_ANCHOR_M if has_anchor
+                       else placement.VISION_SAFE_RADIUS_M),
+    )
+
+
+def pick_turret_spot(by_name, resources, anchor, blocked=None, bounds=None,
+                     state=None, enemies=None) -> list:
+    """防御塔选址：**基地外缘的目标带内**，并与已有塔错开、朝敌/地图中心、避开采矿道。
+
+    为什么不能复用 `pick_build_spot`（4/6/8m 环、同等净空取更近半径）：
+    那套是给兵营/车厂的"别堵家门口"，会把塔也砌在指挥中心旁边。
+    塔要的是"基地外缘、面朝来敌"，但**不是越远越好**：距离打分走
+    `placement.turret_band_rank`，超出 `placement.TURRET_BAND_OUTER_M` 后越远越降级
+    （2026-09-15 晚用户实测："AI副官让防御塔造的位置太靠外面了，这不对的"）。
+    """
+    if anchor is None:
+        return []
+    spots = collect_turret_candidates(by_name, anchor, blocked=blocked,
+                                      bounds=bounds, enemies=enemies)
+    resource = _nearest_resource_pos(by_name, resources)
+    existing = [_pos2d(info) for info in (by_name or {}).values()
+                if info.get("pos") and is_turret_building(info.get("type"))]
+    approach = _approach_vector(anchor, bounds, enemies)
+    norm = math.hypot(approach[0], approach[1]) or 1.0
+    ux, uz = approach[0] / norm, approach[1] / norm
+
+    def _score(spot):
+        hq = math.hypot(spot[0] - anchor[0], spot[1] - anchor[1])
+        if hq < TURRET_MIN_HQ_M - 0.05:
+            return None
+        spread = min((math.hypot(spot[0] - turret[0], spot[1] - turret[1])
+                      for turret in existing), default=99.0)
+        heading = (spot[0] - anchor[0]) * ux + (spot[1] - anchor[1]) * uz
+        if resource is not None:
+            mine = min(_dist_point_segment(spot, anchor, resource),
+                       math.hypot(spot[0] - resource[0], spot[1] - resource[1]))
+        else:
+            mine = 99.0
+        # 距离口径走 `placement.turret_band_rank`（唯一实现）：带内越外越好，
+        # **出了带越远越差** —— 不再是"越远越优先"（那会把塔推到视野边缘，用户实测报障）。
+        return (placement.turret_band_rank(hq), spread, heading, mine)
+
+    ranked = []
+    for spot in spots:
+        score = _score(spot)
+        if score is not None:
+            ranked.append((score, spot))
+    # 【用户 2026-09-15："优先建到外围，基地内保留少量"】已有塔但**内圈一座都没有**时，
+    # 这一座补在内圈（免得基地门户全空）；其余情况维持"越外围越优先"。
+    # 与 GDScript `DefenseController._needs_one_inside_turret` 同一条规则。
+    inside_existing = [t for t in existing
+                       if math.hypot(t[0] - anchor[0], t[1] - anchor[1]) < TURRET_INNER_HQ_M]
+    if existing and not inside_existing:
+        inner = [(score, spot) for score, spot in ranked
+                 if math.hypot(spot[0] - anchor[0], spot[1] - anchor[1]) < TURRET_INNER_HQ_M]
+        if inner:
+            inner.sort(key=lambda item: item[0], reverse=True)
+            best_inside = inner[0][1]
+            return [round(float(best_inside[0]), 1), round(float(best_inside[1]), 1)]
+    if ranked:
+        ranked.sort(key=lambda item: item[0], reverse=True)
+        best = ranked[0][1]
+        return [round(float(best[0]), 1), round(float(best[1]), 1)]
+    # 外围候选全空（贴边 + 拉黑）→ 退回普通建造点，仍可能比"不建"强。
+    return pick_build_spot(by_name, resources, anchor, blocked=blocked,
+                           bounds=bounds, state=state)
+
+
 def base_anchor_pos(by_name: Dict[str, Dict[str, Any]]):
     """**严格**的基地锚点：只认"我方不动的建筑"（command_center 优先，其次带生产队列的建筑）。
 
@@ -907,6 +1059,7 @@ from .observation_view import (  # noqa: E402  （语义上是模块级导入，
     entity_id_of as entity_id_of,
     normalized_units as normalized_units,
     pos2d as _pos2d,
+    owned_augment_tags as owned_augment_tags,
 )
 
 
@@ -1000,7 +1153,24 @@ def _worker_product(rules, owned_types: set) -> Optional[Tuple[str, str]]:
         matched = allowed & owned_types
         if matched:
             return (sorted(matched)[0], product)
-    return None
+        return None
+
+
+def worker_production_in_flight(state: Dict[str, Any], product_id: str) -> bool:
+    """是否**已有在途的该产品（工人）生产意图**（LIVE 状态）。
+
+    【2026-09-15 收敛唯一实现】补工人有两条路径 —— 阶梯 1.8 与并行填充轨
+    （`_parallel_intents`），它们必须共用同一份去重口径：否则同一设施会被两条路径
+    各发一条 `rule-produce-worker-*`，下游按「执行者+动作+产品」判
+    `duplicate_of_live_intent` 丢弃（实测重复生成 391 次），白白占掉并行填充名额。
+    原实现只存在于阶梯 1.8 的局部变量里，这里抽出供两处复用。
+    """
+    if not product_id:
+        return False
+    prefix = "rule-produce-%s" % product_id
+    return any(str(intent.get("intent_id", "")).startswith(prefix)
+               and str(intent.get("state", "")) in LIVE_INTENT_STATES
+               for intent in (state.get("active_intents") or []))
 
 
 #: 优先执行"扩张前探"的单位类型（专职侦察；没有它们才退到其它机动单位）。
@@ -1450,8 +1620,15 @@ def military_waypoint(base, *, bounds=None, enemies=(), ring: int = 1,
         #（2026-09-15 用户要求"拆成多个小队、前往不同方向/不同接触区域"）。
         # 角度固定 ±18°：仍在"朝最近敌人"这条依据之内（不是凭空撒点）；
         # 半径与边界约束（下面的 `radius_cap`）一律不变。
+        # 【2026-09-15 用户："副官只会派部队直线进攻，要能绕路指挥侧边进攻"】
+        # 原实现只给 ±18° 微散开 —— 那只是"别挤在同一个点"，观感仍是**朝敌人直线平推**。
+        # 改为**档位化侧翼角**：正面（ring 0/1）保留"最近敌人"这条依据不变；
+        # ring≥2 起向两翼明显张开（±45° → ±70° → ±90°），让后续批次真的从**侧边**压上，
+        # 而不是所有单位走同一条直线。半径与边界约束（`radius_cap` 之后的分支）一律不变。
         if int(ring) > 1:
-            angle = math.radians(18.0 if int(ring) % 2 == 0 else -18.0)
+            flank_steps = (45.0, 70.0, 90.0)
+            step = flank_steps[min((int(ring) - 2) // 2, len(flank_steps) - 1)]
+            angle = math.radians(step if int(ring) % 2 == 0 else -step)
             cos_a, sin_a = math.cos(angle), math.sin(angle)
             dir_x, dir_z = direction
             direction = (dir_x * cos_a - dir_z * sin_a,
@@ -1527,10 +1704,16 @@ EXPLORE_FAIL_REASONS = frozenset({"path_failed", "no_path", "path_too_short"})
 AIR_UNIT_TYPES = ("drone", "helicopter", "scout")
 #: 基地回防半径：唯一口径在 `campaign.DEFENSE_RADIUS_M`（手册 DEF-01）。
 DEFENSE_RADIUS_M = campaign_mod.DEFENSE_RADIUS_M
+#: 家里没人时最多召回的最近作战单位数。唯一口径在 `campaign.DEFEND_RECALL_MAX`。
+DEFEND_RECALL_MAX = campaign_mod.DEFEND_RECALL_MAX
 
 
 def base_under_attack_active(state: Optional[Dict[str, Any]]) -> bool:
-    """整局主线里是否有活跃的 `base_under_attack`（T07：只认中断栈，不认偶遇敌人）。"""
+    """整局主线里是否有活跃的 `base_under_attack`。
+
+    中断栈是权威；路上偶遇敌人不走这里。真机事件名由 `campaign._note_base_raid`
+    从「建筑附近见敌 / 建筑掉血」合成。
+    """
     campaign = (state or {}).get("campaign_state")
     if not isinstance(campaign, dict):
         return False
@@ -1543,6 +1726,87 @@ def base_under_attack_active(state: Optional[Dict[str, Any]]) -> bool:
     return False
 
 
+def _home_structure_points(by_name) -> List[Tuple[float, float]]:
+    points: List[Tuple[float, float]] = []
+    seen = set()
+    for info in (by_name or {}).values():
+        kind = str((info or {}).get("type") or "")
+        if not ((info or {}).get("queue")
+                or any(token in kind for token in _STRUCTURE_TYPE_HINTS)):
+            continue
+        pos = _pos2d(info)
+        if not pos:
+            continue
+        key = (round(float(pos[0]), 1), round(float(pos[1]), 1))
+        if key in seen:
+            continue
+        seen.add(key)
+        points.append(pos)
+    return points
+
+
+def defense_home_pos(by_name):
+    """回防落点：指挥中心优先，没有就用最近的己方建筑。"""
+    anchor = base_anchor_pos(by_name)
+    if anchor:
+        return anchor
+    points = _home_structure_points(by_name)
+    return points[0] if points else None
+
+
+def home_raid_visible(by_name, enemies, radius: float = DEFENSE_RADIUS_M) -> bool:
+    """己方建筑附近有可见敌人。路上偶遇（远离建筑）不算基地受袭。"""
+    homes = _home_structure_points(by_name)
+    if not homes:
+        return False
+    reach = float(radius)
+    for enemy in enemies or ():
+        pos = _pos2d(enemy)
+        if not pos:
+            continue
+        for home in homes:
+            if math.hypot(pos[0] - home[0], pos[1] - home[1]) <= reach:
+                return True
+    return False
+
+
+def defending_home_now(state: Optional[Dict[str, Any]], by_name=None,
+                       enemies=()) -> bool:
+    """这一轮要不要按基地受袭指挥：中断栈，或眼前就能看见建筑被摸。"""
+    if base_under_attack_active(state):
+        return True
+    return home_raid_visible(by_name or {}, enemies)
+
+
+def defense_recall_names(combat_names, by_name, base,
+                         quota: Optional[int] = None) -> List[str]:
+    """基地受袭时要召回的野外作战单位。
+
+    已在回防圈内的人不进名单。圈内人数已达配额 → 空名单（远处线不召回）。
+    家里没人 → 按距基地从近到远补满 `min(配额, 作战单位总数)`。
+    """
+    names = [str(name) for name in (combat_names or []) if str(name)]
+    if not names or not base:
+        return []
+    cap = DEFEND_RECALL_MAX if quota is None else max(0, int(quota))
+    near: List[str] = []
+    field: List[Tuple[str, float]] = []
+    for name in names:
+        pos = _pos2d((by_name or {}).get(name) or {})
+        if not pos:
+            continue
+        if unit_near_base(pos, base):
+            near.append(name)
+            continue
+        field.append((name, math.hypot(pos[0] - float(base[0]),
+                                       pos[1] - float(base[1]))))
+    need = min(max(1, cap), len(near) + len(field))
+    if len(near) >= need:
+        return []
+    field.sort(key=lambda item: item[1])
+    return [name for name, _dist in field[:need - len(near)]]
+
+
 def unit_near_base(unit_pos, base, radius: float = DEFENSE_RADIUS_M) -> bool:
     """单位是否在基地回防圈内。坐标一律 [x, z]。"""
     if not unit_pos or not base:
@@ -1552,6 +1816,240 @@ def unit_near_base(unit_pos, base, radius: float = DEFENSE_RADIUS_M) -> bool:
                           float(unit_pos[1]) - float(base[1])) <= float(radius)
     except (TypeError, ValueError, IndexError):
         return False
+
+
+#: 队形散开：成员离小队中心超过这个半径（米）就该前线快集结。
+#: 略小于 `squads.CLUSTER_SIZE`（20），避免“刚编进一队仍被判散开”。
+SCATTER_RADIUS_M = 18.0
+#: 前线集结点距主基地的最小距离（米）。小于它就等于回家门口。
+FORWARD_RALLY_MIN_FROM_BASE_M = 25.0
+#: 落点离主基地至少这么远（米），撤退/集结都不得踩在指挥中心上。
+FORWARD_RALLY_HOME_CLEAR_M = 12.0
+#: 脱离一步的默认距离（米）。
+DISENGAGE_STEP_M = 20.0
+
+
+def _xz_of(item) -> Optional[Tuple[float, float]]:
+    """把 dict / [x,z] / [x,y,z] 收成平面坐标。
+
+    行为树的 `enemy_facts.pos` 已经是 `[x, z]`；观测实体是 `[x, y, z]`。
+    两种都要认，否则撤离会把敌人误读到原点。
+    """
+    if item is None:
+        return None
+    raw = item.get("pos") if isinstance(item, dict) else item
+    if not isinstance(raw, (list, tuple)) or len(raw) < 2:
+        return None
+    try:
+        if len(raw) >= 3:
+            return (float(raw[0]), float(raw[2]))
+        return (float(raw[0]), float(raw[1]))
+    except (TypeError, ValueError):
+        return None
+
+
+def _field_combat_points(positions, home) -> List[Tuple[float, float]]:
+    """野外作战单位坐标。家里的兵不参与前线点/散开判定，免得把集结点拽回家。"""
+    points: List[Tuple[float, float]] = []
+    for item in positions or ():
+        point = _xz_of(item)
+        if point is not None:
+            points.append(point)
+    home_xz = _xz_of(home)
+    if home_xz is None or not points:
+        return points
+    outside = [item for item in points
+               if math.hypot(item[0] - home_xz[0],
+                             item[1] - home_xz[1]) > DEFENSE_RADIUS_M]
+    return outside or points
+
+
+def combat_scattered(positions, radius: float = SCATTER_RADIUS_M, *,
+                     home=None) -> bool:
+    """野外作战单位离小队中心过远 → 队形散开。
+
+    只看**已经离开主基地回防圈**的人。家里留人 + 野外一人，不算散开
+    （否则野外那人会被拽回被家里兵拉歪的中点）。单兵不算散开。
+    """
+    points = _field_combat_points(positions, home)
+    if len(points) < 2:
+        return False
+    center_x = sum(item[0] for item in points) / len(points)
+    center_z = sum(item[1] for item in points) / len(points)
+    threshold = max(1.0, float(radius) * 0.5)
+    return any(math.hypot(item[0] - center_x, item[1] - center_z) > threshold
+               for item in points)
+
+
+def _nudge_off_home(point, base, *,
+                    min_clear: float = FORWARD_RALLY_HOME_CLEAR_M
+                    ) -> Optional[List[float]]:
+    """若落点贴着主基地，沿离开方向推到 `min_clear`。"""
+    if not point or len(point) < 2:
+        return None
+    if not base or len(base) < 2:
+        return [round(float(point[0]), 1), round(float(point[1]), 1)]
+    try:
+        px, pz = float(point[0]), float(point[1])
+        bx, bz = float(base[0]), float(base[1])
+        clear = max(1.0, float(min_clear))
+    except (TypeError, ValueError):
+        return [round(float(point[0]), 1), round(float(point[1]), 1)]
+    distance = math.hypot(px - bx, pz - bz)
+    if distance >= clear:
+        return [round(px, 1), round(pz, 1)]
+    if distance < 1e-3:
+        return [round(bx + clear, 1), round(bz, 1)]
+    scale = clear / distance
+    return [round(bx + (px - bx) * scale, 1), round(bz + (pz - bz) * scale, 1)]
+
+
+def _nearest_aim(origin: Tuple[float, float], candidates) -> Optional[Tuple[float, float, float]]:
+    best: Optional[Tuple[float, float, float]] = None
+    for item in candidates or ():
+        point = _xz_of(item)
+        if point is None:
+            continue
+        distance = math.hypot(point[0] - origin[0], point[1] - origin[1])
+        if distance <= 1e-3:
+            continue
+        if best is None or distance < best[0]:
+            best = (distance, point[0], point[1])
+    return best
+
+
+def forward_rally_point(base=None, *, bounds=None, intel=(), enemies=(),
+                        combat_positions=()) -> Optional[List[float]]:
+    """前线集结点（决策地图 ATK-01 / ADV-01 / REG-01 的唯一选点）。
+
+    优先级：可见敌人 / 上次敌情 → 小队中心（已离开主基地）→ 地图中心。
+    **绝不返回主基地坐标。** 没有方向依据时返回 None，由调用方决定不发。
+    """
+    origin: Optional[Tuple[float, float]] = None
+    base_xz = _xz_of(base)
+    combat_pts = _field_combat_points(combat_positions, base_xz)
+    if combat_pts:
+        origin = (sum(p[0] for p in combat_pts) / len(combat_pts),
+                  sum(p[1] for p in combat_pts) / len(combat_pts))
+    if origin is None and base_xz is not None:
+        origin = base_xz
+    if origin is None:
+        return None
+
+    nearest = _nearest_aim(origin, enemies) or _nearest_aim(origin, intel)
+    has_bounds = isinstance(bounds, (list, tuple)) and len(bounds) >= 2
+    try:
+        size_x = float(bounds[0]) if has_bounds else 0.0
+        size_z = float(bounds[1]) if has_bounds else 0.0
+        has_bounds = size_x > 0.0 and size_z > 0.0
+    except (TypeError, ValueError):
+        has_bounds = False
+        size_x = size_z = 0.0
+
+    aim: Optional[Tuple[float, float]] = None
+    radius = FORWARD_RALLY_MIN_FROM_BASE_M
+    if nearest is not None:
+        aim = (nearest[1], nearest[2])
+        radius = max(FORWARD_RALLY_MIN_FROM_BASE_M,
+                     min(ADVANCE_SEARCH_RADIUS_M,
+                         nearest[0] * ADVANCE_SEARCH_ENEMY_STANDOFF))
+    elif has_bounds:
+        aim = (size_x / 2.0, size_z / 2.0)
+        toward = math.hypot(aim[0] - origin[0], aim[1] - origin[1])
+        radius = max(FORWARD_RALLY_MIN_FROM_BASE_M,
+                     min(ADVANCE_SEARCH_RADIUS_M, toward * 0.5 if toward else
+                         FORWARD_RALLY_MIN_FROM_BASE_M))
+    elif combat_pts and base_xz is not None:
+        if math.hypot(origin[0] - base_xz[0],
+                      origin[1] - base_xz[1]) >= FORWARD_RALLY_MIN_FROM_BASE_M:
+            return _nudge_off_home([origin[0], origin[1]], base_xz,
+                                   min_clear=FORWARD_RALLY_MIN_FROM_BASE_M)
+        return None
+    else:
+        return None
+
+    dx, dz = aim[0] - origin[0], aim[1] - origin[1]
+    length = math.hypot(dx, dz)
+    if length < 1e-3:
+        return _nudge_off_home([origin[0], origin[1]], base_xz,
+                               min_clear=FORWARD_RALLY_MIN_FROM_BASE_M)
+    point = [origin[0] + dx / length * radius, origin[1] + dz / length * radius]
+    if has_bounds:
+        point[0] = min(max(point[0], ADVANCE_EDGE_MARGIN_M),
+                       size_x - ADVANCE_EDGE_MARGIN_M)
+        point[1] = min(max(point[1], ADVANCE_EDGE_MARGIN_M),
+                       size_z - ADVANCE_EDGE_MARGIN_M)
+    return _nudge_off_home(point, base_xz,
+                           min_clear=FORWARD_RALLY_MIN_FROM_BASE_M)
+
+
+def _clamp_to_bounds(point: List[float], bounds) -> List[float]:
+    if not (isinstance(bounds, (list, tuple)) and len(bounds) >= 2):
+        return point
+    try:
+        size_x, size_z = float(bounds[0]), float(bounds[1])
+    except (TypeError, ValueError):
+        return point
+    if size_x <= 0.0 or size_z <= 0.0:
+        return point
+    return [min(max(point[0], ADVANCE_EDGE_MARGIN_M), size_x - ADVANCE_EDGE_MARGIN_M),
+            min(max(point[1], ADVANCE_EDGE_MARGIN_M), size_z - ADVANCE_EDGE_MARGIN_M)]
+
+
+def disengage_point(unit_pos, *, home=None, enemies=(), bounds=None,
+                    step: float = DISENGAGE_STEP_M) -> Optional[List[float]]:
+    """撤离落点：远离最近敌人；可掺主基地方向，但不得落在主基地上。
+
+    贴边夹紧之后若把"远离敌人"反过来了，改试垂直方向，避免被推去敌人那边。
+    """
+    origin = _xz_of(unit_pos)
+    if origin is None:
+        return None
+    home_xz = _xz_of(home)
+    nearest = _nearest_aim(origin, enemies)
+    ux, uz = origin
+    if nearest is None:
+        if home_xz is None:
+            return None
+        dx, dz = home_xz[0] - ux, home_xz[1] - uz
+        length = math.hypot(dx, dz)
+        if length < 1e-3:
+            return _nudge_off_home([ux, uz], home_xz)
+        travel = min(float(step), max(0.0, length - FORWARD_RALLY_HOME_CLEAR_M))
+        return _nudge_off_home(_clamp_to_bounds(
+            [ux + dx / length * travel, uz + dz / length * travel], bounds), home_xz)
+
+    away_x, away_z = ux - nearest[1], uz - nearest[2]
+    away_len = math.hypot(away_x, away_z) or 1.0
+    away = (away_x / away_len, away_z / away_len)
+    directions: List[Tuple[float, float]] = [away, (-away[1], away[0]), (away[1], -away[0])]
+    if home_xz is not None:
+        hx, hz = home_xz[0] - ux, home_xz[1] - uz
+        home_len = math.hypot(hx, hz)
+        if home_len > 1e-3:
+            hx, hz = hx / home_len, hz / home_len
+            if hx * away[0] + hz * away[1] > -0.2:
+                mixed = (away[0] + hx, away[1] + hz)
+                norm = math.hypot(*mixed) or 1.0
+                directions.insert(1, (mixed[0] / norm, mixed[1] / norm))
+
+    best: Optional[List[float]] = None
+    best_dist = -1.0
+    for dx, dz in directions:
+        candidate = _nudge_off_home(_clamp_to_bounds(
+            [ux + dx * float(step), uz + dz * float(step)], bounds), home_xz)
+        if not candidate:
+            continue
+        dist = math.hypot(candidate[0] - nearest[1], candidate[1] - nearest[2])
+        if dist <= nearest[0] + 0.5:
+            continue
+        if dist > best_dist:
+            best, best_dist = candidate, dist
+    if best is not None:
+        return best
+    # 所有方向夹紧后都没更远：仍给一个不踩主基地的点，让闸门去判能不能走。
+    return _nudge_off_home(_clamp_to_bounds(
+        [ux + away[0] * float(step), uz + away[1] * float(step)], bounds), home_xz)
 
 
 def explore_frontier(state: Dict[str, Any], base, bounds, *, unit: str = "",
@@ -1901,16 +2399,27 @@ def _parallel_intents(state: Dict[str, Any], *, tactical=None, rules=None,
     resources = _resources(tactical)
     if resources:
         # 工地上的工人不许被抽走（施工是指派制，人被调走工地永远建不完）。
+        # 【2026-09-15 用户口径「留少部分建造就行，闲置工人优先采矿」】
+        # 原实现对**每个未完工工地**保护它 10m 半径内的**全部**工人 —— 但施工其实只有
+        # 1 个执行者（建造意图按阶梯「逐级 return 一条」下发），于是路过 / 被挤到工地
+        # 附近的工人**一起被排除出采集**、原地闲置（这是用户反馈「闲职工人不优先采矿」
+        # 的直接来源）。现在：
+        #   ① 每个工地**最多保护 1 个**（离它最近的工人）；
+        #   ② **手里已有在途 build 意图的人一律保护** —— 工人可能还在赶往工地的路上，
+        #      位置判据保护不到它，抽走会打断施工。
         on_site: set = set()
-        for info in by_name.values():
-            if info.get("type") and info.get("constructed") is False:
-                site_x, site_z = _pos2d(info)
-                for name, unit in by_name.items():
-                    if not unit.get("gather"):
-                        continue
-                    unit_x, unit_z = _pos2d(unit)
-                    if (unit_x - site_x) ** 2 + (unit_z - site_z) ** 2 <= SITE_KEEP_RADIUS_M ** 2:
-                        on_site.add(name)
+        on_site.update(
+            str(u)
+            for intent in (state.get("active_intents") or [])
+            if str(intent.get("action", "")) == ACTION_BUILD
+            and str(intent.get("state", "")) in LIVE_INTENT_STATES
+            for u in (intent.get("unit_ids") or []))
+        # 【2026-09-15 用户："工人没事不要闲置啊，有闲置的 1-2 个工人就给建造命令"】
+        # 原来这里还按**位置**给每个未完工工地保护"离它最近的 1 个工人" —— 但续建
+        # （阶梯 1.5）一轮只派 **1 个**执行者，于是多工地 / 工人扎堆时，被位置保护
+        # 却没被指派的人**两头不靠、原地闲置**（这是"工人闲着"的直接来源）。
+        # 位置判据已被上面的"有在途 build 意图"覆盖（赶往工地的路上同样受保护），
+        # 故整段删除：不在建造链上的工人一律回到采集/建造填充，不再凭空闲置。
         load, _type_load, _holders = _resource_allocation.occupancy(
             by_name, resources, state.get("active_intents") or [])
         for name in ai_units:
@@ -1975,12 +2484,20 @@ def _parallel_intents(state: Dict[str, Any], *, tactical=None, rules=None,
                    if producer == producer_type and producer in own_types
                    and scene_index.get(product, "")
                    and (combat_allowed or product not in combat_ids)]
+        # 【2026-09-15 决定：**并行轨不补工人**，补工人只由阶梯 1.8 负责】
+        # 曾试过在这里也补工人（为了绕过阶梯的「逐级 return」），但同一轮内两条路径会各产
+        # 一条（`worker_production_in_flight` 只查**历史** state，看不到本轮刚产出的意图）⇒
+        # 每轮多一条 produce 意图，打乱了"每轮下发条数"的既有契约（`test_graph_runtime_fake`
+        # 等以 `transport.sent == 1` 钉住该契约）。根因改由**阶梯 1.8 的生产者判据放宽**解决
+        # （见 `_development_intents_raw` 里「与阶梯 2 同口径」那段）。
         if not options:
             continue
         product, scene = min(options, key=lambda item: counts.get(item[0], 0))
         # 补工人要守**目标工人数**（与阶梯 1.8 同口径）：否则会绕过"够用就停手"，
         # 把指挥中心一直挂在"造工人"上（实测会挤掉出兵）。
-        if product == worker_product:
+        # 【2026-09-15 修死代码】原判据 `product == worker_product` 是 **str 与 tuple 比较**
+        # ⇒ 恒为假，这层守卫从未生效。改成按**产品 id** 比较（上面的候选过滤已先挡一道）。
+        if worker_product and product == worker_product[1]:
             if deployed_workers + queued_workers >= target_workers:
                 continue
         counts[product] = counts.get(product, 0) + 1
@@ -2030,7 +2547,11 @@ def _parallel_intents(state: Dict[str, Any], *, tactical=None, rules=None,
 
     # ---- 轨 4：军事（每个空闲作战单位各一条：能打就打、不能打就**有界**前压）----
     # `attack_move` 而不是 `move`：一路遇敌就地交火，不用再等下一轮决策。
-    defending_home = base_under_attack_active(state)
+    defending_home = defending_home_now(state, by_name, enemies)
+    home = defense_home_pos(by_name) or base
+    recall_ids = set(defense_recall_names(
+        [n for n in ai_units if str((by_name.get(n) or {}).get("type", "")) in combat_ids],
+        by_name, home)) if defending_home else set()
     from . import movement as _movement
     local_radius = float(getattr(_movement, "LOCAL_CONTACT_RADIUS_M", 30.0))
     for index, name in enumerate(ai_units):
@@ -2039,10 +2560,13 @@ def _parallel_intents(state: Dict[str, Any], *, tactical=None, rules=None,
         info = by_name.get(name) or {}
         if not _free(name) or str(info.get("type", "")) not in combat_ids:
             continue
+        if defending_home and (unit_near_base(_pos2d(info), home) or name in recall_ids):
+            # 近处回防、家里无人时的召回：都归行为树 `defend`，填充不抢。
+            continue
         if enemies:
-            # T07：基地受袭时远处线不许被召回打家里的敌人（不全军回防）。
-            # 近处单位留给行为树 `defend`；远处只打自己接触圈里的敌人，否则继续前压。
-            if defending_home and not unit_near_base(_pos2d(info), base):
+            # T07：基地受袭且家里已有人时，远处线不许被召回打家里的敌人。
+            # 远处只打自己接触圈里的敌人，否则继续前压。
+            if defending_home:
                 local = [enemy for enemy in enemies
                          if unit_near_base(_pos2d(enemy), _pos2d(info), local_radius)]
                 if local and may_attack:
@@ -2056,16 +2580,14 @@ def _parallel_intents(state: Dict[str, Any], *, tactical=None, rules=None,
                              {"entity_id": target_id}, 2,
                              "并行填充：军事轨（远处线只打接触圈内敌人）", "rule-attack")
                         continue
-                point = military_waypoint(base, bounds=bounds, enemies=local,
+                origin = _pos2d(info) if info.get("pos") else base
+                point = military_waypoint(origin or base, bounds=bounds, enemies=local,
                                           intel=intel_points, search=False,
                                           ring=1 + index // 4, state=state, unit=name)
                 if point and not _en_route(name):
                     _add("rule-fill-advance-%s-%d" % (name, tick), ACTION_ATTACK_MOVE, name,
                          {"pos": point}, 3,
                          "并行填充：军事轨（基地受袭，远处线保持前压）", "rule-advance")
-                continue
-            if defending_home and unit_near_base(_pos2d(info), base):
-                # 近处回防归行为树，填充不抢名额、也不发 attack 顶掉 defend。
                 continue
             # **有可见敌人时，作战单位只走"打"这一条路**：够格才打，不够格就**不发**。
             # 绝不能"不够格也往前顶" —— 那就是"拿 1 个兵硬冲 3 个敌人"，
@@ -2088,9 +2610,9 @@ def _parallel_intents(state: Dict[str, Any], *, tactical=None, rules=None,
         # （朝地图内侧 / 朝已知敌情、不越交战线、不贴边）。
         # **小队已成形 → search=True**：允许更远（去找人打），否则部队会在家门口转圈
         # （实测一局攒到 36 个作战单位、可见敌人 0、只有前压命令 = 玩家眼里的"攒兵不打"）。
-        squad_ready = len(combat_all) >= max(1, int(army_threshold))
-        point = military_waypoint(base, bounds=bounds, enemies=enemies,
-                                  intel=intel_points, search=squad_ready,
+        origin = _pos2d(info) if info.get("pos") else base
+        point = military_waypoint(origin or base, bounds=bounds, enemies=enemies,
+                                  intel=intel_points, search=True,
                                   ring=1 + index // 4, state=state, unit=name)
         if not point:
             break
@@ -2127,6 +2649,20 @@ def development_intents(state: Dict[str, Any], *, tactical=None, rules=None,
     return placement.filter_rejected(filled, state)
 
 
+def army_threshold_for_augments(base: int, tactical=None) -> int:
+    """已选加成只微调阶梯门槛，不重算采集/伤害数字。
+
+    经济牌 → 更晚出击；军事牌 → 略提早出击。建造/侦察不改这条门槛。
+    """
+    tags = owned_augment_tags(tactical)
+    value = int(base)
+    if "military" in tags:
+        return max(1, value - 1)
+    if "economy" in tags:
+        return value + 1
+    return value
+
+
 def _development_intents_raw(state: Dict[str, Any], *, tactical=None, rules=None,
                             ttl_ticks: int = 3600, server_tick: int = 0,
                             snapshot_id: int = 0,
@@ -2158,6 +2694,7 @@ def _development_intents_raw(state: Dict[str, Any], *, tactical=None, rules=None
     # 排查又会退化成猜（这个坑本项目已经踩过）。
     inputs = ladder_inputs(state, tactical=tactical, rules=rules)
     busy = set(inputs["busy"])
+    army_threshold = army_threshold_for_augments(army_threshold, tactical)
     tick = int(server_tick or state.get("server_tick", 0) or 0)
     snapshot = int(snapshot_id or state.get("latest_snapshot_id", 0) or 0)
     expires = tick + max(1, int(ttl_ticks or 3600))
@@ -2248,7 +2785,11 @@ def _development_intents_raw(state: Dict[str, Any], *, tactical=None, rules=None
     build_order = list(prefs.get("build_order") or BUILD_LADDER)
     if (prefs.get("produce_first") and (built_types & set(PRODUCTION_BUILDINGS))
             and bank_a(tactical) < RICH_BANK_A):
-        build_order = []
+        # 【2026-09-15 用户："生产建筑造完就造些塔"】穷局纪律原来把**整条建造序列清空**，
+        # 于是车厂/兵营一到位，塔就再也不会被排上（M03/M06/M07 全是 produce_first）。
+        # 现在只让"产能/扩建"让位给补兵，**防御塔保留**（塔单价低、穷局正需要）。
+        build_order = [b for b in build_order
+                       if b in ("anti_air_turret", "anti_ground_turret")]
 
     # 阶梯 0：**扩张前探**（只在"扩张选址"是前沿、且尚无合法落点时）。
     # 依据（手册 SCT-01 开局散点探路 / SCT-02 定向侦察）：分基地落点必须落在
@@ -2311,17 +2852,29 @@ def _development_intents_raw(state: Dict[str, Any], *, tactical=None, rules=None
                                         bounds=state.get("map_bounds"))
             if not place:
                 continue      # 没有"离主基地较远的可见矿点"→ 不建假分基地，继续看下级
+            site_note = "派工人到远端矿点附近建造"
+        elif is_turret_building(building):
+            # 防御塔：当前视野最外围（接近路），不是指挥中心 4m 环。
+            enemy_pts = [_pos2d(item) for item in _living_enemies(tactical)]
+            place = pick_turret_spot(by_name, resources, anchor,
+                                    blocked=blocked_spots,
+                                    bounds=state.get("map_bounds"),
+                                    state=state, enemies=enemy_pts)
+            site_note = "派工人到基地外围建造"
         else:
             place = pick_build_spot(by_name, resources, anchor,
                                    blocked=blocked_spots,
                                    bounds=state.get("map_bounds"),
                                    state=state)   # 传 state 只为了留痕（候选全不可用时记账）
+            site_note = "派工人到基地附近建造"
+        if not place:
+            continue
         # intent_id 必须**带上 tick**：游戏侧按 intent_id 幂等缓存回执，
         # 若沿用固定 id，重试会一直命中最早那次拒绝（实测 `intent_replay: true` +
         # `issued_tick` 停在旧值），换落点也永远不会被执行。
         return [_intent("rule-build-%s-%s-%d" % (building, builder, tick), ACTION_BUILD,
                         builder, {"scene": scene, "producer": builder, "pos": place}, 3,
-                        "发展阶梯：尚无 %s，派工人到基地附近建造" % building,
+                        "发展阶梯：尚无 %s，%s" % (building, site_note),
                         "rule-build-%s" % building)]
 
     # 阶梯 1.5：**未完工的工地，派工人"到场"继续施工**（2026-09-12 实测真凶链）。
@@ -2392,12 +2945,31 @@ def _development_intents_raw(state: Dict[str, Any], *, tactical=None, rules=None
                               or (item or {}).get("product_type_id", ""))
                 if item_id == product_id:
                     queued_workers += 1
-        in_flight_workers = sum(
-            1 for intent in (state.get("active_intents") or [])
-            if str(intent.get("intent_id", "")).startswith("rule-produce-%s" % product_id)
-            and str(intent.get("state", "")) in LIVE_INTENT_STATES)
-        producer = next((name for name in idle_producers
-                         if str(by_name.get(name, {}).get("type", "")) == producer_type), "")
+        # 去重口径收敛到唯一实现（并行轨补工人也用它，见 `worker_production_in_flight`）。
+        in_flight_workers = 1 if worker_production_in_flight(state, product_id) else 0
+        # 【2026-09-15 治本：与阶梯 2（补作战单位）**同口径**】
+        # 原来这里只从 `idle_producers`（严格「不在 busy」）里挑生产者 ⇒ 指挥中心一旦进入
+        # `busy`（哪怕只是拿了 hold/移动这类**非生产**意图）就再也发不出工人。
+        # 真实局铁证（match 9fa2f599，2026-09-15 22:26~22:30）：整局 `rule-produce-worker-*`
+        # **0 条**、`built_types` 里始终没有 worker；开局唯一的工人 Unit_3 在 tick 1604 阵亡后，
+        # 后续 16 分钟 AI **一个工人都没有** ⇒ 没人采矿、经济完全没启动
+        # （用户反馈「闲置工人不优先采矿」—— 实际是没有工人可派）。
+        # 判据与阶梯 2 完全一致：**已完工 ∧ 该设施没有在途生产意图 ∧ 队列未满**；
+        # 其中「队列空 = 没在忙」用**观测事实**判定（不靠超时猜测，见阶梯 2 的长注释）。
+        producing_units_now = {str(unit)
+                               for intent in (state.get("active_intents") or [])
+                               if str(intent.get("action", "")) == ACTION_PRODUCE
+                               and str(intent.get("state", "")) in LIVE_INTENT_STATES
+                               for unit in (intent.get("unit_ids") or [])}
+        for name in list(producing_units_now):
+            view = production_views.get(name)
+            if view is not None and int(view.get("queue_size", 0) or 0) <= 0:
+                producing_units_now.discard(name)
+        producer = next((name for name in ai_units
+                         if str(by_name.get(name, {}).get("type", "")) == producer_type
+                         and by_name.get(name, {}).get("constructed") is not False
+                         and name not in producing_units_now
+                         and _queue_size_of(production_views, name) < PRODUCER_QUEUE_CAP), "")
         worker_scene = scene_index.get(product_id, "")
         if in_flight_workers:
             # 【关键】本级已在推进时**绝不 return 同一条**：下游 `duplicate_of_live_intent`
@@ -2527,11 +3099,13 @@ def _development_intents_raw(state: Dict[str, Any], *, tactical=None, rules=None
     combat = [n for n in ai_units
               if n not in busy
               and by_name.get(n, {}).get("type") in combat_types_of(state, rules)]
-    # T07：基地受袭时骨架出击只许近处单位打家里的敌人，不许把远处线拉回来。
-    if base_under_attack_active(state):
-        home = base_anchor_pos(by_name)
+    # T07：基地受袭时骨架出击只许近处/召回单位打家里的敌人，其余远处线不拉回来。
+    if defending_home_now(state, by_name, enemies):
+        home = defense_home_pos(by_name)
+        recall = set(defense_recall_names(combat, by_name, home))
         combat = [n for n in combat
-                  if unit_near_base(_pos2d(by_name.get(n) or {}), home)]
+                  if unit_near_base(_pos2d(by_name.get(n) or {}), home)
+                  or n in recall]
     # 【别让部队去打它打不了的目标】把"被权威以武器域不匹配拒过"的目标从候选里剔除
     # （按单位×目标记，见 `ban_unattackable_target`）。出击前先过滤，避免"出击 → 被拒 → 再出击"。
     hittable = attackable_enemies(state, enemies, combat)

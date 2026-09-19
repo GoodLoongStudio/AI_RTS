@@ -36,10 +36,12 @@ def g2_body(**changes):
     return body
 
 
-def request(server, path, body=None, raw=None):
+def request(server, path, body=None, raw=None, method=None):
     data = json.dumps(body).encode() if body is not None else raw
+    if method is None:
+        method = 'GET' if data is None else 'POST'
     req = urllib.request.Request(f'http://127.0.0.1:{server.server_port}{path}', data=data,
-                                 headers={'Content-Type': 'application/json'})
+                                 headers={'Content-Type': 'application/json'}, method=method)
     try:
         with urllib.request.urlopen(req, timeout=10) as response:
             status, headers, content = response.status, response.headers, response.read()
@@ -286,3 +288,126 @@ def test_real_http_generation_and_terrain_seed_replay(server):
         assert not json.loads(bundle.read('16/G2/manifest.json'))['approved']
     restored = api.Workbench(PROJECT, server.app.output)
     assert restored.get(job['id'])['result'] == job['result']
+
+
+def test_align_water_controls_snaps_orphan_chips():
+    from rtsmap.workbench.compat import align_water_controls
+    assert align_water_controls(dict(river_enabled=1, river_layout=3, lake_count=2))['river_layout'] == 1
+    assert align_water_controls(dict(river_enabled=1, river_layout=3, lake_count=1))['river_layout'] == 3
+    custom = align_water_controls(dict(river_enabled=0, river_layout=2, lake_count=1))
+    assert custom['river_layout'] == 2 and custom['lake_count'] == 1
+
+
+def _summary_spec(seed=16, all_pass=True):
+    return {
+        'algo_version': ALGO_VERSION['G2'], 'all_pass': all_pass, 'solid_frac': 0.4,
+        'starts': [[58.2, 179.5], [84.2, 54.6], [180.8, 191.5], [210.2, 96.3]],
+        'plateaus': [dict(center=[58.2, 179.5])], 'rivers': [], 'lakes': [],
+        'strategy_metrics': dict(crossings=0, expansion_ratio=1.1, plateau_top_fraction=0.14),
+        'plateau_fair_ratio': 1.2, 'path_fairness': dict(flank_ratio=1.1),
+        'lane_widths': {'pair_0_r0': 8.0},
+        'generation': dict(chosen_attempt=1, attempts=[dict(attempt=1, failed_checks=[])]),
+        'checks': {'solid_frac_pass': True},
+    }
+
+
+def test_unlocked_generate_rotates_off_incompatible_layout(server, monkeypatch):
+    from rtsmap.workbench import compat as compat_mod
+    source = _summary_spec()
+
+    def generate(seed, *args, **kwargs):
+        if kwargs.get('on_progress'):
+            kwargs['on_progress'](dict(attempt=1, limit=4, rejected='test'))
+        if seed == 55:
+            raise g2.NoTerrainCandidate(55, [dict(attempt=1, rejected='No complete river corridors satisfy the selected layout and home clearance.')])
+        return {'mapspec': source}
+
+    monkeypatch.setattr(api, 'run_one', generate)
+    monkeypatch.setattr(api, 'run_preview', generate)
+    monkeypatch.setattr(api, 'build_g2_review', lambda *a, **kw: None)
+    monkeypatch.setattr(compat_mod, 'shuffle_pool', lambda seeds, rng=None: [55, 16] + [s for s in seeds if s not in (55, 16)])
+    status, _, initial = request(server, '/api/generate', body={
+        'target': 'g2', 'schema_version': 2, 'player_spacing': 'any',
+        'controls': {'river_layout': 3, 'river_enabled': 1, 'lake_count': 1},
+    })
+    assert status == 202
+    job = finished(server, initial['id'], timeout=20)
+    assert job['status'] == 'done', job
+    assert job['config']['layout_seed'] == 16
+    assert job['layout_tried'][0]['seed'] == 55
+    assert job['layout_locked'] is False
+
+
+def test_locked_layout_still_reports_no_candidate(server, monkeypatch):
+    monkeypatch.setattr(api, 'run_one', lambda *a, **kw: (_ for _ in ()).throw(
+        g2.NoTerrainCandidate(16, [dict(attempt=1, rejected='No room for the terrain')])))
+    monkeypatch.setattr(api, 'run_preview', lambda *a, **kw: (_ for _ in ()).throw(
+        g2.NoTerrainCandidate(16, [dict(attempt=1, rejected='No room for the terrain')])))
+    status, _, initial = request(server, '/api/generate', body=g2_body())
+    assert status == 202
+    job = finished(server, initial['id'], timeout=15)
+    assert job['status'] == 'error' and job['error_kind'] == 'no_candidate'
+    assert '请重新随机生成' in job['error']
+    assert job.get('layout_locked', True) is True
+
+
+def _insert_fake_job(app, job_id, map_id, status='done', baseline=False):
+    folder = Path(app.output) / job_id
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / 'job.json').write_text('{}', encoding='utf-8')
+    app.jobs[job_id] = dict(
+        id=job_id, baseline=baseline, status=status, map_id=map_id,
+        title='删除测试', created_at='2026-01-01T00:00:00',
+    )
+    return folder
+
+
+def test_delete_job_removes_output_and_installed_map(server, tmp_path, monkeypatch):
+    app = server.app
+    job_id = 'a' * 32
+    map_id = 'delete-me-test'
+    folder = _insert_fake_job(app, job_id, map_id)
+    airts = tmp_path / 'airts'
+    installed = airts / 'source' / 'match' / 'maps' / 'generated' / map_id
+    installed.mkdir(parents=True)
+    (installed / 'map_x.tscn').write_text('x', encoding='utf-8')
+    preview_dir = airts / 'assets' / 'map_previews'
+    preview_dir.mkdir(parents=True)
+    preview = preview_dir / f'map_{map_id}.png'
+    preview.write_bytes(b'png')
+    (preview_dir / f'map_{map_id}.png.import').write_text('import', encoding='utf-8')
+    monkeypatch.setattr('rtsmap.workbench.engine.airts_root', lambda: str(airts))
+    status, _, body = request(server, f'/api/jobs/{job_id}', method='DELETE')
+    assert status == 200 and body['ok'] is True
+    assert job_id not in app.jobs
+    assert not folder.exists()
+    assert not installed.exists()
+    assert not preview.exists()
+    assert not (preview_dir / f'map_{map_id}.png.import').exists()
+
+
+def test_delete_refuses_baseline_and_running(server, tmp_path, monkeypatch):
+    app = server.app
+    monkeypatch.setattr('rtsmap.workbench.engine.airts_root', lambda: str(tmp_path / 'airts'))
+    baseline_id = 'b' * 32
+    _insert_fake_job(app, baseline_id, 'baseline-map', baseline=True)
+    status, _, body = request(server, f'/api/jobs/{baseline_id}', method='DELETE')
+    assert status == 409
+    assert '原版' in body['error']
+    assert baseline_id in app.jobs
+
+    running_id = 'c' * 32
+    _insert_fake_job(app, running_id, 'running-map', status='running')
+    app.active = running_id
+    status, _, body = request(server, f'/api/jobs/{running_id}', method='DELETE')
+    assert status == 409
+    assert '正在生成' in body['error']
+    assert running_id in app.jobs
+    app.active = None
+
+    hall_id = 'd' * 32
+    _insert_fake_job(app, hall_id, '16-0-1ca6e21aa1')
+    status, _, body = request(server, f'/api/jobs/{hall_id}', method='DELETE')
+    assert status == 409
+    assert '大厅默认' in body['error']
+    assert hall_id in app.jobs

@@ -1,8 +1,16 @@
 extends Node
 
+const FIELD_POSITION := 1 << 0
 const FIELD_TYPE := 1 << 1
 const FIELD_CONSTRUCTION := 1 << 4
 const REFRESH_INTERVAL_S := 1.0 / 60.0 * 30.0
+## 每座工地目标的在岗工人数。1 = 先保证每座工地都有人（修复"有人就全局退出"的关键），
+## 后续可按工地优先级/紧迫度提高到 2。
+const BUILDERS_PER_SITE_TARGET := 1
+
+## 决策节奏倍率：由 SimpleClairvoyantAI 按"本局电脑玩家人数"注入（唯一实现见 AiCadence）。
+## 默认 1.0 = 原始节奏；3 个电脑时为 2.0（0.5s → 1.0s）。
+var refresh_scale := 1.0
 
 var _world_query_runtime = null
 var _query_session_id := ""
@@ -21,14 +29,14 @@ func _setup_refresh_timer():
 	var timer = Timer.new()
 	add_child(timer)
 	timer.timeout.connect(_on_refresh_timer_timeout)
-	timer.start(REFRESH_INTERVAL_S)
+	timer.start(REFRESH_INTERVAL_S * refresh_scale)
 
 
 ## 为尚无活动建造者的随机己方蓝图分配一名随机 Worker。
 func _on_refresh_timer_timeout():
 	var result: Dictionary = _world_query_runtime.GetOwnForces(
 		_query_session_id,
-		FIELD_TYPE | FIELD_CONSTRUCTION
+		FIELD_POSITION | FIELD_TYPE | FIELD_CONSTRUCTION
 	)
 	if result.get("status", "") != "Accepted":
 		push_warning("rule AI force query was rejected: %s" % result.get("error", "Unknown"))
@@ -44,20 +52,36 @@ func _on_refresh_timer_timeout():
 				and construction.get("state", "") == "UnderConstruction"
 			)
 	)
-	if construction_sites.any(
-		func(entity): return entity["construction"].get("active_builder_count", 0) > 0
-	):
+	# 【2026-09-17 修复确定缺陷】原实现：只要**任意一个**工地已有工人在建，就 `return`
+	# 退出**整个**分配 ⇒ 第二座及以后的工地永远排不到人，产能迟迟建不起来
+	# （方案第 1 节表）。改为逐工地独立派工：每座工地各自判断在岗缺口，
+	# 取**最近**且本拍尚未派出的工人；已派出的工人不再重复派（避免反复改任务）。
+	if workers.is_empty() or construction_sites.is_empty():
 		return
-	var unattended_sites: Array = construction_sites.filter(
-		func(entity): return entity["construction"].get("active_builder_count", 0) == 0
-	)
-	if workers.is_empty() or unattended_sites.is_empty():
-		return
-	var worker: Dictionary = workers.pick_random()
-	var construction_site: Dictionary = unattended_sites.pick_random()
-	var command_result: Dictionary = _command_gateway.Construct(
-		[worker["id"]],
-		construction_site["id"]
-	)
-	if command_result.get("status", "Rejected") == "Rejected":
-		push_warning("规则 AI 分配施工任务被拒绝：%s" % command_result)
+	var dispatched := {}
+	for site in construction_sites:
+		var active: int = int(site["construction"].get("active_builder_count", 0))
+		if active >= BUILDERS_PER_SITE_TARGET:
+			continue
+		var best_worker: Dictionary = {}
+		var best_distance := INF
+		for candidate in workers:
+			if dispatched.has(candidate["id"]):
+				continue
+			var pa: Vector3 = candidate.get("position", Vector3.INF)
+			var pb: Vector3 = site.get("position", Vector3.INF)
+			var distance := (
+				pa.distance_squared_to(pb) if (pa != Vector3.INF and pb != Vector3.INF) else 0.0
+			)
+			if distance < best_distance:
+				best_distance = distance
+				best_worker = candidate
+		if best_worker.is_empty():
+			break
+		dispatched[best_worker["id"]] = true
+		var command_result: Dictionary = _command_gateway.Construct(
+			[best_worker["id"]],
+			site["id"]
+		)
+		if command_result.get("status", "Rejected") == "Rejected":
+			push_warning("规则 AI 分配施工任务被拒绝：%s" % command_result)

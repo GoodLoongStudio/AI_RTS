@@ -1,5 +1,7 @@
 extends Node
 
+const AdjutantRunnerLauncher := preload("res://source/ui/AdjutantRunnerLauncher.gd")
+
 ## AI 副官按钮组：对局 HUD 右上角的"AI 接管/停止"开关 + 连通性测试
 ## + 左上角实时思考状态面板（轮询副官会话日志尾部）。
 ## 点击 → HTTP POST 到服务器副官 daemon（nginx /adjutant/ 反代）→
@@ -96,6 +98,8 @@ var _http: HTTPRequest
 var _test_http: HTTPRequest
 var _tail_http: HTTPRequest
 var _active := false
+## 玩家刚点过「停止」：轮询不得再靠心跳或残留租约把按钮点亮。点「接管」才解开。
+var _user_stopped := false
 var _installed := false
 var _test_timer: Timer
 var _tail_timer: Timer
@@ -149,6 +153,60 @@ static func describe_auth_failure(http_code: int) -> String:
 	if http_code == HTTP_FORBIDDEN:
 		return "副官认证失败（403）：凭证无效或未配置，请检查 AI_ADJUTANT_TOKEN 或用户配置"
 	return "副官请求失败（HTTP %d）" % http_code
+
+
+## 连通测试文案（static 便于守门测试）。权威口已挂上时绝不能报“没有运行中的副官”。
+static func format_connectivity_result(data: Dictionary) -> Dictionary:
+	var attached := bool(data.get("attached", false))
+	var active := bool(data.get("active", false))
+	var external := bool(data.get("external", false))
+	var starting := bool(data.get("starting", false))
+	var networked_client := bool(data.get("networked_client", false))
+	var pid := int(data.get("pid", 0))
+	var port := int(data.get("port", 0))
+	var basis := str(data.get("basis", "")).strip_edges()
+	if starting:
+		return {
+			"ok": true,
+			"text": "✓ runner 正在启动（还没挂上对局，通常 30~60 秒）",
+			"detail": "pid=%d" % pid,
+		}
+	if attached or active:
+		var where := "联机权威口" if networked_client else "本机权威口"
+		if external:
+			return {
+				"ok": true,
+				"text": "✓ 副官已挂上%s（外部进程）" % where,
+				"detail": basis if not basis.is_empty() else "权威口=%d" % port,
+			}
+		return {
+			"ok": true,
+			"text": "✓ 副官链路正常",
+			"detail": "pid=%d · 权威口=%d · %s" % [pid, port, basis],
+		}
+	var hint := "点「AI 副官：接管」启动"
+	if networked_client:
+		hint = "联机局请在能指挥的那一端点「接管」，或确认服端权威口已开"
+	if int(data.get("stale_cleared", 0)) > 0:
+		hint = "已清理上一局残留记录；" + hint
+	return {
+		"ok": false,
+		"text": "✗ 副官未挂上本局",
+		"detail": hint,
+	}
+
+
+## 权威口判据的玩家可读说明（不要写“matchid不一致”这种内部拼报）。
+static func format_authority_basis(kind: String, port: int, extra := "") -> String:
+	match kind:
+		"match":
+			return "权威口 %d 对局身份一致" % port
+		"units":
+			return "权威口 %d 租约单位已对齐" % port
+		"anyone":
+			return "权威口 %d 已有副官租约" % port
+		_:
+			return ("权威口 %d %s" % [port, extra]).strip_edges()
 
 
 ## 本机模式不需要云端凭证：runner 是本地进程，鉴权由文件系统与进程边界保证。
@@ -242,7 +300,12 @@ func _do_apply_container_layout() -> void:
 			_reparent_without_sfx_noise(node, _container)
 		node.set_anchors_preset(Control.PRESET_TOP_LEFT)
 		node.position = Vector2.ZERO
-		node.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if node == _test_button:
+			node.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+			node.custom_minimum_size = Vector2(280, 0)
+			node.clip_contents = true
+		else:
+			node.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 
 ## 容器是否已登记且有效。
@@ -298,9 +361,10 @@ func _install(match_node: Node) -> void:
 	# 【2026-09-11 改】原来这个按钮打的是**云端 daemon**（101.43.121.102/adjutant），
 	# 本地完整副官已经不用它了；没配 token 时就红字报"认证失败（403）"，
 	# 玩家只会以为副官坏了（用户实测反馈："这又是为什么，UI 不要都搞错"）。
-	# 现在只做**本机链路自检**（runner pidfile + 心跳 + 权威端口），不再碰云端。
-	_test_button.text = "本机链路自检"
-	_test_button.tooltip_text = "检查本机：runner 是否在跑（pidfile/心跳）、权威端口是否响应"
+	# 现在只做**本机/联机权威口自检**（runner + 租约/意图），不再碰云端。
+	_test_button.text = "副官连通测试"
+	_test_button.tooltip_text = "检查本局副官是否已挂上权威口（单机 runner 或联机服端）"
+	_test_button.clip_contents = true
 	# 位置放到副官面板正下方：原来在 (620,8) 会压住右上角帧率与侧栏（截图实测重叠）。
 	_test_button.position = Vector2(8, 252)
 	_test_button.z_index = 100
@@ -377,12 +441,13 @@ func _on_pressed() -> void:
 	_button.disabled = true
 	_button.text = "AI 副官：处理中…"
 	if _active:
-		_stop_local_runner()
+		await _stop_local_runner()
 	else:
-		_start_local_runner()
+		_user_stopped = false
+		await _start_local_runner()
 	_restore_button()
 	_update_status_line()
-	_query_status()
+	await _query_status()
 
 
 ## ---------- 本机 runner 进程管理 ----------
@@ -454,6 +519,7 @@ func _start_local_runner() -> void:
 	# 两边同时下发命令（实测踩过）。所以外部 runner 用心跳判。
 	if _runner_pid > 0 and (OS.is_process_running(_runner_pid) or _runner_heartbeat_fresh()):
 		_active = true
+		AdjutantRunnerLauncher.set_auto_takeover(true)
 		_update_status_line()
 		return
 	var cfg := _load_runner_config()
@@ -527,20 +593,24 @@ func _start_local_runner() -> void:
 		return
 	_runner_owned = true
 	_active = true
+	AdjutantRunnerLauncher.set_auto_takeover(true)
 
 
 func _stop_local_runner() -> void:
-	# 【为什么不先问 is_process_running】本机实测该 API **对外部进程恒 false**，
-	# 先问就等于"永远不杀"（点停止没反应）。`OS.kill` 对外部进程有效（实测 err=0）。
+	# 加载页预热的 runner 不在 `_runner_pid` 里：必须走握手文件杀进程树。
+	_user_stopped = true
+	AdjutantRunnerLauncher.set_auto_takeover(false)
+	AdjutantRunnerLauncher.stop()
 	if _runner_pid > 0:
-		OS.kill(_runner_pid)
-	# 握手文件必须一起删：否则日志还新，下一轮 `_query_status` 会按心跳把它重新认领成"运行中"。
-	var pid_path := ProjectSettings.globalize_path(RUNNER_LOG_DIR).path_join("agent_runner.pid")
-	if FileAccess.file_exists(pid_path):
-		DirAccess.remove_absolute(pid_path)
+		if OS.get_name() == "Windows":
+			OS.execute("taskkill", PackedStringArray(["/F", "/T", "/PID", str(_runner_pid)]))
+		else:
+			OS.kill(_runner_pid)
 	_runner_pid = -1
 	_runner_owned = false
+	_external_runner = false
 	_active = false
+	await _authority_call({"op": "adjutant_release", "as_player": _local_player_name()})
 
 
 func _exit_tree() -> void:
@@ -552,47 +622,44 @@ func _exit_tree() -> void:
 
 
 func _on_test_pressed() -> void:
-	# 本机链路自检：**不碰云端**（理由见 `_install` 里按钮的说明）。
+	# 连通自检：与状态面板同一套证据（本机 runner **或** 权威口租约），不碰云端。
 	if _test_button == null or not is_instance_valid(_test_button):
 		return
 	_test_button.disabled = true
 	_test_button.text = "自检中…"
 	_test_button.modulate = Color.WHITE
-	# 【2026-09-15 修：开局"副官连不上"的误导来源之一】本面板刚起的 runner 是**冷启动**：
-	# 要等权威口就绪 + 建图 + 模型预热（实测 30~65 秒）才写 pidfile。这段时间里去读 pidfile
-	# 会读到**上一局残留**的死 pid → 自检报"心跳超时（pid=48220）"，玩家以为副官坏了
-	# （2026-09-15 用户实测截图即此）。所以先看"自己手里的进程"，如实说"正在启动"。
-	if _runner_owned and _runner_pid > 0 and OS.is_process_running(_runner_pid):
-		_show_test_result(true, "✓ runner 正在启动（pid=%d；还没挂上对局，通常 30~60 秒）"
-			% _runner_pid, Color(1, 0.85, 0.4))
+	if _runner_owned and _runner_pid > 0 and OS.is_process_running(_runner_pid) \
+			and not _runner_heartbeat_fresh():
+		var starting := format_connectivity_result({
+			"starting": true, "pid": _runner_pid,
+		})
+		_show_test_result(true, str(starting["text"]), Color(1, 0.85, 0.4), str(starting["detail"]))
 		return
-	var pid := _read_runner_pidfile()
-	if pid <= 0:
-		var hint := "点「AI 副官：接管」启动"
-		if _stale_pid_cleared > 0:
-			hint = "已自动清理上一局残留记录（pid=%d）；%s" % [_stale_pid_cleared, hint]
-		_show_test_result(false, "✗ 没有运行中的副官：%s" % hint, Color(1, 0.4, 0.4))
-		return
-	if not _runner_heartbeat_fresh():
-		_show_test_result(false,
-			"✗ runner 心跳超时（pid=%d，日志超过 %d 秒没更新）—— 刚点过「接管」的话再等等；否则点「停止」后重新「接管」"
-			% [pid, int(LIVENESS_FRESH_SECONDS)], Color(1, 0.4, 0.4))
-		return
-	# 权威端口是加分项、不是必需项：runner 可能在别的端口，或对局尚未就绪。
-	var payload: Dictionary = await _authority_call({"op": "status", "lite": true})
-	if payload.is_empty() or payload.has("error"):
-		_show_test_result(true, "✓ runner 在跑（pid=%d）；权威端口未响应（已试过本进程 DCS 与候选端口）"
-			% pid, Color(0.95, 0.9, 0.5))
-		return
-	_show_test_result(true, "✓ 本机链路正常 · pid=%d · 权威口=%d · 对局=%s"
-		% [pid, _authority_port, str(payload.get("match", false))], Color(0.5, 1.0, 0.5))
+	await _query_status()
+	var attached := _active
+	if not attached:
+		attached = await _authority_reports_attachment()
+	var result := format_connectivity_result({
+		"attached": attached,
+		"active": _active,
+		"external": _external_runner,
+		"pid": _runner_pid,
+		"port": _authority_port,
+		"basis": _authority_basis,
+		"networked_client": NetSession.is_networked() and not NetSession.is_server(),
+		"stale_cleared": _stale_pid_cleared,
+	})
+	var color := Color(0.5, 1.0, 0.5) if bool(result["ok"]) else Color(1, 0.4, 0.4)
+	_show_test_result(bool(result["ok"]), str(result["text"]), color, str(result["detail"]))
 
 
-func _show_test_result(good: bool, text: String, color: Color) -> void:
+func _show_test_result(good: bool, text: String, color: Color, detail := "") -> void:
 	_test_button.text = text
 	_test_button.modulate = color
 	_test_button.disabled = false
-	_test_timer.start(4.0)
+	if not detail.is_empty():
+		_test_button.tooltip_text = detail
+	_test_timer.start(6.0)
 
 
 func _restore_test_button() -> void:
@@ -628,7 +695,7 @@ func _poll_tail() -> void:
 		# 不要显示"副官尚未启动"（那会与屏幕上正在发生的指挥自相矛盾）。
 		# 判据来源也写出来：是 match_id 对齐（强）还是租约单位命中（弱），玩家/排查都能看懂。
 		_set_panel_texts(PANEL_EXTERNAL, PANEL_DASH, PANEL_DASH,
-			"本局由外部副官进程指挥（判据：%s）" % _authority_basis)
+			"本局由外部副官进程指挥（%s）" % _authority_basis)
 		return
 	var status := _read_hud_status()
 	if status.is_empty():
@@ -845,6 +912,14 @@ func _query_status() -> void:
 	# 的真正原因（换目录、换路径都不是根因）。
 	# 因此**外部 runner 的存活一律用心跳新鲜度判**（`_runner_heartbeat_fresh`），
 	# `is_process_running` 仅作为"本按钮自己创建的子进程"的补充信号。
+	if _user_stopped:
+		if _active or _external_runner or _runner_pid > 0:
+			_active = false
+			_external_runner = false
+			_runner_pid = -1
+			_restore_button()
+			_update_status_line()
+		return
 	if _runner_pid < 0:
 		var adopted := _read_runner_pidfile()
 		if adopted > 0:
@@ -967,11 +1042,13 @@ func _authority_reports_attachment() -> bool:
 		if names.is_empty():
 			continue
 		if not own_match.is_empty() and str(payload.get("match_id", "")) == own_match:
-			_authority_basis = "match_id 一致 @%d" % int(port)
+			_authority_basis = format_authority_basis("match", int(port))
+			_authority_port = int(port)
 			return true
 		for name in names.keys():
 			if own_units.has(name):
-				_authority_basis = "租约单位命中本局视野 @%d（%s）" % [int(port), str(name)]
+				_authority_basis = format_authority_basis("units", int(port), str(name))
+				_authority_port = int(port)
 				return true
 	return false
 
@@ -1003,7 +1080,8 @@ func _authority_reports_anyone(debug: bool) -> bool:
 		if debug:
 			push_warning("[ADJ-DBG] 口 %d all=true → 租约/意图条目=%d（身份未知兜底）" % [int(port), count])
 		if count > 0:
-			_authority_basis = "本机权威口有成规模的租约/意图 @%d（本机身份未取到，按事实报告）" % int(port)
+			_authority_basis = format_authority_basis("anyone", int(port))
+			_authority_port = int(port)
 			return true
 	return false
 
@@ -1417,20 +1495,41 @@ func _local_player_name() -> String:
 ## 为什么不能只写死一个端口：**权威口取决于这局是怎么起的**
 ## （面板约定 24579、验收 24582/24592、restart_local 默认 24572…）。写死就等于
 ## "换一种起局方式面板就瞎了"，而玩家只会以为"副官坏了"。
+func _should_prefer_local_dcs() -> bool:
+	# 联机客户端本进程也有 DCS，但租约在服端。优先本机口会把 match_id 对成客户端 Guid，
+	# 连通测试就报“对局身份不一致 / 没有运行中的副官”。
+	if is_automation_run():
+		return true
+	if NetSession.is_networked() and not NetSession.is_server():
+		return false
+	return true
+
+
 func _ensure_authority_port() -> int:
 	if _authority_port > 0:
 		return _authority_port
-	var dcs := get_node_or_null("/root/DebugControlServer")
-	if dcs != null and dcs.has_method("port"):
-		var own := int(dcs.call("port"))
-		if own > 0:
-			_authority_port = own
-			return own
+	if _should_prefer_local_dcs():
+		var dcs := get_node_or_null("/root/DebugControlServer")
+		if dcs != null and dcs.has_method("port"):
+			var own := int(dcs.call("port"))
+			if own > 0:
+				_authority_port = own
+				return own
+	var fallback := 0
 	for port in _candidate_ports():
-		if await _port_answers(port):
-			_authority_port = port
-			_remember_authority_port(port)
-			return port
+		var payload: Dictionary = await _tcp_json(int(port), {"op": "status", "lite": true})
+		if payload.is_empty() or payload.has("error"):
+			continue
+		if fallback == 0:
+			fallback = int(port)
+		if bool(payload.get("match", false)):
+			_authority_port = int(port)
+			_remember_authority_port(_authority_port)
+			return _authority_port
+	if fallback > 0:
+		_authority_port = fallback
+		_remember_authority_port(_authority_port)
+		return _authority_port
 	return 0
 
 
@@ -1465,12 +1564,15 @@ func _candidate_ports() -> Array:
 	if is_automation_run():
 		var player_side := [AUTHORITY_PORT, 24568]
 		ports = ports.filter(func(item): return not player_side.has(int(item)))
-	# 本进程自己的 DCS 永远排最前（它是唯一"不需要猜"的来源）。
+	# 本进程 DCS：单机/房主排最前；联机客户端排最后，避免抢服端权威口。
 	var own := int(get_node_or_null("/root/DebugControlServer").call("port")) \
 		if get_node_or_null("/root/DebugControlServer") != null else 0
 	if own > 0:
 		ports = ports.filter(func(item): return int(item) != own)
-		ports.push_front(own)
+		if _should_prefer_local_dcs():
+			ports.push_front(own)
+		else:
+			ports.append(own)
 	return ports
 
 

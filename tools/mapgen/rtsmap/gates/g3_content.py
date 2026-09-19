@@ -72,7 +72,7 @@ def place_resources(grid, spec, lanes, params, rng, exp_anchor_masks=None, flank
     """按配额放置资源，写 overlay 通道。返回 (overlay, placed, fairness, failures, df)。
 
     G3 2.0.0（256m、无中央战场）配额：
-    - 每家 near 2×A（home 区，路径 8–13m）
+    - 每家 near 2×A（home 区，路径 6–9m）
     - 每家 expansion 1×A + 1×B（扩张锚点盘内；路径带按锚点实际距离自适应，
       96m 的固定 18–28m 在 256m 上不可满足——扩张锚 14–44m 且脊线避让会拉回）
     - 每条 flank 1×A + 1×B（会战场锚点盘内，到两家路径差 ≤20%）
@@ -153,7 +153,7 @@ def place_resources(grid, spec, lanes, params, rng, exp_anchor_masks=None, flank
         failures.append(f"{kind}({label}): 无候选（距离带 {path_range}）")
         return False
 
-    # 每家 near：2×A，路径 8–13，home 区
+    # 每家 near：2×A，路径 6–9，home 区
     for i in range(4):
         for _ in range(params["near_count"]):
             place_one("near", OVERLAY_A, 10 + i, [i], params["near_path_range"], f"P{i}")

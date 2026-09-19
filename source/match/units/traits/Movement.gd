@@ -133,9 +133,12 @@ var _logic_path_pending := false
 var _logic_stuck := 0
 var _logic_repath_cd := 0.0
 var _logic_repath_attempts := 0
+var _logic_unstick_cd := 0.0
+var _ground_visual_planted := false
 const LOGIC_REPATH_MAX := 8
 const LOGIC_WAYPOINT_RADIUS_M := 1.6
 const LOGIC_PATH_BUDGET_PER_FRAME := 6
+const LOGIC_UNSTICK_COOLDOWN_S := 0.45
 static var _logic_budget_frame := -1
 static var _logic_budget_left := 0
 
@@ -174,6 +177,7 @@ func _physics_process(delta):
 			(next_path_position - current_agent_position).normalized() * _interim_speed
 		)
 		set_velocity(new_velocity)
+		_snap_air_height()
 	if Engine.get_physics_frames() % 40 == 0:
 		print("G4PERF movement_us=", Time.get_ticks_usec() - t0, " unit=", _unit.name)
 
@@ -182,6 +186,7 @@ func _ready():
 	# 必须在 await 之前摘掉：等待 Match.ready 的那几秒里 C++ 代理已经在空图上查路。
 	if _skip_navigation_server():
 		_detach_navigation_agent()
+		set_physics_process(false)
 	if _match.navigation == null or not _match.is_node_ready():
 		await _match.ready
 	velocity_computed.connect(_on_velocity_computed)
@@ -189,12 +194,14 @@ func _ready():
 	_apply_crowd_avoidance_defaults()
 	if _skip_navigation_server():
 		_detach_navigation_agent()
+		call_deferred("_begin_logic_move")
 	else:
 		set_navigation_map(_match.navigation.get_navigation_map_rid_by_domain(domain))
 	target_position = Vector3.INF
 	set_velocity(Vector3.ZERO)
 	_stall_check_timer = _initial_stall_check_delay()
-	_finish_navigation_initialization()
+	if not _skip_navigation_server():
+		_finish_navigation_initialization()
 
 
 func move(movement_target: Vector3):
@@ -228,6 +235,7 @@ func _apply_committed_target(movement_target: Vector3):
 	_abort_recovery()
 	_reset_stability_state()
 	_logic_repath_attempts = 0
+	_logic_repath_cd = 0.0
 	if not _navigation_initialized:
 		_pending_target = clamped
 		_skip_initial_dispersion = true
@@ -276,7 +284,10 @@ func _uses_logic_terrain_move() -> bool:
 
 
 ## 生成大图不烘 Recast。地面和空中都不能再把 NavigationAgent3D 挂到空图上。
+## 空中单位也跳过：空域网格钉在全局 Air.Y=40，对齐后电机会飞出镜头。
 func _skip_navigation_server() -> bool:
+	if domain == Constants.Match.Navigation.Domain.AIR:
+		return true
 	if _match != null and _match.navigation != null \
 			and _match.navigation.has_method("should_skip_runtime_navigation"):
 		return bool(_match.navigation.should_skip_runtime_navigation(_match.get_node_or_null("Map")))
@@ -301,17 +312,105 @@ func _detach_navigation_agent() -> void:
 	set_velocity(Vector3.ZERO)
 
 
-func _snap_logic_height() -> void:
-	var occupancy := _water_occupancy()
-	if occupancy == null or not occupancy.has_method("project_ground"):
+func _begin_logic_move() -> void:
+	if not is_inside_tree():
 		return
-	var projected: Vector3 = occupancy.project_ground(_unit.global_position)
-	_unit.global_position.y = projected.y
+	_snap_logic_height()
+	_plant_ground_visual()
+	set_physics_process(true)
+	_finish_navigation_initialization()
+
+
+func _plant_ground_visual() -> void:
+	if domain == Constants.Match.Navigation.Domain.AIR:
+		return
+	# 步兵脚底由 AnimationDriver 按脚骨钉；这里只处理载具/工人网格。
+	if _unit.find_child("AnimationDriver", false, false) != null:
+		return
+	var geometry := _unit.get_node_or_null("Geometry") as Node3D
+	if geometry == null:
+		return
+	var min_y := 1.0e9
+	for mesh_instance in geometry.find_children("*", "MeshInstance3D", true, false):
+		var mi := mesh_instance as MeshInstance3D
+		if mi == null or mi.mesh == null:
+			continue
+		var box: AABB = mi.global_transform * mi.get_aabb()
+		min_y = minf(min_y, box.position.y)
+	if min_y > 1.0e8:
+		return
+	var gap := min_y - _unit.global_position.y
+	if gap <= 0.02 or gap >= 2.5:
+		return
+	geometry.position.y -= gap
+
+
+func _snap_logic_height() -> void:
+	if NetSession.is_client_puppet():
+		return
+	if domain == Constants.Match.Navigation.Domain.AIR:
+		_snap_air_height()
+		return
+	var ground_y := _unit.global_position.y
+	var occupancy := _water_occupancy()
+	if occupancy != null and occupancy.has_method("project_ground"):
+		ground_y = occupancy.project_ground(_unit.global_position).y
+	elif _match != null and _match.has_method("ground_height_at"):
+		ground_y = float(_match.ground_height_at(_unit.global_position))
+	var dy := ground_y - _unit.global_position.y
+	if absf(dy) >= 0.0005:
+		_unit.global_position.y = ground_y
+		if absf(dy) >= 0.15:
+			_unit.reset_physics_interpolation()
+	if not _ground_visual_planted:
+		_plant_ground_visual()
+		_ground_visual_planted = true
+
+
+func _snap_air_height() -> void:
+	if NetSession.is_client_puppet():
+		return
+	if domain != Constants.Match.Navigation.Domain.AIR:
+		return
+	var ground_y := _unit.global_position.y
+	if _match != null and _match.has_method("ground_height_at"):
+		ground_y = float(_match.ground_height_at(_unit.global_position))
+	else:
+		var occupancy := _water_occupancy()
+		if occupancy != null and occupancy.has_method("project_ground"):
+			ground_y = occupancy.project_ground(_unit.global_position).y
+	_unit.global_position.y = ground_y + Constants.Match.Air.HOVER_OFFSET
+
+
+func _physics_process_air_move(delta: float) -> void:
+	_snap_air_height()
+	if _committed_target == null:
+		return
+	var speed_multiplier := reverse_speed_multiplier if _is_tactical_withdrawal else 1.0
+	_interim_speed = speed * speed_multiplier * delta
+	var from := _unit.global_position
+	var seek: Vector3 = _committed_target
+	var planar := Vector3(seek.x - from.x, 0.0, seek.z - from.z)
+	var remain := planar.length()
+	var arrive_radius := maxf(float(radius), 0.35)
+	if remain <= arrive_radius:
+		_snap_air_height()
+		_emit_committed_end("Arrived")
+		return
+	var dir := planar / remain
+	var step := minf(_interim_speed, remain)
+	_on_velocity_computed(dir * step)
+	_snap_air_height()
 
 
 func _physics_process_logic_move(delta: float) -> void:
+	if domain == Constants.Match.Navigation.Domain.AIR:
+		_physics_process_air_move(delta)
+		return
 	if _logic_repath_cd > 0.0:
 		_logic_repath_cd = maxf(0.0, _logic_repath_cd - delta)
+	if _logic_unstick_cd > 0.0:
+		_logic_unstick_cd = maxf(0.0, _logic_unstick_cd - delta)
 	var speed_multiplier := reverse_speed_multiplier if _is_tactical_withdrawal else 1.0
 	_interim_speed = speed * speed_multiplier * delta
 	if _committed_target == null:
@@ -333,15 +432,23 @@ func _physics_process_logic_move(delta: float) -> void:
 		_emit_committed_end("Arrived")
 		return
 	if remain <= _logic_waypoint_radius(seek):
-		if not _logic_advance_waypoint():
-			if _uses_logic_terrain_move():
-				_snap_logic_height()
-			if _planar_distance_to(_committed_target) <= arrive_radius + 1.25:
+		if _logic_advance_waypoint():
+			seek = _logic_current_seek()
+			planar = Vector3(seek.x - from.x, 0.0, seek.z - from.z)
+			remain = planar.length()
+		else:
+			seek = _committed_target as Vector3
+			planar = Vector3(seek.x - from.x, 0.0, seek.z - from.z)
+			remain = planar.length()
+			if remain <= arrive_radius + 1.25:
+				if _uses_logic_terrain_move():
+					_snap_logic_height()
 				_emit_committed_end("Arrived")
-			elif _logic_repath_attempts >= LOGIC_REPATH_MAX:
-				_fail_as_unreachable()
-			else:
-				_request_logic_path()
+				return
+			# 路走完就直奔目标，不要立刻重寻——新路径的第一格会把人折回去。
+	if remain < 0.0001:
+		if _uses_logic_terrain_move():
+			_snap_logic_height()
 		return
 	var dir := planar / remain
 	var step := minf(_interim_speed, remain)
@@ -352,6 +459,7 @@ func _physics_process_logic_move(delta: float) -> void:
 			next = occupancy.clamp_ground_step(from, next)
 		else:
 			next = _clamp_through_water(from, next)
+		next = _push_out_of_static_obstacles(next)
 	else:
 		next.y = from.y
 	var moved := Vector3(next.x - from.x, 0.0, next.z - from.z)
@@ -383,6 +491,9 @@ func _water_occupancy() -> Node:
 func _request_logic_path() -> void:
 	if not _uses_logic_terrain_move() or _committed_target == null:
 		return
+	if _logic_repath_cd > 0.0:
+		_logic_path_pending = _logic_path.is_empty()
+		return
 	var occupancy := _water_occupancy()
 	if occupancy == null or not occupancy.has_method("find_ground_path"):
 		_logic_path_pending = false
@@ -402,8 +513,7 @@ func _request_logic_path() -> void:
 		_logic_path = PackedVector3Array(path)
 	else:
 		_logic_path = PackedVector3Array()
-	while _logic_path_i < _logic_path.size() and _planar_distance_to(_logic_path[_logic_path_i]) <= LOGIC_WAYPOINT_RADIUS_M:
-		_logic_path_i += 1
+	_skip_passed_logic_waypoints()
 
 
 func _clear_logic_path() -> void:
@@ -423,6 +533,22 @@ static func _consume_logic_path_budget() -> bool:
 		return false
 	_logic_budget_left -= 1
 	return true
+
+
+func _skip_passed_logic_waypoints() -> void:
+	var goal := _committed_target as Vector3 if _committed_target != null else _unit.global_position
+	var to_goal := Vector3(goal.x - _unit.global_position.x, 0.0, goal.z - _unit.global_position.z)
+	while _logic_path_i < _logic_path.size():
+		var waypoint: Vector3 = _logic_path[_logic_path_i]
+		if _planar_distance_to(waypoint) <= LOGIC_WAYPOINT_RADIUS_M:
+			_logic_path_i += 1
+			continue
+		var to_wp := Vector3(waypoint.x - _unit.global_position.x, 0.0, waypoint.z - _unit.global_position.z)
+		# 只跳过身边反向的近点（典型是起点格心），远绕行航点即使先往旁边走也要留。
+		if to_goal.length_squared() > 0.25 and to_wp.length_squared() < 6.25 and to_wp.dot(to_goal) < 0.0:
+			_logic_path_i += 1
+			continue
+		break
 
 
 func _logic_current_seek() -> Vector3:
@@ -445,6 +571,8 @@ func _logic_advance_waypoint() -> bool:
 
 
 func _logic_unstick_if_blocked() -> void:
+	if _logic_unstick_cd > 0.0:
+		return
 	var occupancy := _water_occupancy()
 	if occupancy == null:
 		return
@@ -452,10 +580,12 @@ func _logic_unstick_if_blocked() -> void:
 	if not blocked and _logic_stuck < 2:
 		return
 	if occupancy.has_method("snap_to_bridge_if_near"):
-		var on_deck: Vector3 = occupancy.snap_to_bridge_if_near(_unit.global_position, 7.0)
-		if _planar_distance_to_point(_unit.global_position, on_deck) > 0.4:
+		var on_deck: Vector3 = occupancy.snap_to_bridge_if_near(_unit.global_position, 0.25)
+		if _planar_distance_to_point(_unit.global_position, on_deck) > 0.05 \
+				and _planar_distance_to_point(_unit.global_position, on_deck) < 0.4:
 			_unit.global_position = on_deck
 			_unit.reset_physics_interpolation()
+			_logic_unstick_cd = LOGIC_UNSTICK_COOLDOWN_S
 			_logic_repath_cd = 0.0
 			_request_logic_path()
 			return
@@ -466,6 +596,7 @@ func _logic_unstick_if_blocked() -> void:
 		return
 	_unit.global_position = land
 	_unit.reset_physics_interpolation()
+	_logic_unstick_cd = LOGIC_UNSTICK_COOLDOWN_S
 	_logic_repath_cd = 0.0
 	_request_logic_path()
 
@@ -504,6 +635,7 @@ func _try_logic_slide(forward: Vector3) -> bool:
 		var next: Vector3 = from + offset.normalized() * step
 		if occupancy != null and occupancy.has_method("clamp_ground_step"):
 			next = occupancy.clamp_ground_step(from, next)
+		next = _push_out_of_static_obstacles(next)
 		var moved := Vector3(next.x - from.x, 0.0, next.z - from.z)
 		if moved.length_squared() < 0.0001:
 			continue
@@ -528,8 +660,9 @@ func _clamp_to_reachable(target: Vector3) -> Vector3:
 		if _uses_logic_terrain_move():
 			var occupancy := _water_occupancy()
 			if occupancy != null and occupancy.has_method("clamp_ground_destination"):
-				return occupancy.clamp_ground_destination(target)
-		return _clamp_through_water(_unit.global_position, target)
+				target = occupancy.clamp_ground_destination(target)
+			return _push_out_of_static_obstacles(target)
+		return _push_out_of_static_obstacles(_clamp_through_water(_unit.global_position, target))
 	var nav_map := get_navigation_map()
 	if not nav_map.is_valid():
 		return _clamp_through_water(_unit.global_position, target)
@@ -650,9 +783,11 @@ func _apply_crowd_avoidance_defaults():
 
 ## 等待运行时 NavMesh 出现可用 Region 后再对齐单位，避免空中地图异步烘焙竞态。
 func _align_unit_position_to_navigation() -> bool:
+	if domain == Constants.Match.Navigation.Domain.AIR:
+		_snap_air_height()
+		return true
 	if _skip_navigation_server():
-		if _uses_logic_terrain_move():
-			_snap_logic_height()
+		_snap_logic_height()
 		return true
 	var navigation_map := get_navigation_map()
 	var source_position: Vector3 = get_parent().global_transform.origin
@@ -663,9 +798,14 @@ func _align_unit_position_to_navigation() -> bool:
 		)
 		if not closest_point_owner.is_valid():
 			continue
+		var closest := NavigationServer3D.map_get_closest_point(navigation_map, source_position)
+		# 空网格最近点常是原点。生成图若误走 Recast，会把所有新单位吸到左上角。
+		if Vector2(closest.x, closest.z).length() < 0.75 \
+				and Vector2(source_position.x, source_position.z).length() > 8.0:
+			_snap_logic_height()
+			return true
 		_unit.global_transform.origin = (
-			NavigationServer3D.map_get_closest_point(navigation_map, source_position)
-			- Vector3(0, path_height_offset, 0)
+			closest - Vector3(0, path_height_offset, 0)
 		)
 		_unit.reset_physics_interpolation()  # 对齐吸附是瞬移，防插值拖影
 		return true

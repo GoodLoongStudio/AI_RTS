@@ -91,6 +91,9 @@ func _ready() -> void:
 	process_priority = 100
 	_setup_muzzle_tracking()
 	_play("Idle")
+	if _player.has_animation("Idle"):
+		_player.advance(0.0)
+	call_deferred("_plant_feet_on_origin")
 
 
 func _process(delta: float) -> void:
@@ -127,6 +130,13 @@ func _process(delta: float) -> void:
 			_player.play("Fire", 0.015)
 			_player.advance(0.0)
 	_play(_desired_clip())
+	# 受击剪辑带根骨水平位移；不锁住的话跑步中弹会整个人滑出去。
+	# 只钉 Root/Hips 的 XZ，不改剪辑选择，避免再把待机/开火误判成跑步。
+	if _hit_overlay_remaining > 0.0:
+		_pin_hit_root()
+	# 站定时把脚骨落到单位原点：单机图原点在高度场上，Idle 后脚仍可能离开沙面。
+	if _speed <= MOVE_SPEED_EPSILON:
+		_plant_feet_on_origin()
 
 
 ## 位移只在物理帧真实发生：本地单位由 Movement 的 velocity_computed 移动，
@@ -219,6 +229,7 @@ func _on_hp_changed() -> void:
 	_player.stop()
 	_player.play(_hit_clip, 0.015)
 	_player.advance(0.0)
+	_pin_hit_root()
 
 
 func _spawn_death_visual() -> void:
@@ -270,6 +281,52 @@ func _desired_clip() -> String:
 	if _fire_active:
 		return "Fire"
 	return "Idle"
+
+
+func _pin_hit_root() -> void:
+	var skeleton := _muzzle_skeleton
+	if skeleton == null:
+		skeleton = _unit.find_child("Skeleton3D", true, false) as Skeleton3D
+	if skeleton == null:
+		return
+	for bone_name in ["Root", "Hips"]:
+		var bone := skeleton.find_bone(bone_name)
+		if bone < 0:
+			continue
+		var rest: Vector3 = skeleton.get_bone_rest(bone).origin
+		var pose: Vector3 = skeleton.get_bone_pose_position(bone)
+		skeleton.set_bone_pose_position(bone, Vector3(rest.x, pose.y, rest.z))
+
+
+## 把 Toes/Ball 世界高度压到单位原点平面。只改 Geometry 本地 Y，不改寻路原点。
+func _plant_feet_on_origin() -> void:
+	if _unit == null or _death_started:
+		return
+	var geometry := _unit.get_node_or_null("Geometry") as Node3D
+	if geometry == null:
+		return
+	var skeleton: Skeleton3D = _muzzle_skeleton
+	if skeleton == null:
+		skeleton = _unit.find_child("Skeleton3D", true, false) as Skeleton3D
+	if skeleton == null:
+		return
+	skeleton.force_update_all_bone_transforms()
+	var min_y := 1.0e9
+	for bone_name in ["Toes_L", "Toes_R", "Ball_L", "Ball_R", "Ankle_L", "Ankle_R"]:
+		var bone := skeleton.find_bone(bone_name)
+		if bone < 0:
+			continue
+		var world: Vector3 = skeleton.global_transform * skeleton.get_bone_global_pose(bone).origin
+		min_y = minf(min_y, world.y)
+	if min_y > 1.0e8:
+		return
+	# ⚠ 必须写显式类型：`_unit` 声明为 Node，`_unit.global_position` 是动态访问（Variant），
+	# 用 `:=` 会让**整个脚本解析失败**（"Cannot infer the type of gap"）→ 驱动不加载 →
+	# 所有步兵只剩 T-pose（2026-09-15 用户实测报障）。
+	var gap: float = min_y - _unit.global_position.y
+	if gap <= 0.015 or gap >= 2.5:
+		return
+	geometry.position.y -= gap
 
 
 ## 状态切换只启动不同剪辑；单发重启只能来自新的开火/受击事件。

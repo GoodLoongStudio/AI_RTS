@@ -31,7 +31,7 @@ script = ExtResource("12_synty_binder")
 albedo_texture = ExtResource("11_scifi_atlas")
 
 [node name="ProjectileOrigin" type="Marker3D" parent="Geometry"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.22, -1.95)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.85, -1.4)
 
 [node name="SelectionAnchor" type="Marker3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
@@ -80,3 +80,7 @@ SelectionAnchorPath = NodePath("../SelectionAnchor")
 HealthBarAnchorPath = NodePath("../HealthBarAnchor")
 GroundFootprintPath = NodePath("../GroundFootprint")
 PrimaryMuzzlePath = NodePath("../Geometry/ProjectileOrigin")
+
+; 炮管绕 X -25°：父节点 180° 后世界朝上。+25° 才是俯进地面，不要改回去。
+[node name="SM_Veh_HoverTank_02_Barrel_01" parent="Geometry/SM_Veh_HoverTank_02/SM_Veh_HoverTank_02/SM_Veh_HoverTank_02_Turret_01" index="0"]
+transform = Transform3D(1, 0, 0, 0, 0.9063, 0.4226, 0, -0.4226, 0.9063, 0, 0, 0)

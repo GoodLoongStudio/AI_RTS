@@ -34,6 +34,8 @@ const STRUCTURE_PICK_MAX_LAYERS := 6
 ## 同一次点击的去重窗口（ms）：射线兜底与「3D picking → unit_targeted」会对
 ## 同一次左键各结算一次，不去重会把维修开关拨两次（效果等于没点）。
 const STRUCTURE_CLICK_DEDUPE_MS := 180
+## 右键点在运输车附近沙地时，仍按登车处理（大图无地形碰撞，点中车身很容易落到地面）。
+const BOARD_CLICK_RADIUS_M := 4.0
 var _skill_targeting_id := ""
 var _skill_targeting_kind := ""
 var _input_runtime = null
@@ -93,6 +95,7 @@ func _forward_targeting_to_signals(command_name: String):
 
 
 func _try_navigating_selected_units_towards_position(target_point):
+	_clear_boarding_on_selected()
 	var terrain_units_to_move = get_tree().get_nodes_in_group("selected_units").filter(
 		func(unit):
 			return (
@@ -850,6 +853,8 @@ func _on_terrain_targeted(position):
 	if _is_repair_targeting or _is_sell_targeting:
 		cancel_command_targeting()
 		return
+	if _try_board_selected_near_position(position):
+		return
 	_try_navigating_selected_units_towards_position(position)
 	_try_setting_rally_points(position)
 
@@ -895,12 +900,11 @@ func _on_unit_targeted(unit, target_position: Vector3):
 		if attack_move_targetability != null:
 			attack_move_targetability.animate()
 		return
-	# 运输车装载（红警3 式）：选中士兵右键己方运输车 → 标记登车并走向运输车，进入 3 米内自动上车
+	# 运输车装载：选中士兵右键己方运输车 → 标记登车并直接走向该车
 	if _try_board_selected_into_transport(unit):
-		if _navigate_selected_units_towards_unit(unit, target_position):
-			var boarding_targetability = unit.find_child("Targetability")
-			if boarding_targetability != null:
-				boarding_targetability.animate()
+		var boarding_targetability = unit.find_child("Targetability")
+		if boarding_targetability != null:
+			boarding_targetability.animate()
 		return
 	if _navigate_selected_units_towards_unit(unit, target_position):
 		var targetability = unit.find_child("Targetability")
@@ -1052,8 +1056,61 @@ func _try_board_selected_into_transport(transport) -> bool:
 		if unit.get("movement_domain") != Constants.Match.Navigation.Domain.TERRAIN:
 			continue
 		cargo.mark_boarding(unit)
+		_issue_board_move(unit, transport)
 		marked = true
 	return marked
+
+
+## 右键点地时，若落点靠近己方运输车且已选中地面单位，按登车处理。
+func _try_board_selected_near_position(position: Vector3) -> bool:
+	var transport = _find_friendly_transport_near(position, BOARD_CLICK_RADIUS_M)
+	if transport == null:
+		return false
+	if not _selected_has_boarders(transport):
+		return false
+	return _try_board_selected_into_transport(transport)
+
+
+func _selected_has_boarders(transport) -> bool:
+	for unit in _get_selected_controlled_units():
+		if unit == transport or not is_instance_valid(unit):
+			continue
+		if unit.get("movement_domain") == Constants.Match.Navigation.Domain.TERRAIN:
+			return true
+	return false
+
+
+func _find_friendly_transport_near(position: Vector3, radius_m: float):
+	var best = null
+	var best_d2 := radius_m * radius_m
+	for unit in get_tree().get_nodes_in_group("controlled_units"):
+		if not is_instance_valid(unit):
+			continue
+		if unit.find_child("CargoHold", true, false) == null:
+			continue
+		var dx: float = unit.global_position.x - position.x
+		var dz: float = unit.global_position.z - position.z
+		var d2: float = dx * dx + dz * dz
+		if d2 <= best_d2:
+			best_d2 = d2
+			best = unit
+	return best
+
+
+func _clear_boarding_on_selected() -> void:
+	for unit in _get_selected_controlled_units():
+		if is_instance_valid(unit) and unit.has_meta("boarding_transport"):
+			unit.remove_meta("boarding_transport")
+
+
+func _issue_board_move(unit, transport) -> void:
+	var destination: Vector3 = transport.global_position
+	var movement = unit.find_child("Movement", true, false)
+	if movement != null and movement.has_method("move"):
+		movement.move(destination)
+	var gateway = _get_command_gateway()
+	if gateway != null:
+		gateway.MoveUnits([unit], destination, get_parent())
 
 
 func _on_unit_spawned(_unit):

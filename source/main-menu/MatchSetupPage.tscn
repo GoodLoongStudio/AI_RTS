@@ -69,6 +69,12 @@ custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
 max_length = 16
 
+[node name="RandomMapButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/TitleRow"]
+custom_minimum_size = Vector2(120, 36)
+layout_mode = 2
+toggle_mode = true
+text = "随机地图"
+
 [node name="Hint" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 mouse_filter = 2
@@ -187,4 +193,5 @@ text = "返回"
 [connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/JoinRow/JoinButton" to="." method="_on_join_button_pressed"]
 [connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ReadyRow/ReadyButton" to="." method="_on_ready_button_pressed"]
 [connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ReadyRow/StartButton" to="." method="_on_start_button_pressed"]
+[connection signal="toggled" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/TitleRow/RandomMapButton" to="." method="_on_random_map_toggled"]
 [connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/BackButton" to="." method="_on_back_button_pressed"]

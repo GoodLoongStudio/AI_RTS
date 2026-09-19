@@ -129,7 +129,7 @@ const PLAN := [
 ]
 
 const MAPS := [
-	{"name": "Plain & Simple", "path": "res://source/match/maps/PlainAndSimple.tscn", "players": 4, "size": "50×50"},
+	{"name": "Plain & Simple", "path": "res://source/match/maps/PlainAndSimple.tscn", "players": 4, "size": "100×100"},
 	{"name": "Big Arena", "path": "res://source/match/maps/BigArena.tscn", "players": 8, "size": "100×100"},
 	{
 		"name": "G4 大湖 seed16",

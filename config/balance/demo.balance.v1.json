@@ -4,7 +4,7 @@
  "resources": [
   {
    "kind": "A",
-   "collectionDurationMilliseconds": 200
+   "collectionDurationMilliseconds": 120
   }
  ],
  "warheads": [
@@ -61,7 +61,7 @@
    "deliveryKind": "projectile",
    "baseDamage": 2.0,
    "cooldownMilliseconds": 1000,
-   "rangeMeters": 8.0,
+   "rangeMeters": 16.0,
    "targetDomains": [
     "terrain"
    ],
@@ -72,7 +72,7 @@
    "deliveryKind": "projectile",
    "baseDamage": 2.0,
    "cooldownMilliseconds": 750,
-   "rangeMeters": 8.0,
+   "rangeMeters": 16.0,
    "targetDomains": [
     "air"
    ],
@@ -94,7 +94,7 @@
    "deliveryKind": "projectile",
    "baseDamage": 1.0,
    "cooldownMilliseconds": 400,
-   "rangeMeters": 7.0,
+   "rangeMeters": 14.0,
    "targetDomains": [
     "terrain"
    ],
@@ -118,7 +118,8 @@
    "cooldownMilliseconds": 1500,
    "rangeMeters": 7.0,
    "targetDomains": [
-    "terrain"
+    "terrain",
+    "air"
    ],
    "warheadId": "cannon_splash"
   },
@@ -127,7 +128,7 @@
    "deliveryKind": "projectile",
    "baseDamage": 5.0,
    "cooldownMilliseconds": 2400,
-   "rangeMeters": 9.5,
+   "rangeMeters": 16.0,
    "targetDomains": [
     "terrain"
    ],
@@ -157,7 +158,7 @@
    "sightRangeMeters": 5.0,
    "movement": {
     "domain": "terrain",
-    "speedMetersPerSecond": 2.5,
+    "speedMetersPerSecond": 4.0,
     "maxTurnDegreesPerSecond": 360.0,
     "canReverse": false,
     "reverseSpeedMultiplier": 0.65,
@@ -167,7 +168,7 @@
    "weaponIds": [],
    "canForceFireGround": false,
    "gatherer": {
-    "carryCapacity": 100
+    "carryCapacity": 400
    },
    "constructor": {
     "workPerTick": 1
@@ -229,7 +230,7 @@
   },
   {
    "id": "command_center",
-   "maxHp": 20.0,
+   "maxHp": 80.0,
    "sightRangeMeters": 10.0,
    "weaponIds": [],
    "canForceFireGround": false,
@@ -239,7 +240,7 @@
   },
   {
    "id": "vehicle_factory",
-   "maxHp": 16.0,
+   "maxHp": 32.0,
    "sightRangeMeters": 8.0,
    "weaponIds": [],
    "canForceFireGround": false,
@@ -249,7 +250,7 @@
   },
   {
    "id": "aircraft_factory",
-   "maxHp": 16.0,
+   "maxHp": 32.0,
    "sightRangeMeters": 8.0,
    "weaponIds": [],
    "canForceFireGround": false,
@@ -259,8 +260,8 @@
   },
   {
    "id": "anti_ground_turret",
-   "maxHp": 8.0,
-   "sightRangeMeters": 8.0,
+   "maxHp": 16.0,
+   "sightRangeMeters": 16.0,
    "weaponIds": [
     "anti_ground_turret_cannon"
    ],
@@ -268,8 +269,8 @@
   },
   {
    "id": "anti_air_turret",
-   "maxHp": 8.0,
-   "sightRangeMeters": 8.0,
+   "maxHp": 16.0,
+   "sightRangeMeters": 16.0,
    "weaponIds": [
     "anti_air_turret_rocket"
    ],
@@ -277,7 +278,7 @@
   },
   {
    "id": "barracks",
-   "maxHp": 14.0,
+   "maxHp": 28.0,
    "sightRangeMeters": 8.0,
    "weaponIds": [],
    "canForceFireGround": false,
@@ -321,8 +322,8 @@
   },
   {
    "id": "heavy_tank",
-   "maxHp": 20.0,
-   "sightRangeMeters": 8.0,
+   "maxHp": 8.0,
+   "sightRangeMeters": 18.0,
    "movement": {
     "domain": "terrain",
     "speedMetersPerSecond": 2.2,
@@ -339,8 +340,8 @@
   },
   {
    "id": "machine_gun_turret",
-   "maxHp": 12.0,
-   "sightRangeMeters": 8.0,
+   "maxHp": 24.0,
+   "sightRangeMeters": 16.0,
    "weaponIds": [
     "machine_gun_turret_autocannon"
    ],
@@ -419,7 +420,7 @@
    "cost": [
     {
      "kind": "A",
-     "amount": 500
+     "amount": 1050
     }
    ],
    "allowedProducerUnitTypeIds": [
@@ -433,7 +434,7 @@
    "cost": [
     {
      "kind": "A",
-     "amount": 700
+     "amount": 900
     }
    ],
    "allowedProducerUnitTypeIds": [
@@ -447,7 +448,7 @@
    "cost": [
     {
      "kind": "A",
-     "amount": 150
+     "amount": 100
     }
    ],
    "allowedProducerUnitTypeIds": [
@@ -461,7 +462,7 @@
    "cost": [
     {
      "kind": "A",
-     "amount": 600
+     "amount": 1200
     }
    ],
    "allowedProducerUnitTypeIds": [
@@ -475,7 +476,7 @@
    "cost": [
     {
      "kind": "A",
-     "amount": 900
+     "amount": 1800
     }
    ],
    "allowedProducerUnitTypeIds": [
@@ -489,7 +490,7 @@
    "cost": [
     {
      "kind": "A",
-     "amount": 1400
+     "amount": 2700
     }
    ],
    "allowedProducerUnitTypeIds": [
@@ -503,7 +504,7 @@
    "cost": [
     {
      "kind": "A",
-     "amount": 350
+     "amount": 250
     }
    ],
    "allowedProducerUnitTypeIds": [
@@ -517,7 +518,7 @@
    "cost": [
     {
      "kind": "A",
-     "amount": 400
+     "amount": 300
     }
    ],
    "allowedProducerUnitTypeIds": [

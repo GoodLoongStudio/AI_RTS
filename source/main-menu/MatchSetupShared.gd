@@ -7,8 +7,16 @@ static func map_entries() -> Array:
 	# 触发 "Cannot infer the type" 解析错误，导致本脚本整体编译失败、
 	# 页面地图列表为空（2026-09-14 实测）。
 	var entries: Array = Utils.Dict.items(Constants.Match.ALL_MAPS)
-	entries.sort_custom(func(a, b): return int(a[1].get("players", 0)) < int(b[1].get("players", 0)))
-	return entries
+	var four: Array = []
+	for entry in entries:
+		if not (entry is Array) or entry.size() < 2:
+			continue
+		var info: Dictionary = entry[1]
+		if int(info.get("players", 4)) != 4:
+			continue
+		four.append(entry)
+	four.sort_custom(func(a, b): return str(a[1].get("name", "")) < str(b[1].get("name", "")))
+	return four
 
 static func map_paths() -> Array[String]:
 	var result: Array[String] = []
@@ -29,7 +37,7 @@ static func map_summary(path: String) -> String:
 ## 地图预览图目录。图由 `tools/render_map_previews.gd` **离线**渲染真实地图生成
 ## （菜单里不再用"按路径 hash 派生颜色"的假格子）：
 ##   godot --path . --resolution 1280x720 --position -4000,-4000 res://tools/render_map_previews.tscn
-## 生成后需 `--headless --import` 一次；缺图时 UI 自动退回占位棋盘，不会崩。
+## 大厅预览优先 `Image.load_from_file` 读盘，不依赖 `--import` 刷新 .ctex。
 const PREVIEW_DIR := "res://assets/map_previews"
 
 

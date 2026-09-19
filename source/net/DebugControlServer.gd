@@ -22,7 +22,9 @@ const ADJUTANT_OPS := [
 	# 只读移动诊断（玩家问"这台坦克为什么卡住不动"时一次看全部内部状态；不触发任何动作）。
 	"unit_motion",
 	"adjutant_fast_state", "adjutant_nav_path",
-	"adjutant_intent", "adjutant_batch", "adjutant_leases", "adjutant_reserves",
+	"adjutant_intent", "adjutant_batch", "adjutant_leases", "adjutant_release", "adjutant_reserves",
+	# 局内加成：只读状态 + Hermes 排序回写。不允许 pick（玩家/超时由 Godot 落选）。
+	"augment_state", "augment_recommend",
 	# 只读性能自查（玩家要能随时问"副官通道吃了多少帧"）；不含任何控制能力。
 	"perf",
 ]
@@ -50,6 +52,9 @@ var _adjutant_observation: Node = null
 var _adjutant_ledger := {}
 ## 副官控制租约："<match_id>|<player_id>" -> {unit_name: {"generation": int, "active": bool}}
 var _adjutant_leases := {}
+## 玩家当前选中的己方单位（由 `_sync_selection_control` 每帧同步）：
+## 选中即"玩家当场控制"，副官必须立刻撤手（见该函数的说明）。
+var _selection_override_units := {}
 ## 副官租约代际（对局内自增）；玩家手动命令使租约失效，重新接管需要显式授权。
 var _adjutant_lease_generation := 0
 ## 规则视图缓存：match_id -> rules（Catalog 对局生命周期内不可变）。
@@ -149,6 +154,8 @@ func _process(_delta: float) -> void:
 	# 10Hz 缓存采样：与请求无关地先把场景事实存起来。
 	# 这样 `op=adjutant_fast_state` 才可能"读缓存"而不是"每次重扫场景"（计划 §3.1/§4）。
 	_fast_sample_tick()
+	# 玩家选中的单位 = 玩家当场控制的单位（用户 2026-09-15："我玩家控制的单位 AI 副官就不要再抢了"）。
+	_sync_selection_control()
 	if _server.is_connection_available():
 		var client := _server.take_connection()
 		_clients.append(client)
@@ -243,9 +250,19 @@ func _dispatch(line: String) -> String:
 			return JSON.stringify(_op_adjutant_intent(match_node, parsed))
 		"adjutant_leases":
 			return JSON.stringify(_op_adjutant_leases(match_node, parsed))
+		"adjutant_release":
+			return JSON.stringify(_op_adjutant_release(match_node, parsed))
 		"adjutant_fast_state":
 			return _timed_json("fast_state_ms",
 				func(): return _op_adjutant_fast_state(match_node, parsed))
+		"augment_state":
+			return JSON.stringify(_op_augment_state(match_node, parsed))
+		"augment_recommend":
+			return JSON.stringify(_op_augment_recommend(match_node, parsed))
+		"augment_pick":
+			return JSON.stringify(_op_augment_pick(match_node, parsed))
+		"augment_force":
+			return JSON.stringify(_op_augment_force(match_node, parsed))
 		"adjutant_nav_path":
 			return JSON.stringify(_op_adjutant_nav_path(match_node, parsed))
 		"unit_motion":
@@ -1591,6 +1608,7 @@ func _op_tactical(match_node, parsed) -> Dictionary:
 	header["lease_generations"] = _adjutant_lease_generations(view_key)
 	if outcome_runtime != null and outcome_runtime.has_method("InspectOutcome"):
 		header["outcome"] = outcome_runtime.InspectOutcome()
+	header["augments"] = _augment_snapshot(match_node, player)
 	return header
 
 
@@ -1759,6 +1777,7 @@ func _op_strategic(match_node, parsed) -> Dictionary:
 	header["available_actions"] = ["move", "attack_move", "attack", "gather", "stop", "produce", "build"]
 	header["production_relations"] = production_relations
 	header["buildable"] = buildable
+	header["augments"] = _augment_snapshot(match_node, player)
 	return header
 
 
@@ -2418,7 +2437,7 @@ func _op_perf(match_node, parsed) -> Dictionary:
 		"tactical_ms": _perf_summary("tactical_ms"),
 		"fast_state_ms": _perf_summary("fast_state_ms"),
 		"status_ms": _perf_summary("status_ms"),
-		# 帧率治理（用户 2026-09-14："锁 60 帧 + 单位多自动降画质"）：
+		# 帧率治理（用户 2026-09-15：锁 30 帧 + 单位多自动降画质）：
 		# 档位/缩放/最近一次升降原因 —— 掉帧时先看它，才知道"降没降、为什么降"。
 		"governor": _governor_stats(),
 		"counters": _perf_counters.duplicate(),
@@ -2850,12 +2869,76 @@ func _op_adjutant_fast_state(match_node, parsed) -> Dictionary:
 	state["production"] = my_production
 	state["visible_enemies"] = enemies
 	state["intel_source"] = "op=tactical intel table"
+	state["augments"] = _augment_snapshot(match_node, player)
 	return {
 		"ok": true,
 		"state": state,
 		"events": _fast_events_since(int(parsed.get("since_event_seq", -1))),
 		"next_event_seq": _fast_event_seq,
 	}
+
+
+func _augment_runtime(match_node):
+	if match_node == null:
+		return null
+	return match_node.get_node_or_null("AugmentRuntime")
+
+
+func _augment_snapshot(match_node, player) -> Dictionary:
+	var runtime = _augment_runtime(match_node)
+	if runtime == null or player == null or not runtime.has_method("snapshot_for"):
+		return {"enabled": false, "owned": [], "offer": [], "picks": []}
+	return runtime.snapshot_for(player)
+
+
+## op=augment_state：只读。岚与调试用，不含任何落选。
+func _op_augment_state(match_node, parsed) -> Dictionary:
+	var player = _adjutant_resolve_player(str(parsed.get("as_player", "")))
+	if player == null and match_node != null and match_node.has_method("get_local_player"):
+		player = match_node.get_local_player()
+	if player == null:
+		return {"ok": false, "error": "player not found"}
+	return {"ok": true, "augments": _augment_snapshot(match_node, player)}
+
+
+## op=augment_recommend：Hermes 只回三张牌的排列与 evidence，不得代点。
+func _op_augment_recommend(match_node, parsed) -> Dictionary:
+	var player = _adjutant_resolve_player(str(parsed.get("as_player", "")))
+	if player == null and match_node != null and match_node.has_method("get_local_player"):
+		player = match_node.get_local_player()
+	if player == null:
+		return {"ok": false, "error": "player not found"}
+	var runtime = _augment_runtime(match_node)
+	if runtime == null or not runtime.has_method("submit_recommendation"):
+		return {"ok": false, "error": "no augment runtime"}
+	return runtime.submit_recommendation(player, parsed)
+
+
+## op=augment_pick：玩家/调试落选。不进副官白名单。
+func _op_augment_pick(match_node, parsed) -> Dictionary:
+	var player = _adjutant_resolve_player(str(parsed.get("as_player", "")))
+	if player == null and match_node != null and match_node.has_method("get_local_player"):
+		player = match_node.get_local_player()
+	if player == null:
+		return {"ok": false, "error": "player not found"}
+	var runtime = _augment_runtime(match_node)
+	if runtime == null or not runtime.has_method("pick"):
+		return {"ok": false, "error": "no augment runtime"}
+	var source := str(parsed.get("source", "player"))
+	if source.is_empty():
+		source = "player"
+	return runtime.pick(player, str(parsed.get("id", "")), source)
+
+
+## op=augment_force：冒烟用强制开轮。不进副官白名单。
+func _op_augment_force(match_node, parsed) -> Dictionary:
+	var runtime = _augment_runtime(match_node)
+	if runtime == null:
+		return {"ok": false, "error": "no augment runtime"}
+	if parsed.has("countdown_msec") and runtime.has_method("debug_set_countdown_msec"):
+		runtime.debug_set_countdown_msec(int(parsed.get("countdown_msec", 0)))
+	var player = _adjutant_resolve_player(str(parsed.get("as_player", "")))
+	return runtime.debug_force_round(int(parsed.get("round_index", 0)), player)
 
 
 ## op=unit_motion：**只读移动诊断**（每个我方单位一行）。
@@ -3080,6 +3163,58 @@ func _op_adjutant_leases(match_node, parsed) -> Dictionary:
 	}
 
 
+## op=adjutant_release：玩家点「停止」时收回副官对本玩家的控制。
+## 清空租约与意图登记，否则面板下一轮仍会把残留租约认成「副官还在指挥」。
+func _op_adjutant_release(match_node, parsed) -> Dictionary:
+	var guard := _adjutant_require_observation()
+	if not guard.is_empty():
+		return guard
+	var match_id := _adjutant_match_id(match_node)
+	if match_id.is_empty():
+		return {"error": "match unavailable", "reason": "当前对局没有稳定 match_id。"}
+	var player_id := str(parsed.get("player_id", parsed.get("as_player", "")))
+	var player = _adjutant_resolve_player(player_id)
+	if player == null and match_node != null and match_node.has_method("get_local_player"):
+		player = match_node.get_local_player()
+		if player != null:
+			player_id = str(player.name)
+	var keys: Array = []
+	if player_id.is_empty():
+		for key in _adjutant_leases.keys():
+			if String(key).begins_with(match_id + "|"):
+				keys.append(String(key))
+		for key in _adjutant_intents.keys():
+			var text := String(key)
+			if text.begins_with(match_id + "|") and not keys.has(text):
+				keys.append(text)
+	else:
+		keys.append("%s|%s" % [match_id, player_id])
+	var unit_names: Array = []
+	for key in keys:
+		var leases: Dictionary = _adjutant_leases.get(key, {})
+		for unit_name in leases.keys():
+			var name := str(unit_name)
+			if not name.is_empty() and not unit_names.has(name):
+				unit_names.append(name)
+		_adjutant_leases.erase(key)
+		_adjutant_intents.erase(key)
+	if not player_id.is_empty() and not unit_names.is_empty():
+		notify_player_override(player_id, unit_names)
+	if player != null and not unit_names.is_empty():
+		var gateway = NetSession.command_gateway_for(player)
+		if gateway != null:
+			var nodes := _resolve_own_units(player, unit_names)
+			if not nodes.is_empty():
+				gateway.StopUnits(nodes, player)
+	return {
+		"ok": true,
+		"released": unit_names.size(),
+		"units": unit_names,
+		"match_id": match_id,
+		"player_id": player_id,
+	}
+
+
 ## op=lobby：只读大厅快照 + 本机身份（用于核验“同一台电脑只有一个指挥官”）。
 func _op_lobby() -> Dictionary:
 	var net := get_node_or_null("/root/NetSession")
@@ -3288,6 +3423,67 @@ func notify_player_override(player_name: String, unit_names: Array) -> void:
 		"units": names,
 		"player": player_name,
 	})
+
+
+## 归还收口：与 `notify_player_override` 对称，发 `player_release` 事件让副官重新接管。
+## 调用方：`_sync_selection_control`（玩家取消选中）。
+func notify_player_release(player_name: String, unit_names: Array) -> void:
+	if _adjutant_executing or unit_names.is_empty():
+		return
+	var names: Array = []
+	for unit_name in unit_names:
+		var key := str(unit_name)
+		if key:
+			names.append(key)
+	if names.is_empty():
+		return
+	_fast_emit("player_release", {
+		"unit": str(names[0]),
+		"units": names,
+		"player": player_name,
+	})
+
+
+## 选中 → 控制权同步（唯一通道）。
+## 用户 2026-09-15："我玩家控制的单位 AI 副官就不要再抢了啊" —— 玩家只是**选中**
+## （还没下令）时副官就已经在抢，因为旧实现只在"玩家下达命令"时才 override。
+## 规则：选中 → `player_override`（停租约 + 事件，副官立刻撤手、在途命令作废）；
+## 取消选中 → `player_release`（归还，副官可重新接管）。每帧只发**变化**的单位。
+func _sync_selection_control() -> void:
+	# 副官正在执行命令时必须先退出：`notify_player_override/release` 内部会直接 return，
+	# 若在这里把状态记成"已同步"，那次选中/取消就再也不会补发（状态与事实永久不一致）。
+	# 直接 return 不动状态，下一帧会重试。
+	if _adjutant_executing:
+		return
+	var tree := get_tree()
+	if tree == null:
+		return
+	var scene := tree.current_scene
+	if scene == null or not scene.has_method("get_local_player"):
+		return
+	var player = scene.get_local_player()
+	if player == null or not is_instance_valid(player):
+		return
+	var now := {}
+	for unit in tree.get_nodes_in_group("selected_units"):
+		if unit != null and is_instance_valid(unit) and unit.get_parent() == player:
+			now[str(unit.name)] = true
+	if now.is_empty() and _selection_override_units.is_empty():
+		return
+	var player_name := str(player.name)
+	var newly: Array = []
+	for unit_name in now:
+		if not _selection_override_units.has(unit_name):
+			newly.append(unit_name)
+	var gone: Array = []
+	for unit_name in _selection_override_units:
+		if not now.has(unit_name):
+			gone.append(unit_name)
+	_selection_override_units = now
+	if not newly.is_empty():
+		notify_player_override(player_name, newly)
+	if not gone.is_empty():
+		notify_player_release(player_name, gone)
 
 
 ## 幂等账本总容量统计（跨对局/玩家共享上限，显式背压）。

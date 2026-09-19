@@ -135,6 +135,14 @@ public interface IWorldObservationRepository
 {
     /// <summary>捕获一个内部版本一致且不暴露场景 Node 的快照。</summary>
     WorldObservationSnapshot Capture();
+
+    /// <summary>
+    /// 同一物理帧内可复用的 Capture（见实现里的共享理由）。
+    /// AI 的一个决策拍会连续发起十几次查询（每个 Controller 一次 GetOwnForces、每个编组一次
+    /// ScanCircle、每个空闲工人一次资源扫描、每次资源交付再查一次经济），共享一份快照能把
+    /// "每次查询重建一次全量世界"降成"每帧最多重建一次"——3 个电脑玩家时这是主线程最大热点。
+    /// </summary>
+    WorldObservationSnapshot CaptureShared();
 }
 
 /// <summary>解析玩家之间的关系；当前 Demo 默认除自己外均为敌对。</summary>

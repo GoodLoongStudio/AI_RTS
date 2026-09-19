@@ -3,18 +3,43 @@ extends Node
 enum PlayerType {
 	NONE = 0,
 	HUMAN = 1,
-	SIMPLE_CLAIRVOYANT_AI = 2,
+	SIMPLE_CLAIRVOYANT_AI = 2,  # 中等
+	AI_EASY = 3,
+	AI_HARD = 4,
 }
+
+
+static func is_rule_ai(controller: int) -> bool:
+	return (
+		controller == PlayerType.SIMPLE_CLAIRVOYANT_AI
+		or controller == PlayerType.AI_EASY
+		or controller == PlayerType.AI_HARD
+	)
+
+
+static func rule_ai_difficulty(controller: int) -> int:
+	# 与 SimpleClairvoyantAI.Difficulty 同序：EASY=0 NORMAL=1 HARD=2
+	match controller:
+		PlayerType.AI_EASY:
+			return 0
+		PlayerType.AI_HARD:
+			return 2
+		_:
+			return 1
 
 
 class Match:
 	extends "res://source/match/MatchConstants.gd"
 
 	class Player:
+		const RULE_AI_SCENE = preload(
+			"res://source/match/players/simple-clairvoyant-ai/SimpleClairvoyantAI.tscn"
+		)
 		const CONTROLLER_SCENES = {
 			PlayerType.HUMAN: preload("res://source/match/players/human/Human.tscn"),
-			PlayerType.SIMPLE_CLAIRVOYANT_AI:
-			preload("res://source/match/players/simple-clairvoyant-ai/SimpleClairvoyantAI.tscn"),
+			PlayerType.SIMPLE_CLAIRVOYANT_AI: RULE_AI_SCENE,
+			PlayerType.AI_EASY: RULE_AI_SCENE,
+			PlayerType.AI_HARD: RULE_AI_SCENE,
 		}
 
 

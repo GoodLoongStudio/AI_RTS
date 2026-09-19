@@ -1,18 +1,17 @@
 extends Node
 
-## **帧率治理**（用户 2026-09-14："后面游戏限制一下 60 帧吧，需要有动态优化机制，
-## 单位多就降低渲染效果，能保持尽可能稳定 60 帧"）。
+## **帧率治理**（用户 2026-09-15：锁 30 帧减轻负载；单位多仍可再降画质）。
 ##
 ## ## 两条腿，缺一条都不稳
 ## ① **前馈（单位数）**：用户点名的那条 —— "单位多就降低渲染效果"。
 ##    单位数是**提前量**：等 FPS 掉下来再降，玩家已经卡了一下（而单位数涨是可预见的）。
 ##    实现为**画质档下限**（`tier_floor_for_units`）：部队规模上去后画质必须先降到那一档，
 ##    FPS 反馈只能在它之上继续往下降（永远不会比"该有的档"更清晰）。
-## ② **反馈（帧时）**：实测能不能守住 60。低于阈值**持续一段时间**才降档（迟滞），
+## ② **反馈（帧时）**：实测能不能守住上限。低于阈值**持续一段时间**才降档（迟滞），
 ##    避免一帧抖动就换画质；升档更保守（要求长时间富余），否则会来回抖。
 ##
 ## ## 为什么不看"FPS 很高就升档"
-## 帧率被 `Engine.max_fps=60` 夹住时，`fps==60` **不代表**有余量（我们看不到真实上限）。
+## 帧率被 `Engine.max_fps` 夹住时，顶满上限 **不代表**有余量（我们看不到真实上限）。
 ## 所以升档必须同时满足：CPU 帧时小、绘制调用少、**且部队规模低于这一档的门槛**
 ## （前馈说"人不多"，反馈才允许升回去）。宁可少升，不可抖。
 ##
@@ -21,16 +20,11 @@ extends Node
 ## 随每轮 10Hz 采样上报（`op=perf` 与 `fast_state`），于是**每局档案里都有画质轨迹**。
 
 const CONFIG_PATH := "user://performance.cfg"
-##: 默认帧率上限（用户要求锁 60）。配置可改（`user://performance.cfg` 的 `max_fps`）。
-const DEFAULT_MAX_FPS := 60
-##: 目标帧率与判据（**2026-09-14 真机复检后重定**）：
-##: ① **低于 `DOWNGRADE_FPS` 持续 `DWELL_SECONDS` 才降档** —— 原来写 57 帧太敏感：
-##:    锁 60 时那只是 5% 抖动，玩家却要一直掉画质（用户投诉"这么点单位就要低画质"）。
-##: ② 高于 `UPGRADE_FPS` 持续 `UPGRADE_DWELL_SECONDS` 就升档 —— **不再要求 CPU 帧时/绘制调用**：
-##:    实测这台机器主线程帧时 10.9ms（> 原门槛 8ms），门槛永远不满足 → **档位只降不升**，
-##:    结果是 60 帧也回不到高画质（用户截图：60 FPS 却停在"低"）。防抖靠迟滞与冷却，不靠不可达门槛。
-const DOWNGRADE_FPS := 50.0
-const UPGRADE_FPS := 59.0
+##: 默认帧率上限（用户 2026-09-15 要求锁 30）。旧配置里的 60 会迁到 30。
+const DEFAULT_MAX_FPS := 30
+##: 锁 30 后的升降档：低于约 80% 上限才降，接近上限才升。
+const DOWNGRADE_FPS := 24.0
+const UPGRADE_FPS := 29.0
 const DWELL_SECONDS := 2.5
 const UPGRADE_DWELL_SECONDS := 6.0
 ##: **预热窗口**（秒）：启动/切场景后的加载期帧率必然低（实测真机 `units=0, fps=32`），
@@ -43,10 +37,10 @@ const WARMUP_SECONDS := 6.0
 ##: 即**载入卡顿**而不是重烘或部队规模）。判据改为：
 ##:   ① 距上次切场景 < `WARMUP_MIN_SECONDS`，或
 ##:   ② 还没见到过 ≥ `WARMUP_READY_FPS` 的采样（= 还没进入稳态），但不超过 `WARMUP_MAX_SECONDS`。
-##: 上限必须有：慢机器可能永远达不到 55 帧，否则治理器永远不工作。
+##: 上限必须有：慢机器可能永远达不到就绪帧率，否则治理器永远不工作。
 const WARMUP_MIN_SECONDS := 6.0
 const WARMUP_MAX_SECONDS := 20.0
-const WARMUP_READY_FPS := 55.0
+const WARMUP_READY_FPS := 27.0
 var _warmup_steady := false
 var _scene_seconds := 0.0
 ##: 换档后的冷却：给渲染管线/GPU 重新稳定留时间（否则连续两帧的抖动会连降两档）。
@@ -71,6 +65,17 @@ const UNIT_TIER_FLOOR := [
 	{"units": 120, "tier": 3},
 	{"units": 80, "tier": 2},
 	{"units": 50, "tier": 1},
+]
+
+##: 全场规模 → 画质档**兜底**下限（前馈第二口径，用户 2026-09-15 批准）。
+##: 为什么需要：只数自己的兵时，一局开 2~3 个电脑，它们攒到几百个单位照样拖慢主机，
+##: 而玩家的画质一直停在最高档（用户实测："一局开 3 个电脑非常卡"）。
+##: 门槛刻意比自军那条**高得多**（自军 50/80/120 ⇒ 全场 200/300/420）：
+##: 玩家自己兵不多时不会被误伤，只有真打成大乱斗（全场 200+ 个单位）才兜底降档。
+const GLOBAL_UNIT_TIER_FLOOR := [
+	{"units": 420, "tier": 3},
+	{"units": 300, "tier": 2},
+	{"units": 200, "tier": 1},
 ]
 
 ##: 每一档实际改哪些渲染开关。`null` = "不动这项"（保持场景原值）。
@@ -107,8 +112,10 @@ static func step(core: Dictionary, sample: Dictionary) -> Dictionary:
 	# 已知帧率被上限夹住 → `fps` 只能证明"掉了没"，不能证明"还有多少余量"（防抖靠迟滞+冷却）。
 	var fps := float(sample.get("fps", 0.0))
 	var units := int(sample.get("units", 0))
+	# 全场规模（含对手/电脑 AI 的兵）：前馈的第二条腿，见 `GLOBAL_UNIT_TIER_FLOOR`。
+	var all_units := int(sample.get("all_units", 0))
 	var down_fps := float(sample.get("down_fps", DOWNGRADE_FPS))
-	var floor_tier := tier_floor_for_units(units)
+	var floor_tier := tier_floor_for_scale(units, all_units)
 	var changed := false
 
 	# ① 前馈优先：部队规模要求的最低档位（"单位多就降画质"）。它一抬，之前的降档验证就没意义了。
@@ -179,12 +186,26 @@ static func step(core: Dictionary, sample: Dictionary) -> Dictionary:
 	return next
 
 
-## 部队规模 → 画质档下限（前馈）。0 档 = 最高画质。
+## 部队规模 → 画质档下限（前馈·第一口径：**自己的兵**）。0 档 = 最高画质。
 static func tier_floor_for_units(units: int) -> int:
 	for item in UNIT_TIER_FLOOR:
 		if units >= int(item["units"]):
 			return int(item["tier"])
 	return 0
+
+
+## 全场规模 → 画质档下限（前馈·第二口径：**含对手/电脑 AI 的兵**）。
+static func global_tier_floor_for_units(all_units: int) -> int:
+	for item in GLOBAL_UNIT_TIER_FLOOR:
+		if all_units >= int(item["units"]):
+			return int(item["tier"])
+	return 0
+
+
+## 前馈最终下限 = 两条腿取严（用户 2026-09-15 批准第二条腿）。
+## 单方对局（all_units 小）行为与从前完全一致；一局 2~3 个电脑攒到几百个单位时才兜底降档。
+static func tier_floor_for_scale(own_units: int, all_units: int) -> int:
+	return maxi(tier_floor_for_units(own_units), global_tier_floor_for_units(all_units))
 
 
 static func tier_name(tier: int) -> String:
@@ -198,7 +219,7 @@ const TIER_LABELS := ["极高", "高", "中", "低"]
 
 ## 画质那一小段文字，**接在游戏原有的右上角状态行后面**（用户 2026-09-14：
 ## "这个不要，游戏原来不就在右上角有延时和帧率显示？"）—— 不另开一行，复用既有显示。
-## 例：`单机 · 60 FPS · 画质 高（90%）`
+## 例：`单机 · 30 FPS · 画质 高（90%）`
 static func quality_suffix(stats: Dictionary) -> String:
 	if not bool(stats.get("enabled", true)):
 		return ""                       # 治理关掉时不显示（没有"自动画质"这回事）
@@ -369,7 +390,8 @@ func _process(delta: float) -> void:
 	if not enabled:
 		return
 	var result := step(_core, {"fps": _fps_ema, "cpu_ms": _cpu_ms, "draw_calls": _draw_calls,
-		"units": _units, "delta": step_delta, "warmup": _in_warmup(), "down_fps": down_fps})
+		"units": _units, "all_units": _units_all, "delta": step_delta,
+		"warmup": _in_warmup(), "down_fps": down_fps})
 	var new_tier := int(result["tier"])
 	_core = {"tier": new_tier, "low_seconds": float(result["low_seconds"]),
 		"high_seconds": float(result["high_seconds"]),
@@ -495,7 +517,9 @@ func stats() -> Dictionary:
 		"units_own": _units_own,
 		"units_all": _units_all,
 		"draw_calls": _draw_calls,
-		"floor": tier_floor_for_units(_units),
+		# `floor` = 两条前馈腿取严（自军 + 全场兜底）；`floor_own` 便于复盘"是哪条腿在压档"。
+		"floor": tier_floor_for_scale(_units, _units_all),
+		"floor_own": tier_floor_for_units(_units),
 		"reason": _last_reason,
 		# 降档效果验证 / "白降"记忆的实时状态（复盘要能看出"为什么画质还回去了"）。
 		"verify_left": snappedf(float(_core.get("verify_left", 0.0)), 0.1),
@@ -532,8 +556,16 @@ func _load_config() -> void:
 	if config.load(CONFIG_PATH) != OK:
 		return
 	enabled = bool(config.get_value("performance", "dynamic_quality", true))
-	max_fps = int(config.get_value("performance", "max_fps", DEFAULT_MAX_FPS))
-	# 降档门槛可调：嫌它还在降就调小（例如 45），想更早保帧率就调大。
-	down_fps = float(config.get_value("performance", "down_fps", DOWNGRADE_FPS))
+	var loaded_fps := int(config.get_value("performance", "max_fps", DEFAULT_MAX_FPS))
+	max_fps = mini(loaded_fps, DEFAULT_MAX_FPS)
+	# 旧锁 60 的降档门槛 50 会把锁 30 误判成掉帧，一并迁到新默认。
+	var loaded_down := float(config.get_value("performance", "down_fps", DOWNGRADE_FPS))
+	down_fps = loaded_down
+	if down_fps > float(DEFAULT_MAX_FPS) or is_equal_approx(down_fps, 50.0):
+		down_fps = DOWNGRADE_FPS
+	if loaded_fps != max_fps or not is_equal_approx(loaded_down, down_fps):
+		config.set_value("performance", "max_fps", max_fps)
+		config.set_value("performance", "down_fps", down_fps)
+		config.save(CONFIG_PATH)
 	# 换档提示默认开（用户要"玩家能看到反馈"）；常驻画质显示接在游戏原有状态行上。
 	show_toast = bool(config.get_value("performance", "change_toast", true))

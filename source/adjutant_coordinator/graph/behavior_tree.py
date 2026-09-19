@@ -273,6 +273,18 @@ def _no_visible_enemy(bb: Blackboard) -> bool:
     return not (bb.get("visible_enemies") or ())
 
 
+def _no_engage_target(bb: Blackboard) -> bool:
+    """**没有打得了的可见敌人**（"前压探索"的放宽前置，2026-09-15 治本）。
+
+    原前置是 `_no_visible_enemy`（严格"无可见敌人"）：地图上只要出现"看得见但打不了"
+    的敌人（武器域不匹配 / 已进不可打黑名单），就近交火 FAILURE、前压也 FAILURE
+    ⇒ 空闲作战单位全部掉进"集结"兜底 ⇒ **全军堆在基地**（用户实测截图，21 个单位）。
+    放宽后：**能打就打（第 5 档），打不了/没人可打就往外前压**。
+    有可打目标时第 5 档先命中，本档不会被选中 ⇒ 既有行为不回退。
+    """
+    return not _attackable(bb)
+
+
 def _outnumbered(bb: Blackboard) -> bool:
     """可见敌人数 **多于** 我方作战单位数 → 劣势。
 
@@ -284,14 +296,21 @@ def _outnumbered(bb: Blackboard) -> bool:
 
 
 def _retreat(bb: Blackboard) -> str:
-    """劣势撤离：朝自己主基地方向给一个远离敌人的坐标。
+    """劣势撤离：走到脱离点（远离最近敌人，可不朝家，但不得落在主基地上）。
 
     `target` 必须是 **dict**（契约 `IntentTarget`），不是裸坐标列表 ——
     实测写成 `[x, z]` 会被契约校验拒绝：`intents.0.target: Input should be a valid dictionary`。
     """
-    home = bb.get("home_pos") or [0.0, 0.0]
-    return bb.emit("retreat", {"pos": [round(float(home[0]), 1), round(float(home[1]), 1)]},
-                   priority=95, rationale="可见敌人数多于我方作战单位，撤离保存战力")
+    from . import rules_fallback as rf
+    point = rf.disengage_point(
+        bb.get("unit_pos") or [],
+        home=bb.get("home_pos") or bb.get("home_anchor"),
+        enemies=list((bb.get("enemy_facts") or {}).values()),
+        bounds=bb.get("map_bounds"))
+    if not point:
+        return Status.FAILURE
+    return bb.emit("retreat", {"pos": [round(float(point[0]), 1), round(float(point[1]), 1)]},
+                   priority=95, rationale="可见敌人数多于我方作战单位，撤向脱离点（不回主基地门口）")
 
 
 #: 基地回防的**作用半径**（米）：唯一口径在 `campaign.DEFENSE_RADIUS_M`。
@@ -299,10 +318,9 @@ from .campaign import DEFENSE_RADIUS_M  # noqa: E402
 
 
 def _under_attack(bb: Blackboard) -> bool:
-    """基地是否处于受袭状态（由整局主线的 `interrupt_stack` 推导，见 `_adapt`）。
+    """基地是否处于受袭状态（中断栈或建筑附近见敌，见 `_adapt`）。
 
-    刻意**不用"看到敌人"**当判据：那样会把"路上偶遇"也当成基地受袭，
-    从而把前压/侦察中的部队全部拉回来（= 变相的"全军回防"）。
+    路上偶遇不给 `defend_pos`，所以不会把前压中的部队全部拉回来。
     """
     point = bb.get("defend_pos")
     return bool(point) and len(point) >= 2
@@ -313,14 +331,28 @@ def _near_base(bb: Blackboard) -> bool:
     return rf.unit_near_base(bb.get("unit_pos") or [], bb.get("defend_pos") or [])
 
 
+def _should_defend_home(bb: Blackboard) -> bool:
+    """受袭时：已在回防圈，或在召回名单里。"""
+    if not _under_attack(bb) or not _is_combat(bb):
+        return False
+    if _near_base(bb):
+        return True
+    name = str(bb.get("unit") or "")
+    return name in {str(item) for item in (bb.get("defense_recall_ids") or ())}
+
+
 def _defend_base(bb: Blackboard) -> str:
     point = bb.get("defend_pos") or []
     if len(point) < 2:
         return Status.FAILURE
+    recall = {str(item) for item in (bb.get("defense_recall_ids") or ())}
+    name = str(bb.get("unit") or "")
+    why = ("基地受袭：家里无人，召回最近作战单位回防"
+           if name in recall else
+           "基地受袭：基地附近的作战单位回防（远处部队继续原任务）")
     return bb.emit("defend",
                    {"pos": [round(float(point[0]), 1), round(float(point[1]), 1)]},
-                   priority=92,
-                   rationale="基地受袭：基地附近的作战单位回防（远处部队继续原任务）")
+                   priority=92, rationale=why)
 
 
 def _has_assigned_target(bb: Blackboard) -> bool:
@@ -374,6 +406,27 @@ def _gather(bb: Blackboard) -> str:
     }, priority=50, rationale="工人采集最近的可见资源（经济优先）")
 
 
+#: 已在基地圈内的单位最多留这么多个原地警戒。空闲时配额当作 0：新兵都刷在家里，
+#: 留名单等于永久站桩（2026-09-15 用户：几个成小队就该出门探索/进攻）。
+#: 基地受袭时的召回配额仍走 `rules_fallback.DEFEND_RECALL_MAX`。
+HOME_GUARD_MAX = 0
+
+
+def _home_guard_names(near_base_names: Sequence[str], quota_cap: int,
+                      combat_total: int, *, defending: bool = False) -> list:
+    """守家名单：空闲不留人；只有基地受袭才从圈内单位里点名。
+
+    真正回防由 `_defend_base` 接管。这里只避免空闲时把刚出厂的人钉在家里。
+    """
+    if not defending:
+        return []
+    if int(combat_total) <= 1:
+        return []
+    cap = min(max(0, int(quota_cap)), max(0, int(combat_total) - 1),
+              len(near_base_names))
+    return list(near_base_names[:cap])
+
+
 def _should_advance(bb: Blackboard) -> bool:
     """是否允许"无可见敌人时前压探索"（**默认开启**；`allow_forward_advance=false` 可关）。
 
@@ -383,25 +436,43 @@ def _should_advance(bb: Blackboard) -> bool:
     - 传统 AI 优点清单 #7：**兜底推进绝不站桩**（无可见敌 → 向敌方方向推进）；
     - 实测：13 个单位、余额 46800，全部堆在基地周围 —— 因为旧树在无敌人时只剩
       "空闲集结（默认开启）"，等于把部队钉在基地上不动。
-    航点必须有 `home_anchor` 才发（拿不到就不动作，宁可不发）。
+    航点必须有方向依据（基地 / 地图边界 / 敌情 / 前线点）才发。
     """
-    return bool(bb.get("allow_forward_advance", True)) and bool(bb.get("home_anchor"))
+    return bool(bb.get("allow_forward_advance", True)) and bool(
+        bb.get("home_anchor") or bb.get("map_bounds")
+        or bb.get("enemy_intel_points") or bb.get("forward_rally"))
 
 
 def _should_regroup(bb: Blackboard) -> bool:
-    """空闲作战单位向主基地集结（**默认开启**，可用 `allow_idle_regroup=false` 关掉）。
-
-    为什么现在默认开启（2026-09-11 用户要求"要看到副官批量指挥部队"）：
-    - 目标点是**观测到的主基地位置**（`home_anchor`），不是凭空算的野外坐标
-      —— 原始纪律禁止的是"没有依据的游走"，这条不违反它；
-    - 全队**同一个目标** → 仲裁层（`arbitration.merge_same_orders`）把这一批 move
-      合并成**一条多单位命令**：屏幕上就是"整队一起动"，日志里是一条命令带 N 个单位。
-
-    历史教训仍要记住：给空闲单位发**凭空坐标**的侦察会把金标准用例 `replay_model_timeout`
-    （期望该 tick 无下发）打挂 —— 那条用例里 Unit_1 是 tank、没有基地锚点，
-    所以这里仍要求 `home_anchor` 存在，拿不到就**不动作**（宁可不发）。
+    """空闲作战单位向前线点靠拢。前压开着时不发——出门探路会被判散开，
+    再拉回去就是用户看见的「老是集合」。
     """
-    return bool(bb.get("allow_idle_regroup")) and _is_combat(bb)
+    if not bool(bb.get("allow_idle_regroup")) or not _is_combat(bb):
+        return False
+    if not bb.get("forward_rally"):
+        return False
+    return not _should_advance(bb)
+
+
+def _should_home_hold(bb: Blackboard) -> bool:
+    """空闲不在家发呆。只有基地受袭且单位在守家名单里，才原地警戒兜底。"""
+    if not _under_attack(bb) or not _is_combat(bb):
+        return False
+    if not bool(bb.get("allow_idle_regroup")):
+        return False
+    guards = bb.get("home_guard_ids") or ()
+    return str(bb.get("unit") or "") in {str(g) for g in guards}
+
+
+def _not_home_guard(bb: Blackboard) -> bool:
+    """不在守家名单内（"前压探索"的让位条件，2026-09-15 治本）。
+
+    空闲时名单为空，圈内作战单位也出门。受袭时名单里的人走回防，不跟前压抢。
+    """
+    guards = bb.get("home_guard_ids")
+    if guards is None:
+        return True  # 拿不到名单（直接构造黑板的回放/单测）→ 退化为原行为（允许前压）。
+    return str(bb.get("unit") or "") not in {str(g) for g in guards}
 
 
 # ---------------------------------------------------------------------------
@@ -526,34 +597,24 @@ def _advance_waypoint(bb: Blackboard):
       **没有任何分支命中**（工人分支不适用、专职侦察只认 drone、空闲集结默认关闭），
       于是这些单位整局一条命令都拿不到，HUD 就显示"正在观察战况，等待时机"。
 
-    与 `_scout_waypoint` 同源（都用**观测到的** `home_anchor` + 罗盘方位 + 逐圈外扩，
-    同一 tick 必然同一点，可复现可单测）；差别：半径步长更大、停留更久，
-    且**按单位名散开相位** —— 否则同一 tick 里所有单位会收到同一个点、挤成一团。
+    航点从**单位自己的位置**往外推（有情报就朝情报，有地图就朝内侧），
+    不再以指挥中心为圆心 15–40m 转圈。按单位名散开相位，避免全队挤同一个点。
     """
-    home = bb.get("home_anchor")
-    if not home:
+    # 原点必须是单位自己（或前线点），不能再拿指挥中心当圆心转圈。
+    origin = bb.get("unit_pos") or bb.get("forward_rally") or bb.get("home_anchor")
+    if not origin:
         return None
     from . import rules_fallback as rf
     slot = _advance_slot(bb)
     seed = 0
     for char in str(bb.unit or ""):
         seed = (seed * 31 + ord(char)) % 997
-    # 【2026-09-12 用户实测修正：不再"罗盘均匀往外撒"】
-    # 旧实现按方位一圈圈外扩（步长 25m、上限 120m）—— 实际就是把部队送到**地图边缘**，
-    # 实战中途遇敌被逐个击破。方向与半径的判据现在**只有一处**（`rf.military_waypoint`）：
-    # 朝已知敌情 / 地图内侧，且不超过"基地到最近地图边"的一半。这里只负责
-    # "同一 tick 必然同一点"的可复现性与按单位错相位。
     bearing = SCOUT_BEARINGS[(slot + seed) % len(SCOUT_BEARINGS)]
     ring = 1 + (slot + seed) // len(SCOUT_BEARINGS)
-    # 小队已成形 → `search=True`（允许更远，去找人打）+ 用**已侦察到的敌情**当前压目标：
-    # 否则无可见敌人时部队只在基地附近转圈（实测一局 36 兵、可见敌人 0、全程只有前压）。
-    squad_ready = int(bb.get("own_combat_count") or 0) >= int(rf.SQUAD_ACTION_MIN)
-    # `state=`/`unit=` 是为了**探索前沿 + 访问记忆**（计划 U1/F01）：树这条路的选点
-    # 也要进同一份记忆，否则"到达后换下一个前沿"只对并行填充生效、树仍来回走同一个点。
-    return rf.military_waypoint(home, bounds=bb.get("map_bounds"), ring=ring,
+    return rf.military_waypoint(origin, bounds=bb.get("map_bounds"), ring=ring,
                                 bearing=bearing,
                                 intel=bb.get("enemy_intel_points") or (),
-                                search=squad_ready, state=bb.get("state_ref"),
+                                search=True, state=bb.get("state_ref"),
                                 unit=str(bb.get("unit") or ""),
                                 max_radius=float(bb.get("advance_max_radius")
                                                  or ADVANCE_MAX_RADIUS))
@@ -570,9 +631,9 @@ def _advance(bb: Blackboard) -> str:
     point = _advance_waypoint(bb)
     if not point:
         return Status.FAILURE
-    return bb.emit("attack_move", {"pos": point}, priority=25,
+    return bb.emit("attack_move", {"pos": point}, priority=45,
                    id_tick=_advance_slot(bb),
-                   rationale="无可见敌人：向外前压探索 %s（不停下等待）" % (point,))
+                   rationale="无可见敌人：向外前压探索 %s（优先于集合）" % (point,))
 
 
 #: 当前目标分数不超过最优的这么多倍就保持（防每轮因轻微排序抖动换目标）。
@@ -676,16 +737,23 @@ def _engage_nearest(bb: Blackboard) -> str:
 
 
 def _regroup(bb: Blackboard) -> str:
-    """空闲作战单位向主基地靠拢（有据可依的兜底，非凭空侦察）。
-
-    坐标取自观测到的主基地位置；拿不到基地位置就**不动作**（宁可不发）。
-    """
-    home = bb.get("home_anchor")
-    if not home:
+    """散开的作战单位向**前线集结点**靠拢（不是主基地）。"""
+    rally = bb.get("forward_rally") or []
+    if len(rally) < 2:
         return Status.FAILURE
     return bb.emit("regroup", {
-        "pos": [round(float(home[0]), 1), round(float(home[1]), 1)],
-    }, priority=30, rationale="无可见敌人：向主基地靠拢保持队形（不做无依据的野外游走）")
+        "pos": [round(float(rally[0]), 1), round(float(rally[1]), 1)],
+    }, priority=30, rationale="队形散开：向前线集结点靠拢（不回主基地）")
+
+
+def _guard_hold(bb: Blackboard) -> str:
+    """已在基地圈内：原地警戒，不走路去指挥中心。"""
+    pos = bb.get("unit_pos") or []
+    if len(pos) < 2:
+        return Status.FAILURE
+    return bb.emit("hold", {
+        "pos": [round(float(pos[0]), 1), round(float(pos[1]), 1)],
+    }, priority=28, rationale="已在基地圈内：原地警戒（不拉回主基地门口）")
 
 
 def build_micro_tree() -> Node:
@@ -693,14 +761,15 @@ def build_micro_tree() -> Node:
 
     优先级（高 → 低）：
      1. 玩家接管 → 让权（**安全边界，必须最前**）
-     2. 劣势 → 撤离（求生优先于一切军事行动）
-     3. **基地受袭 + 在基地附近 → 回防**（整局主线的紧急中断，见 `_defend_base`）
+     2. **基地受袭 +（在圈内或召回名单）→ 回防**（先于野外撤离，避免弃家逃跑）
+     3. 劣势 → 撤离（野外求生；受袭回防单位走上一档）
      4. 有已分派目标 → 攻击该目标（执行 LLM/阶梯意图）
      5. 作战单位 → 打最近的可见敌人
      6. 工人 → 采集（兜底，**可被阶梯的建造/生产抢占** —— 见 `micro_intents` 分工说明）
      7. 专职侦察 → 向确定性航点前压（无人机等；有据可依，见 `_scout_waypoint`）
-     8. **作战单位 + 无可见敌人 → 前压探索**（见 `_advance`；2026-09-12 晚新增）
-     9. 否则 → 空闲集结（**默认关闭**，见 `_should_regroup`）
+     8. 已在基地圈内的守家单位 → 原地警戒（不走路回主基地）
+     9. **作战单位 + 无可交火目标 → 前压探索**（优先于集合）
+    10. 前压被关掉时 → 前线快集结（见 `_should_regroup`）
 
     **建造/生产不在本树内**：由 `rules_fallback.development_intents` 决定"造什么/产什么"
     并优先认领单位，本树只处理剩余单位。这样避免"工人先命中采集就永远轮不到建造"
@@ -711,19 +780,15 @@ def build_micro_tree() -> Node:
         Sequence(Condition(_player_controlled, "玩家已接管"),
                  Action(_yield_to_player, "让权"), name="让权给玩家"),
 
-        # 2. 求生：劣势先撤，不要硬冲（实测模型会拿 1 个兵冲 3 个敌人）。
+        # 2. 基地受袭 → 圈内就地回防；家里没人则召回最近的少量作战单位。
+        # 必须在野外劣势撤离之前：否则唯一的兵会往脱离点跑，看着像「敌攻不回防」。
+        Sequence(Condition(_should_defend_home, "基地受袭需回防"),
+                 Action(_defend_base, "回防"), name="基地回防"),
+
+        # 3. 求生：野外劣势先撤，不要硬冲（实测模型会拿 1 个兵冲 3 个敌人）。
         Sequence(Condition(_is_combat, "是作战单位"),
                  Condition(_outnumbered, "敌多于我"),
                  Action(_retreat, "撤离"), name="劣势撤离"),
-
-        # 3. 基地受袭（整局主线的紧急中断）→ 基地**附近**的作战单位回防。
-        # 【2026-09-12 主线纠偏】紧急事件只压进 `campaign.interrupt_stack`，
-        # 这里只负责"让受影响的单位真的动起来"；`defend_pos` 缺席时整支 FAILURE，
-        # 既有行为完全不变（回放/单测不受影响）。
-        Sequence(Condition(_under_attack, "基地受袭"),
-                 Condition(_is_combat, "是作战单位"),
-                 Condition(_near_base, "在基地附近"),
-                 Action(_defend_base, "回防"), name="基地回防"),
 
         # 4. 执行上层分派的交战目标。
         Sequence(Condition(_has_assigned_target, "有分派目标"),
@@ -744,20 +809,20 @@ def build_micro_tree() -> Node:
         Sequence(Condition(_is_scout, "是专职侦察"),
                  Action(_scout, "侦察"), name="专职侦察"),
 
-        # 7. 无可见敌人时作战单位**前压探索**（不是原地待命/只回基地）。
-        # 【2026-09-12 晚新增，用户带截图质问"部队为什么只会停下来等待"】
-        # 此前这一档是空的：工人分支不适用、专职侦察只认 drone、空闲集结默认关闭
-        # → 作战单位整局拿不到任何命令（13 个单位、46800 余额全部杵在基地）。
-        # 手册 01 §3 军事线要求"集结 → **前压** → 进攻"持续推进；传统 AI 铁律是
-        # "兜底推进绝不站桩"。航点由**观测到的基地位置**推出，不是凭空游走。
+        # 7. 作战单位**前压探索**（空闲不在家 hold）。
+        # 新兵刷在家里：再留守家名单就会整局站桩。几个成小队就出门；
+        # 受袭回防仍由上面的回防档处理。
+        Sequence(Condition(_should_home_hold, "受袭且在守家名单"),
+                 Action(_guard_hold, "原地警戒"), name="原地警戒"),
+
         Sequence(Condition(_should_advance, "允许前压"),
                  Condition(_is_combat, "是作战单位"),
-                 Condition(_no_visible_enemy, "无可见敌人"),
+                 Condition(_no_engage_target, "无可交火目标"),
+                 Condition(_not_home_guard, "不在守家名单"),
                  Action(_advance, "前压探索"), name="前压探索"),
 
-        # 8. 兜底：空闲作战单位向基地靠拢（默认关闭，见 _should_regroup）。
-        Sequence(Condition(_should_regroup, "允许空闲集结"),
-                 Action(_regroup, "集结"), name="空闲集结"),
+        Sequence(Condition(_should_regroup, "允许前线集结"),
+                 Action(_regroup, "集结"), name="前线快集结"),
 
         name="微操树",
     )
@@ -788,9 +853,8 @@ def _adapt(
     enemies = rf._living_enemies(tactical)
     ai_units = [str(u) for u in ((state or {}).get("ai_controlled_units") or [])]
 
-    # 基地受袭（整局主线的紧急中断）→ 回防点。纪律：只有**中断栈里真有活跃的
-    # base_under_attack** 时才给点，别的紧急类型（enemy_spotted 等）不触发回防 ——
-    # 否则"偶遇敌人"会被当成基地受袭，等于变相"全军回防"。
+    # 基地受袭 → 回防点。来源：中断栈，或眼前看见敌人贴着己方建筑。
+    # 路上偶遇（远离建筑）不给点，避免变成全军回防。
     defend_pos = None
     scout_directive = None
     campaign = (state or {}).get("campaign_state")
@@ -807,8 +871,28 @@ def _adapt(
                 continue
             if (str(entry.get("kind", "")) == "base_under_attack"
                     and str(entry.get("status", "")) == "active"):
-                defend_pos = rf.base_anchor_pos(by_name)
+                defend_pos = rf.defense_home_pos(by_name)
                 break
+    if defend_pos is None and rf.home_raid_visible(by_name, enemies):
+        defend_pos = rf.defense_home_pos(by_name)
+
+    combat_types = cfg["combat_types"]
+    combat_names = sorted(str(n) for n in ai_units
+                          if by_name.get(n, {}).get("type") in combat_types)
+    base_anchor = rf.base_anchor_pos(by_name)
+    combat_positions = []
+    near_base = []
+    for name in combat_names:
+        pos = rf._pos2d(by_name.get(name) or {})
+        if not pos:
+            continue
+        combat_positions.append(list(pos))
+        if rf.unit_near_base(pos, base_anchor):
+            near_base.append(name)
+    forward_rally = rf.forward_rally_point(
+        base_anchor, bounds=(state or {}).get("map_bounds"),
+        intel=(state or {}).get("enemy_intel_points") or [],
+        enemies=enemies, combat_positions=combat_positions)
 
     return {
         "by_name": by_name,
@@ -839,8 +923,15 @@ def _adapt(
             {"entity_id": rf.entity_id_of(e), "pos": list(rf._pos2d(e))}
             for e in resources if rf.entity_id_of(e)
         ],
-        "own_combat_count": sum(
-            1 for n in ai_units if by_name.get(n, {}).get("type") in cfg["combat_types"]),
+        "own_combat_count": len(combat_names),
+        "home_guard_ids": _home_guard_names(
+            near_base, int(cfg.get("home_guard_max") or HOME_GUARD_MAX),
+            len(combat_names), defending=defend_pos is not None),
+        "defense_recall_ids": (
+            rf.defense_recall_names(combat_names, by_name, base_anchor)
+            if defend_pos else []),
+        "units_scattered": rf.combat_scattered(combat_positions, home=base_anchor),
+        "forward_rally": list(forward_rally) if forward_rally else None,
         # **采集分配器**（照搬游戏内传统 AI `EconomyController._find_visible_resource`）：
         # 按"资源节点已分配人数 + 资源类型均衡 + 距离"给每个工人**预分配**矿点，
         # 避免所有工人取"最近矿"挤成一团（实测 3 工人同矿、部队被堵、有人闲置）。
@@ -976,11 +1067,13 @@ def micro_parts(
             "defend_pos": shared.get("defend_pos"),
             # 扩张选址阶段的定向侦察点（缺席 = 走确定性绕圈航点）。
             "scout_directive": shared.get("scout_directive"),
-            # 空闲集结**默认开启**（2026-09-11 用户要求"要看到副官批量指挥部队"）：
-            # 目标点是**观测到的主基地**（全队同一目标 → 仲裁层把这一批 move 合并成
-            # **一条多单位命令**，屏幕上就是"整队一起动"）。这不是凭空游走 ——
-            # 原始纪律禁止的是"没有依据的野外游走"，而"回基地集结"的位置来自观测。
-            "allow_idle_regroup": bool(cfg.get("allow_idle_regroup", True)),
+            # 空闲集结默认关：开着时出门探路会被判散开，再拉回同一点。
+            # 只在显式关掉前压、或配置打开时才集合。
+            "allow_idle_regroup": bool(cfg.get("allow_idle_regroup", False)),
+            "home_guard_ids": shared["home_guard_ids"],
+            "defense_recall_ids": shared.get("defense_recall_ids") or [],
+            "forward_rally": shared.get("forward_rally"),
+            "units_scattered": bool(shared.get("units_scattered")),
             # 无可见敌人时作战单位**前压探索**（**默认开启**，见 `_should_advance`）：
             # 关掉则回退到旧的"空闲集结/静默"，供回放与不想要野外推进的用例使用。
             "allow_forward_advance": bool(cfg.get("allow_forward_advance", True)),

@@ -1,11 +1,11 @@
 extends Node
 
 ## 运输货舱（红警3 式，2026-09-11 用户指定交互）：
-## 选中士兵右键运输车 → 步兵标记"登车"并走向运输车，进入 3 米内自动上车；
+## 选中士兵右键运输车（或车旁沙地）→ 步兵标记"登车"并走向运输车，平面 4.5 米内自动上车；
 ## 只有侧栏"卸货"按钮能卸载（到达目的地不自动卸，由玩家手动控制）。
 ## 运输车被毁则乘客殉职。不做自动装载：未标记登车的步兵靠近也不会上车。
 
-const LOAD_RADIUS := 3.0
+const LOAD_RADIUS := 4.5
 const UNLOAD_SPREAD := 1.2
 const BOARDING_META := "boarding_transport"
 
@@ -28,7 +28,7 @@ func _process(_delta):
 	if _boarding_scan_elapsed < BOARDING_SCAN_INTERVAL:
 		return
 	_boarding_scan_elapsed = fmod(_boarding_scan_elapsed, BOARDING_SCAN_INTERVAL)
-	# 接应已标记登车的步兵：进入 3 米内即装载
+	# 接应已标记登车的步兵：平面距离进入装载半径即上车
 	if _passengers.size() >= capacity:
 		return
 	for unit in get_tree().get_nodes_in_group("controlled_units"):
@@ -45,7 +45,11 @@ func _process(_delta):
 			continue
 		if not _is_loadable_infantry(unit):
 			continue
-		if _transport.global_position.distance_squared_to(unit.global_position) <= LOAD_RADIUS * LOAD_RADIUS:
+		# ⚠ 显式类型：`unit` 来自分组遍历（Variant），`:=` 推不出 → 整个脚本解析失败、
+		# 运输车功能静默消失（2026-09-15 与 InfantryAnimationDriver 同类的实测故障）。
+		var dx: float = _transport.global_position.x - unit.global_position.x
+		var dz: float = _transport.global_position.z - unit.global_position.z
+		if dx * dx + dz * dz <= LOAD_RADIUS * LOAD_RADIUS:
 			load_unit(unit)
 
 
@@ -83,9 +87,12 @@ func unload_all():
 		if not is_instance_valid(unit):
 			continue
 		var offset = Vector3(sin(i * 1.3) * UNLOAD_SPREAD, 0, cos(i * 1.3) * UNLOAD_SPREAD)
-		# 保持乘客原地面高度（避免空中运输卸载时把步兵放到飞行高度）
-		var ground_point = Vector3(_transport.global_position.x, 0.0, _transport.global_position.z)
-		unit.global_position = ground_point + offset
+		# 同上：`offset` 是弱类型局部变量，Vector3 + Variant 推不出类型。
+		var drop: Vector3 = _transport.global_position + offset
+		var match_node = _transport.find_parent("Match")
+		if match_node != null and match_node.has_method("ground_height_at"):
+			drop.y = float(match_node.ground_height_at(drop))
+		unit.global_position = drop
 		unit.process_mode = Node.PROCESS_MODE_INHERIT
 		for area in _collect_areas(unit):
 			area.set_deferred("collision_layer", 2)
@@ -102,7 +109,7 @@ func _transport_is_idle() -> bool:
 
 
 func _is_loadable_infantry(unit) -> bool:
-	if unit == _transport or unit.get_parent() != _transport.get_parent():
+	if unit == _transport or not _same_owner(unit):
 		return false
 	if unit.get("movement_domain") != Constants.Match.Navigation.Domain.TERRAIN:
 		return false
@@ -113,6 +120,16 @@ func _is_loadable_infantry(unit) -> bool:
 	if unit.get("_action_locked") == true:
 		return false
 	return true
+
+
+func _same_owner(unit) -> bool:
+	if unit.get_parent() == _transport.get_parent():
+		return true
+	var unit_player = unit.get("player")
+	var transport_player = _transport.get("player")
+	if unit_player != null and transport_player != null:
+		return unit_player == transport_player
+	return false
 
 
 func _is_waiting_action(action) -> bool:

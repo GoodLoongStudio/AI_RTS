@@ -219,6 +219,11 @@ func _check_scripts() -> void:
 	var minimap_src := FileAccess.get_file_as_string("res://source/match/hud/Minimap.gd")
 	_check(minimap_src.contains("_show_static_preview_now"), "小地图静态预览")
 	_check(minimap_src.contains("_ensure_hud_fog_mask"), "小地图迷雾遮罩挂在 HUD 而不是子视口")
+	# 2026-09-15 用户实测"大湖的小地图战争迷雾不更新"：旧实现每次同步都把
+	# CombinedViewport 拷成 ImageTexture 快照，而同步只在开局那几次发生 ⇒ 迷雾定格。
+	# 现在必须绑实时视口纹理；像素级正反两面验收见 tools/verify_minimap_fog_live.tscn。
+	_check(minimap_src.contains("_fog_live_bound"), "小地图迷雾遮罩绑实时纹理（防再次定格成快照）")
+	_check(minimap_src.contains("_follow_minimap_fog_mask"), "开局按节拍重试绑定迷雾纹理")
 	var minimap_fog_src := FileAccess.get_file_as_string(
 		"res://source/shaders/2d/white_transparent.gdshader"
 	)

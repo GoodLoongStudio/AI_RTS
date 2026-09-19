@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 
+import math
 import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Sequence, Tuple
@@ -42,6 +43,7 @@ MODES = (MODE_FAST, MODE_DEEP)
 #: 改一处不会同步到另一处。另外记住分工：这里只做"**一行/一组里最多几个工人同目标**"的截断，
 #: 真正的**跨矿点分散**归 `resource_allocation`（它管在途占用账 + 去冲突 + 自愈再平衡）。
 from .resource_allocation import RESOURCE_WORKERS_PER_NODE as RESOURCE_WORKERS_PER_NODE  # noqa: E402
+from . import placement  # noqa: E402  （防御塔落点带/内圈口径的唯一实现）
 
 #: 计划 §2 的容量与期限（实施起点；**容量按实测证据调整过一次**）。
 #:
@@ -112,7 +114,7 @@ ACTOR_WORKER = "worker"
 ACTOR_FACILITY = "facility"
 
 TARGET_ENEMY = "enemy"
-TARGET_ANCHOR = "anchor"        # 己方基点（基地/兵营/集结点）
+TARGET_ANCHOR = "anchor"        # 己方基点（仅防守/回防；空闲集结不用这个）
 TARGET_RESOURCE = "resource"
 TARGET_PRODUCT = "product"
 TARGET_LOCATION = "location"    # 战场点位（前压点/侦察方向/建造落点）
@@ -270,6 +272,13 @@ class DecisionFrame:
     phase_goal: str = ""
     #: 合法建造落点候选（程序算，模型不猜坐标；解码 BLD 时按"离已占用点最远"挑一个）
     build_spots: Tuple[Tuple[float, float], ...] = ()
+    #: 防御塔专用外围候选（当前视野最外圈）；空则退回 `build_spots` 再按离基地远打分。
+    turret_spots: Tuple[Tuple[float, float], ...] = ()
+    #: 本拍是否该把这一座塔**留在基地内**（用户 2026-09-15："基地内会保留少量防御塔"）：
+    #: 由程序按"已有塔但内圈为空"算好（见 `squads.decision_frame`），这里只据此改选内圈点。
+    turret_inside_needed: bool = False
+    #: 主基地平面坐标，给塔打"离家远"分。
+    home_pos: Optional[Tuple[float, float]] = None
     #: 已占用点（我方单位与建筑的坐标）：挑落点时用来避开"把部队堵住"的位置。
     occupied_points: Tuple[Tuple[float, float], ...] = ()
     #: 当前余额（{资源: 数量}）。**必须给模型看**：实测（2026-09-12 用户反馈）
@@ -507,8 +516,8 @@ def _decode_row(index: int, row: Sequence[str],
     if capability_error:
         return reject("capability_mismatch", capability_error)
     if skill == SKILL_BUILD:
-        # 落点由程序算（模型不猜坐标）：取最近的合法建造落点候选。
-        pos = _build_placement(frame, actor)
+        # 落点由程序算（模型不猜坐标）：产线取空位，防御塔取当前视野最外围。
+        pos = _build_placement(frame, actor, scene=str(target.get("scene", "")))
         if pos is None:
             return reject("no_build_placement", "本轮没有可用建造落点")
         target["pos"] = pos
@@ -590,9 +599,20 @@ def _check_actor_capability(skill: str, actor: Dict[str, Any],
     return ""
 
 
+def _is_turret_scene(scene: Any) -> bool:
+    text = str(scene or "").lower()
+    return "turret" in text
+
+
+#: 防御塔"内圈"半径（米）：**引用唯一实现**，不再自己写一份字面量
+#: （原注释写着"三处必须同一条口径"却各写一个 8.0 —— 那正是会静默漂移的写法）。
+TURRET_INNER_HQ_M = placement.TURRET_INNER_RADIUS_M
+
+
 def _build_placement(frame: "DecisionFrame",
-                     actor: Dict[str, Any]) -> Optional[List[float]]:
-    """挑建造落点：**优先"空"**（离我方单位与建筑最远），再考虑离执行者近。
+                     actor: Dict[str, Any],
+                     scene: str = "") -> Optional[List[float]]:
+    """挑建造落点：产线优先"空"；防御塔优先基地外缘的目标带（不是越远越好）。
 
     实测依据（2026-09-12 用户反馈）：从前只按"离执行者最近"挑点，加上候选半径只有
     12m，结果 `barracks`/`vehicle_factory` 距指挥中心仅 5m，3 个工人被建筑堵在
@@ -600,8 +620,14 @@ def _build_placement(frame: "DecisionFrame",
     工人(8.4~10.1, 13.4~14.6)）——即"位置太紧把部队挡住了"。
     改为：最大化"到最近已占用点的距离"（净空），同分时取离执行者近的；
     净空完全相同时用坐标排序保证确定性（同观测 → 同落点）。
+
+    防御塔另算：用户 2026-09-15 反馈副官不把塔造到外围。塔用 `turret_spots`
+    （沿己方视野外推），打分离基地远优先。
     """
-    spots = list(getattr(frame, "build_spots", ()) or ())
+    turret = _is_turret_scene(scene)
+    spots = list(getattr(frame, "turret_spots", ()) or ()) if turret else []
+    if not spots:
+        spots = list(getattr(frame, "build_spots", ()) or ())
     if not spots:
         return None
     pos = actor.get("pos") or [0.0, 0.0]
@@ -611,6 +637,11 @@ def _build_placement(frame: "DecisionFrame",
         ax, az = 0.0, 0.0
     occupied = [tuple(p) for p in (getattr(frame, "occupied_points", ()) or ())
                 if isinstance(p, (list, tuple)) and len(p) >= 2]
+    home = getattr(frame, "home_pos", None)
+    try:
+        hx, hz = (float(home[0]), float(home[1])) if home and len(home) >= 2 else (ax, az)
+    except (TypeError, ValueError, IndexError):
+        hx, hz = ax, az
 
     def clearance(spot: Tuple[float, float]) -> float:
         if not occupied:
@@ -618,9 +649,28 @@ def _build_placement(frame: "DecisionFrame",
         return min((float(spot[0]) - float(o[0])) ** 2 + (float(spot[1]) - float(o[1])) ** 2
                    for o in occupied)
 
-    best = max(spots, key=lambda s: (clearance(s),
-                                     -((float(s[0]) - ax) ** 2 + (float(s[1]) - az) ** 2),
-                                     (-float(s[0]), -float(s[1]))))
+    if turret:
+        # 【用户 2026-09-15："优先建到外围，基地内保留少量"】需要留内圈时只在内圈点里挑
+        # （仍按"离基地远 → 净空"打分，等于挑内圈靠外沿的那个位置）；否则按目标带打分。
+        pool = spots
+        if bool(getattr(frame, "turret_inside_needed", False)):
+            inner_spots = [s for s in spots
+                           if math.hypot(float(s[0]) - hx, float(s[1]) - hz)
+                           < TURRET_INNER_HQ_M]
+            if inner_spots:
+                pool = inner_spots
+        # 距离口径与规则地板同一条实现（`placement.turret_band_rank`）：带内越外越好、
+        # 出带越远越差。**不许改回"离基地越远越好"** —— 那会把塔推到视野边缘
+        # （2026-09-15 晚用户实测："AI副官让防御塔造的位置太靠外面了，这不对的"）。
+        best = max(pool, key=lambda s: (
+            placement.turret_band_rank(math.hypot(float(s[0]) - hx, float(s[1]) - hz)),
+            clearance(s),
+            -((float(s[0]) - ax) ** 2 + (float(s[1]) - az) ** 2),
+            (-float(s[0]), -float(s[1]))))
+    else:
+        best = max(spots, key=lambda s: (clearance(s),
+                                         -((float(s[0]) - ax) ** 2 + (float(s[1]) - az) ** 2),
+                                         (-float(s[0]), -float(s[1]))))
     return [round(float(best[0]), 1), round(float(best[1]), 1)]
 
 

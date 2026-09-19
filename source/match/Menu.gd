@@ -39,7 +39,11 @@ func _open():
 	if visible:
 		return
 	visible = true
-	get_tree().paused = true
+	var gate: Node = _pause_gate()
+	if gate != null:
+		gate.acquire("menu")
+	else:
+		get_tree().paused = true
 	# 联机对局无法真正暂停（服务器继续推进战局）：在标题上明确告知玩家，
 	# 避免误以为"暂停了就是安全的"（2026-09-14）。
 	var title = $CenterContainer/PanelContainer/MarginContainer/VBoxContainer/Title
@@ -57,7 +61,11 @@ func _close():
 	if not visible:
 		return
 	visible = false
-	get_tree().paused = false
+	var gate: Node = _pause_gate()
+	if gate != null:
+		gate.release("menu")
+	else:
+		get_tree().paused = false
 
 
 func _cancel_or_return():
@@ -66,6 +74,10 @@ func _cancel_or_return():
 		return
 	if visible:
 		_close()
+
+
+func _pause_gate() -> Node:
+	return get_parent().get_node_or_null("PauseGate")
 
 
 func _on_resume_button_pressed():

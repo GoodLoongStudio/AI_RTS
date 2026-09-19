@@ -26,6 +26,19 @@ func _ready():
 	_check(not camera.focus_latest_battlefield_event(), "没有事件时 Space 不得移动镜头")
 	_check(camera.global_position.is_equal_approx(start_position), "空日志跳转后镜头应保持原位")
 
+	var original_extents: Vector2 = camera._map_extents
+	camera.set_map_bounds(Vector2(256, 256))
+	_check(camera.bounding_planes.size() >= 4, "镜头包围面应为四面")
+	_check(
+		is_equal_approx(camera.bounding_planes[1].d, -256.0),
+		"大图右边界必须写进 bounding_planes，不能停在场景默认 50"
+	)
+	_check(
+		is_equal_approx(camera.bounding_planes[3].d, -256.0),
+		"大图南边界必须写进 bounding_planes"
+	)
+	camera.set_map_bounds(original_extents if original_extents != Vector2.ZERO else Vector2(50, 50))
+
 	# ⚠️ 事件坐标必须落在镜头的**合法中心范围**内。镜头把中心夹进
 	# `[视野半宽, 地图尺寸 − 视野半宽]`，而 50×50 的测试图上这个范围只有约 12×20 米；
 	# 原先写死的 (12,0,-8) 与 (-6,0,10) 四项全部落在范围外 ⇒ 双双被夹到同一个角

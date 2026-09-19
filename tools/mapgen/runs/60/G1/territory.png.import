@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://t2txo4623hfp"
-path="res://.godot/imported/territory.png-97e1c3c85694a079c74454ba87f31c81.ctex"
+path="res://.godot/imported/territory.png-fbafdc5b5f6a8ecc564b278b4e29ab4e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://runs/60/G1/territory.png"
-dest_files=["res://.godot/imported/territory.png-97e1c3c85694a079c74454ba87f31c81.ctex"]
+source_file="res://tools/mapgen/runs/60/G1/territory.png"
+dest_files=["res://.godot/imported/territory.png-fbafdc5b5f6a8ecc564b278b4e29ab4e.ctex"]
 
 [params]
 

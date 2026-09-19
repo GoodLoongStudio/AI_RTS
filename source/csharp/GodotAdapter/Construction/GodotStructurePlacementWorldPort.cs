@@ -349,11 +349,39 @@ internal sealed class GodotStructurePlacementWorldPort : IStructurePlacementWorl
     private static Vector3 ToVector3(WorldPosition position) =>
         new(position.X, position.Y, position.Z);
 
-    /// <summary>枚举当前仍有效的玩家单位和建筑。</summary>
-    private IEnumerable<Node3D> Units() =>
-        _match.GetTree().GetNodesInGroup("units").OfType<Node3D>();
+    /// <summary>
+    /// 枚举当前仍有效的玩家单位和建筑。
+    /// 【性能·勿回退，用户 2026-09-15 批准】按物理帧缓存：一次放置评估会扫场 5~10 次
+    /// （自己 + 视野揭示者 + 每个候选落点的占用检查），而每次 `GetNodesInGroup` 都要分配一个新数组；
+    /// 一个 AI 每拍最多探 8 个候选落点，一局 3 个电脑时这是纯浪费。
+    /// 同一物理帧内单位集合不变（`queue_free` 在帧末执行），仍过滤已释放对象兜底。
+    /// </summary>
+    private IEnumerable<Node3D> Units()
+    {
+        var frame = checked((long)Engine.GetPhysicsFrames());
+        if (_unitsThisFrame is null || frame != _unitsFrame)
+        {
+            _unitsThisFrame = _match.GetTree().GetNodesInGroup("units").OfType<Node3D>().ToArray();
+            _unitsFrame = frame;
+        }
+        return _unitsThisFrame.Where(GodotObject.IsInstanceValid);
+    }
 
-    /// <summary>枚举当前仍有效的资源节点。</summary>
-    private IEnumerable<Node3D> Resources() =>
-        _match.GetTree().GetNodesInGroup("resource_units").OfType<Node3D>();
+    /// <summary>枚举当前仍有效的资源节点（按物理帧缓存，口径同 `Units()`）。</summary>
+    private IEnumerable<Node3D> Resources()
+    {
+        var frame = checked((long)Engine.GetPhysicsFrames());
+        if (_resourcesThisFrame is null || frame != _resourcesFrame)
+        {
+            _resourcesThisFrame = _match.GetTree().GetNodesInGroup("resource_units")
+                .OfType<Node3D>().ToArray();
+            _resourcesFrame = frame;
+        }
+        return _resourcesThisFrame.Where(GodotObject.IsInstanceValid);
+    }
+
+    private Node3D[]? _unitsThisFrame;
+    private long _unitsFrame = -1;
+    private Node3D[]? _resourcesThisFrame;
+    private long _resourcesFrame = -1;
 }

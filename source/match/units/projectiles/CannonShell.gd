@@ -52,6 +52,27 @@ func _ready():
 	_show_impact_explosion = bool(get_meta("impact_explosion", true))
 	if _trail != null:
 		_trail.emitting = true
+	_lock_flight_orientation(launch_aim)
+
+
+## 弹体朝向**只在发射瞬间确定**，飞行途中不再重算。
+##
+## 用户 2026-09-15 报"子弹射出会旋转"：原实现在 `_process` 里每帧
+## `look_at(global_position + (当前瞄准点 - 发射点), UP)`，而权威端
+## `ProjectileRuntime.GetAimPoint` 对**活着的目标**会持续返回目标当前位置（追瞄是玩法设计，
+## 落点/伤害口径不动）——于是瞄准点一移动，弹体每帧都被重新定向，看起来就是边飞边转。
+## 探针实测（`tools/probe_projectile_orientation.gd`）：目标横移时弹体偏航 -10°→-35°，单帧最大 6.96°；修后 0.000°。
+## 现在朝向在发射时锁死：弹体只平移不旋转，与"炮弹沿发射方向飞"的直觉一致。
+func _lock_flight_orientation(launch_aim: Vector3) -> void:
+	var travel := launch_aim - launch_transform.origin
+	if not travel.is_finite() or travel.length_squared() <= 0.0001:
+		# 拿不到有效瞄准点：沿用炮口朝向，绝不留给引擎一个随机 basis。
+		global_transform.basis = launch_transform.basis.orthonormalized()
+		return
+	# 近乎垂直的射击会让 look_at 的 UP 参考退化（cross ≈ 0 → basis 乱转），换一个参考轴。
+	var direction := travel.normalized()
+	var up := Vector3.UP if absf(direction.dot(Vector3.UP)) < 0.999 else Vector3.FORWARD
+	look_at(global_position + travel, up)
 
 
 func _process(delta: float):
@@ -70,9 +91,8 @@ func _process(delta: float):
 	# 直线弹道 + 平方递增的轻微下坠（arc_height 此时表示末端下坠幅度，非抛物线高度）
 	position.y -= _arc_height * ratio * ratio
 	global_position = position
-	var travel := aim_point - origin
-	if travel.length_squared() > 0.0001:
-		look_at(global_position + travel, Vector3.UP)
+	# ⚠ 这里**不能**再 `look_at(当前瞄准点)`：朝向已在 `_ready` 锁定（见 `_lock_flight_orientation`）。
+	# 弹体飞行途中只平移、不旋转 —— 否则追移动目标时弹体会持续转向（用户实测报障）。
 
 	if ratio >= 1.0:
 		_perform_impact()

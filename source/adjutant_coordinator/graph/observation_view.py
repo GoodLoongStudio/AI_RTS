@@ -31,6 +31,8 @@ __all__ = [
     "entity_id_of",
     "pos2d",
     "normalized_units",
+    "owned_augments",
+    "owned_augment_tags",
 ]
 
 
@@ -136,3 +138,33 @@ def normalized_units(tactical: Optional[Dict[str, Any]]) -> Dict[str, Dict[str, 
         }
         for unit in own_units(tactical)
     }
+
+
+def _augment_blob(source: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """从 tactical / fast_state / 顶层观测里取出 Godot 下发的 augments 快照。"""
+    if not isinstance(source, dict):
+        return {}
+    blob = source.get("augments")
+    if isinstance(blob, dict):
+        return blob
+    nested = source.get("fast_state")
+    if isinstance(nested, dict) and isinstance(nested.get("augments"), dict):
+        return nested["augments"]
+    return {}
+
+
+def owned_augments(source: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """已选加成（只读事实）。效果数字由 Godot 结算，这里不重算倍率。"""
+    blob = _augment_blob(source)
+    raw = blob.get("owned") or []
+    return [item for item in raw if isinstance(item, dict)]
+
+
+def owned_augment_tags(source: Optional[Dict[str, Any]]) -> List[str]:
+    tags: List[str] = []
+    for item in owned_augments(source):
+        tag = str(item.get("tag") or "")
+        if tag and tag not in tags:
+            tags.append(tag)
+    return tags
+

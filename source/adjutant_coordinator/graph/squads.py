@@ -636,13 +636,26 @@ def build_decision_frame(
         targets["B%d" % index] = {"ref": "B%d" % index, "kind": TARGET_ANCHOR,
                                   "entity_id": name, "pos": [round(bx, 1), round(bz, 1)],
                                   "cn": "基点%d外侧" % index}
+    from . import rules_fallback as rf
+    combat_types = rf.combat_types_of({}, rules)
+    combat_pos = [_pos_of(entity) for entity in _self_entities(tactical)
+                  if str(entity.get("unit_type", "")) in combat_types]
+    enemy_pts = [(x, z) for _name, x, z in enemies]
+    rally = rf.forward_rally_point(
+        (base_x, base_z), bounds=map_bounds, enemies=enemy_pts,
+        combat_positions=combat_pos)
+    front = [round(base_x + unit_dir[0] * FRONT_RADIUS, 1),
+             round(base_z + unit_dir[1] * FRONT_RADIUS, 1)]
+    disengage = rf.disengage_point(
+        combat_pos[0] if combat_pos else (base_x, base_z),
+        home=(base_x, base_z), enemies=enemy_pts, bounds=map_bounds)
     locations: List[Dict[str, Any]] = [
-        {"kind": TARGET_LOCATION, "pos": [round(base_x, 1), round(base_z, 1)],
-         "cn": "基地"},
+        {"kind": TARGET_LOCATION, "pos": list(rally or front),
+         "cn": "前线集结点"},
         {"kind": TARGET_LOCATION,
-         "pos": [round(base_x + unit_dir[0] * FRONT_RADIUS, 1),
-                 round(base_z + unit_dir[1] * FRONT_RADIUS, 1)],
-         "cn": "前压点"},
+         "pos": list(disengage or front),
+         "cn": "脱离点"},
+        {"kind": TARGET_LOCATION, "pos": front, "cn": "前压点"},
     ]
     for sign in (1, -1):
         locations.append({"kind": TARGET_LOCATION,
@@ -702,6 +715,38 @@ def build_decision_frame(
             build_spots.append((fallback[0], fallback[1]))
             locations.append({"kind": TARGET_LOCATION, "pos": [fallback[0], fallback[1]],
                               "cn": "建造落点1"})
+    extra_origins = [(x, z) for _name, x, z in structures
+                     if math.hypot(x - base_x, z - base_z) > 0.5]
+    approach_bearings: List[Tuple[float, float]] = [unit_dir]
+    # 【用户 2026-09-15："优先把防御塔建到基地外围，基地内保留少量"】
+    # ① 候选按"有没有塔当视野锚点"分两档：还没有塔时用保守的 8m 量级；已有塔
+    #    （视野 16→64）就沿它继续往外铺（半径与上限同时放大）。
+    # ② 内圈保留与 GDScript `DefenseController._needs_one_inside_turret` 同一条规则：
+    #    **已有塔但内圈一座都没有** → 这一座必须留在基地内（解码 BLD 时据此选内圈点）。
+    from . import rules_fallback as _rf   # 同口径常量（内圈半径 / 视野锚点档位）
+    turret_positions = [(x, z) for name, x, z in structures
+                        if "turret" in unit_type_of.get(name, "")]
+    has_turret_anchor = bool(turret_positions)
+    turret_inside_needed = has_turret_anchor and not any(
+        math.hypot(x - base_x, z - base_z) < _rf.TURRET_INNER_HQ_M
+        for x, z in turret_positions)
+    turret_spots = placement.collect_perimeter_candidates(
+        (base_x, base_z),
+        bounds=map_bounds,
+        own_points=own_points,
+        rejected=rejected,
+        extra_origins=extra_origins,
+        bearings=approach_bearings,
+        min_radius=6.0,
+        # 外探上限只认 `rules_fallback` 的常量（原来这里硬写 24.0 = 第二份口径，
+        # 与"出带即降级"的目标带口径会打架）。
+        max_radius=(_rf.TURRET_MAX_HQ_WITH_ANCHOR_M if has_turret_anchor
+                    else _rf.TURRET_MAX_HQ_M),
+        ring_radii=(6.0, 8.0),
+        slots=BUILD_PLACEMENT_SLOTS,
+        vision_radius=(_rf.TURRET_VISION_WITH_ANCHOR_M if has_turret_anchor
+                       else placement.VISION_SAFE_RADIUS_M),
+    )
     for index, item in enumerate(locations, start=1):
         targets["L%d" % index] = dict(item, ref="L%d" % index)
 
@@ -786,6 +831,9 @@ def build_decision_frame(
         deadline_seconds=float(deadline_seconds if deadline_seconds is not None
                                else limits["deadline_seconds"]),
         build_spots=tuple(build_spots),
+        turret_spots=tuple(turret_spots),
+        turret_inside_needed=turret_inside_needed,
+        home_pos=(round(base_x, 1), round(base_z, 1)),
         occupied_points=tuple(occupied),
         balance=balance,
         current_tasks=resolved_current,

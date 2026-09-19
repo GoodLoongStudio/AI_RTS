@@ -10,15 +10,13 @@ const MAPS = {
 	{
 		"name": "Plain & Simple",
 		"players": 4,
-		"size": Vector2i(50, 50),
-	},
-	"res://source/match/maps/BigArena.tscn":
-	{
-		"name": "Big Arena",
-		"players": 8,
+		# 【2026-09-15 用户要求】50×50 → 100×100（出生点也随之拉开到四角外圈）。
+		# 该 size 只用于菜单文案与小地图等 UI；**运行时以 `Map.size`（场景根节点属性）为准**，
+		# 两者必须同步改，否则菜单显示与实际地图不一致。
 		"size": Vector2i(100, 100),
 	},
 	# G4 四人图只挂 256×256。512 旧包已删，不要再登记。
+	# 8 人 BigArena 已从大厅拿掉（2026-09-15）；场景文件仍保留。
 	"res://source/match/maps/generated/16-0-1ca6e21aa1/map_16-0-1ca6e21aa1.tscn":
 	{
 		"name": "G4 大湖 seed16",
@@ -27,9 +25,7 @@ const MAPS = {
 	},
 }
 
-# 自定义对局地图清单**默认只保留 4 人与 8 人两张**（用户要求，2026-09-11）。
-# 之前的清单混入 3 张旧平面 seed 地图 + 13 张工作台生成的 4 人地图，共 18 项，
-# 选择成本高且对实战测试没有价值。
+# 自定义对局地图清单只保留 4 人图。
 # 采用**开关**而不是删除文件：地图资源与工作台的 map_index.json 原样保留，
 # 需要时把 DISCOVER_GENERATED_MAPS 改成 true 即可恢复自动发现。
 # 注意：静态初始化依赖 DirAccess 运行时读文件，不是常量表达式；
@@ -68,8 +64,8 @@ static func _load_generated_maps() -> Dictionary:
 						var size_arr: Array = parsed.get("size", [256, 256])
 						var players := int(parsed.get("players", 4))
 						var size := Vector2i(int(size_arr[0]), int(size_arr[1]))
-						# 四人生成图只收 256×256，避免旧 512 包或残包又出现在菜单里。
-						if players == 4 and size != Vector2i(256, 256):
+						# 大厅只收 4 人 256×256，避免 8 人图、旧 512 包或残包进菜单。
+						if players != 4 or size != Vector2i(256, 256):
 							continue
 						result[parsed["path"]] = {
 							"name": str(parsed.get("name", entry)),
@@ -99,10 +95,12 @@ class Navigation:
 
 
 class Air:
-	# 空中平面基准高度：地形抬升后（台地顶 8.1 语义 x4 = 32m、山体 60m）
-	# 原值 1.5 会让空中单位穿进地形，抬到 40m（高于最高地形 + 余量）。
+	# 空域导航网格的烘焙/AABB 参考高度（覆盖台地与山体）。
+	# 飞机实体不得钉在这个全局 Y 上，否则平地局会飞出镜头或穿进高台。
 	const Y = 40.0
 	const PLANE = Plane(Vector3.UP, Y)
+	## 飞机相对脚下地表的离地高度（世界米）。
+	const HOVER_OFFSET = 1.8
 
 	class Navmesh:
 		# 2048m 大地图：cell 过小会让 Recast 栅格超限，触发引擎崩溃防护

@@ -12,6 +12,8 @@ const Ra3Sidebar = preload("res://source/match/hud/ra3/Ra3Sidebar.gd")
 const SelectionPortraitPanel = preload("res://source/match/hud/ra3/SelectionPortraitPanel.gd")
 const CommandCursor = preload("res://source/match/hud/CommandCursor.gd")
 const MusicDirector = preload("res://source/match/MusicDirector.gd")
+const MatchPauseGateScript = preload("res://source/match/augments/MatchPauseGate.gd")
+const AugmentRuntimeScript = preload("res://source/match/augments/AugmentRuntime.gd")
 
 const CommandCenter = preload("res://source/match/units/CommandCenter.tscn")
 const Worker = preload("res://source/match/units/Worker.tscn")
@@ -101,6 +103,7 @@ func _lock_large_map_before_first_frame() -> void:
 
 
 func _ready():
+	_ensure_match_augments()
 	if NetSession.is_networked():
 		# 防御：联机模式下加载 NetSync。在 C# 项目编译后环境下
 		# preload(...).new() 会触发 “Nonexistent function 'new' in base 'GDScript'”，
@@ -155,6 +158,10 @@ func _ready():
 		# 侧栏"显示 AI 副官"按钮开合，不会抢占原有 HUD 的位置。
 		_setup_ai_command_hud()
 		_setup_traditional_unit_command_hud()
+		if get_meta("hold_hud_until_loading", false):
+			$HUD.visible = false
+			if has_node("UI"):
+				$UI.visible = false
 	else:
 		$HUD.visible = false
 	MatchSignals.match_started.emit()
@@ -317,9 +324,22 @@ func _setup_subsystems_dependent_on_map():
 	# milliseconds per physics frame. Units use collision_mask=0 and Terrain's
 	# input handler has a ray-plane fallback, so omit this collider on large maps.
 	if _uses_logic_terrain() or map.size.x >= 256.0 or map.size.y >= 256.0:
-		# 生成图不烘导航，也不要 trimesh。高度用采样，禁行走格子。
-		# 再 update_shape 只会把 ConcavePolygon 送进 PhysicsServer，活局 physics_ms 又回到 50+。
-		_terrain.disable_runtime_collision()
+		# 【2026-09-15 用户反复报"单位浮空" + 副官"控制频率极低"】这里原为
+		# `_terrain.disable_runtime_collision()`，它把 Terrain 从 `terrain_navigation_input`
+		# 组里摘掉、也不给地形建碰撞。后果两条：
+		#   ① 导航烘焙输入为空 → navmesh 查不到任何多边形（实测 air/terrain 两域
+		#      都返回 navmesh_unavailable）⇒ 副官的安全移动闸门把所有计划判成 wait；
+		#   ② 地形没有物理面 ⇒ `ground_height_at()` 的射线永远打空，只能靠高度场采样兜底，
+		#      旧版 `Collision/Solid*/Walk*` 台阶盒板（4×4m 方盒）会重新参与导航收集，
+		#      两套面"取较高面" ⇒ 单位站盒顶、玩家看到盒下真地形 = 悬空
+		#      （实测盒顶比真地形高 p50 +0.62m，与线上实测的 +0.6m 一致）。
+		# 改为与普通地图同款：`update_shape` 内部对 side>256 自动 stride=16 降采样
+		# （1025² → 约 4K 顶点，代价小）；真正的性能真凶是那几百个作者碰撞块，
+		# 由紧随其后的 `_purge_large_map_authoring_nodes()` 清掉（保留）。
+		_terrain.update_shape(map_terrain.mesh)
+		_terrain.scale = map.scale
+		_terrain.collision_layer = 2
+		_terrain.add_to_group("terrain_navigation_input")
 		_purge_large_map_authoring_nodes()
 	else:
 		_terrain.update_shape(map_terrain.mesh)
@@ -340,10 +360,13 @@ func _setup_subsystems_dependent_on_map():
 
 
 func _recalculate_camera_bounding_planes(map_size: Vector2):
-	_camera.bounding_planes[1] = Plane(-1, 0, 0, -map_size.x)
-	_camera.bounding_planes[3] = Plane(0, 0, -1, -map_size.y)
-	# 同步拉远上限：防止缩放超出地图边界看到地图外虚空。
-	_camera.set_map_extents(map_size)
+	var world_size := map_size
+	if map is Node3D:
+		world_size = Vector2(
+			map_size.x * absf((map as Node3D).scale.x),
+			map_size.y * absf((map as Node3D).scale.z)
+		)
+	_camera.set_map_bounds(world_size)
 
 
 func _is_large_generated_map() -> bool:
@@ -392,6 +415,8 @@ func _configure_view_for_generated_map() -> void:
 	print(
 		"LARGE_MAP view size=",
 		map.size,
+		" cam_bound=",
+		_camera.bounding_planes[1].d if _camera.bounding_planes.size() > 1 else 0.0,
 		" cam_far=",
 		_camera.far,
 		" cam_size=",
@@ -549,10 +574,17 @@ func _create_players_from_settings():
 		else:
 			var player_scene = Constants.Match.Player.CONTROLLER_SCENES[player_settings.controller]
 			player = player_scene.instantiate()
+			if Constants.is_rule_ai(player_settings.controller) and "difficulty" in player:
+				var difficulty := int(player_settings.difficulty)
+				if difficulty < 0 or difficulty > 2:
+					difficulty = Constants.rule_ai_difficulty(player_settings.controller)
+				player.difficulty = difficulty
 		player.color = player_settings.color
-		# 初始经济：所有玩家统一 50000（用户设定 2026-09-03）。
-		player.resource_a = 50000
-		player.resource_b = 50000
+		# 初始经济：所有玩家统一 10000（用户设定 2026-09-15，此前 50000）。
+		# 与单位定价的方向性调整配套（小兵降、载具升，见 config/balance/demo.balance.v1.json）：
+		# 开局够铺经济 + 少量部队，不再一开局就能堆满重型单位。
+		player.resource_a = 10000
+		player.resource_b = 10000
 		# 仅自动化测试启动参数生效的低余额局：用于真实触发 InsufficientResources
 		# （工人 200 而余额 150）。正常玩家进程不带 --e2e-low-balance 不受影响，
 		# 不构成任何运行时可调作弊接口。
@@ -595,54 +627,53 @@ func _register_spawn_points_with_query_runtime() -> void:
 	_query_runtime.RegisterSpawnPoints(positions)
 
 
-## 把出生变换投到真实地形高度（2026-09-15 方案 A：修"单位浮空"）。
-##
-## 背景：出生点的 y 是**生成期写入地图的预设值**，与运行时地形可能差 0.5m 以上
-## （生成器假设"作者盒顶与高度场共面"，但 9-14 实测该假设并不处处成立：
-##  盒顶比块内地形最低点高 p50 +0.62m / p90 +2.46m），于是单位出生即浮空。
-##
-## 大图已删 Collision 且不建 trimesh，物理射线打不中；生成图改用 sample_height。
-## 手摆小图仍走碰撞射线。
+## 兼容旧调用名（相机/DCS 建造落点仍走这里）。
 func _sample_generated_height(at: Vector3) -> float:
-	if map == null:
-		return at.y
-	var generated: Node = map.find_child("Terrain", true, false)
-	if generated != null and generated.has_method("sample_height"):
-		return float(generated.call("sample_height", at.x, at.z))
-	return at.y
+	return ground_height_at(at)
 
 
-func _grounded_spawn_transform(spawn_transform: Transform3D) -> Transform3D:
-	var origin := spawn_transform.origin
+## 世界坐标处的地表高度。生成图走高度场（含缩放）；手摆图走地形碰撞射线。
+func ground_height_at(at: Vector3) -> float:
 	if _uses_logic_terrain():
-		return Transform3D(
-			spawn_transform.basis,
-			Vector3(origin.x, _sample_generated_height(origin), origin.z)
-		)
+		return Utils.Match.sample_world_ground_y(map, at)
 	var terrain_body: Node3D = (
 		(_terrain if _terrain != null else find_child("Terrain", true, false)) as Node3D
 	)
 	if terrain_body == null:
-		return spawn_transform
+		return at.y
 	var world: World3D = terrain_body.get_world_3d()
 	if world == null:
-		return spawn_transform
+		return at.y
 	var params := PhysicsRayQueryParameters3D.create(
-		Vector3(origin.x, origin.y + 200.0, origin.z), Vector3(origin.x, origin.y - 200.0, origin.z)
+		Vector3(at.x, at.y + 200.0, at.z), Vector3(at.x, at.y - 200.0, at.z)
 	)
 	params.collision_mask = 2
 	params.collide_with_areas = false
 	var hit: Dictionary = world.direct_space_state.intersect_ray(params)
 	if hit.is_empty():
-		return spawn_transform
-	var ground_y: float = (hit["position"] as Vector3).y
-	return Transform3D(spawn_transform.basis, Vector3(origin.x, ground_y, origin.z))
+		return Utils.Match.sample_world_ground_y(map, at)
+	return (hit["position"] as Vector3).y
+
+
+func _grounded_spawn_transform(spawn_transform: Transform3D) -> Transform3D:
+	var origin := spawn_transform.origin
+	return Transform3D(
+		spawn_transform.basis,
+		Vector3(origin.x, ground_height_at(origin), origin.z)
+	)
+
+
+func _is_air_unit(unit: Node) -> bool:
+	var movement := unit.find_child("Movement", true, false)
+	if movement == null or not ("domain" in movement):
+		return false
+	return int(movement.domain) == int(Constants.Match.Navigation.Domain.AIR)
 
 
 func _spawn_player_units(player, spawn_transform):
 	# 开局：主基地 + 1 无人机 + 2 工人（2026-09-05 用户设定：
 	# 无人机恢复 1 架，其余建筑/单位一律由工人建造/生产）。
-	# 【2026-09-15 修"单位浮空"】出生点投到真实地形高度（无人机高度由自身飞行逻辑决定，不受影响）。
+	# 出生点投到真实地形高度；无人机在 _setup_and_spawn_unit 里再加离地。
 	spawn_transform = _grounded_spawn_transform(spawn_transform)
 	_setup_and_spawn_unit(CommandCenter.instantiate(), spawn_transform, player, false)
 	_setup_and_spawn_unit(
@@ -666,14 +697,32 @@ func _spawn_player_units(player, spawn_transform):
 
 
 func _setup_and_spawn_unit(unit, a_transform, player, mark_structure_under_construction = true):
-	unit.global_transform = a_transform
+	# 所有单位/建筑的唯一出场入口。地面始终贴地；飞机贴地后再抬离地高度。
+	# 不再用 3m 护栏：高差 >3m 时跳过校正，正是"埋进地里 / 悬在盒顶"的来源。
+	var grounded := _grounded_spawn_transform(a_transform)
+	if _is_air_unit(unit):
+		a_transform = Transform3D(
+			grounded.basis,
+			Vector3(
+				grounded.origin.x,
+				grounded.origin.y + Constants.Match.Air.HOVER_OFFSET,
+				grounded.origin.z
+			)
+		)
+	else:
+		a_transform = grounded
 	if unit is Structure and mark_structure_under_construction:
 		unit.mark_as_under_construction()
 	_setup_unit_groups(unit, player)
 	# 联机 P0-1：显式命名（同玩家节点，自动命名跨进程不稳定）。
 	unit.name = "Unit_%d" % _unit_spawn_counter
 	_unit_spawn_counter += 1
+	# Players/Player 在原点：入树前写本地变换，_ready 才不会在 (0,0) 闪一帧/盖障碍。
+	unit.transform = Transform3D(a_transform.basis, a_transform.origin)
 	player.add_child(unit)
+	unit.global_transform = a_transform
+	if unit.has_method("reset_physics_interpolation"):
+		unit.reset_physics_interpolation()
 	MatchSignals.unit_spawned.emit(unit)
 
 
@@ -685,6 +734,19 @@ func _setup_unit_groups(unit, player):
 		unit.add_to_group("adversary_units")
 	if player in visible_players:
 		unit.add_to_group("revealed_units")
+
+
+func _ensure_match_augments() -> void:
+	if get_node_or_null("PauseGate") == null:
+		var gate: Node = MatchPauseGateScript.new()
+		gate.name = "PauseGate"
+		add_child(gate)
+	var flags := get_node_or_null("/root/FeatureFlags")
+	var enabled := true if flags == null else bool(flags.get("match_augments"))
+	if enabled and get_node_or_null("AugmentRuntime") == null:
+		var runtime: Node = AugmentRuntimeScript.new()
+		runtime.name = "AugmentRuntime"
+		add_child(runtime)
 
 
 func get_local_player():

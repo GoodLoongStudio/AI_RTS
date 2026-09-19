@@ -54,7 +54,18 @@ func _ready():
 	)
 	await get_tree().create_timer(1.0).timeout
 
-	var threat_position: Vector3 = own_spawn + Vector3(15.0, 0.0, 0.0)
+	# 【2026-09-19 修夹具】原实现以 `own_spawn`（`GetSpawnPoints` 里**第一个** relation=="Own"
+	# 的点）为基准。实测那个点属于**人类**阵营，距 AI 基地很远 ⇒ "敌人进入防御半径"这个
+	# **前提根本没成立**，断言必然失败（不是控制器缺陷：探针显示扫描返回的 9 个实体里
+	# 只有 Self/Neutral，没有任何 Enemy）。
+	# 改为以**刚生成的 AI 坦克**为基准：它就在 AI 基地旁，+15m 一定落在 `defense_scan_radius`
+	# （40m）内，才真正复现"敌人进入基地防御半径"这一被测场景。
+	# 【2026-09-19 修夹具·第二处】距离也要落在 AI 的**视野半径**内，而不只是扫描半径内：
+	# 探针实测把威胁放在 +15m 时，`ScanCircle` 返回的 9 个实体里只有 Self/Neutral，
+	# 没有 Enemy —— 因为"能否看见"取决于单位 `sight_range`（坦克约十余米），
+	# 而 `defense_scan_radius`（40m）只是查询范围。+6m 确保威胁确实在 AI 视野内，
+	# 才真正复现"敌人进入基地防御半径并被看见"这一被测场景。
+	var threat_position: Vector3 = ai_tank.global_position + Vector3(6.0, 0.0, 0.0)
 	var human = match_instance.get_node("Players/Human")
 	var human_tank = TankScene.instantiate()
 	MatchSignals.setup_and_spawn_unit.emit(

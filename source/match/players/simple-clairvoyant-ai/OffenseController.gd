@@ -25,11 +25,17 @@ const AIRCRAFT_FACTORY_TYPE_ID := "aircraft_factory"
 const TANK_TYPE_ID := "tank"
 const BarracksScene = preload("res://source/match/units/Barracks.tscn")
 const SoldierScene = preload("res://source/match/units/Infantry.tscn")
+const RocketeerScene = preload("res://source/match/units/Rocketeer.tscn")
 const BARRACKS_TYPE_ID := "barracks"
 const SOLDIER_TYPE_ID := "soldier"
+const ROCKETEER_TYPE_ID := "rocketeer"
 const HELICOPTER_TYPE_ID := "helicopter"
 
 var _player = null
+## 决策节奏倍率：由 SimpleClairvoyantAI 按"本局电脑玩家人数"注入（唯一实现见 AiCadence）。
+## 默认 1.0 = 原始节奏；3 个电脑时为 2.0（0.5s → 1.0s）。
+var refresh_scale := 1.0
+
 var _world_query_runtime = null
 var _query_session_id := ""
 var _command_gateway = null
@@ -48,6 +54,10 @@ var _queue_full_backoff := {}
 ## 期 2 步兵副线开关与在编上限（由难度档位决定）
 var _infantry_production_enabled := false
 var _infantry_cap := 0
+## 简单档重型（坦克/直升机）上限；-1 = 不限制。
+var _heavy_unit_cap := -1
+## 兵营产炮兵上限；0 = 不产。简单档开局带对空。
+var _rocketeer_cap := 0
 var _secondary_production_enabled := false
 var _battlegroup_under_forming = null
 var _battlegroups := []
@@ -66,7 +76,8 @@ func setup(player, world_query_runtime, query_session_id: String, command_gatewa
 	_world_query_runtime = world_query_runtime
 	_query_session_id = query_session_id
 	_command_gateway = command_gateway
-	_setup_ticks_ms = Time.get_ticks_msec()
+	# 与下方生产门控同一时间源（战局模拟时钟），混用实时时钟会算出负差值。
+	_setup_ticks_ms = _ai.simulation_msec()
 	_configure_primary_and_secondary_types()
 	_setup_refresh_timer()
 	_try_creating_new_battlegroup()
@@ -127,6 +138,15 @@ func provision(resources, metadata):
 			metadata,
 			own_entities
 		)
+	elif metadata == "rocketeer_unit":
+		_provision_unit(
+			ROCKETEER_TYPE_ID,
+			BARRACKS_TYPE_ID,
+			RocketeerScene,
+			resources,
+			metadata,
+			own_entities
+		)
 	else:
 		assert(false, "unexpected flow")
 
@@ -152,16 +172,27 @@ func _configure_primary_and_secondary_types():
 	)
 	_secondary_unit_scene = TankScene if secondary_is_vehicle else HelicopterScene
 	_secondary_unit_type_id = TANK_TYPE_ID if secondary_is_vehicle else HELICOPTER_TYPE_ID
-	# 期 2 步兵副线：NORMAL/HARD 启用兵营出步兵，EASY 保持无步兵
-	_infantry_production_enabled = _ai.difficulty != _ai.Difficulty.EASY
-	_infantry_cap = 8 if _ai.difficulty == _ai.Difficulty.HARD else 4
+	# 简单档：步兵补编制，重型最多 1；中等/困难仍以坦克为主、步兵作副线。
+	if _ai.difficulty == _ai.Difficulty.EASY:
+		_infantry_production_enabled = true
+		_infantry_cap = maxi(
+			0,
+			_ai.expected_number_of_battlegroups * _ai.expected_number_of_units_in_battlegroup - 1
+		)
+		_heavy_unit_cap = 1
+		_rocketeer_cap = 2
+	else:
+		_infantry_production_enabled = true
+		_infantry_cap = 8 if _ai.difficulty == _ai.Difficulty.HARD else 4
+		_heavy_unit_cap = -1
+		_rocketeer_cap = 2 if _ai.difficulty == _ai.Difficulty.HARD else 1
 
 
 func _setup_refresh_timer():
 	var timer := Timer.new()
 	add_child(timer)
 	timer.timeout.connect(_on_refresh_timer_timeout)
-	timer.start(REFRESH_INTERVAL_S)
+	timer.start(REFRESH_INTERVAL_S * refresh_scale)
 
 
 ## 用一次己方快照维护工厂存在性与生产队列，避免直接读取建筑 Node。
@@ -188,15 +219,75 @@ func _refresh_logistics():
 			"barracks_structure",
 			own_entities
 		)
+	_update_role_demand_from_intel()
 	_enforce_units_production_by_ratio(own_entities)
+	if _rocketeer_cap > 0:
+		_enforce_rocketeer_production(own_entities)
 	if _infantry_production_enabled:
 		_enforce_infantry_production(own_entities)
 	_refresh_defense_response(own_entities)
 
 
+## 统计场上 + 队列 + 待处理请求里的坦克/直升机数量（简单档重型上限用）。
+func _heavy_unit_count(own_entities: Array) -> int:
+	var count := 0
+	for entity in own_entities:
+		var type_id: String = entity.get("type_id", "")
+		if type_id in [TANK_TYPE_ID, HELICOPTER_TYPE_ID]:
+			count += 1
+		var production = entity.get("production", null)
+		if production == null:
+			continue
+		for item in production.get("items", []):
+			if item.get("product_type_id", "") in [TANK_TYPE_ID, HELICOPTER_TYPE_ID]:
+				count += 1
+	count += _number_of_pending_unit_resource_requests.get("primary_unit", 0)
+	count += _number_of_pending_unit_resource_requests.get("secondary_unit", 0)
+	return count
+
+
+## 【2026-09-19 S2：侦察情报进入生产决策】
+## `IntelligenceController` 每拍都在产出敌军配比直方图
+## （`get_enemy_composition_summary()`），但此前**没有任何消费者** —— 侦察白做了
+## （方案第 1 节："敌军配比统计无消费者"；审查 2026-09-16 同样指出旧 getter 无消费者）。
+## 这里把它接进生产：观察到敌方空军 ⇒ 追加防空（rocketeer）；观察到敌方重装
+## ⇒ 追加反装甲步兵。严格只用**实际观察到**的敌情，不看视野外、不加资源、不刷兵。
+## 上限每次都从"档位基线"重算，不会因反复调用而累积膨胀。
+func _update_role_demand_from_intel() -> void:
+	var intel := (
+		get_parent().get_node_or_null("IntelligenceController") if get_parent() != null else null
+	)
+	if intel == null or not intel.has_method("get_enemy_composition_summary"):
+		return
+	var counts: Dictionary = intel.call("get_enemy_composition_summary")
+	if counts.is_empty():
+		return
+	var air_count := 0
+	var heavy_count := 0
+	for type_id in counts:
+		var amount := int(counts[type_id])
+		match String(type_id):
+			"helicopter":
+				air_count += amount
+			"tank", "heavy_tank":
+				heavy_count += amount
+	# 档位基线：与 _configure_primary_and_secondary_types() 保持一致。
+	var base_rocketeer := 2
+	var base_infantry := 8 if _ai.difficulty == _ai.Difficulty.HARD else 4
+	if _ai.difficulty == _ai.Difficulty.EASY:
+		base_infantry = maxi(
+			0,
+			_ai.expected_number_of_battlegroups * _ai.expected_number_of_units_in_battlegroup - 1
+		)
+	_rocketeer_cap = base_rocketeer + (2 if air_count >= 2 else 0)
+	_infantry_cap = base_infantry + (2 if heavy_count >= 3 else 0)
+
+
 ## 出兵入口：按主:副配比（AI-plan Part A Phase 6）决定这一拍生产哪种单位。
 ## 副产线未启用时保持旧口径只出主兵种。
 func _enforce_units_production_by_ratio(own_entities: Array):
+	if _heavy_unit_cap >= 0 and _heavy_unit_count(own_entities) >= _heavy_unit_cap:
+		return
 	var metadata := _preferred_unit_metadata(own_entities)
 	if metadata == "primary_unit":
 		_enforce_units_production(
@@ -220,16 +311,38 @@ func _preferred_unit_metadata(own_entities: Array) -> String:
 	if not _secondary_production_enabled:
 		return "primary_unit"
 	var queued := _queued_unit_counts(own_entities)
-	var primary_count: int = queued["primary"] + _number_of_pending_unit_resource_requests.get(
-		"primary_unit", 0
+	# 【2026-09-17 修复确定缺陷】原实现只看**队列 + 待处理请求**，完全不看**现役**：
+	# 场上已有 3 辆坦克时 primary_count 仍是 0，于是判定"该补主兵种"继续堆坦克
+	# （方案第 1 节：坦克/直升机配比只看队列及待处理请求，遗漏现役）。
+	# 现役、真正排队、尚未入队请求三者相加，同一实体只占一个桶。
+	var owned := _owned_unit_counts(own_entities)
+	var primary_count: int = (
+		owned["primary"]
+		+ queued["primary"]
+		+ _number_of_pending_unit_resource_requests.get("primary_unit", 0)
 	)
-	var secondary_count: int = queued["secondary"] + _number_of_pending_unit_resource_requests.get(
-		"secondary_unit", 0
+	var secondary_count: int = (
+		owned["secondary"]
+		+ queued["secondary"]
+		+ _number_of_pending_unit_resource_requests.get("secondary_unit", 0)
 	)
 	var ratio: int = maxi(1, _ai.primary_to_secondary_unit_ratio)
 	var diff_if_primary := absi(primary_count + 1 - ratio * secondary_count)
 	var diff_if_secondary := absi(primary_count - ratio * (secondary_count + 1))
 	return "primary_unit" if diff_if_primary <= diff_if_secondary else "secondary_unit"
+
+
+## 统计场上**现役**主/副兵种数量（不含生产队列与待处理请求，避免双重计数）。
+## 与 `_queued_unit_counts` 配对使用：两者相加才是"这一角色的真实占有量"。
+func _owned_unit_counts(own_entities: Array) -> Dictionary:
+	var counts := {"primary": 0, "secondary": 0}
+	for entity in own_entities:
+		var type_id: String = entity.get("type_id", "")
+		if type_id == _primary_unit_type_id:
+			counts["primary"] += 1
+		elif type_id == _secondary_unit_type_id:
+			counts["secondary"] += 1
+	return counts
 
 
 ## 统计生产队列中的主/副兵种数量（资源请求单列，避免双重计数）。
@@ -250,21 +363,29 @@ func _queued_unit_counts(own_entities: Array) -> Dictionary:
 
 ## 步兵副线（期 2）：兵营完工且步兵在编上限内时请求生产，不占用主/副配比。
 func _enforce_infantry_production(own_entities: Array):
-	if Time.get_ticks_msec() - _setup_ticks_ms < int(_ai.first_wave_delay_s * 1000.0):
+	# 【2026-09-17】时间源改用**战局模拟时钟**（暂停不累计），原 `Time.get_ticks_msec()`
+	# 是实时时钟，暂停/卡顿会让生产门槛漂移。门槛值来自 `first_wave_delay_s`，
+	# 该参数 2026-09-17 起**只门控生产**，三档默认 0（条件合法即生产）。
+	if _ai.simulation_msec() - _setup_ticks_ms < int(_ai.first_wave_delay_s * 1000.0):
 		return
-	if Time.get_ticks_msec() < int(_queue_full_backoff.get("soldier_unit", 0)):
+	# 【2026-09-17 方案：时间源统一】改用模拟时钟（暂停不累计）。
+	# 赋值处（下面的 `_queue_full_backoff[...] = ...`）必须同源，否则实时值减模拟值
+	# 会算出巨大正数／负差值，退避窗口直接失效。
+	if _ai.simulation_msec() < int(_queue_full_backoff.get("soldier_unit", 0)):
 		return
 	if _completed_producers(BARRACKS_TYPE_ID, own_entities).is_empty():
 		return
-	var queued: int = _number_of_pending_unit_resource_requests.get("soldier_unit", 0)
+	var soldier_count: int = _number_of_pending_unit_resource_requests.get("soldier_unit", 0)
 	for entity in own_entities:
+		if entity.get("type_id", "") == SOLDIER_TYPE_ID:
+			soldier_count += 1
 		var production = entity.get("production", null)
 		if production == null:
 			continue
 		for item in production.get("items", []):
 			if item.get("product_type_id", "") == SOLDIER_TYPE_ID:
-				queued += 1
-	if queued >= _infantry_cap or _number_of_pending_unit_resource_requests.get(
+				soldier_count += 1
+	if soldier_count >= _infantry_cap or _number_of_pending_unit_resource_requests.get(
 		"soldier_unit", 0
 	) > 0:
 		return
@@ -272,6 +393,44 @@ func _enforce_infantry_production(own_entities: Array):
 		_number_of_pending_unit_resource_requests.get("soldier_unit", 0) + 1
 	)
 	resources_required.emit(_balance.GetProductionCost(SoldierScene), "soldier_unit")
+
+
+func _count_owned_and_queued(own_entities: Array, type_id: String, request_key: String) -> int:
+	var count: int = _number_of_pending_unit_resource_requests.get(request_key, 0)
+	for entity in own_entities:
+		if entity.get("type_id", "") == type_id:
+			count += 1
+		var production = entity.get("production", null)
+		if production == null:
+			continue
+		for item in production.get("items", []):
+			if item.get("product_type_id", "") == type_id:
+				count += 1
+	return count
+
+
+## 兵营产炮兵：开局进攻编组带上对空。
+func _enforce_rocketeer_production(own_entities: Array):
+	# 【2026-09-17】时间源改用**战局模拟时钟**（暂停不累计），原 `Time.get_ticks_msec()`
+	# 是实时时钟，暂停/卡顿会让生产门槛漂移。门槛值来自 `first_wave_delay_s`，
+	# 该参数 2026-09-17 起**只门控生产**，三档默认 0（条件合法即生产）。
+	if _ai.simulation_msec() - _setup_ticks_ms < int(_ai.first_wave_delay_s * 1000.0):
+		return
+	# 【2026-09-17 方案：时间源统一】改用模拟时钟（暂停不累计）。
+	# 赋值处（下面的 `_queue_full_backoff[...] = ...`）必须同源，否则实时值减模拟值
+	# 会算出巨大正数／负差值，退避窗口直接失效。
+	if _ai.simulation_msec() < int(_queue_full_backoff.get("rocketeer_unit", 0)):
+		return
+	if _completed_producers(BARRACKS_TYPE_ID, own_entities).is_empty():
+		return
+	if _count_owned_and_queued(own_entities, ROCKETEER_TYPE_ID, "rocketeer_unit") >= _rocketeer_cap:
+		return
+	if _number_of_pending_unit_resource_requests.get("rocketeer_unit", 0) > 0:
+		return
+	_number_of_pending_unit_resource_requests["rocketeer_unit"] = (
+		_number_of_pending_unit_resource_requests.get("rocketeer_unit", 0) + 1
+	)
+	resources_required.emit(_balance.GetProductionCost(RocketeerScene), "rocketeer_unit")
 
 
 ## 防御响应（AI-plan Part A Phase 5）：基地威胁有效时派最近的非撤退编组回防；
@@ -288,14 +447,14 @@ func _refresh_defense_response(own_entities: Array):
 			_defense_battlegroup = _nearest_available_battlegroup(own_entities, threat)
 			if _defense_battlegroup != null:
 				_defense_battlegroup.assume_defense_position(threat)
-				_defense_recalled_at_ms = Time.get_ticks_msec()
-		elif Time.get_ticks_msec() - _defense_recalled_at_ms > 5000:
+				_defense_recalled_at_ms = _ai.simulation_msec()
+		elif _ai.simulation_msec() - _defense_recalled_at_ms > 5000:
 			_defense_battlegroup.assume_defense_position(threat)
-			_defense_recalled_at_ms = Time.get_ticks_msec()
+			_defense_recalled_at_ms = _ai.simulation_msec()
 		return
 	if _defense_battlegroup != null and is_instance_valid(_defense_battlegroup):
 		if (
-			Time.get_ticks_msec() - _defense_recalled_at_ms
+			_ai.simulation_msec() - _defense_recalled_at_ms
 			>= int(_ai.defense_recall_min_s * 1000.0)
 		):
 			_defense_battlegroup.resume_offense()
@@ -367,7 +526,7 @@ func _provision_unit(
 	)
 	if not result.get("accepted", false):
 		# QueueFull 等拒绝: 5 秒退避后再试(否则每个刷新周期重试, 每秒上百次日志+事务风暴)。
-		_queue_full_backoff[metadata] = Time.get_ticks_msec() + 5000
+		_queue_full_backoff[metadata] = _ai.simulation_msec() + 5000
 		print("规则 AI 生产作战单位被拒绝(5s 退避)：%s" % result)
 
 
@@ -437,9 +596,15 @@ func _enforce_units_production(
 	metadata: String,
 	own_entities: Array
 ):
-	if Time.get_ticks_msec() - _setup_ticks_ms < int(_ai.first_wave_delay_s * 1000.0):
+	# 【2026-09-17】时间源改用**战局模拟时钟**（暂停不累计），原 `Time.get_ticks_msec()`
+	# 是实时时钟，暂停/卡顿会让生产门槛漂移。门槛值来自 `first_wave_delay_s`，
+	# 该参数 2026-09-17 起**只门控生产**，三档默认 0（条件合法即生产）。
+	if _ai.simulation_msec() - _setup_ticks_ms < int(_ai.first_wave_delay_s * 1000.0):
 		return
-	if Time.get_ticks_msec() < int(_queue_full_backoff.get(metadata, 0)):
+	# 【2026-09-17 方案：时间源统一】改用模拟时钟（暂停不累计）。
+	# 赋值处（下面的 `_queue_full_backoff[...] = ...`）必须同源，否则实时值减模拟值
+	# 会算出巨大正数／负差值，退避窗口直接失效。
+	if _ai.simulation_msec() < int(_queue_full_backoff.get(metadata, 0)):
 		return
 	if _completed_producers(structure_type_id, own_entities).is_empty():
 		return
@@ -473,6 +638,13 @@ func _pending_structure_requests_for_type(structure_type_id: String) -> int:
 		result += _number_of_pending_structure_resource_requests.get("primary_structure", 0)
 	if _secondary_structure_type_id == structure_type_id:
 		result += _number_of_pending_structure_resource_requests.get("secondary_structure", 0)
+	# 【2026-09-17 修复确定缺陷】兵营请求写入的键是 `barracks_structure`
+	# （见 provision() 分支与 _refresh_logistics 的 _enforce_structure_existence 调用），
+	# 但原先这里只统计 primary/secondary 两个键 ⇒ 兵营的重复请求不被去重，
+	# 会重复挤占预算与施工机会（方案第 1 节："兵营请求写入 barracks_structure，
+	# 去重只查另外两种结构键"）。
+	if structure_type_id == BARRACKS_TYPE_ID:
+		result += _number_of_pending_structure_resource_requests.get("barracks_structure", 0)
 	return result
 
 
@@ -518,19 +690,27 @@ func _get_own_entities() -> Array:
 
 ## 创建只持有稳定单位 ID、使用公共查询和固定身份命令的作战编组。
 func _try_creating_new_battlegroup() -> bool:
-	if not _battlegroups.is_empty():
+	if not _battlegroups.is_empty() and _ai.difficulty != _ai.Difficulty.EASY:
 		_secondary_production_enabled = true
 	if _battlegroups.size() == _ai.expected_number_of_battlegroups:
 		_battlegroup_under_forming = null
 		return false
 	var battlegroup = AutoAttackingBattlegroup.new()
+	var min_launch := 2 if _ai.difficulty == _ai.Difficulty.EASY else 0
+	# 首波出击门槛**只约束第一支编组**（方案第 2 节：首波 35–50 / 25–40 / 20–30 模拟秒）。
+	# 后续编组建好即可投入，节奏改由"上波结束到再次派出"的间隔控制。
+	# 注意：这里用"编组创建时刻"近似对局开始时刻（编组在 setup 阶段创建，误差极小）。
+	var earliest_attack_sim_ms := 0
+	if _battlegroups.is_empty() and _ai.attack_wave_delay_s > 0.0:
+		earliest_attack_sim_ms = _ai.simulation_msec() + int(_ai.attack_wave_delay_s * 1000.0)
 	battlegroup.setup(
 		_ai.expected_number_of_units_in_battlegroup,
 		_world_query_runtime,
 		_query_session_id,
 		_command_gateway,
 		_ai.retreat_threshold,
-		_ai.is_passive_test_ai()
+		_ai.is_passive_test_ai(),
+		min_launch
 	)
 	_battlegroups.append(battlegroup)
 	battlegroup.tree_exited.connect(_on_battlegroup_died.bind(battlegroup))
@@ -554,6 +734,8 @@ func _attach_unassigned_battle_units(own_entities: Array):
 	var battle_type_ids := [TANK_TYPE_ID, HELICOPTER_TYPE_ID]
 	if _infantry_production_enabled:
 		battle_type_ids.append(SOLDIER_TYPE_ID)
+	if _rocketeer_cap > 0:
+		battle_type_ids.append(ROCKETEER_TYPE_ID)
 	var battle_entities: Array = own_entities.filter(
 		func(entity): return entity.get("type_id", "") in battle_type_ids
 	)

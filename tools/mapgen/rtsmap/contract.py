@@ -262,7 +262,7 @@ G2_DEFAULTS = {
 # ---- G3 默认 ----
 G3_DEFAULTS = {
     "near_count": 2,            # 每家 2× ResourceA
-    "near_path_range": (8.0, 13.0),
+    "near_path_range": (6.0, 9.0),  # 2026-09-15：家里矿贴基地，原 8–13 开局走太远
     "expansion_count": (1, 1),  # 每家 1×A + 1×B
     # 256m 适配：扩张锚点实际距离 14–44m（脊线避让会拉回），路径带按锚距自适应：
     # [max(band_min, rel_lo·d0), rel_hi·d0]（d0=出生点→锚点直线距）

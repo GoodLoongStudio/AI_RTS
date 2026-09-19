@@ -29,9 +29,16 @@ func _ready():
 	await get_tree().physics_frame
 	await get_tree().process_frame
 
-	# 等权威经济账户就绪（Match 就绪后异步配置，时序随加载波动）
+	# 等权威经济账户与**公共查询会话**都就绪（Match 就绪后异步配置，时序随加载波动）。
+	# 【2026-09-19 修 flaky】原实现只等 `_economy_runtime`，没等 `_world_query_runtime`；
+	# 加载慢时 `_get_own_entities()` 会在会话绑定前调用 ⇒ `GetOwnForces in base 'Nil'`
+	# 并中断本协程（表现为同版本时红时绿）。这里改为轮询等齐，与
+	# RuleAiEconomyQuery / RuleAiDefense 的夹具同口径。
 	var eco_wait_deadline := Time.get_ticks_msec() + 10000
-	while rule_ai._economy_runtime == null and Time.get_ticks_msec() < eco_wait_deadline:
+	while (
+		rule_ai._economy_runtime == null
+		or rule_ai.get("_world_query_runtime") == null
+	) and Time.get_ticks_msec() < eco_wait_deadline:
 		await get_tree().physics_frame
 	var income_applied: bool = rule_ai.add_resources(
 		{"resource_a": 10000},

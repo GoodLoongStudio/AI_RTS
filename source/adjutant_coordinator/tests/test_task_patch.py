@@ -107,7 +107,10 @@ class RefTableTests(unittest.TestCase):
         self.assertEqual(frame.targets["E1"]["entity_id"], "Unit_9")
         self.assertEqual(frame.targets["R1"]["entity_id"], "ResourceA")
         self.assertIn("B1", frame.targets)          # 主基地锚点
-        self.assertIn("L1", frame.targets)          # 基地点位
+        self.assertIn("L1", frame.targets)          # 前线集结点
+        self.assertEqual(frame.targets["L1"]["cn"], "前线集结点")
+        self.assertNotEqual(frame.targets["L1"]["pos"], [0.0, 0.0],
+                            "L1 不得再是主基地坐标")
         self.assertIn("U1", frame.targets)          # 可生产单位
         self.assertIn("V1", frame.targets)          # 可建造建筑
         self.assertEqual(frame.targets["V1"]["scene"], "barracks")
@@ -187,6 +190,42 @@ class DecodeTests(unittest.TestCase):
         chosen = _build_placement(frame, {"ref": "W1", "pos": [10.5, 0.0]})
         self.assertEqual(chosen, [50.0, 0.0],
                          "近处落点被己方单位占满时必须改选空落点")
+
+    def test_turret_placement_prefers_outer_spot(self):
+        """防御塔用外围候选，并按离基地远优先；产线仍走空位打分。"""
+        from adjutant_coordinator.graph.task_patch import DecisionFrame, _build_placement
+        frame = DecisionFrame(
+            match_id="m", player_id="P", rules_version="r", snapshot_id=1,
+            server_tick=1, mode="fast",
+            build_spots=((12.0, 7.0), (18.0, 7.0)),
+            turret_spots=((12.0, 7.0), (18.0, 7.0)),
+            home_pos=(10.0, 7.0),
+            occupied_points=((10.0, 7.0),))
+        turret = _build_placement(frame, {"ref": "W1", "pos": [11.0, 8.0]},
+                                 scene="anti_air_turret")
+        self.assertEqual(turret, [18.0, 7.0], "防御塔必须选更靠外的候选")
+
+    def test_turret_placement_does_not_walk_far_outside_base(self):
+        """防御塔不许建到基地外缘带之外（用户 2026-09-15 晚实测："太靠外面了"）。
+
+        原实现在候选里**选离基地最远**的那个，于是塔一路被推到视野边缘。现在口径是
+        `placement.turret_band_rank`：带内越外越好，出带越远越差。这里给一个 24m 的
+        远端候选，必须仍然选 12m 以内的那个。
+        """
+        from adjutant_coordinator.graph import placement
+        from adjutant_coordinator.graph.task_patch import DecisionFrame, _build_placement
+        frame = DecisionFrame(
+            match_id="m", player_id="P", rules_version="r", snapshot_id=1,
+            server_tick=1, mode="fast",
+            build_spots=((21.0, 7.0), (24.0, 7.0)),
+            turret_spots=((21.0, 7.0), (24.0, 7.0)),
+            home_pos=(10.0, 7.0),
+            occupied_points=((10.0, 7.0),))
+        turret = _build_placement(frame, {"ref": "W1", "pos": [11.0, 8.0]},
+                                 scene="anti_air_turret")
+        distance = ((turret[0] - 10.0) ** 2 + (turret[1] - 7.0) ** 2) ** 0.5
+        self.assertLessEqual(distance, placement.TURRET_BAND_OUTER_M + 0.05,
+                             "塔必须留在基地外缘带内，不许选更远的候选：%s" % (turret,))
 
     def test_build_spots_are_rings_not_a_single_tight_circle(self):
         """落点候选必须覆盖多圈（避免所有建筑挤在基地一圈）。"""

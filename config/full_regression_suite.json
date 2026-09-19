@@ -38,6 +38,13 @@
    "id": "adjutant-credential"
   },
   {
+   "expected_marker": "Adjutant connectivity smoke test completed: 0 failure(s)",
+   "timeout_seconds": 90,
+   "category": "adjutant",
+   "scene": "res://tests/automated/AdjutantConnectivitySmokeTest.tscn",
+   "id": "adjutant-connectivity"
+  },
+  {
    "expected_marker": "Adjutant observation smoke test completed: 0 failure(s)",
    "timeout_seconds": 90,
    "category": "adjutant",
@@ -585,6 +592,14 @@
    "scene": "res://tests/automated/MatchHistoryHookSmokeTest.tscn",
    "expected_marker": "Match history hook smoke test completed: 0 failure(s)",
    "timeout_seconds": 120
+  },
+  {
+   "id": "match-augments",
+   "category": "match",
+   "scene": "res://tests/automated/MatchAugmentSmokeTest.tscn",
+   "expected_marker": "Match augment smoke test completed: 0 failure(s)",
+   "timeout_seconds": 120,
+   "extra_args": ["--", "--debugport", "{free_port}"]
   }
  ]
 }

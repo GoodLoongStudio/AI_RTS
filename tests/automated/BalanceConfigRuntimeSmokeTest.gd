@@ -31,7 +31,8 @@ func _ready():
 		"CommandCenter 应从 manifest 查询蓝图场景"
 	)
 	_check(
-		is_equal_approx(runtime.GetCollectionDurationSeconds("resource_a"), 0.2),
+		# 【2026-09-15 用户要求提高采矿效率】采集间隔 200ms → 120ms，断言同步更新。
+		is_equal_approx(runtime.GetCollectionDurationSeconds("resource_a"), 0.12),
 		"Resource A 采集周期应由 Catalog 映射为 0.2 秒（2026-09-03 采集节奏 20 秒/趟）"
 	)
 	var balance := _load_balance()
@@ -95,7 +96,15 @@ func _verify_unit_configuration(runtime):
 
 	var turret = AntiGroundTurretScene.instantiate()
 	runtime.ConfigureUnit(turret)
-	_check(turret.attack_range == 8.0 and turret.attack_damage == 2.0, "炮塔主武器应来自 Catalog")
+	# 【2026-09-15】不再写死射程：平衡数值会调整（用户已要求防御设施射程翻倍 8→16）。
+	# 本用例的**意图**是"炮塔主武器来自 Catalog"，故改为断言**两条读取路径一致**：
+	# 单位属性（`ConfigureUnit` 写入）== HUD 显示快照（`GetUnitDisplaySnapshot`）。
+	var turret_display = runtime.GetUnitDisplaySnapshot(AntiGroundTurretScene)
+	_check(
+		turret.attack_range == float(turret_display["attack_range"])
+		and turret.attack_damage == 2.0,
+		"炮塔主武器应来自 Catalog（射程 %s 米）" % turret.attack_range
+	)
 
 	tank.free()
 	worker.free()

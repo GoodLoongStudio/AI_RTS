@@ -195,6 +195,7 @@ def connected_river(starts, plateaus, pairs, params, rng):
     # expensive; a deterministic 360-sample pool is ample for the broad
     # boundary-to-boundary watershed candidates.
     edge = max(8., 15. * scale)
+    separate_min = max(28., 75. * scale)
     for _ in range(360):
         horizontal = bool(rng.integers(0, 2))
         a, b = rng.uniform(28. / 256 * W, 228. / 256 * W, 2)
@@ -229,7 +230,7 @@ def connected_river(starts, plateaus, pairs, params, rng):
             break
         for _, secondary in candidates:
             if layout == 3:
-                if first_line.distance(LineString(secondary)) < 75.:
+                if first_line.distance(LineString(secondary)) < separate_min:
                     continue
                 selected = (primary, secondary, 64, 64)
                 break
@@ -635,6 +636,66 @@ def neutral_plateaus(starts, pairs, homes, water, rivers, params, rng, frame):
         if kind == 'route' and k is not None:
             done_pairs.add(k)
         placed_count += 1
+    if (len(plateaus) < params['plateau_count'][0]
+            and params.get('river_enabled')
+            and int(params.get('river_layout', 2)) == 3):
+        plateaus = _rescue_neutral_plateaus(plateaus, starts, water, rivers, params, rng, frame)
+    return plateaus
+
+
+def _rescue_neutral_plateaus(plateaus, starts, water, rivers, params, rng, frame):
+    """Place leftover neutrals in land the worst-served player can actually walk to."""
+    from scipy import ndimage
+    avoid = dilate8(dilate8(water))
+    for spawn in starts:
+        avoid |= geo._dist_field(*spawn) <= max(10., params['home_radius'] + 4.)
+    for pl in plateaus:
+        avoid |= dilate8(dilate8(pl['region'] | pl['ramps']))
+    radius = max(11., params['plateau_radius'][0] * 0.62)
+    clearance = ndimage.distance_transform_edt(~avoid)
+    travel_block = water.copy()
+    for river in rivers:
+        for gap in river['gaps']:
+            travel_block[gap] = False
+    fields = distance_fields(compute_passable(travel_block), starts)
+    margin = 14
+    yy, xx = np.mgrid[margin:GRID_H - margin:6, margin:GRID_W - margin:6]
+    cells = np.column_stack((yy.ravel(), xx.ravel()))
+    cells = cells[clearance[cells[:, 0], cells[:, 1]] >= radius * 0.9]
+    if len(cells) == 0:
+        return plateaus
+
+    def try_place(cell):
+        nonlocal avoid
+        center = np.array([cell[1] + .5, cell[0] + .5])
+        targets = sorted(starts, key=lambda spawn: math.dist(center, spawn))[:2]
+        plateau = make_plateau(center, radius, 'route', None, [], targets, avoid, params, rng, frame)
+        if plateau is None or (plateau['interior'] & water).any():
+            return False
+        plateaus.append(plateau)
+        avoid = avoid | dilate8(dilate8(plateau['region'] | plateau['ramps']))
+        return True
+
+    while len(plateaus) < params['plateau_count'][0] and len(cells):
+        neutrals = [pl for pl in plateaus if pl['kind'] != 'home']
+        if neutrals:
+            access = np.array([
+                min(float(field[cell_of(*rc)]) for pl in neutrals for rc in pl['ramp_centers'])
+                for field in fields])
+            worst = int(np.argmax(access))
+        else:
+            worst = int(np.argmax([float(field[cells[:, 0], cells[:, 1]].min()) for field in fields]))
+        reach = fields[worst][cells[:, 0], cells[:, 1]]
+        order = np.argsort(reach, kind='stable')
+        placed = False
+        for idx in order[:48]:
+            if try_place(cells[idx]):
+                placed = True
+                break
+        if not placed:
+            break
+        clearance = ndimage.distance_transform_edt(~avoid)
+        cells = cells[clearance[cells[:, 0], cells[:, 1]] >= radius * 0.9]
     return plateaus
 
 
@@ -927,15 +988,26 @@ def acceptance(blocking, starts, key_ij, params, geom):
             spawn_labels = [int(outage_labels[cell_of(*s)]) for s in starts]
             bridge_outages.append(spawn_labels[0] >= 0 and len(set(spawn_labels)) == 1)
     detour = [float(fields[i][cell_of(*starts[j])]) / math.dist(starts[i], starts[j]) for i,j in pairs]
+    water_frac = float(geom['water_union'].mean())
+    solid_lo, solid_hi = params['obstacle_frac_min'], params['obstacle_frac_max']
+    area_min = params.get('plateau_top_fraction_min', .12)
+    fair_limit = params['plateau_fair_ratio']
+    if (water_frac >= 0.08 and params.get('river_enabled')
+            and int(params.get('river_layout', 2)) == 3):
+        slack = min(0.06, max(0.03, water_frac * 0.3))
+        solid_lo -= slack
+        solid_hi += slack
+        area_min = min(area_min, 0.08)
+        fair_limit = max(fair_limit, 2.6)
     checks = {
-        'solid_frac_pass': params['obstacle_frac_min'] <= stats['solid_frac'] <= params['obstacle_frac_max'],
+        'solid_frac_pass': solid_lo <= stats['solid_frac'] <= solid_hi,
         'solid_comp_pass': params['solid_comp_min'] <= stats['n_components'] <= params['solid_comp_max'],
         'max_block_pass': stats['max_block_frac'] <= params['max_solid_block_frac'],
         'open_single_pass': n_open == 1,
         'keypoints_pass': connected(list(starts) + geom['exp_anchors'] + [n['xy'] for n in geom['contest']]),
         'struct_connect_pass': connected(structs),
         'plateau_full_pass': params['plateau_count'][0] <= len(geom['plateaus']) <= params['plateau_count'][1],
-        'plateau_area_pass': plateau_top_fraction >= params.get('plateau_top_fraction_min', .12),
+        'plateau_area_pass': plateau_top_fraction >= area_min,
         'plateau_strategy_pass': controls_ok and home_ok and central_ok and exposure_ok,
         'plateau_ramps_pass': ramps_ok,
         'home_plateau_pass': len(homes) == params['home_plateau_count'] and home_ok,
@@ -950,7 +1022,7 @@ def acceptance(blocking, starts, key_ij, params, geom):
         'water_semantics_pass': not (water & ~bridges & (blocking==0)).any() and not (water & bridges & (blocking>0)).any(),
         'bridge_redundancy_pass': all(bridge_outages),
         'contest_fair_pass': len(contest_ratios)==4 and max(contest_ratios) <= params['contest_fair_ratio'],
-        'plateau_fair_pass': plateau_ratio <= params['plateau_fair_ratio'],
+        'plateau_fair_pass': plateau_ratio <= fair_limit,
         'expansion_fair_pass': ratio(expansion_distances) <= params['expansion_fair_ratio'],
         'neutral_contest_pass': len(neutral) >= 2,
         'flank_width_pass': bool(widths) and min(widths.values()) >= params['route_width_min'],

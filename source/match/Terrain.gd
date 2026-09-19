@@ -113,6 +113,7 @@ func _unhandled_input(event: InputEvent):
 	var ray_to := ray_from + camera.project_ray_normal(event.position) * 1000.0
 	var query := PhysicsRayQueryParameters3D.create(ray_from, ray_to)
 	query.collision_mask = 0xFFFFFFFF
+	query.collide_with_areas = true
 	var hit := get_world_3d().direct_space_state.intersect_ray(query)
 	if not hit.is_empty() and hit.get("collider") != self:
 		return

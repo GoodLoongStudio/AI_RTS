@@ -1,0 +1,70 @@
+{
+  "id": "f6d3e4fb668e4a95ab75ab1ccffc6c08",
+  "baseline": false,
+  "status": "error",
+  "config": {
+    "schema_version": 2,
+    "algo_version": "7.11.0",
+    "layout_seed": 55,
+    "terrain_seed": 515487110,
+    "player_spacing": "any",
+    "controls": {
+      "river_layout": 3,
+      "river_enabled": 1,
+      "lake_count": 1,
+      "lake_area": 5000,
+      "neutral_plateau_scale": 1.7,
+      "plateau_max": 6,
+      "landform_elongation": 1.2,
+      "landform_recess": 0.2,
+      "landform_softness": 0.16,
+      "plateau_ramp_width": 8,
+      "river_width": 18,
+      "river_bend_scale": 1.0,
+      "river_crossings": 6,
+      "obstacle_percent": 40,
+      "cover_cluster_max": 10,
+      "layout_attempts": 4
+    }
+  },
+  "target": "g2",
+  "spacing": "standard",
+  "created_at": "2026-09-15T19:36:26",
+  "started": 1789472186.9697912,
+  "duration": 0.6,
+  "title": "布局 55 · 地貌 515487110",
+  "pipeline_version": "1.0.0",
+  "stage_versions": {
+    "G1": "2.0.0",
+    "G2": "7.11.0",
+    "G3": "2.2.0",
+    "G4": "2.0.0"
+  },
+  "stages": {},
+  "preview_only": true,
+  "progress": {
+    "attempt": 4,
+    "limit": 4,
+    "rejected": "No complete river corridors satisfy the selected layout and home clearance."
+  },
+  "error_kind": "no_candidate",
+  "attempts": [
+    {
+      "attempt": 1,
+      "rejected": "No complete river corridors satisfy the selected layout and home clearance."
+    },
+    {
+      "attempt": 2,
+      "rejected": "No complete river corridors satisfy the selected layout and home clearance."
+    },
+    {
+      "attempt": 3,
+      "rejected": "No complete river corridors satisfy the selected layout and home clearance."
+    },
+    {
+      "attempt": 4,
+      "rejected": "No complete river corridors satisfy the selected layout and home clearance."
+    }
+  ],
+  "error": "在 4 个候选内未找到可用地貌。请重新随机生成，或调整水域选项；所选湖泊不会自动缩小。"
+}

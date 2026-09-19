@@ -356,6 +356,17 @@ def _consume_fast_events(state: Dict[str, Any], ctx: NodeContext) -> None:
                 taken = [unit]
             if taken:
                 _apply_override(state, taken, happened or now_tick, "fast_player_override")
+        elif kind == "player_release":
+            # 取消选中 → 归还给副官（与 player_override 对称，见 DCS `_sync_selection_control`）。
+            # 缺这一支时 `player_release` 会被静默丢掉：玩家取消选中后单位永远回不到 AI 托管。
+            released: List[str] = []
+            raw_released = event.get("units")
+            if isinstance(raw_released, (list, tuple)):
+                released = [str(item) for item in raw_released if str(item)]
+            if not released and unit:
+                released = [unit]
+            if released:
+                _apply_release(state, released, happened or now_tick, "fast_player_release")
         elif kind in ("unit_dead", "unit_lost") and unit:
             explore = state.get("explore")
             if isinstance(explore, dict):
@@ -486,6 +497,12 @@ def node_ingest(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, Any]:
             state["nav_revision"] = int(fast_state["nav_revision"])
         except (TypeError, ValueError):
             pass
+    # 局内加成是 Godot 事实：快扫里有最新 owned/offer 时，覆盖到本轮 tactical
+    # 给规则地板读。不写图状态，避免 Hermes/加成进入 LangGraph 通道。
+    if isinstance(fast_state, dict) and isinstance(fast_state.get("augments"), dict):
+        tactical_view = ctx.observation.get("tactical")
+        if isinstance(tactical_view, dict):
+            tactical_view["augments"] = fast_state["augments"]
 
     # 地图边界（`op=strategic` 提供，形如 `[size_x, size_z]`，原点在角上）：
     # 规则层产出的坐标必须**留在地图内**，否则权威端判 `OutOfBounds`。
@@ -1812,8 +1829,8 @@ def _blocked_move_fallbacks(state: Dict[str, Any], ctx: NodeContext,
     返回值追加进 `kept`：和普通候选走**同一条**仲裁/下发链，绝不另开通道。
 
     归宿分档只有一处（`movement.fallback_action_for`）：
-      - 敌人挡路 → **回基地**（`retreat` 到基地锚点，必须过"脱离"判据）；
-      - 队形散开 → **集结**（`regroup` 到小队最保守的那一跳，落点必须不在敌人威胁圈内）；
+      - 敌人挡路 → **脱离**（`retreat` 到脱离点，必须过"远离敌人"判据；不得回主基地门口）；
+      - 队形散开 → **集结**（`regroup` 到前线集结点，落点必须不在敌人威胁圈内）；
       - 没证据 / 撤不动 / 配额不够 → **守卫**（`hold`，游戏侧 = 原地 stop，交给自动交火）；
       - 连守卫都不能发（单位信息缺失等）→ **等待**（显式记账，不假装没发生）。
 
@@ -1830,16 +1847,29 @@ def _blocked_move_fallbacks(state: Dict[str, Any], ctx: NodeContext,
         target_pos: Optional[List[float]] = None
         note = str(reason)
         if chosen == movement_mod.FALLBACK_RETREAT:
-            home = rules_fallback.base_anchor_pos(by_name)
-            target_pos = [float(home[0]), float(home[1])] if home else None
+            info = by_name.get(member) or {}
+            tactical = (ctx.observation or {}).get("tactical")
+            target_pos = rules_fallback.disengage_point(
+                rules_fallback._pos2d(info),
+                home=rules_fallback.base_anchor_pos(by_name),
+                enemies=rules_fallback._living_enemies(tactical),
+                bounds=state.get("map_bounds"))
             if target_pos is None:
-                note = "no_base_anchor"
+                note = "no_disengage_point"
                 chosen = movement_mod.FALLBACK_GUARD
         elif chosen == movement_mod.FALLBACK_REGROUP:
             target_pos = list(rally or [])
             if not target_pos:
-                home = rules_fallback.base_anchor_pos(by_name)
-                target_pos = [float(home[0]), float(home[1])] if home else None
+                tactical = (ctx.observation or {}).get("tactical")
+                combat_pos = [
+                    rules_fallback._pos2d(by_name.get(name) or {})
+                    for name in units
+                    if rules_fallback._pos2d(by_name.get(name) or {})]
+                target_pos = rules_fallback.forward_rally_point(
+                    rules_fallback.base_anchor_pos(by_name),
+                    bounds=state.get("map_bounds"),
+                    enemies=rules_fallback._living_enemies(tactical),
+                    combat_positions=combat_pos)
             if target_pos is None:
                 note = "no_rally_point"
                 chosen = movement_mod.FALLBACK_GUARD
@@ -1919,8 +1949,8 @@ def _gate_movement(state: Dict[str, Any], ctx: NodeContext,
 
     ① **没有有效路径的主力移动数为 0**：不是事后统计发现，而是**结构上**没有未经验证的
        推进意图能走到下发（同一处收口，无法绕过）。
-    ② **被拦下的移动意图必须有归宿**：回基地（`retreat`，须过"脱离"判据）／集结
-       （`regroup` 到小队最保守的那一跳）／守卫（`hold`）／等待（显式记账）。
+    ② **被拦下的移动意图必须有归宿**：脱离（`retreat` 到脱离点，须过"远离敌人"判据）／集结
+       （`regroup` 到前线点或小队最保守的那一跳）／守卫（`hold`）／等待（显式记账）。
        "丢弃意图、下一轮再试"会导致部队**停在原地挨打**（实测：10 分钟局打到最后全灭）。
     ③ **求生移动（撤退）用"脱离"判据**，不用推进判据 —— 敌人在前面时"前方没有己方视野"
        正是要撤的原因，用推进判据卡它 = 不许撤退。
@@ -2098,7 +2128,7 @@ def _gate_movement(state: Dict[str, Any], ctx: NodeContext,
         if member_block is not None:
             blocked.append(member_block)
             # 【受阻降级的接入点 ①】推进被拦下 → 给出四个合法归宿之一
-            # （回基地 / 集结 / 守卫 / 等待），而不是"丢弃意图、下一轮再试"。
+            # （脱离 / 集结 / 守卫 / 等待），而不是"丢弃意图、下一轮再试"。
             # 例外：`squad_unverified` 只是"本轮配额不够验证"，**不是"路径不可行"** ——
             # 它不进降级（否则每轮都记一次 fallback_wait，把等待账刷爆而原因根本不是"走不通"）；
             # 下一轮规则地板会重新生成推进意图，配合 `SOLO_QUERY_RESERVE` 与旧路复用
@@ -2442,7 +2472,11 @@ def node_arbitrate_intent(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, 
 
 
 def node_dispatch_to_godot(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, Any]:
-    """下发节点：把本轮采纳的意图转成命令包，经权威通道逐条提交。"""
+    """下发节点：把本轮采纳的意图转成命令包，经权威通道逐条提交。
+
+    只发 `op=adjutant_intent`。局内加成推荐走 `op=augment_recommend`，
+    **不经过本节点**，Hermes 也不能从这里代点三选一。
+    """
     pending_ids = list(state.get("dispatch_pending") or [])
     state["dispatch_pending"] = []
     if not pending_ids:

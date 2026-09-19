@@ -1905,28 +1905,28 @@ transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 180.79
 transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 210.170, 0, 96.300)
 
 [node name="ResourceA" parent="Resources" instance=ExtResource("3_resa")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 53.500, 0, 170.500)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 54.498, 0, 172.399)
 
 [node name="ResourceA2" parent="Resources" instance=ExtResource("3_resa")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50.500, 0, 184.500)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 51.513, 0, 183.841)
 
 [node name="ResourceA3" parent="Resources" instance=ExtResource("3_resa")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 93.500, 0, 49.500)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 90.793, 0, 50.988)
 
 [node name="ResourceA4" parent="Resources" instance=ExtResource("3_resa")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 76.500, 0, 60.500)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 78.261, 0, 59.154)
 
 [node name="ResourceA5" parent="Resources" instance=ExtResource("3_resa")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 172.500, 0, 196.500)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 174.361, 0, 195.382)
 
 [node name="ResourceA6" parent="Resources" instance=ExtResource("3_resa")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 189.500, 0, 196.500)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 187.301, 0, 195.243)
 
 [node name="ResourceA7" parent="Resources" instance=ExtResource("3_resa")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 215.500, 0, 87.500)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 213.794, 0, 89.323)
 
 [node name="ResourceA8" parent="Resources" instance=ExtResource("3_resa")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 218.500, 0, 90.500)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 216.794, 0, 92.323)
 
 [node name="ResourceA9" parent="Resources" instance=ExtResource("3_resa")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 90.500, 0, 192.500)

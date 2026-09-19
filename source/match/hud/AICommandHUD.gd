@@ -19,7 +19,9 @@ const COMMAND_LABELS = {
 }
 const F1_DOUBLE_TAP_MS := 350
 const STATE_ONLINE := "● 副官已接入，正在观察"
+const STATE_OFFLINE := "● 副官尚未启动"
 const EscapeRouter = preload("res://source/ui/EscapeRouter.gd")
+const AdjutantRunnerLauncher = preload("res://source/ui/AdjutantRunnerLauncher.gd")
 
 var control_mode := "squad"
 var hero_name := "先锋指挥单元"
@@ -161,7 +163,7 @@ func _build_ui():
 	ai_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_row.add_child(ai_title)
 	_agent_state = Label.new()
-	_agent_state.text = STATE_ONLINE
+	_agent_state.text = STATE_OFFLINE
 	title_row.add_child(_agent_state)
 
 	# 【2026-09-15 用户要求：副官 UI 常驻 + 分区】专属区按「标题 → 状态 → 控制 → 询问」
@@ -178,24 +180,8 @@ func _build_ui():
 	var control_separator := HSeparator.new()
 	right_box.add_child(control_separator)
 
-	var quick_row := HBoxContainer.new()
-	quick_row.add_theme_constant_override("separation", 6)
-	right_box.add_child(quick_row)
-	var next_button := Button.new()
-	next_button.text = "下一步建议"
-	next_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	next_button.pressed.connect(_ask_mock_agent.bind("NEXT"))
-	quick_row.add_child(next_button)
-	var risk_button := Button.new()
-	risk_button.text = "风险评估"
-	risk_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	risk_button.pressed.connect(_ask_mock_agent.bind("RISK"))
-	quick_row.add_child(risk_button)
-	var status_button := Button.new()
-	status_button.text = "当前战况"
-	status_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	status_button.pressed.connect(_ask_mock_agent.bind("STATUS"))
-	quick_row.add_child(status_button)
+	# 【2026-09-15 用户要求】原来这排"下一步建议 / 风险评估 / 当前战况"快捷提问从左上角撤掉：
+	# 这三句在底部输入框里说一句就有。副官强度三个按钮已按用户要求整行删除。
 
 	# 【2026-09-15 用户要求删除】副官简报（当前阶段/目标/最近决定/风险评估/等待确认）与
 	# "副官理解：X 队 · 状态" 两块不再显示：它们与专属区的状态面板、左侧作战小队卡片内容重复，
@@ -224,6 +210,7 @@ func _build_ui():
 	bottom.offset_right = -590
 	# 【2026-09-15 用户要求】聊天区压缩到"输入行 + 一两行记录"（用户红框标注的高度）。
 	# ⚠ 曾被另一会话覆盖回 -300（时间戳 1:08），如再次变回说明又被覆盖，需协调。
+	# 副官强度行已删除，底栏只留聊天记录 + 输入行。
 	bottom.offset_top = -110
 	bottom.offset_bottom = -18
 	bottom.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -684,6 +671,11 @@ func _note_decision(text: String):
 func _set_agent_state(text: String):
 	if _agent_state != null:
 		_agent_state.text = text
+
+
+## 副官链路把真实运行状态写到标题行（接管/停止/外部进程），不要恒显示“已接入”。
+func set_adjutant_state_text(text: String) -> void:
+	_set_agent_state(text)
 
 
 func post_agent_message(speaker: String, text: String):

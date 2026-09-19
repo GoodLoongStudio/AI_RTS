@@ -219,7 +219,7 @@ internal sealed class InputBindingServiceTests
                 "text.cancel",
             "文字输入焦点下 Esc 应只取消文本焦点");
         Check(Action(service.Resolve(Parse("ESCAPE"), playContexts)) != "global.toggle_menu",
-            "Esc 不得再打开暂停菜单");
+            "Esc 在解析层不得映射为打开菜单（唤出由 Menu 的取消兜底实现）");
     }
 
     /// <summary>验证 Space 在镜头上下文中跳转最近重要战场事件。</summary>

@@ -58,7 +58,7 @@ public sealed class WorldQueryService : IWorldQueryService, IVisibleEnemyTargetA
             return Rejected<IReadOnlyList<EntityObservation>>(QueryErrorCode.InvalidRequest);
         }
 
-        var snapshot = _repository.Capture();
+        var snapshot = _repository.CaptureShared();
         var observations = snapshot.Entities
             .Where(entity => entity.OwnerPlayerId == session.ObserverPlayerId &&
                 entity.EntityId.Kind != BattlefieldEntityKind.ResourceNode)
@@ -89,7 +89,7 @@ public sealed class WorldQueryService : IWorldQueryService, IVisibleEnemyTargetA
             return Rejected<IReadOnlyList<EntityObservation>>(QueryErrorCode.InvalidRequest);
         }
 
-        var snapshot = _repository.Capture();
+        var snapshot = _repository.CaptureShared();
         var radiusSquared = request.Radius * request.Radius;
         var currentEntities = snapshot.Entities
             .Where(entity => PlanarDistanceSquared(entity.Position, request.Center) <= radiusSquared)
@@ -139,7 +139,7 @@ public sealed class WorldQueryService : IWorldQueryService, IVisibleEnemyTargetA
             return Rejected<EntityObservation>(QueryErrorCode.InvalidRequest);
         }
 
-        var snapshot = _repository.Capture();
+        var snapshot = _repository.CaptureShared();
         var entity = snapshot.Entities.FirstOrDefault(item => item.EntityId == entityId);
         if (entity is null || entity.OwnerPlayerId != session.ObserverPlayerId)
         {
@@ -166,7 +166,7 @@ public sealed class WorldQueryService : IWorldQueryService, IVisibleEnemyTargetA
             return Rejected<ResourceAccountObservation>(QueryErrorCode.InvalidSession);
         }
 
-        var snapshot = _repository.Capture();
+        var snapshot = _repository.CaptureShared();
         var economy = snapshot.Economies.FirstOrDefault(
             item => item.PlayerId == session.ObserverPlayerId);
         return economy is null ?
@@ -184,7 +184,7 @@ public sealed class WorldQueryService : IWorldQueryService, IVisibleEnemyTargetA
             return Rejected<BattlefieldBounds>(QueryErrorCode.InvalidSession);
         }
 
-        var snapshot = _repository.Capture();
+        var snapshot = _repository.CaptureShared();
         return snapshot.Bounds is null ?
             Rejected<BattlefieldBounds>(
                 QueryErrorCode.BattlefieldUnavailable,
@@ -204,7 +204,7 @@ public sealed class WorldQueryService : IWorldQueryService, IVisibleEnemyTargetA
             return false;
         }
 
-        var snapshot = _repository.Capture();
+        var snapshot = _repository.CaptureShared();
         var target = snapshot.Entities.FirstOrDefault(
             entity => entity.EntityId == targetEntityId);
         return target is not null &&

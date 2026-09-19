@@ -8,6 +8,7 @@
 - 降级时**不得**产生无依据的战场动作（凭空 scout 曾把金标准用例打挂）；
 - 输出必须能过契约（`target` 是 dict，不是裸坐标）。
 """
+import math
 import unittest
 
 from adjutant_coordinator.graph import behavior_tree
@@ -64,13 +65,16 @@ class MicroTreeTest(unittest.TestCase):
 
     # -- 威胁处置 ---------------------------------------------------------
     def test_outnumbered_combat_unit_retreats(self):
-        """敌多于我 → 撤离（实测模型会拿 1 个兵硬冲 3 个敌人）。"""
+        """野外敌多于我 → 撤离（实测模型会拿 1 个兵硬冲 3 个敌人）。
+
+        敌人必须离开己方建筑，否则会走「基地受袭回防」，不是这条野外撤离。
+        """
         self.state["ai_controlled_units"] = ["U_s1"]
         tac = _tactical([
-            _entity("unit_self", "U_s1", "soldier", pos=(10, 0, 10)),
+            _entity("unit_self", "U_s1", "soldier", pos=(80, 0, 80)),
             _entity("unit_self", "U_cc", "command_center", pos=(0, 0, 0)),
-            _entity("unit_enemy", entity_id="E_1"),
-            _entity("unit_enemy", entity_id="E_2"),
+            _entity("unit_enemy", entity_id="E_1", pos=(82, 0, 82)),
+            _entity("unit_enemy", entity_id="E_2", pos=(84, 0, 84)),
         ])
         intents = behavior_tree.micro_intents(self.state, tactical=tac)
         self.assertEqual(len(intents), 1)
@@ -78,6 +82,34 @@ class MicroTreeTest(unittest.TestCase):
         # target 必须是 dict（契约），且带坐标。
         self.assertIsInstance(intents[0]["target"], dict)
         self.assertIn("pos", intents[0]["target"])
+        self.assertNotEqual(intents[0]["target"]["pos"], [0.0, 0.0],
+                            "撤离不得再把主基地当落点")
+
+    def test_empty_home_recalls_nearest_when_base_is_raided(self):
+        """家里没作战单位、敌人贴着指挥中心 → 最近的野外兵必须回防，不能继续前压。"""
+        self.state["ai_controlled_units"] = ["U_far"]
+        tac = _tactical([
+            _entity("unit_self", "U_far", "soldier", pos=(80, 0, 80)),
+            _entity("unit_self", "U_cc", "command_center", pos=(0, 0, 0)),
+            _entity("unit_enemy", entity_id="E_raid", pos=(5, 0, 5)),
+        ])
+        intents = behavior_tree.micro_intents(self.state, tactical=tac)
+        self.assertEqual(len(intents), 1)
+        self.assertEqual(intents[0]["action"], "defend")
+        self.assertEqual(intents[0]["target"]["pos"], [0.0, 0.0])
+
+    def test_raid_recall_beats_outnumbered_retreat(self):
+        """家里被打、野外只有 1 兵面对多名敌人：仍回防，不许往脱离点跑。"""
+        self.state["ai_controlled_units"] = ["U_far"]
+        tac = _tactical([
+            _entity("unit_self", "U_far", "soldier", pos=(80, 0, 80)),
+            _entity("unit_self", "U_cc", "command_center", pos=(0, 0, 0)),
+            _entity("unit_enemy", entity_id="E_1", pos=(4, 0, 4)),
+            _entity("unit_enemy", entity_id="E_2", pos=(6, 0, 6)),
+        ])
+        intents = behavior_tree.micro_intents(self.state, tactical=tac)
+        self.assertEqual(len(intents), 1)
+        self.assertEqual(intents[0]["action"], "defend")
 
     def test_not_outnumbered_engages_nearest_enemy(self):
         self.state["ai_controlled_units"] = ["U_s1", "U_s2"]
@@ -153,6 +185,8 @@ class MicroTreeTest(unittest.TestCase):
         self.assertEqual(len(point), 2)
         self.assertGreater(max(abs(point[0]), abs(point[1])), 0.0,
                            "前压航点必须离开基地（不能原地不动）")
+        self.assertGreaterEqual(math.hypot(point[0] - 50.0, point[1] - 50.0), 14.0,
+                                "前压必须从单位自己往外走，不能再围着主基地转圈")
 
     def test_forward_advance_is_deterministic(self):
         """同一 tick 必然得到同一航点（可复现、可单测；不是凭空游走）。"""
@@ -166,7 +200,7 @@ class MicroTreeTest(unittest.TestCase):
         self.assertEqual(first, second)
 
     def test_forward_advance_disabled_falls_back_to_regroup(self):
-        """关掉前压后仍可回退到"空闲集结"（旧行为保留给回放/特定对局）。"""
+        """关掉前压后仍可回退到前线集结（目标不是主基地）。"""
         self.state["ai_controlled_units"] = ["U_s1"]
         tac = _tactical([
             _entity("unit_self", "U_s1", "soldier", pos=(50, 0, 50)),
@@ -177,7 +211,69 @@ class MicroTreeTest(unittest.TestCase):
             config={"allow_forward_advance": False, "allow_idle_regroup": True})
         self.assertEqual(len(intents), 1)
         self.assertEqual(intents[0]["action"], "regroup")
-        self.assertEqual(intents[0]["target"]["pos"], [0.0, 0.0])
+        point = intents[0]["target"]["pos"]
+        self.assertGreater(math.hypot(point[0], point[1]), 12.0,
+                           "关掉前压时的集结点也不得落在主基地门口，实际 %s" % point)
+
+    def test_scattered_units_explore_instead_of_regroup(self):
+        """散开的空闲作战单位必须前压，不能被拉回去集合。"""
+        self.state["ai_controlled_units"] = ["U_s1", "U_s2", "U_s3"]
+        tac = _tactical([
+            _entity("unit_self", "U_s1", "soldier", pos=(60, 0, 60)),
+            _entity("unit_self", "U_s2", "soldier", pos=(80, 0, 20)),
+            _entity("unit_self", "U_s3", "tank", pos=(90, 0, 90)),
+            _entity("unit_self", "U_cc", "command_center", pos=(10, 0, 10)),
+        ])
+        intents = behavior_tree.micro_intents(self.state, tactical=tac)
+        self.assertEqual({item["action"] for item in intents}, {"attack_move"})
+        self.assertEqual([it for it in intents if it["action"] == "regroup"], [])
+
+    def test_field_units_do_not_regroup_to_command_center(self):
+        """野外空闲作战单位必须前压，不能被叫回主基地。"""
+        self.state["ai_controlled_units"] = ["U_s%d" % i for i in range(1, 6)]
+        tac = _tactical(
+            [_entity("unit_self", "U_s%d" % i, "soldier", pos=(50, 0, 50))
+             for i in range(1, 6)]
+            + [_entity("unit_self", "U_cc", "command_center", pos=(0, 0, 0))])
+        intents = behavior_tree.micro_intents(self.state, tactical=tac)
+        regroup = [it for it in intents if it["action"] == "regroup"]
+        home_bound = [it for it in intents if it["action"] == "regroup"
+                      and it.get("target", {}).get("pos") == [0.0, 0.0]]
+        advance = sorted(u for it in intents if it["action"] == "attack_move"
+                         for u in it["unit_ids"])
+        self.assertEqual(home_bound, [], "不得 regroup 到主基地坐标")
+        self.assertEqual(regroup, [], "挤在一起的野外部队应前压，不应再集结")
+        self.assertEqual(advance, ["U_s1", "U_s2", "U_s3", "U_s4", "U_s5"])
+
+    def test_units_already_at_base_leave_with_field_units(self):
+        """空闲时家里的作战单位也出门前压，不再原地 hold。"""
+        self.state["ai_controlled_units"] = ["U_home1", "U_home2", "U_field"]
+        tac = _tactical([
+            _entity("unit_self", "U_home1", "soldier", pos=(2, 0, 2)),
+            _entity("unit_self", "U_home2", "soldier", pos=(3, 0, 3)),
+            _entity("unit_self", "U_field", "soldier", pos=(80, 0, 80)),
+            _entity("unit_self", "U_cc", "command_center", pos=(0, 0, 0)),
+        ])
+        intents = self._units(behavior_tree.micro_intents(self.state, tactical=tac))
+        self.assertEqual(intents["U_home1"]["action"], "attack_move")
+        self.assertEqual(intents["U_home2"]["action"], "attack_move")
+        self.assertEqual(intents["U_field"]["action"], "attack_move")
+
+    def test_home_units_fight_or_defend_when_base_is_raided(self):
+        """建筑附近见敌：圈内单位必须交火或回防，不许 hold / 出门前压。"""
+        self.state["ai_controlled_units"] = ["U_home1", "U_home2"]
+        tac = _tactical([
+            _entity("unit_self", "U_home1", "soldier", pos=(2, 0, 2)),
+            _entity("unit_self", "U_home2", "soldier", pos=(3, 0, 3)),
+            _entity("unit_self", "U_cc", "command_center", pos=(0, 0, 0)),
+            _entity("unit_enemy", entity_id="E_raid", pos=(4, 0, 4)),
+        ])
+        intents = self._units(behavior_tree.micro_intents(self.state, tactical=tac))
+        for name in ("U_home1", "U_home2"):
+            action = intents[name]["action"]
+            self.assertIn(action, ("defend", "attack"), name)
+            self.assertNotEqual(action, "hold")
+            self.assertNotEqual(action, "attack_move")
 
     def test_combat_unit_has_no_enemy_but_no_anchor_stays_silent(self):
         """拿不到基地锚点时不动作（宁可不发，不能凭空造坐标）。"""
@@ -331,12 +427,7 @@ class ScoutTest(unittest.TestCase):
 
 
 class RegroupTest(unittest.TestCase):
-    """空闲作战单位向主基地集结（2026-09-11 默认开启）。
-
-    用户要求"要看到副官批量指挥部队"：全队**同一个目标**才会被仲裁层
-    （`arbitration.merge_same_orders`）合并成**一条多单位命令**，
-    屏幕上才是"整队一起动"，而不是十几个单位各自扭一下。
-    """
+    """散开的作战单位向前线集结点靠拢（不再回主基地）。"""
 
     def setUp(self):
         self.state = {
@@ -348,28 +439,26 @@ class RegroupTest(unittest.TestCase):
 
     def _tac(self):
         return _tactical([
-            _entity("unit_self", "U_s1", "soldier", pos=(30, 0, 30)),
-            _entity("unit_self", "U_s2", "soldier", pos=(35, 0, 35)),
-            _entity("unit_self", "U_s3", "tank", pos=(40, 0, 40)),
+            _entity("unit_self", "U_s1", "soldier", pos=(60, 0, 60)),
+            _entity("unit_self", "U_s2", "soldier", pos=(80, 0, 20)),
+            _entity("unit_self", "U_s3", "tank", pos=(90, 0, 90)),
             _entity("unit_self", "U_cc", "command_center", pos=(10, 0, 10)),
         ])
 
     def test_combat_units_regroup_to_same_target_when_advance_disabled(self):
-        """关掉"前压探索"后，空闲作战单位按旧纪律回基地集结（同一目标便于批量指挥）。
-
-        `allow_forward_advance` 默认 True（2026-09-12 晚起），所以这里显式关掉
-        才能真正走到集结分支。
-        """
+        """关掉前压后，空闲作战单位集结到同一个前线点（不是主基地）。"""
         intents = behavior_tree.micro_intents(
             self.state, tactical=self._tac(),
-            config={"allow_forward_advance": False})
+            config={"allow_forward_advance": False, "allow_idle_regroup": True})
         self.assertEqual(len(intents), 3)
         self.assertEqual({item["action"] for item in intents}, {"regroup"})
         targets = [item["target"] for item in intents]
         self.assertEqual(targets[0], targets[1],
                          "全队必须同一目标，否则仲裁层合并不了、也就看不到批量指挥")
         self.assertEqual(targets[1], targets[2])
-        self.assertEqual(targets[0]["pos"], [10.0, 10.0], "目标就是观测到的主基地位置")
+        self.assertNotEqual(targets[0]["pos"], [10.0, 10.0], "集结点不得再是主基地")
+        point = targets[0]["pos"]
+        self.assertGreater(math.hypot(point[0] - 10.0, point[1] - 10.0), 12.0)
 
     def test_can_be_disabled_explicitly(self):
         intents = behavior_tree.micro_intents(

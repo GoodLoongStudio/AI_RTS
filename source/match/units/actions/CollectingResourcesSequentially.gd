@@ -164,6 +164,14 @@ func _transfer_collected_resources_to_player():
 		"resource_b": _unit.resource_b,
 	}
 	print("[GATHER] 交付 resource_a=%s resource_b=%s player=%s" % [str(_unit.resource_a), str(_unit.resource_b), _unit.player.name])
+	var delivery_a := int(delivery.get("resource_a", 0))
+	var match_root = _unit.find_parent("Match")
+	var runtime = match_root.get_node_or_null("AugmentRuntime") if match_root != null else null
+	if runtime != null and runtime.has_method("gather_multiplier"):
+		var scaled := preload("res://source/match/augments/AugmentModifiers.gd").scale_gather(
+			delivery_a, float(runtime.gather_multiplier(_unit.player))
+		)
+		delivery["resource_a"] = scaled
 	var accepted = _unit.player.add_resources(delivery, "WorkerDelivery", _unit)
 	assert(accepted, "a valid Worker delivery must reach its authoritative resource account")
 	if not accepted:

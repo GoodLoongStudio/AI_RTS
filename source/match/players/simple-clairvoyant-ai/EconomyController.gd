@@ -18,6 +18,10 @@ const WORKER_TYPE_ID := "worker"
 ## 统一货币（2026-09-14）：B 已从玩法移除，AI 只认 resource_a。
 const RESOURCE_A_TYPE_ID := "resource_a"
 
+## 决策节奏倍率：由 SimpleClairvoyantAI 按"本局电脑玩家人数"注入（唯一实现见 AiCadence）。
+## 默认 1.0 = 原始节奏；3 个电脑时为 2.0（0.5s → 1.0s）。
+var refresh_scale := 1.0
+
 var _world_query_runtime = null
 var _query_session_id := ""
 var _command_gateway = null
@@ -63,12 +67,13 @@ func _setup_refresh_timer():
 	var timer = Timer.new()
 	add_child(timer)
 	timer.timeout.connect(_on_refresh_timer_timeout)
-	timer.start(REFRESH_INTERVAL_S)
+	timer.start(REFRESH_INTERVAL_S * refresh_scale)
 
 
 ## 使用同一己方快照补齐建筑、Worker 与采集计划，避免读取 Legacy Node 状态。
 func _refresh_planning():
 	var own_entities := _get_own_entities()
+
 	var idle_workers := _count_idle_workers(own_entities)
 	_enforce_number_of_ccs(own_entities, idle_workers)
 	_enforce_number_of_workers(own_entities)
@@ -179,6 +184,7 @@ func _assign_idle_workers_to_resources(own_entities: Array):
 		var node_id: String = target.get("entity_id", "")
 		if not node_id.is_empty():
 			assigned_counts_by_node[node_id] = assigned_counts_by_node.get(node_id, 0) + 1
+
 	for worker in workers:
 		if worker.get("order", null) != null:
 			continue
@@ -190,6 +196,7 @@ func _assign_idle_workers_to_resources(own_entities: Array):
 			[worker["id"]],
 			resource["id"]
 		)
+
 		if result.get("status", "") in ["Accepted", "PartiallyAccepted"]:
 			assigned_counts_by_type[resource["type_id"]] += 1
 			assigned_counts_by_node[resource["id"]] = assigned_counts_by_node.get(resource["id"], 0) + 1
@@ -297,7 +304,8 @@ func _try_construct_cc(own_entities: Array, preferred_center: Vector3 = Vector3.
 	print("规则 AI 放置 CommandCenter 被拒绝：%s" % last_result)
 
 
-## 扩张选址：以主 CC 为心做大半径扫描，取「距所有己方 CC 至少 20m」中最远的资源簇位置。
+## 扩张选址：以主 CC 为心做大半径扫描，取「距所有己方 CC 至少 20m」中**最近**的资源簇位置。
+## 【2026-09-19】此前取的是**最远**的（见下方注释），与方案 3.F"不再默认最远矿点最优"冲突。
 ## 找不到合适资源时返回 Vector3.INF（本轮放弃扩张）。
 func _find_expansion_site(own_entities: Array) -> Vector3:
 	var command_centers: Array = own_entities.filter(
@@ -327,8 +335,13 @@ func _find_expansion_site(own_entities: Array) -> Vector3:
 				break
 		if too_close:
 			continue
+		# 【2026-09-19 修确定缺陷】原实现用 `distance > best_distance` ⇒ **专挑最远**的
+		# 资源簇当分矿：跑得最久、最容易被截、工人往返最费的定位反而被优先选中
+		# （方案第 1 节："扩张偏远…"；方案 3.F："不再默认最远矿点最优"）。
+		# 改为取"满足平安距离（best_distance 初值 = 20m 平方）之外**最近**"的资源簇：
+		# 路程短 ⇒ 回收期短、防御链短、工人往返少。过近点已被上面的 too_close 排除。
 		var distance := position.distance_squared_to(primary_position)
-		if distance > best_distance:
+		if distance < best_distance:
 			best_distance = distance
 			best_position = position
 	return best_position

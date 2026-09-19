@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ba571kf5bd4cc"
-path="res://.godot/imported/starts_table.png-250587965c7705a1fc83340cbe41c06d.ctex"
+path="res://.godot/imported/starts_table.png-fff185ca37a9f813ac65486f475750f2.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://runs/62/G1/starts_table.png"
-dest_files=["res://.godot/imported/starts_table.png-250587965c7705a1fc83340cbe41c06d.ctex"]
+source_file="res://tools/mapgen/runs/62/G1/starts_table.png"
+dest_files=["res://.godot/imported/starts_table.png-fff185ca37a9f813ac65486f475750f2.ctex"]
 
 [params]
 

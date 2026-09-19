@@ -9,7 +9,7 @@
 
 职责边界（与 `langgraph-refactor.md` §7 一致）：
 - LangGraph 负责 `dispatch_to_godot`（`op=adjutant_intent`）；
-- Hermes 只承载对局记忆/复盘，**不进入本路径**。
+- Hermes 局内只给加成三选一排序（`op=augment_recommend`），**不进入下发路径、不代点**。
 
 节流（慢模型不阻塞循环）：
 - 战略模型按 `strategy_interval_ticks` 触发、战术模型按 `tactics_interval_ticks` 触发；
@@ -24,12 +24,14 @@
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import os
 import re
 import signal
 import socket
 import sys
+import threading
 import time
 from typing import Any, Dict, List, Optional
 
@@ -46,19 +48,12 @@ from env_file import load_env_file  # noqa: E402
 from fast_scan import FastScanner  # noqa: E402  （10Hz 缓存型扫描层，计划 §3.1）
 from match_archive import (  # noqa: E402  （对局留档：每局尽可能留数据给后续分析）
     MatchArchive, compact_enemies, compact_production, compact_units)
-from adjutant_coordinator.graph.checkpoint import JsonCheckpointStore  # noqa: E402
-from adjutant_coordinator.graph.graph import langgraph_available  # noqa: E402
-from adjutant_coordinator.graph.pydantic_agents import (  # noqa: E402
-    GraphModelSettings, ModelInvalidOutput, ModelTimeout, ModelUnavailable,
-    PydanticAIStrategyAgent, PydanticAITacticsAgent, PydanticAITaskPatchAgent,
-    pydantic_ai_available,
-)
-from adjutant_coordinator.graph.runtime import (  # noqa: E402
-    AdjutantGraphRuntime, RuntimeConfig,
-)
 from adjutant_coordinator.structured_log import (  # noqa: E402
     JsonlFileSink, StructuredLogger,
 )
+# 重依赖（pydantic-ai / langgraph / 图运行时）故意不在模块顶层导入：
+# 引导文件 `from ...agent_runner import main` 必须尽快进入 setup 的等待循环，
+# 才能和游戏加载页并行；这些模块改到 `_warm_imports` / 装配函数里再加载。
 
 #: 玩家局服权威调试端点（生产路径）。
 AUTHORITY_PORT = 24571
@@ -74,6 +69,9 @@ TEST_PORT_RANGE = (24600, 24699)
 FORBIDDEN_PORTS = {24567, 24568}
 #: 单次 TCP 请求默认超时（秒）。
 DEFAULT_TCP_TIMEOUT = 30.0
+#: 等权威口/对局/视图时的轮询间隔。1.0s 会在对局刚就绪后再白等一轮；
+#: 0.2s 足够避开忙等，单机挂上能少掉大约一秒。
+WAIT_POLL_SECONDS = 0.2
 
 
 class FaultTacticsModel:
@@ -92,8 +90,10 @@ class FaultTacticsModel:
 
     def propose_task_patch(self, frame):  # noqa: ANN001 - 与真实 Agent 同签名
         if self.kind == "timeout":
+            from adjutant_coordinator.graph.pydantic_agents import ModelTimeout
             raise ModelTimeout("fault-injection: timeout")
         if self.kind == "invalid":
+            from adjutant_coordinator.graph.pydantic_agents import ModelInvalidOutput
             raise ModelInvalidOutput("fault-injection: invalid")
         return None          # "empty"：成功但空批次
 
@@ -404,7 +404,9 @@ class MeteredModel:
             value = getattr(self.inner, method)(context)
             record.update({"ok": True, "kind": "", "error": "",
                            "proposal": _proposal_digest(value)})
-        except (ModelTimeout, ModelUnavailable, ModelInvalidOutput) as exc:
+        except Exception as exc:
+            if not _is_model_error(exc):
+                raise
             record.update({"ok": False, "kind": type(exc).__name__, "error": str(exc)})
             self._emit(dict(record, latency_ms=int((time.time() - started) * 1000)))
             raise
@@ -441,13 +443,22 @@ class MeteredModel:
             value = self.inner.propose_task_patch(frame)
             record.update({"ok": True, "kind": "", "error": "",
                            "proposal": _proposal_digest(value)})
-        except (ModelTimeout, ModelUnavailable, ModelInvalidOutput) as exc:
+        except Exception as exc:
+            if not _is_model_error(exc):
+                raise
             record.update({"ok": False, "kind": type(exc).__name__, "error": str(exc)})
             self._emit(dict(record, latency_ms=int((time.time() - started) * 1000)))
             raise
         record["latency_ms"] = int((time.time() - started) * 1000)
         self._emit(record)
         return value
+
+
+def _is_model_error(exc: BaseException) -> bool:
+    """是否为模型层三类受控失败（懒导入，避免模块顶层拖 pydantic-ai）。"""
+    from adjutant_coordinator.graph.pydantic_agents import (
+        ModelInvalidOutput, ModelTimeout, ModelUnavailable)
+    return isinstance(exc, (ModelTimeout, ModelUnavailable, ModelInvalidOutput))
 
 
 # ---------------- runner ----------------
@@ -612,6 +623,9 @@ class AgentRunner:
         #: 就用它，否则退化为**本模块被加载的时刻**（验收工装直接拉起 runner 时也能量）。
         self._setup_ms: Dict[str, int] = {}
         self._setup_t0 = 0.0
+        #: 本局已向 Godot 提交过 Hermes 排序的加成轮次（避免重复打模型）。
+        self._augment_ranked_round = -1
+        self._augment_rank_inflight = False
         self._spawn_ts = 0.0
         try:
             self._spawn_ts = float(os.environ.get("ADJUTANT_SPAWN_TS", "") or 0.0)
@@ -649,6 +663,10 @@ class AgentRunner:
             from pydantic_ai.models.openai import OpenAIChatModel  # noqa: F401
             from pydantic_ai.providers.openai import OpenAIProvider  # noqa: F401
             import langgraph.graph  # noqa: F401
+            from adjutant_coordinator.graph import pydantic_agents as _pydantic_agents  # noqa: F401
+            from adjutant_coordinator.graph import runtime as _graph_runtime  # noqa: F401
+            from adjutant_coordinator.graph import checkpoint as _graph_checkpoint  # noqa: F401
+            from adjutant_coordinator.graph.graph import langgraph_available  # noqa: F401
         except Exception:  # noqa: BLE001 —— 预热失败不是错误：懒导入路径仍然有效
             pass
 
@@ -682,17 +700,17 @@ class AgentRunner:
                 print("[runner] 等待对局就绪…（%s）" % wait_state, flush=True)
             if not port_listening(self.port):
                 wait_state = "port"
-                time.sleep(1.0)
+                time.sleep(WAIT_POLL_SECONDS)
                 continue
             if not match_active(self.port):
                 wait_state = "match"
-                time.sleep(1.0)
+                time.sleep(WAIT_POLL_SECONDS)
                 continue
             if not self.player:
                 self.player = pick_human_player(self.port)
             if not self.player:
                 wait_state = "player"
-                time.sleep(1.0)
+                time.sleep(WAIT_POLL_SECONDS)
                 continue
             # 【为什么把"取视图"也放进轮询】对局刚加载完时游戏主线程还在建场景/烘焙导航，
             # DCS 会**接受连接但长时间不回包**。旧实现只等"端口+对局"就往下走，取不到
@@ -707,7 +725,7 @@ class AgentRunner:
                 wait_state = "ready"
                 break
             wait_state = "views"
-            time.sleep(1.0)
+            time.sleep(WAIT_POLL_SECONDS)
         if wait_state != "ready":
             if wait_state == "port":
                 raise RunnerError("权威端点 %d 在 %.0fs 内未就绪。"
@@ -735,10 +753,10 @@ class AgentRunner:
         self._open_log()
         self._mark("open_log")
         # 【冷启动优化③】★先登记"已挂上本局"，再去做重装配（模型/图/留档）。
-        # 面板与其它只读工具判活靠的是"本局日志有新内容"（心跳 ≤90s）。把这条放在重装配
-        # **之前**，玩家点"接管"后 1~2 秒面板就能亮起来，而不是等模型/图装配完才亮。
-        # 注意：`agent_runner.pid` 仍然只在装配成功后写（`run()` 里）——
-        # 失败路径（setup_failed/setup_error）不留残留握手文件，避免又出现"认领死 pid"。
+        # 面板 `is_attached()` = pidfile + 心跳。心跳原来已经提前，pidfile 却还在
+        # 整段装配之后才写 —— 加载页 12s 上限经常等不到。对局身份已齐就写握手；
+        # 后面装配失败由 `run()` 删掉，不会留下死 pid。
+        self._write_pidfile()
         self._log({"kind": "attached", "match_id": self.match_id, "player": self.player,
                    "server_tick": tick, "port": self.port,
                    "setup_ms": dict(self._setup_ms)})
@@ -760,6 +778,17 @@ class AgentRunner:
         # 推理阻塞；结果到达时按"本地接收期限 / 观测推进 / 逐对象代际"判定接受或拒绝。
         scheduler = self._build_scheduler(tactics_model)
         self._mark("scheduler")
+        # 副官强度（面板三个等级按钮 → 生产/面板写进 runner 参数 → 规则地板的出击阈值）：
+        # 唯一实现见 `graph/intensity.py`。**放在这里而不是参数解析期**：导入 `graph` 包会
+        # 连带 pydantic 契约（实测 ~2.1s），提前到 `build_parser()` 会把冷启动握手推迟 2 秒；
+        # 此刻 `_warm_imports` 已经预热过，且早于第一次 `ensure_campaign`（首个 tick），
+        # 所以既有零成本也保证生效。
+        from adjutant_coordinator.graph import intensity as intensity_mod
+        self._intensity = intensity_mod.set_active(self.args.intensity)
+        print("[runner] 副官强度=%s（%s）" % (
+            intensity_mod.label(), intensity_mod.hint()), flush=True)
+        from adjutant_coordinator.graph.checkpoint import JsonCheckpointStore
+        from adjutant_coordinator.graph.runtime import AdjutantGraphRuntime, RuntimeConfig
         self.runtime = AdjutantGraphRuntime(
             self.match_id, self.player, transport=self.transport,
             strategy_model=strategy_model, tactics_model=tactics_model,
@@ -813,6 +842,8 @@ class AgentRunner:
             "langgraph_available": describe.get("langgraph_available"),
             "provider": self.args.provider, "restore": restore,
             "config": describe.get("config"), "port": self.port,
+            # 强度等级进 start 事件：留档/复盘要能回答"那一局副官是几级、出击阈值多少"。
+            "intensity": intensity_mod.describe(),
             "handover": handover,
             # 【冷启动体检】各阶段耗时（毫秒）+ 从"进程被拉起"起的真实冷启动。
             "setup_ms": dict(self._setup_ms), "since_spawn_ms": self._since_spawn_ms(),
@@ -871,6 +902,11 @@ class AgentRunner:
             strategy_inner = (ContextScriptedStrategy() if strategy_enabled else None)
             tactics_inner = ContextScriptedTactics(int(self.args.ttl), int(self.args.emergency_ttl))
         else:
+            from adjutant_coordinator.graph.pydantic_agents import (
+                GraphModelSettings, ModelUnavailable, PydanticAIStrategyAgent,
+                PydanticAITacticsAgent, PydanticAITaskPatchAgent,
+                pydantic_ai_available,
+            )
             availability = pydantic_ai_available()
             settings = GraphModelSettings.from_env()
             if self.args.llm_timeout:
@@ -1016,12 +1052,14 @@ class AgentRunner:
             print("[runner] 启动失败：%s" % exc, file=sys.stderr)
             self._log({"kind": "setup_failed", "error": str(exc)})
             self._close_log()
+            self._remove_pidfile()
             self._release_single_instance()
             return 3
         except Exception as exc:  # noqa: BLE001 —— 装配期异常统一留痕后退出
             print("[runner] 装配异常：%r" % exc, file=sys.stderr)
             self._log({"kind": "setup_error", "error": repr(exc)})
             self._close_log()
+            self._remove_pidfile()
             self._release_single_instance()
             return 3
 
@@ -1052,6 +1090,7 @@ class AgentRunner:
                         latest = self.scanner.latest()
                         if latest:
                             obs["fast_state"] = latest
+                    self._maybe_rank_augments(obs)
                     started = time.time()
                     result = self.runtime.tick(tick_value, obs)
                     elapsed_ms = int((time.time() - started) * 1000)
@@ -1204,6 +1243,67 @@ class AgentRunner:
                        "model_calls": len(self.model_sink)})
             self._close_log()
         return exit_code
+
+    def _maybe_rank_augments(self, obs: Dict[str, Any]) -> None:
+        """看到本轮 offer 后异步请 Hermes 排序。失败则保持 Godot 规则星标。
+
+        只发 `op=augment_recommend`，从不 `augment_pick` / `adjutant_intent`。
+        """
+        fast = obs.get("fast_state") or {}
+        tactical = obs.get("tactical") or {}
+        aug = fast.get("augments") if isinstance(fast.get("augments"), dict) else None
+        if not isinstance(aug, dict):
+            aug = tactical.get("augments") if isinstance(tactical.get("augments"), dict) else {}
+        offer = aug.get("offer") or []
+        if not offer:
+            return
+        try:
+            round_index = int(aug.get("round_index", -1))
+        except (TypeError, ValueError):
+            round_index = -1
+        if round_index < 0 or round_index == self._augment_ranked_round:
+            return
+        if self._augment_rank_inflight:
+            return
+        self._augment_rank_inflight = True
+        units = fast.get("units") or []
+        enemies = fast.get("visible_enemies") or []
+        facts = {
+            "army_count": len(units) if isinstance(units, list) else 0,
+            "enemy_count": len(enemies) if isinstance(enemies, list) else 0,
+            "structure_count": 0,
+            "balance_a": int(((tactical.get("balance") or {}) if isinstance(tactical, dict) else {}).get("a") or 0),
+        }
+        payload = {
+            "offer": offer,
+            "facts": facts,
+            "profile": {},
+            "round_index": round_index,
+        }
+        port = self.port
+        player = self.player
+
+        def _work() -> None:
+            source = "rules"
+            try:
+                from adjutant_coordinator.graph.augment_rank import rank_offer
+                ranked = rank_offer(payload)
+                source = str((ranked or {}).get("source") or "rules")
+                tcp_json(port, {
+                    "op": "augment_recommend",
+                    "as_player": player,
+                    "order": (ranked or {}).get("order") or [],
+                    "reasons": (ranked or {}).get("reasons") or [],
+                }, timeout=20.0)
+                self._augment_ranked_round = round_index
+                self._log({"kind": "augment_recommend", "round": round_index, "source": source})
+            except Exception as exc:  # noqa: BLE001 —— 推荐失败不得影响指挥循环
+                self._log({"kind": "augment_recommend_failed", "round": round_index,
+                           "error": str(exc)[:200]})
+            finally:
+                self._augment_rank_inflight = False
+
+        threading.Thread(target=_work, name="hermes-augment", daemon=True).start()
 
     def _observe(self):
         """取本轮观测：**完整视图按需刷新**，不每轮重拉（计划 §3.2 "按需读取"）。
@@ -1751,6 +1851,7 @@ class AgentRunner:
                 "quality_scale": scan_stats.get("quality_scale_last"),
                 "sample_ms_p50": scan_stats.get("sample_ms_p50"),
                 "event_seq": fast.get("event_seq"),
+                "augments": fast.get("augments"),
                 "movement": dict((getattr(result, "state", {}) or {}).get("movement_stats") or {}),
                 "lanes": dict((getattr(result, "state", {}) or {}).get("lanes") or {}),
                 # 【任务侧事实】每轮把"我们的意图状态"也落档：否则"生产完成了但任务仍 unknown"
@@ -1882,6 +1983,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--scheduling", choices=("async", "sync"), default="async",
                         help="调度方式：async=有界异步（默认，主循环不被推理阻塞）；"
                              "sync=旧同步等待（仅对照/回退）")
+    # 副官强度等级（面板三个按钮 → 这里 → 规则地板的出击阈值）。映射单点定义在
+    # `graph/intensity.py`；默认 standard 与历史行为完全一致，不带本参数时行为零变化。
+    # ⚠ 这里**不用 `choices=`**：那会在 `build_parser()` 里提前导入 `graph` 包（连带
+    # pydantic 契约，实测 ~2.1s），把 runner 冷启动握手推迟；等级照样在 setup 里规整，
+    # 非法值回落 standard 而不是让进程起不来（见 intensity.normalize 的不变式 3）。
+    parser.add_argument("--intensity", default="standard",
+                        help="副官强度：conservative=保守（攒够 4 个作战单位才出击）；"
+                             "standard=标准（默认，2 个）；aggressive=激进（1 个就出击）")
     parser.add_argument("--strategy-interval", type=int, default=1800,
                         help="战略模型最小间隔（tick，默认 1800≈30s）。"
                              "【不要砍到 900 以下】实测把战略间隔砍半后，战略模型失败次数与"
@@ -1889,21 +1998,28 @@ def build_parser() -> argparse.ArgumentParser:
                              "tactics_request 只剩 **2** 次 → 微操层（发展阶梯+行为树）被饿死、"
                              "整局 0 生产、看不到任何批量指挥。战略层是低频慢层，"
                              "提速要靠微操高频跑（见 --tactics-interval / --event-interval）。")
-    parser.add_argument("--tactics-interval", type=int, default=60,
-                        help="战术决策最小间隔（tick，默认 60≈1s）。"
-                             "模型决策间隔与协调、命令下发频率分别记录。"
-                             "2026-09-13 用户允许大规模约 2 秒一轮协调与控制；"
-                             "验收重点是多线并发、生产接续和任务持续执行，不要求每秒下令。")
-    parser.add_argument("--emergency-interval", type=int, default=60,
-                        help="紧急事件最小间隔（tick，默认 60≈1s）")
+    parser.add_argument("--tactics-interval", type=int, default=15,
+                        help="战术决策最小间隔（tick，默认 15）。"
+                        "【2026-09-15 用户反复要求提高操控频率】原默认 60≈1s → 30 → 现在 15。"
+                        "⚠ **按 server_tick 计，不是按秒**：小图 60Hz ≈0.25s，"
+                        "而**大地图物理只有 20Hz ⇒ 同一数值实际慢 3 倍**（大地图 15 tick ≈0.75s，"
+                        "旧值 30 tick ≈1.5s）—— 这正是大地图上“操作频率低”的主因。"
+                        "模型决策间隔与协调、命令下发频率分别记录。"
+                        "验收重点是多线并发、生产接续和任务持续执行，不要求每秒下令。")
+    parser.add_argument("--emergency-interval", type=int, default=30,
+                        help="紧急事件最小间隔（tick，默认 30；⚠ 按 server_tick 计："
+                             "小图 60Hz≈0.5s、大地图 20Hz≈1.5s）")
     parser.add_argument("--ttl", type=int, default=3600,
                         help="意图有效期（tick，默认 3600≈60s）。必须大于模型单次延迟"
                              "（实测 14~40s），否则意图会在下一批到来前过期，部队出现空窗。")
     parser.add_argument("--emergency-ttl", type=int, default=1200,
                         help="紧急意图有效期（tick，默认 1200≈20s）")
-    parser.add_argument("--tick-interval", type=float, default=0.5,
-                        help="协调周期（秒，默认 0.5；大规模允许约 2.0，"
-                             "须验证多线并发、生产接续和关键事件响应）")
+    parser.add_argument("--tick-interval", type=float, default=0.25,
+                        help="协调周期（秒，默认 0.25=4Hz；原 0.5=2Hz 是"
+                             "“操作频率低”的主频上限）。实测单轮 elapsed_ms 150~350ms，"
+                             "0.25s 不会被处理耗时反超（主循环按"
+                             "「睡掉本轮剩余时间」实现，频率=1/tick_interval）。"
+                             "大规模对局如出现拥塞可回调到 0.5。")
     parser.add_argument("--full-view-interval", type=float, default=1.0,
                         help="完整 tactical/strategic 视图的刷新间隔（秒，默认 1.0）。"
                              "两者都是全场景扫描（tactical 还是 O(敌×我)），每轮重拉会把"
@@ -1915,9 +2031,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--scan", default="on", choices=("on", "off"),
                         help="是否启用 10Hz 缓存型扫描层（off = 退回旧的 0.5s 全量轮询，"
                              "用于对照与排障）")
-    parser.add_argument("--event-interval", type=int, default=60,
-                        help="观测事件节流（tick，默认 60≈1s）；大规模可调整，"
-                             "须验证关键事件及时处理，不以命令发送次数作为验收门槛。")
+    parser.add_argument("--event-interval", type=int, default=10,
+                        help="观测事件节流（tick，默认 10）。"
+                        "【2026-09-15 用户反复要求提高操控频率】原默认 60≈1s → 20 → 现在 10；"
+                        "图侧的 `is_tactics_due` 要求「有事件」才会走战术分支 ⇒ 事件节流"
+                        "实际就是决策频率的上限（与 `--tactics-interval` 取更严者）。"
+                        "⚠ **按 server_tick 计**：大地图 20Hz 时 10 tick ≈0.5s。"
+                        "须验证关键事件及时处理，不以命令发送次数作为验收门槛。")
     parser.add_argument("--max-batch", type=int, default=24,
                         help="每轮最多下发多少条意图（默认 24，原为 8）。"
                              "实测默认 8 在对局激烈时大量触发 batch_limit_exceeded"
@@ -1942,6 +2062,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Optional[List[str]] = None) -> int:
     args = build_parser().parse_args(argv)
+    from adjutant_coordinator.graph.graph import langgraph_available
     availability = langgraph_available()
     print("[runner] langgraph_available=%s%s" % (
         availability["available"],

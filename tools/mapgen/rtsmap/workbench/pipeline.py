@@ -22,7 +22,8 @@ from ..gate import run_dir
 from ..gates import g2_layout, g3_content, g4_export
 from ..grid import read_json, sha256_file, write_json
 from ..viz.review import build_g2_review, build_g3_review
-from . import engine
+from . import compat, engine
+from .catalog import layout_catalog
 from .settings import generator_params
 
 PIPELINE_VERSION = "1.0.0"
@@ -92,54 +93,94 @@ def run_pipeline(job, project, folder, save, progress):
     def stage_passed(name):
         return stage_done(name) and stages[name].get("pass", True)
 
-    # ---- G1 输入：复制既有合格布局（源只读，不重新随机） ----
-    if not stage_done("g1_input"):
-        rec.mark_t0("g1_input")
-        rec.begin("g1_input", stage="G1", version=ALGO_VERSION["G1"])
-        try:
-            from .catalog import g1_source_root
-            src = g1_source_root(Path(project)) / str(seed) / "G1"
-            dst = runs / str(seed) / "G1"
-            if dst.exists():
-                shutil.rmtree(dst)
-            shutil.copytree(src, dst)
-            spec = read_json(dst / "mapspec.json")
-            hashes = {p.name: sha256_file(p) for p in dst.iterdir() if p.is_file()}
-            rec.done("g1_input", source=str(src), source_hashes=hashes,
-                     starts=spec["starts"], spacing=job.get("spacing"),
-                     g1_approved=bool(read_json(dst / "manifest.json").get("approved")),
-                     output_hashes={"mapgrid.npz": hashes.get("mapgrid.npz")})
-        except Exception as error:
-            rec.fail("g1_input", error)
-            raise
-    progress(dict(stage="G1", phase="出生布局已就绪"))
+    layouts = layout_catalog(Path(project))
+    while True:
+        seed = config["layout_seed"]
+        # ---- G1 输入：复制既有合格布局（源只读，不重新随机） ----
+        if not stage_done("g1_input"):
+            rec.mark_t0("g1_input")
+            rec.begin("g1_input", stage="G1", version=ALGO_VERSION["G1"])
+            try:
+                from .catalog import g1_source_root
+                src = g1_source_root(Path(project)) / str(seed) / "G1"
+                dst = runs / str(seed) / "G1"
+                if dst.exists():
+                    shutil.rmtree(dst)
+                shutil.copytree(src, dst)
+                spec = read_json(dst / "mapspec.json")
+                hashes = {p.name: sha256_file(p) for p in dst.iterdir() if p.is_file()}
+                rec.done("g1_input", source=str(src), source_hashes=hashes,
+                         starts=spec["starts"], spacing=job.get("spacing"),
+                         g1_approved=bool(read_json(dst / "manifest.json").get("approved")),
+                         output_hashes={"mapgrid.npz": hashes.get("mapgrid.npz")})
+            except Exception as error:
+                rec.fail("g1_input", error)
+                raise
+        progress(dict(stage="G1", phase="出生布局已就绪"))
 
-    # ---- G2 地形 ----
-    if not stage_done("g2_terrain"):
-        rec.mark_t0("g2_terrain")
-        rec.begin("g2_terrain", stage="G2", version=ALGO_VERSION["G2"])
-        try:
-            params = generator_params(config)
+        # ---- G2 地形 ----
+        if not stage_done("g2_terrain"):
+            rec.mark_t0("g2_terrain")
+            rec.begin("g2_terrain", stage="G2", version=ALGO_VERSION["G2"])
+            try:
+                params = generator_params(config)
 
-            def g2_progress(value):
-                progress(dict(stage="G2", **value))
+                def g2_progress(value):
+                    progress(dict(stage="G2", **value))
 
-            result = g2_layout.run_one(seed, runs, params, on_progress=g2_progress, auto=True)
-            spec = result["mapspec"]
-            build_g2_review(runs, review, [seed])
-            mf = read_json(run_dir(runs, seed, "G2") / "manifest.json")
-            rec.done("g2_terrain", all_pass=spec["all_pass"],
-                     checks=spec["checks"], input_hash=mf["input_hash"],
-                     output_hash=mf["output_hash"], params_version=spec["algo_version"],
-                     chosen_attempt=spec["generation"]["chosen_attempt"],
-                     summary=_g2_summary(spec))
-            stages["g2_terrain"]["pass"] = bool(spec["all_pass"])
-            save(job)
-        except Exception as error:
-            rec.fail("g2_terrain", error,
-                     kind="no_candidate" if isinstance(error, g2_layout.NoTerrainCandidate) else "stage_error",
-                     attempts=getattr(error, "attempts", None))
-            raise
+                result = g2_layout.run_one(seed, runs, params, on_progress=g2_progress, auto=True)
+                spec = result["mapspec"]
+                mf = read_json(run_dir(runs, seed, "G2") / "manifest.json")
+                rec.done("g2_terrain", all_pass=spec["all_pass"],
+                         checks=spec["checks"], input_hash=mf["input_hash"],
+                         output_hash=mf["output_hash"], params_version=spec["algo_version"],
+                         chosen_attempt=spec["generation"]["chosen_attempt"],
+                         summary=_g2_summary(spec))
+                stages["g2_terrain"]["pass"] = bool(spec["all_pass"])
+                save(job)
+                # 复核图（3 张 PNG，实测 ~1s）放在阶段状态落定之后渲染：UI 立刻从
+                # "地形生成 进行中"跳到"完成"，不必等图片画完（图只供人复核）。
+                # 渲染失败只记日志，不改判已落定的阶段结果。
+                try:
+                    build_g2_review(runs, review, [seed])
+                except Exception as error:
+                    print(f"[G2] review 渲染失败（不影响阶段结果）: {error}")
+            except Exception as error:
+                if isinstance(error, g2_layout.NoTerrainCandidate) and not job.get("layout_locked", True):
+                    compat.record_layout_try(job, seed, "no_candidate", error.attempts)
+                    if compat.note_hard_reject(job, error.attempts):
+                        # 连续多套布局都放不下所选水域 ⇒ 整池没戏，收手别让玩家干等。
+                        job["layout_pool"] = []
+                    nxt = compat.next_layout_seed(job)
+                    if nxt is not None:
+                        rec.fail("g2_terrain", error, kind="no_candidate",
+                                 attempts=error.attempts)
+                        compat.bind_job_layout(job, nxt, layouts, reroll_terrain=True)
+                        stages.pop("g1_input", None)
+                        stages.pop("g2_terrain", None)
+                        progress(dict(stage="G2",
+                                      phase=f"布局 {seed} 放不下所选水域，改试布局 {nxt}"))
+                        save(job)
+                        continue
+                rec.fail("g2_terrain", error,
+                         kind="no_candidate" if isinstance(error, g2_layout.NoTerrainCandidate) else "stage_error",
+                         attempts=getattr(error, "attempts", None))
+                raise
+        if stage_passed("g2_terrain"):
+            break
+        if not compat.should_rotate_failed_checks(job, dict(all_pass=False)):
+            break
+        compat.record_layout_try(job, seed, "checks")
+        nxt = compat.next_layout_seed(job)
+        if nxt is None:
+            break
+        compat.bind_job_layout(job, nxt, layouts, reroll_terrain=True)
+        stages.pop("g1_input", None)
+        stages.pop("g2_terrain", None)
+        progress(dict(stage="G2", phase=f"布局 {seed} 未通过地貌检查，改试布局 {nxt}"))
+        save(job)
+
+    seed = config["layout_seed"]
     if not stage_passed("g2_terrain"):
         for name in ("g3_content", "g4_scene", "engine"):
             rec.skip(name, "G2 几何检查未通过，依赖阶段不运行")
@@ -280,8 +321,13 @@ def _run_engine(job, folder, rec, save, progress):
     records.append(dict(step="copy_assets", fbx=len(fbx), atlases=len(atlases),
                         copied_now=copied))
 
-    progress(dict(stage="引擎", phase="导入资产（Godot headless）"))
-    records.append(dict(step="import", **engine.import_assets(airts, log_dir)))
+    if copied:
+        progress(dict(stage="引擎", phase="导入资产（Godot headless）"))
+        records.append(dict(step="import", **engine.import_assets(airts, log_dir)))
+    else:
+        # 本次没有新复制任何素材 ⇒ .import 与 uid 都已在位。
+        # `--import` 会扫描整个 AI_RTS 工程（2.5 万文件），无新资产时纯属白等。
+        records.append(dict(step="import", skipped="no_new_assets", copied_now=0))
     # 导入后重写场景：ext_resource 的 uid 来自 .import（导入前构建拿不到）；
     # 场景本体在 G4 阶段已写入一次（产生 export.json/visual_plan 供依赖清单）。
     # profile 取值顺序（GLM 视觉轮修复）：job.visual_profile（rebuild_visual 写入）

@@ -80,6 +80,37 @@ func _run() -> void:
 	if setup_script != null:
 		var box: Vector2 = setup_script.PREVIEW_BOX_SIZE
 		_check(is_equal_approx(box.x, box.y), "大厅地图预览框应为正方形（实际 %s）" % str(box))
+
+	var play_packed: PackedScene = load("res://source/main-menu/Play.tscn")
+	_check(play_packed != null, "Play.tscn 可加载")
+	if play_packed != null:
+		var play := play_packed.instantiate()
+		root.add_child(play)
+		for i in range(6):
+			await process_frame
+		var random_btn := play.find_child("RandomMapButton", true, false) as Button
+		_check(random_btn != null, "单机页有随机地图按钮")
+		_check(random_btn != null and random_btn.toggle_mode, "随机地图是状态按钮")
+		if random_btn != null:
+			random_btn.set_pressed(true)
+			for i in range(4):
+				await process_frame
+			_check(bool(play.get("_random_map_mode")), "点随机地图后进入随机模式")
+			_check(is_instance_valid(play) and play.is_inside_tree(), "点随机地图后仍停在设置页")
+			_check(root.find_child("Loading", true, false) == null, "点随机地图不得立刻进加载页")
+			var title := play.find_child("MapTitle", true, false) as Label
+			_check(title != null and title.text == "随机地图", "随机模式标题为「随机地图」")
+			var preview := play.find_child("MapPreview", true, false) as GridContainer
+			_check(preview != null and preview.get_child_count() == 1, "随机预览只有一块")
+			if preview != null and preview.get_child_count() == 1:
+				_check(_find_black_rect(preview.get_child(0)) != null, "随机预览纯黑底")
+				_check(_find_question_mark(preview.get_child(0)) != null, "随机预览中间是问号")
+			random_btn.set_pressed(false)
+			for i in range(4):
+				await process_frame
+			_check(not bool(play.get("_random_map_mode")), "再点一次退出随机模式")
+		play.queue_free()
+		await process_frame
 	var sidebar_script := load("res://source/match/hud/ra3/Ra3Sidebar.gd")
 	_check(sidebar_script != null, "Ra3Sidebar.gd 可加载")
 	if sidebar_script != null:
@@ -99,6 +130,24 @@ func _child_index(parent: Node, child_name: String) -> int:
 func _find_button(root_node: Node, text: String) -> Button:
 	for node in root_node.find_children("*", "Button", true, false):
 		if node is Button and (node as Button).text == text:
+			return node
+	return null
+
+
+func _find_black_rect(root_node: Node) -> ColorRect:
+	if root_node is ColorRect and (root_node as ColorRect).color == Color.BLACK:
+		return root_node
+	for node in root_node.find_children("*", "ColorRect", true, false):
+		if node is ColorRect and (node as ColorRect).color == Color.BLACK:
+			return node
+	return null
+
+
+func _find_question_mark(root_node: Node) -> Label:
+	if root_node is Label and (root_node as Label).text == "?":
+		return root_node
+	for node in root_node.find_children("*", "Label", true, false):
+		if node is Label and (node as Label).text == "?":
 			return node
 	return null
 

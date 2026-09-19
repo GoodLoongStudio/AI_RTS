@@ -53,6 +53,20 @@ def test_water_choices_are_real_connected_geometry(tmp_path, seed, river, lakes)
         assert abs(lake['area_m2'] - G2_DEFAULTS['lake_area']) <= G2_DEFAULTS['lake_area'] * 0.02
 
 
+def test_separate_rivers_scale_with_map_and_keep_lake_area(tmp_path):
+    """256 图分流河按比例取间距；锁死布局 55 也能放下完整一湖，不缩面积。"""
+    seed = 55
+    shutil.copytree(PROJECT / f'runs/{seed}/G1', tmp_path / f'{seed}/G1')
+    config = validate_config(dict(layout_seed=seed, terrain_seed=0, controls=dict(
+        river_enabled=1, river_layout=3, lake_count=1, lake_area=5000, layout_attempts=7)), [seed])
+    result = g2.run_one(seed, tmp_path, generator_params(config), auto=True)
+    spec = result['mapspec']
+    assert len(spec['rivers']) == 2
+    assert len(spec['lakes']) == 1
+    assert abs(spec['lakes'][0]['area_m2'] - 5000) <= 100
+    assert spec['all_pass'], spec['generation']
+
+
 def test_known_hard_combo_fails_cleanly_without_shrinking_water(tmp_path):
     """seed16 + 河+双湖 为已知空间冲突：应明确报无候选，且不产出缩小湖冒充通过。"""
     seed, river, lakes = 16, 1, 2

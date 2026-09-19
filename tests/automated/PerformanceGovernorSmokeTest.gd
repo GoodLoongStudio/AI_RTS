@@ -20,6 +20,7 @@ var _failures := 0
 
 func _ready():
 	_test_unit_floor_table()
+	_test_global_floor_table()
 	_test_more_units_lowers_quality_immediately()
 	_test_downgrade_needs_dwell()
 	_test_cooldown_prevents_double_downgrade()
@@ -41,6 +42,22 @@ func _test_unit_floor_table():
 	_check(Governor.tier_floor_for_units(50) == 1, "50 个自己的兵起降到 1 档")
 	_check(Governor.tier_floor_for_units(80) == 2, "80 个起降到 2 档")
 	_check(Governor.tier_floor_for_units(120) == 3, "大规模部队降到最低档")
+
+
+func _test_global_floor_table():
+	# 【2026-09-15 用户批准的第二条腿】一局开 2~3 个电脑时，光数自己的兵不够：
+	# 对面攒到几百个单位照样拖慢主机，而画质一直停在最高档（用户实测"非常卡"）。
+	# 门槛必须高到不误伤"我兵少"的常规对局（第一口径的 50/80/120 保持不变）。
+	_check(Governor.tier_floor_for_scale(0, 199) == 0, "全场不到 200 个单位不该降画质")
+	_check(Governor.tier_floor_for_scale(0, 200) == 1, "全场 200 个起兜底降到 1 档")
+	_check(Governor.tier_floor_for_scale(0, 300) == 2, "全场 300 个兜底降到 2 档")
+	_check(Governor.tier_floor_for_scale(0, 420) == 3, "全场 420 个兜底降到最低档")
+	_check(Governor.tier_floor_for_scale(50, 0) == 1, "自军口径向后兼容（50 个自己的兵 = 1 档）")
+	_check(Governor.tier_floor_for_scale(120, 0) == 3, "自军口径向后兼容（120 个 = 3 档）")
+	# 两条腿取严：自己兵少但全场是大乱斗 → 按全场那条降。
+	var core := {"tier": 0, "low_seconds": 0.0, "high_seconds": 0.0, "cooldown": 0.0}
+	var result := Governor.step(core, {"fps": 60.0, "units": 3, "all_units": 320, "delta": 0.25})
+	_check(int(result["tier"]) == 2, "自己只有 3 个兵、全场 320 个 → 兜底降到 2 档")
 
 
 func _test_more_units_lowers_quality_immediately():

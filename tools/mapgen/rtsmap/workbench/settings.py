@@ -8,18 +8,23 @@ SCHEMA_VERSION = 2
 # Bands refer to the nearest pair of spawn centres, not travel time after terrain.
 SPACING = {'any': (0., 1000.), 'close': (0., 110.), 'standard': (110., 135.), 'far': (135., 1000.)}
 CHOICES = [
+    # 【2026-09-15 用户要求"把一些会影响地图生成的组合去掉"】撤下两个"两个湖"的组合：
+    # 实测（本机工作台，锁定 approved 布局 16/35/61，标准水域 5000㎡）：
+    #   单河双湖 → 16/35/61 三套全部 `no_candidate`（根本放不下）；
+    #   双湖盆地 → 16/35 `no_candidate`，61 能出图但几何检查不过（all_pass=False）；
+    # 而不选组合随机生成时，2 湖组合会轮遍全池 30 套布局、耗时 ~100s 再交回一张不过检的图，
+    # 玩家体验就是"空生成长等"。等布局库有足够多已 approve 的宿主再加回来（见 compat.VERIFIED_WATER_LAYOUTS）。
     dict(key='water_combo', label='河湖组合', default='crossed', options=[
         dict(value='crossed', label='交错双河', controls=dict(river_enabled=1,river_layout=2,lake_count=0)),
         dict(value='single_lake', label='单河一湖', controls=dict(river_enabled=1,river_layout=1,lake_count=1)),
-        dict(value='single_two_lakes', label='单河双湖', controls=dict(river_enabled=1,river_layout=1,lake_count=2)),
         dict(value='crossed_lake', label='交河一湖', controls=dict(river_enabled=1,river_layout=2,lake_count=1)),
         dict(value='separate_lake', label='分流一湖', controls=dict(river_enabled=1,river_layout=3,lake_count=1)),
-        dict(value='two_lakes', label='双湖盆地', controls=dict(river_enabled=0,river_layout=2,lake_count=2)),
     ]),
-    dict(key='player_spacing', label='玩家距离', default='any', hint='按最近两家出生点的直线距离筛选已有 G1 布局。', options=[
+    dict(key='player_spacing', label='玩家距离', default='any', hint='按最近两家出生点的直线距离筛选已有 G1 布局。生成器会自动换到能放下所选河湖的布局，不会缩小湖泊。', options=[
         dict(value='any', label='不限'), dict(value='close', label='近', detail='小于110m'), dict(value='standard', label='适中', detail='110–135m'), dict(value='far', label='远', detail='135m以上')]),
     dict(key='river_enabled', label='河流', default=1, options=[dict(value=0, label='无'), dict(value=1, label='有')]),
-    dict(key='lake_count', label='湖泊', default=0, options=[dict(value=0, label='无'), dict(value=1, label='一个'), dict(value=2, label='两个')]),
+    # 同上去掉"两个"：手选也会造出上面那条撤下的组合，等于绕过限制。
+    dict(key='lake_count', label='湖泊', default=0, options=[dict(value=0, label='无'), dict(value=1, label='一个')]),
     dict(key='water_size', label='水域大小', default='standard', hint='标准湖约占全图1.9%，大湖约2.3%；空间不足会提示，保持所选大小。', options=[
         dict(value='standard', label='标准', controls=dict(lake_area=5000, river_width=18)),
         dict(value='large', label='大', controls=dict(lake_area=6000, river_width=24))]),
@@ -44,7 +49,7 @@ CONTROLS = [
     dict(key='river_crossings', group='河流与岩体', label='过河点数量', min=4, max=8, step=1, default=6, unit='处', hint='默认六座桥；封闭任意一座桥后，四家基地仍须互通。'),
     dict(key='obstacle_percent', group='河流与岩体', label='障碍目标占比', min=35, max=45, step=1, default=40, unit='%', hint='包括水体、悬崖和岩体；实际占比会显示在结果中。'),
     dict(key='cover_cluster_max', group='河流与岩体', label='岩体数量上限', min=6, max=14, step=1, default=10, unit='块', hint='只在净空与通路之外安排岩体。'),
-    dict(key='layout_attempts', group='生成设置', label='最多筛选候选', min=1, max=7, step=1, default=4, unit='次', hint='首个候选通过即停止；其余候选并行验收。'),
+    dict(key='layout_attempts', group='生成设置', label='最多筛选候选', min=1, max=16, step=1, default=4, unit='次', hint='首个候选通过即停止；其余候选并行验收。'),
 ]
 DEFAULTS = {c['key']: c['default'] for c in CONTROLS}
 
@@ -80,6 +85,10 @@ def validate_config(value, layout_seeds):
         if not math.isclose(steps, round(steps), abs_tol=1e-7):
             raise ValueError(f"{spec['label']}的调节步长为 {spec['step']}。")
         controls[key] = int(n) if spec['step'] >= 1 else round(float(n), 4)
+    # 已从面板撤下的"两个湖"：接口/历史任务仍可能带 2 过来 —— 这里给清楚的拒绝，
+    # 而不是让它悄悄走进"轮遍全池仍失败"的长跑（见 CHOICES 注释里的实测数据）。
+    if controls.get('lake_count', 0) >= 2:
+        raise ValueError('当前布局库放不下两个湖（approved 布局实测全部放不下），请改为一个或零个。')
     return dict(schema_version=SCHEMA_VERSION, algo_version=ALGO_VERSION['G2'],
                 layout_seed=seed, terrain_seed=terrain, player_spacing=spacing, controls=controls)
 

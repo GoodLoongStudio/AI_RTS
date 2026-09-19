@@ -624,6 +624,18 @@ def lane_to_json(lane, params, bonus):
 
 # ---------------- 主流程 ----------------
 
+HARD_LAYOUT_REJECTS = (
+    'No complete river corridors satisfy the selected layout',
+    'No connected river corridor clears the spawn plateaus',
+    'Unknown river layout',
+)
+
+
+def hard_layout_reject(text):
+    message = str(text or '')
+    return any(tag in message for tag in HARD_LAYOUT_REJECTS)
+
+
 class NoTerrainCandidate(ValueError):
     """A valid request exhausted its candidate budget before geometry existed."""
     def __init__(self, seed, attempts):

@@ -32,6 +32,15 @@ const RADIUS := 8
 const RADIUS_PANEL := 10
 const BUTTON_MIN_HEIGHT := 44.0
 
+# ---------- 下拉弹出菜单（PopupMenu）统一口径 ----------
+# 【2026-09-15 用户要求】"把所有的这种下拉框 UI 检查一下，非必要不要让用户去滚轮"：
+# Godot 的 PopupMenu 默认每个条目只有 20 出头，项一多就变成"只能看几行 + 滚动"。
+# 这里统一：抬字号/行距（每项 ≈ 40px）+ 宽度下限 → 让全部选项一次显示完，
+# 项数极多时仍由屏幕边界兜底（那才是"必要"的滚动）。
+const POPUP_FONT_SIZE := 18
+const POPUP_ITEM_SEPARATION := 16
+const POPUP_MIN_WIDTH := 300.0
+
 # 三条成长分支（战斗 / 经济 / 建设）
 const BRANCH_ACCENT := {
 	"combat": Color("#e05b47"),
@@ -265,6 +274,15 @@ static func _style_option_button(option: OptionButton) -> void:
 		_style_popup(popup)
 
 
+static func style_option_popup(option: OptionButton) -> void:
+	## 只给**下拉弹窗**套统一尺寸口径（不改按钮本体的样式/高度）。
+	## 供**运行时新建**的 OptionButton 使用：调用方只想保证"弹出即完整显示、不滚轮"，
+	## 又不想顺带改变按钮外观时用它（`MenuPage` 的 apply 只覆盖建树时已存在的控件）。
+	var popup := option.get_popup()
+	if popup != null:
+		_style_popup(popup)
+
+
 static func _style_popup(popup: PopupMenu) -> void:
 	popup.add_theme_stylebox_override("panel", flat(GLASS_DEEP, RADIUS, LINE, 1))
 	popup.add_theme_stylebox_override("hover", flat(Color("#173847"), 4))
@@ -272,6 +290,27 @@ static func _style_popup(popup: PopupMenu) -> void:
 	popup.add_theme_color_override("font_color", TEXT)
 	popup.add_theme_color_override("font_hover_color", Color.WHITE)
 	popup.add_theme_color_override("font_disabled_color", DIM)
+	# 尺寸口径也要每次弹出前重设（见 `_apply_popup_full_list` 的原因说明）。
+	var callback := _apply_popup_full_list.bind(popup)
+	if not popup.about_to_popup.is_connected(callback):
+		popup.about_to_popup.connect(callback)
+	_apply_popup_full_list(popup)
+
+
+## 【2026-09-15 用户要求】下拉弹出即**完整显示所有选项**，非必要不要滚轮：
+## 抬字号/行距（每项 ≈ 40px，默认只有 20 出头）+ 给宽度下限（长条目不截断）。
+##
+## ⚠ 必须**每次弹出前**重设（因此挂在 `about_to_popup` 上）：PopupMenu 会缓存上一次的
+## 条目布局，只在建树时设一次的话**首次弹出**用的是旧缓存 —— 表现为"弹窗高度够、
+## 但最后一项没画出来"，且宽度下限会被每次弹出重置成内容尺寸。
+## 同一结论已在 `MatchSetupPage._apply_map_popup_style` 实测记录（Godot 4.7）。
+## 另外**不要直接改 `popup.size`**：那会打乱条目布局缓存。
+static func _apply_popup_full_list(popup: PopupMenu) -> void:
+	if popup == null or not is_instance_valid(popup):
+		return
+	popup.add_theme_font_size_override("font_size", POPUP_FONT_SIZE)
+	popup.add_theme_constant_override("v_separation", POPUP_ITEM_SEPARATION)
+	popup.min_size = Vector2(POPUP_MIN_WIDTH, 0)
 
 
 static func _style_item_list(list: ItemList) -> void:

@@ -19,6 +19,10 @@ public sealed class GodotWorldObservationRepository : IWorldObservationRepositor
     private readonly CommandRuntime _commands;
     private readonly ProductionRuntime _production;
 
+    /// <summary>同一物理帧内共享的快照（见 CaptureShared）。</summary>
+    private WorldObservationSnapshot? _sharedSnapshot;
+    private long _sharedSnapshotFrame = -1;
+
     /// <summary>绑定单个 Match 根节点和该 Match 唯一资源账户服务。</summary>
     public GodotWorldObservationRepository(
         Node matchRoot,
@@ -71,6 +75,26 @@ public sealed class GodotWorldObservationRepository : IWorldObservationRepositor
             economies,
             visibilityRegions,
             CaptureBattlefieldBounds());
+    }
+
+    /// <inheritdoc />
+    public WorldObservationSnapshot CaptureShared()
+    {
+        // 【性能·勿回退：3 个电脑玩家也要流畅】Capture 是"全场单位 × 每个玩家的揭示者"的全量重建，
+        // 而 AI 每个决策拍会连续发起十几次查询（各 Controller 的 GetOwnForces、每个编组的全图
+        // ScanCircle、每个空闲工人的资源扫描、每次资源交付再查一次经济）—— 过去每次查询都重建一次，
+        // 是主机主线程最大的热点（3 个 AI 约 ×3，且 AI 把单位数再抬高一层）。
+        // 单位迁移、结算与命令生效都发生在物理帧边界，所以同一物理帧内共享不会让任何观察变旧；
+        // 唯一折衷：同一帧内"命令已扣款、结算要到下一帧才反映"的变化看不到，AI 至多少算一拍。
+        var frame = checked((long)Engine.GetPhysicsFrames());
+        if (_sharedSnapshot is not null && frame == _sharedSnapshotFrame)
+        {
+            return _sharedSnapshot;
+        }
+
+        _sharedSnapshot = Capture();
+        _sharedSnapshotFrame = frame;
+        return _sharedSnapshot;
     }
 
     /// <summary>读取 Map 公开尺寸并转换为不暴露 Node 的轴对齐战场边界。</summary>

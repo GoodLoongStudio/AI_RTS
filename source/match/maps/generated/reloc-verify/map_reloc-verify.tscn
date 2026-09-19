@@ -203,28 +203,28 @@ transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 180.79
 transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 210.170, 0.056, 96.300)
 
 [node name="ResourceA" parent="Resources" instance=ExtResource("3_resa")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 66.220, 0.156, 185.480)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64.220, 0.156, 183.980)
 
 [node name="ResourceA2" parent="Resources" instance=ExtResource("3_resa")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 51.220, 0.156, 174.480)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52.117, 0.156, 175.121)
 
 [node name="ResourceA3" parent="Resources" instance=ExtResource("3_resa")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 92.220, 0.152, 60.600)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 90.220, 0.152, 59.100)
 
 [node name="ResourceA4" parent="Resources" instance=ExtResource("3_resa")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 77.220, 0.156, 49.600)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 78.117, 0.156, 50.241)
 
 [node name="ResourceA5" parent="Resources" instance=ExtResource("3_resa")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 188.407, 7.195, 198.444)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 186.340, 7.195, 196.565)
 
 [node name="ResourceA6" parent="Resources" instance=ExtResource("3_resa")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 172.866, 0.160, 186.137)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 174.586, 0.160, 187.306)
 
 [node name="ResourceA7" parent="Resources" instance=ExtResource("3_resa")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 218.170, 0.150, 102.300)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 216.170, 0.150, 100.800)
 
 [node name="ResourceA8" parent="Resources" instance=ExtResource("3_resa")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 203.170, 0.156, 91.300)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 204.067, 0.156, 91.941)
 
 [node name="Decorations" parent="." index="3"]
 script = ExtResource("6_apply")

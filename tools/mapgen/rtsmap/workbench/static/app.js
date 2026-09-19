@@ -172,6 +172,9 @@
               $(`value-${key}`).value = String(value);
               $(`range-${key}`).value = String(value);
             }
+            if (!option.controls && (choice.key === 'river_enabled' || choice.key === 'lake_count')) {
+              alignWaterCombo();
+            }
           }
           updateDirty();
         });
@@ -179,6 +182,21 @@
       })),
       choice.hint ? create('p', { className: 'hint', text: choice.hint }) : null,
     ])));
+  }
+
+  function alignWaterCombo() {
+    const water = state.boot.choices.find((item) => item.key === 'water_combo');
+    if (!water) return;
+    const river = Number($('value-river_enabled').value);
+    const lakes = Number($('value-lake_count').value);
+    const layout = Number($('value-river_layout').value);
+    const matches = water.options.filter((option) =>
+      Number(option.controls.river_enabled) === river && Number(option.controls.lake_count) === lakes);
+    if (matches.some((option) => Number(option.controls.river_layout) === layout)) return;
+    const fallback = matches[0];
+    if (!fallback) return;
+    $('value-river_layout').value = String(fallback.controls.river_layout);
+    $('range-river_layout').value = String(fallback.controls.river_layout);
   }
 
   function syncChoices() {

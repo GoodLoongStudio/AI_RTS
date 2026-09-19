@@ -40,6 +40,7 @@ from .observation_view import (
     normalized_units, own_units as _own_units, pos2d as _pos2d, resources as _resources,
 )
 from . import placement
+from . import intensity as intensity_mod
 #: `enemy_on_route` 中断的解除半径 = 安全移动层的威胁半径（**同一口径**，不另写一份数字）：
 #: 敌人不在推进路径 12 米内时，安全闸门本来就会重新放行推进 → 紧急状态自然结束。
 from .movement import THREAT_RADIUS_M as ENEMY_ON_ROUTE_CLEAR_M
@@ -79,7 +80,7 @@ TRACK_TITLE_CN: Dict[str, str] = {
 #: 主线标识与版本：`mainline_id` 说明"这一局按哪张主线跑"，
 #: `mainline_version` 在主线定义变化时递增（旧 checkpoint 的主线状态按版本兼容处理）。
 MAINLINE_ID = "mainline-default"
-MAINLINE_VERSION = 1
+MAINLINE_VERSION = 2
 
 #: 中断栈最大深度（超出丢弃最旧：中断本身也必须是有界的）。
 MAX_INTERRUPT_DEPTH = 8
@@ -93,9 +94,11 @@ INTERRUPT_QUIET_TICKS = 240
 INTERRUPT_MIN_HOLD_TICKS = 120
 #: 中断最长驻留（tick）：超时弹出（标记 expired），不许无限挂起主线。
 INTERRUPT_MAX_TICKS = 7200
-#: 基地回防 / 受袭判定半径（米）。手册 DEF-01：只调动基地附近单位，远处线继续原任务。
+#: 基地回防 / 受袭判定半径（米）。手册 DEF-01：建筑附近见敌才算受袭。
 #: 行为树与并行军事轨必须读这个常量，不许再各写一个 40。
 DEFENSE_RADIUS_M = 40.0
+#: 家里没人时最多召回这么多个最近的作战单位（不全军回防）。
+DEFEND_RECALL_MAX = 3
 #: "已压过的事件 id"记忆容量（有界，随主线 checkpoint 一起保留）。
 #: 队列是有界的（256）且事件只在这里被消费，所以 256 足够覆盖"还在队列里的老事件"。
 EVENT_MEMORY_LIMIT = 256
@@ -281,6 +284,36 @@ def _base_anchor(by_name: Dict[str, Dict[str, Any]]) -> Optional[Tuple[float, fl
     return None
 
 
+def _is_own_structure(info: Dict[str, Any]) -> bool:
+    """己方固定建筑（指挥中心 / 产能 / 防御塔）。路上的兵不算。"""
+    from . import rules_fallback as rf
+    kind = str(info.get("type") or "")
+    if any(token in kind for token in rf._STRUCTURE_TYPE_HINTS):
+        return True
+    return bool(info.get("queue"))
+
+
+def _structure_points(by_name: Dict[str, Dict[str, Any]],
+                      base: Optional[Tuple[float, float]]) -> List[List[float]]:
+    """受袭判定用的己方建筑点。指挥中心优先，其它产能/防御塔一并算。"""
+    points: List[List[float]] = []
+    seen = set()
+    for info in by_name.values():
+        if not _is_own_structure(info):
+            continue
+        pos = _pos2d(info)
+        if not pos:
+            continue
+        key = (round(float(pos[0]), 1), round(float(pos[1]), 1))
+        if key in seen:
+            continue
+        seen.add(key)
+        points.append([key[0], key[1]])
+    if base and (round(float(base[0]), 1), round(float(base[1]), 1)) not in seen:
+        points.insert(0, [round(float(base[0]), 1), round(float(base[1]), 1)])
+    return points
+
+
 def build_facts(state: Dict[str, Any], observation: Optional[Dict[str, Any]],
                 tick: int) -> Dict[str, Any]:
     """观测 + 权威回执 → 里程碑判据用的**纯事实**快照（确定性、可序列化）。
@@ -314,6 +347,11 @@ def build_facts(state: Dict[str, Any], observation: Optional[Dict[str, Any]],
     from . import rules_fallback as _rf
     combat = [name for name, info in by_name.items()
               if str(info.get("type", "")) in _rf.combat_types_of(state)]
+    combat_positions: List[List[float]] = []
+    for name in combat:
+        pos = _pos2d(by_name.get(name) or {})
+        if pos:
+            combat_positions.append([round(float(pos[0]), 1), round(float(pos[1]), 1)])
 
     receipts = [item for item in (state.get("command_receipts") or [])
                 if isinstance(item, dict)]
@@ -357,6 +395,7 @@ def build_facts(state: Dict[str, Any], observation: Optional[Dict[str, Any]],
             pos = _pos2d(resource)
             if math.hypot(pos[0] - base[0], pos[1] - base[1]) >= EXPANSION_MIN_DISTANCE_M:
                 far_resources.append([round(pos[0], 1), round(pos[1], 1)])
+    home_points = _structure_points(by_name, base)
 
     return {
         "tick": int(tick),
@@ -368,6 +407,8 @@ def build_facts(state: Dict[str, Any], observation: Optional[Dict[str, Any]],
         "producers": producers,
         "combat": combat,
         "combat_count": len(combat),
+        "combat_positions": combat_positions,
+        "units_scattered": _rf.combat_scattered(combat_positions, home=base),
         "visible_enemies": [entity_id_of(e) for e in enemies if entity_id_of(e)],
         "enemy_intel_count": len(enemy_intel),
         "enemy_dead_count": enemy_dead,
@@ -375,6 +416,8 @@ def build_facts(state: Dict[str, Any], observation: Optional[Dict[str, Any]],
         "resource_count": len(resources),
         "far_resources": far_resources,
         "base": [round(base[0], 1), round(base[1], 1)] if base else [],
+        # 己方建筑点：受袭/解除都看这些点附近，不只看指挥中心。
+        "home_points": home_points,
         # 己方单位位置（`enemy_on_route` 中断的"威胁是否解除"判据要按**被拦的那支部队**
         # 算，而不是按基地算：敌人还在路上时，基地附近可能是干净的）。
         "own_positions": {str(name): [round(_pos2d(info)[0], 1), round(_pos2d(info)[1], 1)]
@@ -493,7 +536,7 @@ def default_campaign(tick: int = 0) -> Dict[str, Any]:
     """每局开局由程序建立的**默认主线**：摸底 → 立足 → 扩张 → 施压 → 收束。
 
     四条线开局即并行存在（不是串行剧本）：经济采集、建造补产能、侦察探路、
-    军事集结；`next_frontier` 只表示"当前最值得推进的一个节点"。
+    前线快集结/前压；`next_frontier` 只表示"当前最值得推进的一个节点"。
     """
     milestones: Dict[str, Dict[str, Any]] = {}
     for key in MILESTONE_ORDER:
@@ -535,7 +578,10 @@ def default_campaign(tick: int = 0) -> Dict[str, Any]:
         "suspended_objects": [],
         "player_overrides": 0,
         "player_releases": 0,
-        "army_threshold": 2,
+        # 出击阈值由**副官强度等级**决定（唯一实现见 graph/intensity.py；面板三个等级
+        # 按钮 → runner --intensity → 这里）。默认 standard=2 = 历史行为，不带参数零变化。
+        "army_threshold": intensity_mod.army_threshold(),
+        "intensity": intensity_mod.active(),
         "enemy_damage_events": 0,
         "enemy_hp_watch": {},
         "transitions": [],
@@ -558,6 +604,13 @@ def ensure_campaign(state: Dict[str, Any], tick: int = 0) -> Dict[str, Any]:
     for key, value in template.items():
         if key not in campaign:
             campaign[key] = value
+    # 强度等级以"本进程当前生效值"为准重算出击阈值：玩家可以在面板上换等级，重启 runner
+    # 时同一局（旧 checkpoint）也必须跟着变，否则"改了等级没反应"。写回 campaign 是为了
+    # 让留档/回放能回答"那一局副官是几级"。
+    applied_intensity = intensity_mod.active()
+    if str(campaign.get("intensity", "")) != applied_intensity:
+        campaign["intensity"] = applied_intensity
+        campaign["army_threshold"] = intensity_mod.army_threshold(applied_intensity)
     milestones = campaign.get("milestones")
     if not isinstance(milestones, dict):
         campaign["milestones"] = template["milestones"]
@@ -717,11 +770,79 @@ def _emergency_events(state: Dict[str, Any],
     return out
 
 
-def _visible_enemies_near_base(facts: Dict[str, Any], radius: float = DEFENSE_RADIUS_M) -> int:
+def _home_defense_points(facts: Dict[str, Any]) -> List[Any]:
+    points = [item for item in (facts.get("home_points") or []) if item]
+    if points:
+        return points
     base = facts.get("base") or []
-    if not base:
-        return 0
-    return _visible_enemies_near_points(facts, [base], radius)
+    return [base] if base else []
+
+
+def _visible_enemies_near_base(facts: Dict[str, Any], radius: float = DEFENSE_RADIUS_M) -> int:
+    return _visible_enemies_near_points(facts, _home_defense_points(facts), radius)
+
+
+def _event_fields(event: Dict[str, Any]) -> Dict[str, Any]:
+    """游戏端 `damage` 字段在顶层；有的来源会再包一层 `payload`。"""
+    fields = dict(event)
+    payload = event.get("payload")
+    if isinstance(payload, dict):
+        for key, value in payload.items():
+            if key not in fields or fields[key] in (None, ""):
+                fields[key] = value
+    return fields
+
+
+def _own_structure_damaged(observation: Optional[Dict[str, Any]],
+                           facts: Dict[str, Any]) -> bool:
+    """己方建筑本轮掉血。游戏端只发 `damage`，从不发 `base_under_attack`。"""
+    own = {str(name) for name in (facts.get("own") or [])}
+    own.update(str(name) for name in (facts.get("own_positions") or {}))
+    producers = {str(name) for name in (facts.get("producers") or [])}
+    from . import rules_fallback as rf
+    for event in (observation or {}).get("events") or []:
+        if not isinstance(event, dict):
+            continue
+        data = _event_fields(event)
+        if str(data.get("kind", "")) != "damage":
+            continue
+        unit = str(data.get("unit") or data.get("subject") or "")
+        if unit and unit not in own:
+            continue
+        unit_type = str(data.get("unit_type") or "")
+        if any(token in unit_type for token in rf._STRUCTURE_TYPE_HINTS):
+            return True
+        if unit and unit in producers:
+            return True
+    return False
+
+
+def _note_base_raid(campaign: Dict[str, Any], observation: Optional[Dict[str, Any]],
+                    facts: Dict[str, Any], tick: int) -> None:
+    """手册 DEF-01：基地附近见敌，或己方建筑掉血 → 压 `base_under_attack`。
+
+    真机观测里没有这个事件名。路上偶遇不走这里，避免变成全军回防。
+    """
+    from . import rules_fallback as rf
+    tactical = (observation or {}).get("tactical")
+    raided = rf.home_raid_visible(normalized_units(tactical), _living_enemies(tactical))
+    if not raided:
+        raided = _own_structure_damaged(observation, facts)
+    if not raided:
+        return
+    already = False
+    for entry in campaign.get("interrupt_stack") or []:
+        if (str(entry.get("kind", "")) == "base_under_attack"
+                and str(entry.get("status", "")) == "active"):
+            already = True
+            break
+    note_emergency(
+        campaign, "base_under_attack", int(tick),
+        units=list(facts.get("producers") or [])[:4],
+        detail="基地附近见敌" if _visible_enemies_near_base(facts) else "己方建筑受击")
+    if not already:
+        campaign["under_attack_total"] = int(
+            campaign.get("under_attack_total", 0) or 0) + 1
 
 
 def _visible_enemies_near_points(facts: Dict[str, Any], points: Sequence[Any],
@@ -1163,7 +1284,8 @@ def frontier_preferences(state: Dict[str, Any], observation: Optional[Dict[str, 
                 "build_order": tuple(rf.BUILD_LADDER), "allow_attack": True,
                 "allow_expansion": True, "expand_probe": False, "produce_first": False,
                 "probe_point": [], "model_branch": "", "suspended_objects": [],
-                "blocked": [], "frontier_reason": "", "decision_lines": []}
+                "blocked": [], "frontier_reason": "", "decision_lines": [],
+                "rally_kind": "forward"}
 
     tick_value = int(tick if tick is not None else state.get("server_tick", 0) or 0)
     frontier = str(campaign.get("next_frontier", ""))
@@ -1192,6 +1314,7 @@ def frontier_preferences(state: Dict[str, Any], observation: Optional[Dict[str, 
     expand_probe = (frontier in (M04, M05)
                     and not (campaign.get("expansion_candidates") or []))
     order_override: Tuple[str, ...] = ()
+    rally_kind = "forward"
     # 模型的**分支选择**通过 `preferred_node` 生效；过期（默认 30s 无更新）自动失效，
     # 避免"一条早期选择永久盖住主线"。
     preferred = str(campaign.get("preferred_node") or "")
@@ -1208,6 +1331,12 @@ def frontier_preferences(state: Dict[str, Any], observation: Optional[Dict[str, 
             expand_probe = not (campaign.get("expansion_candidates") or [])
         if str(node.get("id", "")) == "D12":
             allow_attack = True
+        if str(node.get("id", "")) in ("D11", "D14", "D15"):
+            rally_kind = "forward"
+        if str(node.get("id", "")) == "D10":
+            rally_kind = "home"
+        if str(node.get("id", "")) == "D13":
+            rally_kind = "disengage"
 
     build_order = list(order_override)
     for item in (spec.get("build_order") or ()):
@@ -1240,6 +1369,7 @@ def frontier_preferences(state: Dict[str, Any], observation: Optional[Dict[str, 
         "blocked": [str(x) for x in (campaign.get("blocked_milestones") or [])],
         "frontier_reason": str(entry.get("blocked_reason", "") or ""),
         "decision_lines": [str(x) for x in (campaign.get("decision_context") or [])],
+        "rally_kind": rally_kind,
     }
 
 
@@ -1433,6 +1563,8 @@ def update(state: Dict[str, Any], observation: Optional[Dict[str, Any]], tick: i
             campaign["combat_loss_events"] = int(
                 campaign.get("combat_loss_events", 0) or 0) + 1
     del seen_ids[:-EVENT_MEMORY_LIMIT]
+    # 真机没有 `base_under_attack` 事件：见敌/建筑掉血在这里合成，再交给弹出逻辑。
+    _note_base_raid(campaign, observation, facts, tick)
     resolved = resolve_interrupts(campaign, facts, tick)
 
     # ④ 里程碑证据与推进（**循环到不动点**：后一个里程碑可能在同一 tick 就满足）。
@@ -1564,7 +1696,8 @@ __all__ = [
     "TRACK_MILITARY", "TRACK_TITLE_CN", "MAINLINE_ID", "MAINLINE_VERSION",
     "MILESTONES", "MILESTONE_ORDER", "M01", "M02", "M03", "M04", "M05", "M06", "M07",
     "EVIDENCE", "EMERGENCY_KINDS", "build_facts", "context_view", "default_campaign",
-    "ensure_campaign", "frontier_preferences", "note_emergency", "note_model_branch",
+    "DEFEND_RECALL_MAX", "ensure_campaign", "frontier_preferences",
+    "note_emergency", "note_model_branch",
     "note_player_override", "note_player_release", "resolve_interrupts", "summary",
     "track_of_action", "update",
 ]

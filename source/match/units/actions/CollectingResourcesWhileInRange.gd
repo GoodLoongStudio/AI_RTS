@@ -6,11 +6,32 @@ const ResourceUnit = preload("res://source/match/units/non-player/ResourceUnit.g
 ## 采集朝向门槛（度）：车体/身体必须对准矿点才结算采集（2026-09-06 战斗手感）。
 const WORKER_AIM_THRESHOLD_DEG = 20.0
 
+## 目标「装满一车」耗时（秒）—— 工人从开采到满载的**采集**时长（不含往返路程）。
+## 【2026-09-15 用户要求】「现在工人采集矿的时间就 2s，采集一次带回去 400」：
+## 单趟携带 400（见 `config/balance/demo.balance.v1.json` 的 `worker.gatherer.carryCapacity`），
+## 装满耗时 ≈ 2 秒。
+## 口径从上一版「按容量等比放大（装满恒 12 秒）」改成**按目标时长反推每次搬运量**，
+## 因此本值**与容量无关**：以后改 `carryCapacity` 只改单趟收益，装满时长恒定 ≈ 本值。
+const TARGET_FILL_SECONDS := 2.0
+
 var _resource_unit = null
 var _timer = null
+## 采集间隔（每个 tick 的秒数），来自 `BalanceConfigRuntime.GetCollectionDurationSeconds`，
+## 由 `_setup_timer()` 缓存（`_resource_batch_per_tick()` 用它反推每 tick 搬运量）。
+var _seconds_per_item := 0.0
 
 @onready var _unit = Utils.NodeEx.find_parent_with_group(self, "units")
 @onready var _unit_movement_trait = _unit.find_child("Movement")
+
+
+## 每次结算搬运的资源个数（见 `TARGET_FILL_SECONDS` 说明）。
+func _resource_batch_per_tick() -> int:
+	var capacity := int(_unit.resources_max)
+	if capacity <= 0 or _seconds_per_item <= 0.0:
+		return 1
+	# 装满耗时 = (容量 / 每 tick 搬运量) × 采集间隔 ⇒ 反推每 tick 该搬多少。
+	var ticks := maxi(1, int(ceil(TARGET_FILL_SECONDS / _seconds_per_item)))
+	return maxi(1, int(ceil(float(capacity) / float(ticks))))
 
 
 static func is_applicable(source_unit, target_unit):
@@ -56,7 +77,8 @@ func _setup_timer():
 		resource_name = "resource_b"
 	assert(not resource_name.is_empty(), "resource unit has no supported resource kind")
 	var balance_runtime = find_parent("Match").get_node("BalanceConfigRuntime")
-	_timer.start(balance_runtime.GetCollectionDurationSeconds(resource_name))
+	_seconds_per_item = float(balance_runtime.GetCollectionDurationSeconds(resource_name))
+	_timer.start(_seconds_per_item)
 
 
 func _transfer_single_resource_unit_from_resource_to_worker():
@@ -77,12 +99,22 @@ func _transfer_single_resource_unit_from_resource_to_worker():
 		if _unit_movement_trait != null:
 			_unit_movement_trait.face_towards(_resource_unit.global_position)
 		return
+	# 【2026-09-15 一次搬运量按容量等比放大】先按"工人剩余容量"夹紧，避免超出
+	# `Worker.is_full()` 的容量断言（旧实现每 tick 只加 1 所以不需要这层保护）。
+	var room: int = maxi(0, int(_unit.resources_max) - int(_unit.resource_a) - int(_unit.resource_b))
+	if room <= 0:
+		queue_free()
+		return
+	var batch: int = mini(_resource_batch_per_tick(), room)
 	if "resource_a" in _resource_unit:
-		_resource_unit.resource_a -= 1
-		_unit.resource_a += 1
+		# 矿不够时最多采到 0；矿已耗尽仍取 1，保持「减到 ≤0 ⇒ is_resource_depleted() 判定移除」的原语义。
+		var take_a: int = mini(batch, maxi(1, int(_resource_unit.resource_a)))
+		_resource_unit.resource_a -= take_a
+		_unit.resource_a += take_a
 	if "resource_b" in _resource_unit:
-		_resource_unit.resource_b -= 1
-		_unit.resource_b += 1
+		var take_b: int = mini(batch, maxi(1, int(_resource_unit.resource_b)))
+		_resource_unit.resource_b -= take_b
+		_unit.resource_b += take_b
 	if _unit.is_full():
 		queue_free()
 

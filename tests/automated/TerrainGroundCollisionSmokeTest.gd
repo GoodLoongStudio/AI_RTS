@@ -23,6 +23,7 @@ func _ready():
 	get_tree().create_timer(60.0).timeout.connect(_on_failsafe)
 	_check_strip_only_touches_legacy_plates()
 	_check_cleanup_lives_in_generated_terrain_only()
+	_check_world_height_and_spawn_grounding()
 	_report_real_map_structure()
 	_finish()
 
@@ -104,6 +105,27 @@ func _check_cleanup_lives_in_generated_terrain_only():
 
 ## 3) 信息性检查：当前真实新地图里确实同时存在"高度场地形"与"遗留盒板"，
 ##    说明清理有实际作用对象（不计失败；地图更新后本条会自然变化）。
+func _check_world_height_and_spawn_grounding():
+	_check(
+		_script_has_method(GeneratedTerrainScript, "sample_world_height"),
+		"GeneratedTerrain 必须提供世界空间高度采样"
+	)
+	var match_text := _read_text("res://source/match/Match.gd")
+	_check(
+		match_text.contains("ground_height_at") and match_text.contains("HOVER_OFFSET"),
+		"Match 出场必须走世界高度 + 飞机离地"
+	)
+	_check(
+		not match_text.contains("<= 3.0"),
+		"Match 不得再用 3m 护栏跳过投地"
+	)
+	var move_text := _read_text("res://source/match/units/traits/Movement.gd")
+	_check(
+		move_text.contains("_snap_air_height") and move_text.contains("_physics_process_air_move"),
+		"空中单位必须按地表离地，而不是钉在 Air.Y"
+	)
+
+
 func _report_real_map_structure():
 	var generated_root := "res://source/match/maps/generated"
 	var dirs := DirAccess.get_directories_at(generated_root)

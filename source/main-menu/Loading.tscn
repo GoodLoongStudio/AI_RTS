@@ -17,19 +17,34 @@ corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
 
-[node name="Loading" type="Control"]
+[node name="Loading" type="CanvasLayer"]
+layer = 128
+script = ExtResource("1_0ijan")
+
+[node name="Root" type="Control" parent="."]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_0ijan")
+mouse_filter = 0
 
-[node name="Background" parent="." instance=ExtResource("1_455qm")]
+[node name="Cover" type="ColorRect" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0.027451, 0.0745098, 0.105882, 1)
+
+[node name="Background" parent="Root" instance=ExtResource("1_455qm")]
+self_modulate = Color(1, 1, 1, 1)
 layout_mode = 1
 
-[node name="Label" type="Label" parent="."]
+[node name="Label" type="Label" parent="Root"]
 custom_minimum_size = Vector2(500, 40)
 layout_mode = 1
 anchors_preset = -1
@@ -48,7 +63,7 @@ text = "loading"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="Shadow" type="Panel" parent="Label"]
+[node name="Shadow" type="Panel" parent="Root/Label"]
 show_behind_parent = true
 layout_mode = 1
 anchors_preset = 15
@@ -58,7 +73,7 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_q44ry")
 
-[node name="MarginContainer" type="MarginContainer" parent="Label"]
+[node name="MarginContainer" type="MarginContainer" parent="Root/Label"]
 show_behind_parent = true
 layout_mode = 1
 anchors_preset = 15
@@ -71,7 +86,7 @@ theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 8
 
-[node name="ProgressBar" type="ProgressBar" parent="Label/MarginContainer"]
+[node name="ProgressBar" type="ProgressBar" parent="Root/Label/MarginContainer"]
 layout_mode = 2
 size_flags_vertical = 1
 theme_override_styles/fill = SubResource("StyleBoxFlat_lv2l4")

@@ -163,11 +163,27 @@ func set_map_extents(extents: Vector2):
 	set_size_safely(size)
 
 
+## 可走矩形写进包围面。必须整表赋值：对导出的 Array[Plane] 做 `planes[i]=`
+## 常常只改到副本，大图会一直卡在场景里默认的 50×50。
+func set_map_bounds(map_size: Vector2) -> void:
+	var sx := maxf(map_size.x, 1.0)
+	var sz := maxf(map_size.y, 1.0)
+	var planes: Array[Plane] = [
+		Plane(Vector3.RIGHT, 0.0),
+		Plane(Vector3.LEFT, -sx),
+		Plane(Vector3.BACK, 0.0),
+		Plane(Vector3.FORWARD, -sz),
+	]
+	bounding_planes = planes
+	set_map_extents(map_size)
+	_align_position_to_bounding_planes()
+
+
 ## 生成大地图：只放宽拉远上限。开局姿态与普通图相同，不把 far 拉到地图对角线。
 func configure_for_large_terrain(map_size: Vector2, peak_world_y: float = 80.0) -> void:
 	visible_height_min = minf(visible_height_min, -20.0)
 	size_max = maxf(size_max, minf(map_size.x, map_size.y) * 0.16)
-	set_map_extents(map_size)
+	set_map_bounds(map_size)
 	force_opening_isometric()
 
 
@@ -333,9 +349,14 @@ func _calculate_screen_move_vector() -> Vector2:
 		return keyboard_move_vector
 	if not edge_scroll_enabled:
 		return Vector2.ZERO
+	var edge_vector := _calculate_edge_scroll_vector(mouse_pos, viewport_size)
+	# 窗口贴边条带优先：右侧指挥栏 / 左侧副官面板盖住真边缘时仍可滚。
+	# 停在栏内按钮上、但还没贴窗口边时不滚，避免点建造时镜头跟着跑。
+	if not edge_vector.is_zero_approx():
+		return edge_vector
 	if _is_pointer_over_hud():
 		return Vector2.ZERO
-	return _calculate_edge_scroll_vector(mouse_pos, viewport_size)
+	return Vector2.ZERO
 
 
 ## 鼠标停在建造栏、命令栏等会吃点击的 HUD 上时，不贴边移镜头。

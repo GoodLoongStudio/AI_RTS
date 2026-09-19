@@ -6,6 +6,8 @@ extends Node
 
 @export_group("Match")
 @export var handle_match_end = true
+## 对局中途海克斯式三选一。单机暂停选牌；联机不冻世界，超时用推荐项。
+@export var match_augments = true
 @export var show_minimap = true
 @export var allow_navigation_rebaking = true
 @export var enable_edge_scroll = true

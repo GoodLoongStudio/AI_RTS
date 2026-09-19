@@ -7,6 +7,8 @@ const PlayerSettings = preload("res://source/data-model/PlayerSettings.gd")
 const LoadingScene = preload("res://source/main-menu/Loading.tscn")
 
 const GENERATED_DIR := "res://source/match/maps/generated"
+const HALL_DEFAULT_MAP_ID := "16-0-1ca6e21aa1"
+const DELETE_CONFIRM_MS := 3000
 const WORKBENCH_PORTS := [8766, 8765]
 const WORKBENCH_PORT := 8766
 
@@ -89,6 +91,10 @@ const CHOICES := [
 		{"value": 12, "label": "较宽"},
 	]},
 ]
+## 大厅「随机地图」入口：进页后自动提交完整随机任务，返回时回到单机对局页。
+static var autostart_random := false
+static var return_to_setup := false
+
 const CONTROL_DEFAULTS := {
 	"river_layout": 2,
 	"river_enabled": 1,
@@ -131,10 +137,12 @@ var _workbench_button: Button
 var _retry_button: Button
 var _rebuild_button: Button
 var _play_button: Button
+var _delete_button: Button
 var _hint: Label
 var _result_summary: Label
 var _checks_label: Label
 var _api: HTTPRequest
+var _poll_api: HTTPRequest
 var _img: HTTPRequest
 var _poll_timer: Timer
 
@@ -148,6 +156,12 @@ var _active_id := ""
 var _layer := "g4_ortho"
 var _busy := false
 var _polling := false
+var _ensuring := false
+var _poll_misses := 0
+var _poll_started_ms := 0
+var _req_tokens: Dictionary = {}
+var _delete_confirm_id := ""
+var _delete_confirm_until_ms := 0
 var _image_token := 0
 var _chip_groups: Dictionary = {}
 var _layer_buttons: Dictionary = {}
@@ -177,10 +191,17 @@ func _ready() -> void:
 	_title = $SafeMargin/Root/TopBar/TitleBox/Title
 	_subtitle = $SafeMargin/Root/TopBar/TitleBox/Subtitle
 	_workbench_button = $SafeMargin/Root/TopBar/WorkbenchButton
+	if return_to_setup:
+		var back := $SafeMargin/Root/TopBar/BackButton as Button
+		if back != null:
+			back.text = "返回对局设置"
 	_controls = CONTROL_DEFAULTS.duplicate()
 	_api = HTTPRequest.new()
 	_api.timeout = 1.2
 	add_child(_api)
+	_poll_api = HTTPRequest.new()
+	_poll_api.timeout = 2.0
+	add_child(_poll_api)
 	_img = HTTPRequest.new()
 	_img.timeout = 8.0
 	add_child(_img)
@@ -304,6 +325,11 @@ func _build_inspector() -> void:
 	_play_button.disabled = true
 	_play_button.pressed.connect(_on_play_pressed)
 	_inspect_box.add_child(_play_button)
+	_delete_button = SystemUIStyle.make_button("删除这张地图", 52)
+	_delete_button.disabled = true
+	_delete_button.pressed.connect(_on_delete_pressed)
+	_style_delete_button(_delete_button)
+	_inspect_box.add_child(_delete_button)
 
 
 func _add_heading(parent: Control, text: String, color: Color) -> void:
@@ -348,7 +374,33 @@ func _on_choice_pressed(key: String, option: Dictionary) -> void:
 			_controls[control_key] = option["controls"][control_key]
 	else:
 		_controls[key] = option["value"]
+		if key == "river_enabled" or key == "lake_count":
+			_align_water_combo()
 	_refresh_chips()
+
+
+func _align_water_combo() -> void:
+	var river := int(_controls.get("river_enabled", 1))
+	var lakes := int(_controls.get("lake_count", 0))
+	var layout := int(_controls.get("river_layout", 2))
+	var water_choice: Dictionary = {}
+	for choice in CHOICES:
+		if str(choice["key"]) == "water_combo":
+			water_choice = choice
+			break
+	if water_choice.is_empty():
+		return
+	var fallback: Variant = null
+	for option in water_choice["options"]:
+		var c: Dictionary = option["controls"]
+		if int(c["river_enabled"]) != river or int(c["lake_count"]) != lakes:
+			continue
+		if int(c["river_layout"]) == layout:
+			return
+		if fallback == null:
+			fallback = option
+	if fallback != null:
+		_controls["river_layout"] = fallback["controls"]["river_layout"]
 
 
 func _refresh_chips() -> void:
@@ -365,8 +417,8 @@ func _refresh_chips() -> void:
 			for layout in _boot["layouts"]:
 				if _spacing == "any" or str(layout.get("spacing", "")) == _spacing:
 					n += 1
-		_hint.text = "出生点由系统随机安排。当前距离范围内有 %d 套布局。" % n if n > 0 \
-			else "出生点由系统随机安排。完整地图走 G1→G4→引擎验收。"
+		_hint.text = "出生点由系统安排到能放下所选河湖的布局。当前距离范围内有 %d 套。" % n if n > 0 \
+			else "出生点由系统安排。完整地图走 G1→G4→引擎验收。"
 
 
 func _choice_value(choice: Dictionary):
@@ -461,8 +513,10 @@ func _on_replay_pressed() -> void:
 
 
 func _start_generate(target: String, replay: bool) -> void:
-	if _busy:
+	if _busy and _has_running_job():
 		return
+	if _busy:
+		_release_busy()
 	if _workbench_url.is_empty():
 		await _ensure_workbench()
 	if _workbench_url.is_empty():
@@ -476,8 +530,7 @@ func _start_generate(target: String, replay: bool) -> void:
 	_set_caption("提交中", "正在把任务交给工作台…", SystemUIStyle.CYAN)
 	var job := await _http_json(_api, HTTPClient.METHOD_POST, _workbench_url + "/api/generate", payload, 8.0)
 	if job.is_empty() or str(job.get("id", "")).is_empty():
-		_busy = false
-		_set_form_disabled(false)
+		_release_busy()
 		_set_caption("未生成", str(job.get("error", "工作台未返回任务。")), SystemUIStyle.RED)
 		return
 	_upsert_job(job)
@@ -517,15 +570,19 @@ func _build_payload(target: String, replay: bool) -> Dictionary:
 
 
 func _on_retry_pressed() -> void:
-	if _busy or _selected_id.is_empty() or _workbench_url.is_empty():
+	if _busy and _has_running_job():
 		return
+	if _selected_id.is_empty() or _workbench_url.is_empty():
+		return
+	if _busy:
+		_release_busy()
 	_busy = true
 	_set_form_disabled(true)
 	var job := await _http_json(_api, HTTPClient.METHOD_POST,
 		"%s/api/jobs/%s/retry" % [_workbench_url, _selected_id], {}, 8.0)
 	if job.is_empty() or str(job.get("id", "")).is_empty():
-		_busy = false
-		_set_form_disabled(false)
+		_release_busy()
+		_set_caption("无法重试", str(job.get("error", "工作台没有接受重试。")), SystemUIStyle.AMBER)
 		return
 	_upsert_job(job)
 	_select_job(str(job["id"]))
@@ -533,39 +590,78 @@ func _on_retry_pressed() -> void:
 
 
 func _on_rebuild_pressed() -> void:
-	if _busy or _selected_id.is_empty() or _workbench_url.is_empty():
+	if _busy and _has_running_job():
 		return
+	if _selected_id.is_empty() or _workbench_url.is_empty():
+		return
+	if _busy:
+		_release_busy()
 	_busy = true
 	_set_form_disabled(true)
 	var job := await _http_json(_api, HTTPClient.METHOD_POST,
 		"%s/api/jobs/%s/rebuild_visual" % [_workbench_url, _selected_id], {}, 8.0)
 	if job.is_empty() or str(job.get("id", "")).is_empty():
-		_busy = false
-		_set_form_disabled(false)
+		_release_busy()
+		_set_caption("无法重建", str(job.get("error", "工作台没有接受视觉重建。")), SystemUIStyle.AMBER)
 		return
 	_upsert_job(job)
 	_select_job(str(job["id"]))
 	_start_polling(str(job["id"]))
 
 
+func _has_running_job() -> bool:
+	if _active_id.is_empty():
+		return false
+	for job in _jobs:
+		if str(job.get("id", "")) == _active_id and str(job.get("status", "")) == "running":
+			return true
+	return false
+
+
+func _release_busy() -> void:
+	_active_id = ""
+	_busy = false
+	_polling = false
+	_poll_misses = 0
+	_poll_started_ms = 0
+	if _poll_timer != null:
+		_poll_timer.stop()
+	_set_form_disabled(false)
+
+
 func _start_polling(job_id: String) -> void:
 	_active_id = job_id
 	_busy = true
+	_poll_misses = 0
+	_polling = false
 	_set_form_disabled(true)
 	_poll_timer.start()
 	_poll_active()
 
 
 func _poll_active() -> void:
-	if _polling or _active_id.is_empty() or _workbench_url.is_empty():
-		if _active_id.is_empty():
+	if _active_id.is_empty() or _workbench_url.is_empty():
+		if _active_id.is_empty() and _busy:
+			_release_busy()
+		elif _active_id.is_empty() and _poll_timer != null:
 			_poll_timer.stop()
 		return
+	if _polling:
+		if _poll_started_ms > 0 and Time.get_ticks_msec() - _poll_started_ms < 5000:
+			return
+		_polling = false
 	_polling = true
-	var job := await _http_json(_api, HTTPClient.METHOD_GET, "%s/api/jobs/%s" % [_workbench_url, _active_id])
+	_poll_started_ms = Time.get_ticks_msec()
+	var job := await _http_json(_poll_api, HTTPClient.METHOD_GET,
+		"%s/api/jobs/%s" % [_workbench_url, _active_id], {}, 2.0)
 	_polling = false
-	if job.is_empty():
+	if job.is_empty() or str(job.get("id", "")).is_empty():
+		_poll_misses += 1
+		if _poll_misses >= 5:
+			_release_busy()
+			_set_caption("生成中断", "工作台没有继续回报进度。可以再点生成。", SystemUIStyle.AMBER)
 		return
+	_poll_misses = 0
 	_upsert_job(job)
 	if str(job.get("id", "")) == _selected_id:
 		_render_job(job)
@@ -573,10 +669,8 @@ func _poll_active() -> void:
 		_render_history()
 	if str(job.get("status", "")) == "running":
 		return
-	_active_id = ""
-	_busy = false
-	_poll_timer.stop()
-	_set_form_disabled(false)
+	_release_busy()
+	_render_job(_selected_job())
 
 
 func _upsert_job(job: Dictionary) -> void:
@@ -598,6 +692,8 @@ func _selected_job() -> Dictionary:
 
 
 func _select_job(job_id: String) -> void:
+	if job_id != _delete_confirm_id:
+		_reset_delete_confirm()
 	_selected_id = job_id
 	var job := _selected_job()
 	_replay_button.disabled = job.is_empty() or _busy
@@ -614,6 +710,7 @@ func _render_job(job: Dictionary) -> void:
 		_play_button.disabled = true
 		_retry_button.disabled = true
 		_rebuild_button.disabled = true
+		_set_delete_enabled(false)
 		return
 	var status := str(job.get("status", ""))
 	_refresh_layers(job)
@@ -623,6 +720,7 @@ func _render_job(job: Dictionary) -> void:
 	_rebuild_button.disabled = _busy or str(job.get("target", "")) != "full" \
 		or str(_job_stages(job).get("g4_scene", {}).get("status", "")) != "done"
 	_play_button.disabled = _installed_map_path(job).is_empty()
+	_set_delete_enabled(not _busy)
 	if status == "done":
 		var full: bool = str(job.get("target", "g2")) == "full"
 		var passed: bool = bool(job.get("map_pass", false)) if full else bool(job.get("result", {}).get("all_pass", false))
@@ -864,6 +962,140 @@ func _on_play_pressed() -> void:
 	queue_free()
 
 
+func _can_delete_job(job: Dictionary) -> bool:
+	if job.is_empty() or _busy or _workbench_url.is_empty():
+		return false
+	if bool(job.get("baseline", false)):
+		return false
+	if str(job.get("status", "")) == "running":
+		return false
+	if str(job.get("map_id", "")) == HALL_DEFAULT_MAP_ID:
+		return false
+	return not str(job.get("id", "")).is_empty()
+
+
+func _set_delete_enabled(enabled: bool) -> void:
+	if _delete_button == null:
+		return
+	_delete_button.disabled = not enabled
+	if not enabled:
+		_reset_delete_confirm()
+
+
+func _reset_delete_confirm() -> void:
+	_delete_confirm_id = ""
+	_delete_confirm_until_ms = 0
+	if _delete_button != null:
+		_delete_button.text = "删除这张地图"
+
+
+func _style_delete_button(button: Button) -> void:
+	button.add_theme_color_override("font_color", Color("#f3d4cf"))
+	button.add_theme_color_override("font_hover_color", Color.WHITE)
+	button.add_theme_color_override("font_pressed_color", Color.WHITE)
+	button.add_theme_stylebox_override("normal",
+		SystemUIStyle.rounded(Color("#2a1414"), SystemUIStyle.RED, 1, SystemUIStyle.RADIUS))
+	button.add_theme_stylebox_override("hover",
+		SystemUIStyle.rounded(Color("#3a1a18"), SystemUIStyle.RED, 1, SystemUIStyle.RADIUS))
+	button.add_theme_stylebox_override("pressed",
+		SystemUIStyle.rounded(Color("#4a201c"), SystemUIStyle.RED, 2, SystemUIStyle.RADIUS))
+
+
+func _on_delete_pressed() -> void:
+	var job := _selected_job()
+	if not _can_delete_job(job):
+		_set_caption("不能删除", _delete_block_reason(job), SystemUIStyle.AMBER)
+		return
+	var job_id := str(job.get("id", ""))
+	var now := Time.get_ticks_msec()
+	if _delete_confirm_id != job_id or now > _delete_confirm_until_ms:
+		_delete_confirm_id = job_id
+		_delete_confirm_until_ms = now + DELETE_CONFIRM_MS
+		_delete_button.text = "再点一次确认删除"
+		_set_caption("确认删除", "三秒内再点一次才会删掉这张图，任务记录和已安装场景都会去掉。", SystemUIStyle.AMBER)
+		return
+	_reset_delete_confirm()
+	await _delete_selected_job(job)
+
+
+func _delete_block_reason(job: Dictionary) -> String:
+	if _workbench_url.is_empty():
+		return "生成服务没连上。可点右上角重试，连上后再删。"
+	if job.is_empty():
+		return "先在下方选中一张地图。"
+	if bool(job.get("baseline", false)):
+		return "原版参考图不能删除。"
+	if str(job.get("status", "")) == "running":
+		return "这张图还在生成，等完成或失败后再删。"
+	if str(job.get("map_id", "")) == HALL_DEFAULT_MAP_ID:
+		return "大厅默认地图不能删除。"
+	return "当前不能删除这张图。"
+
+
+func _delete_selected_job(job: Dictionary) -> void:
+	var job_id := str(job.get("id", ""))
+	var map_id := str(job.get("map_id", ""))
+	_busy = true
+	_set_form_disabled(true)
+	_set_caption("正在删除", "正在从工作台和游戏工程里去掉这张图…", SystemUIStyle.AMBER)
+	var result := await _http_json(_api, HTTPClient.METHOD_DELETE,
+		"%s/api/jobs/%s" % [_workbench_url, job_id], {}, 8.0)
+	_release_busy()
+	if not bool(result.get("ok", false)):
+		var err := str(result.get("error", ""))
+		if err.is_empty():
+			err = "删除失败。若刚加这个按钮，请关掉游戏后重新打开工作台，让生成服务加载新接口。"
+		_set_caption("删除失败", err, SystemUIStyle.RED)
+		_render_job(_selected_job())
+		return
+	_delete_local_install(map_id)
+	_forget_job(job_id)
+	_set_caption("已删除", "这张图已经从工作台和游戏工程里去掉。", SystemUIStyle.GREEN)
+
+
+func _forget_job(job_id: String) -> void:
+	var kept: Array = []
+	for item in _jobs:
+		if str(item.get("id", "")) != job_id:
+			kept.append(item)
+	_jobs = kept
+	var next_id := ""
+	for item in _jobs:
+		if str(item.get("status", "")) == "done":
+			next_id = str(item.get("id", ""))
+			break
+	if next_id.is_empty() and not _jobs.is_empty():
+		next_id = str(_jobs[0].get("id", ""))
+	_select_job(next_id)
+
+
+func _delete_local_install(map_id: String) -> void:
+	if map_id.is_empty() or map_id.contains("..") or map_id.contains("/") or map_id.contains("\\"):
+		return
+	_remove_dir_recursive(ProjectSettings.globalize_path("%s/%s" % [GENERATED_DIR, map_id]))
+	var preview := ProjectSettings.globalize_path("res://assets/map_previews/map_%s.png" % map_id)
+	DirAccess.remove_absolute(preview)
+	DirAccess.remove_absolute(preview + ".import")
+
+
+func _remove_dir_recursive(abs_path: String) -> void:
+	var dir := DirAccess.open(abs_path)
+	if dir == null:
+		return
+	dir.list_dir_begin()
+	var name := dir.get_next()
+	while name != "":
+		if name != "." and name != "..":
+			var child := abs_path.path_join(name)
+			if dir.current_is_dir():
+				_remove_dir_recursive(child)
+			else:
+				DirAccess.remove_absolute(child)
+		name = dir.get_next()
+	dir.list_dir_end()
+	DirAccess.remove_absolute(abs_path)
+
+
 func _make_local_settings(player_count: int) -> Resource:
 	var settings := MatchSettings.new()
 	for i in range(clampi(player_count, 2, 4)):
@@ -881,6 +1113,13 @@ func _set_form_disabled(disabled: bool) -> void:
 	_preview_button.disabled = disabled
 	_replay_button.disabled = disabled or _selected_id.is_empty()
 	_generate_button.text = "正在生成…" if disabled else "生成完整地图"
+	_set_delete_enabled(not disabled and not _selected_job().is_empty())
+	if disabled or _retry_button == null:
+		return
+	var job := _selected_job()
+	_retry_button.disabled = job.is_empty() or bool(job.get("baseline", false))
+	_rebuild_button.disabled = job.is_empty() or str(job.get("target", "")) != "full" \
+		or str(_job_stages(job).get("g4_scene", {}).get("status", "")) != "done"
 
 
 func _set_caption(status: String, title: String, color: Color) -> void:
@@ -900,19 +1139,43 @@ func _map_tool_root() -> String:
 
 
 func _ensure_workbench() -> void:
+	if _ensuring:
+		while _ensuring and is_instance_valid(self):
+			await get_tree().process_frame
+		return
+	_ensuring = true
+	await _connect_workbench()
+	_ensuring = false
+
+
+func _connect_workbench() -> void:
 	if await _probe_workbench():
+		_maybe_autostart_random()
 		return
 	_set_caption("启动中", "正在拉起本机生成服务…", SystemUIStyle.CYAN)
 	if not _launch_backend_silent():
+		autostart_random = false
 		_set_caption("无法启动", "找不到 tools/mapgen/.venv-g2，请先跑 setup.ps1。", SystemUIStyle.RED)
 		_render_history()
 		return
 	for _i in range(10):
 		await get_tree().create_timer(1.0).timeout
 		if await _probe_workbench():
+			_maybe_autostart_random()
 			return
+	autostart_random = false
 	_set_caption("服务未连接", "生成服务没有响应。可点右上角重试。已安装地图仍可试玩。", SystemUIStyle.AMBER)
 	_render_history()
+
+
+func _maybe_autostart_random() -> void:
+	if not autostart_random:
+		return
+	autostart_random = false
+	if _seed_edit != null:
+		_seed_edit.text = "0"
+	_set_caption("随机地图", "正在生成一张随机四人图…", SystemUIStyle.CYAN)
+	_on_generate_full()
 
 
 func _launch_backend_silent() -> bool:
@@ -956,6 +1219,8 @@ func _probe_workbench() -> bool:
 		if not active.is_empty():
 			selected = active
 		else:
+			if _busy:
+				_release_busy()
 			for job in _jobs:
 				if str(job.get("status", "")) == "done":
 					selected = str(job.get("id", ""))
@@ -970,7 +1235,18 @@ func _probe_workbench() -> bool:
 	return false
 
 
+func _next_http_token(http: HTTPRequest) -> int:
+	var token := int(_req_tokens.get(http, 0)) + 1
+	_req_tokens[http] = token
+	return token
+
+
+func _is_current_http_token(http: HTTPRequest, token: int) -> bool:
+	return int(_req_tokens.get(http, 0)) == token
+
+
 func _http_json(http: HTTPRequest, method: HTTPClient.Method, url: String, body: Dictionary = {}, timeout_sec := 1.2) -> Dictionary:
+	var token := _next_http_token(http)
 	if http.get_http_client_status() != HTTPClient.STATUS_DISCONNECTED:
 		http.cancel_request()
 	http.timeout = timeout_sec
@@ -982,6 +1258,8 @@ func _http_json(http: HTTPRequest, method: HTTPClient.Method, url: String, body:
 	if http.request(url, headers, method, payload) != OK:
 		return {}
 	var completed: Array = await http.request_completed
+	if not _is_current_http_token(http, token):
+		return {}
 	if int(completed[0]) != HTTPRequest.RESULT_SUCCESS:
 		return {}
 	var raw: PackedByteArray = completed[3]
@@ -990,6 +1268,7 @@ func _http_json(http: HTTPRequest, method: HTTPClient.Method, url: String, body:
 
 
 func _http_bytes(http: HTTPRequest, url: String, method: HTTPClient.Method = HTTPClient.METHOD_GET, body: Dictionary = {}, timeout_sec := 8.0) -> PackedByteArray:
+	var token := _next_http_token(http)
 	if http.get_http_client_status() != HTTPClient.STATUS_DISCONNECTED:
 		http.cancel_request()
 	http.timeout = timeout_sec
@@ -1001,6 +1280,8 @@ func _http_bytes(http: HTTPRequest, url: String, method: HTTPClient.Method = HTT
 	if http.request(url, headers, method, payload) != OK:
 		return PackedByteArray()
 	var completed: Array = await http.request_completed
+	if not _is_current_http_token(http, token):
+		return PackedByteArray()
 	if int(completed[0]) != HTTPRequest.RESULT_SUCCESS or int(completed[1]) >= 400:
 		return PackedByteArray()
 	return completed[3]
@@ -1018,6 +1299,8 @@ func _exit_tree() -> void:
 		_poll_timer.stop()
 	if _api != null:
 		_api.cancel_request()
+	if _poll_api != null:
+		_poll_api.cancel_request()
 	if _img != null:
 		_img.cancel_request()
 
@@ -1025,7 +1308,10 @@ func _exit_tree() -> void:
 func _on_back_pressed() -> void:
 	if _poll_timer != null:
 		_poll_timer.stop()
-	get_tree().change_scene_to_file("res://source/main-menu/Main.tscn")
+	var dest := "res://source/main-menu/Play.tscn" if return_to_setup \
+		else "res://source/main-menu/Main.tscn"
+	return_to_setup = false
+	get_tree().change_scene_to_file(dest)
 
 
 func _on_escape() -> bool:

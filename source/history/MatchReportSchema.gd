@@ -13,7 +13,7 @@ extends RefCounted
 ## 3. **版本可演进**。`normalize()` 接受任何 `schema_version <= SCHEMA_VERSION` 的输入：
 ##    低版本按新增字段全部缺失处理，高版本保留未知字段（前向兼容，不丢数据）。
 
-const SCHEMA_VERSION := 2
+const SCHEMA_VERSION := 3
 const MIN_SUPPORTED_VERSION := 1
 
 const OUTCOMES := ["victory", "defeat", "aborted", "unknown"]
@@ -89,6 +89,8 @@ const TIMELINE_TYPES := {
 	"hermes_advice": {"label": "Hermes 建议", "color": "f3c77b", "group": "Hermes"},
 	"hermes_advice_adopted": {"label": "建议被采纳", "color": "49c99b", "group": "Hermes"},
 	"hermes_advice_ignored": {"label": "建议被忽略", "color": "e05b47", "group": "Hermes"},
+	"augment_offered": {"label": "加成三选一", "color": "f3c77b", "group": "加成"},
+	"augment_picked": {"label": "加成已选定", "color": "49c99b", "group": "加成"},
 	"key_unit": {"label": "关键单位", "color": "38c9ee", "group": "生产"},
 	"key_structure": {"label": "关键建筑", "color": "49c99b", "group": "建设"},
 	"objective_completed": {"label": "目标完成", "color": "49c99b", "group": "目标"},
@@ -306,6 +308,10 @@ const TEMPLATE := {
 		"least_efficient_unit": null,
 	},
 	"timeline": "@list",
+	"augments": {
+		"owned": "@list",
+		"picks": "@list",
+	},
 	"hermes_analysis": {
 		"status": null,
 		"generated_at": null,
@@ -371,6 +377,8 @@ const LIST_RECORDS := {
 		"t": null, "type": null, "title": null, "detail": null, "subject": null,
 		"resources_delta": null, "combat_impact": null, "hermes_tagged": null,
 	},
+	"augments.owned": {"id": null, "tag": null, "name": null},
+	"augments.picks": {"round": null, "id": null, "tag": null, "source": null},
 	"hermes_analysis.source_report_ids": null,
 	"hermes_analysis.data_basis": null,
 	"hermes_analysis.observations": {"text": null, "evidence": "@list"},

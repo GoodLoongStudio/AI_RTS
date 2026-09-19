@@ -1,4 +1,4 @@
-[gd_scene load_steps=56 format=3 uid="uid://camns8fqod8d4"]
+[gd_scene load_steps=58 format=3 uid="uid://camns8fqod8d4"]
 
 [ext_resource type="Script" path="res://source/match/Match.gd" id="1_1555u"]
 [ext_resource type="Script" path="res://source/csharp/GodotAdapter/Composition/CommandRuntime.cs" id="1_command_runtime"]
@@ -40,6 +40,8 @@
 [ext_resource type="Script" path="res://source/csharp/GodotAdapter/Match/MatchOutcomeRuntime.cs" id="28_match_outcome_runtime"]
 [ext_resource type="Script" path="res://source/csharp/GodotAdapter/Battlefield/BattlefieldEventRuntime.cs" id="29_battlefield_event_runtime"]
 [ext_resource type="Script" path="res://source/match/SimulationClock.gd" id="30_simulation_clock"]
+[ext_resource type="Script" path="res://source/match/augments/MatchPauseGate.gd" id="31_pause_gate"]
+[ext_resource type="Script" path="res://source/match/augments/AugmentRuntime.gd" id="32_augment_runtime"]
 [ext_resource type="PackedScene" uid="uid://b8p6lcwubx1tp" path="res://source/match/handlers/UnitVisibilityHandler.tscn" id="32_fci1c"]
 [ext_resource type="Script" path="res://source/match/handlers/BuildingOcclusionFade.gd" id="33_building_fade"]
 
@@ -186,6 +188,13 @@ script = ExtResource("29_battlefield_event_runtime")
 
 [node name="SimulationClock" type="Node" parent="."]
 script = ExtResource("30_simulation_clock")
+
+[node name="PauseGate" type="Node" parent="."]
+script = ExtResource("31_pause_gate")
+
+[node name="AugmentRuntime" type="Node" parent="."]
+process_mode = 3
+script = ExtResource("32_augment_runtime")
 
 [node name="Projectiles" type="Node3D" parent="."]
 

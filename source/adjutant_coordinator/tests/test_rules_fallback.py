@@ -408,5 +408,76 @@ class FallbackTest(unittest.TestCase):
         self.assertTrue(actions <= {"gather", "produce"})
 
 
+class TurretPerimeterTest(unittest.TestCase):
+    """防御塔必须落在当前视野最外围，不能套在指挥中心旁边。"""
+
+    BOUNDS = [80.0, 80.0]
+    HQ = [10.0, 7.0]
+
+    def _by_name(self, extras=None):
+        units = {
+            "Unit_0": {"type": "command_center", "queue": True,
+                       "pos": [10.0, 0.0, 7.0]},
+            "Unit_2": {"type": "worker", "gather": True, "construct": True,
+                       "pos": [11.0, 0.0, 8.0]},
+        }
+        if extras:
+            units.update(extras)
+        return units
+
+    def _own_points(self, by_name):
+        return [(float(info["pos"][0]), float(info["pos"][2]))
+                for info in by_name.values() if info.get("pos")]
+
+    def test_prefers_outer_when_base_has_outer_buildings(self):
+        by_name = self._by_name({
+            "Unit_4": {"type": "barracks", "pos": [22.0, 0.0, 7.0]},
+            "Unit_5": {"type": "vehicle_factory", "pos": [4.0, 0.0, 7.0]},
+        })
+        spot = rules_fallback.pick_turret_spot(
+            by_name, [], self.HQ, bounds=self.BOUNDS)
+        self.assertTrue(spot, "必须给出防御塔落点")
+        distance = ((spot[0] - self.HQ[0]) ** 2 + (spot[1] - self.HQ[1]) ** 2) ** 0.5
+        self.assertGreaterEqual(distance, 8.0,
+                                "有外侧建筑时塔应落在视野外圈，不应贴指挥中心：%s" % (spot,))
+        self.assertIsNone(placement.spot_issue(spot, self.BOUNDS, self._own_points(by_name)))
+
+    def test_stays_in_vision(self):
+        by_name = self._by_name()
+        spot = rules_fallback.pick_turret_spot(
+            by_name, [], self.HQ, bounds=self.BOUNDS)
+        self.assertTrue(spot)
+        nearest = placement.first_own_distance(spot, self._own_points(by_name))
+        self.assertLessEqual(nearest, placement.VISION_SAFE_RADIUS_M + 0.05)
+
+    def test_does_not_walk_far_outside_base(self):
+        """不许把塔建到基地外缘带之外（用户 2026-09-15 晚实测："太靠外面了"）。
+
+        给一座 24m 外的兵营当视野锚点：旧口径"越远越优先"会沿着它把塔推到视野边缘；
+        新口径（`placement.turret_band_rank`）必须仍把塔留在基地外缘带附近。
+        """
+        by_name = self._by_name({
+            "Unit_4": {"type": "barracks", "pos": [34.0, 0.0, 7.0]},
+        })
+        spot = rules_fallback.pick_turret_spot(
+            by_name, [], self.HQ, bounds=self.BOUNDS)
+        self.assertTrue(spot, "必须给出防御塔落点")
+        distance = ((spot[0] - self.HQ[0]) ** 2 + (spot[1] - self.HQ[1]) ** 2) ** 0.5
+        self.assertLessEqual(
+            distance, placement.TURRET_BAND_OUTER_M + 1.5,
+            "塔不该建到基地外缘带之外：%s（距基地 %.1fm）" % (spot, distance))
+
+    def test_spreads_from_existing_turret(self):
+        by_name = self._by_name({
+            "Unit_4": {"type": "barracks", "pos": [22.0, 0.0, 7.0]},
+            "Unit_11": {"type": "anti_air_turret", "pos": [26.0, 0.0, 7.0]},
+        })
+        spot = rules_fallback.pick_turret_spot(
+            by_name, [], self.HQ, bounds=self.BOUNDS)
+        self.assertTrue(spot)
+        overlap = ((spot[0] - 26.0) ** 2 + (spot[1] - 7.0) ** 2) ** 0.5
+        self.assertGreaterEqual(overlap, 3.0, "第二座塔不应叠在第一座上：%s" % (spot,))
+
+
 if __name__ == "__main__":
     unittest.main()

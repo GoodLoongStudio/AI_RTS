@@ -53,7 +53,36 @@ func _ready() -> void:
 	_strip_legacy_ground_plates()
 	_apply_g4_runtime_budget()
 	_build_water_occupancy()
+	_ground_resource_nodes()
 	_print_g4_runtime_diagnostics()
+
+
+## 资源点贴地（2026-09-15 用户报"大湖地图的矿显示有问题"）。
+##
+## 生成器写资源点用的 y 比**真实地面**低 0.45m（实测该图 16/16 个矿的
+## `y - sample_height(x,z)` 恒为 -0.45），而 `rock_crystalsLargeA` 模型本体只有
+## 0.54m 高 ⇒ 只露出约 0.1m，视觉上就是"埋进地里的一小片碎片"
+## （同模型在 PlainAndSimple 手做图上 y 与地面差 ≈ 0，完全露出，故仅生成图有此现象）。
+## 这里按高度场把 Resources 子树里的每个资源点抬到地面：只改**根节点 y**，
+## 不动模型/材质/子节点偏移；抬完与手做图口径一致。
+func _ground_resource_nodes() -> void:
+	var geometry := get_parent()
+	var map_node: Node = geometry.get_parent() if geometry != null else null
+	if map_node == null:
+		return
+	var resources: Node = map_node.get_node_or_null("Resources")
+	if resources == null:
+		return
+	var fixed := 0
+	for ore in resources.get_children():
+		if not (ore is Node3D):
+			continue
+		var node := ore as Node3D
+		var ground := sample_height(node.position.x, node.position.z)
+		if absf(node.position.y - ground) > 0.01:
+			node.position.y = ground
+			fixed += 1
+	print("G4PERF resources_grounded=", fixed)
 
 
 ## 地形不进物理世界：一张禁行格 + 高度采样。水/岩禁行，桥面走廊除外。
@@ -75,9 +104,15 @@ var _path_h := 0
 var _path_cell := 2.0
 var _path_scale := 4
 var _path_cache: Dictionary = {}
+## 建筑足迹：id → 覆盖的粗网格格。矿点不进这里，避免工人采不到。
+var _structure_blockers: Dictionary = {}
+var _structure_cell_ref: Dictionary = {}
 const MAX_GROUND_STEP_M := 2.4
 const PATH_CACHE_MAX := 192
 const PATH_COARSE_MIN_WALKABLE := 2
+## 建筑足迹略小于避让半径，外圈留给工人贴边施工/回城。
+const STRUCTURE_STAMP_RADIUS_SCALE := 0.85
+const STRUCTURE_STAMP_RADIUS_MIN := 1.15
 
 
 func _absolute_data_path(res_path: String) -> String:
@@ -355,6 +390,8 @@ func is_surface_buildable(world: Vector3) -> bool:
 
 
 func is_ground_blocked(world: Vector3) -> bool:
+	if _structure_blocks_world(world):
+		return true
 	if not _water_ready:
 		return false
 	if _on_bridge(world.x, world.z):
@@ -362,6 +399,72 @@ func is_ground_blocked(world: Vector3) -> bool:
 	if _sample_water(world.x, world.z):
 		return true
 	return sample_height(world.x, world.z) < 0.15
+
+
+func set_structure_blocker(blocker_id: int, world: Vector3, radius: float) -> void:
+	_structure_blockers[int(blocker_id)] = {"pos": world, "radius": radius}
+	_rebuild_structure_solids()
+
+
+func clear_structure_blocker(blocker_id: int) -> void:
+	if not _structure_blockers.erase(int(blocker_id)):
+		return
+	_rebuild_structure_solids()
+
+
+func _structure_stamp_radius(radius: float) -> float:
+	return maxf(radius * STRUCTURE_STAMP_RADIUS_SCALE, STRUCTURE_STAMP_RADIUS_MIN)
+
+
+func _structure_blocks_world(world: Vector3) -> bool:
+	# 迈步/脱位必须用圆形足迹。粗格只给 A*：2m 格会把禁行区伸出到楼外，
+	# 回城/出兵落点正好踩在格边上，走入→瞬移→再走入。
+	for data in _structure_blockers.values():
+		var pos: Vector3 = data["pos"]
+		var r := _structure_stamp_radius(float(data["radius"]))
+		var dx := world.x - pos.x
+		var dz := world.z - pos.z
+		if dx * dx + dz * dz <= r * r:
+			return true
+	return false
+
+
+func _rebuild_structure_solids() -> void:
+	var previous: Array = _structure_cell_ref.keys()
+	_structure_cell_ref.clear()
+	if _path_grid != null:
+		for cell in previous:
+			var c: Vector2i = cell
+			if _path_grid.is_in_boundsv(c):
+				_path_grid.set_point_solid(c, _coarse_blocked(c.x, c.y))
+		for blocker_id in _structure_blockers:
+			var data: Dictionary = _structure_blockers[blocker_id]
+			_stamp_one_structure(data["pos"], float(data["radius"]))
+	_path_cache.clear()
+
+
+func _stamp_one_structure(world: Vector3, radius: float) -> void:
+	if _path_grid == null or _path_w < 1:
+		return
+	var stamp_r := _structure_stamp_radius(radius)
+	var r2 := stamp_r * stamp_r
+	var min_c := _world_to_path_cell(world.x - stamp_r, world.z - stamp_r)
+	var max_c := _world_to_path_cell(world.x + stamp_r, world.z + stamp_r)
+	var cz := min_c.y
+	while cz <= max_c.y:
+		var cx := min_c.x
+		while cx <= max_c.x:
+			var cell := Vector2i(cx, cz)
+			var px := (float(cx) + 0.5) * _path_cell
+			var pz := (float(cz) + 0.5) * _path_cell
+			var dx := px - world.x
+			var dz := pz - world.z
+			if dx * dx + dz * dz <= r2:
+				_structure_cell_ref[cell] = int(_structure_cell_ref.get(cell, 0)) + 1
+				if _path_grid.is_in_boundsv(cell):
+					_path_grid.set_point_solid(cell, true)
+			cx += 1
+		cz += 1
 
 
 func _stamp_bridges_walkable() -> void:
@@ -381,6 +484,15 @@ func _stamp_bridges_walkable() -> void:
 				_water_bits[row + x] = 0
 				x += 1
 			z += 1
+
+
+## 世界坐标处的地表高度（把 Map/Terrain 缩放与位移算进去）。
+## `sample_height` 吃的是本节点局部 XZ；出生点/单位给的是 global_position，
+## 直接拿去采样会在 scale≠1 时把单位放到错误高度（悬空或埋地）。
+func sample_world_height(world: Vector3) -> float:
+	var local := to_local(world)
+	var h := sample_height(local.x, local.z)
+	return to_global(Vector3(local.x, h, local.z)).y
 
 
 func sample_height(x: float, z: float) -> float:
@@ -406,10 +518,7 @@ func project_ground(point: Vector3) -> Vector3:
 	if deck > -1.0e8:
 		point.y = deck
 		return point
-	var pulled := _pull_onto_nearby_slab(point, 1.35)
-	if _sample_bridge_deck(pulled.x, pulled.z) > -1.0e8:
-		return pulled
-	point.y = sample_height(point.x, point.z)
+	point.y = sample_world_height(point)
 	return point
 
 
@@ -442,7 +551,7 @@ func intersect_ground_ray(origin: Vector3, dir: Vector3) -> Vector3:
 func clamp_ground_move(from: Vector3, to: Vector3) -> Vector3:
 	if not _water_ready:
 		return to
-	if not is_ground_blocked(to) and not _segment_hits_water(from, to):
+	if not is_ground_blocked(to) and not _segment_hits_blocked(from, to):
 		return to
 	return _last_land_along(from, to)
 
@@ -489,8 +598,22 @@ func _segment_hits_water(from: Vector3, to: Vector3) -> bool:
 	return false
 
 
+func _segment_hits_blocked(from: Vector3, to: Vector3) -> bool:
+	var dx := to.x - from.x
+	var dz := to.z - from.z
+	var length := sqrt(dx * dx + dz * dz)
+	if length < 0.25:
+		return is_ground_blocked(to)
+	var steps := maxi(1, int(ceil(length)))
+	for s in range(1, steps + 1):
+		var t := float(s) / float(steps)
+		if is_ground_blocked(from.lerp(to, t)):
+			return true
+	return false
+
+
 func _last_land_along(from: Vector3, to: Vector3) -> Vector3:
-	if is_water_blocked(from):
+	if is_ground_blocked(from):
 		return _nearest_land(from)
 	var dx := to.x - from.x
 	var dz := to.z - from.z
@@ -502,7 +625,7 @@ func _last_land_along(from: Vector3, to: Vector3) -> Vector3:
 	for s in range(1, steps + 1):
 		var t := float(s) / float(steps)
 		var sample: Vector3 = from.lerp(to, t)
-		if is_water_blocked(sample):
+		if is_ground_blocked(sample):
 			return last
 		last = sample
 	return last
@@ -550,6 +673,9 @@ func find_ground_path(from: Vector3, to: Vector3) -> PackedVector3Array:
 	var points := PackedVector3Array()
 	for id in ids:
 		points.append(_snap_path_point(_path_cell_to_world(id)))
+	# A* 含起点格。第一航点若是格心，单位会先折回去再出发。
+	if points.size() > 1:
+		points.remove_at(0)
 	points = _simplify_ground_path(points)
 	points = _with_final_destination(points, end_pos)
 	if _path_cache.size() >= PATH_CACHE_MAX:
@@ -581,7 +707,9 @@ func _nearest_land(origin: Vector3) -> Vector3:
 		var cz := q[head + 1]
 		head += 2
 		if _water_bits[cz * _water_w + cx] == 0:
-			return _fine_to_world(cx, cz)
+			var candidate := _fine_to_world(cx, cz)
+			if not _structure_blocks_world(candidate):
+				return candidate
 		var d := 0
 		while d < dirs.size():
 			var nx := cx + dirs[d]
@@ -710,6 +838,7 @@ func _build_path_grid() -> void:
 		" solid=",
 		solid
 	)
+	_rebuild_structure_solids()
 
 
 func _coarse_blocked(cx: int, cz: int) -> bool:
@@ -841,7 +970,7 @@ func _simplify_ground_path(points: PackedVector3Array) -> PackedVector3Array:
 	out.append(points[0])
 	while i < points.size() - 1:
 		var j := points.size() - 1
-		while j > i + 1 and _segment_hits_water(points[i], points[j]):
+		while j > i + 1 and _segment_hits_blocked(points[i], points[j]):
 			j -= 1
 		out.append(points[j])
 		i = j
@@ -1094,11 +1223,13 @@ func _apply_material() -> void:
 	mat.set_shader_parameter("showcase_world_scale", world_scale)
 	mat.set_shader_parameter("use_masks", 1.0)
 	mat.set_shader_parameter("performance_mode", false)
-	mat.set_shader_parameter("ground_tile_meters", 16.0)
-	mat.set_shader_parameter("use_macro_albedo", true)
-	mat.set_shader_parameter("macro_strength", 0.42)
-	mat.set_shader_parameter("ground_height", 2.34)
-	mat.set_shader_parameter("top_height", 14.35)
+	# 大湖对局：16m 太碎、200m 太糊，折中 64 世界米一张。
+	mat.set_shader_parameter("ground_tile_meters", 64.0)
+	# 对局不要把 1800m 卫星宏图盖到山体上。沙/岩走 PBR 平铺。
+	mat.set_shader_parameter("use_macro_albedo", false)
+	mat.set_shader_parameter("macro_strength", 0.0)
+	mat.set_shader_parameter("ground_height", 0.6)
+	mat.set_shader_parameter("top_height", 8.1)
 	mat.set_shader_parameter("normal_strength", 0.22)
 	mat.set_shader_parameter("cut_water", false)
 	mat.set_shader_parameter("debug_masks", 0.0)

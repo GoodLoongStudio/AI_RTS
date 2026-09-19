@@ -23,6 +23,20 @@ static func is_logic_terrain_map(map: Node) -> bool:
 	return "height_data_path" in terrain and str(terrain.get("height_data_path")) != ""
 
 
+## 世界坐标处的地表高度。生成图走高度场（含 Map 缩放）；没有高度场时保持原 Y。
+static func sample_world_ground_y(map: Node, world: Vector3) -> float:
+	if map == null:
+		return world.y
+	var terrain: Node = map.find_child("Terrain", true, false)
+	if terrain == null:
+		return world.y
+	if terrain.has_method("sample_world_height"):
+		return float(terrain.call("sample_world_height", world))
+	if terrain.has_method("sample_height"):
+		return float(terrain.call("sample_height", world.x, world.z))
+	return world.y
+
+
 static func traverse_node_tree_and_replace_materials_matching_albedo(
 	starting_node, albedo_to_match, epsilon, material_to_set
 ):

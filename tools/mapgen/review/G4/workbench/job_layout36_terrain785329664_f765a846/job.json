@@ -1,0 +1,194 @@
+{
+  "id": "f765a846f1da45b69f8839aeab5fc5c6",
+  "baseline": false,
+  "status": "done",
+  "config": {
+    "schema_version": 2,
+    "algo_version": "7.11.0",
+    "layout_seed": 36,
+    "terrain_seed": 785329664,
+    "player_spacing": "any",
+    "controls": {
+      "river_layout": 2,
+      "river_enabled": 1,
+      "lake_count": 0,
+      "lake_area": 5000,
+      "neutral_plateau_scale": 1.7,
+      "plateau_max": 7,
+      "landform_elongation": 1.2,
+      "landform_recess": 0.2,
+      "landform_softness": 0.16,
+      "plateau_ramp_width": 8,
+      "river_width": 18,
+      "river_bend_scale": 1.0,
+      "river_crossings": 6,
+      "obstacle_percent": 40,
+      "cover_cluster_max": 10,
+      "layout_attempts": 4
+    }
+  },
+  "target": "g2",
+  "spacing": "far",
+  "created_at": "2026-09-19T16:57:39",
+  "started": 1789808259.1397178,
+  "duration": 7.5,
+  "title": "布局 36 · 地貌 785329664",
+  "pipeline_version": "1.0.0",
+  "stage_versions": {
+    "G1": "2.0.0",
+    "G2": "7.11.0",
+    "G3": "2.2.0",
+    "G4": "2.0.0"
+  },
+  "stages": {},
+  "layout_locked": false,
+  "terrain_locked": false,
+  "layout_pool": [
+    36,
+    5,
+    37,
+    17,
+    38,
+    13,
+    49,
+    8,
+    3,
+    46,
+    18,
+    2,
+    15,
+    4,
+    14,
+    27,
+    51,
+    61,
+    55,
+    23,
+    35,
+    31,
+    47,
+    16,
+    25,
+    21,
+    54,
+    39,
+    12,
+    42
+  ],
+  "layout_tried": [
+    {
+      "seed": 36,
+      "reason": "checks",
+      "attempts": 3,
+      "rejected": null
+    },
+    {
+      "seed": 5,
+      "reason": "checks",
+      "attempts": 3,
+      "rejected": null
+    },
+    {
+      "seed": 37,
+      "reason": "checks",
+      "attempts": 3,
+      "rejected": "No connected river corridor clears the spawn plateaus; regenerate the layout, never cut the water."
+    },
+    {
+      "seed": 17,
+      "reason": "checks",
+      "attempts": 3,
+      "rejected": null
+    }
+  ],
+  "preview_only": true,
+  "progress": {
+    "attempt": 3,
+    "limit": 4,
+    "phase": "绘制总览与路线"
+  },
+  "result": {
+    "version": "7.11.0",
+    "all_pass": false,
+    "solid_percent": 30.1,
+    "plateaus": 2,
+    "crossings": 6,
+    "plateau_top_percent": 8.6,
+    "rivers": 2,
+    "lakes": 0,
+    "lake_area_m2": 0,
+    "river_width_m": 19.4,
+    "nearest_pair_m": 165.2,
+    "neutral_ratio": null,
+    "expansion_ratio": 1.000190520450308,
+    "neighbor_ratio": 1.1395261650521373,
+    "min_route_width": 7.5,
+    "chosen_attempt": 3,
+    "checks": {
+      "solid_frac_pass": false,
+      "solid_comp_pass": true,
+      "max_block_pass": true,
+      "open_single_pass": true,
+      "keypoints_pass": true,
+      "struct_connect_pass": true,
+      "plateau_full_pass": false,
+      "plateau_area_pass": false,
+      "plateau_strategy_pass": true,
+      "plateau_ramps_pass": true,
+      "home_plateau_pass": true,
+      "river_presence_pass": true,
+      "lake_count_pass": true,
+      "lake_size_pass": true,
+      "lake_strategy_pass": true,
+      "lake_shape_pass": true,
+      "water_connected_pass": true,
+      "water_crossings_pass": true,
+      "crossing_count_pass": true,
+      "water_semantics_pass": true,
+      "bridge_redundancy_pass": true,
+      "contest_fair_pass": true,
+      "plateau_fair_pass": false,
+      "expansion_fair_pass": true,
+      "neutral_contest_pass": false,
+      "flank_width_pass": true,
+      "routes_clear_pass": true,
+      "route_alternatives_pass": true,
+      "bridge_width_pass": true,
+      "home_clear_pass": true,
+      "path_fairness_pass": true,
+      "spawn_layout_pass": true
+    },
+    "attempts": [
+      {
+        "attempt": 1,
+        "failed_checks": [
+          "solid_frac_pass",
+          "plateau_full_pass",
+          "plateau_area_pass",
+          "plateau_fair_pass",
+          "neutral_contest_pass"
+        ]
+      },
+      {
+        "attempt": 2,
+        "failed_checks": [
+          "solid_frac_pass",
+          "plateau_full_pass",
+          "plateau_area_pass",
+          "plateau_fair_pass",
+          "neutral_contest_pass"
+        ]
+      },
+      {
+        "attempt": 3,
+        "failed_checks": [
+          "solid_frac_pass",
+          "plateau_full_pass",
+          "plateau_area_pass",
+          "plateau_fair_pass",
+          "neutral_contest_pass"
+        ]
+      }
+    ]
+  }
+}

@@ -45,6 +45,7 @@ const TABS = [
 		"id": "infantry", "caption": "步兵", "producer": BarracksUnit,
 		"producer_caption": "兵营",
 		"items": [
+			# 按价格升序：步兵 100 → 狙击兵 250 → 炮兵 300（2026-09-15 用户要求）。
 			{"scene": SoldierUnit, "caption": "步兵", "icon": "soldier"},
 			{"scene": SniperUnit, "caption": "狙击兵", "icon": "sniper"},
 			{"scene": RocketeerUnit, "caption": "炮兵", "icon": "rocketeer"},
@@ -57,18 +58,21 @@ const TABS = [
 			# 工人按钮放在载具页签首位：主基地开局即可生产，无需兵营/车厂
 			{"scene": WorkerUnit, "caption": "工人", "icon": "worker",
 				"producer": CommandCenterUnit, "producer_caption": "主基地"},
+			# 【2026-09-15 用户要求】单位按价格从低到高排（改价时同步此处顺序）：
+			# 工人 200 → 坦克 700 → 运输车 800 → 装甲车 1200 → 重型坦克 1800。
 			{"scene": TankUnit, "caption": "坦克", "icon": "tank"},
+			{"scene": TransportTruckUnit, "caption": "运输车", "icon": "transport_truck"},
 			{"scene": APCUnit, "caption": "装甲车", "icon": "apc"},
 			{"scene": HeavyTankUnit, "caption": "重型坦克", "icon": "heavy_tank"},
-			{"scene": TransportTruckUnit, "caption": "运输车", "icon": "transport_truck"},
 		],
 	},
 	{
 		"id": "aircraft", "caption": "飞机", "producer": AircraftFactoryUnit,
 		"producer_caption": "航空工厂",
 		"items": [
-			{"scene": HelicopterUnit, "caption": "直升机", "icon": "helicopter"},
+			# 按价格升序：无人机 200 → 直升机 900（2026-09-15 用户要求）。
 			{"scene": DroneUnit, "caption": "无人机", "icon": "drone"},
+			{"scene": HelicopterUnit, "caption": "直升机", "icon": "helicopter"},
 		],
 	},
 ]
@@ -457,8 +461,10 @@ func _select_tab(tab_id: String):
 		child.queue_free()
 	_cells.clear()
 	var tab = _tab_by_id(tab_id)
+	# 【2026-09-15 用户要求】生产页签按价格从低到高排列（建筑页保持既有"建筑在上、防御在下"）。
+	var ordered_items: Array = _sorted_items_for(tab)
 	var filled := 0
-	for tab_item in tab.items:
+	for tab_item in ordered_items:
 		# 页签级字段（place/producer/producer_caption）下放合并进每个格子条目，
 		# 供 _cost_caption/_queue_stats 等统一按 item 取用。
 		# 物品自带 producer（如工人走主基地）时不得被页签默认值覆盖。
@@ -473,9 +479,14 @@ func _select_tab(tab_id: String):
 		_grid.add_child(cell.button)
 		_cells.append(cell)
 		filled += 1
-	while filled < GRID_CAPACITY:
+	# 【2026-09-15 用户报障修复·勿回退】空槽位必须与真格子**同宽**（CELL_WIDTH，不是 CELL_SIZE）：
+	# GridContainer 按“每列最大最小宽度”定列宽，64 宽的空槽位会让第二列比第一列窄一半，
+	# 面板右侧剩一条空白、格子看着像被裁掉（用户红框标的就是第二列那排窄格子）。
+	# 并且只把当前页签补成“整行”（不再无条件堆到 GRID_CAPACITY=12 个）：12 个空槽位会撑出 6 行，
+	# 右侧因此常驻垂直滚动条，滚下去看到的却全是空格子。
+	while filled % GRID_COLUMNS != 0:
 		var empty = PanelContainer.new()
-		empty.custom_minimum_size = Vector2(CELL_SIZE, CELL_SIZE)
+		empty.custom_minimum_size = Vector2(CELL_WIDTH, CELL_SIZE)
 		empty.add_theme_stylebox_override(
 			"panel", _make_cell_style(Color(0.035, 0.04, 0.05), Color(0.14, 0.15, 0.17), 3)
 		)
@@ -483,6 +494,27 @@ func _select_tab(tab_id: String):
 		filled += 1
 	_refresh_tabs()
 	_refresh_cells()
+
+
+## 页签格子顺序：生产页按单位造价升序（取不到价格排最后，保证顺序稳定）；建筑页不排序。
+func _sorted_items_for(tab: Dictionary) -> Array:
+	var items: Array = tab.get("items", [])
+	if tab.get("place", false) or items.is_empty():
+		return items
+	var sorted_items: Array = items.duplicate()
+	sorted_items.sort_custom(func(a, b):
+		return _production_cost_of(a) < _production_cost_of(b))
+	return sorted_items
+
+
+## 单位造价（单一 A 资源，与 _cost_caption 同口径）；取不到时给一个很大的值。
+func _production_cost_of(item: Dictionary) -> int:
+	if _balance == null or not _balance.has_method("GetProductionCost"):
+		return 1 << 30
+	var cost = _balance.GetProductionCost(_packed_scene(item.get("scene")))
+	if cost == null:
+		return 1 << 30
+	return int(cost.get("resource_a", 0))
 
 
 func _tab_by_id(tab_id: String):

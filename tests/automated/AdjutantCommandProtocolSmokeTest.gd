@@ -158,6 +158,16 @@ func _ready():
 	_check(not locked_out or tail_status != "LedgerFull",
 		"账本背压不得锁死指挥链")
 
+	var released: Dictionary = _dbg._op_adjutant_release(_match, {"as_player": "Human"})
+	_check(bool(released.get("ok", false)), "玩家点停止必须能收回副官控制")
+	var leases_after: Dictionary = _dbg._op_adjutant_leases(_match, {"as_player": "Human"})
+	var left = leases_after.get("leases")
+	var intents_left = leases_after.get("intents")
+	_check(left is Dictionary and (left as Dictionary).is_empty(),
+		"停止后本玩家租约必须清空")
+	_check(intents_left is Dictionary and (intents_left as Dictionary).is_empty(),
+		"停止后本玩家意图登记必须清空")
+
 	print("Adjutant command protocol smoke test completed: %d failure(s)" % _failures)
 	# 交给 SmokeTestExit 统一回收整局（2 帧 + 静音全树音频）。
 	# 原来是"自己 queue_free + 只等 1 帧 + 不传根节点"，收尾时 C# Variant 终结器

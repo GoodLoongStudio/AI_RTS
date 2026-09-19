@@ -63,6 +63,11 @@ class BuildLadderTest(unittest.TestCase):
         ]}
         out = rf.development_intents(st, tactical=tact, rules=RULES,
                                      ttl_ticks=3600, server_tick=1000, snapshot_id=5)
+        # 本用例钉两件事：① 缺兵营时必须产出**恰好一条**命令（阶梯 1 负责，不与其它轨重复）；
+        # ② 那条必须是"派工人建兵营"（手册 BLD-01 的第一优先，不被采集/出兵挤掉）。
+        # 背景（2026-09-15 实测 match 9fa2f599）：补工人曾整局为 0（生产者判据只认 `idle_producers`），
+        # 修法落在**阶梯 1.8 的生产者判据**上，而**不**让并行填充轨重复补工人（那里只加了一句
+        # 说明注释）—— 所以这里仍严格断言"只一条"。
         self.assertEqual(len(out), 1)
         self.assertEqual(out[0]["action"], "build")
         self.assertEqual(out[0]["unit_ids"], ["Unit_2"])
@@ -372,10 +377,15 @@ class ExpansionLadderTest(unittest.TestCase):
             ("Unit_5", ("vehicle_factory", (4, 0, 7))),
             ("Unit_13", ("aircraft_factory", (10, 0, 3))),
         ] + self.PRODUCTION_FULL)
+        st["map_bounds"] = [80.0, 80.0]
         out = rf.development_intents(st, tactical=tact, rules=self.RULES,
                                      server_tick=1000, snapshot_id=5)
         self.assertEqual(out[0]["action"], "build")
         self.assertEqual(out[0]["target"]["scene"], "res://units/anti_air_turret.tscn")
+        pos = out[0]["target"]["pos"]
+        distance = ((pos[0] - 10.0) ** 2 + (pos[1] - 7.0) ** 2) ** 0.5
+        self.assertGreaterEqual(distance, 8.0,
+                                "产能建筑已在外侧时，防御塔应落在基地外围：%s" % (pos,))
 
     def test_builds_second_command_center_near_far_resource(self):
         st, tact, _ = self._state([
@@ -590,3 +600,34 @@ class ReconReplacementTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SiteKeepQuotaTest(unittest.TestCase):
+    """工地保留名额（【2026-09-15 用户口径】「留少部分建造就行，闲置工人优先采矿」）。
+
+    规则：**每个未完工工地最多留 1 个工人**（离它最近的）；工地附近其余工人必须去采矿。
+    旧实现对每个工地保护 10m 半径内的**全部**工人，而施工只有 1 个执行者 ⇒ 路过/被挤到
+    工地旁的工人一起被排除出采集、原地闲置（用户反馈「闲职工人不优先采矿」的直接来源）。
+
+    这个用例是**类级守门**：以后若有人把「按位置批量保护」改回来，它会立刻失败。
+    """
+
+    def test_only_one_worker_kept_per_site(self):
+        st = state(["Unit_2", "Unit_5"])
+        tact = {"entities": [
+            # 未完工的工地（`constructed is False` 才是「工地」）。
+            {"kind": "unit_self", "name": "Unit_1", "unit_type": "barracks",
+             "construct": False, "gather": False, "queue": False,
+             "constructed": False, "pos": [5.0, 0.0, 5.0]},
+            # 两个工人**都在**工地 10m 半径内（旧实现会把两个一起保护、都不去采矿）。
+            unit("Unit_2", "worker", construct=True, gather=True, pos=(6, 0, 5)),
+            unit("Unit_5", "worker", construct=True, gather=True, pos=(7, 0, 5)),
+            {"kind": "resource", "name": "Res_1", "pos": [30.0, 0.0, 30.0]},
+        ]}
+        out = rf.development_intents(st, tactical=tact, rules=RULES,
+                                     server_tick=1000, snapshot_id=5)
+        gathers = [i for i in out if i["action"] == "gather"]
+        self.assertEqual(
+            len(gathers), 1,
+            "工地旁只该留 1 个工人，另一个必须去采矿；实际命令=%s"
+            % [(i["action"], i.get("unit_ids")) for i in out])

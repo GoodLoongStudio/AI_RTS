@@ -866,28 +866,28 @@ transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 180.79
 transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 210.170, 0.050, 96.300)
 
 [node name="ResourceA" parent="Resources" instance=ExtResource("3_resa")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50.500, 7.650, 173.500)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52.336, 7.650, 173.925)
 
 [node name="ResourceA2" parent="Resources" instance=ExtResource("3_resa")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48.500, 7.650, 181.500)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50.415, 7.650, 181.238)
 
 [node name="ResourceA3" parent="Resources" instance=ExtResource("3_resa")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 89.500, 0.156, 46.500)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 88.316, 0.156, 48.317)
 
 [node name="ResourceA4" parent="Resources" instance=ExtResource("3_resa")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74.500, 0.154, 53.500)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 76.768, 0.154, 53.757)
 
 [node name="ResourceA5" parent="Resources" instance=ExtResource("3_resa")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 189.500, 7.650, 196.500)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 187.301, 7.650, 195.243)
 
 [node name="ResourceA6" parent="Resources" instance=ExtResource("3_resa")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 178.500, 7.650, 181.500)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 179.119, 7.650, 184.209)
 
 [node name="ResourceA7" parent="Resources" instance=ExtResource("3_resa")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 205.500, 0.153, 104.500)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 206.458, 0.153, 102.817)
 
 [node name="ResourceA8" parent="Resources" instance=ExtResource("3_resa")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 215.500, 0.156, 88.500)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 214.401, 0.156, 90.108)
 
 [node name="ResourceA9" parent="Resources" instance=ExtResource("3_resa")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52.500, 0.156, 210.500)

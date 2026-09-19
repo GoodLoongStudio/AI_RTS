@@ -6,7 +6,11 @@ const AIM_THRESHOLD_DEG = 10.0
 ## 炮口未对准时的重试间隔（秒）；重试不占用武器冷却。
 const AIM_RETRY_INTERVAL_S = 1.0 / 15.0
 ## 无 Movement（炮塔类）的战斗转向速度（度/秒）：明显慢于车体，避免瞬时锁死。
-const STATIONARY_TURN_SPEED_DEG_PER_SEC = 90.0
+## 【2026-09-15 用户要求】防御设施（炮塔）的转向速度翻倍：90 → 180 度/秒。
+## 本常量是**炮塔转向**的唯一口径（`_rotate_stationary_turret_towards_target`，
+## 以及无炮管节点建筑的退回路径 `_rotate_mobile_unit_towards_target` 的默认值）；
+## 机动单位走的是配置里的 `max_turn_speed_deg_per_sec`，不受此常量影响。
+const STATIONARY_TURN_SPEED_DEG_PER_SEC = 180.0
 ## 朝向容差对应的弧度阈值（约 0.6°），低于此视为已对准。
 const AIM_ALIGNED_EPSILON_RAD = 0.01
 

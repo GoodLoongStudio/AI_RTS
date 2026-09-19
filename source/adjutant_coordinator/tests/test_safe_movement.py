@@ -11,6 +11,7 @@
    这就是"没有有效路径的主力移动数为 0"的实现方式。
 """
 
+import math
 import os
 import sys
 import unittest
@@ -716,20 +717,23 @@ class SameUnitCommandConflictTest(unittest.TestCase):
 
 
 class BlockedMoveFallbackTest(unittest.TestCase):
-    """**受阻降级**守门测试（计划 §7：没有证据时只能集结、守卫、回基地或等待）。
+    """**受阻降级**守门测试（计划 §7：没有证据时只能集结、守卫、脱离或等待）。
 
     背景（2026-09-13 结局局，10 分钟真实交战打到结算、我方单位归零）：
     旧实现把被拦下的推进意图**直接丢弃**（`continue`），于是部队"停在原地挨打" ——
     日志上只看到 `movement_gated:threat_too_high`，看不出部队接下来做了什么。
 
     这里钉住三条不变式：
-    ① 每个被拦下的推进意图都必须落进**四个归宿之一**（回基地/集结/守卫/等待），
+    ① 每个被拦下的推进意图都必须落进**四个归宿之一**（脱离/集结/守卫/等待），
        且 `wait` 是**显式记账**（不是静默丢弃）；
     ② 降级出来的移动也必须过闸门（边界 + 权威路径 + 脱离判据），拿不到路径就守卫；
     ③ 求生移动（撤退）只服从"真的在脱离敌人"这一条判据 —— 目标更靠近敌人 = 拦住。
     """
 
     BASE = [5.0, 5.0]
+    UNIT = [10.0, 7.0]
+    ENEMY = [14.0, 7.0]
+    ADVANCE = [20.0, 7.0]
 
     def _state(self):
         return {"map_bounds": [50.0, 50.0], "server_tick": 600,
@@ -747,23 +751,33 @@ class BlockedMoveFallbackTest(unittest.TestCase):
                         unit("Unit_0", "command_center", (5, 5), movement=False)]
         return tactical(entities)
 
-    @staticmethod
-    def _nav(*, retreat_ok=True, revision=1):
-        """目标感知的路径桩：目标在基地一侧 → 撤退路径；否则 → 推进路径。
+    def _disengage(self, *, base=True):
+        from adjutant_coordinator.graph import rules_fallback as rf
+        return rf.disengage_point(
+            tuple(self.UNIT), home=tuple(self.BASE) if base else None,
+            enemies=[{"pos": [self.ENEMY[0], 0.0, self.ENEMY[1]]}],
+            bounds=[50.0, 50.0])
 
-        桩必须**按目标分支**，否则"撤退"会拿到推进那条贴着敌人的路径，
-        测出来的就不是"降级选得对不对"，而是桩自己矛盾。
-        """
+    @classmethod
+    def _is_disengage_target(cls, pos):
+        """目标比当前位置更远离敌人，且不是沿威胁轴硬顶（那是推进）。"""
+        farther = math.hypot(pos[0] - cls.ENEMY[0], pos[1] - cls.ENEMY[1]) > 4.5
+        along_threat = abs(pos[1] - cls.ENEMY[1]) < 2.5 and pos[0] > 12.0
+        return farther and not along_threat
+
+    @classmethod
+    def _nav(cls, *, retreat_ok=True, revision=1):
+        """目标感知的路径桩：脱离点 → 远离敌人的路；否则 → 穿过敌人的推进路。"""
         def query(unit_name, target):
             pos = [float(target[0]), float(target[1])]
-            if pos[0] <= 8.0:                      # 基地锚点方向
+            if cls._is_disengage_target(pos):
                 if not retreat_ok:
                     return {"ok": False, "reason": "no_path", "nav_revision": revision}
                 return {"ok": True, "reachable": True, "nav_revision": revision,
-                        "waypoints": [[10, 7], [6, 6], [5, 5]], "route_length": 6.0,
+                        "waypoints": [list(cls.UNIT), pos], "route_length": 8.0,
                         "end_clamped": False, "start_clamped": False}
             return {"ok": True, "reachable": True, "nav_revision": revision,
-                    "waypoints": [[10, 7], [14, 7]], "route_length": 4.0,
+                    "waypoints": [list(cls.UNIT), list(cls.ENEMY)], "route_length": 4.0,
                     "end_clamped": False, "start_clamped": False}
         return query
 
@@ -779,9 +793,14 @@ class BlockedMoveFallbackTest(unittest.TestCase):
         kept, blocked = nodes._gate_movement(state, ctx, [self._advance()])
         self.assertEqual(blocked[0]["detail"], mv.REJECT_THREAT)
         actions = [str(item["action"]) for item in kept]
-        self.assertIn("retreat", actions, "遇敌拦下必须**回基地**，不许什么都不做：%s" % kept)
+        self.assertIn("retreat", actions, "遇敌拦下必须撤向脱离点，不许什么都不做：%s" % kept)
         retreat = [item for item in kept if item["action"] == "retreat"][0]
-        self.assertEqual(retreat["target"]["pos"], self.BASE, "撤退目标 = 基地锚点")
+        point = retreat["target"]["pos"]
+        self.assertNotEqual(point, self.BASE, "撤退目标不得再是主基地")
+        self.assertGreater(
+            math.hypot(point[0] - self.ENEMY[0], point[1] - self.ENEMY[1]),
+            math.hypot(self.UNIT[0] - self.ENEMY[0], self.UNIT[1] - self.ENEMY[1]),
+            "脱离点必须比当前位置更远离敌人，实际 %s" % point)
         self.assertEqual(state["movement_stats"]["fallbacks"].get("retreat"), 1)
         self.assertEqual(state["movement_stats"]["unsafe_dispatches"], 0,
                          "降级产物同样是**验证过的**移动，不能把 unsafe 计数弄脏")
@@ -811,13 +830,22 @@ class BlockedMoveFallbackTest(unittest.TestCase):
                       state["movement_stats"]["fallback_reasons"])
 
     def test_no_base_anchor_still_has_a_fallback(self):
-        """拿不到基地锚点也不许"什么都不做"：降级为守卫，且原因可查。"""
+        """拿不到基地锚点也不许"什么都不做"：仍按脱离点撤退，或降级守卫。"""
         from adjutant_coordinator.graph import nodes
         state = self._state()
         kept, _blocked = nodes._gate_movement(
             state, _ctx_with(self._nav(), self._view(base=False)), [self._advance()])
-        self.assertEqual([item["action"] for item in kept], ["hold"])
-        self.assertEqual(state["movement_stats"]["fallback_reasons"].get("no_base_anchor"), 1)
+        actions = [item["action"] for item in kept]
+        self.assertTrue(actions, "没有基地时也必须有脱离/守卫，不能静默丢弃")
+        self.assertTrue(set(actions) <= {"retreat", "hold"}, actions)
+        if "retreat" in actions:
+            point = [item["target"]["pos"] for item in kept if item["action"] == "retreat"][0]
+            self.assertNotEqual(point, self.BASE)
+            self.assertGreater(
+                math.hypot(point[0] - self.ENEMY[0], point[1] - self.ENEMY[1]), 4.0)
+        else:
+            reasons = state["movement_stats"]["fallback_reasons"]
+            self.assertTrue(reasons, "守卫必须留下原因：%s" % reasons)
 
     def test_no_path_block_is_an_explicit_wait(self):
         """没证据（无路径）时计划允许"等待" —— 但必须是**显式**归宿，不是静默丢弃。"""
@@ -870,7 +898,10 @@ class BlockedMoveFallbackTest(unittest.TestCase):
         survival = state["routes"]["survival|Unit_4"]
         self.assertFalse(survival["ok"], "求生路线自己要留痕（含被拒结论）")
         self.assertEqual(survival["reason"], mv.REJECT_NOT_DISENGAGING)
-        self.assertEqual(survival["target"], self.BASE, "求生路线的目标是基地锚点")
+        self.assertNotEqual(survival["target"], self.BASE, "求生路线不得再指向主基地")
+        self.assertGreater(
+            math.hypot(survival["target"][0] - self.ENEMY[0],
+                       survival["target"][1] - self.ENEMY[1]), 4.0)
         advance = state["routes"]["Unit_4"]
         self.assertEqual(advance["target"], [20.0, 7.0],
                          "推进路线的记录（含目标）不许被求生路线改写")
@@ -890,11 +921,11 @@ class BlockedMoveFallbackTest(unittest.TestCase):
 
         ctx = _ctx_with(nav_spy, self._view())
         nodes._gate_movement(state, ctx, [self._advance()])
-        after_first = len([call for call in calls if call[0] <= 8.0])
+        after_first = len([call for call in calls if call != self.ADVANCE])
         state["server_tick"] = 660
         nodes._gate_movement(state, ctx, [self._advance()])
-        after_second = len([call for call in calls if call[0] <= 8.0])
-        self.assertEqual(after_first, 1, "第一次必须真的问一次（不许凭空拒绝）")
+        after_second = len([call for call in calls if call != self.ADVANCE])
+        self.assertEqual(after_first, 1, "第一次必须真的问一次脱离点（不许凭空拒绝）")
         self.assertEqual(after_second, 1, "窗口内不许再问第二次")
         self.assertTrue(any(str(key).endswith("(复用)")
                             for key in state["movement_stats"]["fallback_reasons"]),
@@ -932,7 +963,7 @@ class BlockedMoveFallbackTest(unittest.TestCase):
             units=["Unit_4"], reason=mv.REJECT_THREAT, tick=600, budget=[2])
         self.assertEqual([item["action"] for item in out], ["hold"],
                          "重烘期间只能守卫（下一轮再算撤退）")
-        self.assertEqual([call for call in calls if call[0] <= 8.0], [],
+        self.assertEqual(calls, [],
                          "重烘期间**不许**再发求生路径查询：%s" % calls)
         self.assertIn("nav_rebake:retreat", state["movement_stats"]["fallback_reasons"])
 

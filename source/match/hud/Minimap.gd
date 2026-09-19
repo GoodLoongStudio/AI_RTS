@@ -35,6 +35,17 @@ var _cached_unit_nodes: Array = []
 var _unit_by_name: Dictionary = {}
 var _static_preview_applied := false
 var _hud_overlay: Control = null
+## 小地图迷雾遮罩必须**直连** FogOfWar/CombinedViewport 的实时纹理。
+## 旧实现每次同步都把 CombinedViewport 拷成一张 ImageTexture 快照，而同步只发生在
+## 开局那几次（_ready / 0.35s / 1.2s / 进局 refresh_now / 侧栏收编）⇒ 开局约一秒后
+## 小地图迷雾就定格在那一团，之后单位再怎么探图也不更新
+##（2026-09-15 用户实测报"大湖的小地图战争迷雾不更新"）。
+## 现改为：探测到迷雾真的画出来了就绑实时视口纹理，之后遮罩自动跟随视野，零读回。
+var _fog_live_bound := false
+var _fog_bind_attempts := 0
+const FOG_BIND_PROBE_ATTEMPTS := 6
+const FOG_BIND_RETRY_INTERVAL := 0.35
+const FOG_BIND_RETRY_WINDOW_MSEC := 6000
 
 @onready var _match = find_parent("Match")
 @onready var _camera_indicator = find_child("CameraIndicator") as Line2D
@@ -87,11 +98,25 @@ func _ready():
 	MatchSignals.order_visualized.connect(_on_order_visualized)
 	_sync_minimap_fog_mask()
 	call_deferred("_sync_minimap_fog_mask")
+	# 开局头几秒迷雾纹理可能还没画出内容（探测不到已探明像素），按短节拍重试到绑定成功；
+	# 绑定后重试自然停掉，遮罩靠实时纹理跟随，不再需要任何周期性调用。
+	_follow_minimap_fog_mask(Time.get_ticks_msec() + FOG_BIND_RETRY_WINDOW_MSEC)
+	_update_camera_indicator()
+
+
+func _follow_minimap_fog_mask(deadline_msec: int) -> void:
+	if not is_inside_tree():
+		return
+	_sync_minimap_fog_mask()
+	if _fog_live_bound or _match == null:
+		return
+	if Time.get_ticks_msec() >= deadline_msec:
+		return
 	var tree := get_tree()
 	if tree != null:
-		tree.create_timer(0.35).timeout.connect(_sync_minimap_fog_mask)
-		tree.create_timer(1.2).timeout.connect(_sync_minimap_fog_mask)
-	_update_camera_indicator()
+		tree.create_timer(FOG_BIND_RETRY_INTERVAL).timeout.connect(
+			_follow_minimap_fog_mask.bind(deadline_msec)
+		)
 
 
 func _is_large_map_now() -> bool:
@@ -130,6 +155,8 @@ func _sync_minimap_fog_mask() -> void:
 		return
 	if not _minimap_fog_is_enabled():
 		fog_mask.visible = false
+		_fog_live_bound = false
+		_fog_bind_attempts = 0
 		return
 	var fog: Node = _match.get_node_or_null("FogOfWar") if _match != null else null
 	var combined: SubViewport = (
@@ -139,29 +166,36 @@ func _sync_minimap_fog_mask() -> void:
 		fog_mask.visible = false
 		return
 	combined.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	var live_tex: Texture2D = combined.get_texture()
-	var fog_ready := false
-	if live_tex != null:
-		var img: Image = live_tex.get_image()
-		if img != null and not img.is_empty():
-			var peak := 0
-			var step := maxi(1, img.get_width() / 32)
-			for y in range(0, img.get_height(), step):
-				for x in range(0, img.get_width(), step):
-					peak = maxi(peak, int(img.get_pixel(x, y).r * 255.0))
-					if peak > 16:
-						break
-				if peak > 16:
-					break
-			if peak > 16:
-				if fog_mask.material is ShaderMaterial:
-					(fog_mask.material as ShaderMaterial).set_shader_parameter(
-						"reference_texture", ImageTexture.create_from_image(img)
-					)
-				fog_ready = true
-	# 开雾纹理还是全黑时宁可不盖遮罩，也不能把预览图盖成黑块。
-	fog_mask.visible = fog_ready
 	fog_mask.z_index = 90
+	if not _fog_live_bound:
+		_fog_bind_attempts += 1
+		var live_tex: Texture2D = combined.get_texture()
+		if live_tex != null and not _fog_texture_has_revealed_pixels(live_tex):
+			# 开雾纹理还没画出内容时宁可不盖遮罩（否则预览图被压成黑块），过一会再来。
+			# 探测若干次仍不成功也必须绑——否则整局小地图都没有迷雾。
+			if _fog_bind_attempts < FOG_BIND_PROBE_ATTEMPTS:
+				fog_mask.visible = false
+				return
+		if live_tex != null and fog_mask.material is ShaderMaterial:
+			# 绑实时纹理而不是快照：CombinedViewport 一直重绘，遮罩自动跟随视野。
+			(fog_mask.material as ShaderMaterial).set_shader_parameter(
+				"reference_texture", live_tex
+			)
+		_fog_live_bound = true
+	fog_mask.visible = true
+
+
+## 迷雾纹理是否已有"已探明"像素。只读回采样，只在绑定前探测，不进热路径。
+func _fog_texture_has_revealed_pixels(live_tex: Texture2D) -> bool:
+	var img: Image = live_tex.get_image()
+	if img == null or img.is_empty():
+		return false
+	var step := maxi(1, img.get_width() / 32)
+	for y in range(0, img.get_height(), step):
+		for x in range(0, img.get_width(), step):
+			if int(img.get_pixel(x, y).r * 255.0) > 16:
+				return true
+	return false
 
 
 func _generated_map_id(map_node: Node) -> String:
@@ -289,17 +323,17 @@ func _load_minimap_preview(map_node: Node) -> Image:
 		if not slug.is_empty():
 			candidates.append("res://assets/map_previews/%s.png" % slug)
 	for res_path in candidates:
+		var abs_path := ProjectSettings.globalize_path(res_path)
+		if FileAccess.file_exists(abs_path):
+			var from_disk := Image.load_from_file(abs_path)
+			if from_disk != null and not from_disk.is_empty():
+				return from_disk
 		if ResourceLoader.exists(res_path):
 			var tex = load(res_path)
 			if tex is Texture2D:
 				var from_res: Image = (tex as Texture2D).get_image()
 				if from_res != null and not from_res.is_empty():
 					return from_res
-		var abs_path := ProjectSettings.globalize_path(res_path)
-		if FileAccess.file_exists(abs_path):
-			var from_disk := Image.load_from_file(abs_path)
-			if from_disk != null and not from_disk.is_empty():
-				return from_disk
 	return null
 
 

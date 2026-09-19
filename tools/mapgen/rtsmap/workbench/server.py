@@ -31,13 +31,14 @@ from ..grid import read_json
 from ..viz.review import build_g2_review
 from .settings import CONTROLS, CHOICES, SPACING, SCHEMA_VERSION, CHECK_LABELS, config_from_spec, generator_params, validate_config
 from .catalog import layout_catalog
-from . import pipeline
+from . import compat, pipeline
 
 STATIC = Path(__file__).parent / 'static'
 STAGE_LABELS = {
     'g1_input': '出生布局', 'g2_terrain': '地形生成', 'g3_content': '资源与素材',
     'g4_scene': '游戏场景导出', 'engine': '引擎加载与导航验收',
 }
+HALL_DEFAULT_MAP_IDS = frozenset({'16-0-1ca6e21aa1'})
 
 
 def json_safe(value):
@@ -152,19 +153,32 @@ class Workbench:
     def start(self, request):
         # Normal UI requests contain preferences only. Resolve randomness once,
         # then save concrete Seeds so the exported config can replay this exact result.
+        layout_locked = True
+        terrain_locked = True
+        layout_pool = None
         if isinstance(request, dict):
             request = dict(request)
             target = request.pop('target', 'full')
             if target not in ('full', 'g2'):
                 raise ValueError('生成目标不正确。')
-            if 'layout_seed' not in request:
-                spacing = request.get('player_spacing', 'any')
-                if not isinstance(spacing, str) or spacing not in SPACING:
-                    raise ValueError('玩家距离选项不正确。')
-                pool = [p for p in self.layouts if spacing == 'any' or p['spacing'] == spacing]
-                if not pool:
-                    raise ValueError('当前玩家距离下没有可用布局。')
-                request['layout_seed'] = secrets.choice(pool)['seed']
+            layout_locked = 'layout_seed' in request
+            terrain_locked = 'terrain_seed' in request
+            spacing = request.get('player_spacing', 'any')
+            if not isinstance(spacing, str) or spacing not in SPACING:
+                raise ValueError('玩家距离选项不正确。')
+            pool = compat.spacing_pool(self.layouts, spacing)
+            if not pool:
+                raise ValueError('当前玩家距离下没有可用布局。')
+            if not layout_locked:
+                # 已由人工验证能容纳所选水系的布局优先（见 compat.VERIFIED_WATER_LAYOUTS）：
+                # 否则「双湖盆地」这类水系会在池子里盲轮 28 套布局、耗时 87s 仍不过检。
+                layout_pool = compat.generation_pool(
+                    self.layouts, spacing,
+                    water_preferred=compat.preferred_water_layouts(
+                        self.layouts, request.get('controls'), spacing))
+                request['layout_seed'] = layout_pool[0]
+            else:
+                layout_pool = [request['layout_seed']]
             request.setdefault('terrain_seed', secrets.randbelow(2147483648))
         else:
             target = 'full'
@@ -185,6 +199,10 @@ class Workbench:
                        pipeline_version=pipeline.PIPELINE_VERSION,
                        stage_versions=dict(ALGO_VERSION),
                        stages={},
+                       layout_locked=layout_locked,
+                       terrain_locked=terrain_locked,
+                       layout_pool=list(layout_pool or [config['layout_seed']]),
+                       layout_tried=[],
                        preview_only=(target == 'g2' and not layout['approved']),
                        progress=dict(attempt=0, limit=config['controls']['layout_attempts'],
                                      phase='准备出生布局', stage='G1'))
@@ -272,22 +290,27 @@ class Workbench:
             (folder / 'config.json').write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding='utf-8')
             if job.get('target') == 'full':
                 pipeline.run_pipeline(job, self.project, folder, self._locked_save, progress)
+                seed = job['config']['layout_seed']
+                (folder / 'config.json').write_text(
+                    json.dumps(job['config'], ensure_ascii=False, indent=2), encoding='utf-8')
                 spec_path = folder / 'runs' / str(seed) / 'G2/mapspec.json'
                 finished = dict(result=summary(read_json(spec_path)) if spec_path.exists() else None,
                                 status='done')
             else:
-                if not (folder / 'runs' / str(seed) / 'G1').exists():
-                    from .catalog import g1_source_root
-                    shutil.copytree(g1_source_root(self.project) / str(seed) / 'G1', folder / 'runs' / str(seed) / 'G1')
-                generate = run_preview if job.get('preview_only') else run_one
-                result = generate(seed, folder / 'runs', generator_params(config), on_progress=progress)
+                result = self._generate_g2(job, folder, progress)
+                seed = job['config']['layout_seed']
                 progress(dict(attempt=result['mapspec']['generation']['chosen_attempt'],
-                              limit=config['controls']['layout_attempts'], phase='绘制总览与路线'))
+                              limit=job['config']['controls']['layout_attempts'], phase='绘制总览与路线'))
                 build_g2_review(folder / 'runs', folder / 'review', [seed])
                 finished = dict(result=summary(result['mapspec']), status='done')
         except NoTerrainCandidate as error:
-            finished = dict(status='error', error_kind='no_candidate', attempts=error.attempts,
-                            error=f"在 {len(error.attempts)} 个候选内未找到可用地貌。请重新随机生成，或调整水域选项；所选湖泊不会自动缩小。")
+            tried = job.get('layout_tried') or []
+            if not job.get('layout_locked', True) and tried:
+                finished = dict(status='error', error_kind='no_candidate', attempts=error.attempts,
+                                error=f"当前河湖组合在已试的 {len(tried)} 套出生布局上都放不下。不会缩小湖泊。")
+            else:
+                finished = dict(status='error', error_kind='no_candidate', attempts=error.attempts,
+                                error=f"在 {len(error.attempts)} 个候选内未找到可用地貌。请重新随机生成，或调整水域选项；所选湖泊不会自动缩小。")
         except Exception as error:
             traceback.print_exc()
             finished = dict(status='error', error_kind=self._error_kind(error), error=str(error))
@@ -303,6 +326,60 @@ class Workbench:
                 finally:
                     self.active = None
             self._sync_review(job_id)
+
+    def _generate_g2(self, job, folder, progress):
+        from .catalog import g1_source_root
+        best = None
+        best_seed = None
+        while True:
+            seed = job['config']['layout_seed']
+            # ⚠ 生成方式必须**每轮重算**：布局轮换会换到"未 approve"的 seed，若沿用第一次算好的
+            # `run_one`，`ensure_upstream_approved` 会直接抛 `G1 未 approve` 把任务打死 ——
+            # 玩家看到的就是"生成一下就没结果了"（2026-09-15 实测：首轮落在 approved 布局时
+            # 轮换必然踩）。未 approve 的布局本来就走预览模式。
+            layout_meta = next((item for item in self.layouts if item['seed'] == seed), None)
+            preview_only = bool(job.get('target') == 'g2'
+                                and layout_meta is not None and not layout_meta.get('approved'))
+            job['preview_only'] = preview_only
+            generate = run_preview if preview_only else run_one
+            dest = folder / 'runs' / str(seed) / 'G1'
+            if not dest.exists():
+                shutil.copytree(g1_source_root(self.project) / str(seed) / 'G1', dest)
+            try:
+                result = generate(seed, folder / 'runs', generator_params(job['config']),
+                                  on_progress=progress)
+            except NoTerrainCandidate as error:
+                compat.record_layout_try(job, seed, 'no_candidate', error.attempts)
+                if compat.note_hard_reject(job, error.attempts):
+                    # 连续多套布局都"根本放不下所选水域" ⇒ 整池没戏，收手别让玩家干等。
+                    job['layout_pool'] = []
+                nxt = compat.next_layout_seed(job)
+                if nxt is None:
+                    if best is not None:
+                        compat.bind_job_layout(job, best_seed, self.layouts)
+                        return best
+                    raise
+                compat.bind_job_layout(job, nxt, self.layouts, reroll_terrain=True)
+                progress(dict(stage='G2', phase=f'布局 {seed} 放不下所选水域，改试布局 {nxt}',
+                              attempt=0, limit=job['config']['controls']['layout_attempts']))
+                (folder / 'config.json').write_text(
+                    json.dumps(job['config'], ensure_ascii=False, indent=2), encoding='utf-8')
+                continue
+            if result['mapspec'].get('all_pass') or not compat.should_rotate_failed_checks(job, result['mapspec']):
+                return result
+            if best is None:
+                best, best_seed = result, seed
+            compat.record_layout_try(job, seed, 'checks', result['mapspec'].get('generation', {}).get('attempts'))
+            nxt = compat.next_layout_seed(job)
+            if nxt is None:
+                if best_seed is not None:
+                    compat.bind_job_layout(job, best_seed, self.layouts)
+                return best or result
+            compat.bind_job_layout(job, nxt, self.layouts, reroll_terrain=True)
+            progress(dict(stage='G2', phase=f'布局 {seed} 未通过地貌检查，改试布局 {nxt}',
+                          attempt=0, limit=job['config']['controls']['layout_attempts']))
+            (folder / 'config.json').write_text(
+                json.dumps(job['config'], ensure_ascii=False, indent=2), encoding='utf-8')
 
     def _rebuild_visual(self, job_id, visual_seed, profile):
         job = self.jobs[job_id]
@@ -355,6 +432,46 @@ class Workbench:
     def _locked_save(self, job):
         with self.lock:
             self._save(job)
+
+    def delete(self, job_id):
+        """删除一条生成记录：任务目录 + 已安装到游戏工程的场景。
+
+        原版参考不能删；正在跑的任务不能删（避免半截输出和 active 指针悬空）。
+        """
+        with self.lock:
+            if self.active == job_id:
+                raise RuntimeError('本任务正在生成，不能删除。')
+            job = self.jobs.get(job_id)
+            if job is None:
+                raise KeyError(job_id)
+            if job.get('baseline'):
+                raise RuntimeError('原版参考图不能删除。')
+            map_id = str(job.get('map_id') or '')
+            if map_id in HALL_DEFAULT_MAP_IDS:
+                raise RuntimeError('大厅默认地图不能删除。')
+            folder = self.output / job_id
+            del self.jobs[job_id]
+        if folder.exists():
+            shutil.rmtree(folder)
+        self._delete_installed_map(map_id)
+        return {'ok': True, 'id': job_id, 'map_id': map_id}
+
+    @staticmethod
+    def _delete_installed_map(map_id):
+        if not map_id or any(token in map_id for token in ('/', '\\', '..')):
+            return
+        try:
+            from . import engine as _engine
+            airts = Path(_engine.airts_root())
+        except Exception:
+            return
+        installed = airts / 'source' / 'match' / 'maps' / 'generated' / map_id
+        if installed.is_dir():
+            shutil.rmtree(installed)
+        preview = airts / 'assets' / 'map_previews' / f'map_{map_id}.png'
+        for path in (preview, Path(str(preview) + '.import')):
+            if path.is_file():
+                path.unlink()
 
     def artifact(self, job_id, name):
         job = self.get(job_id)
@@ -507,9 +624,38 @@ def make_server(project, port=8765, output=None):
                 traceback.print_exc()
                 self.send(500, {'error': '无法创建本地生成任务，请检查输出目录。'})
 
+        def do_DELETE(self):
+            if not self.local_request():
+                return
+            route = urlsplit(self.path).path
+            try:
+                match = re.fullmatch(r'/api/jobs/([a-z0-9-]+)', route)
+                if match:
+                    return self.send(200, app.delete(match[1]))
+                self.send(404, {'error': '未找到接口。'})
+            except KeyError:
+                self.send(404, {'error': '未找到任务。'})
+            except RuntimeError as error:
+                self.send(409, {'error': str(error)})
+            except OSError:
+                traceback.print_exc()
+                self.send(500, {'error': '无法删除本地地图文件。'})
+
         def log_message(self, message, *args):
+            # 【2026-09-15 修复：pythonw 下"非 200 响应直接断连"】
+            # 服务由游戏端用 `pythonw.exe`（无控制台）启动时 `sys.stderr is None`，
+            # `super().log_message()` 写 stderr 会抛 AttributeError —— 而它是在
+            # `send_response` 内部被调用的，于是 **任何非 200/202 的响应**
+            # （404/409/403/500）都会在写出响应头之前异常 ⇒ 连接被断开、客户端收不到
+            # 任何内容（curl 显示 000 / http.client 报 RemoteDisconnected）。
+            # 症状：面板点"删除这张地图"永远报兜底文案"删除失败"，而服务端其实
+            # 正常处理了；只有 200/202 因为不写日志才看起来正常。
+            # 兜底：输出不可用时静默丢弃日志，绝不让日志失败影响响应写出。
             if len(args) > 1 and str(args[1]) not in ('200', '202'):
-                super().log_message(message, *args)
+                try:
+                    super().log_message(message, *args)
+                except Exception:
+                    pass
 
     server = ThreadingHTTPServer(('127.0.0.1', port), Handler)
     server.app = app

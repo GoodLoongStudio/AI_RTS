@@ -127,6 +127,31 @@ static func is_attached() -> bool:
 	return pidfile_pid() > 0 and heartbeat_fresh()
 
 
+## `recent_activity` 的窗口（秒）。取 5 分钟：足够覆盖"冷启动 20+ 秒 + 等对局就绪"
+## 这一整段，又远小于"上一局残留"的间隔。
+const ACTIVITY_WINDOW_SECONDS := 300.0
+
+
+## 【2026-09-15 修"单人模式连通测试误报故障"】"最近有活动"：比 `heartbeat_fresh`
+## **宽松**的窗口，用来区分两种都表现为"心跳不新鲜"的状态：
+##   · **runner 正在启动**（冷启动 20+ 秒，还没写出第一份 jsonl）→ 应显示"启动中"；
+##   · **上一局残留的死 pid**（日志早就停了）→ 应清理。
+## 判据与心跳同源（日志目录里最新 `*.jsonl` 的文件年龄），只是窗口更大。
+static func recent_activity(window_seconds: float = ACTIVITY_WINDOW_SECONDS) -> bool:
+	var path := log_dir()
+	var dir := DirAccess.open(path)
+	if dir == null:
+		return false
+	var newest := 0
+	for name in dir.get_files():
+		if not name.ends_with(".jsonl"):
+			continue
+		newest = maxi(newest, FileAccess.get_modified_time(path.path_join(name)))
+	if newest <= 0:
+		return false
+	return int(Time.get_unix_time_from_system()) - newest <= int(maxf(1.0, window_seconds))
+
+
 # ---------------- 启动 / 停止 ----------------
 
 ## 启动本机 runner，返回子进程 pid（<=0 = 失败）。已在跑则不重复起（返回现有 pid）。
@@ -157,6 +182,9 @@ static func start(authority_port_value: int = 0) -> int:
 	if not str(cfg.get("player", "")).is_empty():
 		args.append("--player")
 		args.append(str(cfg["player"]))
+	# 副官强度等级：面板三个按钮存下来的值原样交给 runner（映射见 Python 侧 intensity.py）。
+	args.append("--intensity")
+	args.append(intensity())
 	var bootstrap_path := dir.path_join(BOOTSTRAP_NAME)
 	var handle := FileAccess.open(bootstrap_path, FileAccess.WRITE)
 	if handle == null:
@@ -178,14 +206,24 @@ static func start(authority_port_value: int = 0) -> int:
 	return OS.create_process(str(cfg["python"]), PackedStringArray([bootstrap_path]), false)
 
 
-## 停止本机 runner（仅按**握手文件里的 pid** 精确杀；并删掉握手文件）。
+## 停止本机 runner（按握手文件里的 pid 杀进程树，并删掉握手文件）。
 static func stop() -> void:
 	var pid := pidfile_pid()
 	if pid > 0:
-		OS.kill(pid)
+		_kill_process_tree(pid)
 	var path := log_dir().path_join(PIDFILE_NAME)
 	if FileAccess.file_exists(path):
 		DirAccess.remove_absolute(path)
+
+
+## Windows 上 `OS.kill` 只打到该 pid，python 引导出来的子进程会留下。
+static func _kill_process_tree(pid: int) -> void:
+	if pid <= 0:
+		return
+	if OS.get_name() == "Windows":
+		OS.execute("taskkill", PackedStringArray(["/F", "/T", "/PID", str(pid)]))
+	else:
+		OS.kill(pid)
 
 
 # ---------------- "下次对局自动预热/接管"开关 ----------------
@@ -207,4 +245,35 @@ static func set_auto_takeover(enabled: bool) -> void:
 	var cfg := ConfigFile.new()
 	cfg.load(CFG_PATH)  # 不存在也没关系：保存时会新建
 	cfg.set_value("runner", "auto_takeover", bool(enabled))
+	cfg.save(CFG_PATH)
+
+
+# ---------------- 副官强度等级（面板三个按钮，2026-09-15 用户要求）----------------
+
+## Godot 侧只负责"记住玩家选的等级、并在启动 runner 时原样传过去"。
+## **等级 → 规则参数的映射不在 GDScript 里再写一份**（唯一实现：
+## `adjutant_coordinator/graph/intensity.py`）——历史事故全是"同一个常量两处各自定义"。
+const INTENSITY_DEFAULT := "standard"
+const INTENSITY_LEVELS := ["conservative", "standard", "aggressive"]
+const INTENSITY_LABELS := {
+	"conservative": "保守", "standard": "标准", "aggressive": "激进"
+}
+
+
+## 玩家当前选的强度等级；配置文件里没有/非法一律回落默认（等价改造前行为）。
+static func intensity() -> String:
+	var cfg := ConfigFile.new()
+	if cfg.load(CFG_PATH) != OK:
+		return INTENSITY_DEFAULT
+	var raw := str(cfg.get_value("runner", "intensity", INTENSITY_DEFAULT)).strip_edges().to_lower()
+	return raw if raw in INTENSITY_LEVELS else INTENSITY_DEFAULT
+
+
+static func set_intensity(level: String) -> void:
+	var normalized := level.strip_edges().to_lower()
+	if not normalized in INTENSITY_LEVELS:
+		normalized = INTENSITY_DEFAULT
+	var cfg := ConfigFile.new()
+	cfg.load(CFG_PATH)
+	cfg.set_value("runner", "intensity", normalized)
 	cfg.save(CFG_PATH)

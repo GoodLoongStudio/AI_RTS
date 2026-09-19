@@ -1395,28 +1395,28 @@ transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 98.870
 transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 62.380, 0, 95.500)
 
 [node name="ResourceA" parent="Resources" instance=ExtResource("3_resa")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 154.500, 0, 50.500)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 153.917, 0, 52.692)
 
 [node name="ResourceA2" parent="Resources" instance=ExtResource("3_resa")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 158.500, 0, 51.500)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 157.917, 0, 53.692)
 
 [node name="ResourceA3" parent="Resources" instance=ExtResource("3_resa")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 188.500, 0, 170.500)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 187.930, 0, 167.887)
 
 [node name="ResourceA4" parent="Resources" instance=ExtResource("3_resa")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 178.500, 0, 155.500)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 180.031, 0, 156.489)
 
 [node name="ResourceA5" parent="Resources" instance=ExtResource("3_resa")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 103.500, 0, 188.500)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 102.187, 0, 191.163)
 
 [node name="ResourceA6" parent="Resources" instance=ExtResource("3_resa")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 89.500, 0, 202.500)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 92.140, 0, 201.201)
 
 [node name="ResourceA7" parent="Resources" instance=ExtResource("3_resa")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 53.500, 0, 98.500)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 54.892, 0, 98.578)
 
 [node name="ResourceA8" parent="Resources" instance=ExtResource("3_resa")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 53.500, 0, 91.500)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 54.892, 0, 91.578)
 
 [node name="ResourceA9" parent="Resources" instance=ExtResource("3_resa")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 151.500, 0, 101.500)

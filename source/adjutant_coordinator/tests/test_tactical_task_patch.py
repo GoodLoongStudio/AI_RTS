@@ -220,7 +220,13 @@ class AsyncSchedulingTest(unittest.TestCase):
                      if entry.get("kind") == "task_patch_submitted"]
         self.assertTrue(submitted)
         self.assertTrue(submitted[-1].get("accepted"))
-        self.assertEqual(runtime.state.active_intents, [])
+        # 【2026-09-15】规则地板（rule_floor）的并行填充轨在同一轮也会产出意图
+        # （例如放宽中继视野后出现的 `rule-fill-advance`）；本用例要钉的是
+        # "**异步模型提交**当下不得阻塞、不得把结果当已完成"，故断言
+        # "还没有任何 task_patch_result"，而不是"一条意图都没有"。
+        self.assertEqual(
+            [e for e in runtime.state.decision_log if e.get("kind") == "task_patch_result"],
+            [])
         deadline = time.time() + 2.0
         while time.time() < deadline and scheduler.stats()["completed"] == 0:
             time.sleep(0.005)

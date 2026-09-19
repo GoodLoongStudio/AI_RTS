@@ -1,0 +1,962 @@
+{
+  "updated_at": "2026-09-19T16:58:18",
+  "jobs": [
+    {
+      "job_id": "c04ebe62baec400cae066e62c71dc06b",
+      "seed": 49,
+      "terrain": 1661310385,
+      "target": "full",
+      "status": "done",
+      "title": "布局 49 · 地貌 1661310385",
+      "label": null,
+      "map_pass": false,
+      "created_at": "2026-09-19T16:58:09",
+      "reverified_with_current_code": false,
+      "visual_version": 1,
+      "visual_profile": "default",
+      "map_id": null,
+      "checks_summary": {
+        "g2_pass": false,
+        "g3_pass": null,
+        "engine_pass": null
+      },
+      "failed_paths": [],
+      "failed_forbidden": [],
+      "nav_all": null,
+      "smoke_assertions": {},
+      "stages": {
+        "G1": {
+          "state": "通过",
+          "images": [
+            "contact.png"
+          ],
+          "preview": "contact.png",
+          "version": "2.0.0",
+          "history_versions": []
+        },
+        "G2": {
+          "state": "需检查",
+          "images": [
+            "contact.png",
+            "seed_36_minimap.png",
+            "seed_36_overview.png",
+            "seed_36_strategy.png",
+            "seed_47_minimap.png",
+            "seed_47_overview.png",
+            "seed_47_strategy.png",
+            "seed_49_minimap.png",
+            "seed_49_overview.png",
+            "seed_49_strategy.png",
+            "seed_5_minimap.png",
+            "seed_5_overview.png",
+            "seed_5_strategy.png"
+          ],
+          "preview": "seed_36_overview.png",
+          "version": "7.11.0",
+          "history_versions": []
+        },
+        "G3": {
+          "state": "未生成",
+          "images": [],
+          "preview": null,
+          "version": null,
+          "history_versions": []
+        },
+        "G4": {
+          "state": "未生成",
+          "images": [],
+          "preview": null,
+          "version": null,
+          "history_versions": []
+        }
+      },
+      "folder": "job_layout49_terrain1661310385_c04ebe62"
+    },
+    {
+      "job_id": "f765a846f1da45b69f8839aeab5fc5c6",
+      "seed": 36,
+      "terrain": 785329664,
+      "target": "g2",
+      "status": "done",
+      "title": "布局 36 · 地貌 785329664",
+      "label": null,
+      "map_pass": null,
+      "created_at": "2026-09-19T16:57:39",
+      "reverified_with_current_code": false,
+      "visual_version": 1,
+      "visual_profile": "default",
+      "map_id": null,
+      "checks_summary": {},
+      "failed_paths": [],
+      "failed_forbidden": [],
+      "nav_all": null,
+      "smoke_assertions": {},
+      "stages": {
+        "G1": {
+          "state": "需检查",
+          "images": [
+            "contact.png"
+          ],
+          "preview": "contact.png",
+          "version": null,
+          "history_versions": []
+        },
+        "G2": {
+          "state": "需检查",
+          "images": [
+            "contact.png",
+            "seed_36_minimap.png",
+            "seed_36_overview.png",
+            "seed_36_strategy.png"
+          ],
+          "preview": "seed_36_overview.png",
+          "version": null,
+          "history_versions": []
+        },
+        "G3": {
+          "state": "未生成",
+          "images": [],
+          "preview": null,
+          "version": null,
+          "history_versions": []
+        },
+        "G4": {
+          "state": "未生成",
+          "images": [],
+          "preview": null,
+          "version": null,
+          "history_versions": []
+        }
+      },
+      "folder": "job_layout36_terrain785329664_f765a846"
+    },
+    {
+      "job_id": "82f2ce5d4324444e8f6dd2486a8a93a7",
+      "seed": 8,
+      "terrain": 1669639835,
+      "target": "g2",
+      "status": "done",
+      "title": "布局 8 · 地貌 1669639835",
+      "label": null,
+      "map_pass": null,
+      "created_at": "2026-09-15T22:25:59",
+      "reverified_with_current_code": false,
+      "visual_version": 1,
+      "visual_profile": "default",
+      "map_id": null,
+      "checks_summary": {},
+      "failed_paths": [],
+      "failed_forbidden": [],
+      "nav_all": null,
+      "smoke_assertions": {},
+      "stages": {
+        "G1": {
+          "state": "需检查",
+          "images": [
+            "contact.png"
+          ],
+          "preview": "contact.png",
+          "version": null,
+          "history_versions": []
+        },
+        "G2": {
+          "state": "需检查",
+          "images": [
+            "contact.png",
+            "seed_8_minimap.png",
+            "seed_8_overview.png",
+            "seed_8_strategy.png"
+          ],
+          "preview": "seed_8_overview.png",
+          "version": null,
+          "history_versions": []
+        },
+        "G3": {
+          "state": "未生成",
+          "images": [],
+          "preview": null,
+          "version": null,
+          "history_versions": []
+        },
+        "G4": {
+          "state": "未生成",
+          "images": [],
+          "preview": null,
+          "version": null,
+          "history_versions": []
+        }
+      },
+      "folder": "job_layout8_terrain1669639835_82f2ce5d"
+    },
+    {
+      "job_id": "b7c1a472214346d58d6ea7401cf446da",
+      "seed": 4,
+      "terrain": 199727648,
+      "target": "full",
+      "status": "done",
+      "title": "布局 4 · 地貌 199727648",
+      "label": null,
+      "map_pass": false,
+      "created_at": "2026-09-15T22:17:08",
+      "reverified_with_current_code": false,
+      "visual_version": 1,
+      "visual_profile": "default",
+      "map_id": null,
+      "checks_summary": {
+        "g2_pass": false,
+        "g3_pass": null,
+        "engine_pass": null
+      },
+      "failed_paths": [],
+      "failed_forbidden": [],
+      "nav_all": null,
+      "smoke_assertions": {},
+      "stages": {
+        "G1": {
+          "state": "通过",
+          "images": [
+            "contact.png"
+          ],
+          "preview": "contact.png",
+          "version": "2.0.0",
+          "history_versions": []
+        },
+        "G2": {
+          "state": "需检查",
+          "images": [
+            "contact.png",
+            "seed_13_minimap.png",
+            "seed_13_overview.png",
+            "seed_13_strategy.png",
+            "seed_14_minimap.png",
+            "seed_14_overview.png",
+            "seed_14_strategy.png",
+            "seed_15_minimap.png",
+            "seed_15_overview.png",
+            "seed_15_strategy.png",
+            "seed_16_minimap.png",
+            "seed_16_overview.png",
+            "seed_16_strategy.png",
+            "seed_17_minimap.png",
+            "seed_17_overview.png",
+            "seed_17_strategy.png",
+            "seed_18_minimap.png",
+            "seed_18_overview.png",
+            "seed_18_strategy.png",
+            "seed_21_minimap.png",
+            "seed_21_overview.png",
+            "seed_21_strategy.png",
+            "seed_23_minimap.png",
+            "seed_23_overview.png",
+            "seed_23_strategy.png",
+            "seed_25_minimap.png",
+            "seed_25_overview.png",
+            "seed_25_strategy.png",
+            "seed_2_minimap.png",
+            "seed_2_overview.png",
+            "seed_2_strategy.png",
+            "seed_31_minimap.png",
+            "seed_31_overview.png",
+            "seed_31_strategy.png",
+            "seed_36_minimap.png",
+            "seed_36_overview.png",
+            "seed_36_strategy.png",
+            "seed_37_minimap.png",
+            "seed_37_overview.png",
+            "seed_37_strategy.png",
+            "seed_38_minimap.png",
+            "seed_38_overview.png",
+            "seed_38_strategy.png",
+            "seed_39_minimap.png",
+            "seed_39_overview.png",
+            "seed_39_strategy.png",
+            "seed_3_minimap.png",
+            "seed_3_overview.png",
+            "seed_3_strategy.png",
+            "seed_47_minimap.png",
+            "seed_47_overview.png",
+            "seed_47_strategy.png",
+            "seed_49_minimap.png",
+            "seed_49_overview.png",
+            "seed_49_strategy.png",
+            "seed_4_minimap.png",
+            "seed_4_overview.png",
+            "seed_4_strategy.png",
+            "seed_51_minimap.png",
+            "seed_51_overview.png",
+            "seed_51_strategy.png",
+            "seed_54_minimap.png",
+            "seed_54_overview.png",
+            "seed_54_strategy.png",
+            "seed_55_minimap.png",
+            "seed_55_overview.png",
+            "seed_55_strategy.png",
+            "seed_5_minimap.png",
+            "seed_5_overview.png",
+            "seed_5_strategy.png",
+            "seed_61_minimap.png",
+            "seed_61_overview.png",
+            "seed_61_strategy.png",
+            "seed_8_minimap.png",
+            "seed_8_overview.png",
+            "seed_8_strategy.png"
+          ],
+          "preview": "seed_13_overview.png",
+          "version": "7.11.0",
+          "history_versions": []
+        },
+        "G3": {
+          "state": "未生成",
+          "images": [],
+          "preview": null,
+          "version": null,
+          "history_versions": []
+        },
+        "G4": {
+          "state": "未生成",
+          "images": [],
+          "preview": null,
+          "version": null,
+          "history_versions": []
+        }
+      },
+      "folder": "job_layout4_terrain199727648_b7c1a472"
+    },
+    {
+      "job_id": "e1e5450b0a5a4b6291aba9fb9f51823a",
+      "seed": 49,
+      "terrain": 471416678,
+      "target": "g2",
+      "status": "done",
+      "title": "布局 49 · 地貌 471416678",
+      "label": null,
+      "map_pass": null,
+      "created_at": "2026-09-15T22:15:23",
+      "reverified_with_current_code": false,
+      "visual_version": 1,
+      "visual_profile": "default",
+      "map_id": null,
+      "checks_summary": {},
+      "failed_paths": [],
+      "failed_forbidden": [],
+      "nav_all": null,
+      "smoke_assertions": {},
+      "stages": {
+        "G1": {
+          "state": "需检查",
+          "images": [
+            "contact.png"
+          ],
+          "preview": "contact.png",
+          "version": null,
+          "history_versions": []
+        },
+        "G2": {
+          "state": "需检查",
+          "images": [
+            "contact.png",
+            "seed_49_minimap.png",
+            "seed_49_overview.png",
+            "seed_49_strategy.png"
+          ],
+          "preview": "seed_49_overview.png",
+          "version": null,
+          "history_versions": []
+        },
+        "G3": {
+          "state": "未生成",
+          "images": [],
+          "preview": null,
+          "version": null,
+          "history_versions": []
+        },
+        "G4": {
+          "state": "未生成",
+          "images": [],
+          "preview": null,
+          "version": null,
+          "history_versions": []
+        }
+      },
+      "folder": "job_layout49_terrain471416678_e1e5450b"
+    },
+    {
+      "job_id": "bbc157bdb66b4082acaa5aab45caa55d",
+      "seed": 35,
+      "terrain": 1756129894,
+      "target": "full",
+      "status": "error",
+      "title": "布局 35 · 地貌 1756129894",
+      "label": null,
+      "map_pass": null,
+      "created_at": "2026-09-15T22:12:10",
+      "reverified_with_current_code": false,
+      "visual_version": 1,
+      "visual_profile": "default",
+      "map_id": null,
+      "checks_summary": {},
+      "failed_paths": [],
+      "failed_forbidden": [],
+      "nav_all": null,
+      "smoke_assertions": {},
+      "stages": {
+        "G1": {
+          "state": "通过",
+          "images": [
+            "contact.png"
+          ],
+          "preview": "contact.png",
+          "version": "2.0.0",
+          "history_versions": []
+        },
+        "G2": {
+          "state": "通过",
+          "images": [
+            "contact.png",
+            "seed_14_minimap.png",
+            "seed_14_overview.png",
+            "seed_14_strategy.png",
+            "seed_15_minimap.png",
+            "seed_15_overview.png",
+            "seed_15_strategy.png",
+            "seed_16_minimap.png",
+            "seed_16_overview.png",
+            "seed_16_strategy.png",
+            "seed_17_minimap.png",
+            "seed_17_overview.png",
+            "seed_17_strategy.png",
+            "seed_18_minimap.png",
+            "seed_18_overview.png",
+            "seed_18_strategy.png",
+            "seed_21_minimap.png",
+            "seed_21_overview.png",
+            "seed_21_strategy.png",
+            "seed_23_minimap.png",
+            "seed_23_overview.png",
+            "seed_23_strategy.png",
+            "seed_25_minimap.png",
+            "seed_25_overview.png",
+            "seed_25_strategy.png",
+            "seed_2_minimap.png",
+            "seed_2_overview.png",
+            "seed_2_strategy.png",
+            "seed_31_minimap.png",
+            "seed_31_overview.png",
+            "seed_31_strategy.png",
+            "seed_36_minimap.png",
+            "seed_36_overview.png",
+            "seed_36_strategy.png",
+            "seed_37_minimap.png",
+            "seed_37_overview.png",
+            "seed_37_strategy.png",
+            "seed_38_minimap.png",
+            "seed_38_overview.png",
+            "seed_38_strategy.png",
+            "seed_39_minimap.png",
+            "seed_39_overview.png",
+            "seed_39_strategy.png",
+            "seed_3_minimap.png",
+            "seed_3_overview.png",
+            "seed_3_strategy.png",
+            "seed_46_minimap.png",
+            "seed_46_overview.png",
+            "seed_46_strategy.png",
+            "seed_47_minimap.png",
+            "seed_47_overview.png",
+            "seed_47_strategy.png",
+            "seed_49_minimap.png",
+            "seed_49_overview.png",
+            "seed_49_strategy.png",
+            "seed_4_minimap.png",
+            "seed_4_overview.png",
+            "seed_4_strategy.png",
+            "seed_51_minimap.png",
+            "seed_51_overview.png",
+            "seed_51_strategy.png",
+            "seed_54_minimap.png",
+            "seed_54_overview.png",
+            "seed_54_strategy.png",
+            "seed_55_minimap.png",
+            "seed_55_overview.png",
+            "seed_55_strategy.png",
+            "seed_5_minimap.png",
+            "seed_5_overview.png",
+            "seed_5_strategy.png",
+            "seed_61_minimap.png",
+            "seed_61_overview.png",
+            "seed_61_strategy.png",
+            "seed_8_minimap.png",
+            "seed_8_overview.png",
+            "seed_8_strategy.png"
+          ],
+          "preview": "seed_14_overview.png",
+          "version": "7.11.0",
+          "history_versions": []
+        },
+        "G3": {
+          "state": "未生成",
+          "images": [],
+          "preview": null,
+          "version": null,
+          "history_versions": []
+        },
+        "G4": {
+          "state": "未生成",
+          "images": [],
+          "preview": null,
+          "version": null,
+          "history_versions": []
+        }
+      },
+      "folder": "job_layout35_terrain1756129894_bbc157bd"
+    },
+    {
+      "job_id": "6b269c943cd2459cb484b829cb52f85a",
+      "seed": 5,
+      "terrain": 1940187586,
+      "target": "g2",
+      "status": "done",
+      "title": "布局 5 · 地貌 1940187586",
+      "label": null,
+      "map_pass": null,
+      "created_at": "2026-09-15T22:00:44",
+      "reverified_with_current_code": false,
+      "visual_version": 1,
+      "visual_profile": "default",
+      "map_id": null,
+      "checks_summary": {},
+      "failed_paths": [],
+      "failed_forbidden": [],
+      "nav_all": null,
+      "smoke_assertions": {},
+      "stages": {
+        "G1": {
+          "state": "需检查",
+          "images": [
+            "contact.png"
+          ],
+          "preview": "contact.png",
+          "version": null,
+          "history_versions": []
+        },
+        "G2": {
+          "state": "需检查",
+          "images": [
+            "contact.png",
+            "seed_5_minimap.png",
+            "seed_5_overview.png",
+            "seed_5_strategy.png"
+          ],
+          "preview": "seed_5_overview.png",
+          "version": null,
+          "history_versions": []
+        },
+        "G3": {
+          "state": "未生成",
+          "images": [],
+          "preview": null,
+          "version": null,
+          "history_versions": []
+        },
+        "G4": {
+          "state": "未生成",
+          "images": [],
+          "preview": null,
+          "version": null,
+          "history_versions": []
+        }
+      },
+      "folder": "job_layout5_terrain1940187586_6b269c94"
+    },
+    {
+      "job_id": "a4c155284bf94763aa92bdb50ad6d6ce",
+      "seed": 35,
+      "terrain": 115562479,
+      "target": "full",
+      "status": "error",
+      "title": "布局 35 · 地貌 115562479",
+      "label": null,
+      "map_pass": null,
+      "created_at": "2026-09-15T20:45:53",
+      "reverified_with_current_code": false,
+      "visual_version": 1,
+      "visual_profile": "default",
+      "map_id": null,
+      "checks_summary": {},
+      "failed_paths": [],
+      "failed_forbidden": [],
+      "nav_all": null,
+      "smoke_assertions": {},
+      "stages": {
+        "G1": {
+          "state": "通过",
+          "images": [
+            "contact.png"
+          ],
+          "preview": "contact.png",
+          "version": "2.0.0",
+          "history_versions": []
+        },
+        "G2": {
+          "state": "未生成",
+          "images": [],
+          "preview": null,
+          "version": "7.11.0",
+          "history_versions": []
+        },
+        "G3": {
+          "state": "未生成",
+          "images": [],
+          "preview": null,
+          "version": null,
+          "history_versions": []
+        },
+        "G4": {
+          "state": "未生成",
+          "images": [],
+          "preview": null,
+          "version": null,
+          "history_versions": []
+        }
+      },
+      "folder": "job_layout35_terrain115562479_a4c15528"
+    },
+    {
+      "job_id": "b61900b409c54e6b8982083692c09ebe",
+      "seed": 35,
+      "terrain": 1093140513,
+      "target": "full",
+      "status": "error",
+      "title": "布局 35 · 地貌 1093140513",
+      "label": null,
+      "map_pass": null,
+      "created_at": "2026-09-15T20:45:26",
+      "reverified_with_current_code": false,
+      "visual_version": 1,
+      "visual_profile": "default",
+      "map_id": null,
+      "checks_summary": {},
+      "failed_paths": [],
+      "failed_forbidden": [],
+      "nav_all": null,
+      "smoke_assertions": {},
+      "stages": {
+        "G1": {
+          "state": "通过",
+          "images": [
+            "contact.png"
+          ],
+          "preview": "contact.png",
+          "version": "2.0.0",
+          "history_versions": []
+        },
+        "G2": {
+          "state": "未生成",
+          "images": [],
+          "preview": null,
+          "version": "7.11.0",
+          "history_versions": []
+        },
+        "G3": {
+          "state": "未生成",
+          "images": [],
+          "preview": null,
+          "version": null,
+          "history_versions": []
+        },
+        "G4": {
+          "state": "未生成",
+          "images": [],
+          "preview": null,
+          "version": null,
+          "history_versions": []
+        }
+      },
+      "folder": "job_layout35_terrain1093140513_b61900b4"
+    },
+    {
+      "job_id": "f6d3e4fb668e4a95ab75ab1ccffc6c08",
+      "seed": 55,
+      "terrain": 515487110,
+      "target": "g2",
+      "status": "error",
+      "title": "布局 55 · 地貌 515487110",
+      "label": null,
+      "map_pass": null,
+      "created_at": "2026-09-15T19:36:26",
+      "reverified_with_current_code": false,
+      "visual_version": 1,
+      "visual_profile": "default",
+      "map_id": null,
+      "checks_summary": {},
+      "failed_paths": [],
+      "failed_forbidden": [],
+      "nav_all": null,
+      "smoke_assertions": {},
+      "stages": {
+        "G1": {
+          "state": "需检查",
+          "images": [
+            "contact.png"
+          ],
+          "preview": "contact.png",
+          "version": null,
+          "history_versions": []
+        },
+        "G2": {
+          "state": "未生成",
+          "images": [],
+          "preview": null,
+          "version": null,
+          "history_versions": []
+        },
+        "G3": {
+          "state": "未生成",
+          "images": [],
+          "preview": null,
+          "version": null,
+          "history_versions": []
+        },
+        "G4": {
+          "state": "未生成",
+          "images": [],
+          "preview": null,
+          "version": null,
+          "history_versions": []
+        }
+      },
+      "folder": "job_layout55_terrain515487110_f6d3e4fb"
+    },
+    {
+      "job_id": "f89a2830012f40428fe645a4b94008de",
+      "seed": 13,
+      "terrain": 515487110,
+      "target": "g2",
+      "status": "error",
+      "title": "布局 13 · 地貌 515487110",
+      "label": null,
+      "map_pass": null,
+      "created_at": "2026-09-15T19:36:19",
+      "reverified_with_current_code": false,
+      "visual_version": 1,
+      "visual_profile": "default",
+      "map_id": null,
+      "checks_summary": {},
+      "failed_paths": [],
+      "failed_forbidden": [],
+      "nav_all": null,
+      "smoke_assertions": {},
+      "stages": {
+        "G1": {
+          "state": "需检查",
+          "images": [
+            "contact.png"
+          ],
+          "preview": "contact.png",
+          "version": null,
+          "history_versions": []
+        },
+        "G2": {
+          "state": "未生成",
+          "images": [],
+          "preview": null,
+          "version": null,
+          "history_versions": []
+        },
+        "G3": {
+          "state": "未生成",
+          "images": [],
+          "preview": null,
+          "version": null,
+          "history_versions": []
+        },
+        "G4": {
+          "state": "未生成",
+          "images": [],
+          "preview": null,
+          "version": null,
+          "history_versions": []
+        }
+      },
+      "folder": "job_layout13_terrain515487110_f89a2830"
+    },
+    {
+      "job_id": "0571aff42b8f4e139261e2235b087dcd",
+      "seed": 36,
+      "terrain": 515487110,
+      "target": "g2",
+      "status": "done",
+      "title": "布局 36 · 地貌 515487110",
+      "label": null,
+      "map_pass": null,
+      "created_at": "2026-09-15T19:36:12",
+      "reverified_with_current_code": false,
+      "visual_version": 1,
+      "visual_profile": "default",
+      "map_id": null,
+      "checks_summary": {},
+      "failed_paths": [],
+      "failed_forbidden": [],
+      "nav_all": null,
+      "smoke_assertions": {},
+      "stages": {
+        "G1": {
+          "state": "需检查",
+          "images": [
+            "contact.png"
+          ],
+          "preview": "contact.png",
+          "version": null,
+          "history_versions": []
+        },
+        "G2": {
+          "state": "需检查",
+          "images": [
+            "contact.png",
+            "seed_36_minimap.png",
+            "seed_36_overview.png",
+            "seed_36_strategy.png"
+          ],
+          "preview": "seed_36_overview.png",
+          "version": null,
+          "history_versions": []
+        },
+        "G3": {
+          "state": "未生成",
+          "images": [],
+          "preview": null,
+          "version": null,
+          "history_versions": []
+        },
+        "G4": {
+          "state": "未生成",
+          "images": [],
+          "preview": null,
+          "version": null,
+          "history_versions": []
+        }
+      },
+      "folder": "job_layout36_terrain515487110_0571aff4"
+    },
+    {
+      "job_id": "508d0e59229d44eb80bbdfac4950619f",
+      "seed": 5,
+      "terrain": 1420801945,
+      "target": "g2",
+      "status": "done",
+      "title": "布局 5 · 地貌 1420801945",
+      "label": null,
+      "map_pass": null,
+      "created_at": "2026-09-15T19:36:00",
+      "reverified_with_current_code": false,
+      "visual_version": 1,
+      "visual_profile": "default",
+      "map_id": null,
+      "checks_summary": {},
+      "failed_paths": [],
+      "failed_forbidden": [],
+      "nav_all": null,
+      "smoke_assertions": {},
+      "stages": {
+        "G1": {
+          "state": "需检查",
+          "images": [
+            "contact.png"
+          ],
+          "preview": "contact.png",
+          "version": null,
+          "history_versions": []
+        },
+        "G2": {
+          "state": "需检查",
+          "images": [
+            "contact.png",
+            "seed_5_minimap.png",
+            "seed_5_overview.png",
+            "seed_5_strategy.png"
+          ],
+          "preview": "seed_5_overview.png",
+          "version": null,
+          "history_versions": []
+        },
+        "G3": {
+          "state": "未生成",
+          "images": [],
+          "preview": null,
+          "version": null,
+          "history_versions": []
+        },
+        "G4": {
+          "state": "未生成",
+          "images": [],
+          "preview": null,
+          "version": null,
+          "history_versions": []
+        }
+      },
+      "folder": "job_layout5_terrain1420801945_508d0e59"
+    },
+    {
+      "job_id": "76664cbbb0c9426794538cacfaadd385",
+      "seed": 15,
+      "terrain": 1006612334,
+      "target": "full",
+      "status": "done",
+      "title": "布局 15 · 地貌 1006612334",
+      "label": null,
+      "map_pass": false,
+      "created_at": "2026-09-15T19:35:49",
+      "reverified_with_current_code": false,
+      "visual_version": 1,
+      "visual_profile": "default",
+      "map_id": null,
+      "checks_summary": {
+        "g2_pass": false,
+        "g3_pass": null,
+        "engine_pass": null
+      },
+      "failed_paths": [],
+      "failed_forbidden": [],
+      "nav_all": null,
+      "smoke_assertions": {},
+      "stages": {
+        "G1": {
+          "state": "通过",
+          "images": [
+            "contact.png"
+          ],
+          "preview": "contact.png",
+          "version": "2.0.0",
+          "history_versions": []
+        },
+        "G2": {
+          "state": "需检查",
+          "images": [
+            "contact.png",
+            "seed_15_minimap.png",
+            "seed_15_overview.png",
+            "seed_15_strategy.png"
+          ],
+          "preview": "seed_15_overview.png",
+          "version": "7.11.0",
+          "history_versions": []
+        },
+        "G3": {
+          "state": "未生成",
+          "images": [],
+          "preview": null,
+          "version": null,
+          "history_versions": []
+        },
+        "G4": {
+          "state": "未生成",
+          "images": [],
+          "preview": null,
+          "version": null,
+          "history_versions": []
+        }
+      },
+      "folder": "job_layout15_terrain1006612334_76664cbb"
+    }
+  ]
+}

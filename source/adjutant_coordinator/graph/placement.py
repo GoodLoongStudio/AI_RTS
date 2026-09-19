@@ -46,6 +46,26 @@ BUILD_BOUND_MARGIN_M = 3.0
 VISION_SAFE_RADIUS_M = 8.0
 #: 落点与己方实体的最小净空（米）：太近会把工人/部队堵住（实测被堵在 1.5m 口袋）。
 MIN_OWN_CLEARANCE_M = 3.5
+#: 防御塔"内圈"半径（米）：距基地锚点 < 此值算"留在基地内"。
+#: 与 GDScript `DefenseController.TURRET_OUTER_RADIUS_M = 8.0` 同值（两侧必须同口径）。
+TURRET_INNER_RADIUS_M = 8.0
+#: 防御塔的**目标落点带**外缘（米）：站在基地外缘，但不一路外推到视野尽头。
+#: 用户 2026-09-15 晚实测："AI副官让防御塔造的位置太靠外面了，这不对的" ——
+#: 原实现以"离基地越远越优先"排序 + 候选上限 24/26m（有塔当视野锚点时继续外推），
+#: 塔会越建越远，最后落在视野边缘、脱离基地支援。
+TURRET_BAND_OUTER_M = 12.0
+
+
+def turret_band_rank(distance_m: float) -> float:
+    """防御塔"离基地远近"的打分：**带内越外越好，出了带越远越差**。
+
+    唯一实现：`rules_fallback.pick_turret_spot`（规则地板）与
+    `task_patch._build_placement`（四列模型路径）都调它，避免两条路径各自定义口径
+    （历史事故全是"同一个常量两处各自定义"）。
+    """
+    if distance_m <= TURRET_BAND_OUTER_M:
+        return distance_m
+    return 2.0 * TURRET_BAND_OUTER_M - distance_m
 #: 判定"同一个坏点"的量化网格（米）：避免浮点抖动把同一个点当成新点。
 SPOT_GRID_M = 1.0
 
@@ -332,6 +352,129 @@ def candidate_spots(anchor_x: float,
     return [spot for _, spot in scored]
 
 
+def farthest_on_bearing(origin_x: float,
+                        origin_z: float,
+                        direction: Sequence[float],
+                        bounds: Any = None,
+                        own_points: Iterable[Any] = (),
+                        rejected: Any = None,
+                        min_radius: float = 6.0,
+                        max_radius: float = 24.0,
+                        step: float = 2.0,
+                        clearance: float = MIN_OWN_CLEARANCE_M,
+                        vision_radius: float = VISION_SAFE_RADIUS_M
+                        ) -> Optional[Tuple[float, float]]:
+    """沿一个方位从近走到远，返回**最后一个**合法点（当前视野能伸到的最外沿）。
+
+    中间出现坏点不中断：远处若有己方单位/建筑提供视野，外圈仍可能合法。
+    一个合法点都没有则返回 None（宁可不建，不返回注定被拒的坐标）。
+    """
+    if not isinstance(direction, (list, tuple)) or len(direction) < 2:
+        return None
+    try:
+        dx, dz = float(direction[0]), float(direction[1])
+    except (TypeError, ValueError):
+        return None
+    norm = math.hypot(dx, dz)
+    if norm < 1e-6:
+        return None
+    ux, uz = dx / norm, dz / norm
+    last: Optional[Tuple[float, float]] = None
+    radius = float(min_radius)
+    while radius <= float(max_radius) + 1e-6:
+        spot = (round(origin_x + ux * radius, 1), round(origin_z + uz * radius, 1))
+        if spot_issue(spot, bounds, own_points, rejected, clearance=clearance,
+                      vision_radius=vision_radius) is None:
+            last = spot
+        radius += float(step)
+    return last
+
+
+def _unique_bearings(bearings: Iterable[Any]) -> List[Tuple[float, float]]:
+    seen = set()
+    out: List[Tuple[float, float]] = []
+    for item in bearings or ():
+        if not isinstance(item, (list, tuple)) or len(item) < 2:
+            continue
+        try:
+            dx, dz = float(item[0]), float(item[1])
+        except (TypeError, ValueError):
+            continue
+        norm = math.hypot(dx, dz)
+        if norm < 1e-6:
+            continue
+        key = (round(dx / norm, 3), round(dz / norm, 3))
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(key)
+    return out
+
+
+def _unique_spots(spots: Iterable[Any]) -> List[Tuple[float, float]]:
+    seen = set()
+    out: List[Tuple[float, float]] = []
+    for item in spots or ():
+        point = _as_pair(item)
+        if point is None:
+            continue
+        key = spot_key(point)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append((round(point[0], 1), round(point[1], 1)))
+    return out
+
+
+def collect_perimeter_candidates(
+        home: Sequence[float],
+        bounds: Any = None,
+        own_points: Iterable[Any] = (),
+        rejected: Any = None,
+        extra_origins: Iterable[Any] = (),
+        bearings: Iterable[Any] = (),
+        min_radius: float = 6.0,
+        max_radius: float = 24.0,
+        step: float = 2.0,
+        ring_radii: Sequence[float] = (6.0, 8.0),
+        slots: int = 8,
+        vision_radius: float = VISION_SAFE_RADIUS_M) -> List[Tuple[float, float]]:
+    """外围建造候选：沿方位取当前视野最远合法点，并绕已有建筑再扩一圈。
+
+    开局只有基地时最远约等于 ``VISION_SAFE_RADIUS_M``；兵营/已有塔在外侧时，
+    它们会提供视野，下一座就能继续外推。越界/看不见/贴住己方的点不会进表。
+
+    ``vision_radius`` 由调用方按"场上有什么视野锚点"给：防御塔视野 16→64
+    （2026-09-15 用户要求）后，已有塔时可以用远大于 8m 的半径继续外推。
+    """
+    home_point = _as_pair(home)
+    if home_point is None:
+        return []
+    hx, hz = home_point
+    extras = [_as_pair(item) for item in extra_origins or ()]
+    extras = [item for item in extras if item is not None
+              and math.hypot(item[0] - hx, item[1] - hz) > 0.5]
+    compass = [(math.cos(2 * math.pi * index / 12), math.sin(2 * math.pi * index / 12))
+               for index in range(12)]
+    rays = _unique_bearings(list(bearings or ()) + compass)
+    for ox, oz in extras:
+        rays = _unique_bearings(rays + [(ox - hx, oz - hz)])
+    spots: List[Tuple[float, float]] = []
+    for ray in rays:
+        spot = farthest_on_bearing(hx, hz, ray, bounds=bounds, own_points=own_points,
+                                  rejected=rejected, min_radius=min_radius,
+                                  max_radius=max_radius, step=step,
+                                  vision_radius=vision_radius)
+        if spot is not None:
+            spots.append(spot)
+    for origin in [(hx, hz)] + extras:
+        spots.extend(candidate_spots(origin[0], origin[1], bounds=bounds,
+                                    own_points=own_points, rejected=rejected,
+                                    radii=ring_radii, slots=slots,
+                                    vision_radius=vision_radius))
+    return _unique_spots(spots)
+
+
 def retreat_spot(anchor_x: float, anchor_z: float,
                  bounds: Any = None,
                  own_points: Iterable[Any] = (),
@@ -539,8 +682,9 @@ __all__ = [
     "REJECT_CAPABILITY", "REJECT_STALE", "REJECT_OTHER", "REJECT_TARGET",
     "REJECT_SITE", "SITE_BAN_TICKS",
     "GEOMETRY_KINDS", "CONTENT_KINDS", "TARGET_KINDS", "SITE_KINDS", "RejectionLedger",
-    "candidate_spots", "clamp_into_bounds",
-    "classify_rejection", "filter_rejected", "first_own_distance", "has_bounds",
+    "candidate_spots", "clamp_into_bounds", "collect_perimeter_candidates",
+    "classify_rejection", "farthest_on_bearing", "filter_rejected",
+    "first_own_distance", "has_bounds",
     "in_bounds",
     "intent_prefix", "is_banned", "ledger_from_state", "ledger_to_state",
     "plane_point", "retreat_spot", "spot_issue", "spot_key", "too_close_to_own",

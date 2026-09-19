@@ -78,3 +78,4 @@ func _on_input_event(_camera, event, click_position, _click_normal, _shape_idx):
 		and event.pressed
 	):
 		MatchSignals.unit_targeted.emit(_unit, click_position)
+		get_viewport().set_input_as_handled()

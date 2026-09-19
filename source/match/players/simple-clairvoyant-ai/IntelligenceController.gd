@@ -9,12 +9,21 @@ const PATROL_SPACING_M := 15.0
 const DRONE_TYPE_ID := "drone"
 const GLOBAL_DEMO_SCAN_RADIUS_M := 100000.0
 
+## 决策节奏倍率：由 SimpleClairvoyantAI 按"本局电脑玩家人数"注入（唯一实现见 AiCadence）。
+## 默认 1.0 = 原始节奏；3 个电脑时为 2.0（0.5s → 1.0s）。
+var refresh_scale := 1.0
+
 var _world_query_runtime = null
 var _query_session_id := ""
 var _command_gateway = null
 var _patrol_waypoints: Array[Vector3] = []
 var _next_waypoint_index_by_drone := {}
 var _enemy_type_counts := {}
+## 每个侦察单位"本次巡逻 Move 下达时刻"（模拟毫秒）。用于**卡住检测**：
+## 方案 3.C 要求"订单非空不等于正常移动。卡路可改点，阵亡补位"。
+var _patrol_order_issued_sim_ms := {}
+## 判为"订单卡住"的超时（模拟毫秒）：超过它仍未换点就强制推进到下一格。
+const PATROL_STUCK_TIMEOUT_MS := 15000
 
 
 ## 绑定公共查询和固定身份命令，并从公开战场边界建立巡逻网格。
@@ -56,6 +65,7 @@ func _refresh_patrols():
 	for drone_id in _next_waypoint_index_by_drone.keys():
 		if drone_id not in current_ids:
 			_next_waypoint_index_by_drone.erase(drone_id)
+			_patrol_order_issued_sim_ms.erase(drone_id)
 
 	for drone_index in range(drones.size()):
 		var drone: Dictionary = drones[drone_index]
@@ -66,7 +76,13 @@ func _refresh_patrols():
 			)
 		var order = drone.get("order", null)
 		if order != null:
-			continue
+			# 【2026-09-19 修确定缺陷】原先"有订单就跳过" ⇒ 被地形挡住 / 卡在障碍上
+			# 的侦察单位会**永远停在同一格**，巡逻悄悄停摆而没有任何日志（方案 3.C：
+			# "订单非空不等于正常移动。卡路可改点，阵亡补位"）。
+			# 现在记录本次 Move 的下达时刻，超时即强制推进到下一格（新的 Move 会替换旧订单）。
+			var issued := int(_patrol_order_issued_sim_ms.get(drone_id, 0))
+			if issued > 0 and _now_sim_ms() - issued < PATROL_STUCK_TIMEOUT_MS:
+				continue
 		_issue_next_patrol_move(drone_id)
 
 
@@ -84,8 +100,18 @@ func _issue_next_patrol_move(drone_id: String):
 		_next_waypoint_index_by_drone[drone_id] = (
 			(waypoint_index + 1) % _patrol_waypoints.size()
 		)
+		# 记录下达时刻，供下一拍的"卡住检测"判断（模拟时钟，暂停不累计）。
+		_patrol_order_issued_sim_ms[drone_id] = _now_sim_ms()
 	else:
 		push_warning("rule AI drone patrol Move was rejected: %s" % result)
+
+
+## 战局模拟毫秒；控制器被单独挂载（单测/探针）时回退实时时钟。
+func _now_sim_ms() -> int:
+	var ai := get_parent()
+	if ai != null and ai.has_method("simulation_msec"):
+		return int(ai.simulation_msec())
+	return Time.get_ticks_msec()
 
 
 ## 根据公开地图矩形创建蛇形网格，使多个 Drone 可以从不同相位开始覆盖地图。
@@ -136,7 +162,7 @@ func _setup_refresh_timer():
 	var timer := Timer.new()
 	add_child(timer)
 	timer.timeout.connect(_on_refresh_timer_timeout)
-	timer.start(REFRESH_INTERVAL_S)
+	timer.start(REFRESH_INTERVAL_S * refresh_scale)
 
 
 func _on_refresh_timer_timeout():

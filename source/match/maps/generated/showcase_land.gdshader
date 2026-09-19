@@ -41,8 +41,10 @@ uniform float main_run = 0.0;
 uniform float main_width = 20.16;
 // Enables the G4 mask path.  Kit samples without UV/UV2 stay on the slope path.
 uniform float use_masks = 0.0;
-uniform float ground_height = 2.34;
-uniform float top_height = 14.35;
+// 世界米（G2 契约）：平地 0.6、台顶 8.1。旧默认 2.34/14.35 是 review 尺，
+// 会把 15–50m 山体顶当成台地，再盖上 1800m 宏图。
+uniform float ground_height = 0.6;
+uniform float top_height = 8.1;
 uniform float cliff_ring = 13.0;
 uniform float bank_width = 20.0;
 uniform float shore_width = 44.0;
@@ -58,7 +60,7 @@ uniform sampler2D mask_tex : filter_linear, repeat_disable;
 uniform float mask_world_size = 2048.0;
 // 对局单位约 2m。性能模式原先用 1800 review 米一张宏图，512m 图只重复约 1 次。
 // 颗粒按世界米平铺，宏图只保留省域色调。
-uniform float ground_tile_meters = 50.0;
+uniform float ground_tile_meters = 64.0;
 
 varying vec3 p;
 varying vec3 wn;
@@ -169,9 +171,8 @@ void fragment() {
  vec2 wxz = p.xz * max(showcase_world_scale, 1e-4);
  float tile_m = max(ground_tile_meters, 1.0);
  if (performance_mode) {
-  // 省纹理，但仍按掩码/高度上色。掩码全零时不能把整张地当成水面，
-  // 改用缩放后的世界高度（水面 0、平地≈2.34、台地≈14）。
-  // p 是 review 米；乘回 showcase_world_scale 才是单位所在的世界米。
+  // 省纹理，但仍按掩码/高度上色。掩码全零时不能把整张地当成水面。
+  // p 已是世界米：水面 0、平地 0.6、台地 8.1、山体更高。
   // 不要用 sand_uniform：那张图几乎没有地景结构，50m 一张从对局镜头看就是纯色。
   vec2 world_xz = wxz;
   vec2 tile_uv0 = abs(fract(world_xz / tile_m) * 2.0 - 1.0);
@@ -191,11 +192,14 @@ void fragment() {
       (1.0 - water_m) * (1.0 - smoothstep(0.4, 2.2, h)),
       (1.0 - smoothstep(3.0, 16.0, water_d)) * (1.0 - water_m),
       masks_live);
-  float top_m = smoothstep(ground_height + 3.0, top_height - 1.0, h) * (1.0 - steep);
+  float top_m = smoothstep(ground_height + 3.0, top_height - 1.0, h)
+              * (1.0 - smoothstep(top_height + 1.5, top_height + 6.0, h))
+              * (1.0 - steep);
   float cliff_m = steep * smoothstep(ground_height - 0.5, ground_height + 6.0, h);
+  float mountain_m = smoothstep(top_height + 1.5, top_height + 8.0, h);
   vec3 col = ground;
   col = mix(col, mix(ground, vec3(0.38, 0.52, 0.24), 0.70), clamp(top_m, 0.0, 1.0));
-  col = mix(col, vec3(0.30, 0.22, 0.15), clamp(cliff_m, 0.0, 1.0) * 0.82);
+  col = mix(col, vec3(0.30, 0.22, 0.15), clamp(max(cliff_m, mountain_m), 0.0, 1.0) * 0.88);
   col = mix(col, vec3(0.56, 0.48, 0.30), clamp(bank_m, 0.0, 1.0));
   col = mix(col, vec3(0.14, 0.34, 0.52), clamp(water_m, 0.0, 1.0));
   ALBEDO = col;
@@ -267,7 +271,9 @@ void fragment() {
  if (use_macro_albedo) {
   // macro 只服务远景色域：近景衰减，避免 34m 视野被大色斑糊成纯色
   float macro_far = smoothstep(140.0, 560.0, cam_dist);
-  ground = mix(ground, macro_sand, macro_strength * macro_far);
+  // 山体/陡坡禁止混世界对齐宏图，否则整张俯视图会印在坡面上。
+  ground = mix(ground, macro_sand,
+      macro_strength * macro_far * (1.0 - rock_in) * (1.0 - steep));
   // Keep fine PBR below 15%; it breaks up close views without restoring the
   // old tiled checkerboard at RTS distance.
   // 近景细节：20m 层 + ~6m 层 + ~2.2m 极细层；双尺度采样打破平铺周期。
@@ -306,7 +312,9 @@ void fragment() {
  if (use_macro_albedo) {
   // 原式 x1.035 提亮 + top_tex 本身偏亮 -> 台地顶比周围地面亮 77%（实测），
   // 在高台上形成刺眼的"亮斑"。改为轻微压暗并混入更多色域变化。
-  top = mix(top, macro_sand * vec3(0.97, 0.985, 1.0), macro_strength);
+  top = mix(top, macro_sand * vec3(0.97, 0.985, 1.0),
+      macro_strength * (1.0 - steep)
+      * (1.0 - smoothstep(top_height + 1.5, top_height + 6.0, h)));
   top *= vec3(0.94, 0.945, 0.96);
  }
  // 细颗粒权重 0.18 -> 0.34：盖顶亮起来后宏贴图（0.72 权重）的平滑感暴露成
@@ -326,13 +334,10 @@ void fragment() {
  // 而台地顶需要与平地拉开可读差距 → ×1.36 实测约 +18~20%（去饱和 0.62 已让它比平地
  // 更冷更干，方向正确，只是原本偏暗）。
  top = mix(top, ground * 1.03, 0.16) * 1.92;
- // 台地顶 = 「**高且平**」。2026-09-14 修正：原实现用 `plateau_d < -2.5` 判定，
- // 但 plateau_d 是到【崖壁 blocking 格】的**带符号距离**（导出侧
- // `plateau_region & ~open_`，即只有崖壁环本身），台面上是一大片**正值**
- // （到崖壁的距离 20~50m）→ 实测 top_m≈0，干尘土台面材质根本没上到台面上，
- // 台地顶实际被 ring_in 驱动的崖壁材质盖住（cliff_m≈0.62），与平地几乎同色
- // （多列聚合实测仅 +8% 亮度）。改回几何判定：高度达台地高度 + 坡度小。
+ // 台地顶 = 「**高且平，且不超过台地带**」。只有下限时，15–50m 山体顶
+ // 会被当成台顶，再盖上 1800m 宏图，读作「山体上印着整张地图」。
  float top_m = smoothstep(ground_height + 4.0, top_height - 1.5, h)
+             * (1.0 - smoothstep(top_height + 1.5, top_height + 6.0, h))
              * (1.0 - steep);
 
  // --- 3. plateau cliff wall plus its wide weathered rim --------------------
@@ -377,6 +382,9 @@ float rock_band = value_noise(base_uv * 0.011 + vec2(11.0, 29.0));
 if (use_masks < 0.5) {
  rock_in = steep * smoothstep(ground_height + 0.5, ground_height + 6.0, h);
 }
+// 高于台地带的山体即使用户侧 cls 偏弱，也必须走岩石，不能继续铺沙/宏图。
+rock_in = max(rock_in, smoothstep(top_height + 1.5, top_height + 8.0, h)
+    * mix(0.42, 1.0, steep));
 // Lobate the mask edge so the rock / soil line is not a clean contour.
 rock_in = clamp(rock_in * (0.74 + 0.52 * value_noise(base_uv * 0.038 + vec2(19.0, 71.0))), 0.0, 1.0);
 float rock_h = smoothstep(ground_height + 0.4, ground_height + 12.0, h);
@@ -448,7 +456,7 @@ rock = mix(rock, rock_zone, 0.94);
 // Weak high-frequency grain (~2 m) - present for close views, never the far signal.
 rock = mix(rock, triplanar(detail2_tex, p, wnr, 0.55), 0.06);
 // Weak-to-moderate province albedo only; the zoned tone stays dominant.
-if (use_macro_albedo) { rock = mix(rock, macro_rock, macro_strength * 0.30); }
+// 不对山体混世界对齐宏图：那张图按整张地图 0..1 投影，坡面上就是「印着地图」。
 // Near-flat bedding planes catch more light; steep crevices fall into shadow.
 rock = mix(rock, rock * vec3(1.10, 1.02, 0.92), smoothstep(0.45, 0.92, flatness) * 0.22);
 rock *= 0.86 + 0.14 * flatness;

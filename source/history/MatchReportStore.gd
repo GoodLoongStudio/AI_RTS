@@ -327,6 +327,7 @@ func read_for_hermes(report_id: String) -> Dictionary:
 			"construction": report.get("construction"),
 			"combat": report.get("combat"),
 			"timeline": report.get("timeline"),
+			"augments": report.get("augments"),
 		},
 		"performance_score": report.get("performance_score"),
 		"data_completeness": report.get("data_completeness"),

@@ -1,4 +1,4 @@
-extends Control
+extends CanvasLayer
 
 ## 【2026-09-15 用户要求】"可以把对局的加载界面的时间放长点来等冷启动嘛" ——
 ## 加载页承担两件事：
@@ -11,16 +11,30 @@ extends Control
 ## 在加载页多停就等于让**所有人一起等**；单人局没有这个代价。
 ## 多人局仍然会预热（不拖人），进对局后面板显示"启动中/运行中"。
 const AdjutantRunnerLauncher := preload("res://source/ui/AdjutantRunnerLauncher.gd")
+const RandomMapRuntimeScript := preload("res://source/main-menu/RandomMapRuntime.gd")
 ##: 加载页最多为副官多停留的秒数（超过就先进对局，面板会继续显示状态）。
 ##: 12s 的依据：预热后 runner 只剩"等对局就绪 + 1~2 秒装配"（实测冷启动 22.7s 里
 ##: ~20s 都花在等游戏加载，那段本来就在加载页里），不需要留太久。
-const PREWARM_MAX_WAIT_S := 12.0
+## 【2026-09-15 用户反馈"单机副官挂上太慢"】等待上限 12 → **30 秒**：
+## 实测 runner **挂载本身只要 186ms**（`attached` 事件的 `setup_ms.ready_wait`），
+## 时间全花在**进程冷启动**（python + 依赖导入，实测 11~22.7s）。原 12s 上限经常先超时
+## 进对局，面板只能在局内继续显示"启动中" —— 观感就是"挂上太慢"。
+## 加长**不牺牲热启动**：只要 `is_attached()` 为真就立刻返回（循环第一个分支）。
+const PREWARM_MAX_WAIT_S := 30.0
+
+##: 预热的"放弃"阈值：连握手文件都没写出来（进程压根没起来）就别白等满 30 秒。
+##: 依据实测：runner 启动后 ~3 秒就会写 `agent_runner.pid`（21:31:31 lock → 21:31:34 pid）。
+##: 只影响"启动失败"的罕见场景，正常路径不受影响。
+const PREWARM_GIVEUP_NO_PID_S := 10.0
 
 var match_settings = null
 var map_path = null
+## 单机「随机地图」：先进加载页，现生成一张图再进对局（会比选现成图更久）。
+var generate_random_map := false
 
 ##: 本次加载是否真的起了预热进程（没起就完全不等，行为与旧版一致）。
 var _prewarm_started := false
+var _load_failed := false
 
 @onready var _label = find_child("Label")
 @onready var _progress_bar = find_child("ProgressBar")
@@ -32,9 +46,15 @@ func _ready():
 	print("Loading[%.1fs] 预加载" % (Time.get_ticks_msec() / 1000.0))
 	_label.text = tr("LOADING_STEP_PRELOADING")
 	await get_tree().physics_frame
-	_progress_bar.value = 0.2
+	_progress_bar.value = 0.05
 
 	_prewarm_adjutant()
+
+	if generate_random_map:
+		if not await _generate_random_map():
+			return
+	else:
+		_progress_bar.value = 0.2
 
 	print("Loading[%.1fs] 载入地图 %s" % [Time.get_ticks_msec() / 1000.0, str(map_path)])
 	_label.text = tr("LOADING_STEP_LOADING_MAP")
@@ -76,7 +96,9 @@ func _ready():
 	_label.text = tr("LOADING_STEP_STARTING_MATCH")
 	await get_tree().physics_frame
 	print("Loading[%.1fs] 添加 Match 到场景树" % (Time.get_ticks_msec() / 1000.0))
+	a_match.set_meta("hold_hud_until_loading", true)
 	get_parent().add_child(a_match)
+	_cover_match(a_match)
 	get_tree().current_scene = a_match
 	print("Loading[%.1fs] Match 就绪" % (Time.get_ticks_msec() / 1000.0))
 
@@ -86,8 +108,56 @@ func _ready():
 	# 白等，日志："等副官超时（上限 20s），先进对局"）。放在这里，`Match._ready` 已经把
 	# 初始单位装配完并上报了 match_ready（`NetSync._on_any_match_started`），所以联机
 	# 也不会因为这段停留拖住别人的开局。
+	# 等的时候加载层盖住对局：Match HUD 是 CanvasLayer，原先加载页只是 Control，
+	# 副官面板/侧栏会提前露出来。
 	await _wait_adjutant()
+	if FeatureFlags.match_augments and NetSession.is_networked():
+		print("Loading 局内加成：联机不暂停战局，倒计时用墙钟，超时采用推荐项")
+	_uncover_match(a_match)
 	queue_free()
+
+
+func _cover_match(a_match: Node) -> void:
+	if a_match == null or not is_instance_valid(a_match):
+		return
+	for name in ["HUD", "UI"]:
+		var layer: Node = a_match.get_node_or_null(name)
+		if layer != null:
+			layer.visible = false
+
+
+func _uncover_match(a_match: Node) -> void:
+	if a_match == null or not is_instance_valid(a_match):
+		return
+	a_match.remove_meta("hold_hud_until_loading")
+	for name in ["HUD", "UI"]:
+		var layer: Node = a_match.get_node_or_null(name)
+		if layer != null:
+			layer.visible = true
+
+
+## 加载页现生成随机四人图；失败则停在本页，不改用旧图进局。
+func _generate_random_map() -> bool:
+	_label.text = "正在生成随机地图…"
+	_progress_bar.value = 0.08
+	await get_tree().physics_frame
+	var runtime := RandomMapRuntimeScript.new()
+	add_child(runtime)
+	runtime.progress.connect(_on_random_map_progress)
+	var result: Dictionary = await runtime.generate_random_full()
+	runtime.queue_free()
+	if not bool(result.get("ok", false)):
+		_show_load_error(str(result.get("error", "随机地图生成失败")))
+		return false
+	map_path = str(result.get("path", ""))
+	NetSession.selected_map_path = str(map_path)
+	print("Loading[%.1fs] 随机地图已生成 %s" % [Time.get_ticks_msec() / 1000.0, str(map_path)])
+	_progress_bar.value = 0.28
+	return true
+
+
+func _on_random_map_progress(text: String) -> void:
+	_label.text = text
 
 
 ## 加载期预热副官：只做"起进程"，不阻塞（真正的加载在后面，正好并行）。
@@ -127,6 +197,12 @@ func _wait_adjutant() -> void:
 			return
 		_label.text = "%s（AI 副官启动中… %.0f 秒）" % [
 			tr("LOADING_STEP_STARTING_MATCH"), Time.get_ticks_msec() / 1000.0 - started]
+		# 护栏：10 秒内连握手文件都没出现 ⇒ 进程没起来（启动失败），别白等满上限。
+		if Time.get_ticks_msec() / 1000.0 - started >= PREWARM_GIVEUP_NO_PID_S \
+				and AdjutantRunnerLauncher.pidfile_pid() <= 0:
+			print("Loading[%.1fs] 副官进程未见握手文件（疑似启动失败），不等待"
+				% (Time.get_ticks_msec() / 1000.0))
+			return
 		await get_tree().create_timer(0.3).timeout
 	print("Loading[%.1fs] 等副官超时（上限 %.0fs），先进对局"
 		% [Time.get_ticks_msec() / 1000.0, PREWARM_MAX_WAIT_S])
@@ -160,6 +236,8 @@ func _load_packed_scene(path_value, display_name: String) -> PackedScene:
 
 	var resource := ResourceLoader.load(scene_path)
 	if resource == null:
+		resource = ResourceLoader.load(scene_path, "", ResourceLoader.CACHE_MODE_IGNORE)
+	if resource == null:
 		_show_load_error("%s加载失败：%s" % [display_name, scene_path])
 		return null
 
@@ -190,5 +268,13 @@ func _unimported_ext_resources(abs_scene_path: String) -> PackedStringArray:
 
 func _show_load_error(message: String):
 	push_error(message)
-	_label.text = "加载失败\n%s" % message
+	_load_failed = true
+	_label.text = "加载失败\n%s\n按 ESC 返回对局设置" % message
 	_progress_bar.value = 0.0
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not _load_failed:
+		return
+	if event.is_action_pressed("ui_cancel"):
+		get_tree().change_scene_to_file("res://source/main-menu/Play.tscn")
