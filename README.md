@@ -14,7 +14,14 @@ Godot .NET 正交俯视 RTS。地图生成管线在本仓库 `tools/mapgen`，�
 
 用 Godot .NET 打开本仓库，选已装地图进局。不需要 Python。已装图在 `source/match/maps/generated/`，模型在 `assets/models/scifi-worlds/`。
 
-`初选素材包/` 含商用 FBX，默认不提交。公开仓库前必须先定素材授权。
+> clone 前请先装 **Git LFS**（`git lfs install`）：模型/贴图/音频由 LFS 存储，未装 LFS 时拿到的是指针文本，游戏资源会缺失。
+
+商用素材源包 `初选素材包/` **不在本仓库**（2.8GB 商用 FBX 源包，2026-09-20 移出以降低仓库负担）；游戏运行与打包都不需要它。
+
+## 打包成 Windows 包
+
+想打出一个「双击即玩、玩家无需装任何东西」的单文件 exe：见 **[PACKAGING.md](PACKAGING.md)**
+（环境准备、导出模板下载与已知坑、验证清单、一键脚本 `tools/build_windows.ps1`）。
 
 ## 生成新图
 
@@ -26,4 +33,5 @@ Godot .NET 正交俯视 RTS。地图生成管线在本仓库 `tools/mapgen`，�
 
 ## GitHub
 
-本仓库已是独立 git 根。远程仓库名和公开/私有未定，不自动创建或推送。指定后再绑。
+- 远程：`https://github.com/GoodLoongStudio/AI_RTS`（Public，默认分支 `main`，MIT）
+- 开发分支 `yyp_test`，代码与 `main` 保持同步；打包/分发指引见 `PACKAGING.md`
