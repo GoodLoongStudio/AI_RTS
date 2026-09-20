@@ -53,3 +53,7 @@ engine.local.json
 # 系统 UI 取证截图（本地产物，勿提交）
 tmp_ui_shots/
 服务器信息.md
+
+# 2026-09-20 瘦身：临时诊断产物 / 本机缓存不再跟踪
+tmp_logs/
+Godot/shader_cache/

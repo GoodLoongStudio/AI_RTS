@@ -1,3 +1,0 @@
-PATHEXT=[.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC]
-resolved=C:\Program Files\dotnet\dotnet.exe
-version=8.0.425
