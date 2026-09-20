@@ -5,6 +5,12 @@ var _capture_registered: bool = false
 var _probe_ready_sent: bool = false
 
 func _ready() -> void:
+	## 2026-09-20：导出版（standalone）没有编辑器调试通道，整段空转。
+	## 与 addons/godot_ai/runtime/game_helper.gd 同口径 —— 导出的 Windows 包
+	## 曾因运行时的编辑器调试钩子在启动约 30 秒内 0xC0000005 崩溃（demo 不可玩）。
+	## play-from-editor 的 standalone 为 false，编辑器流程不受影响。
+	if OS.has_feature("standalone"):
+		return
 	_ensure_debugger_capture_registered()
 	set_process(not _capture_registered)
 
