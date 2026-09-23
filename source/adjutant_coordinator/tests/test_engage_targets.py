@@ -111,5 +111,90 @@ class EngageTargetTest(unittest.TestCase):
         self.assertEqual(attacks, again, "滞回失效，每轮换目标：%s → %s" % (attacks, again))
 
 
+class StructureFirePriorityTest(unittest.TestCase):
+    """建筑攻坚目标优先级（2026-09-22；参谋阶段 A"能打到的生产建筑/反地炮塔优先"）。
+
+    实测依据（base_off_5，240s 纯规则局）：53 个作战单位打 9 个仍超时 ——
+    反地炮塔 2.0 伤/16m 而我方步兵 0.5 伤/6m，单位在"打最近的敌兵"时被塔白嫖；
+    敌人步兵恒定 6-7（生产建筑没被拆），炮塔 130 秒只磨掉 10.5/16 血。
+    """
+
+    def _pick(self, enemies, unit_pos=(0.0, 0.0)):
+        from adjutant_coordinator.graph import rules_fallback as rf
+        return rf.pick_engage_target({}, "U1", enemies, list(unit_pos),
+                                     combat_types=("soldier",))
+
+    def test_turret_beats_nearer_soldier(self):
+        """炮塔比更近的敌兵优先（不先拆塔，冲锋全程白给）。"""
+        enemies = [
+            {"kind": "unit_enemy", "name": "E_turret", "unit_type": "anti_ground_turret",
+             "pos": [20.0, 0, 0.0], "hp": 16.0, "hp_max": 16.0},
+            {"kind": "unit_enemy", "name": "E_soldier", "unit_type": "soldier",
+             "pos": [10.0, 0, 0.0], "hp": 4.0, "hp_max": 4.0},
+        ]
+        self.assertEqual(self._pick(enemies), "E_turret")
+
+    def test_production_beats_command_center(self):
+        """生产建筑比指挥中心优先（不拆产能，敌人补兵永无止境）。"""
+        enemies = [
+            {"kind": "unit_enemy", "name": "E_cc", "unit_type": "command_center",
+             "pos": [10.0, 0, 0.0], "hp": 100.0, "hp_max": 100.0},
+            {"kind": "unit_enemy", "name": "E_barracks", "unit_type": "barracks",
+             "pos": [14.0, 0, 0.0], "hp": 28.0, "hp_max": 28.0},
+        ]
+        self.assertEqual(self._pick(enemies), "E_barracks")
+
+    def test_focus_fire_up_to_cap_then_switch(self):
+        """【2026-09-22 D11 集火】未达上限应集火同一目标，达到上限必须换目标。
+
+        旧值 FIRE_SOFT_CAP=1 是"一敌一锁"的反集火：实测 det_16 我方 45 个作战
+        单位、140 秒只对 5 座建筑各造成 3.5 伤害（合计 17.5），三轮零摧毁。
+        """
+        enemies = [
+            {"kind": "unit_enemy", "name": "A", "unit_type": "anti_ground_turret",
+             "pos": [20.0, 0, 0.0], "hp": 16.0, "hp_max": 16.0},
+            {"kind": "unit_enemy", "name": "B", "unit_type": "barracks",
+             "pos": [22.0, 0, 0.0], "hp": 28.0, "hp_max": 28.0},
+        ]
+        from adjutant_coordinator.graph import rules_fallback as rf
+        few = {"engage_locks": {"U%d" % i: "A" for i in range(2)}}
+        self.assertEqual(
+            rf.pick_engage_target(few, "U99", enemies, [0.0, 0.0],
+                                  combat_types=("soldier",)), "A",
+            "未达集火上限时应继续打同一个目标")
+        full = {"engage_locks": {"U%d" % i: "A"
+                                 for i in range(rf.STRUCTURE_FIRE_CAP)}}
+        self.assertEqual(
+            rf.pick_engage_target(full, "U99", enemies, [0.0, 0.0],
+                                  combat_types=("soldier",)), "B",
+            "达到集火上限后必须换目标（防无意义过杀）")
+
+    def test_mobile_targets_still_split_fire(self):
+        """对照组：移动目标仍是"一敌一锁"（既有口径，守门测试同款）——
+        集火只对静态建筑生效，追兵堆人多是浪费。"""
+        from adjutant_coordinator.graph import rules_fallback as rf
+        enemies = [
+            {"kind": "unit_enemy", "name": "A", "unit_type": "soldier",
+             "pos": [20.0, 0, 0.0], "hp": 4.0, "hp_max": 4.0},
+            {"kind": "unit_enemy", "name": "B", "unit_type": "soldier",
+             "pos": [22.0, 0, 0.0], "hp": 4.0, "hp_max": 4.0},
+        ]
+        one = {"engage_locks": {"U0": "A"}}
+        self.assertEqual(
+            rf.pick_engage_target(one, "U99", enemies, [0.0, 0.0],
+                                  combat_types=("soldier",)), "B",
+            "移动目标有一个锁就该换人（不许全军追一个兵）")
+
+    def test_mobile_only_still_picks_by_distance(self):
+        """没有建筑时回归距离/威胁口径（别把"打建筑"变成"永远不打兵"）。"""
+        enemies = [
+            {"kind": "unit_enemy", "name": "E_far", "unit_type": "soldier",
+             "pos": [30.0, 0, 0.0], "hp": 4.0, "hp_max": 4.0},
+            {"kind": "unit_enemy", "name": "E_near", "unit_type": "soldier",
+             "pos": [8.0, 0, 0.0], "hp": 4.0, "hp_max": 4.0},
+        ]
+        self.assertEqual(self._pick(enemies), "E_near")
+
+
 if __name__ == "__main__":
     unittest.main()

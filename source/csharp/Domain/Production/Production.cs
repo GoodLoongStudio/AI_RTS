@@ -65,10 +65,14 @@ public sealed record ProductionItemSnapshot(
 /// <param name="IsAlive">是否仍可被生产服务引用。</param>
 /// <param name="IsConstructed">是否已经完成施工。</param>
 /// <param name="QueueLimit">该建筑实例允许的活动生产项目上限。</param>
+/// <param name="WorkPerTick">每个推进 Tick 完成的工作量；1.0 表示默认速度。
+/// 成长系统的「生产调度」通过 Godot 单位属性 `production_work_per_tick` 注入，
+/// 允许小数（例如 1.24 表示快 24%），由生产服务按小数累加推进。</param>
 public sealed record ProductionProducerSnapshot(
     UnitId ProducerId,
     PlayerId OwnerId,
     StructureDefinitionId DefinitionId,
     bool IsAlive,
     bool IsConstructed,
-    int QueueLimit = 5);
+    int QueueLimit = 5,
+    float WorkPerTick = 1.0f);

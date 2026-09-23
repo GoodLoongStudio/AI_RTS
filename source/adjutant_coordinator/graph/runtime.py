@@ -36,6 +36,9 @@ class RuntimeConfig:
     max_batch: int = 8
     model_error_limit: int = 3
     model_retry_cooldown_ticks: int = 60
+    #: 战略失败退避（tick；0=关闭，保持历史行为）。同步战略层一次超时堵 15s，
+    #: runner 配成 strategy_interval_ticks——真机实测教训见 GraphConfig 同名项。
+    strategy_backoff_ticks: int = 0
     #: `PendingAuthority`（命令已送达、等待权威确认）的等待上限。
     #: 【2026-09-12 实测修正】原来是 240 tick（约 2~5 秒），而权威端的确认是异步的，
     #: 于是大量请求在确认前就"超时"→ 单位被当成空闲 → 微操层重发同一条命令
@@ -57,6 +60,7 @@ class RuntimeConfig:
             max_batch=self.max_batch,
             model_error_limit=self.model_error_limit,
             model_retry_cooldown_ticks=self.model_retry_cooldown_ticks,
+            strategy_backoff_ticks=self.strategy_backoff_ticks,
             pending_timeout_ticks=self.pending_timeout_ticks,
             recheck_pending=self.recheck_pending,
             pause_on_player_interrupt=self.pause_on_player_interrupt,

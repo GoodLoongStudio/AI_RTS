@@ -227,11 +227,28 @@ public partial class ProjectileRuntime : Node
             ToWorld(GetLaunchTransform(source).Origin),
             ToWorld(aimPoint),
             targetId,
-            weapon.BaseDamage,
+            weapon.BaseDamage * GrowthDamageMultiplier(source),
             warhead.RadiusMeters,
             warhead.FriendlyFireDamageMultiplier,
             selectionMode,
             allowsFriendlyDamage);
+    }
+
+    /// <summary>读取开火单位的成长伤害倍率；缺失或非法值一律视为 1.0（无加成）。</summary>
+    /// <remarks>
+    /// 真实伤害在 C# 结算（武器 catalog 的 BaseDamage），GDScript 的 `attack_damage`
+    /// 只是 HUD 镜像 —— 所以成长「战术火力」必须在这里乘，改 GDScript 属性是不生效的。
+    /// 倍率由成长系统在单位出生后写入 Godot 属性 `damage_multiplier`。
+    /// </remarks>
+    private static float GrowthDamageMultiplier(Node source)
+    {
+        var value = source.Get("damage_multiplier");
+        if (value.VariantType == Variant.Type.Nil)
+        {
+            return 1.0f;
+        }
+        var multiplier = value.AsSingle();
+        return float.IsFinite(multiplier) && multiplier > 0.0f ? multiplier : 1.0f;
     }
 
     /// <summary>

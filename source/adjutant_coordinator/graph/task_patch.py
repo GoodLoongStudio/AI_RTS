@@ -169,6 +169,321 @@ PARAM_PRESETS: Tuple[Dict[str, str], ...] = (
 PARAM_PRESET_BY_REF: Dict[str, Dict[str, str]] = {p["ref"]: p for p in PARAM_PRESETS}
 
 
+# ---------------- Laya（System 1）转换：帧 → 问题 / 答案 → 四列 ----------------
+# 依据《AI副官_Laya混合架构_执行提示词_2026-09-20.md》§P2：
+# - Laya 是**判别式**引擎：不生成文本，只从程序给的候选里选 → 结构上不可能输出
+#   非法 JSON；但"选错/越界"仍可能发生，所以**任何选择都必须过既有校验链**
+#   （`decode_task_patch`：ref 表 + `SKILL_ALLOWED_TARGETS` + 能力匹配 + 落点计算）；
+# - 选项纪律：模型卡实测选项 >20 明显退化 → 每问 ≤20，超出**分两级**（粗类 → 实例）；
+# - state 用紧凑文本（多语言版 max_len=1024，问题头另占约 100 token）；
+# - 少样本：模型卡自述零样本接近随机，P0 实测零样本一致率 0%（恒定选一个技能），
+#   必须带项目自己的历史决策样例（`laya_state_text(..., demos=...)`）。
+
+#: Laya 每问选项上限（模型卡：>20 明显退化；P0 实测目标表 48~59 项，必须分级）。
+LAYA_MAX_OPTIONS = 20
+
+#: state 文本的 token 预算（多语言版 max_len=1024；问题指令/选项头另占约 100）。
+#: P0 实测（120 个真实帧，fast）：纯 state 411 token、含 3 条例样 507 token。
+LAYA_STATE_TOKEN_BUDGET = 900
+
+#: 目标类别 → 中文标签（choice 的 criteria 描述；ref 本身已带类别语义）。
+TARGET_KIND_CN: Dict[str, str] = {
+    TARGET_ENEMY: "敌人", TARGET_RESOURCE: "资源点", TARGET_LOCATION: "战场点位",
+    TARGET_ANCHOR: "我方基点", TARGET_PRODUCT: "可造/可产项目",
+}
+
+#: Laya 问题的标识（答案 dict 的键）；粗级用 `*_group` / `target_kind`。
+Q_TASK = "task"
+Q_ACTOR = "actor"
+Q_ACTOR_GROUP = "actor_group"
+Q_TARGET = "target"
+Q_TARGET_KIND = "target_kind"
+Q_PARAMS = "params"
+Q_RISK = "risk"
+#: 决策地图分支（主线路线）问题：Laya 直接选 D* 节点（提示词 §2 的“选择用 Laya”
+#: 扩展到战略分支层；答案经既有 note_model_branch 前置条件校验后进 campaign）。
+Q_BRANCH = "branch"
+#: 分支问题的“维持”选项（不改主线；与四列接口空 `g` 同义）。
+BRANCH_KEEP = "KEEP"
+
+
+def feasible_skills(frame: DecisionFrame) -> List[str]:
+    """本帧可行的任务类型（候选菜单 = 程序筛过的合法性粗筛，与现有链路同口径）。
+
+    一个技能入选当且仅当：① 有执行者能做它（`ACTOR_ALLOWED_SKILLS`）；
+    ② 它需要的目标类别在本帧目标表里存在（`SKILL_ALLOWED_TARGETS`；
+    None = 无目标，恒可选）。这样 Laya 的选项与 2B 看到的候选表**同源**，
+    "程序提供候选、模型只做选择"的纪律在判别式路径上同样成立。
+    """
+    actors = list(frame.actors.values())
+    out: List[str] = []
+    for skill in SKILL_ORDER:
+        kinds = [kind for kind, allowed in ACTOR_ALLOWED_SKILLS.items()
+                 if skill in allowed]
+        if not any(str(a.get("kind", "")) in kinds for a in actors):
+            continue
+        need = SKILL_ALLOWED_TARGETS.get(skill)
+        if need is None:
+            out.append(skill)
+            continue
+        if any(str(t.get("kind", "")) in need for t in frame.targets.values()):
+            out.append(skill)
+    if SKILL_HOLD not in out:
+        out.append(SKILL_HOLD)
+    return out
+
+
+def _frame_centroid(frame: DecisionFrame) -> Tuple[float, float]:
+    """我方部队质心（距离口径与 `task_patch_prompt.render_compact_text` 一致）。"""
+    points = [actor["pos"] for actor in frame.actors.values()
+              if actor.get("kind") in (ACTOR_SQUAD, ACTOR_WORKER) and actor.get("pos")]
+    if not points:
+        return 0.0, 0.0
+    return (sum(float(p[0]) for p in points) / len(points),
+            sum(float(p[1]) for p in points) / len(points))
+
+
+def actor_options(frame: DecisionFrame) -> Dict[str, str]:
+    """执行者细选项（≤20；超出按"离部队质心近"截断——由调用方判长度）。"""
+    ox, oz = _frame_centroid(frame)
+
+    def dist(actor: Dict[str, Any]) -> float:
+        pos = actor.get("pos") or [0.0, 0.0]
+        return (float(pos[0]) - ox) ** 2 + (float(pos[1]) - oz) ** 2
+
+    ordered = sorted(frame.actors.values(), key=dist)
+    out: Dict[str, str] = {}
+    for actor in ordered[:LAYA_MAX_OPTIONS]:
+        ref = str(actor.get("ref", ""))
+        out[ref] = "%s×%d" % (str(actor.get("kind", "")),
+                              int(actor.get("count", 0) or 0))
+    return out
+
+
+def actor_group_options(frame: DecisionFrame) -> Dict[str, str]:
+    """执行者**粗级**选项（按类别；执行者 >20 时第一问只问类别）。"""
+    counts: Dict[str, int] = {}
+    for actor in frame.actors.values():
+        kind = str(actor.get("kind", ""))
+        counts[kind] = counts.get(kind, 0) + int(actor.get("count", 0) or 0)
+    return {kind: "%s×%d" % (kind, total) for kind, total in sorted(counts.items())}
+
+
+def actor_fine_options(frame: DecisionFrame, group: str) -> Dict[str, str]:
+    """粗级答案（类别）→ 该类别内的执行者细选项（≤20，截断同上）。"""
+    subset = {ref: actor for ref, actor in frame.actors.items()
+              if str(actor.get("kind", "")) == str(group)}
+    if not subset:
+        return {}
+    ox, oz = _frame_centroid(frame)
+
+    def dist(item: Tuple[str, Dict[str, Any]]) -> float:
+        pos = item[1].get("pos") or [0.0, 0.0]
+        return (float(pos[0]) - ox) ** 2 + (float(pos[1]) - oz) ** 2
+
+    out: Dict[str, str] = {}
+    for ref, actor in sorted(subset.items(), key=dist)[:LAYA_MAX_OPTIONS]:
+        out[ref] = "%s×%d" % (str(actor.get("kind", "")),
+                              int(actor.get("count", 0) or 0))
+    return out
+
+
+def target_fine_options(frame: DecisionFrame, kind: str,
+                        category: str = "") -> Dict[str, str]:
+    """某目标类别内的细选项（≤20；超出按"离部队质心近"截断并记录）。
+
+    `category`：product 类别的子过滤（`unit`/`building`）。**必须按技能语义过滤**：
+    真机实测（2026-09-20）不过滤时 Laya 会给 PROD 选建筑类目标（V4）——
+    60/74 个决策因 `capability_mismatch` 白白回退。候选必须与校验同源。
+    """
+    ox, oz = _frame_centroid(frame)
+
+    def dist(entry: Dict[str, Any]) -> float:
+        pos = entry.get("pos") or [0.0, 0.0]
+        return (float(pos[0]) - ox) ** 2 + (float(pos[1]) - oz) ** 2
+
+    entries = [t for t in frame.targets.values() if str(t.get("kind", "")) == str(kind)]
+    if category:
+        entries = [t for t in entries if str(t.get("category", "")) == str(category)]
+    entries.sort(key=dist)
+    out: Dict[str, str] = {}
+    for entry in entries[:LAYA_MAX_OPTIONS]:
+        ref = str(entry.get("ref", ""))
+        label = str(entry.get("cn") or entry.get("scene") or entry.get("entity_id")
+                    or entry.get("kind", ""))
+        out[ref] = label[:24]
+    return out
+
+
+def laya_state_text(frame: DecisionFrame, *, balance: Optional[Dict[str, Any]] = None,
+                    demos: Optional[List[Dict[str, Any]]] = None) -> str:
+    """紧凑 state 文本：复用四列接口的**唯一**渲染器（不与 2B 链路漂移）。
+
+    `demos`：少样本样例（P0 实测零样本一致率 0%，必须带样例）。每条
+    `{"state": "...", "rows": [[actor, skill, target, params], ...]}`，
+    渲染成"状态 ⇒ 当时决策"一行；放在 state **前面**（Laya 截断保留序列开头）。
+    样例总量受 `LAYA_STATE_TOKEN_BUDGET` 约束（按字符近似裁减，宁可少给样例，
+    不可把当前状态挤出预算）。
+    """
+    from .task_patch_prompt import render_compact_text  # 延迟导入：避免模块环
+
+    state = render_compact_text(frame, balance=balance)
+    if not demos:
+        return state
+    lines = ["参考样例（同一副官的历史决策）:"]
+    budget = LAYA_STATE_TOKEN_BUDGET * 2      # 中文约 2 字符/token 的保守近似
+    used = len(state) // 2
+    for demo in demos:
+        rows = [[str(c) for c in row] for row in (demo.get("rows") or [])][:3]
+        if not rows:
+            continue
+        picks = " ".join("%s→%s%s" % (r[0], r[1], r[2] if r[2] != NO_TARGET else "")
+                         for r in rows)
+        line = "[状态] %s ⇒ 决策: %s" % (str(demo.get("state", "")), picks)
+        used += len(line) // 2
+        if used > budget:
+            break
+        lines.append(line)
+    if len(lines) == 1:
+        return state
+    return "\n".join(lines) + "\n" + state
+
+
+def _branch_question(frame: DecisionFrame) -> Dict[str, Any]:
+    """决策地图分支问题：从 `frame.campaign["available_routes"]` 构造 choice。
+
+    候选 = 程序每 tick 筛出的可用节点（`decision_map.retrieve` 的唯一出口），
+    名称取 `available_route_names`；附一个“维持当前主线”选项（显式不改变）。
+    节点数恒 ≤20（决策地图共 15 个节点），无需分级。
+    """
+    campaign = getattr(frame, "campaign", None) or {}
+    routes = [str(x) for x in (campaign.get("available_routes") or []) if str(x)]
+    names = campaign.get("available_route_names") or {}
+    criteria: Dict[str, str] = {}
+    for ref in routes:
+        criteria[ref] = str(names.get(ref, "") or ref)
+    criteria[BRANCH_KEEP] = "维持当前主线"
+    return {"type": "choice",
+            "instructions": "本局主线下一程推进哪个路线？（维持=不改分支）",
+            "criteria": criteria}
+
+
+def frame_to_questions(frame: DecisionFrame, *,
+                       demos: Optional[List[Dict[str, Any]]] = None
+                       ) -> Tuple[str, Dict[str, Any]]:
+    """`DecisionFrame` → (state 文本, Laya 问题集)。
+
+    四问（提示词 §2）：Q1 任务类型 / Q2 执行者 / Q3 目标 / Q4 参数 + 风险打分。
+    每问选项 ≤20；执行者或目标超限时**第一问只给粗类**（`actor_group` /
+    `target_kind`），细级由调用方拿粗级答案再问一次（见 `actor_fine_options` /
+    `target_fine_options`）。目标细选还依赖 Q1 的技能（不同技能允许的目标类别
+    不同），所以目标问一律先问粗类，细选在第二次前向里做。
+
+    `demos`：少样本样例（P0 实测零样本不可用，必须带；格式见 `laya_state_text`）。
+    """
+    skills = feasible_skills(frame)
+    # 参数菜单 = 帧参数档里**真实存在**的行档（P0=维持现状恒可选）。
+    # 不把全部 6 个预设都摆上去：帧只带了其中几个时，选表外档会被既有校验拒
+    # （unknown_params）——候选必须与校验同源（"程序提供候选、只做选择"）。
+    param_criteria: Dict[str, str] = {KEEP_PARAMS: "维持现状"}
+    for preset in PARAM_PRESETS:
+        ref = str(preset["ref"])
+        if not frame.params or ref in frame.params:
+            param_criteria[ref] = str(preset.get("cn", ref))
+    questions: Dict[str, Dict[str, Any]] = {
+        Q_TASK: {
+            "type": "choice",
+            "instructions": "这一拍最该做的任务类型是什么？",
+            "criteria": {skill: SKILL_TITLE_CN.get(skill, skill) for skill in skills},
+        },
+        Q_BRANCH: _branch_question(frame),
+        Q_TARGET_KIND: {
+            "type": "choice",
+            "instructions": "目标选哪一类？",
+            "criteria": {kind: TARGET_KIND_CN.get(kind, kind)
+                         for kind in sorted({str(t.get("kind", ""))
+                                             for t in frame.targets.values()})},
+        },
+        Q_PARAMS: {
+            "type": "choice",
+            "instructions": "行军参数选哪一档？",
+            "criteria": param_criteria,
+        },
+        Q_RISK: {
+            "type": "score",
+            "instructions": "当前战场危险程度？",
+            "criteria": ["安全", "警戒", "危急"],
+        },
+    }
+    actors = actor_options(frame)
+    if len(frame.actors) <= LAYA_MAX_OPTIONS:
+        questions[Q_ACTOR] = {
+            "type": "choice",
+            "instructions": "派哪个执行者去执行？",
+            "criteria": actors,
+        }
+    else:
+        questions[Q_ACTOR_GROUP] = {
+            "type": "choice",
+            "instructions": "派哪一类执行者去执行？",
+            "criteria": actor_group_options(frame),
+        }
+    state = laya_state_text(frame, balance=dict(frame.balance or {}), demos=demos)
+    return state, questions
+
+
+def _answer_choice(answers: Dict[str, Any], key: str) -> str:
+    """从 Laya 答案里取某个 choice 问题的选项（缺项/异常一律空串）。"""
+    entry = answers.get(key)
+    if not isinstance(entry, dict):
+        return ""
+    choice = entry.get("choice")
+    return str(choice) if choice else ""
+
+
+def answers_to_rows(answers: Dict[str, Any], frame: DecisionFrame
+                    ) -> List[TaskModification]:
+    """Laya 答案 → 四列任务修改行（**过既有校验链**，越界即弃）。
+
+    与 2B 路径共用同一条解码器（`decode_task_patch`）：ref 表、技能-执行者能力、
+    `SKILL_ALLOWED_TARGETS`、建造落点、参数档全部按现有规则判定；任何越界选择
+    产生 `RowRejection` 并丢弃该行（非原子批次、逐项回执的纪律不变）。
+    粗级答案（`actor_group`/`target_kind`）不在权威 ref 表里，会被现有校验
+    自然拒绝——调用方应先做细级追问（见 `frame_to_questions` 说明）。
+    """
+    result = answers_to_decode(answers, frame)
+    return list(result.modifications)
+
+
+def answers_to_decode(answers: Dict[str, Any], frame: DecisionFrame
+                      ) -> DecodeResult:
+    """`answers_to_rows` 的完整版：同时给出逐行拒绝原因（日志/回执用）。"""
+    if not isinstance(answers, dict):
+        answers = {}
+    skill = _answer_choice(answers, Q_TASK).strip().upper()
+    actor_ref = _answer_choice(answers, Q_ACTOR) or _answer_choice(answers, Q_ACTOR_GROUP)
+    target_ref = _answer_choice(answers, Q_TARGET)
+    params_ref = _answer_choice(answers, Q_PARAMS) or KEEP_PARAMS
+    if not skill or not actor_ref:
+        # 没有可展开的选择：空批次（本轮不修改任务），与 `{"u":[]}` 同义。
+        return DecodeResult()
+    if SKILL_ALLOWED_TARGETS.get(skill) is None and not target_ref:
+        # 无目标技能（HOLD/STOP）没给目标 → 占位符 `-`（四列结构固定）。
+        # 注意：**给了**目标不在这里改写——越界选择必须原样进既有校验被拒绝
+        # （与 2B 输出一个多余目标列同罪），不能在转换层悄悄放过。
+        target_ref = NO_TARGET
+    row = [actor_ref, skill, target_ref, params_ref]
+    batch = TaskPatchBatch(u=[row])
+    result = decode_task_patch(batch, frame, max_rows=1)
+    # 决策地图分支：Laya 选的路线经既有 note_model_branch 的前置条件校验
+    # （空/KEEP = 不改分支，与四列接口空 `g` 同义）。
+    branch = _answer_choice(answers, Q_BRANCH)
+    if branch and branch != BRANCH_KEEP:
+        result.goal_ref = branch
+        result.branch_source = "laya"
+    return result
+
+
 class RowRejection:
     """单行拒绝原因（逐项回执，不把非原子批次伪装成全部成功）。"""
 
@@ -373,6 +688,8 @@ class DecodeResult:
     modifications: List[TaskModification] = field(default_factory=list)
     rejections: List[RowRejection] = field(default_factory=list)
     goal_ref: str = ""
+    #: 分支选择来源（"model"=2B 链路 / "laya"=判别式引擎；空=未选分支）。
+    branch_source: str = ""
 
     @property
     def ok(self) -> bool:

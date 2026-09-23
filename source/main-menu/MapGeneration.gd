@@ -7,7 +7,9 @@ const PlayerSettings = preload("res://source/data-model/PlayerSettings.gd")
 const LoadingScene = preload("res://source/main-menu/Loading.tscn")
 
 const GENERATED_DIR := "res://source/match/maps/generated"
-const HALL_DEFAULT_MAP_ID := "16-0-1ca6e21aa1"
+## 【2026-09-20】原指向 "G4 大湖 seed16"（16-0-1ca6e21aa1），该图已按用户要求从
+## 大厅移除（随机地图改走 G1-G4 生成路线）。置空后原有的"默认图不可删"保护自然失效。
+const HALL_DEFAULT_MAP_ID := ""
 const DELETE_CONFIRM_MS := 3000
 const WORKBENCH_PORTS := [8766, 8765]
 const WORKBENCH_PORT := 8766

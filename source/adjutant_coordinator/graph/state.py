@@ -183,6 +183,10 @@ class AdjutantGraphState:
     blocked_build_spots: List[Any] = field(default_factory=list)
     build_backoff_until_tick: int = 0
     build_reject_streak: int = 0
+    #: 【2026-09-21】战略层失败退避到期 tick（同步战略一次超时堵 15s；runner 配成
+    #: strategy_interval_ticks）。与 build_backoff 同一模式：跨轮记忆必须进
+    #: dataclass + 图通道 + to_dict/from_dict，漏一个就每轮归零、退避失效。
+    strategy_backoff_until_tick: int = 0
     #: 退避**等级**（每触发一次加倍：900 → 1800 → 3600 → 上限 7200 tick）。
     #: 为什么要有：几何类拒绝是"换点再试"，一片地形整体不可建时会一直换点烧命令
     #: （实测一局 10 次 `SurfaceNotBuildable`）；等级让复盘能看到"退避在升级"。
@@ -204,6 +208,14 @@ class AdjutantGraphState:
     #: ring 取 1/2/3/5/10/100 都返回同一个坐标（审查 F01），部队到了以后继续收到同一个目标，
     #: 既不换前沿也不留"去过哪"的记忆（`archive_5d6cdb0e` 里侦察覆盖恒 0）。
     explore: Dict[str, Any] = field(default_factory=dict)
+    #: 【2026-09-22 D10】扩张前探退避记忆（连续 N 次探不出合法落点就停一段时间）。
+    #: 实测 det_17：300 秒 71 条前探令把部队全占住，我军从 90 掉到 31。
+    #: 与 build_backoff 同模式：跨轮记忆必须进 dataclass + 图通道 + to_dict/from_dict。
+    expansion_probe_backoff: Dict[str, Any] = field(default_factory=dict)
+    #: 【2026-09-22 D13】侦察双保险的跨 tick 记忆：轮转游标 + 每单位上次扫描 tick。
+    #: 实测依据：无人机会被敌方防空击落，转交只在"专职不在编制"后触发——三批对局
+    #: 发现率 2/3 → 1/3 → 0/3。双保险让"有人沿走廊看敌家方向"不依赖单一单位存活。
+    scout_confirm: Dict[str, Any] = field(default_factory=dict)
 
     #: 我方单位名 → 类型（`node_ingest` 每轮刷新，有界）。
     #: 用途：把"打不了"从**个体**升级到「**单位类型** × 目标类型」——
@@ -582,6 +594,18 @@ class AdjutantGraphState:
                 "assigned": {str(key): str(value) for key, value in
                              ((self.explore or {}).get("assigned") or {}).items() if value},
             },
+            # 扩张前探退避记忆（D10，见字段处说明）。
+            "expansion_probe_backoff": {
+                str(key): value for key, value in
+                (self.expansion_probe_backoff or {}).items()
+                if key in ("tries", "until_tick")},
+            # 侦察双保险记忆（D13，见字段处说明）：游标 + 每单位上次扫描 tick。
+            "scout_confirm": {
+                "last_tick": int((self.scout_confirm or {}).get("last_tick") or 0),
+                "cursor": int((self.scout_confirm or {}).get("cursor") or 0),
+                "units": {str(key): int(value) for key, value in
+                          ((self.scout_confirm or {}).get("units") or {}).items()},
+            },
             # 跨轮记忆（见字段处的说明）：必须随 to_dict/from_dict 往返，否则每轮归零。
             "rejection_ledger": {str(k): dict(v) if isinstance(v, dict) else v
                                  for k, v in (self.rejection_ledger or {}).items()},
@@ -589,6 +613,7 @@ class AdjutantGraphState:
                                     for item in (self.blocked_build_spots or [])],
             "build_backoff_until_tick": int(self.build_backoff_until_tick or 0),
             "build_reject_streak": int(self.build_reject_streak or 0),
+            "strategy_backoff_until_tick": int(self.strategy_backoff_until_tick or 0),
             "build_backoff_level": int(self.build_backoff_level or 0),
             "congestion_until_tick": int(self.congestion_until_tick or 0),
             "congestion_events": int(self.congestion_events or 0),
@@ -682,6 +707,19 @@ class AdjutantGraphState:
             "assigned": {str(key): str(value) for key, value in
                          (explore.get("assigned") or {}).items() if value},
         }
+        # 扩张前探退避记忆（D10）：只有 tries/until_tick 两个键有意义。
+        confirm = data.get("scout_confirm")
+        state.scout_confirm = ({
+            "last_tick": int((confirm or {}).get("last_tick") or 0),
+            "cursor": int((confirm or {}).get("cursor") or 0),
+            "units": {str(key): int(value) for key, value in
+                      ((confirm or {}).get("units") or {}).items()},
+        } if isinstance(confirm, dict) else {})
+        backoff = data.get("expansion_probe_backoff")
+        state.expansion_probe_backoff = ({
+            "tries": int((backoff or {}).get("tries") or 0),
+            "until_tick": int((backoff or {}).get("until_tick") or 0),
+        } if isinstance(backoff, dict) else {})
         state.enemy_intel_points = [[float(pair[0]), float(pair[1])]
                                     for pair in (data.get("enemy_intel_points") or [])
                                     if isinstance(pair, (list, tuple)) and len(pair) >= 2]
@@ -691,6 +729,8 @@ class AdjutantGraphState:
         state.blocked_build_spots = list(data.get("blocked_build_spots") or [])
         state.build_backoff_until_tick = int(data.get("build_backoff_until_tick", 0) or 0)
         state.build_reject_streak = int(data.get("build_reject_streak", 0) or 0)
+        state.strategy_backoff_until_tick = int(
+            data.get("strategy_backoff_until_tick", 0) or 0)
         state.build_backoff_level = int(data.get("build_backoff_level", 0) or 0)
         state.congestion_until_tick = int(data.get("congestion_until_tick", 0) or 0)
         state.congestion_events = int(data.get("congestion_events", 0) or 0)

@@ -31,6 +31,13 @@ func _ready() -> void:
 		"CenterContainer/PanelContainer/MarginContainer/VBoxContainer/PlayButton") as Button
 	if first != null:
 		first.grab_focus()
+	# 【2026-09-20 用户要求】联机暂不开放：隐藏「在线匹配」入口。
+	# 只藏 UI，不删场景/信号/autojoin 钩子（--autojoin 自动化仍可进联机页，便于日后开放）。
+	var online_btn := get_node_or_null(
+		"CenterContainer/PanelContainer/MarginContainer/VBoxContainer/OnlineButton") as Button
+	if online_btn != null:
+		online_btn.visible = false
+		online_btn.disabled = true
 	# 调试钩子：--autojoin（或 res://autojoin.txt）→ 直接进联机界面，
 	# Online._ready 的 autojoin 钩子接管加入+立即开局（供 Godot MCP 一键开局）。
 	# 复核 2026-09-02：只在本进程第一次加载 Main 时生效——自动化会话遗留/重建
@@ -42,7 +49,8 @@ func _ready() -> void:
 
 func _add_system_header() -> void:
 	var header := Label.new()
-	header.text = "HERMES COMMAND // ONLINE"
+	# 联机暂不开放（2026-09-20），横幅不再宣称 ONLINE。
+	header.text = "HERMES COMMAND // LOCAL"
 	header.position = Vector2(28, 22)
 	header.add_theme_font_size_override("font_size", 14)
 	header.add_theme_color_override("font_color", SystemUIStyle.CYAN)

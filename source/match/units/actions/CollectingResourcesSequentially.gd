@@ -130,7 +130,7 @@ func _enter_state(state):
 			_unit.action_updated.emit()
 		State.MOVING_TO_CC:
 			print("[GATHER] ", _unit.name, " 满载回城")
-			if not _set_cc_unit(_find_cc_closest_to_unit(_unit)):
+			if not _set_cc_unit(_find_drop_off_for(_unit)):
 				return
 			_sub_action = MovingToUnit.new(_cc_unit)
 			_sub_action.tree_exited.connect(_on_sub_action_finished, CONNECT_DEFERRED)
@@ -166,18 +166,33 @@ func _transfer_collected_resources_to_player():
 	print("[GATHER] 交付 resource_a=%s resource_b=%s player=%s" % [str(_unit.resource_a), str(_unit.resource_b), _unit.player.name])
 	var delivery_a := int(delivery.get("resource_a", 0))
 	var match_root = _unit.find_parent("Match")
+	# 采集交付倍率只有**一处**乘法：局内海克斯 × 成长（永久加点）。
+	# 成长倍率的换算只认 `GrowthModifiers.gather_multiplier`（别处不许自己乘）。
+	var gather_mult := 1.0
 	var runtime = match_root.get_node_or_null("AugmentRuntime") if match_root != null else null
 	if runtime != null and runtime.has_method("gather_multiplier"):
-		var scaled := preload("res://source/match/augments/AugmentModifiers.gd").scale_gather(
-			delivery_a, float(runtime.gather_multiplier(_unit.player))
-		)
-		delivery["resource_a"] = scaled
+		gather_mult *= float(runtime.gather_multiplier(_unit.player))
+	gather_mult *= GrowthModifiers.gather_multiplier(_unit.player)
+	if gather_mult > 1.0:
+		delivery["resource_a"] = preload(
+			"res://source/match/augments/AugmentModifiers.gd"
+		).scale_gather(delivery_a, gather_mult)
 	var accepted = _unit.player.add_resources(delivery, "WorkerDelivery", _unit)
 	assert(accepted, "a valid Worker delivery must reach its authoritative resource account")
 	if not accepted:
 		return
 	_unit.resource_a = 0
 	_unit.resource_b = 0
+
+
+## 交货点选择（2026-09-23 矿场指派）：被矿场指派的工人回**该矿场**交货
+## （本地短 loop，红警2 式）；没有被指派时保持既有行为——最近的己方指挥中心。
+static func _find_drop_off_for(unit):
+	if unit != null and unit.has_meta("ore_refinery_assignment"):
+		var refinery = unit.get_meta("ore_refinery_assignment")
+		if refinery is Node and is_instance_valid(refinery) and refinery.is_inside_tree() 				and refinery.has_method("is_constructed") and refinery.is_constructed():
+			return refinery
+	return _find_cc_closest_to_unit(unit)
 
 
 static func _find_cc_closest_to_unit(unit):
@@ -244,7 +259,7 @@ func _handle_sub_action_finished_while_collecting():
 func _handle_sub_action_finished_while_moving_to_cc():
 	# react to cc removal
 	if _cc_unit == null or not _cc_unit.is_constructed():
-		if _set_cc_unit(_find_cc_closest_to_unit(_unit)):
+		if _set_cc_unit(_find_drop_off_for(_unit)):
 			_change_state_to(State.MOVING_TO_CC)
 		return
 	_transfer_collected_resources_to_player()

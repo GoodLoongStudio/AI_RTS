@@ -18,6 +18,8 @@ public sealed class ConstructionService : IConstructionService
     private readonly IResourceAccountService _accounts;
     private readonly Dictionary<UnitId, ConstructionSiteSnapshot> _sites = new();
     private readonly Dictionary<UnitId, Assignment> _assignments = new();
+    /// <summary>每个工地未凑满 1 点工作量的小数余量（支持小数工效，如 1 × 1.3）。</summary>
+    private readonly Dictionary<UnitId, double> _workFractions = new();
     private long _lastAdvancedTick = -1;
 
     /// <summary>建立共享订单与资源账户的 Match 级施工服务。</summary>
@@ -179,7 +181,7 @@ public sealed class ConstructionService : IConstructionService
         }
         _lastAdvancedTick = simulationTick;
 
-        var workBySite = new Dictionary<UnitId, int>();
+        var workBySite = new Dictionary<UnitId, double>();
         foreach (var item in _assignments.ToArray())
         {
             var active = _orders.FindActive(item.Key);
@@ -189,8 +191,15 @@ public sealed class ConstructionService : IConstructionService
             {
                 continue;
             }
-            workBySite[item.Value.SiteId] = checked(
-                workBySite.GetValueOrDefault(item.Value.SiteId) + item.Value.BuildPowerPerTick);
+            // 施工工效倍率（成长「快速施工」）允许小数：1 × 1.3 若走整数会被取整吃掉，
+            // 所以这里按浮点累加，余量留到下一 Tick。
+            var rate = _units.Find(item.Key)?.ConstructionWorkRate ?? 1.0f;
+            if (!float.IsFinite(rate) || rate <= 0.0f)
+            {
+                rate = 1.0f;
+            }
+            workBySite[item.Value.SiteId] = workBySite.GetValueOrDefault(item.Value.SiteId) +
+                item.Value.BuildPowerPerTick * rate;
         }
 
         foreach (var work in workBySite.OrderBy(item => item.Key.Value))
@@ -198,9 +207,18 @@ public sealed class ConstructionService : IConstructionService
             if (!_sites.TryGetValue(work.Key, out var site) ||
                 site.State != ConstructionSiteState.Active)
             {
+                _workFractions.Remove(work.Key);
                 continue;
             }
-            var completed = Math.Min(site.RequiredWork, checked(site.CompletedWork + work.Value));
+            _workFractions.TryGetValue(work.Key, out var fraction);
+            fraction += work.Value;
+            var step = (int)Math.Floor(fraction);
+            _workFractions[work.Key] = fraction - step;
+            if (step < 1)
+            {
+                continue;
+            }
+            var completed = Math.Min(site.RequiredWork, checked(site.CompletedWork + step));
             if (!_sitePort.ApplyProgress(site.SiteId, completed, site.RequiredWork))
             {
                 continue;

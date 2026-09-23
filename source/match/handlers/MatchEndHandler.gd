@@ -21,12 +21,38 @@ func _handle_defeat():
 	_defeat_tile.show()
 	_show()
 	MatchSignals.match_finished_with_defeat.emit()
+	_award_growth_points("defeat", _defeat_tile)
 
 
 func _handle_victory():
 	_victory_tile.show()
 	_show()
 	MatchSignals.match_finished_with_victory.emit()
+	_award_growth_points("victory", _victory_tile)
+
+
+## 对局奖励成长点（胜 3 / 负 1）并就地反馈给玩家。
+##
+## 只在**单机**发放：`GrowthStore` 是本地存档，联机/专用服上发点等于让客户端自造收益，
+## 且权威端（服务器）没有"玩家本地存档"这一概念。规则与硬顶见
+## `GrowthStore.award_match_points()`（唯一发点入口，本函数只负责调用与展示）。
+func _award_growth_points(outcome: String, tile: Node) -> void:
+	if NetSession.is_networked():
+		return
+	var store := get_node_or_null("/root/GrowthStore")
+	if store == null or not store.has_method("award_match_points"):
+		return
+	var result: Dictionary = store.call("award_match_points", outcome)
+	if not bool(result.get("ok", false)):
+		push_warning("[GROWTH] 对局奖励未发放：%s" % str(result.get("reason", "")))
+		return
+	var awarded := int(result.get("awarded", 0))
+	print("[GROWTH] 对局结算 %s：+%d 成长点（可用 %d）" % [
+		outcome, awarded, int(store.state.get("available_points", 0)),
+	])
+	var label := tile.find_child("Label", true, false) if tile != null else null
+	if label is Label:
+		(label as Label).text = "%s\n成长点 +%d" % [(label as Label).text, awarded]
 
 
 func _handle_finish():

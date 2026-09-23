@@ -225,6 +225,7 @@ func _refresh_logistics():
 		_enforce_rocketeer_production(own_entities)
 	if _infantry_production_enabled:
 		_enforce_infantry_production(own_entities)
+	_enforce_recon_drones(own_entities)
 	_refresh_defense_response(own_entities)
 
 
@@ -281,6 +282,51 @@ func _update_role_demand_from_intel() -> void:
 		)
 	_rocketeer_cap = base_rocketeer + (2 if air_count >= 2 else 0)
 	_infantry_cap = base_infantry + (2 if heavy_count >= 3 else 0)
+
+
+## 【2026-09-21 S2 侦察任务化·阵亡补位】无人机是唯一侦察单位：损失后不补，
+## 地图分区复查会逐渐失效（方案 2.C："侦察员阵亡有恢复"）。按难度维持目标架数：
+## 简单 1 / 中等 2 / 困难 2（侦察覆盖随难度递增，与侦察复查目标 90/60/35 秒一致）。
+## 只在飞机厂完工、且"现有 + 在造 + 待处理"都不足时下单；被拒也记退避，
+## 避免每个刷新拍重试刷日志与事务。
+const DRONE_TYPE_ID := "drone"
+const DRONE_REQUEST_BACKOFF_MS := 12000
+var _last_drone_request_ms := 0
+
+
+func _enforce_recon_drones(own_entities: Array) -> void:
+	var target_drones := 2
+	if _ai.difficulty == _ai.Difficulty.EASY:
+		target_drones = 1
+	var alive := 0
+	var queued := 0
+	for entity in own_entities:
+		if entity.get("type_id", "") == DRONE_TYPE_ID:
+			alive += 1
+		var production = entity.get("production", null)
+		if production == null:
+			continue
+		for item in production.get("items", []):
+			if item.get("product_type_id", "") == DRONE_TYPE_ID:
+				queued += 1
+	if alive + queued >= target_drones:
+		return
+	if _ai.simulation_msec() - _last_drone_request_ms < DRONE_REQUEST_BACKOFF_MS:
+		return
+	var producers := _completed_producers(AIRCRAFT_FACTORY_TYPE_ID, own_entities)
+	if producers.is_empty():
+		return
+	_last_drone_request_ms = _ai.simulation_msec()
+	var result: Dictionary = _command_gateway.EnqueueProduction(
+		producers[0]["id"],
+		DRONE_TYPE_ID
+	)
+	if result.get("accepted", false):
+		print("规则 AI 补充侦察无人机（现有 %d + 在造 %d / 目标 %d）" % [
+			alive, queued, target_drones
+		])
+	else:
+		print("规则 AI 补侦察无人机被拒绝（12s 退避）：%s" % result)
 
 
 ## 出兵入口：按主:副配比（AI-plan Part A Phase 6）决定这一拍生产哪种单位。
@@ -703,6 +749,13 @@ func _try_creating_new_battlegroup() -> bool:
 	var earliest_attack_sim_ms := 0
 	if _battlegroups.is_empty() and _ai.attack_wave_delay_s > 0.0:
 		earliest_attack_sim_ms = _ai.simulation_msec() + int(_ai.attack_wave_delay_s * 1000.0)
+	# 【2026-09-21 S2 多线】中等/困难：第二支及以后的编组设为**袭扰组**
+	# （工人与落单单位优先、不啃塔），与主力编组（结构优先）形成两条独立战线；
+	# 简单档保持单线（节奏更可读；方案 2.D 的袭扰只要求中等+难度）。
+	var harasser := false
+	if _ai.difficulty != _ai.Difficulty.EASY and not _battlegroups.is_empty():
+		harasser = true
+	# ⚠ `earliest_attack_sim_ms` 必须真的传进 setup，否则首波门槛只在本地声明、不生效。
 	battlegroup.setup(
 		_ai.expected_number_of_units_in_battlegroup,
 		_world_query_runtime,
@@ -710,7 +763,9 @@ func _try_creating_new_battlegroup() -> bool:
 		_command_gateway,
 		_ai.retreat_threshold,
 		_ai.is_passive_test_ai(),
-		min_launch
+		min_launch,
+		earliest_attack_sim_ms,
+		harasser
 	)
 	_battlegroups.append(battlegroup)
 	battlegroup.tree_exited.connect(_on_battlegroup_died.bind(battlegroup))

@@ -107,10 +107,12 @@ func _align_unit_position_to_navigation():
 	if not closest_point_owner.is_valid():
 		_snap_to_ground()
 		return
-	_unit.global_transform.origin = (
-		NavigationServer3D.map_get_closest_point(navigation_map, source_position)
-		- Vector3(0, path_height_offset, 0)
-	)
+	# XZ 取网格最近点，Y 取真实地表（2026-09-21 用户报"单位浮空"根因）：
+	# Recast 体素量化把可走面抬到碰撞体顶面之上（实测平地图 +1.0~1.2m，
+	# path_height_offset=0.6 补不齐），旧写法让建筑连同单位一起悬空 0.6m。
+	var closest: Vector3 = NavigationServer3D.map_get_closest_point(navigation_map, source_position)
+	_unit.global_transform.origin = Vector3(closest.x, source_position.y, closest.z)
+	_snap_to_ground()
 
 
 func _affect_navigation_if_needed():

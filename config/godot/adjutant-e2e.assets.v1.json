@@ -31,6 +31,11 @@
       "scenePath": "res://source/match/units/CommandCenter.tscn",
       "blueprintScenePath": "res://source/match/units/structure-geometries/CommandCenter.tscn"
     },
+  {
+   "unitTypeId": "ore_refinery",
+   "scenePath": "res://source/match/units/OreRefinery.tscn",
+   "blueprintScenePath": "res://source/match/units/structure-geometries/OreRefinery.tscn"
+  },
     {
       "unitTypeId": "vehicle_factory",
       "scenePath": "res://source/match/units/VehicleFactory.tscn",

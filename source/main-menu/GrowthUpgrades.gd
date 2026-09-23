@@ -289,8 +289,11 @@ func _on_upgrade(node_id: String) -> void:
 # ---------------- 刷新 ----------------
 
 func _refresh() -> void:
-	points_label.text = "可用成长点：%d        本次未保存变化：%d 点" % [
+	# 状态行必须把"加成在哪里生效"和"点数从哪来"一起说清：
+	# 加成的生效范围是单机对局（联机/专用服不读本地存档），点数来自对局结算。
+	points_label.text = "可用成长点：%d        本次未保存变化：%d 点        单机对局生效 · 胜 +%d / 负 +%d" % [
 		int(GrowthStore.state.get("available_points", 0)), _pending_cost(),
+		GrowthStore.MATCH_WIN_POINTS, GrowthStore.MATCH_LOSE_POINTS,
 	]
 	for node_id in _cards.keys():
 		_refresh_card(str(node_id))

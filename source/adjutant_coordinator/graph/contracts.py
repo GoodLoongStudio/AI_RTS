@@ -47,7 +47,9 @@ SCENE_ACTIONS = (ACTION_PRODUCE, ACTION_BUILD)
 UNIT_TARGETED_ACTIONS = POSITION_ACTIONS + ENTITY_ACTIONS + (
     ACTION_GATHER, ACTION_STOP, ACTION_HOLD, ACTION_ATTACK_MOVE)
 
-ALLOWED_TARGET_KEYS = ("entity_id", "pos", "scene", "producer", "resource", "dest", "area")
+ALLOWED_TARGET_KEYS = (
+    "entity_id", "pos", "scene", "producer", "resource", "dest", "area", "hint",
+)
 
 # 中止条件词表（行为执行层据此在 Godot 内自行中止，不需要等模型）。
 ABORT_CONDITIONS = (
@@ -446,6 +448,12 @@ def intent_to_command_envelope(intent: TacticalIntent, *, match_id: str, player_
             place = target.get("pos", target.get("dest"))
             if isinstance(place, (list, tuple)) and len(place) >= 2:
                 params["pos"] = [float(place[0]), float(place[1])]
+            # hint：自动放置的搜索锚点（2026-09-23）。副官不带 pos 时游戏侧
+            # 自己搜合法落点；带 hint 时先围着政策点搜（保留副官的布局偏好），
+            # 仍以权威端评估结果为准。
+            hint = target.get("hint")
+            if isinstance(hint, (list, tuple)) and len(hint) >= 2:
+                params["hint"] = [float(hint[0]), float(hint[1])]
     if action == ACTION_GATHER:
         if "resource" in target:
             params["resource"] = target["resource"]

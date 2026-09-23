@@ -17,12 +17,9 @@ const MAPS = {
 	},
 	# G4 四人图只挂 256×256。512 旧包已删，不要再登记。
 	# 8 人 BigArena 已从大厅拿掉（2026-09-15）；场景文件仍保留。
-	"res://source/match/maps/generated/16-0-1ca6e21aa1/map_16-0-1ca6e21aa1.tscn":
-	{
-		"name": "G4 大湖 seed16",
-		"players": 4,
-		"size": Vector2i(256, 256),
-	},
+	# 【2026-09-20】"G4 大湖 seed16"已从大厅移除（用户要求）：它由
+	# tools/mapgen/tools/regen_large_lake_256.py 生成，作为随机地图 G1-G4
+	# 流程的参照样本保留在 tools 里；菜单只保留 Plain & Simple。
 }
 
 # 自定义对局地图清单只保留 4 人图。

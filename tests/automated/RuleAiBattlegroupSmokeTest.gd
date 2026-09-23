@@ -20,6 +20,10 @@ func _ready():
 	rule_ai.expected_number_of_battlegroups = 1
 	rule_ai.expected_number_of_units_in_battlegroup = 1
 	rule_ai.defense_scan_radius = 0.1
+	# 【2026-09-21】首波**出击**门槛（attack_wave_delay_s）默认 32 模拟秒，
+	# 编组在 FORMING 期间不会主动出击。本测试验证的是"编组命令链路"本身，
+	# 不等首波窗口 ⇒ 显式归零。
+	rule_ai.attack_wave_delay_s = 0.0
 	add_child(match_instance)
 	await get_tree().process_frame
 	await get_tree().physics_frame

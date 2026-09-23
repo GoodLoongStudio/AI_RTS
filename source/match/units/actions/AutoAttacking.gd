@@ -82,8 +82,15 @@ func _on_sub_action_finished():
 		or is_queued_for_deletion()
 		or _unit == null
 		or not is_instance_valid(_unit)
-		or _unit.action != self
 	):
+		return
+	# 【2026-09-21 真机回归】原守卫 `_unit.action != self` 会把**交战子动作**用法
+	# （GroundAttackMoving 的子节点）永久挡死：单位的当前动作是父动作而不是本节点，
+	# 于是子动作结束（目标移出射程被 teardown）后既不重连也不清理 —— 单位既不开火
+	# 也不推进，攻击移动订单永不结束（冒烟见 GroundAttackMoveArrivalSmokeTest）。
+	# 两种用法都放行：本节点是当前动作（WaitingForTargets 自主交战），或**父动作**
+	# 是当前动作（攻击移动中的交战）；单位已换成别的动作时才确实退出。
+	if _unit.action != self and get_parent() != _unit.action:
 		return
 	if not is_instance_valid(_target_unit) or not _target_unit.is_inside_tree():
 		return

@@ -1,0 +1,199 @@
+{
+  "id": "54bbe05445bb404b9deeb4841c88198a",
+  "baseline": false,
+  "status": "error",
+  "config": {
+    "schema_version": 2,
+    "algo_version": "7.11.0",
+    "layout_seed": 37,
+    "terrain_seed": 754394096,
+    "player_spacing": "any",
+    "controls": {
+      "river_layout": 2,
+      "river_enabled": 1,
+      "lake_count": 0,
+      "lake_area": 5000,
+      "neutral_plateau_scale": 1.7,
+      "plateau_max": 8,
+      "landform_elongation": 1.2,
+      "landform_recess": 0.2,
+      "landform_softness": 0.16,
+      "plateau_ramp_width": 8,
+      "river_width": 18,
+      "river_bend_scale": 1.0,
+      "river_crossings": 6,
+      "obstacle_percent": 40,
+      "cover_cluster_max": 10,
+      "layout_attempts": 4
+    }
+  },
+  "target": "full",
+  "spacing": "close",
+  "created_at": "2026-09-21T00:19:26",
+  "started": 1789921166.042218,
+  "duration": 10.4,
+  "title": "布局 37 · 地貌 754394096",
+  "pipeline_version": "1.0.0",
+  "stage_versions": {
+    "G1": "2.0.0",
+    "G2": "7.11.0",
+    "G3": "2.2.0",
+    "G4": "2.0.0"
+  },
+  "stages": {
+    "g1_input": {
+      "status": "done",
+      "started_at": "2026-09-21T00:19:36",
+      "duration_s": 0.1,
+      "error": null,
+      "pass": true,
+      "stage": "G1",
+      "version": "2.0.0",
+      "finished_at": "2026-09-21T00:19:36",
+      "source": "G:\\AIRTS\\AI_RTS\\tools\\mapgen\\runs\\37\\G1",
+      "source_hashes": {
+        "manifest.json": "f4415e90ebf570f5b41878ef105c1ace917ced48171ed65dccf5d33db0e4673b",
+        "mapgrid.npz": "a962a62d9210916e89a4e5ee2b789205b63a7f45a383f4f4ccee052de3dfeaac",
+        "mapspec.json": "88f112aac3cfe2acb0b7c38e42745d95c375ba96b37427a09c528d91bc368ef9",
+        "starts.png": "bc43390348c90ed19facc673b44ce512d1e805a03e0c8893440d31f3fd8a0842",
+        "starts.png.import": "d59428697c84cbf2791622b3c0649a6d9b6581524e807f2a338f15643d9231e7",
+        "starts_table.png": "fed2f0d05e94ed7201dfb51cab17906b8cc20d50907a0868b83f8322b973d1ab",
+        "starts_table.png.import": "32301a6d33cb0d169b1f9bb3052e9ebba34818bad125d1cfaf09eb7e83a1e115",
+        "territory.png": "ff3848805bb17526a6ec0688148f5aacb1c8d67505e0ca76ef4d847150801a35",
+        "territory.png.import": "1072fba30273e4d201b666bf3b0cb94a72983775a61df06de23f8ef46ae9afb5"
+      },
+      "starts": [
+        [
+          192.57,
+          36.83
+        ],
+        [
+          156.23,
+          208.88
+        ],
+        [
+          54.65,
+          170.85
+        ],
+        [
+          81.46,
+          63.06
+        ]
+      ],
+      "spacing": "close",
+      "g1_approved": false,
+      "output_hashes": {
+        "mapgrid.npz": "a962a62d9210916e89a4e5ee2b789205b63a7f45a383f4f4ccee052de3dfeaac"
+      }
+    },
+    "g2_terrain": {
+      "status": "error",
+      "started_at": "2026-09-21T00:19:36",
+      "duration_s": 0.1,
+      "error": "G2 seed 37: no valid terrain candidate in 3 attempts",
+      "pass": true,
+      "stage": "G2",
+      "version": "7.11.0",
+      "finished_at": "2026-09-21T00:19:36",
+      "error_kind": "no_candidate",
+      "attempts": [
+        {
+          "attempt": 1,
+          "rejected": "No complete river corridors satisfy the selected layout and home clearance."
+        },
+        {
+          "attempt": 2,
+          "rejected": "No complete river corridors satisfy the selected layout and home clearance."
+        },
+        {
+          "attempt": 3,
+          "rejected": "No complete river corridors satisfy the selected layout and home clearance."
+        }
+      ]
+    }
+  },
+  "layout_locked": false,
+  "terrain_locked": false,
+  "layout_pool": [
+    36,
+    5,
+    47,
+    37,
+    25,
+    38,
+    51,
+    16,
+    54,
+    42,
+    18,
+    3,
+    2,
+    13,
+    8,
+    12,
+    46,
+    21,
+    61,
+    27,
+    39,
+    4,
+    14,
+    15,
+    17,
+    35,
+    31,
+    23,
+    55,
+    49
+  ],
+  "layout_tried": [
+    {
+      "seed": 36,
+      "reason": "checks",
+      "attempts": 0,
+      "rejected": null
+    },
+    {
+      "seed": 5,
+      "reason": "checks",
+      "attempts": 0,
+      "rejected": null
+    },
+    {
+      "seed": 47,
+      "reason": "checks",
+      "attempts": 0,
+      "rejected": null
+    },
+    {
+      "seed": 37,
+      "reason": "no_candidate",
+      "attempts": 3,
+      "rejected": "No complete river corridors satisfy the selected layout and home clearance."
+    }
+  ],
+  "preview_only": false,
+  "progress": {
+    "stage": "G2",
+    "attempt": 3,
+    "limit": 4,
+    "rejected": "No complete river corridors satisfy the selected layout and home clearance."
+  },
+  "hard_reject_streak": 1,
+  "error_kind": "no_candidate",
+  "attempts": [
+    {
+      "attempt": 1,
+      "rejected": "No complete river corridors satisfy the selected layout and home clearance."
+    },
+    {
+      "attempt": 2,
+      "rejected": "No complete river corridors satisfy the selected layout and home clearance."
+    },
+    {
+      "attempt": 3,
+      "rejected": "No complete river corridors satisfy the selected layout and home clearance."
+    }
+  ],
+  "error": "当前河湖组合在已试的 4 套出生布局上都放不下。不会缩小湖泊。"
+}

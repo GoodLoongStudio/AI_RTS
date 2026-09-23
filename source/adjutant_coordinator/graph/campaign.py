@@ -97,6 +97,16 @@ INTERRUPT_MAX_TICKS = 7200
 #: 基地回防 / 受袭判定半径（米）。手册 DEF-01：建筑附近见敌才算受袭。
 #: 行为树与并行军事轨必须读这个常量，不许再各写一个 40。
 DEFENSE_RADIUS_M = 40.0
+#: **谁响应**受袭的半径（米）——与上面的"受袭判定半径"故意分开（2026-09-22）。
+#: 实测（backend=off 基线局 base_off_2，240s，纯规则层）：40m 既当判定半径又当
+#: 响应半径时，军事轨的前压点（standoff 0.5 × 敌距 + advance 半径）长期落在
+#: 20~40m，**整局都泡在回防圈里**：`bt-defend` 下发 286 条、`bt-attack_move`
+#: 只有 122 条，大军在"家 ↔ 40m 外"之间振荡，前 180 秒几乎零输出（手册明令的
+#: "一条线的威胁不得升级为全军回防"就是这么被破坏的）。
+#: 现在：判定仍用 40m（敌人靠近建筑就算受袭），**响应**只用 20m——正好覆盖
+#: 当前平衡表的最大武器射程（反地炮塔 16m）加点余量；圈外部队继续原任务，
+#: 圈内 + 最多 3 个召回单位负责这一仗。
+DEFEND_RESPOND_RADIUS_M = 20.0
 #: 家里没人时最多召回这么多个最近的作战单位（不全军回防）。
 DEFEND_RECALL_MAX = 3
 #: "已压过的事件 id"记忆容量（有界，随主线 checkpoint 一起保留）。
@@ -1212,7 +1222,8 @@ def _expansion_probe(state: Dict[str, Any], facts: Dict[str, Any]) -> List[float
 
 
 def note_model_branch(state: Dict[str, Any], ref: str, tick: int,
-                      candidate_ids: Sequence[str] = ()) -> Dict[str, Any]:
+                      candidate_ids: Sequence[str] = (),
+                      source: str = "model") -> Dict[str, Any]:
     """模型通过四列输出的 `g` 字段做**主线分支选择**（低频、可校验）。
 
     纪律（纠偏 §"小模型只选择主线分支和参数"）：
@@ -1247,7 +1258,9 @@ def note_model_branch(state: Dict[str, Any], ref: str, tick: int,
                 return {"accepted": False,
                         "reason": "branch_%s" % entry.get("status"), "detail": milestone}
             campaign["mainline_branch"] = milestone
-        campaign["branch_source"] = "model"
+        # 来源可区分：2B 链路（model）与 Laya 判别式分支（laya）——
+        # 2026-09-21 决策地图接入 Laya 后，两者都可能选分支，归档要能分辨。
+        campaign["branch_source"] = str(source or "model")
         campaign["branch_tick"] = int(tick)
         _transition(campaign, kind="branch_selected", id=node_id, tick=int(tick),
                     source="model", **{"milestone": milestone})
@@ -1262,7 +1275,9 @@ def note_model_branch(state: Dict[str, Any], ref: str, tick: int,
         if not ok:
             return {"accepted": False, "reason": "precondition_unmet", "detail": why}
         campaign["mainline_branch"] = text
-        campaign["branch_source"] = "model"
+        # 来源可区分：2B 链路（model）与 Laya 判别式分支（laya）——
+        # 2026-09-21 决策地图接入 Laya 后，两者都可能选分支，归档要能分辨。
+        campaign["branch_source"] = str(source or "model")
         campaign["branch_tick"] = int(tick)
         _transition(campaign, kind="branch_selected", id=text, tick=int(tick),
                     source="model", **{"milestone": text})
@@ -1373,6 +1388,53 @@ def frontier_preferences(state: Dict[str, Any], observation: Optional[Dict[str, 
     }
 
 
+def _mainline_node_id(campaign: Dict[str, Any]) -> str:
+    """主线实际沿用的决策地图节点 id（分支问题的教师标签；尽量给值）。
+
+    优先当前前沿里程碑绑定的节点；扩张类里程碑（如 M05）不绑定节点时，
+    回退到**优先级最高且尚未完成**的里程碑绑定的节点（主线接下来真要走的
+    分支）；都不行返回空（该拍不产生分支监督）。
+
+    2026-09-21 修复（v10 实测，两个缺陷叠加）：
+    1. 前沿 key 读错：战役状态里叫 `next_frontier`，`frontier` 只存在于
+       `context_view` 等派生视图。原文只读 `frontier`，导致**每次**都走进
+       回退分支；
+    2. 回退指向"最近已完成"里程碑的节点 = 陈旧标签：laya 采纳后会被
+       `note_model_branch` 以 `branch_done` 驳回（v10 里 101/186 条标签
+       指向已完成里程碑的节点，10 次采纳被驳）——等于教模型做一个
+       必然无效的选择。改为优先**未完成**里程碑的绑定节点。
+    """
+    from . import decision_map
+
+    def node_for(milestone: str) -> str:
+        best, best_priority = "", 10 ** 9
+        for node in decision_map.DECISION_NODES:
+            if str(node.get("milestone", "") or "") != str(milestone):
+                continue
+            priority = int(node.get("priority", 100))
+            if priority < best_priority:
+                best_priority, best = priority, str(node.get("id", ""))
+        return best
+
+    # 战役状态里前沿叫 `next_frontier`；`frontier` 只存在于派生视图
+    # （context_view/summary），两者都认，避免派生视图传入时取不到。
+    frontier = str(campaign.get("next_frontier", "")
+                   or campaign.get("frontier", "") or "")
+    if frontier:
+        found = node_for(frontier)
+        if found:
+            return found
+    milestones = campaign.get("milestones") or {}
+    pending = [(int(item.get("priority", 0)), str(item.get("id", "")))
+               for item in milestones.values()
+               if isinstance(item, dict) and str(item.get("status", "")) != "done"]
+    for _, milestone in sorted(pending):
+        found = node_for(milestone)
+        if found:
+            return found
+    return ""
+
+
 def context_view(campaign: Dict[str, Any], limit_milestones: int = 4) -> Dict[str, Any]:
     """给模型的**主线上下文**（纠偏 §"模型上下文必须包含"逐项对应）。
 
@@ -1421,7 +1483,18 @@ def context_view(campaign: Dict[str, Any], limit_milestones: int = 4) -> Dict[st
                                  (campaign.get("expansion_candidates") or [])][:3],
         # 决策地图候选：`available_routes` = 模型**可以选**的分支 ref；
         # `decision_lines` = 已经排版好的一到两行（渲染层直接用，不重新推导）。
+        # `available_route_names` = ref → 节点名（2026-09-21 Laya 分支问题的 criteria
+        # 描述来源； additive，2B 提示词只渲染 decision_lines，不受影响）。
         "available_routes": [str(x) for x in (campaign.get("decision_available") or [])],
+        # 主线实际沿用的节点 = 当前前沿里程碑绑定的决策地图节点（基线"沿主线推进"的
+        # 落点）。2026-09-21：Laya 分支问题的**教师标签**取这里（不是模型自述），
+        # 让"选择用 Laya"学的是主线实际走向，可复用/可校验。
+        "mainline_node": _mainline_node_id(campaign),
+        "available_route_names": {
+            str(item["id"]): str(item.get("name", ""))
+            for item in ((campaign.get("decision_nodes") or {}).get("available") or [])
+            if isinstance(item, dict) and item.get("id")
+        } if isinstance(campaign.get("decision_nodes"), dict) else {},
         "decision_lines": [str(x) for x in (campaign.get("decision_context") or [])],
     }
 
@@ -1633,6 +1706,25 @@ def update(state: Dict[str, Any], observation: Optional[Dict[str, Any]], tick: i
     try:
         from . import decision_map
         retrieved = decision_map.retrieve(facts, campaign)
+        # 主线当前节点晋升进可用列表（2026-09-21 决策地图接入 Laya）：
+        # 标签取自 `_mainline_node_id`，菜单也必须包含同一节点，否则分支监督
+        # 大面积落空（实测 v8：197 条标签只有 28 条在菜单里）。晋升后
+        # `note_model_branch` 的前置条件复核仍然有效（它查 decision_available）。
+        mainline_node = _mainline_node_id(campaign)
+        if mainline_node:
+            avail_ids = {str(item["id"]) for item in retrieved.get("available") or []}
+            if mainline_node not in avail_ids:
+                spec_node = decision_map.NODE_BY_ID.get(mainline_node) or {}
+                retrieved.setdefault("available", []).append({
+                    "id": mainline_node,
+                    "node": str(spec_node.get("node", "")),
+                    "name": str(spec_node.get("name", "")),
+                    "track": str(spec_node.get("track", "")),
+                    "milestone": str(spec_node.get("milestone", "") or ""),
+                    "priority": int(spec_node.get("priority", 100)),
+                    "needs": [], "unmet": [], "mainline": True,
+                })
+        campaign["decision_nodes"] = retrieved
         campaign["decision_available"] = [str(item["id"])
                                          for item in retrieved.get("available") or []]
         campaign["decision_locked"] = [

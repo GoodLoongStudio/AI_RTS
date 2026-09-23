@@ -55,8 +55,42 @@ static func config() -> Dictionary:
 	return loaded
 
 
-## 仓库约定的自动探测（G:\AIRTS 布局：AI_RTS 与 临时文件夹/airts_agent_venv 同级）。
+## 自动探测 runner 装配，两种形态按优先级：
+##   ① **分发布局**（Release 包 / 评委机器）：`<exe 同级>/adjutant_runtime/`
+##      —— 随包分发的便携 Python + runner 源码。评委机器上没有任何开发环境，
+##      这是**唯一**能命中的形态（旧版只认下面 ②，于是导出版永远"副官尚未启动"）。
+##   ② **仓库布局**（开发机 G:\AIRTS 约定）：AI_RTS 与 临时文件夹/airts_agent_venv 同级。
+## 返回空字典 = 两处都没找到 python（面板会显示"尚未启动"，不崩）。
 static func autodetect_config() -> Dictionary:
+	var dist := _dist_config()
+	if not dist.is_empty():
+		return dist
+	return _repo_config()
+
+
+## 分发布局：`<exe 目录>/adjutant_runtime/{python/python.exe, src/, .env.local}`。
+## 只以 python.exe 是否存在为判据（其余缺项交给 runner 自己报错，便于定位）。
+static func _dist_config() -> Dictionary:
+	var exe_dir := OS.get_executable_path().get_base_dir()
+	if exe_dir.is_empty():
+		return {}
+	var rt := exe_dir.path_join("adjutant_runtime").simplify_path()
+	var venv_python := rt.path_join("python/python.exe")
+	if not FileAccess.file_exists(venv_python):
+		return {}
+	# 日志/握手目录仍走 `user://`（可写）；安装目录可能只读，不要往里写。
+	return {
+		"python": venv_python,
+		"src_root": rt.path_join("src"),
+		"work_dir": rt.path_join("src"),
+		"authority_port": AUTHORITY_PORT_DEFAULT,
+		"player": "",
+		"env_file": rt.path_join(".env.local"),
+	}
+
+
+## 仓库约定的自动探测（G:\AIRTS 布局：AI_RTS 与 临时文件夹/airts_agent_venv 同级）。
+static func _repo_config() -> Dictionary:
 	var project_dir := ProjectSettings.globalize_path("res://")
 	var repo_root := project_dir.path_join("..").simplify_path()
 	var venv_python := repo_root.path_join("临时文件夹/airts_agent_venv/Scripts/python.exe")

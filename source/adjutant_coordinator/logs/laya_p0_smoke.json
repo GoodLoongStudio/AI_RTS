@@ -1,0 +1,1235 @@
+{
+ "summary": {
+  "generated_at": "2026-09-20 21:50:58",
+  "mode": "fast",
+  "decision_points": 8,
+  "device": "cuda",
+  "configs": {
+   "zero": {
+    "agreement": {
+     "n": 8,
+     "agree_set": 0,
+     "agree_set_rate": 0.0,
+     "agree_dominant": 0,
+     "agree_dominant_rate": 0.0,
+     "agree_rule": 0,
+     "agree_rule_rate": 0.0,
+     "dev_points": 8,
+     "dev_hit_rate": 0.0,
+     "dev_picks": 0,
+     "dev_precision": null
+    },
+    "latency": {
+     "n": 8,
+     "p50_ms": 39.3,
+     "p95_ms": 80.6,
+     "max_ms": 80.6,
+     "mean_ms": 45.4
+    },
+    "pick_distribution": {
+     "ATK": 6,
+     "AMOV": 2
+    },
+    "mean_confidence": 0.3877,
+    "state_tokens_max": 226,
+    "input_tokens_max": 1417
+   },
+   "zero_rot": {
+    "agreement": {
+     "n": 8,
+     "agree_set": 0,
+     "agree_set_rate": 0.0,
+     "agree_dominant": 0,
+     "agree_dominant_rate": 0.0,
+     "agree_rule": 0,
+     "agree_rule_rate": 0.0,
+     "dev_points": 8,
+     "dev_hit_rate": 0.0,
+     "dev_picks": 0,
+     "dev_precision": null
+    },
+    "latency": {
+     "n": 8,
+     "p50_ms": 44.9,
+     "p95_ms": 55.5,
+     "max_ms": 55.5,
+     "mean_ms": 44.6
+    },
+    "pick_distribution": {
+     "ATK": 6,
+     "AMOV": 2
+    },
+    "mean_confidence": 0.3662,
+    "state_tokens_max": 226,
+    "input_tokens_max": 1417
+   },
+   "fs_adjacent": {
+    "agreement": {
+     "n": 8,
+     "agree_set": 6,
+     "agree_set_rate": 75.0,
+     "agree_dominant": 5,
+     "agree_dominant_rate": 62.5,
+     "agree_rule": 5,
+     "agree_rule_rate": 62.5,
+     "dev_points": 8,
+     "dev_hit_rate": 12.5,
+     "dev_picks": 1,
+     "dev_precision": 100.0
+    },
+    "latency": {
+     "n": 8,
+     "p50_ms": 51.0,
+     "p95_ms": 66.6,
+     "max_ms": 66.6,
+     "mean_ms": 50.6
+    },
+    "pick_distribution": {
+     "GAT": 5,
+     "AMOV": 1,
+     "PROD": 1,
+     "ATK": 1
+    },
+    "mean_confidence": 0.7051,
+    "state_tokens_max": 298,
+    "input_tokens_max": 1777
+   },
+   "fs_adjacent_rot": {
+    "agreement": {
+     "n": 8,
+     "agree_set": 6,
+     "agree_set_rate": 75.0,
+     "agree_dominant": 5,
+     "agree_dominant_rate": 62.5,
+     "agree_rule": 5,
+     "agree_rule_rate": 62.5,
+     "dev_points": 8,
+     "dev_hit_rate": 12.5,
+     "dev_picks": 1,
+     "dev_precision": 100.0
+    },
+    "latency": {
+     "n": 8,
+     "p50_ms": 51.9,
+     "p95_ms": 83.1,
+     "max_ms": 83.1,
+     "mean_ms": 51.4
+    },
+    "pick_distribution": {
+     "GAT": 5,
+     "AMOV": 1,
+     "PROD": 1,
+     "ATK": 1
+    },
+    "mean_confidence": 0.6602,
+    "state_tokens_max": 298,
+    "input_tokens_max": 1777
+   },
+   "fs_cross": {
+    "agreement": {
+     "n": 8,
+     "agree_set": 0,
+     "agree_set_rate": 0.0,
+     "agree_dominant": 0,
+     "agree_dominant_rate": 0.0,
+     "agree_rule": 0,
+     "agree_rule_rate": 0.0,
+     "dev_points": 8,
+     "dev_hit_rate": 0.0,
+     "dev_picks": 0,
+     "dev_precision": null
+    },
+    "latency": {
+     "n": 8,
+     "p50_ms": 46.8,
+     "p95_ms": 81.9,
+     "max_ms": 81.9,
+     "mean_ms": 50.5
+    },
+    "pick_distribution": {
+     "ATK": 6,
+     "AMOV": 2
+    },
+    "mean_confidence": 0.3877,
+    "state_tokens_max": 226,
+    "input_tokens_max": 1417
+   },
+   "fs_cross_rot": {
+    "agreement": {
+     "n": 8,
+     "agree_set": 0,
+     "agree_set_rate": 0.0,
+     "agree_dominant": 0,
+     "agree_dominant_rate": 0.0,
+     "agree_rule": 0,
+     "agree_rule_rate": 0.0,
+     "dev_points": 8,
+     "dev_hit_rate": 0.0,
+     "dev_picks": 0,
+     "dev_precision": null
+    },
+    "latency": {
+     "n": 8,
+     "p50_ms": 44.1,
+     "p95_ms": 81.7,
+     "max_ms": 81.7,
+     "mean_ms": 47.0
+    },
+    "pick_distribution": {
+     "ATK": 6,
+     "AMOV": 2
+    },
+    "mean_confidence": 0.3662,
+    "state_tokens_max": 226,
+    "input_tokens_max": 1417
+   }
+  },
+  "majority_baseline": {
+   "skill": "GAT",
+   "n": 8,
+   "agree_set": 8,
+   "agree_set_rate": 100.0,
+   "agree_dominant": 8,
+   "agree_dominant_rate": 100.0,
+   "agree_rule": 8,
+   "agree_rule_rate": 100.0,
+   "dev_points": 8,
+   "dev_hit_rate": 0.0,
+   "dev_picks": 0,
+   "dev_precision": null
+  },
+  "actual_distribution": {
+   "GAT": 8,
+   "PROD": 8
+  },
+  "target_fine_latency": {
+   "n": 8,
+   "p50_ms": 49.6,
+   "p95_ms": 63.8,
+   "max_ms": 63.8,
+   "mean_ms": 49.9
+  }
+ },
+ "records": {
+  "zero": [
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 0,
+    "tick": 527,
+    "ms": 80.6,
+    "task": "AMOV",
+    "confidence": 0.2832,
+    "input_tokens": 1377,
+    "state_tokens": 220,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 1,
+    "tick": 649,
+    "ms": 37.6,
+    "task": "AMOV",
+    "confidence": 0.2832,
+    "input_tokens": 1377,
+    "state_tokens": 220,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 2,
+    "tick": 772,
+    "ms": 39.3,
+    "task": "ATK",
+    "confidence": 0.4155,
+    "input_tokens": 1417,
+    "state_tokens": 226,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 3,
+    "tick": 893,
+    "ms": 45.3,
+    "task": "ATK",
+    "confidence": 0.4303,
+    "input_tokens": 1417,
+    "state_tokens": 226,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 4,
+    "tick": 1015,
+    "ms": 34.8,
+    "task": "ATK",
+    "confidence": 0.4301,
+    "input_tokens": 1417,
+    "state_tokens": 226,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 5,
+    "tick": 1137,
+    "ms": 37.9,
+    "task": "ATK",
+    "confidence": 0.4198,
+    "input_tokens": 1417,
+    "state_tokens": 226,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 6,
+    "tick": 1259,
+    "ms": 38.1,
+    "task": "ATK",
+    "confidence": 0.4198,
+    "input_tokens": 1417,
+    "state_tokens": 226,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 7,
+    "tick": 1382,
+    "ms": 49.5,
+    "task": "ATK",
+    "confidence": 0.4198,
+    "input_tokens": 1417,
+    "state_tokens": 226,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   }
+  ],
+  "zero_rot": [
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 0,
+    "tick": 527,
+    "ms": 45.7,
+    "task": "AMOV",
+    "confidence": 0.2021,
+    "input_tokens": 1377,
+    "state_tokens": 220,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 1,
+    "tick": 649,
+    "ms": 55.5,
+    "task": "AMOV",
+    "confidence": 0.2021,
+    "input_tokens": 1377,
+    "state_tokens": 220,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 2,
+    "tick": 772,
+    "ms": 40.6,
+    "task": "ATK",
+    "confidence": 0.4164,
+    "input_tokens": 1417,
+    "state_tokens": 226,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 3,
+    "tick": 893,
+    "ms": 50.6,
+    "task": "ATK",
+    "confidence": 0.4186,
+    "input_tokens": 1417,
+    "state_tokens": 226,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 4,
+    "tick": 1015,
+    "ms": 41.0,
+    "task": "ATK",
+    "confidence": 0.4223,
+    "input_tokens": 1417,
+    "state_tokens": 226,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 5,
+    "tick": 1137,
+    "ms": 39.8,
+    "task": "ATK",
+    "confidence": 0.4228,
+    "input_tokens": 1417,
+    "state_tokens": 226,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 6,
+    "tick": 1259,
+    "ms": 39.0,
+    "task": "ATK",
+    "confidence": 0.4228,
+    "input_tokens": 1417,
+    "state_tokens": 226,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 7,
+    "tick": 1382,
+    "ms": 44.9,
+    "task": "ATK",
+    "confidence": 0.4228,
+    "input_tokens": 1417,
+    "state_tokens": 226,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   }
+  ],
+  "fs_adjacent": [
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 0,
+    "tick": 527,
+    "ms": 47.9,
+    "task": "AMOV",
+    "confidence": 0.2832,
+    "input_tokens": 1377,
+    "state_tokens": 220,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 1,
+    "tick": 649,
+    "ms": 52.8,
+    "task": "PROD",
+    "confidence": 0.3217,
+    "input_tokens": 1537,
+    "state_tokens": 252,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 2,
+    "tick": 772,
+    "ms": 44.2,
+    "task": "ATK",
+    "confidence": 0.2593,
+    "input_tokens": 1677,
+    "state_tokens": 278,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 3,
+    "tick": 893,
+    "ms": 57.8,
+    "task": "GAT",
+    "confidence": 0.9565,
+    "input_tokens": 1777,
+    "state_tokens": 298,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 4,
+    "tick": 1015,
+    "ms": 39.5,
+    "task": "GAT",
+    "confidence": 0.9554,
+    "input_tokens": 1777,
+    "state_tokens": 298,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 5,
+    "tick": 1137,
+    "ms": 44.9,
+    "task": "GAT",
+    "confidence": 0.9654,
+    "input_tokens": 1777,
+    "state_tokens": 298,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 6,
+    "tick": 1259,
+    "ms": 66.6,
+    "task": "GAT",
+    "confidence": 0.9813,
+    "input_tokens": 1777,
+    "state_tokens": 298,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 7,
+    "tick": 1382,
+    "ms": 51.0,
+    "task": "GAT",
+    "confidence": 0.9177,
+    "input_tokens": 1777,
+    "state_tokens": 298,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   }
+  ],
+  "fs_adjacent_rot": [
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 0,
+    "tick": 527,
+    "ms": 58.9,
+    "task": "AMOV",
+    "confidence": 0.2021,
+    "input_tokens": 1377,
+    "state_tokens": 220,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 1,
+    "tick": 649,
+    "ms": 40.0,
+    "task": "PROD",
+    "confidence": 0.2266,
+    "input_tokens": 1537,
+    "state_tokens": 252,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 2,
+    "tick": 772,
+    "ms": 44.9,
+    "task": "ATK",
+    "confidence": 0.3239,
+    "input_tokens": 1677,
+    "state_tokens": 278,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 3,
+    "tick": 893,
+    "ms": 54.2,
+    "task": "GAT",
+    "confidence": 0.8944,
+    "input_tokens": 1777,
+    "state_tokens": 298,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 4,
+    "tick": 1015,
+    "ms": 32.0,
+    "task": "GAT",
+    "confidence": 0.8969,
+    "input_tokens": 1777,
+    "state_tokens": 298,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 5,
+    "tick": 1137,
+    "ms": 83.1,
+    "task": "GAT",
+    "confidence": 0.9226,
+    "input_tokens": 1777,
+    "state_tokens": 298,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 6,
+    "tick": 1259,
+    "ms": 51.9,
+    "task": "GAT",
+    "confidence": 0.9583,
+    "input_tokens": 1777,
+    "state_tokens": 298,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 7,
+    "tick": 1382,
+    "ms": 46.3,
+    "task": "GAT",
+    "confidence": 0.8571,
+    "input_tokens": 1777,
+    "state_tokens": 298,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   }
+  ],
+  "fs_cross": [
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 0,
+    "tick": 527,
+    "ms": 46.8,
+    "task": "AMOV",
+    "confidence": 0.2832,
+    "input_tokens": 1377,
+    "state_tokens": 220,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 1,
+    "tick": 649,
+    "ms": 68.5,
+    "task": "AMOV",
+    "confidence": 0.2832,
+    "input_tokens": 1377,
+    "state_tokens": 220,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 2,
+    "tick": 772,
+    "ms": 38.8,
+    "task": "ATK",
+    "confidence": 0.4155,
+    "input_tokens": 1417,
+    "state_tokens": 226,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 3,
+    "tick": 893,
+    "ms": 36.5,
+    "task": "ATK",
+    "confidence": 0.4303,
+    "input_tokens": 1417,
+    "state_tokens": 226,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 4,
+    "tick": 1015,
+    "ms": 34.2,
+    "task": "ATK",
+    "confidence": 0.4301,
+    "input_tokens": 1417,
+    "state_tokens": 226,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 5,
+    "tick": 1137,
+    "ms": 81.9,
+    "task": "ATK",
+    "confidence": 0.4198,
+    "input_tokens": 1417,
+    "state_tokens": 226,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 6,
+    "tick": 1259,
+    "ms": 44.5,
+    "task": "ATK",
+    "confidence": 0.4198,
+    "input_tokens": 1417,
+    "state_tokens": 226,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 7,
+    "tick": 1382,
+    "ms": 53.0,
+    "task": "ATK",
+    "confidence": 0.4198,
+    "input_tokens": 1417,
+    "state_tokens": 226,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   }
+  ],
+  "fs_cross_rot": [
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 0,
+    "tick": 527,
+    "ms": 37.7,
+    "task": "AMOV",
+    "confidence": 0.2021,
+    "input_tokens": 1377,
+    "state_tokens": 220,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 1,
+    "tick": 649,
+    "ms": 44.1,
+    "task": "AMOV",
+    "confidence": 0.2021,
+    "input_tokens": 1377,
+    "state_tokens": 220,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 2,
+    "tick": 772,
+    "ms": 36.2,
+    "task": "ATK",
+    "confidence": 0.4164,
+    "input_tokens": 1417,
+    "state_tokens": 226,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 3,
+    "tick": 893,
+    "ms": 49.3,
+    "task": "ATK",
+    "confidence": 0.4186,
+    "input_tokens": 1417,
+    "state_tokens": 226,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 4,
+    "tick": 1015,
+    "ms": 39.4,
+    "task": "ATK",
+    "confidence": 0.4223,
+    "input_tokens": 1417,
+    "state_tokens": 226,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 5,
+    "tick": 1137,
+    "ms": 81.7,
+    "task": "ATK",
+    "confidence": 0.4228,
+    "input_tokens": 1417,
+    "state_tokens": 226,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 6,
+    "tick": 1259,
+    "ms": 45.3,
+    "task": "ATK",
+    "confidence": 0.4228,
+    "input_tokens": 1417,
+    "state_tokens": 226,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   },
+   {
+    "source": "real_20260912.jsonl",
+    "seq": 7,
+    "tick": 1382,
+    "ms": 42.1,
+    "task": "ATK",
+    "confidence": 0.4228,
+    "input_tokens": 1417,
+    "state_tokens": 226,
+    "actual_skills": [
+     "GAT",
+     "PROD"
+    ],
+    "dominant": "GAT",
+    "rule_skills": [
+     "BLD",
+     "GAT",
+     "SCT"
+    ],
+    "has_dev": true
+   }
+  ]
+ }
+}

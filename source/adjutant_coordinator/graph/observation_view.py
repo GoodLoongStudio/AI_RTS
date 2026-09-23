@@ -132,6 +132,8 @@ def normalized_units(tactical: Optional[Dict[str, Any]]) -> Dict[str, Dict[str, 
             # 换执行者要用：专职侦察阵亡/0 血时必须能从观测里看出来。
             "hp": unit.get("hp"),
             "confirmed_dead": bool(unit.get("confirmed_dead")),
+            # 武器射程（米，加法字段）：判断"是否已在射程内"用（D12 驻留攻击）。
+            "attack_range": float(unit.get("attack_range") or 0.0),
             # 武器域 / 移动域：首次下令前过滤非法目标（F04），加法字段。
             "attack_domains": list(unit.get("attack_domains") or []),
             "domain": str(unit.get("domain") or ""),

@@ -15,6 +15,8 @@ var refresh_scale := 1.0
 var _world_query_runtime = null
 var _query_session_id := ""
 var _command_gateway = null
+## worker_id → site_id：**跨拍持久**的派工记忆（2026-09-21 修"工人永远建不完"）。
+var _assignments := {}
 
 
 ## 绑定只读观察会话和固定玩家身份的规则 AI 命令适配器。
@@ -56,17 +58,34 @@ func _on_refresh_timer_timeout():
 	# 退出**整个**分配 ⇒ 第二座及以后的工地永远排不到人，产能迟迟建不起来
 	# （方案第 1 节表）。改为逐工地独立派工：每座工地各自判断在岗缺口，
 	# 取**最近**且本拍尚未派出的工人；已派出的工人不再重复派（避免反复改任务）。
+	#
+	# 【2026-09-21 修复"工人永远建不完"】`dispatched` 原先只在**本轮**有效：上一拍派给
+	# 工地 A 的工人，下一拍会被缺人的工地 B 当"空闲工人"抢走（A 的在岗数随即归零，
+	# 再下一拍又抢回 A）⇒ 两座工地互相抢同一个工人，谁都在路上、谁都不建成
+	# （实测工人 30 秒内被改派 20+ 次，位移只有几米）。改为**跨拍记住**每个工人的工地，
+	# 且仅在该工地确实仍有在岗工人时继续保护；工地消失或在岗归零（被别的控制器抽走）
+	# 时立即释放记忆，让工人可被重新派工——既不抢，也不永久占死。
 	if workers.is_empty() or construction_sites.is_empty():
 		return
+	var active_by_site := {}
+	for site in construction_sites:
+		active_by_site[str(site["id"])] = int(site["construction"].get("active_builder_count", 0))
+	for worker_id in _assignments.keys():
+		var held_site: String = _assignments[worker_id]
+		if not active_by_site.has(held_site) or active_by_site[held_site] < 1:
+			_assignments.erase(worker_id)
 	var dispatched := {}
 	for site in construction_sites:
-		var active: int = int(site["construction"].get("active_builder_count", 0))
+		var active: int = active_by_site[str(site["id"])]
 		if active >= BUILDERS_PER_SITE_TARGET:
 			continue
 		var best_worker: Dictionary = {}
 		var best_distance := INF
 		for candidate in workers:
-			if dispatched.has(candidate["id"]):
+			var candidate_id := str(candidate["id"])
+			if dispatched.has(candidate_id):
+				continue
+			if _assignments.has(candidate_id):
 				continue
 			var pa: Vector3 = candidate.get("position", Vector3.INF)
 			var pb: Vector3 = site.get("position", Vector3.INF)
@@ -78,7 +97,8 @@ func _on_refresh_timer_timeout():
 				best_worker = candidate
 		if best_worker.is_empty():
 			break
-		dispatched[best_worker["id"]] = true
+		dispatched[str(best_worker["id"])] = true
+		_assignments[str(best_worker["id"])] = str(site["id"])
 		var command_result: Dictionary = _command_gateway.Construct(
 			[best_worker["id"]],
 			site["id"]

@@ -313,8 +313,12 @@ def _retreat(bb: Blackboard) -> str:
                    priority=95, rationale="可见敌人数多于我方作战单位，撤向脱离点（不回主基地门口）")
 
 
-#: 基地回防的**作用半径**（米）：唯一口径在 `campaign.DEFENSE_RADIUS_M`。
+#: 基地受袭的**判定**半径（米）：唯一口径在 `campaign.DEFENSE_RADIUS_M`。
 from .campaign import DEFENSE_RADIUS_M  # noqa: E402
+#: 基地受袭的**响应**半径（米）：只有圈内单位（+少量召回）回防，
+#: 圈外部队继续原任务。与判定半径分开的原因见 `campaign.DEFEND_RESPOND_RADIUS_M`
+#: 的实测记录（2026-09-22：40m 响应半径让大军整局振荡在家）。
+from .campaign import DEFEND_RESPOND_RADIUS_M  # noqa: E402
 
 
 def _under_attack(bb: Blackboard) -> bool:
@@ -327,17 +331,25 @@ def _under_attack(bb: Blackboard) -> bool:
 
 
 def _near_base(bb: Blackboard) -> bool:
+    # 用**响应半径**而非判定半径：圈内才回防，圈外继续原任务（2026-09-22 修复）。
     from . import rules_fallback as rf
-    return rf.unit_near_base(bb.get("unit_pos") or [], bb.get("defend_pos") or [])
+    return rf.unit_near_base(bb.get("unit_pos") or [], bb.get("defend_pos") or [],
+                             DEFEND_RESPOND_RADIUS_M)
 
 
 def _should_defend_home(bb: Blackboard) -> bool:
-    """受袭时：已在回防圈，或在召回名单里。"""
+    """受袭时：在**回防配额**名单里，或在召回名单里。
+
+    【2026-09-22 D17】旧口径是"回防圈内全部回防"——EASY 反复搔扰时这条会把
+    整支大军摁在家（优先级 92 压过一切前压/前探令），正是用户截图里
+    "部队堆在家、只有 3 个单位在动"的根因。现在只放行配额内的单位
+    （来犯之敌 + 余量，见 `DEFEND_QUOTA_*`），其余落回交火/前压分支。
+    """
     if not _under_attack(bb) or not _is_combat(bb):
         return False
-    if _near_base(bb):
-        return True
     name = str(bb.get("unit") or "")
+    if name in {str(item) for item in (bb.get("defend_quota_ids") or ())}:
+        return True
     return name in {str(item) for item in (bb.get("defense_recall_ids") or ())}
 
 
@@ -410,6 +422,14 @@ def _gather(bb: Blackboard) -> str:
 #: 留名单等于永久站桩（2026-09-15 用户：几个成小队就该出门探索/进攻）。
 #: 基地受袭时的召回配额仍走 `rules_fallback.DEFEND_RECALL_MAX`。
 HOME_GUARD_MAX = 0
+#: 【2026-09-22 D17 回防配额】受袭时允许回防的最大单位数（来犯之敌 + 余量，夹在上下限）。
+#: 用户指令"生产部队只留少部分在家，其他都去探索和进攻"——实测 det_55：EASY 反复
+#: 搔扰我家，`bt-defend`（优先级 92）把回防圈内**所有**单位摁在家里（Unit_32 的
+#: 前探令优先级 2 永远被压），56 个作战单位 50 个堆在离家 15m 内、敌军 30 个没人去打。
+#: 配额外的单位落回交火/前压分支：既清来犯之敌，又把战线往外推。
+DEFEND_QUOTA_MARGIN = 2
+DEFEND_QUOTA_MIN = 3
+DEFEND_QUOTA_MAX = 10
 
 
 def _home_guard_names(near_base_names: Sequence[str], quota_cap: int,
@@ -452,6 +472,32 @@ def _should_regroup(bb: Blackboard) -> bool:
     if not bb.get("forward_rally"):
         return False
     return not _should_advance(bb)
+
+
+def _defend_quota_names(near_base_names, by_name, base_anchor, enemies, *,
+                        defending: bool = False) -> list:
+    """受袭时允许回防的单位名单（D17）：按离基地近远取前 `quota` 个。
+
+    `quota = clamp(来犯之敌数 + DEFEND_QUOTA_MARGIN, MIN, MAX)`：防守力量
+    与来犯规模匹配，既不"一个兵回防送死"，也不"全军回防放弃进攻"。
+    不在受袭状态返回空名单（不影响任何既有行为）。
+    """
+    if not defending or not near_base_names:
+        return []
+    from . import rules_fallback as rf
+
+    def dist(name: str) -> float:
+        pos = rf._pos2d((by_name or {}).get(name) or {})
+        if not pos or not base_anchor:
+            return 0.0
+        return math.hypot(float(pos[0]) - float(base_anchor[0]),
+                          float(pos[1]) - float(base_anchor[1]))
+
+    attackers = len([e for e in (enemies or ()) if e is not None])
+    quota = max(DEFEND_QUOTA_MIN,
+                min(DEFEND_QUOTA_MAX, attackers + DEFEND_QUOTA_MARGIN))
+    ordered = sorted(near_base_names, key=dist)
+    return ordered[:quota]
 
 
 def _should_home_hold(bb: Blackboard) -> bool:
@@ -506,25 +552,38 @@ def _scout_slot(bb: Blackboard) -> int:
 
 
 def _scout_waypoint(bb: Blackboard):
-    """按 tick 推出**确定性侦察航点**；拿不到基地坐标返回 None（宁可不发）。
+    """侦察航点：**单一来源** = `rules_fallback.explore_frontier`（网格前沿 + 访问记忆）。
 
-    为什么这次可以算坐标（此前"空闲集结"被判为无依据而默认关闭）：
-    旧版是**凭空游走**（没有任何观测依据）；这里每个航点都由
-    **观测到的主基地位置**（`home_anchor`，真实读自 `op=tactical`）
-    加确定性方位/圈数推出 —— 同一 tick 必然得到同一点，可复现、可单测，
-    因此不违反"不许做无依据的战场动作"这条纪律。
-
-    【整局主线】当主线处于"扩张选址"（M04）时，侦察单位改去**程序指定的前探点**
-    （远端矿点方向 / 地图内侧）：绕圈侦察靠"碰巧飘到"永远打不开分基地链，
-    而 SCT-01/SCT-02 本来就要求"朝未探索方向 / 资源富集侧"定向侦察。
+    为什么必须收敛（2026-09-22 实测，base_off_5/6/7 三局同配置）：
+    旧实现有**两套**侦察航点源——规则并行填充的侦察轨走 `explore_frontier`
+    （网格前沿 + 访问记忆），本函数走"扩张定向点 / 定环方位"。无人机在两者之间
+    反复改目标：`explore.cells` 300 秒只覆盖 2~4 格，三局都有单位摸到离敌家
+    11~12m 却**看不见**（sight_range：步兵 6m / 坦克 8m / 无人机 10m，
+    就差最后几米），仅 base_off_5 碰巧撞见。
+    现在：有扩张定向点时仍用它（已受 `EXPANSION_PROBE_MIN_ARMY` 门槛保护），
+    否则一律走 `explore_frontier`——与侦察轨同一份记忆、同一个判据，
+    "发现敌家"从碰运气变成确定性的网格遍历（20m 格距 × 10m 无人机视野）。
     """
-    home = bb.get("home_anchor")
     directive = bb.get("scout_directive")
     if isinstance(directive, (list, tuple)) and len(directive) >= 2:
         try:
             return [round(float(directive[0]), 1), round(float(directive[1]), 1)]
         except (TypeError, ValueError):
             pass
+    state = bb.get("state_ref")
+    if isinstance(state, dict):
+        from . import rules_fallback as rf
+        anchor = bb.get("base_anchor") or bb.get("home_anchor")
+        frontier = rf.explore_frontier(
+            state, anchor, bb.get("map_bounds"),
+            unit=str(bb.get("unit") or ""),
+            intel=bb.get("enemy_intel_points") or (),
+            ring=1, commit=True, unit_pos=bb.get("unit_pos"))
+        if frontier and len(frontier.get("point") or []) >= 2:
+            return [round(float(frontier["point"][0]), 1),
+                    round(float(frontier["point"][1]), 1)]
+    # 兜底：没有 state 的旧调用/单测 —— 保持原来的确定性环（可复现、可单测）。
+    home = bb.get("home_anchor")
     if not home:
         return None
     slot = _scout_slot(bb)
@@ -732,6 +791,24 @@ def _engage_nearest(bb: Blackboard) -> str:
     locks = bb.get("engage_locks")
     if isinstance(locks, dict):
         locks[str(bb.unit)] = pick
+    # 【2026-09-21 用户要求】默认交火从"点兵式原地攻击"改为"移动并攻击"走向目标
+    # 位置：一路上遇敌就地交火（GroundAttackMoving 的途中交战），击杀后继续向目标
+    # 推进，没有"打完发呆等下一轮"的空窗——副官因此始终在机动施压，而不是每轮
+    # 逐个单位点攻击。上层**明确分派**的集火目标仍走点攻击（_attack_assigned，
+    # 优先级更高，不受本开关影响）。
+    # 开关默认关（既有测试口径不变）；runner 通过 config 打开（AIRTS_ENGAGE_ATTACK_MOVE）。
+    if bb.get("prefer_attack_move_engage"):
+        epos = ((bb.get("enemy_facts") or {}).get(pick) or {}).get("pos") or []
+        try:
+            if len(epos) >= 2:
+                return bb.emit("attack_move",
+                               {"pos": [round(float(epos[0]), 1),
+                                        round(float(epos[1]), 1)]},
+                               priority=75,
+                               rationale="作战单位以移动并攻击迫近 %s（途中遇敌就地交火）"
+                               % pick)
+        except (TypeError, ValueError, IndexError):
+            pass    # 坐标不可用 → 退回点攻击，不猜坐标
     return bb.emit("attack", {"entity_id": str(pick)}, priority=75,
                    rationale="作战单位交火局部最近/高威胁目标")
 
@@ -860,8 +937,16 @@ def _adapt(
     campaign = (state or {}).get("campaign_state")
     if isinstance(campaign, dict):
         # 扩张选址阶段的定向侦察点（纯程序产出，不是凭空游走）。
+        # 【2026-09-22】与阶梯的前探门槛同口径：主攻兵力未成形时**不给**扩张
+        # 定向点。实测（base_off_6）：阶梯侧加了军队门槛，BT 侦察分支仍照旧把
+        # 无人机派去远角前探点 → 它整局飞远角不探敌，敌方建筑 0 条情报。
+        # 参谋阶段 A："扩张延后到主攻条件满足"——两条路必须同口径。
         directive = campaign.get("expansion_probe") or []
-        if len(directive) >= 2:
+        combat_now = sum(1 for name in (state or {}).get("ai_controlled_units") or []
+                         if str((by_name.get(str(name)) or {}).get("type", ""))
+                         in (cfg.get("combat_types") or ()))
+        if (len(directive) >= 2
+                and combat_now >= rf.EXPANSION_PROBE_MIN_ARMY):
             try:
                 scout_directive = [float(directive[0]), float(directive[1])]
             except (TypeError, ValueError):
@@ -927,6 +1012,12 @@ def _adapt(
         "home_guard_ids": _home_guard_names(
             near_base, int(cfg.get("home_guard_max") or HOME_GUARD_MAX),
             len(combat_names), defending=defend_pos is not None),
+        # 【D17】回防配额：来犯之敌 + 余量（夹上下限），按离基地近远取前 N 个。
+        # 只有名单内的单位走"基地回防"分支，其余继续交火/前压（用户指令：
+        # "只留少部分在家，其他都去探索和进攻"）。
+        "defend_quota_ids": _defend_quota_names(
+            near_base, by_name, base_anchor, enemies,
+            defending=defend_pos is not None),
         "defense_recall_ids": (
             rf.defense_recall_names(combat_names, by_name, base_anchor)
             if defend_pos else []),
@@ -1028,6 +1119,9 @@ def micro_parts(
             "ttl_ticks": ttl_ticks,
             "player_controlled_units": player_units,
             "combat_types": cfg["combat_types"],
+            # 默认交火是否改用移动并攻击（config 门控；runner 默认开，见
+            # nodes 的 micro_parts 调用与 _engage_nearest 说明）。
+            "prefer_attack_move_engage": bool(cfg.get("prefer_attack_move_engage")),
             "visible_enemies": shared["visible_enemies"],
             "enemy_facts": shared.get("enemy_facts") or {},
             "engage_locks": (state or {}).setdefault("engage_locks", {}),
@@ -1071,6 +1165,8 @@ def micro_parts(
             # 只在显式关掉前压、或配置打开时才集合。
             "allow_idle_regroup": bool(cfg.get("allow_idle_regroup", False)),
             "home_guard_ids": shared["home_guard_ids"],
+            # 【D17】回防配额名单（受袭时只有名单内的单位走"基地回防"分支）。
+            "defend_quota_ids": shared.get("defend_quota_ids") or [],
             "defense_recall_ids": shared.get("defense_recall_ids") or [],
             "forward_rally": shared.get("forward_rally"),
             "units_scattered": bool(shared.get("units_scattered")),

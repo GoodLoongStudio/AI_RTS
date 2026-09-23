@@ -44,6 +44,27 @@ func _ready():
 	_refresh()
 
 
+func _physics_process(_delta):
+	_heal_wiped_move_target()
+
+
+## 自愈（2026-09-21 真机回归，冒烟见 GroundAttackMoveArrivalSmokeTest）：
+## 交战子动作（AutoAttacking → FollowingToReachDistance → Moving）在目标失效时走的是
+## **延迟** queue_free，其 _exit_tree 里的 movement.stop() 会在 _resume_advancing
+## **之后**才执行，把刚下发的 move(_destination) 清成 target_position=INF ——
+## 单位停在交战点原地不动，停滞检测放弃后订单假结束（症状：途中交战结束后
+## 永远抵达不了终点，"移动并攻击有时有 BUG"）。
+## Moving.gd 对同类竞态已有 _physics_process 自愈；本动作直接驱动 movement、
+## 没有 Moving 子动作兜底，必须自己补上（同一类问题，同一类修法）。
+func _heal_wiped_move_target() -> void:
+	if _engagement_action != null:
+		return
+	if _movement_trait == null or not is_instance_valid(_movement_trait):
+		return
+	if _movement_trait.target_position == Vector3.INF:
+		_movement_trait.move(_destination)
+
+
 func _exit_tree():
 	if is_inside_tree():
 		_movement_trait.stop()

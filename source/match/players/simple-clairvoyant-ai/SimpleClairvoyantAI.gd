@@ -48,6 +48,10 @@ enum Difficulty { EASY, NORMAL, HARD }
 ## 与 `attack_wave_delay_s` 的区别：后者只约束**首波**的绝对开火时间；
 ## 前者约束**每两波之间**的节奏 ⇒ 决定"压迫是否连续"。
 @export var re_dispatch_interval_s = 17.0
+## 【2026-09-21 S3 三档校准】关键区域情报复查目标（模拟秒）。任一巡逻格
+## 超过它没有被任何无人机观察到时，下一格优先派**最近**的无人机去复查
+## （方案第 2 节：EASY 90 / NORMAL 60 / HARD 35）。这是"持续侦察"的节奏来源。
+@export var intel_refresh_target_s = 60.0
 ## 防御威胁扫描半径（以主基地为中心一次大半径扫描，避免逐建筑扫描线性膨胀）。
 @export var defense_scan_radius = 40.0
 ## 回防最短执行时间（秒），防止威胁抖动导致编组来回拉扯。
@@ -100,6 +104,12 @@ func _ready():
 	#   **玩家选择 → 合法对局规则 → 显式测试模式**，隐式降级一律移除。
 	# 需要更弱的对手请在菜单里选难度，不要在这里改。
 	_apply_difficulty_profile()
+	# 【2026-09-21 S3/S4】启动日志记录**最终档位与关键节奏**（方案 2.A.2：
+	# "从选择到权威端一致、启动日志记录最终档位与配置版本"），便于复现与批跑解析。
+	print("规则 AI 难度=%s 首波=%.0fs 再派=%.0fs 情报复查=%.0fs" % [
+		Difficulty.keys()[difficulty], attack_wave_delay_s,
+		re_dispatch_interval_s, intel_refresh_target_s
+	])
 	# 显式 peaceful 测试模式：独立保留并标记，不得泄漏到普通对局。
 	if NetSession.e2e_peaceful_server:
 		first_wave_delay_s = 600.0
@@ -156,6 +166,8 @@ func _ready():
 		_query_session_id,
 		get_node("RuleAiCommandGateway")
 	)
+	# 三档情报复查目标由难度配置注入（控制器不自行决定难度）。
+	_intelligence_controller.intel_refresh_target_s = intel_refresh_target_s
 	_construction_works_controller.setup(
 		_world_query_runtime,
 		_query_session_id,
@@ -245,8 +257,13 @@ func _apply_difficulty_profile():
 	match difficulty:
 		Difficulty.EASY:
 			workers_per_command_center = 4
-			expected_number_of_battlegroups = 2
-			expected_number_of_units_in_battlegroup = 4
+			# 【2026-09-22 用户要求"把简单电脑削弱一下"】只动**产兵/出击节奏**，
+			# 不动建设（塔/CC/开矿门槛一律不碰）——历史教训见下方回滚注释：
+			# 收塔收 CC 会让简单电脑看起来"智障了、不会造建筑"，那是"AI 坏了"
+			# 不是"AI 变简单"。经济与建造保持原样，玩家看到的仍是一座正常运营的基地。
+			# 编组 2→1、编组规模 4→3：同时出击的兵力更少、更碎。
+			expected_number_of_battlegroups = 1
+			expected_number_of_units_in_battlegroup = 3
 			retreat_threshold = 0.35
 			# 【2026-09-15 用户口径两次更新，**当前口径 = 半分钟（30s）**】
 			# `first_wave_delay_s` 的门控在 OffenseController 出现三处（主产线/步兵/炮兵），
@@ -259,8 +276,12 @@ func _apply_difficulty_profile():
 			# → **0.0（2026-09-17：该参数已收敛为"只门控生产"，三档都不该延迟生产）**。
 			# 用户要的"半分钟后才打"由 `attack_wave_delay_s` 承担（下方），不是靠不造兵。
 			first_wave_delay_s = 0.0
-			attack_wave_delay_s = 42.0
-			re_dispatch_interval_s = 32.0
+			# 出击节奏三件套同步放慢（42→90 / 32→50 / 90→120）：首波从"半分钟出头"
+			# 推后到 1 分半，后续再派更稀，情报刷新更慢——简单电脑的压力曲线整体后移，
+			# 但仍在正常进攻（不会变成"不进攻的木桩"）。
+			attack_wave_delay_s = 90.0
+			re_dispatch_interval_s = 50.0
+			intel_refresh_target_s = 120.0
 			# 【2026-09-15 已回滚，勿再收小】此处曾把简单档的塔收成 1+1、CC 上限收成 2、
 			# 开矿门槛抬到 2500，想让开局的钱优先落到产线上。用户实测后果是
 			# 「简单电脑变得智障了，不会造建筑了」—— 塔少、不开分矿，观感就是 AI 不会建设。
@@ -279,6 +300,7 @@ func _apply_difficulty_profile():
 			first_wave_delay_s = 0.0
 			attack_wave_delay_s = 25.0
 			re_dispatch_interval_s = 8.0
+			intel_refresh_target_s = 35.0
 		_:
 			pass
 

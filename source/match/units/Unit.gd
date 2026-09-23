@@ -79,6 +79,16 @@ var can_force_fire_ground := false
 var moving_weapon_arc_degrees := 0.0
 var resources_max := 0
 var construction_work_per_tick := 0
+## 施工工效倍率（默认 1.0）：C# `ConstructionService` 每 tick 的推进倍率。
+## 为什么不直接放大 `construction_work_per_tick`：那个值是整数且通常为 1，
+## 1 × 1.3 会被取整吃回 1 ⇒ 倍率必须单独走浮点属性，由 C# 按小数累加。
+var construction_work_rate := 1.0
+## 成长系统写入的伤害倍率（默认 1.0 = 无加成）。
+## 真实伤害在 C# 结算（`ProjectileRuntime` 用武器 catalog 的 BaseDamage），
+## GDScript 的 `attack_damage` 只是 HUD 镜像，所以倍率必须走这个属性让 C# 读。
+var damage_multiplier := 1.0
+## 成长系统写入的生产工效：C# `ProductionService` 每个 tick 的推进量（默认 1.0）。
+var production_work_per_tick := 1.0
 var sight_range = null
 var player:
 	get:
@@ -112,6 +122,9 @@ func _ready():
 		await _match.ready
 	_setup_color()
 	_setup_properties_from_balance_catalog()
+	# 成长（永久加点）加成：**必须**在属性注入之后施加 —— 此时读到的是平衡表基线，
+	# 任何更早的写入都会被注入覆盖掉。幂等，且只对本地玩家单位生效。
+	GrowthModifiers.apply_to_unit(self)
 	assert(_safety_checks())
 	_setup_combat_sfx()
 

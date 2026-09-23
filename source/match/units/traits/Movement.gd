@@ -131,6 +131,10 @@ var _logic_path: PackedVector3Array = PackedVector3Array()
 var _logic_path_i := 0
 var _logic_path_pending := false
 var _logic_stuck := 0
+## 脱困推进锚点：只有比它更接近任务目标 `LOGIC_PROGRESS_STEP_M` 以上才算"有推进"。
+## 旧实现每帧位移/小滑动都清零卡住计数 ⇒ 贴障碍的原地微抖永远攒不到重寻路
+## （2026-09-21 过桥实测：单位在桥西缘 0.14m 极限环里抖了整局，A* 有绕行路）。
+var _logic_progress_anchor := INF
 var _logic_repath_cd := 0.0
 var _logic_repath_attempts := 0
 var _logic_unstick_cd := 0.0
@@ -139,6 +143,8 @@ const LOGIC_REPATH_MAX := 8
 const LOGIC_WAYPOINT_RADIUS_M := 1.6
 const LOGIC_PATH_BUDGET_PER_FRAME := 6
 const LOGIC_UNSTICK_COOLDOWN_S := 0.45
+## 判定"有推进"所需的最小接近量（米）。
+const LOGIC_PROGRESS_STEP_M := 0.5
 static var _logic_budget_frame := -1
 static var _logic_budget_left := 0
 
@@ -165,6 +171,12 @@ func _physics_process(delta):
 		return
 	if _skip_navigation_server():
 		_physics_process_logic_move(delta)
+		# 静止时也要结算平滑转向请求（face_towards）。逻辑地形单位不动时
+		# `_on_velocity_computed` 不会被调用，`_face_target` 永远挂起：
+		# 2026-09-23 矿场派工实测——工人背对矿点站桩，采集每 tick 都被
+		# 朝向门槛（WORKER_AIM_THRESHOLD_DEG）跳过，resource_a 恒 0、永远采不满。
+		if _face_target != Vector3.INF:
+			_apply_pending_face_rotation()
 	else:
 		_update_recovery(delta)
 		_repair_missing_path()
@@ -173,11 +185,20 @@ func _physics_process(delta):
 		var next_path_position: Vector3 = get_next_path_position()
 		next_path_position = _clamp_through_water(_unit.global_position, next_path_position)
 		var current_agent_position: Vector3 = _unit.global_transform.origin
+		# 浮空修复（2026-09-21 用户报"单位浮空"）的两层保障：
+		# ① _align_unit_position_to_navigation 已按实测偏移校准 path_height_offset，
+		#    寻路平面落在真实地表；
+		# ② 这里再把每帧位移限制在水平面（寻路只取 XZ），并用 _snap_to_ground_height
+		#    把 Y 压到真实地表（射线/高度场，与逻辑地形路径同源）——兜住斜坡上的
+		#    残余量化误差，避免任何"网格面比可视地面高"的组合让单位浮起来。
+		var seek_position := next_path_position
+		seek_position.y = current_agent_position.y
 		var new_velocity: Vector3 = (
-			(next_path_position - current_agent_position).normalized() * _interim_speed
+			(seek_position - current_agent_position).normalized() * _interim_speed
 		)
 		set_velocity(new_velocity)
 		_snap_air_height()
+		_snap_to_ground_height()
 	if Engine.get_physics_frames() % 40 == 0:
 		print("G4PERF movement_us=", Time.get_ticks_usec() - t0, " unit=", _unit.name)
 
@@ -226,11 +247,18 @@ func _apply_committed_target(movement_target: Vector3):
 			target_position = _committed_target
 		if _uses_logic_terrain_move() and _logic_path.is_empty() and _logic_repath_cd <= 0.0:
 			_request_logic_path()
+		# 已贴到目标却仍被同一目标反复派差（贴障碍行走/穿越场景）：到达锁存
+		# `_movement_end_emitted` 会把后续 arrival 全部静音，上层永远等不到
+		# movement_finished（2026-09-23 实测：工人在避让圈界外 0.5m 永不到达，
+		# 满载货物交不出去）。贴脸重派 = 允许再报一次到达。
+		if _movement_end_emitted and _committed_target != null 				and _planar_distance_to(_committed_target) <= maxf(float(radius), 0.35):
+			_movement_end_emitted = false
 		return
 	var clamped := _clamp_to_reachable(movement_target)
 	_raw_target = movement_target
 	_committed_target = clamped
 	_progress_reference_distance = _planar_distance_to(clamped)
+	_logic_progress_anchor = _planar_distance_to(clamped)
 	_path_repair_attempts = 0
 	_abort_recovery()
 	_reset_stability_state()
@@ -346,6 +374,17 @@ func _plant_ground_visual() -> void:
 
 
 func _snap_logic_height() -> void:
+	_snap_to_ground_height()
+	if not _ground_visual_planted:
+		_plant_ground_visual()
+		_ground_visual_planted = true
+
+
+## 把地形单位压到真实地表：射线（普通图）/ 高度场（生成图）。
+## 空中域转交 `_snap_air_height`（地表 + 离地高度）。
+## 导航网格路径与逻辑地形路径共用：网格面高度只用于寻路连通性，
+## 不作为单位的站立平面（见 `_physics_process` 里的浮空根因说明）。
+func _snap_to_ground_height() -> void:
 	if NetSession.is_client_puppet():
 		return
 	if domain == Constants.Match.Navigation.Domain.AIR:
@@ -362,9 +401,6 @@ func _snap_logic_height() -> void:
 		_unit.global_position.y = ground_y
 		if absf(dy) >= 0.15:
 			_unit.reset_physics_interpolation()
-	if not _ground_visual_planted:
-		_plant_ground_visual()
-		_ground_visual_planted = true
 
 
 func _snap_air_height() -> void:
@@ -429,6 +465,11 @@ func _physics_process_logic_move(delta: float) -> void:
 	if _planar_distance_to(_committed_target) <= arrive_radius:
 		if _uses_logic_terrain_move():
 			_snap_logic_height()
+		# 物理上已到达：解锁存再上报。锁存本意是"一次到达只报一次"，
+		# 但同目标被反复派差时它会吞掉后续 arrival，上层（采集状态机/
+		# GroundAttackMoving 交战转换）永远等不到 movement_finished
+		# （2026-09-23 实测：工人贴目标 0.15m、士兵距目标 60m 双双永久站桩）。
+		_movement_end_emitted = false
 		_emit_committed_end("Arrived")
 		return
 	if remain <= _logic_waypoint_radius(seek):
@@ -443,6 +484,7 @@ func _physics_process_logic_move(delta: float) -> void:
 			if remain <= arrive_radius + 1.25:
 				if _uses_logic_terrain_move():
 					_snap_logic_height()
+				_movement_end_emitted = false
 				_emit_committed_end("Arrived")
 				return
 			# 路走完就直奔目标，不要立刻重寻——新路径的第一格会把人折回去。
@@ -459,7 +501,8 @@ func _physics_process_logic_move(delta: float) -> void:
 			next = occupancy.clamp_ground_step(from, next)
 		else:
 			next = _clamp_through_water(from, next)
-		next = _push_out_of_static_obstacles(next)
+		# 逐步落点允许"脱离"：贴建筑行走时不要把每一步按回对侧（震荡卡死）。
+		next = _push_out_of_static_obstacles(next, true)
 	else:
 		next.y = from.y
 	var moved := Vector3(next.x - from.x, 0.0, next.z - from.z)
@@ -504,6 +547,7 @@ func _request_logic_path() -> void:
 	_logic_path_pending = false
 	_logic_path_i = 0
 	_logic_stuck = 0
+	_logic_progress_anchor = _planar_distance_to(_committed_target) if _committed_target != null else INF
 	_logic_repath_cd = 0.25
 	_logic_repath_attempts += 1
 	var path: Variant = occupancy.find_ground_path(_unit.global_position, _committed_target)
@@ -514,6 +558,17 @@ func _request_logic_path() -> void:
 	else:
 		_logic_path = PackedVector3Array()
 	_skip_passed_logic_waypoints()
+
+
+## 记录一次"朝任务目标的推进"：累计接近超过 `LOGIC_PROGRESS_STEP_M` 才清零卡住计数。
+## 单帧小步（正常移动 0.07m/帧）不构成推进——否则贴障原地抖永远脱不了困。
+func _note_logic_progress() -> void:
+	if _committed_target == null:
+		return
+	var distance := _planar_distance_to(_committed_target)
+	if distance < _logic_progress_anchor - LOGIC_PROGRESS_STEP_M:
+		_logic_progress_anchor = distance
+		_logic_stuck = 0
 
 
 func _clear_logic_path() -> void:
@@ -605,8 +660,7 @@ func _handle_logic_blocked(forward: Vector3) -> void:
 	if _uses_logic_terrain_move():
 		_snap_logic_height()
 	if _try_logic_slide(forward):
-		_logic_stuck = 0
-		return
+		_note_logic_progress()
 	_logic_stuck += 1
 	if _logic_stuck < 3:
 		return
@@ -635,7 +689,7 @@ func _try_logic_slide(forward: Vector3) -> bool:
 		var next: Vector3 = from + offset.normalized() * step
 		if occupancy != null and occupancy.has_method("clamp_ground_step"):
 			next = occupancy.clamp_ground_step(from, next)
-		next = _push_out_of_static_obstacles(next)
+		next = _push_out_of_static_obstacles(next, true)
 		var moved := Vector3(next.x - from.x, 0.0, next.z - from.z)
 		if moved.length_squared() < 0.0001:
 			continue
@@ -679,11 +733,12 @@ func _clamp_to_reachable(target: Vector3) -> Vector3:
 	# 部分烘焙网格会给出远距离的错误吸附点，此时保持原目标更安全。
 	if closest.distance_to(target) > CLAMP_MAX_SNAP_DISTANCE_M:
 		return _clamp_through_water(_unit.global_position, _push_out_of_static_obstacles(target))
+	# Y 取真实地表而不是 `网格面 - path_height_offset`：网格面被 Recast 量化抬高，
+	# 旧写法会把目标点写进浮空平面，令单位的运动平面与终态判定整体偏移（浮空根因之一）。
+	var clamped := Vector3(closest.x, _ground_height_at(closest), closest.z)
 	return _clamp_through_water(
 		_unit.global_position,
-		_push_out_of_static_obstacles(
-			Vector3(closest.x, closest.y - path_height_offset, closest.z)
-		)
+		_push_out_of_static_obstacles(clamped)
 	)
 
 
@@ -696,7 +751,13 @@ func _clamp_to_reachable(target: Vector3) -> Vector3:
 ## 远端一侧，单位于是绕大半圈去建筑背面（点击建筑时的经典坏手感）。
 ## 按单位这一侧推出等价于原 clamp 注释里的"从自己一侧贴近点击点"，
 ## 同时天然把多个单位分散到建筑的不同侧面，缓解建筑口拥堵。
-func _push_out_of_static_obstacles(point: Vector3) -> Vector3:
+##
+## `allow_escape=true`（**逐步落点**专用）：只有当这一步会**更深地进入**避让圈时才推回；
+## 已经在圈内、且这一步正在往外走（或切向通过）的，一律放行。
+## 2026-09-21 生成图实测：工人贴在自己建筑边缘时，每一步都被径向推回对侧，
+## 单位在两个相距 0.2m 的点之间来回瞬移、永远逃不出去（整局卡死）。
+## 目标点/脱困候选点仍用默认的 `false`（那里要的是"落点必须在圈外"）。
+func _push_out_of_static_obstacles(point: Vector3, allow_escape: bool = false) -> Vector3:
 	var group_name: String = (
 		Constants.Match.Navigation.DOMAIN_TO_OBSTACLE_GROUP_MAPPING.get(domain, "")
 	)
@@ -722,8 +783,23 @@ func _push_out_of_static_obstacles(point: Vector3) -> Vector3:
 		var obstacle_origin: Vector3 = obstacle.global_position
 		var center := Vector2(obstacle_origin.x, obstacle_origin.z)
 		var stand_off: float = float(obstacle_radius) + own_radius + OBSTACLE_CLEARANCE_MARGIN_M
-		if planar.distance_to(center) >= stand_off:
+		var step_distance: float = planar.distance_to(center)
+		if step_distance >= stand_off:
 			continue
+		if allow_escape:
+			# 已在圈内：这一步只要不是在"更深入"（距离没有变小），就放行——
+			# 让它走出去，不要把逃命的步子按回对侧。
+			# 【2026-09-23 穿越修复】"距离必须变大"会锁死**穿越**：单位在圈内、
+			# 任务目标在圈外时，直线路径必然先"更深入"（逼近圆心）再出去，
+			# 于是一路被按回边界、净位移≈0（实测工人贴在矿场避让圈界整局不动）。
+			# 判据改为：**任务目标在圈外即允许穿过**（目标在圈内/未知时才要求距离不减）。
+			var current_distance: float = unit_planar.distance_to(center)
+			var crossing := false
+			if _committed_target != null:
+				var goal_planar := Vector2(_committed_target.x, _committed_target.z)
+				crossing = goal_planar.distance_to(center) >= stand_off
+			if step_distance >= current_distance or crossing:
+				continue
 		var outward := unit_planar - center
 		if outward.length() < 0.001:
 			outward = planar - center
@@ -804,6 +880,17 @@ func _align_unit_position_to_navigation() -> bool:
 				and Vector2(source_position.x, source_position.z).length() > 8.0:
 			_snap_logic_height()
 			return true
+		# 2026-09-21 用户报"单位浮空"根因修复：Recast 体素量化会把可走面抬到
+		# 碰撞体顶面之上（实测本图参数 cell_height=0.6/agent_height=1.8/agent_radius=0.9
+		# 下，可视地面 y=0 的平地图烘出的网格面恒在 y=1.2），场景里写死的
+		# path_height_offset=0.6 只补得了一半 ⇒ 单位连同选中圈一起悬空 0.6m。
+		# 且该偏移随烘焙 AABB 与引擎版本漂移（同参数实测 +1.0~+1.2），不能写死。
+		# 这里按"网格面 - 真实地表"实测当前偏移并写回代理：寻路平面、目标点、
+		# 路径点随之全部落到真实地表，可达/到达判定保持同一平面（2026-09-11 踩过
+		# "目标点 Y 与运动平面不一致 ⇒ is_target_reachable 恒 false"的坑）。
+		# ⚠ 不能改成"只把单位按到地面"：代理的路径点仍浮在旧平面上，3D 距离下
+		# 航点永远推进不了，实测 MovementRecovery 假红 10+ 条（假 Unreachable）。
+		_calibrate_path_height_offset(closest)
 		_unit.global_transform.origin = (
 			closest - Vector3(0, path_height_offset, 0)
 		)
@@ -811,6 +898,24 @@ func _align_unit_position_to_navigation() -> bool:
 		return true
 	push_warning("Navigation alignment timed out for %s; preserving authored position" % _unit.name)
 	return false
+
+
+## 某 XZ 处的真实地表高度（射线/高度场）；取不到时退回归一化运动平面，
+## 保持与 NavigationAgent3D 的 path_height_offset 约定一致。
+func _ground_height_at(at: Vector3) -> float:
+	if _match != null and _match.has_method("ground_height_at"):
+		return float(_match.ground_height_at(at))
+	return at.y - path_height_offset
+
+
+## 按实测的"网格面 - 真实地表"偏移校正 path_height_offset，让 NavigationAgent3D 的
+## 寻路平面（路径点/目标点/到达判定）落在真实地表上。只在能测到正偏移时改写；
+## 测不到（射线打空等）保持场景配置值，行为与修复前一致。
+func _calibrate_path_height_offset(navmesh_point: Vector3) -> void:
+	var ground_y := _ground_height_at(navmesh_point)
+	var measured: float = navmesh_point.y - ground_y
+	if measured > 0.05:
+		path_height_offset = measured
 
 
 ## 非阻塞完成导航对齐，并恢复初始化期间收到的最后一个显式移动目标。
@@ -1050,8 +1155,9 @@ func _pick_escape_target() -> Variant:
 		var clearance := -snap
 		if clearance > best_clearance:
 			best_clearance = clearance
+			# Y 同样取真实地表：脱困候选点也要落在单位的站立平面上。
 			best = _push_out_of_static_obstacles(
-				Vector3(closest.x, closest.y - path_height_offset, closest.z)
+				Vector3(closest.x, _ground_height_at(closest), closest.z)
 			)
 	return best
 

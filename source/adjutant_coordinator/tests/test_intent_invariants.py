@@ -105,7 +105,12 @@ class BuildSpotInvariantTest(unittest.TestCase):
         self.assertIsNone(issue, "%s 的落点违反前置条件（%s）：%s" % (label, issue, pos))
 
     def test_ladder_build_spots_pass_preconditions(self):
-        """发展阶梯（地板）产出的每一个建造落点都必须合法。"""
+        """发展阶梯（地板）产出的每一个建造**政策点**都必须合法。
+
+        2026-09-23 自动相邻放置后，坐标本身移交权威端（`FindAutoSpot` 以权威
+        评估逐环搜点），副官只下发 `hint`（政策点/搜索锚点）。不变式从
+        "pos 合法"改为"hint 合法"——游戏侧围着它搜，锚点自己必须先过硬约束。
+        """
         for label, (base_x, base_z), bounds in SCENARIOS:
             with self.subTest(scenario=label):
                 tactical = observation(base_x, base_z)
@@ -114,7 +119,9 @@ class BuildSpotInvariantTest(unittest.TestCase):
                     rules=RULES, server_tick=1000, snapshot_id=5)
                 self.assertTrue(out, "没有产出任何意图 = 地板失效")
                 self.assertEqual(out[0]["action"], "build")
-                self._assert_spot_ok(out[0]["target"]["pos"], bounds,
+                target = out[0]["target"]
+                self.assertNotIn("pos", target, "落点已移交权威端：副官不得自带坐标")
+                self._assert_spot_ok(target["hint"], bounds,
                                      own_points(tactical), "development_intents")
 
     def test_unknown_map_size_still_stays_in_vision(self):
@@ -127,11 +134,11 @@ class BuildSpotInvariantTest(unittest.TestCase):
         anchored = ladder_state(["Unit_0", "Unit_2"])
         out = rf.development_intents(anchored, tactical=observation(10.0, 3.0),
                                      rules=RULES, server_tick=1000, snapshot_id=5)
-        pos = out[0]["target"]["pos"]
+        hint = out[0]["target"]["hint"]
         nearest = placement.first_own_distance(
-            pos, own_points(observation(10.0, 3.0)))
+            hint, own_points(observation(10.0, 3.0)))
         self.assertLessEqual(nearest, placement.VISION_SAFE_RADIUS_M + 0.01,
-                             "未知地图尺寸时落点也必须留在视野内：%s" % (pos,))
+                             "未知地图尺寸时政策点也必须留在视野内：%s" % (hint,))
 
     def test_frame_build_spots_pass_preconditions(self):
         """模型侧决策帧给出的每一个建造候选都必须合法（模型只会从中挑）。"""

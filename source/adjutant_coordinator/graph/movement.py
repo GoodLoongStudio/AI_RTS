@@ -88,6 +88,10 @@ LOCAL_CONTACT_RADIUS_M = 30.0
 #: "让部队出门"应由 `RELAY_VISION_RADIUS_M`（视野/中继）解决，**不要靠下调接敌门槛**——
 #: 后者会把"打不过就撤"变成"打不过也上"。
 ENGAGE_ADVANTAGE_RATIO = 1.2
+#: 侦察的接敌下限（2026-09-22 D14）：明显以卵击石才拦（0.5 = 对面有我方两倍
+#: 以上战力才撤）。比作战口径松得多——"用一条便宜单位换情报"是侦察的本职，
+#: 而旧口径"路径上有任何敌人就停"让侦察永远摸不到敌家（v6 轮 5 局 1 例）。
+SCOUT_ENGAGE_RATIO = 0.5
 
 
 def parse_nav_revision(value, default: int = -1) -> int:
@@ -150,6 +154,84 @@ def local_force(tactical: Dict[str, Any], point: Sequence[float], *,
         else:
             own += max(0.0, min(1.0, fraction))
     return round(own, 3), round(enemy, 3)
+
+
+def committed_support(state: Dict[str, Any], tactical: Dict[str, Any],
+                      contact: Sequence[float], combat_types: Sequence[str] = (),
+                      *, exclude: str = "") -> float:
+    """已受命开往**这一仗**的己方作战单位战力（增援计入；2026-09-21）。
+
+    ## 为什么必须有（v11 实测）
+    `local_force` 只数**已经进圈**的单位，于是一支大军被逐个评估：每个单位只看得到
+    先到的战友，永远凑不齐 `ENGAGE_ADVANTAGE_RATIO`，整支部队卡在威胁圈外缘
+    （413 次推进只放行 56 次，`threat_too_high` 拦 222 次；90:31 的优势兵力
+    超时亡，敌人建筑一根毛都没掉）。这不是"保守"，是**集结动作从未完成**。
+
+    ## 口径（与"远方友军不算支援"不矛盾）
+    - 战区 = 接触圈（`LOCAL_CONTACT_RADIUS_M`）内的**敌方**单位所在处；
+    - 只数路线台账里 `target` 落在**任一战区敌人**接触圈内的己方作战单位 ——
+      那是"正在赶来打这一仗"的部队；
+    - 坐在家里、去别处、或没有路线的单位一律不算（守门测试
+      `test_distant_friendlies_do_not_count_as_support` 仍然成立：200m 外看戏的
+      友军没有路线，计入为 0）；
+    - 战力折算与 `local_force` 同口径：作战类型 × 血量比；排除本单位自己。
+    """
+    routes = (state or {}).get("routes") or {}
+    if not isinstance(routes, dict) or not isinstance(tactical, dict) or len(contact) < 2:
+        return 0.0
+    cx, cz = float(contact[0]), float(contact[1])
+    types = tuple(str(item) for item in (combat_types or ()))
+    entities = tactical.get("entities") or []
+    # ① 战区：接触圈内的敌人（没有敌人就没有"这一仗"，增援无从谈起）。
+    theater: List[Tuple[float, float]] = []
+    for entity in entities:
+        if not isinstance(entity, dict) or entity.get("confirmed_dead"):
+            continue
+        if not str(entity.get("kind", "")).startswith("unit_enemy"):
+            continue
+        pos = entity.get("pos") or []
+        if len(pos) < 3:
+            continue
+        if math.hypot(float(pos[0]) - cx, float(pos[2]) - cz) <= LOCAL_CONTACT_RADIUS_M:
+            theater.append((float(pos[0]), float(pos[2])))
+    if not theater:
+        return 0.0
+    # ② 己方单位表（按名字索引，取类型/血量）。
+    own_by_name: Dict[str, Dict[str, Any]] = {}
+    for entity in entities:
+        if isinstance(entity, dict) and str(entity.get("kind", "")) == "unit_self":
+            name = str(entity.get("name", ""))
+            if name:
+                own_by_name[name] = entity
+    # ③ 受命赶来：路线 target 落在任一战区敌人的接触圈内。
+    support = 0.0
+    for unit, route in routes.items():
+        name = str(unit)
+        if name == str(exclude) or name not in own_by_name:
+            continue
+        if not isinstance(route, dict):
+            continue
+        target = route.get("target") or []
+        if len(target) < 2:
+            continue
+        try:
+            tx, tz = float(target[0]), float(target[1])
+        except (TypeError, ValueError):
+            continue
+        if not any(math.hypot(tx - ex, tz - ez) <= LOCAL_CONTACT_RADIUS_M
+                   for ex, ez in theater):
+            continue
+        entity = own_by_name[name]
+        unit_type = str(entity.get("unit_type", ""))
+        if types and unit_type and unit_type not in types:
+            continue
+        hp, hp_max = entity.get("hp"), entity.get("hp_max")
+        try:
+            fraction = (float(hp) / float(hp_max)) if float(hp_max or 0) > 0 else 1.0
+        except (TypeError, ValueError):
+            fraction = 1.0
+        support += max(0.0, min(1.0, fraction))
+    return round(support, 3)
 
 
 def _combat_types_of(state: Dict[str, Any]) -> Tuple[str, ...]:
@@ -621,12 +703,30 @@ def plan_safe_route(state: Dict[str, Any], tactical: Dict[str, Any], *,
     if plan.threat_score >= THREAT_BLOCK_SCORE:
         contact = waypoints[-1] if waypoints else plan.relay_point
         own, foe = local_force(tactical, contact, combat_types=_combat_types_of(state))
+        # 增援计入（2026-09-21）：已经受命开往这一仗的己方单位算即时战力。
+        # 没有这一条时大军会被逐个评估、永远集结不起来（见 `committed_support`）。
+        own += committed_support(state, tactical, contact,
+                                 combat_types=_combat_types_of(state),
+                                 exclude=str(unit))
         plan.local_own, plan.local_enemy = own, foe
         advantage = (own / foe) if foe > 0 else float("inf")
         if str(role) == ROLE_SCOUT:
-            # 侦察**优先避战**（计划 §4.1 原文）→ 仍然停下（换目标是上层的事）。
-            plan.reason = REJECT_THREAT
-            plan.urgent_event = "enemy_on_route"
+            # 【2026-09-22 D14 侦察放行】"路径上有敌人就停"让侦察**永远到不了敌家**
+            # ——敌家本来就在敌方防御圈里。用户明确要求"很快发现敌家位置"，
+            # 而 v6 轮 5 局只有 1 局看见敌家（184 条确认扫描订单全被本闸门拦在
+            # 威胁圈外）。新口径：与作战单位同一把尺子（局部战力），但**不要求
+            # 优势**——只要不是明显以卵击石（局部战力 ≥ 侦察接敌下限），
+            # 就用一条便宜的单位换情报；真被打掉还有 D9/D13 的备份链。
+            # 静态威胁（炮塔/建筑，foe=0）一律放行：它们不会追击，
+            # 而"看见敌家"正是侦察的职责。
+            if foe > 0 and advantage < SCOUT_ENGAGE_RATIO:
+                plan.reason = REJECT_THREAT
+                plan.urgent_event = "enemy_on_route"
+                return plan
+            plan.urgent_event = ""
+            plan.ok = True
+            here = _pos2d(by_name.get(str(unit), {}))
+            plan.retreat_point = [here[0], here[1]] if here else list(waypoints[0])
             return plan
         if foe > 0 and advantage < ENGAGE_ADVANTAGE_RATIO:
             # 局部劣势/势均力敌 → 不许推进（集结/撤离由降级动作负责）。
@@ -644,7 +744,8 @@ def plan_safe_route(state: Dict[str, Any], tactical: Dict[str, Any], *,
     return plan
 
 
-def fallback_action_for(blocked_action: str, reason: str) -> str:
+def fallback_action_for(blocked_action: str, reason: str, *,
+                        support: float = 0.0, local_enemy: float = 0.0) -> str:
     """被拦下的移动意图 → **降级动作**（四个合法归宿之一）。
 
     两条规则（都只有一处实现）：
@@ -654,10 +755,21 @@ def fallback_action_for(blocked_action: str, reason: str) -> str:
        （那会和刚被拒的意图撞车，每轮重复下单）。
     2. 其余按**原因**分档（`REASON_FALLBACK`）：敌人挡路 → 回基地/集结；
        没证据（无边界/无路径/无中继点/无侦察确认）→ 等待。
+
+    `support` / `local_enemy`（2026-09-21 集结修复）：被 `threat_too_high`
+    拦下时，如果**援军已经在赶来这一仗**（support ≥ 接敌门槛 × 当面之敌），
+    退化成 `hold` 而不是 `retreat` —— 援军在路上时擅自后撤会把正在集结的
+    大队逐个抽走（实测 v11：114 次 retreat，大军永远攒不起来）。
+    孤立无援的单位（support 不足）仍然按原口径撤退，求生纪律不变。
     """
     if str(blocked_action) in (FALLBACK_RETREAT, FALLBACK_REGROUP):
         return FALLBACK_GUARD
-    return REASON_FALLBACK.get(str(reason), FALLBACK_WAIT)
+    chosen = REASON_FALLBACK.get(str(reason), FALLBACK_WAIT)
+    if (chosen == FALLBACK_RETREAT and str(reason) == REJECT_THREAT
+            and float(support) >= ENGAGE_ADVANTAGE_RATIO * max(0.0, float(local_enemy))
+            and float(local_enemy) > 0.0):
+        return FALLBACK_GUARD
+    return chosen
 
 
 def plan_survival_route(state: Dict[str, Any], tactical: Dict[str, Any], *,

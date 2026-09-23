@@ -501,11 +501,19 @@ def build_scene_text(map_id, runs_root, seed, out_dir, g4_params, visual_seed=No
         bridge_asm.append(asm)
         for p in asm["parts"]:
             bridge_res.add(p["res"])
-    # 缺素材必须明确报错，不能静默退回旧方盒桥并标为通过
+    # 缺素材必须明确报错，不能静默退回旧方盒桥并标为通过。
+    # 【2026-09-20 修复】原先只检查**源路径**（SRC_ROOT/…）是否存在，但素材在历史上
+    # 已经安装到 `assets/models/scifi-worlds/…`（见 `_res_to_dst` 的转换目标），
+    # 而源目录（原始素材包，被 .gitignore 有意排除，见其中
+    # "Commercial / huge source pack" 注释）**并不在仓库里** ⇒ 明明可用却被误判为缺失，
+    # G4 导出就此中断（复刻大湖 seed16 时复现）。
+    # 现在改为：目标路径存在 = 已安装可用；源路径存在 = 可拷贝；两者都没有才算真正缺失。
     for res in sorted(bridge_res):
         rel = res[len("res://"):]
-        if not (SRC_ROOT / rel).exists():
-            raise FileNotFoundError(f"桥组合素材缺失（不静默回退方盒桥）: {res}")
+        dst_path = Path(G4_AIRTS) / _res_to_dst(res)[len("res://"):]
+        if (SRC_ROOT / rel).exists() or dst_path.exists():
+            continue
+        raise FileNotFoundError(f"桥组合素材缺失（源与目标都不存在）: {res}")
 
     # ---- G2 装饰语义提示层（decoration_hints）：视觉排布的唯一分区依据 ----
     from . import g2_decor

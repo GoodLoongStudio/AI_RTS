@@ -333,6 +333,14 @@ func _check_profile() -> void:
 # ---------------- 加点确认 / 落盘 / 还原 ----------------
 
 func _check_growth_confirm() -> void:
+	# 本探针必须在**任意玩家存档**下都能跑：真实存档可能已经把点数花光
+	#（实测 2026-09-21：available_points=0 ⇒ 找不到可升级节点，整段加点验收被跳过并报红，
+	# 于是"加点是否正确"这条最重要的判据在最需要它的时候失效）。先临时补足点数，
+	# 函数末尾按 `state_backup` 原样还原。
+	var state_backup: Dictionary = GrowthStore.state.duplicate(true)
+	GrowthStore.state["available_points"] = maxi(
+		int(GrowthStore.state.get("available_points", 0)), 32
+	)
 	var node_id := ""
 	for branch in ["combat", "economy", "construction"]:
 		for definition in GrowthStore.DEFINITIONS.get(branch, []):
@@ -346,7 +354,6 @@ func _check_growth_confirm() -> void:
 	if node_id.is_empty():
 		return
 
-	var state_backup: Dictionary = GrowthStore.state.duplicate(true)
 	var base_level := GrowthStore.get_level(node_id, {})
 	var before_points := int(GrowthStore.state.get("available_points", 0))
 	var status := GrowthStore.can_upgrade(node_id, {})
@@ -384,12 +391,15 @@ func _check_growth_confirm() -> void:
 	# 还原：探针不得留下副作用。
 	GrowthStore.state = state_backup
 	GrowthStore.save_state()
+	# 还原判据必须比对**补足前**的备份值（`before_points` 是补足后的 32，只用于扣减断言）。
 	_check(
 		GrowthStore.get_level(node_id, {}) == base_level and
-			int(GrowthStore.state.get("available_points", 0)) == before_points,
+			int(GrowthStore.state.get("available_points", 0))
+				== int(state_backup.get("available_points", 0)),
 		"探针已还原成长状态",
-		"等级 %d / 点数 %d" % [
+		"等级 %d / 点数 %d（期望等级 %d / 点数 %d）" % [
 			GrowthStore.get_level(node_id, {}), int(GrowthStore.state.get("available_points", 0)),
+			base_level, int(state_backup.get("available_points", 0)),
 		]
 	)
 

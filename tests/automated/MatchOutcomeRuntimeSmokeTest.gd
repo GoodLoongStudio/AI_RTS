@@ -5,11 +5,16 @@ const MatchOutcomeRuntimeScript = preload(
 )
 const MatchEndHandlerScene = preload("res://source/match/handlers/MatchEndHandler.tscn")
 const PlayerVsAiScene = preload("res://tests/manual/TestPlayerVsAI.tscn")
+const StructureScript = preload("res://source/match/units/Structure.gd")
 
 var _failures := 0
 
 
 ## 验证 C# 胜负服务的 Godot 事实桥接、同帧平局和 Legacy 面板映射。
+##
+## 胜负口径（2026-09-21 用户要求"所有的建造建筑被摧毁视为游戏失败"）：
+## 只有**可建造建筑**让阵营续命；作战单位/工人全灭不再终局，
+## 而建造建筑全灭（哪怕单位还堆着）立即判负。
 func _ready():
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	await _test_human_victory_and_spawn_bridge()
@@ -21,6 +26,9 @@ func _ready():
 	await _test_campaign_defeat_without_annihilation()
 	await _test_locked_outcome_cannot_be_resettled()
 	await _test_actual_match_unit_death_path()
+	await _test_mobile_units_alone_do_not_defeat_side()
+	await _test_all_buildings_destroyed_defeats_side()
+	await _test_human_loses_when_all_buildings_destroyed()
 
 	print("Match outcome runtime smoke test completed: %d failure(s)" % _failures)
 	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1)
@@ -225,6 +233,111 @@ func _test_actual_match_unit_death_path():
 			"真实 Match 清空敌军后应显示 Victory")
 	get_tree().paused = false
 	match_instance.queue_free()
+	await get_tree().process_frame
+
+
+## ---------- 建造建筑胜负口径（2026-09-21 用户要求："所有的建造建筑被摧毁视为游戏失败"） ----------
+
+## 起一局真实的 Player vs AI 对局，等双方单位生出来（导航烘焙后 Match._ready 才生成）。
+## 敌方 AI 玩家停处理，避免它在断言期间自己出兵/建筑干扰事实。
+func _create_real_match() -> Dictionary:
+	get_tree().paused = false
+	var match_instance = PlayerVsAiScene.instantiate()
+	add_child(match_instance)
+	var human = match_instance.get_node("Players/Human")
+	var enemy_players: Array = match_instance.get_node("Players").get_children().filter(
+		func(player): return player != human and player.is_in_group("players")
+	)
+	for player in enemy_players:
+		player.process_mode = Node.PROCESS_MODE_DISABLED
+	var enemy_units: Array = []
+	for _frame in range(120):
+		await get_tree().process_frame
+		enemy_units = get_tree().get_nodes_in_group("units").filter(
+			func(unit): return match_instance.is_ancestor_of(unit) and unit.player != human
+		)
+		if not enemy_units.is_empty():
+			break
+	return {
+		"match": match_instance,
+		"human": human,
+		"enemy_units": enemy_units,
+	}
+
+
+## 验证敌方作战单位全灭、建造建筑还在时**不终局**：新规则下单位不再让阵营续命，
+## 但也不再"单位死光就判负"——只有建造建筑全灭才淘汰。
+func _test_mobile_units_alone_do_not_defeat_side():
+	var fixture: Dictionary = await _create_real_match()
+	var enemy_units: Array = fixture.enemy_units
+	var buildings: Array = enemy_units.filter(func(unit): return unit is StructureScript)
+	var mobile: Array = enemy_units.filter(func(unit): return not (unit is StructureScript))
+	_check(not buildings.is_empty(), "真实对局敌方开局应有建造建筑（主基地）")
+	_check(not mobile.is_empty(), "真实对局敌方开局应有作战单位")
+	for unit in mobile:
+		unit.call("_handle_unit_death")
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	var runtime = fixture.match.get_node("MatchOutcomeRuntime")
+	_check(runtime.InspectOutcome().get("kind", "") == "InProgress",
+		"敌方作战单位全灭但建造建筑还在时必须保持 InProgress")
+	get_tree().paused = false
+	fixture.match.queue_free()
+	await get_tree().process_frame
+
+
+## 验证敌方**建造建筑**全灭即判敌负（哪怕它的作战单位还堆在场上）。
+func _test_all_buildings_destroyed_defeats_side():
+	var fixture: Dictionary = await _create_real_match()
+	var enemy_units: Array = fixture.enemy_units
+	var buildings: Array = enemy_units.filter(func(unit): return unit is StructureScript)
+	var mobile: Array = enemy_units.filter(func(unit): return not (unit is StructureScript))
+	_check(not buildings.is_empty(), "真实对局敌方开局应有建造建筑（主基地）")
+	for unit in buildings:
+		unit.call("_handle_unit_death")
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	var runtime = fixture.match.get_node("MatchOutcomeRuntime")
+	var snapshot: Dictionary = runtime.InspectOutcome()
+	_check(snapshot.get("kind", "") == "Won",
+		"敌方建造建筑全灭应产生 Won（单位还活着也不算）")
+	_check(snapshot.get("local_result", "") == "Victory",
+		"敌方建造建筑全灭时本机 local_result 应为 Victory")
+	_check(not mobile.is_empty(), "该用例前提：敌方被淘汰时仍有作战单位存活")
+	var handler = fixture.match.get_node_or_null("Handlers/MatchEndHandler")
+	_check(handler != null and handler.find_child("Victory").visible,
+		"敌方建造建筑全灭应显示 Victory 面板")
+	get_tree().paused = false
+	fixture.match.queue_free()
+	await get_tree().process_frame
+
+
+## 验证本机 Human 的建造建筑全灭即游戏失败（Defeat），单位还活着也一样。
+func _test_human_loses_when_all_buildings_destroyed():
+	var fixture: Dictionary = await _create_real_match()
+	var human = fixture.human
+	var human_units: Array = get_tree().get_nodes_in_group("units").filter(
+		func(unit): return fixture.match.is_ancestor_of(unit) and unit.player == human
+	)
+	var human_buildings: Array = human_units.filter(func(unit): return unit is StructureScript)
+	_check(not human_buildings.is_empty(), "真实对局本机开局应有建造建筑（主基地）")
+	for unit in human_buildings:
+		unit.call("_handle_unit_death")
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	var runtime = fixture.match.get_node("MatchOutcomeRuntime")
+	var snapshot: Dictionary = runtime.InspectOutcome()
+	_check(snapshot.get("kind", "") == "Won", "本机建造建筑全灭后对局应终局")
+	_check(snapshot.get("local_result", "") == "Defeat",
+		"本机建造建筑全灭的 local_result 应为 Defeat")
+	var handler = fixture.match.get_node_or_null("Handlers/MatchEndHandler")
+	_check(handler != null and handler.find_child("Defeat").visible,
+		"本机建造建筑全灭应显示 Defeat 面板")
+	get_tree().paused = false
+	fixture.match.queue_free()
 	await get_tree().process_frame
 
 

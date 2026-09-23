@@ -532,7 +532,19 @@ func _setup_players():
 		if node is Player:
 			node.add_to_group("players")
 			node.setup_resource_account($EconomyRuntime)
+			_grant_growth_starting_bonus(node)
 	_ensure_local_player_has_actions_controller()
+
+
+## 成长「资源储备」的开局赠款：必须在 `setup_resource_account()` 之后发放，
+## 否则这笔钱进不了权威资源账户（直接改 `resource_a` 会被 C# 账户镜像拒绝）。
+## 联机不发：`GrowthModifiers.is_enabled()` 为 false 时返回 0。
+func _grant_growth_starting_bonus(player: Node) -> void:
+	var bonus := GrowthModifiers.starting_resource_bonus(player)
+	if bonus <= 0:
+		return
+	player.add_resources({"resource_a": bonus}, "ScriptedAdjustment", player)
+	print("[GROWTH] 开局成长赠款 +%d → player=%s" % [bonus, player.name])
 
 
 ## 保证"本地玩家"一定有指令控制器（2026-09-12）。

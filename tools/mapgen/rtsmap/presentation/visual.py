@@ -21,7 +21,7 @@ from pathlib import Path
 
 import numpy as np
 
-from ..contract import GRID_H, GRID_W, SRC_PREVIEW_ROOT
+from ..contract import G4_AIRTS, GRID_H, GRID_W, SRC_PREVIEW_ROOT
 from ..grid import canon_json_bytes, sha256_bytes
 from ..pathing import cell_of, dilate8
 
@@ -29,6 +29,24 @@ VISUAL_API_VERSION = "1.0.0"
 PROFILE_DIR = Path(__file__).resolve().parents[1] / "data" / "visual_profiles"
 SOURCE_ROOT = Path(SRC_PREVIEW_ROOT)
 EXTRA_INDEX = Path(__file__).resolve().parents[1] / "data" / "visual_assets_extra.json"
+
+
+def _asset_available(res_path: str) -> bool:
+    """判断素材是否可用：**源路径存在** 或 **已安装到工程内**。
+
+    【2026-09-20 修复】原先各处只查 `SOURCE_ROOT/…`（原始素材包目录），但原始包
+    （4006_科幻世界 / 4041_西部前线 …）被 .gitignore **有意排除**
+    （注释："Commercial / huge source pack — play via assets/models/scifi-worlds"），
+    源目录不在仓库里；素材在历史上已经安装到
+    `AI_RTS/assets/models/scifi-worlds/…`（见 g4_export._res_to_dst 的同名规则）
+    ⇒ 明明可用却被误判为缺失，G4 导出在复刻大湖 seed16 时中断。
+    现在：源存在 = 可拷贝；已安装目标存在 = 可用；都没有才算真正缺失。
+    """
+    rel = res_path[len("res://"):] if res_path.startswith("res://") else res_path
+    if (SOURCE_ROOT / rel).exists():
+        return True
+    tail = rel[len("assets/"):] if rel.startswith("assets/") else rel
+    return (Path(G4_AIRTS) / "assets" / "models" / "scifi-worlds" / tail).exists()
 
 
 class VisualPlanError(RuntimeError):
@@ -53,8 +71,7 @@ def _extra_catalog():
                 raise VisualPlanError(
                     f"visual_assets_extra.json 条目缺字段 {key}: {e.get('name')}")
         for rp in (e["res_path"], e["atlas"]):
-            rel = rp[len("res://"):]
-            if not (SOURCE_ROOT / rel).exists():
+            if not _asset_available(rp):
                 raise VisualPlanError(f"受控索引素材缺失（不静默回退）: {rp}")
         extras[e["res_path"]] = dict(e)
     return extras
@@ -355,8 +372,7 @@ def build_visual_plan(context, profile, visual_seed):
     missing = []
     for res_path, atlas in sorted(deps.items()):
         for rp in (res_path, atlas):
-            rel = rp[len("res://"):]
-            if not (SOURCE_ROOT / rel).exists():
+            if not _asset_available(rp):
                 missing.append(rp)
     if missing:
         raise VisualPlanError(f"视觉样式引用的素材缺失（不静默回退）: {missing[:8]}")

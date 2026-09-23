@@ -149,6 +149,10 @@ def summarize_decode(result: Optional[DecodeResult]) -> Dict[str, Any]:
     if isinstance(result, dict):
         return dict(result)
     return {
+        # 决策地图分支（2026-09-21 Laya 分支选择经异步路径落地要靠这个字段；
+        # 少了它 `_apply_model_branch` 在异步调度下永远看不到 g）。
+        "goal_ref": str(getattr(result, "goal_ref", "") or ""),
+        "branch_source": str(getattr(result, "branch_source", "") or ""),
         "rows": len(result.modifications) + len(result.rejections),
         "accepted": len(result.modifications),
         # 其中"复述现状"的行数（与执行者当前任务相同）：这类行**不下发命令**，

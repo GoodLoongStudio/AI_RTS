@@ -1,8 +1,14 @@
 extends Node
 
+const FIELD_POSITION := 1 << 0
 const FIELD_TYPE := 1 << 1
 const FIELD_RELATION := 1 << 2
 const FIELD_ORDER := 1 << 6
+## 【2026-09-21 S3 三档校准】关键区域复查目标（模拟秒），由 SimpleClairvoyantAI
+## 按难度注入：EASY 90 / NORMAL 60 / HARD 35（方案第 2 节）。
+var intel_refresh_target_s := 60.0
+## 每个巡逻格最近一次被无人机观察到的模拟毫秒（缺失 = 从未访问过）。
+var _waypoint_last_visit_sim_ms := {}
 const REFRESH_INTERVAL_S := 0.5
 const PATROL_MARGIN_M := 5.0
 const PATROL_SPACING_M := 15.0
@@ -48,7 +54,7 @@ func _refresh_patrols():
 		return
 	var result: Dictionary = _world_query_runtime.GetOwnForces(
 		_query_session_id,
-		FIELD_TYPE | FIELD_ORDER
+		FIELD_POSITION | FIELD_TYPE | FIELD_ORDER
 	)
 	if result.get("status", "") != "Accepted":
 		push_warning("rule AI intelligence query was rejected: %s" % result)
@@ -62,6 +68,10 @@ func _refresh_patrols():
 	var current_ids: Array[String] = []
 	for drone in drones:
 		current_ids.append(drone.get("id", ""))
+	# 【2026-09-21 S3】把每架无人机当前位置的最近格记为"刚被观察"，
+	# 供"超过复查目标时间的格子优先复查"使用（模拟时钟，暂停不累计）。
+	for drone in drones:
+		_mark_nearby_waypoint_visited(drone.get("position", Vector3.INF))
 	for drone_id in _next_waypoint_index_by_drone.keys():
 		if drone_id not in current_ids:
 			_next_waypoint_index_by_drone.erase(drone_id)
@@ -89,6 +99,11 @@ func _refresh_patrols():
 ## 向一个空闲 Drone 提交下一网格点；被拒绝时保留索引供下一周期重试。
 func _issue_next_patrol_move(drone_id: String):
 	var waypoint_index: int = _next_waypoint_index_by_drone.get(drone_id, 0)
+	# 【2026-09-21 S3】复查优先：若有格子的"未被观察时长"超过难度目标
+	# （90/60/35 模拟秒），优先派它去那一格；否则按原轮转继续。
+	var stale_index := _most_stale_waypoint_index()
+	if stale_index >= 0:
+		waypoint_index = stale_index
 	var result: Dictionary = _command_gateway.Move(
 		[drone_id],
 		_patrol_waypoints[waypoint_index]
@@ -112,6 +127,46 @@ func _now_sim_ms() -> int:
 	if ai != null and ai.has_method("simulation_msec"):
 		return int(ai.simulation_msec())
 	return Time.get_ticks_msec()
+
+
+## 【2026-09-21 S3】把"离无人机当前位置最近的巡逻格"标记为刚被观察。
+## 用平面距离（忽略高度），与战场扫描的口径一致。
+func _mark_nearby_waypoint_visited(drone_position: Vector3) -> void:
+	if drone_position == Vector3.INF or _patrol_waypoints.is_empty():
+		return
+	var best_index := -1
+	var best_distance := INF
+	for index in range(_patrol_waypoints.size()):
+		var distance := _planar_distance_squared(drone_position, _patrol_waypoints[index])
+		if distance < best_distance:
+			best_distance = distance
+			best_index = index
+	if best_index >= 0:
+		_waypoint_last_visit_sim_ms[best_index] = _now_sim_ms()
+
+
+## 返回"最久未被观察且已超过复查目标"的巡逻格下标；没有则 -1。
+## 从未访问过的格子（last == 0）视为等待了"自对局开始以来的全部时间"。
+func _most_stale_waypoint_index() -> int:
+	if _patrol_waypoints.is_empty() or intel_refresh_target_s <= 0.0:
+		return -1
+	var threshold_ms := int(intel_refresh_target_s * 1000.0)
+	var now := _now_sim_ms()
+	var best_index := -1
+	var best_age := threshold_ms - 1
+	for index in range(_patrol_waypoints.size()):
+		var last := int(_waypoint_last_visit_sim_ms.get(index, 0))
+		var age := (now - last) if last > 0 else now
+		if age > best_age:
+			best_age = age
+			best_index = index
+	return best_index
+
+
+## 平面距离平方（忽略高度差）。
+func _planar_distance_squared(a: Vector3, b: Vector3) -> float:
+	var delta := a - b
+	return delta.x * delta.x + delta.z * delta.z
 
 
 ## 根据公开地图矩形创建蛇形网格，使多个 Drone 可以从不同相位开始覆盖地图。

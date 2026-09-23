@@ -2,11 +2,20 @@ using AI_RTS.Application.Match;
 using AI_RTS.Domain.Common;
 using AI_RTS.Domain.Match;
 using AI_RTS.GodotAdapter.Common;
+using AI_RTS.GodotAdapter.Configuration;
 using Godot;
 
 namespace AI_RTS.GodotAdapter.Match;
 
 /// <summary>把 Godot 玩家及单位事实适配到可测试的 C# 对局胜负服务。</summary>
+/// <remarks>
+/// 计分口径（2026-09-21 用户要求："所有的建造建筑被摧毁视为游戏失败"）：
+/// 只有**可建造建筑**（平衡表里有施工定义的类型：基地/车厂/机场/兵营与三种炮塔）
+/// 计入所属阵营的存活判定；作战单位与工人的存亡不再让阵营续命。
+/// 因此一方失去全部建造建筑即被淘汰（对方获胜），双方同时失去则平局。
+/// 识别不出单位类型时（配置降级、测试夹具的裸节点）按旧口径计入 ——
+/// "识别不了"绝不允许变成"提前终局"。
+/// </remarks>
 public partial class MatchOutcomeRuntime : Node
 {
     /// <summary>首次进入终态时发布结构化结果，由 UI 适配器负责展示。</summary>
@@ -19,6 +28,7 @@ public partial class MatchOutcomeRuntime : Node
     private IMatchOutcomeService _service = null!;
     private Node _match = null!;
     private Node _matchSignals = null!;
+    private BalanceConfigRuntime? _balanceConfig;
     private MatchSideId? _localHumanSideId;
     private bool _configured;
     private bool _evaluationPending;
@@ -36,6 +46,9 @@ public partial class MatchOutcomeRuntime : Node
         _configured = true;
         _match = GetParent();
         _service = new MatchOutcomeService(new LastSurvivingSideRule());
+        // 建造建筑判定的唯一事实来源：同 Match 下的平衡配置运行时（ConfigureUnit 会把
+        // `unit_type_id` 注入每个单位）。拿不到时不猜 —— 见 CountsForElimination 的兜底。
+        _balanceConfig = GetNodeOrNull<BalanceConfigRuntime>("../BalanceConfigRuntime");
 
         foreach (var player in playersContainer.GetChildren().OfType<Node>())
         {
@@ -214,11 +227,29 @@ public partial class MatchOutcomeRuntime : Node
         _service.RegisterCombatant(new MatchCombatant(
             unitId,
             ownerId,
-            true));
+            CountsForElimination(unit)));
         if (_exitSubscriptions.Add(unitId))
         {
             unit.TreeExited += () => OnCombatantExited(unitId);
         }
+    }
+
+    /// <summary>该实体是否让所属阵营续命：可建造建筑才算数（2026-09-21 用户要求）。</summary>
+    /// <remarks>
+    /// 三级口径，缺一不可：
+    /// ① 类型受信任且是建造建筑 → 计入（基地/车厂/机场/兵营/炮塔）；
+    /// ② 类型受信任但不是建造建筑 → 不计入（工人/作战单位全灭也不再续命）；
+    /// ③ 类型识别不了（配置降级、测试夹具裸节点）→ 按旧口径计入：
+    ///    歼灭规则过去把一切 units group 实体都算成计分对象，"识别不了"时退回旧行为，
+    ///    绝不会因为读不到类型就提前判定某一方失败。
+    /// </remarks>
+    private bool CountsForElimination(Node unit)
+    {
+        if (_balanceConfig is null || !_balanceConfig.HasTrustedUnitType(unit))
+        {
+            return true;
+        }
+        return _balanceConfig.IsBuildStructure(unit);
     }
 
     /// <summary>确保终态只向 Godot 展示层发布一次。</summary>

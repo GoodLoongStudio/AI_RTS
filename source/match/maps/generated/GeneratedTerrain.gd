@@ -41,11 +41,19 @@ func _enter_tree() -> void:
 	# 第一帧就要换着色器、藏 200+ 半透明水面片。放到 _ready 时玩家已经看见
 	# 肉色雾/沙色盒，并且 Compatibility 透明排序已经把帧率打穿。
 	_apply_material()
-	_purge_large_map_authoring_nodes()
 	_hide_redundant_ground_plates()
 
 
 func _ready() -> void:
+	# 桥面必须在这里收集：`_enter_tree` 时 Collision 兄弟子树还没进树，
+	# `CollisionShape3D.global_transform` 还是单位阵（实测三座桥的矩形全落原点）；
+	# 而 `_apply_g4_runtime_budget` / `Match._setup_subsystems_dependent_on_map` 的
+	# 清理又会 free 掉 `Collision/*`。`_ready` 自底向上触发，是唯一两者都满足的时机。
+	_collect_bridge_rects()
+	# 作者碰撞/水面的清理从 `_enter_tree` 挪到这里：必须晚于桥面收集
+	# （清理会 free 掉 `Collision/*`，而 `_enter_tree` 时桥节点还没进树、
+	# global_transform 还是单位阵）。仍在同一帧， perf 语义不变。
+	_purge_large_map_authoring_nodes()
 	_apply_material()
 	_wire_water_mask()
 	_hide_redundant_ground_plates()
@@ -178,6 +186,10 @@ func _apply_g4_runtime_budget() -> void:
 	var map_node := get_parent().get_parent() if get_parent() != null else null
 	if map_node == null or not _is_g4_runtime_map(map_node):
 		return
+	# 桥面必须在清理**之前**收集：`_purge_large_map_authoring_nodes` 会 free 掉
+	# `Collision/*`（含 `Bridge*/DeckBody`），之后再收集就一座都不剩
+	# （2026-09-21 用户报"过桥寻路很严重"：桥面数据恒空 → 水面格禁行 → 桥不能过）。
+	_collect_bridge_rects()
 	_purge_large_map_authoring_nodes()
 	var lights := 0
 	for node in map_node.find_children("*", "Light3D", true, false):
@@ -186,7 +198,6 @@ func _apply_g4_runtime_budget() -> void:
 			light.shadow_enabled = false
 			lights += 1
 	var decor_stats := _apply_g4_decoration_budget(map_node)
-	_collect_bridge_rects()
 	var stripped := _strip_leftover_map_physics(map_node)
 	print("G4PERF budget water_removed=purged",
 		" shadows_disabled=", lights,
@@ -204,28 +215,36 @@ func _build_water_occupancy() -> void:
 	var map_size: Variant = map_node.get("size")
 	if map_size is Vector2 and map_size.x > 1.0:
 		_water_span = maxf(map_size.x, map_size.y)
-	var path: String = height_data_path.get_base_dir() + "/terrain_masks.png"
-	var img := _load_image_from_res(path)
-	if img == null or img.is_empty():
-		push_warning("GeneratedTerrain: 水域禁行掩码读失败 %s" % path)
-		return
-	img.convert(Image.FORMAT_RGBA8)
-	_water_w = img.get_width()
-	_water_h = img.get_height()
-	var bytes := img.get_data()
-	_water_bits.resize(_water_w * _water_h)
-	var blocked := 0
-	var i := 0
-	while i < _water_w * _water_h:
-		# G = shore_d，内部为负（河+湖）。A = cls，正=岩/山，负=坡道。
-		var shore_d := (float(bytes[i * 4 + 1]) / 255.0 - 0.5) * 600.0
-		var cls := float(bytes[i * 4 + 3]) / 255.0 * 2.0 - 1.0
-		var blocked_cell := 1 if (shore_d < -0.4 or cls > 0.35) else 0
-		_water_bits[i] = blocked_cell
-		blocked += blocked_cell
-		i += 1
+	# 桥面收集**不依赖掩码**：先收，掩码缺失的回退路径也要能标"桥上可走"。
 	if _bridge_rects.is_empty():
 		_collect_bridge_rects()
+	var path: String = height_data_path.get_base_dir() + "/terrain_masks.png"
+	var img := _load_image_from_res(path)
+	var blocked := 0
+	if img != null and not img.is_empty():
+		img.convert(Image.FORMAT_RGBA8)
+		_water_w = img.get_width()
+		_water_h = img.get_height()
+		var bytes := img.get_data()
+		_water_bits.resize(_water_w * _water_h)
+		var i := 0
+		while i < _water_w * _water_h:
+			# G = shore_d，内部为负（河+湖）。A = cls，正=岩/山，负=坡道。
+			var shore_d := (float(bytes[i * 4 + 1]) / 255.0 - 0.5) * 600.0
+			var cls := float(bytes[i * 4 + 3]) / 255.0 * 2.0 - 1.0
+			var blocked_cell := 1 if (shore_d < -0.4 or cls > 0.35) else 0
+			_water_bits[i] = blocked_cell
+			blocked += blocked_cell
+			i += 1
+	else:
+		# 2026-09-21 用户报"生成图上工人采矿/过桥寻路全废"的根因：已安装的生成图
+		# （47-0/16-0/49-*/35-0…）**没有 terrain_masks.png**（旧版安装器不拷它）。
+		# 旧实在这里直接 return → 占用格从不建立 → `_request_logic_path` 找不到
+		# occupancy 就退化为"直线走目标"（水/崖一律撞上去），`_on_bridge` 恒 false、
+		# 过桥永不吸附，`is_ground_blocked` 对水/岩全不判 → 整张图的逻辑寻路瘫痪。
+		# 这里改为按**高度场**推导禁行格（水/低地 + 陡坡），让任何生成图都有寻路可用。
+		push_warning("GeneratedTerrain: 水域禁行掩码读失败 %s；按高度场推导禁行格（水/陡崖）" % path)
+		blocked = _build_blocked_from_heightfield()
 	var cliffs := _stamp_steep_cliffs()
 	var submerged := _stamp_submerged_cells()
 	_stamp_bridges_walkable()
@@ -248,14 +267,64 @@ func _build_water_occupancy() -> void:
 	)
 
 
+## 按高度场推导禁行格（terrain_masks.png 缺失时的兜底，2026-09-21）。
+## 判据与 `_stamp_submerged_cells` / `_stamp_steep_cliffs` 完全同源：
+##   ① 高度 < 0.15m → 水/低地禁行（与 `is_ground_blocked` 的地表门槛一致）；
+##   ② 四邻高差 > `MAX_GROUND_STEP_M`(2.4m) → 陡崖禁行（爬不上去）。
+## 分辨率直接用高度场网格，世界映射仍走 `_water_span`（span/(w-1) = 格距）。
+func _build_blocked_from_heightfield() -> int:
+	if _height_w < 2 or _height_h < 2 or _height_samples.is_empty():
+		push_warning("GeneratedTerrain: 高度场不可用，禁行格回退也失败（寻路将退化）")
+		return 0
+	_water_w = _height_w
+	_water_h = _height_h
+	_water_bits.resize(_water_w * _water_h)
+	var blocked := 0
+	var iz := 0
+	while iz < _water_h:
+		var ix := 0
+		while ix < _water_w:
+			var h := _height_samples[iz * _water_w + ix]
+			var is_blocked := h < 0.15
+			if not is_blocked:
+				if ix > 0 and absf(_height_samples[iz * _water_w + ix - 1] - h) > MAX_GROUND_STEP_M:
+					is_blocked = true
+				elif ix + 1 < _water_w and absf(_height_samples[iz * _water_w + ix + 1] - h) > MAX_GROUND_STEP_M:
+					is_blocked = true
+				elif iz > 0 and absf(_height_samples[(iz - 1) * _water_w + ix] - h) > MAX_GROUND_STEP_M:
+					is_blocked = true
+				elif iz + 1 < _water_h and absf(_height_samples[(iz + 1) * _water_w + ix] - h) > MAX_GROUND_STEP_M:
+					is_blocked = true
+			if is_blocked:
+				blocked += 1
+			_water_bits[iz * _water_w + ix] = 1 if is_blocked else 0
+			ix += 1
+		iz += 1
+	return blocked
+
+
 func _collect_bridge_rects() -> void:
 	var geometry := get_parent()
 	var map_node: Node = geometry.get_parent() if geometry != null else null
 	if map_node == null:
 		return
+	# 幂等：已经收集过就绝不重收。桥面碰撞体在 `_purge_large_map_authoring_nodes`
+	# 之后就被 free 了，重复收集只会把已有数据清成空（2026-09-21 实测 bridges 3→0）。
+	if not _bridge_rects.is_empty():
+		return
 	_bridge_rects.clear()
 	_bridge_slabs.clear()
-	for node in map_node.find_children("WalkB*", "StaticBody3D", true, false):
+	# 桥面碰撞体有两种历史命名，都要认：
+	#   ① `WalkB*`（旧生成器直挂在 Collision 下的可行走板）；
+	#   ② `Bridge*/DeckBody`（现行导出：Bridge0..N 容器 + DeckBody 甲板）。
+	# 只认 ① 时，现行图一座桥都收不到 → `_sample_bridge_deck` 恒 -inf、`_on_bridge`
+	# 恒 false、水面格永远禁行 ⇒ **桥完全不能过**（2026-09-21 用户报"过桥寻路很严重"）。
+	var bodies: Array[Node] = []
+	bodies.append_array(map_node.find_children("WalkB*", "StaticBody3D", true, false))
+	for container in map_node.find_children("Bridge*", "Node3D", true, false):
+		for child in container.find_children("*", "StaticBody3D", true, false):
+			bodies.append(child)
+	for node in bodies:
 		var body := node as StaticBody3D
 		if body == null:
 			continue
@@ -398,7 +467,23 @@ func is_ground_blocked(world: Vector3) -> bool:
 		return false
 	if _sample_water(world.x, world.z):
 		return true
-	return sample_height(world.x, world.z) < 0.15
+	# 掩码判可走即可走，**不再用地表高度二次否决**。高度判据在建掩码时就已并入
+	# （文件掩码自带岸距/岩类；高度场回退自带 `<0.15` 与陡坡；`_stamp_steep_cliffs` /
+	# `_stamp_submerged_cells` 还会补盖）。而桥面 stamped 区下方就是河床，高度场必然
+	# < 0.15 —— 旧实现在这里把已 stamped 可走的桥面格重新判禁行，单位能走上桥却卡在
+	# 桥缘几厘米处，整局过不去（2026-09-21 过桥实测根因）。
+	return false
+
+
+## 是否落在「已 stamped 为可走」的桥面矩形内（与 `_stamp_bridges_walkable` 同一份数据）。
+func _within_stamped_bridge(x: float, z: float) -> bool:
+	if _bridge_rects.is_empty():
+		return false
+	var point := Vector2(x, z)
+	for rect in _bridge_rects:
+		if (rect as Rect2).has_point(point):
+			return true
+	return false
 
 
 func set_structure_blocker(blocker_id: int, world: Vector3, radius: float) -> void:

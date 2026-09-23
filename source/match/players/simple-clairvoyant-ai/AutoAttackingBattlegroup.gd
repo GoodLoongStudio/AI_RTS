@@ -65,6 +65,9 @@ var _ignored_target_ids := {}
 var _ignored_target_until_sim_ms := 0
 ## 本次撤退开始的模拟毫秒（用于最短稳定期）。
 var _retreat_started_sim_ms := 0
+## 【2026-09-21 S2 多线】袭扰组标记：优先打工人与落单单位、不啃结构塔，
+## 与主力组（结构优先）形成两条独立战线（方案 2.D："中等主攻加独立矿区袭扰"）。
+var _harasser := false
 var _world_query_runtime = null
 var _query_session_id := ""
 var _command_gateway = null
@@ -86,7 +89,8 @@ func setup(
 	retreat_threshold: float = 0.5,
 	passive_test_mode: bool = false,
 	min_launch_size: int = 0,
-	earliest_attack_sim_ms: int = 0
+	earliest_attack_sim_ms: int = 0,
+	harasser: bool = false
 ):
 	_expected_number_of_units = expected_number_of_units
 	_world_query_runtime = world_query_runtime
@@ -96,6 +100,7 @@ func setup(
 	_passive_test_mode = passive_test_mode
 	_min_launch_size = min_launch_size
 	_earliest_attack_sim_ms = earliest_attack_sim_ms
+	_harasser = harasser
 
 
 ## 当前战局模拟毫秒。编组被单独挂载（单测/探针）时回退实时时钟。
@@ -207,6 +212,9 @@ func _update_state(members: Array):
 		State.FORMING:
 			if _ready_to_attack():
 				_state = State.ATTACKING
+				# 【2026-09-21 S4 验收埋点】首波出击时刻（模拟秒）+ 人数。
+				# 批跑工具（tools/rule_ai_match_batch.py）解析此行断言"首波窗口"。
+				print("规则 AI 首波出击 @%.1fs 人数=%d" % [_now_sim_ms() / 1000.0, size()])
 		State.ATTACKING:
 			if (
 				not members.is_empty()
@@ -235,6 +243,8 @@ func _update_state(members: Array):
 				return
 			if _ready_to_attack():
 				_state = State.ATTACKING
+				# 【2026-09-21 S4 验收埋点】再次出击时刻（再派间隔的实测证据）。
+				print("规则 AI 再次出击 @%.1fs 人数=%d" % [_now_sim_ms() / 1000.0, size()])
 				_clear_current_target()
 				_defense_position = Vector3.INF
 
@@ -419,6 +429,14 @@ func _target_priority(entity: Dictionary, group_center: Vector3) -> int:
 			THREAT_IMMEDIATE_RADIUS_M * THREAT_IMMEDIATE_RADIUS_M
 		):
 			return 0
+	# 【2026-09-21 S2 多线】袭扰组与主力组的目标分工（只在**没有立即威胁**时生效，
+	# 上面已提前返回 0）：袭扰组优先工人与落单单位、结构压到最低权重；
+	# 主力组维持原价值序（生产建筑/塔优先）。两支编组因此自然分到不同目标，
+	# 而不是撞同一个（方案 2.D："中等主攻加独立矿区袭扰"）。
+	if _harasser:
+		if type_id == "worker":
+			return 0
+		return 1 if not is_structure else 5
 	match type_id:
 		"worker":
 			return 1

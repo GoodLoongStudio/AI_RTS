@@ -16,6 +16,8 @@ public sealed class ProductionService : IProductionService
     private readonly Dictionary<ProductionItemId, ItemRuntime> _items = new();
     private readonly Dictionary<UnitId, List<ProductionItemId>> _queues = new();
     private readonly Dictionary<ProductionItemId, long> _nextDeployTick = new();
+    /// <summary>每个生产建筑未凑满 1 点工作量的小数余量（支持小数工效，如 1.24）。</summary>
+    private readonly Dictionary<UnitId, double> _workFractions = new();
     private const long DeployRetryIntervalTicks = 10;
     private long _lastAdvancedTick = -1;
 
@@ -215,13 +217,19 @@ public sealed class ProductionService : IProductionService
         {
             if (!_queues.TryGetValue(producerId, out var queue) || queue.Count == 0)
             {
+                _workFractions.Remove(producerId);
                 continue;
             }
             var item = _items[queue[0]].Snapshot;
             if (item.State == ProductionItemState.Producing)
             {
+                var step = NextWorkStep(producerId);
+                if (step < 1)
+                {
+                    continue;
+                }
                 var completedWork = Math.Min(
-                    item.RequiredWork, checked(item.CompletedWork + 1));
+                    item.RequiredWork, checked(item.CompletedWork + step));
                 item = Update(item with
                 {
                     CompletedWork = completedWork,
@@ -240,6 +248,21 @@ public sealed class ProductionService : IProductionService
                 TryComplete(item, simulationTick);
             }
         }
+    }
+
+    /// <summary>本 Tick 应推进的整数工作量；工效为小数时余量跨 Tick 累加，不丢进度。</summary>
+    private int NextWorkStep(UnitId producerId)
+    {
+        var rate = _producers.Find(producerId)?.WorkPerTick ?? 1.0f;
+        if (!float.IsFinite(rate) || rate <= 0.0f)
+        {
+            rate = 1.0f;
+        }
+        _workFractions.TryGetValue(producerId, out var fraction);
+        fraction += rate;
+        var whole = (int)Math.Floor(fraction);
+        _workFractions[producerId] = fraction - whole;
+        return whole;
     }
 
     /// <inheritdoc />

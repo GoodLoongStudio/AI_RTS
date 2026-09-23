@@ -61,7 +61,25 @@ func _ready():
 	await get_tree().physics_frame
 	var map_scene := _load_packed_scene(map_path, "地图")
 	if map_scene == null:
-		return
+		# 【2026-09-21 多级保底】地图加载失败不再直接进报错页：依次退到
+		# 兜底 G4 成品图 → 内置 PlainAndSimple，全部失败才报错。
+		# （用户口径："有错误就用保底方案"。）
+		for fallback in [
+			RANDOM_MAP_FALLBACK_PATH,
+			"res://source/match/maps/PlainAndSimple.tscn",
+		]:
+			if str(map_path) == fallback:
+				continue
+			push_warning("地图 %s 加载失败，退保底重试：%s" % [str(map_path), fallback])
+			_load_failed = false
+			map_scene = _load_packed_scene(fallback, "地图(保底)")
+			if map_scene != null:
+				map_path = fallback
+				NetSession.selected_map_path = fallback
+				_label.text = tr("LOADING_STEP_LOADING_MAP")
+				break
+		if map_scene == null:
+			return
 	var map_instance := map_scene.instantiate()
 	print("Loading[%.1fs] 地图实例完成" % (Time.get_ticks_msec() / 1000.0))
 	_progress_bar.value = 0.4
@@ -136,7 +154,15 @@ func _uncover_match(a_match: Node) -> void:
 			layer.visible = true
 
 
-## 加载页现生成随机四人图；失败则停在本页，不改用旧图进局。
+## 随机地图失败时的**兜底 G4 成品图**（用户要求："随机地图要有兜底的 G4 成品地图"）。
+## 选 49-1376088014（布局 49）：工作台历史里被反复生成验证过的布局。
+## 使用前还会做存在性双检，防止兜底图本身缺失时雪上加霜。
+const RANDOM_MAP_FALLBACK_PATH := (
+	"res://source/match/maps/generated/49-1376088014/map_49-1376088014.tscn"
+)
+
+
+## 加载页现生成随机四人图；失败时退到兜底 G4 成品图进局，不把玩家卡死在报错页。
 func _generate_random_map() -> bool:
 	_label.text = "正在生成随机地图…"
 	_progress_bar.value = 0.08
@@ -147,10 +173,37 @@ func _generate_random_map() -> bool:
 	var result: Dictionary = await runtime.generate_random_full()
 	runtime.queue_free()
 	if not bool(result.get("ok", false)):
+		# 【2026-09-21 兜底】生成失败（超时/服务起不来/G2 反复不过且保底也失败）时，
+		# 退到一张**已生成的 G4 成品图**进局，而不是停在报错页。
+		# 生成失败的详细原因仍打印到日志，供排查。
+		push_warning("随机地图生成失败，改用兜底成品图：%s"
+				% str(result.get("error", "")))
+		var fallback: String = RANDOM_MAP_FALLBACK_PATH
+		if FileAccess.file_exists(fallback) or ResourceLoader.exists(fallback):
+			map_path = fallback
+			NetSession.selected_map_path = fallback
+			_label.text = "随机地图生成失败，已改用备用地图进入对局"
+			_progress_bar.value = 0.28
+			await get_tree().physics_frame
+			print("Loading[%.1fs] 随机地图失败，兜底进局 %s" % [
+				Time.get_ticks_msec() / 1000.0, fallback
+			])
+			return true
 		_show_load_error(str(result.get("error", "随机地图生成失败")))
 		return false
 	map_path = str(result.get("path", ""))
 	NetSession.selected_map_path = str(map_path)
+	# 生成成功也不能盲信：装进工程的场景必须真的存在，否则同样退兜底成品图。
+	if not (FileAccess.file_exists(str(map_path)) or ResourceLoader.exists(str(map_path))):
+		push_warning("随机地图场景缺失：%s，改用兜底成品图" % str(map_path))
+		var fallback2: String = RANDOM_MAP_FALLBACK_PATH
+		if FileAccess.file_exists(fallback2) or ResourceLoader.exists(fallback2):
+			map_path = fallback2
+			NetSession.selected_map_path = fallback2
+			_progress_bar.value = 0.28
+			return true
+		_show_load_error("随机地图场景缺失：%s" % str(map_path))
+		return false
 	print("Loading[%.1fs] 随机地图已生成 %s" % [Time.get_ticks_msec() / 1000.0, str(map_path)])
 	_progress_bar.value = 0.28
 	return true
@@ -226,13 +279,21 @@ func _load_packed_scene(path_value, display_name: String) -> PackedScene:
 		_show_load_error("%s路径为空" % display_name)
 		return null
 	var abs_path := ProjectSettings.globalize_path(scene_path)
-	if not FileAccess.file_exists(scene_path) and not FileAccess.file_exists(abs_path):
+	# 【2026-09-21 修复假阴性】`FileAccess.file_exists` 对 res:// 在部分运行形态下
+	# 会**假阴性**（文件明明在磁盘上却返回 false），曾把 PlainAndSimple 和 generated
+	# 成品图都拦在 load 之前报"找不到文件"。现以 `ResourceLoader.exists`（Godot 官方的
+	# "可加载"判定，按 remap/导入规则查）为**首选**；文件系统直读只作为补充。
+	# 两者都说"没有"才报错。`_unimported_ext_resources` 需要直读文本，读不到就跳过扫描
+	# （pck 形态），把判定交给真正的 load。
+	var fs_visible := FileAccess.file_exists(scene_path) or FileAccess.file_exists(abs_path)
+	if not ResourceLoader.exists(scene_path) and not fs_visible:
 		_show_load_error("%s找不到文件：%s" % [display_name, scene_path])
 		return null
-	var missing := _unimported_ext_resources(abs_path)
-	if not missing.is_empty():
-		_show_load_error("%s有未导入依赖：%s" % [display_name, ", ".join(missing)])
-		return null
+	if fs_visible:
+		var missing := _unimported_ext_resources(abs_path)
+		if not missing.is_empty():
+			_show_load_error("%s有未导入依赖：%s" % [display_name, ", ".join(missing)])
+			return null
 
 	var resource := ResourceLoader.load(scene_path)
 	if resource == null:
