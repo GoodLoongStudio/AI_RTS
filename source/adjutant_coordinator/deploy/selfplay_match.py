@@ -21,6 +21,7 @@ import argparse
 import collections
 import json
 import os
+import shutil
 import sys
 import time
 
@@ -78,6 +79,38 @@ def _own_snapshot():
     except Exception as exc:  # noqa: BLE001
         return {"__error": str(exc)}
     return snap or {}
+
+
+def _match_result_from_log() -> str:
+    """从游戏日志读**权威结算字符串**（"胜利"/"失败"/"平局"）。
+
+    专用服在广播结果后 5 秒主动 `quit()`（NetSync._on_match_finished），
+    所以"连接断开"**不等于**"游戏崩了"——两种退出长得一模一样。
+    2026-09-23 实测 r9_1：375s 敌军全灭、386s 日志广播"胜利"、391s 服务端退出，
+    上一版 harness 把这次退出判成 aborted，白丢一场胜局。
+    服务器那行是权威（`已广播结果`）；客户端那行是回执（`收到结算`），兜底用。
+    """
+    for name, needle in (("selfplay_server.out", "已广播结果"),
+                         ("selfplay_client.out", "收到结算")):
+        try:
+            with open(os.path.join(LOGS, name), "r", encoding="utf-8",
+                      errors="replace") as handle:
+                lines = handle.read().splitlines()
+        except OSError:
+            continue
+        for line in reversed(lines):
+            if needle not in line:
+                continue
+            tail = line.split(needle, 1)[1]
+            # 形如 "[对局] 已广播结果: 胜利, 5 秒后回收专用服" / "收到结算: 胜利，3 秒后…"
+            tail = tail.lstrip(": ：,， ")
+            for separator in (",", "，"):
+                if separator in tail:
+                    tail = tail.split(separator, 1)[0]
+            result = tail.strip()
+            if result:
+                return result
+    return ""
 
 
 def _forces(snap: dict) -> dict:
@@ -208,6 +241,12 @@ def main() -> int:
         return 2
 
     state_dir = os.path.join(OUT, "state_%s" % args.tag)
+    # 【2026-09-23】自对局的 runner 必须写**自己的** HUD 状态目录。
+    # runner 的 `--log-dir` 默认落在 `%APPDATA%\Godot\app_userdata\Open RTS\adjutant_logs`
+    # （游戏面板读的那个 hud_status.json），不隔离的话自对局每一秒都在覆盖玩家
+    # 自己那局的面板状态——用户开着游戏看副官，看到的却是训练局的"在想什么"，
+    # 而且两边 runner 还会互相抢同一个权威端口。用 `AIRTS_RUNNER_HUD` 指到本局目录。
+    os.environ["AIRTS_RUNNER_HUD"] = state_dir
     start_runner(state_dir, tactics_interval=15, event_interval=10,
                  strategy="plan", model="on")
     print("[selfplay] 对局开始，采样 %ds（backend=%s difficulty=%s）"
@@ -216,21 +255,53 @@ def main() -> int:
     samples = []
     forces_log = []
     detail_log = []
+    ## 采样失败留痕（2026-09-23）：旧实况失败时**静默丢弃**——long_66/67 两局
+    ## 游戏进程在 289s/313s 自己死了（runner 侧 ConnectionResetError），harness
+    ## 却照样把 deadline 跑满 600s，结果 JSON 里采样数/verdict 全停在死亡那一刻，
+    ## 看起来像"打满 600s 没打完"。没有留痕就只能靠翻 runner.out 才知道真相。
+    sampling_log = []
+    ## 权威结算（从游戏日志读）：专用服广播结果后 5 秒主动退出，
+    ## 所以"连接断开"可能是正常终局，也可能是真崩——只有日志能区分。
+    match_result = ""
+    game_died_at_s = None
     deadline = time.time() + args.seconds
     next_forces = 0.0
+    consecutive_failures = 0
     while time.time() < deadline:
         snap = _own_snapshot()
         if "__error" not in snap and snap.get("server_tick"):
+            consecutive_failures = 0
             sample = {"ts": time.time(), "tick": int(snap["server_tick"]),
                       **_forces(snap)}
             samples.append(sample)
             detail_log.append({"ts": sample["ts"], "tick": sample["tick"],
                                **_detail(snap)})
+        else:
+            consecutive_failures += 1
+            sampling_log.append({"ts": time.time(),
+                                 "error": str(snap.get("__error") or "no server_tick")})
+            # 连续拿不到战术观测 = 游戏进程已经不在了。先分清是"正常终局回收"
+            # 还是"真崩"：读日志里的权威结算，有结算就不是事故。
+            if consecutive_failures >= 3 and not match_result:
+                match_result = _match_result_from_log()
+            if consecutive_failures >= 3 and game_died_at_s is None:
+                if match_result:
+                    print("[selfplay] 对局已结束（%s），服务端按设计回收"
+                          % match_result, flush=True)
+                else:
+                    game_died_at_s = round(args.seconds - (deadline - time.time()), 1)
+                    print("[selfplay] 游戏进程异常退出（连续 %d 次采样失败，约第 %ss），"
+                          "提前收尾" % (consecutive_failures, game_died_at_s), flush=True)
+                break
         if time.time() >= next_forces:
             next_forces = time.time() + 30
             fm = _match_forces()
             if "__error" not in fm and fm.get("forces"):
                 forces_log.append({"ts": time.time(), "forces": fm["forces"]})
+            else:
+                sampling_log.append({"ts": time.time(),
+                                     "error": "match_forces: %s"
+                                     % str(fm.get("__error") or "empty")})
         time.sleep(10)
 
     # 收尾前取最后一帧战力（失败就用最后一次成功采样，不阻断收尾）。
@@ -247,19 +318,44 @@ def main() -> int:
     stop_runner(SERVER_PORT)
     time.sleep(2)
     kill_our_game()
+    # 对局日志随 tag 留档（2026-09-23）：`selfplay_server.out` / `selfplay_client.out`
+    # 每局被 truncate 覆盖，游戏进程中途死掉时**现场正好被下一局擦掉**，只能靠
+    # runner.out 里的 ConnectionResetError 反推。复制一份到 state_<tag>/ 才能复盘。
+    for log_name in ("selfplay_server.out", "selfplay_client.out"):
+        source = os.path.join(LOGS, log_name)
+        if os.path.exists(source):
+            try:
+                shutil.copyfile(source, os.path.join(state_dir, log_name))
+            except OSError as exc:  # noqa: BLE001
+                print("[selfplay] 日志留档失败 %s: %s" % (log_name, exc), flush=True)
 
-    # 胜负判定：双方最终计数（敌人全灭=胜；己方全灭=负；否则按超时/平局记）。
-    last_forces = (forces_log[-1]["forces"] if forces_log
-                   else _match_forces().get("forces") or {})
+    # 终局前再读一次权威结算：对局可能在最后一次采样之后、进程退出之前结束，
+    # 那时日志里已经有结果但连接还没来得及断。
+    if not match_result:
+        match_result = _match_result_from_log()
+
+    # 单位计数只在"没有权威结算"时才算（权威结算优先，见下）。
     own_total = 0
     enemy_total = 0
+    last_forces = (forces_log[-1]["forces"] if forces_log
+                   else _match_forces().get("forces") or {})
     for name, entry in last_forces.items():
         total = int((entry or {}).get("total", 0) or 0)
         if str(name) == "Player_0":
             own_total = total
         else:
             enemy_total += total
-    if enemy_total == 0 and own_total > 0:
+
+    # 胜负判定：**权威结算优先**（游戏自己广播的），其次才用单位计数推断。
+    # 旧口径只认 forces_log 最后一条——它在终局前 30s 就停止更新了，
+    # 于是"375s 全灭敌军、386s 广播胜利"会被记成 timeout（实测 r9_1）。
+    if match_result:
+        verdict = {"胜利": "win", "失败": "loss", "平局": "draw"}.get(
+            match_result, "unknown:%s" % match_result)
+    elif game_died_at_s is not None:
+        # 游戏进程自己退了且日志里没有结算：这一局的任何结论都不成立，必须单记。
+        verdict = "aborted"
+    elif enemy_total == 0 and own_total > 0:
         verdict = "win"
     elif own_total == 0:
         verdict = "loss"
@@ -276,9 +372,12 @@ def main() -> int:
                                     or [0]),
         "forces_log": forces_log,
         "verdict": verdict,
+        "match_result": match_result,
         "own_total": own_total,
         "enemy_total": enemy_total,
         "detail_log": detail_log,
+        "sampling_log": sampling_log,
+        "game_died_at_s": game_died_at_s,
     }
     path = os.path.join(OUT, "result_%s.json" % args.tag)
     with open(path, "w", encoding="utf-8") as handle:

@@ -93,12 +93,24 @@ func reset_camera_options():
 	save_camera_options()
 
 
-## 音量设置：按音频总线（Music/Voice）持久化并实时生效（2026-09-08）。
+## 音量设置：总开关 + 三条分类总线（Music/Voice/SFX）持久化并实时生效。
+## 【2026-09-23 用户要求"设置要能关闭游戏的声音"】补两件事：
+##   ① `sound_enabled` 总开关（Master 总线 mute）——一次操作关掉所有声音；
+##   ② `sfx_volume`——SFX 总线（UI 音效/单位语音外的全部音效）此前**完全没接管**，
+##      用户只能关音乐和人声，游戏音效关不掉。
 const AUDIO_CONFIG_PATH := "user://audio.cfg"
 const AUDIO_CONFIG_SECTION := "audio"
 const AUDIO_DEFAULTS := {
+	"sound_enabled": true,
 	"music_volume": 0.9,
 	"voice_volume": 1.0,
+	"sfx_volume": 1.0,
+}
+##: 分类音量键 → 音频总线名（唯一映射处；新增总线只改这里）。
+const AUDIO_BUS_BY_KEY := {
+	"music_volume": "Music",
+	"voice_volume": "Voice",
+	"sfx_volume": "SFX",
 }
 
 var audio_options: Dictionary = _load_audio_options()
@@ -178,9 +190,12 @@ func _load_audio_options() -> Dictionary:
 	if load_error != OK and load_error != ERR_FILE_NOT_FOUND:
 		push_warning("读取音频设置失败：%s" % error_string(load_error))
 	for key in AUDIO_DEFAULTS.keys():
-		loaded[key] = clampf(
-			float(config.get_value(AUDIO_CONFIG_SECTION, key, AUDIO_DEFAULTS[key])), 0.0, 1.0
-		)
+		var raw: Variant = config.get_value(AUDIO_CONFIG_SECTION, key, AUDIO_DEFAULTS[key])
+		if typeof(AUDIO_DEFAULTS[key]) == TYPE_BOOL:
+			# 布尔键（总开关）必须按 bool 落库：float(true)=1.0 会把类型漂成数字
+			loaded[key] = bool(raw)
+		else:
+			loaded[key] = clampf(float(raw), 0.0, 1.0)
 	return loaded
 
 
@@ -188,9 +203,23 @@ func get_audio_volume(key: String) -> float:
 	return float(audio_options.get(key, AUDIO_DEFAULTS.get(key, 1.0)))
 
 
+## 总开关状态（true = 有声）。默认 true；关闭时 Master 总线静音。
+func is_sound_enabled() -> bool:
+	return bool(audio_options.get("sound_enabled", true))
+
+
+func set_sound_enabled(enabled: bool) -> void:
+	audio_options["sound_enabled"] = bool(enabled)
+	_apply_audio_volumes()
+
+
 func set_audio_volume(key: String, linear: float):
 	if not AUDIO_DEFAULTS.has(key):
 		push_warning("未知音频设置：%s" % key)
+		return
+	if typeof(AUDIO_DEFAULTS[key]) == TYPE_BOOL:
+		# 布尔型键（总开关）走专用 setter，不按浮点夹取
+		set_sound_enabled(linear > 0.5)
 		return
 	audio_options[key] = clampf(linear, 0.0, 1.0)
 	_apply_audio_volumes()
@@ -205,14 +234,18 @@ func save_audio_options():
 		push_warning("无法保存音频设置：%s" % error_string(save_error))
 
 
-## 把音频设置应用到总线（线性音量 → 分贝；0 = 静音）。
+## 把音频设置应用到总线（线性音量 → 分贝；0 = 静音；总开关 → Master 静音）。
 func _apply_audio_volumes():
-	for key in AUDIO_DEFAULTS.keys():
-		var bus_name := "Music" if key == "music_volume" else "Voice"
-		var bus_index := AudioServer.get_bus_index(bus_name)
+	# 总开关优先于一切分类音量：Master 一静音，Music/Voice/SFX 全部无声
+	# （已发出的声音也会立即切断，Godot 的 bus mute 是实时生效的）。
+	var master_index := AudioServer.get_bus_index("Master")
+	if master_index >= 0:
+		AudioServer.set_bus_mute(master_index, not is_sound_enabled())
+	for key in AUDIO_BUS_BY_KEY:
+		var bus_index := AudioServer.get_bus_index(AUDIO_BUS_BY_KEY[key])
 		if bus_index < 0:
 			continue
-		var linear := float(audio_options[key])
+		var linear := get_audio_volume(key)
 		AudioServer.set_bus_volume_db(
 			bus_index, linear_to_db(maxf(linear, 0.0001)) if linear > 0.0 else -80.0
 		)

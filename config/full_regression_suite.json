@@ -20,7 +20,12 @@
     "res://tests/automated/SniperMuzzleDiagSmokeTest.tscn",
     "res://tests/automated/TankMuzzleDiagNormalSmokeTest.tscn",
     "res://tests/automated/TankMuzzleDiagSmokeTest.tscn",
-    "res://tests/automated/BridgeCrossingTest.tscn"
+    "res://tests/automated/BridgeCrossingTest.tscn",
+    "res://tests/automated/AiOverlapBuildCheck.tscn",
+    "res://tests/automated/GroundingScreenshotTest.tscn",
+    "res://tests/automated/NoEnemyAdjutantRepro.tscn",
+    "res://tests/automated/RealCombatDestructionTest.tscn",
+    "res://tests/automated/StructureGhostCleanupTest.tscn"
   ],
   "godot_tests": [
     {
@@ -572,6 +577,13 @@
       "id": "sniper-rocketeer"
     },
     {
+      "expected_marker": "Unit guard stance smoke test completed: 0 failure(s)",
+      "timeout_seconds": 150,
+      "category": "combat",
+      "scene": "res://tests/automated/UnitGuardStanceSmokeTest.tscn",
+      "id": "unit-guard-stance"
+    },
+    {
       "expected_marker": "Chinese voice mapping smoke test completed: 0 failure(s)",
       "timeout_seconds": 90,
       "category": "audio",
@@ -631,6 +643,76 @@
         "--debugport",
         "{free_port}"
       ]
+    },
+    {
+      "expected_marker": "AdjutantHudStatusDiscovery: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "adjutant",
+      "scene": "res://tests/automated/AdjutantHudStatusDiscoveryTest.tscn",
+      "id": "adjutant-hud-status-discovery"
+    },
+    {
+      "expected_marker": "Adjutant model service smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "adjutant",
+      "scene": "res://tests/automated/AdjutantModelServiceSmokeTest.tscn",
+      "id": "adjutant-model-service"
+    },
+    {
+      "expected_marker": "Adjutant UI state consistency: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "ui",
+      "scene": "res://tests/automated/AdjutantUIStateConsistencyTest.tscn",
+      "id": "adjutant-ui-state-consistency"
+    },
+    {
+      "expected_marker": "Client HP first-sync smoke test completed: 0 failure(s)",
+      "timeout_seconds": 120,
+      "category": "network",
+      "scene": "res://tests/automated/ClientHpFirstSyncSmokeTest.tscn",
+      "id": "client-hp-first-sync"
+    },
+    {
+      "expected_marker": "Ground attack move arrival smoke test completed: 0 failure(s)",
+      "timeout_seconds": 120,
+      "category": "combat",
+      "scene": "res://tests/automated/GroundAttackMoveArrivalSmokeTest.tscn",
+      "id": "ground-attack-move-arrival"
+    },
+    {
+      "expected_marker": "[GROWTH-SMOKE] failures= 0",
+      "timeout_seconds": 90,
+      "category": "economy",
+      "scene": "res://tests/automated/GrowthModifiersSmokeTest.tscn",
+      "id": "growth-modifiers"
+    },
+    {
+      "expected_marker": "Same-frame overlap placement: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "placement",
+      "scene": "res://tests/automated/SameFrameOverlapPlacementTest.tscn",
+      "id": "same-frame-overlap-placement"
+    },
+    {
+      "expected_marker": "Unit auto attack smoke test completed: 0 failure(s)",
+      "timeout_seconds": 150,
+      "category": "combat",
+      "scene": "res://tests/automated/UnitAutoAttackSmokeTest.tscn",
+      "id": "unit-auto-attack"
+    },
+    {
+      "expected_marker": "Audio settings: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "audio",
+      "scene": "res://tests/automated/AudioSettingsTest.tscn",
+      "id": "audio-settings"
+    },
+    {
+      "expected_marker": "Structure destruction cleanup: 0 failure(s)",
+      "timeout_seconds": 150,
+      "category": "combat",
+      "scene": "res://tests/automated/StructureDestructionTest.tscn",
+      "id": "structure-destruction"
     }
   ]
 }

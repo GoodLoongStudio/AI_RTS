@@ -11,6 +11,7 @@ extends CanvasLayer
 ## 在加载页多停就等于让**所有人一起等**；单人局没有这个代价。
 ## 多人局仍然会预热（不拖人），进对局后面板显示"启动中/运行中"。
 const AdjutantRunnerLauncher := preload("res://source/ui/AdjutantRunnerLauncher.gd")
+const AdjutantModelService := preload("res://source/ui/AdjutantModelService.gd")
 const RandomMapRuntimeScript := preload("res://source/main-menu/RandomMapRuntime.gd")
 ##: 加载页最多为副官多停留的秒数（超过就先进对局，面板会继续显示状态）。
 ##: 12s 的依据：预热后 runner 只剩"等对局就绪 + 1~2 秒装配"（实测冷启动 22.7s 里
@@ -224,13 +225,18 @@ func _prewarm_adjutant() -> void:
 		return
 	if AdjutantRunnerLauncher.is_attached():
 		return
-	var pid := AdjutantRunnerLauncher.start()
+	# 【2026-09-23】先把本地模型服务拉起来并开始预热，**再**起 runner：
+	# 战略层要连它，而"把它起起来"原来只在 `启动AI_RTS.bat` 里。放在这里是为了
+	# 让预热与地图加载并行——等玩家真的开始指挥时模型大概率已经热了。
+	# 非阻塞：冷模型首次载入 ~70s，阻塞加载页不可接受。
+	AdjutantModelService.ensure_started(self)
+	var pid := AdjutantRunnerLauncher.start(0, self)
 	if pid <= 0:
 		push_warning("[ADJ] 加载页预热副官失败（不影响对局）")
 		return
 	_prewarm_started = true
 	print("Loading[%.1fs] 已预热 AI 副官（pid=%d，与地图加载并行）"
-		% [Time.get_ticks_msec() / 1000.0, pid])
+	% [Time.get_ticks_msec() / 1000.0, pid])
 
 
 ## 离开加载页之前等副官真正挂上（有上限）。只等自己起的那个进程。

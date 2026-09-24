@@ -204,6 +204,59 @@ class MicroTreeTest(unittest.TestCase):
         self.assertEqual(intents["U_s1"]["action"], "attack")
         self.assertEqual(intents["U_s1"]["target"], {"entity_id": "E_1"})
 
+    def test_workers_and_buildings_do_not_count_as_outnumbering(self):
+        """【2026-09-23 r9_4 超时事故回归】敌后只剩工人+建筑时**不算劣势**。
+
+        旧口径拿"全部可见敌方实体"比"我方作战单位"：我军 7 个兵面对敌军
+        5 工人 + 2 指挥中心 + 兵营 + 车厂 + 1 炮塔 被判 12 > 7 永久劣势，
+        优先级 95 的撤退令每拍重发，部队在"贴近→撤退→地图角落"之间乒乓
+        200 秒，最后 2 座敌建筑就在 100m 外没人打，600s 超时。
+        """
+        self.state["ai_controlled_units"] = ["U_s1"]
+        tac = _tactical([
+            _entity("unit_self", "U_s1", "soldier", pos=(60, 0, 60)),
+            _entity("unit_self", "U_cc", "command_center", pos=(0, 0, 0)),
+            _entity("unit_enemy", entity_id="E_w1", unit_type="worker",
+                    pos=(62, 0, 62)),
+            _entity("unit_enemy", entity_id="E_cc", unit_type="command_center",
+                    pos=(64, 0, 64)),
+            _entity("unit_enemy", entity_id="E_bar", unit_type="barracks",
+                    pos=(66, 0, 66)),
+            _entity("unit_enemy", entity_id="E_tur", unit_type="anti_ground_turret",
+                    pos=(68, 0, 68)),
+        ])
+        intents = self._units(behavior_tree.micro_intents(self.state, tactical=tac))
+        self.assertEqual(intents["U_s1"]["action"], "attack",
+                         "敌后只剩工人/建筑/炮塔时必须接战，不是撤退")
+
+    def test_more_enemy_combat_units_still_retreats(self):
+        """对称修好后**真劣势仍要撤**（治"1 个兵硬冲 3 个兵"的老病不能破）。"""
+        self.state["ai_controlled_units"] = ["U_s1"]
+        tac = _tactical([
+            _entity("unit_self", "U_s1", "soldier", pos=(80, 0, 80)),
+            _entity("unit_self", "U_cc", "command_center", pos=(0, 0, 0)),
+            _entity("unit_enemy", entity_id="E_1", unit_type="soldier",
+                    pos=(82, 0, 82)),
+            _entity("unit_enemy", entity_id="E_2", unit_type="tank",
+                    pos=(84, 0, 84)),
+        ])
+        intents = behavior_tree.micro_intents(self.state, tactical=tac)
+        self.assertEqual(len(intents), 1)
+        self.assertEqual(intents[0]["action"], "retreat")
+
+    def test_unknown_enemy_type_still_counts_as_threat(self):
+        """类型缺失的敌人**仍然算**（宁可多撤一步，不把未知实体当工人）。"""
+        self.state["ai_controlled_units"] = ["U_s1"]
+        tac = _tactical([
+            _entity("unit_self", "U_s1", "soldier", pos=(80, 0, 80)),
+            _entity("unit_self", "U_cc", "command_center", pos=(0, 0, 0)),
+            _entity("unit_enemy", entity_id="E_1", pos=(82, 0, 82)),
+            _entity("unit_enemy", entity_id="E_2", pos=(84, 0, 84)),
+        ])
+        intents = behavior_tree.micro_intents(self.state, tactical=tac)
+        self.assertEqual(len(intents), 1)
+        self.assertEqual(intents[0]["action"], "retreat")
+
     def test_ids_from_name_field_match_real_dcs_payload(self):
         """观测实体**只有 `name`**（游戏端真实导出形状）时，行为树仍必须看得见敌人与资源。
 

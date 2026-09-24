@@ -21,6 +21,10 @@ const LOG_DIR_DEFAULT := "user://adjutant_logs"
 const PIDFILE_NAME := "agent_runner.pid"
 const BOOTSTRAP_NAME := "runner_bootstrap.py"
 const AUTHORITY_PORT_DEFAULT := 24579
+##: 本地模型服务的自动保障（起服务 + 预热模型）。runner 的战略层要连它，
+##: 而"把它拉起来"原来只写在 `build/启动AI_RTS.bat` 里——不走 .bat 启动游戏
+##: 就必然连不上（2026-09-23 用户实测"战略思考这一轮没成功"的真因）。
+const AdjutantModelService := preload("res://source/ui/AdjutantModelService.gd")
 ##: runner 心跳新鲜度窗口（秒）。与 `AdjutantButton.LIVENESS_FRESH_SECONDS` 同值：
 ##: 单轮最坏含一次慢模型调用（实测 ~45s），取 90s 留一倍余量。
 const LIVENESS_FRESH_SECONDS := 90.0
@@ -189,7 +193,9 @@ static func recent_activity(window_seconds: float = ACTIVITY_WINDOW_SECONDS) -> 
 # ---------------- 启动 / 停止 ----------------
 
 ## 启动本机 runner，返回子进程 pid（<=0 = 失败）。已在跑则不重复起（返回现有 pid）。
-static func start(authority_port_value: int = 0) -> int:
+## `parent`：本地模型服务保障的宿主节点（见 `AdjutantModelService.ensure_started`）；
+## 传 null 时模型服务仍会尝试用场景树根节点，但早期初始化阶段可能拿不到。
+static func start(authority_port_value: int = 0, parent: Node = null) -> int:
 	var cfg := config()
 	if cfg.is_empty():
 		push_warning("[ADJ] 未找到本机 runner 配置（user://adjutant_local.cfg 或仓库约定布局）")
@@ -224,11 +230,19 @@ static func start(authority_port_value: int = 0) -> int:
 	if handle == null:
 		push_warning("[ADJ] 引导文件不可写：%s" % bootstrap_path)
 		return 0
+	# 【2026-09-23】先把本地模型服务保障起来（起服务 + 预热模型），再起 runner。
+	# 原来"把 Ollama 拉起来"只写在 `build/启动AI_RTS.bat` 里，玩家只要不是用那个
+	# .bat 启动游戏，战略层就每轮 Connection error、面板显示"战略思考这一轮没成功"。
+	# 用户要求：游戏启动自动满足所有条件。这里**非阻塞**拉起（冷模型预热要 ~70s，
+	# 卡启动不可接受），状态由 `AdjutantModelService.status_text()` 如实上面板。
+	AdjutantModelService.ensure_started(parent)
 	handle.store_string("\n".join([
 		"import os, sys",
 		# 冷启动体检：runner 的 start 事件会带 `since_spawn_ms`（从这一刻起算）。
 		"import time",
 		"os.environ['ADJUTANT_SPAWN_TS'] = '%.3f' % time.time()",
+		# 模型端点：显式覆盖 `.env.local` 里的 11434（唯一口径见 AdjutantModelService）。
+		AdjutantModelService.bootstrap_env_lines(),
 		"os.chdir(%s)" % JSON.stringify(str(cfg["work_dir"])),
 		"sys.path.insert(0, %s)" % JSON.stringify(str(cfg["src_root"])),
 		"sys.argv = ['agent_runner'] + %s" % JSON.stringify(args),

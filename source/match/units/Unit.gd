@@ -771,6 +771,10 @@ func _handle_unit_death():
 		var squad_group := "legacy_ai_squad_%d" % squad_id
 		if is_in_group(squad_group):
 			remove_from_group(squad_group)
+	# 先拆当前动作再释放：否则 queue_free 时动作节点离树会触发
+	# `_on_action_node_tree_exited` 的 "unexpected action released" 断言，
+	# 每个带动作的单位死亡都刷一条 SCRIPT ERROR。
+	_teardown_current_action()
 	MatchSignals.unit_died.emit(self)
 	queue_free()
 

@@ -286,12 +286,29 @@ def _no_engage_target(bb: Blackboard) -> bool:
 
 
 def _outnumbered(bb: Blackboard) -> bool:
-    """可见敌人数 **多于** 我方作战单位数 → 劣势。
+    """可见**能机动作战的敌军**多于我方作战单位 → 劣势。
 
     刻意用**单步比较**（多于），不用"≥2 倍"：实测对 2B 模型，多步算术类判据无效。
     这条在行为树里是确定性代码，但仍保持同一口径，便于与模型口径一致。
+
+    【2026-09-23 口径修正：两边必须同口径，旧实现是错的】
+    旧实现拿 **`visible_enemies` 全量**（工人、建筑、炮塔全算）比
+    **`own_combat_count`（只数我方能机动作战的单位）**——一个数"全部实体"、
+    一个数"作战单位"，比出来的"劣势"没有意义。实测 r9_4（600s 超时局）：
+    我军 7 个作战单位面对敌军 5 工人 + 2 指挥中心 + 兵营 + 车厂 + 1 炮塔，
+    被判 12 > 7 **永久劣势**，优先级 95 的撤退令每拍重发，部队在
+    "贴近敌人 → 撤退 → 被脱离点带去地图角落"之间乒乓 200 秒，
+    最后 2 座敌建筑就在 100m 外没人打，活活超时。
+    现在两边都只数**可机动作战单位**（`combat_types` 同一份口径）；
+    类型缺失的敌人仍然算（宁可多撤一步，不把未知实体当工人）。
     """
-    enemies = len(bb.get("visible_enemies") or ())
+    facts = bb.get("enemy_facts") or {}
+    combat_types = set(bb.get("combat_types") or ())
+    enemies = 0
+    for fact in facts.values():
+        kind = str((fact or {}).get("type") or "")
+        if not kind or kind in combat_types:
+            enemies += 1
     return enemies > int(bb.get("own_combat_count") or 0) > 0
 
 

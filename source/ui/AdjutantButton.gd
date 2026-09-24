@@ -1,6 +1,7 @@
 extends Node
 
 const AdjutantRunnerLauncher := preload("res://source/ui/AdjutantRunnerLauncher.gd")
+const AdjutantModelService := preload("res://source/ui/AdjutantModelService.gd")
 
 ## AI 副官按钮组：对局 HUD 右上角的"AI 接管/停止"开关 + 连通性测试
 ## + 左上角实时思考状态面板（轮询副官会话日志尾部）。
@@ -581,8 +582,14 @@ func _start_local_runner() -> void:
 		push_warning("[ADJ] 无法写入 runner 引导文件：%s" % bootstrap_path)
 		_set_panel_texts("runner 引导文件不可写", PANEL_DASH, PANEL_DASH, PANEL_DASH)
 		return
+	# 【2026-09-23】先把本地模型服务保障起来（起服务 + 预热模型）。
+	# 不走 `启动AI_RTS.bat` 启动游戏时，战略层本来必然每轮 Connection error；
+	# 用户要求"游戏启动自动满足所有条件"。非阻塞拉起，面板如实显示预热进度。
+	AdjutantModelService.ensure_started(self)
 	bootstrap_file.store_string("\n".join([
 		"import os, sys",
+		# 模型端点：钉死成游戏实际保障的那个端口（唯一口径见 AdjutantModelService）。
+		AdjutantModelService.bootstrap_env_lines(),
 		"os.chdir(%s)" % JSON.stringify(str(cfg["work_dir"])),
 		"sys.path.insert(0, %s)" % JSON.stringify(str(cfg["src_root"])),
 		"sys.argv = ['agent_runner'] + %s" % JSON.stringify(args),
@@ -961,6 +968,11 @@ func _apply_hud_status(status: Dictionary, state_prefix := "", result_note := ""
 	var why := str(status.get("why", "")).strip_edges()
 	var result := str(status.get("result", "")).strip_edges()
 	var units := int(status.get("units", 0))
+	# 【2026-09-23】本地模型还在启动/预热时，"为什么"必须是**真实原因**而不是
+	# runner 那句"战略思考这一轮没成功"——玩家看到后者只会以为副官坏了，
+	# 实际只是冷模型还没载入（首次 ~70s）。预热完成后这句让位给 runner 自己的结论。
+	if AdjutantModelService.is_warming():
+		why = AdjutantModelService.status_text()
 	var head := phase if not phase.is_empty() else "运行中"
 	if not state_prefix.is_empty():
 		head = "%s · %s" % [state_prefix, head]

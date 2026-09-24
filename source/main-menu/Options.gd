@@ -14,6 +14,7 @@ const Options = preload("res://source/data-model/Options.gd")
 @onready var _panel = $CenterContainer/PanelContainer
 
 var _save_timer: Timer
+var _sound_toggle: CheckBox
 var _camera_edge_scroll: CheckBox
 var _camera_controls := {}
 var _camera_value_labels := {}
@@ -269,11 +270,25 @@ func _build_audio_settings():
 	title.add_theme_font_size_override("font_size", 22)
 	box.add_child(title)
 
+	# 【2026-09-23 用户要求"设置要能关闭游戏的声音"】总开关放在音频区最上方：
+	# 勾选 = 关闭所有声音（Master 总线静音，音乐/语音/音效一次全关）。
+	_sound_toggle = CheckBox.new()
+	_sound_toggle.name = "SoundEnabledToggle"
+	_sound_toggle.text = "关闭所有声音"
+	# CheckBox 语义是"按下=真"，这里真值取反：未勾选=有声
+	_sound_toggle.button_pressed = not Globals.is_sound_enabled()
+	_sound_toggle.toggled.connect(_on_sound_toggle_toggled)
+	box.add_child(_sound_toggle)
+
 	_add_audio_slider(box, "music_volume", "背景音乐音量")
 	_add_audio_slider(box, "voice_volume", "人物语音音量")
+	# SFX 总线此前没有音量入口（UI 音效与战斗音效全走它），补上。
+	_add_audio_slider(box, "sfx_volume", "游戏音效音量")
+
+	_refresh_audio_controls_enabled()
 
 	var hint := Label.new()
-	hint.text = "提示：音量实时生效；0% 为静音。"
+	hint.text = "提示：总开关一次关闭所有声音；各音量实时生效，0% 亦为静音。"
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint.modulate = Color(0.78, 0.82, 0.88)
 	box.add_child(hint)
@@ -316,6 +331,34 @@ func _on_audio_slider_changed(value: float, key: String):
 	var value_label: Label = _audio_value_labels[key]
 	value_label.text = "%d%%" % roundi(value)
 	_queue_save()
+
+
+## 总开关回调：勾选 = 关闭所有声音（取反后写入 Globals 并实时静音 Master）。
+func _on_sound_toggle_toggled(pressed: bool):
+	Globals.set_sound_enabled(not pressed)
+	_refresh_audio_controls_live()
+	_refresh_audio_controls_enabled()
+	_queue_save()
+
+
+## 关闭声音时让分类滑条置灰（视觉上说明"当前被总开关管着"），不删交互。
+func _refresh_audio_controls_enabled():
+	var enabled := Globals.is_sound_enabled()
+	for slider in _audio_sliders.values():
+		if slider == null:
+			continue
+		slider.mouse_filter = (
+			Control.MOUSE_FILTER_PASS if enabled else Control.MOUSE_FILTER_IGNORE
+		)
+		slider.modulate = Color(1.0, 1.0, 1.0) if enabled else Color(0.55, 0.55, 0.55)
+	if _sound_toggle != null:
+		_sound_toggle.modulate = Color(1.0, 1.0, 1.0) if enabled else Color(1.0, 0.65, 0.65)
+
+
+## 总开关切换时同步当前在跑的音乐/音源（菜单音乐在 Music 总线上，
+## Master 静音即实时切断；这里只兜一记状态日志，便于排查"关了还有声"）。
+func _refresh_audio_controls_live():
+	print("[AUDIO] 声音总开关 → ", "开" if Globals.is_sound_enabled() else "关")
 
 
 func _queue_save():

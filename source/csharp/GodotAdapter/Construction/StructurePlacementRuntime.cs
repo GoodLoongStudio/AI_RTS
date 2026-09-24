@@ -104,6 +104,10 @@ public partial class StructurePlacementRuntime : Node
             {
                 throw new InvalidOperationException("无法注册权威施工现场。");
             }
+            // 同帧缓存失效（2026-09-23 修重叠建筑）：新建筑已入 "units" 组，
+            // 必须让同帧的下一次放置评估看得到它，否则电脑玩家多个控制器同帧
+            // 触发时会把第二座建筑叠放到同一位置。
+            _world.InvalidateCaches();
         }
         catch
         {
