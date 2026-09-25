@@ -1,0 +1,13 @@
+{
+ "cell_m": 1.0,
+ "height_data": "res://source/match/maps/generated/17-210894544-767a002977/height_data.bin",
+ "height_data_sha256": "104e3355617ce5e644709c03b310a23c83bf929136da188a4241be59d4aac1f7",
+ "map_id": "17-210894544-767a002977",
+ "name": "Generated 17-210894544-767a002977",
+ "path": "res://source/match/maps/generated/17-210894544-767a002977/map_17-210894544-767a002977.tscn",
+ "players": 4,
+ "size": [
+  256,
+  256
+ ]
+}

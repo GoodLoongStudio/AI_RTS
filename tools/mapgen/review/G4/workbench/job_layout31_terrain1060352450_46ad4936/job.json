@@ -1,0 +1,316 @@
+{
+  "id": "46ad4936a5384128886c74bb553ebd30",
+  "baseline": false,
+  "status": "done",
+  "config": {
+    "schema_version": 2,
+    "algo_version": "7.11.0",
+    "layout_seed": 31,
+    "terrain_seed": 1060352450,
+    "player_spacing": "any",
+    "controls": {
+      "river_layout": 2,
+      "river_enabled": 1,
+      "lake_count": 0,
+      "lake_area": 5000,
+      "neutral_plateau_scale": 1.7,
+      "plateau_max": 8,
+      "landform_elongation": 1.2,
+      "landform_recess": 0.2,
+      "landform_softness": 0.16,
+      "plateau_ramp_width": 8,
+      "river_width": 18,
+      "river_bend_scale": 1.0,
+      "river_crossings": 6,
+      "obstacle_percent": 40,
+      "cover_cluster_max": 10,
+      "layout_attempts": 4
+    }
+  },
+  "target": "full",
+  "spacing": "close",
+  "created_at": "2026-09-24T15:23:33",
+  "started": 1790234613.8314676,
+  "duration": 11.8,
+  "title": "布局 31 · 地貌 1060352450",
+  "pipeline_version": "1.0.0",
+  "stage_versions": {
+    "G1": "2.0.0",
+    "G2": "7.11.0",
+    "G3": "2.2.0",
+    "G4": "2.0.0"
+  },
+  "stages": {
+    "g1_input": {
+      "status": "done",
+      "started_at": "2026-09-24T15:23:42",
+      "duration_s": 0.1,
+      "error": null,
+      "pass": true,
+      "stage": "G1",
+      "version": "2.0.0",
+      "finished_at": "2026-09-24T15:23:42",
+      "source": "G:\\AIRTS\\AI_RTS\\tools\\mapgen\\runs\\31\\G1",
+      "source_hashes": {
+        "manifest.json": "4c2fedf2b4a36fa8aa0efbec067dcec9f8cde003be2ac14cf1f6cea7ab533003",
+        "mapgrid.npz": "7e649070a43816c8003e990bfd1a7ee62f3d293c44b0485c31fb3a0b10dece92",
+        "mapspec.json": "a640a474434189b404dca62f8deb3105b2bec19db708d1864602752b2b6a7bc1",
+        "starts.png": "e6fbd156b0f7b025c5316a777d407722877885be12e0d3f04b1475cd4a8cd7a9",
+        "starts.png.import": "bb964eb9744729114a9cdf476a48cff6faa9bbf89e693d5e26984372a6502c4e",
+        "starts_table.png": "9dc3f88704f84f0ce27573bae3969fe3dd934781f82c01f472b1321c871411d8",
+        "starts_table.png.import": "a4d652b7de6319dc6da8ecd0b2d3c1433a7f342c28b1ca990b9d17c8620303b9",
+        "territory.png": "ef7ab62a7336e16502d4c8b3b0cbf0b636798e75268077138071c54ddd9a2755",
+        "territory.png.import": "a16da6c03fb91e611c58007e638aecda37ca662ee88b623f9d24b1b7e6a8992c"
+      },
+      "starts": [
+        [
+          208.21,
+          49.94
+        ],
+        [
+          64.46,
+          208.81
+        ],
+        [
+          203.6,
+          156.21
+        ],
+        [
+          13.73,
+          82.44
+        ]
+      ],
+      "spacing": "close",
+      "g1_approved": false,
+      "output_hashes": {
+        "mapgrid.npz": "7e649070a43816c8003e990bfd1a7ee62f3d293c44b0485c31fb3a0b10dece92"
+      }
+    },
+    "g2_terrain": {
+      "status": "done",
+      "started_at": "2026-09-24T15:23:42",
+      "duration_s": 1.7,
+      "error": null,
+      "pass": true,
+      "stage": "G2",
+      "version": "7.11.0",
+      "finished_at": "2026-09-24T15:23:43",
+      "all_pass": true,
+      "checks": {
+        "solid_frac_pass": true,
+        "solid_comp_pass": true,
+        "max_block_pass": true,
+        "open_single_pass": true,
+        "keypoints_pass": true,
+        "struct_connect_pass": true,
+        "plateau_full_pass": true,
+        "plateau_area_pass": true,
+        "plateau_strategy_pass": true,
+        "plateau_ramps_pass": true,
+        "home_plateau_pass": true,
+        "river_presence_pass": true,
+        "lake_count_pass": true,
+        "lake_size_pass": true,
+        "lake_strategy_pass": true,
+        "lake_shape_pass": true,
+        "water_connected_pass": true,
+        "water_crossings_pass": true,
+        "crossing_count_pass": true,
+        "water_semantics_pass": true,
+        "bridge_redundancy_pass": true,
+        "contest_fair_pass": true,
+        "plateau_fair_pass": true,
+        "expansion_fair_pass": true,
+        "neutral_contest_pass": true,
+        "flank_width_pass": true,
+        "routes_clear_pass": true,
+        "route_alternatives_pass": true,
+        "bridge_width_pass": true,
+        "home_clear_pass": true,
+        "path_fairness_pass": true
+      },
+      "input_hash": "7e649070a43816c8003e990bfd1a7ee62f3d293c44b0485c31fb3a0b10dece92",
+      "output_hash": {
+        "mapgrid.npz": "74e69835e2e6f22873f7e90d755e852c29635583e9cddbb8224aa9bcd34c7d81",
+        "mapspec.json": "78939403daea7b750a0c96439a78125f73ca751e2f58a8e5b5fb7b6a230f4e97"
+      },
+      "params_version": "7.11.0",
+      "chosen_attempt": 2,
+      "summary": {
+        "all_pass": true,
+        "solid_percent": 40.5,
+        "plateaus": 8,
+        "rivers": 2,
+        "lakes": 0,
+        "lake_area_m2": 0,
+        "crossings": 6
+      }
+    },
+    "g3_content": {
+      "status": "done",
+      "started_at": "2026-09-24T15:23:44",
+      "duration_s": 1.2,
+      "error": null,
+      "pass": false,
+      "stage": "G3",
+      "version": "2.2.0",
+      "finished_at": "2026-09-24T15:23:45",
+      "all_pass": false,
+      "checks": {
+        "quota_equal": true,
+        "fairness_pass": false,
+        "recheck_components": true,
+        "recheck_keypoints": true,
+        "recheck_widths": true,
+        "cluster_cover": true,
+        "budget": true,
+        "no_resource_failures": true
+      },
+      "input_hash": "74e69835e2e6f22873f7e90d755e852c29635583e9cddbb8224aa9bcd34c7d81",
+      "output_hash": {
+        "mapgrid.npz": "656726d90b17221b0ac90b32cdc6cc8bb6d63e07eba38f794bfc64c310985a49",
+        "mapspec.json": "160fb4152635c17ad0ba9090fa7a10a027e95729c21dbe77a46cb61f747679bf"
+      },
+      "instance_count": 2740,
+      "resource_failures": []
+    },
+    "g4_scene": {
+      "status": "skipped",
+      "reason": "G3 检查未通过，依赖阶段不运行",
+      "finished_at": "2026-09-24T15:23:45"
+    },
+    "engine": {
+      "status": "skipped",
+      "reason": "G3 检查未通过，依赖阶段不运行",
+      "finished_at": "2026-09-24T15:23:45"
+    }
+  },
+  "layout_locked": false,
+  "terrain_locked": false,
+  "layout_pool": [
+    36,
+    5,
+    38,
+    31,
+    61,
+    12,
+    37,
+    13,
+    39,
+    21,
+    54,
+    23,
+    18,
+    51,
+    42,
+    2,
+    46,
+    4,
+    55,
+    14,
+    35,
+    16,
+    47,
+    27,
+    3,
+    15,
+    17,
+    49,
+    25,
+    8
+  ],
+  "layout_tried": [
+    {
+      "seed": 36,
+      "reason": "checks",
+      "attempts": 0,
+      "rejected": null
+    },
+    {
+      "seed": 5,
+      "reason": "checks",
+      "attempts": 0,
+      "rejected": null
+    },
+    {
+      "seed": 38,
+      "reason": "checks",
+      "attempts": 0,
+      "rejected": null
+    }
+  ],
+  "preview_only": false,
+  "progress": {
+    "stage": "G2",
+    "phase": "地形检查通过"
+  },
+  "map_pass": false,
+  "checks_summary": {
+    "g2_pass": true,
+    "g3_pass": false,
+    "engine_pass": null
+  },
+  "result": {
+    "version": "7.11.0",
+    "all_pass": true,
+    "solid_percent": 40.5,
+    "plateaus": 8,
+    "crossings": 6,
+    "plateau_top_percent": 16.7,
+    "rivers": 2,
+    "lakes": 0,
+    "lake_area_m2": 0,
+    "river_width_m": 17.5,
+    "nearest_pair_m": 106.4,
+    "neutral_ratio": 1.4115,
+    "expansion_ratio": 1.0409,
+    "neighbor_ratio": 1.5056,
+    "min_route_width": 7.5,
+    "chosen_attempt": 2,
+    "checks": {
+      "bridge_redundancy_pass": true,
+      "bridge_width_pass": true,
+      "contest_fair_pass": true,
+      "crossing_count_pass": true,
+      "expansion_fair_pass": true,
+      "flank_width_pass": true,
+      "home_clear_pass": true,
+      "home_plateau_pass": true,
+      "keypoints_pass": true,
+      "lake_count_pass": true,
+      "lake_shape_pass": true,
+      "lake_size_pass": true,
+      "lake_strategy_pass": true,
+      "max_block_pass": true,
+      "neutral_contest_pass": true,
+      "open_single_pass": true,
+      "path_fairness_pass": true,
+      "plateau_area_pass": true,
+      "plateau_fair_pass": true,
+      "plateau_full_pass": true,
+      "plateau_ramps_pass": true,
+      "plateau_strategy_pass": true,
+      "river_presence_pass": true,
+      "route_alternatives_pass": true,
+      "routes_clear_pass": true,
+      "solid_comp_pass": true,
+      "solid_frac_pass": true,
+      "struct_connect_pass": true,
+      "water_connected_pass": true,
+      "water_crossings_pass": true,
+      "water_semantics_pass": true
+    },
+    "attempts": [
+      {
+        "attempt": 1,
+        "failed_checks": [
+          "bridge_width_pass"
+        ]
+      },
+      {
+        "attempt": 2,
+        "failed_checks": []
+      }
+    ]
+  }
+}

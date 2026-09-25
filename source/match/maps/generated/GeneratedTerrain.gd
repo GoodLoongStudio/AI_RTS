@@ -319,10 +319,20 @@ func _collect_bridge_rects() -> void:
 	#   ② `Bridge*/DeckBody`（现行导出：Bridge0..N 容器 + DeckBody 甲板）。
 	# 只认 ① 时，现行图一座桥都收不到 → `_sample_bridge_deck` 恒 -inf、`_on_bridge`
 	# 恒 false、水面格永远禁行 ⇒ **桥完全不能过**（2026-09-21 用户报"过桥寻路很严重"）。
+	#
+	# 【2026-09-24 修"桥上卡单位非常严重"】RailC*（护栏物理碰撞）**绝不能**进这个
+	# 集合：护栏碰撞体被 `_stamp_bridges_walkable` 一起盖成"可走"——寻路网格觉得
+	# 干净能过，物理层却是实心墙（layer 1）。于是单位照着网格往护栏上走、被墙挡住，
+	# 脱困候选又都在禁入面外，反复几轮后路径查不到起点格 ⇒ 单位在桥头永久冻结
+	# （实测：3 单位过桥，t=5s 走上桥 y=1.30，t=10s 被拖回岸 y=0.60，此后 30s 不动）。
+	# 护栏只保留"挡住单位不掉下去"的物理职责，不参与高度采样/可走盖章。
 	var bodies: Array[Node] = []
 	bodies.append_array(map_node.find_children("WalkB*", "StaticBody3D", true, false))
 	for container in map_node.find_children("Bridge*", "Node3D", true, false):
 		for child in container.find_children("*", "StaticBody3D", true, false):
+			var child_name := String(child.name)
+			if child_name.begins_with("RailC"):
+				continue
 			bodies.append(child)
 	for node in bodies:
 		var body := node as StaticBody3D

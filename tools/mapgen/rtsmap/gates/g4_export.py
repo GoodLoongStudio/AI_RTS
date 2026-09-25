@@ -122,9 +122,15 @@ def copy_assets(seeds, runs_root, airts_root=None, extra_res=()):
         rel = res_path[len("res://"):]
         src = SRC_ROOT / rel
         dst = airts / rel.replace("assets/", "assets/models/scifi-worlds/", 1)
-        if not src.exists():
+        # 目标已安装 = 可用；源在 = 可拷贝；两者都没有才算真缺失。
+        # 【2026-09-20 修复】同下方桥组合素材：原始素材包（初选素材包/…）被
+        # .gitignore 排除、不在仓库里，而素材历史上已安装到
+        # assets/models/scifi-worlds/…。只查源路径会把"明明可用"误判成缺失，
+        # G4 导出中断、整张图交不出来（2026-09-24 复现：
+        # `素材缺失: …PolygonScifiWorlds_Texture_01_A.png`）。
+        if not src.exists() and not dst.exists():
             raise FileNotFoundError(f"素材缺失: {src}")
-        if not dst.exists():
+        if src.exists() and not dst.exists():
             dst.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, dst)
             copied += 1

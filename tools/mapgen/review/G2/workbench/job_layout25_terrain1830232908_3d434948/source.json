@@ -1,0 +1,67 @@
+{
+  "job_id": "3d4349488f1e4a77a43ac2f2673a5982",
+  "seed": 25,
+  "terrain": 1830232908,
+  "target": "full",
+  "status": "error",
+  "title": "布局 25 · 地貌 1830232908",
+  "label": null,
+  "map_pass": false,
+  "created_at": "2026-09-24T15:46:09",
+  "reverified_with_current_code": false,
+  "visual_version": 1,
+  "visual_profile": "default",
+  "map_id": null,
+  "checks_summary": {
+    "g2_pass": true,
+    "g3_pass": false,
+    "engine_pass": null
+  },
+  "failed_paths": [],
+  "failed_forbidden": [],
+  "nav_all": null,
+  "smoke_assertions": {},
+  "stages": {
+    "G1": {
+      "state": "通过",
+      "images": [
+        "contact.png"
+      ],
+      "preview": "contact.png",
+      "version": "2.0.0",
+      "history_versions": []
+    },
+    "G2": {
+      "state": "通过",
+      "images": [
+        "contact.png",
+        "seed_13_minimap.png",
+        "seed_13_overview.png",
+        "seed_13_strategy.png",
+        "seed_25_minimap.png",
+        "seed_25_overview.png",
+        "seed_25_strategy.png",
+        "seed_36_minimap.png",
+        "seed_36_overview.png",
+        "seed_36_strategy.png",
+        "seed_51_minimap.png",
+        "seed_51_overview.png",
+        "seed_51_strategy.png",
+        "seed_54_minimap.png",
+        "seed_54_overview.png",
+        "seed_54_strategy.png",
+        "seed_5_minimap.png",
+        "seed_5_overview.png",
+        "seed_5_strategy.png"
+      ],
+      "preview": "seed_13_overview.png",
+      "version": "7.11.0",
+      "history_versions": []
+    }
+  },
+  "folder": "job_layout25_terrain1830232908_3d434948",
+  "gate": "G2",
+  "source_job": "G:\\AIRTS\\AI_RTS\\tools\\mapgen\\workbench_output\\3d4349488f1e4a77a43ac2f2673a5982\\job.json",
+  "synced_at": "2026-09-24T15:46:26",
+  "note": "图像来自本任务权威数据/真实引擎输出；生成或导航通过不等于实战通过。"
+}

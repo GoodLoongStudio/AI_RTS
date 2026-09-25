@@ -94,6 +94,24 @@ def run_pipeline(job, project, folder, save, progress):
         return stage_done(name) and stages[name].get("pass", True)
 
     layouts = layout_catalog(Path(project))
+
+    def run_g3_stage() -> bool:
+        """跑 G3（资源与素材）并记录阶段状态；返回是否过检。异常向上抛。"""
+        rec.mark_t0("g3_content")
+        rec.begin("g3_content", stage="G3", version=ALGO_VERSION["G3"])
+        res3 = g3_content.run_one(seed, runs, dict(g3_content.G3_DEFAULTS), auto=True)
+        build_g3_review(runs, review, [seed])
+        mf = read_json(run_dir(runs, seed, "G3") / "manifest.json")
+        spec3 = res3["mapspec"]
+        rec.done("g3_content", all_pass=spec3["all_pass"],
+                 checks={k: bool(v) for k, v in _g3_checks(spec3, runs, seed).items()},
+                 input_hash=mf["input_hash"], output_hash=mf["output_hash"],
+                 instance_count=spec3["instance_count"],
+                 resource_failures=spec3["resource_failures"])
+        stages["g3_content"]["pass"] = bool(spec3["all_pass"])
+        save(job)
+        return bool(spec3["all_pass"])
+
     while True:
         seed = config["layout_seed"]
         # ---- G1 输入：复制既有合格布局（源只读，不重新随机） ----
@@ -167,7 +185,33 @@ def run_pipeline(job, project, folder, save, progress):
                          attempts=getattr(error, "attempts", None))
                 raise
         if stage_passed("g2_terrain"):
-            break
+            # 【2026-09-24】G2 过的布局不一定放得下资源：侧翼争夺盘被山体挤空、
+            # shared 路径比结构性超 1.3，都与布局相关。G3 不过也按布局轮换重试，
+            # 否则任务 done 却没有场景，游戏只能退回旧图（用户看到的
+            # "随机地图其实是旧方案"）。轮换次数与 G2 共用 LAYOUT_WALK_LIMIT。
+            if not stage_done("g3_content"):
+                try:
+                    run_g3_stage()
+                except Exception as error:
+                    rec.fail("g3_content", error)
+                    raise
+            if stage_passed("g3_content"):
+                break
+            if compat.should_rotate_failed_checks(job, dict(all_pass=False)):
+                compat.record_layout_try(job, seed, "g3_checks")
+                nxt = compat.next_layout_seed(job)
+                if nxt is not None:
+                    compat.bind_job_layout(job, nxt, layouts, reroll_terrain=True)
+                    for name in ("g1_input", "g2_terrain", "g3_content"):
+                        stages.pop(name, None)
+                    progress(dict(stage="G3",
+                                  phase=f"布局 {seed} 资源检查未通过，改试布局 {nxt}"))
+                    save(job)
+                    continue
+            for name in ("g4_scene", "engine"):
+                rec.skip(name, "G3 检查未通过，依赖阶段不运行")
+            _finalize(job, folder, save)
+            return
         if not compat.should_rotate_failed_checks(job, dict(all_pass=False)):
             break
         compat.record_layout_try(job, seed, "checks")

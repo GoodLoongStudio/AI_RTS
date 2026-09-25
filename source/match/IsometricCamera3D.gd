@@ -5,6 +5,12 @@ const EXPECTED_PROJECTION = PROJECTION_ORTHOGONAL
 ## 所有地图开局同一档：正交 size 与镜头离地高度。
 const OPENING_SIZE := 21.25
 const OPENING_HEIGHT := 25.0
+## 当前生效的开局档位：大图由 configure_for_large_terrain 抬高（2026-09-24
+## 用户反馈"默认视图太低"）。force_opening_isometric() 无参调用时用它，
+## 否则 Match._ready 第 139 行的统一开学会把大图高度重置回 21.25。
+var _opening_size := OPENING_SIZE
+## 大图开局镜头目标离地高度（米）。用户 2026-09-24 指定 35。
+const OPENING_HEIGHT_TARGET_M := 35.0
 
 @export_group("Size")
 @export var size_min = 1
@@ -182,23 +188,40 @@ func set_map_bounds(map_size: Vector2) -> void:
 ## 生成大地图：只放宽拉远上限。开局姿态与普通图相同，不把 far 拉到地图对角线。
 func configure_for_large_terrain(map_size: Vector2, peak_world_y: float = 80.0) -> void:
 	visible_height_min = minf(visible_height_min, -20.0)
-	size_max = maxf(size_max, minf(map_size.x, map_size.y) * 0.16)
+	# 【2026-09-24 用户反馈"默认视图太低了"】大图开局就拉到能看清全局态势的高度。
+	# 原实现所有地图共用 OPENING_SIZE=21.25：256m 图上只覆盖约 40m 纵深，
+	# 屏幕大部分是空地，看不清台地/河道/全局路线。改为按地图短边缩放：
+	# 上限 0.24×短边（原 0.16，留出继续拉远的余量）；开局档见下方 35m 反推。
+	# 小图（<120m）仍走原 OPENING_SIZE，手搓小地图观感不变。
+	var short_edge := minf(map_size.x, map_size.y)
+	size_max = maxf(size_max, short_edge * 0.24)
 	set_map_bounds(map_size)
-	force_opening_isometric()
+	# 开局档位按"镜头离地 35m"反推（用户 2026-09-24 指定：
+	# "镜头离地改为35吧"）。height = OPENING_HEIGHT + (size-OPENING_SIZE)×sin60°/2
+	# ⇒ size ≈ 44.3。短边 256 时给下限 0.173×短边 ≈ 44.3，两种算法取大者兜底。
+	var opening: float = OPENING_HEIGHT_TARGET_M
+	var derived_size: float = (OPENING_SIZE
+		+ (opening - OPENING_HEIGHT) * 2.0 / sin(deg_to_rad(60.0)))
+	if short_edge >= 120.0:
+		_opening_size = minf(size_max, maxf(derived_size, short_edge * 0.173))
+	else:
+		_opening_size = OPENING_SIZE
+	force_opening_isometric(_opening_size)
 
 
 ## 正交、俯角 -45°、偏航 0：视线在地面上垂直于世界 X（屏幕底边水平线）。
 ## 大图若把 far 拉到 1000m+，45° 视盒会扫到地图边缘那层没有厚度的高度场，
 ## 看起来就像山脉空壳。
-func force_opening_isometric() -> void:
+func force_opening_isometric(opening_size: float = -1.0) -> void:
+	var target := opening_size if opening_size > 0.0 else _opening_size
 	projection = EXPECTED_PROJECTION
 	rotation_degrees = Vector3(EXPECTED_X_ROTATION_DEGREES, default_y_rotation_degrees, 0.0)
 	near = 0.5
-	if is_equal_approx(size, OPENING_SIZE):
+	if is_equal_approx(size, target):
 		_align_camera_properties_to_current_size()
 		_align_position_to_bounding_planes()
 	else:
-		set_size_safely(OPENING_SIZE)
+		set_size_safely(target)
 
 
 func apply_unified_opening_view() -> void:

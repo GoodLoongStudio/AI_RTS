@@ -1,0 +1,88 @@
+[gd_scene load_steps=19 format=3 uid="uid://tcq8nbsari5i"]
+
+[ext_resource type="PackedScene" uid="uid://camns8fqod8d4" path="res://source/match/Match.tscn" id="1_f87ft"]
+[ext_resource type="PackedScene" uid="uid://ct0ejt0trkhrf" path="res://source/match/units/CommandCenter.tscn" id="p_unit_0"]
+[ext_resource type="PackedScene" path="res://source/match/units/Infantry.tscn" id="p_unit_1"]
+[ext_resource type="PackedScene" uid="uid://i58ffvwxbbwm" path="res://source/match/units/Tank.tscn" id="p_unit_2"]
+[ext_resource type="PackedScene" uid="uid://bf0r3fovbvf1m" path="res://source/match/units/Worker.tscn" id="p_unit_3"]
+[ext_resource type="Script" path="res://source/match/players/Player.gd" id="p_enemy"]
+[ext_resource type="Script" path="res://tests/manual/Match.gd" id="2_iedaw"]
+[ext_resource type="Shader" path="res://source/shaders/3d/simple_fog_of_war.gdshader" id="2_ojmlq"]
+[ext_resource type="Script" path="res://source/data-model/MatchSettings.gd" id="4_xj1co"]
+[ext_resource type="PackedScene" uid="uid://dh8dedilkhuoy" path="res://source/match/players/human/Human.tscn" id="5_jt74q"]
+[ext_resource type="PackedScene" uid="uid://cbe63rdjw7y4p" path="res://source/match/maps/PlainAndSimple.tscn" id="10_3dtqy"]
+[ext_resource type="Shader" path="res://source/shaders/2d/white_transparent.gdshader" id="10_t0wf4"]
+
+[sub_resource type="Resource" id="Resource_e2qbq"]
+script = ExtResource("4_xj1co")
+players = Array[Resource]([])
+visibility = 1
+visible_player = 0
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_v46ss"]
+viewport_path = NodePath("FogOfWar/CombinedViewport")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_67o07"]
+resource_local_to_scene = true
+render_priority = 1
+shader = ExtResource("2_ojmlq")
+shader_parameter/color = Color(0, 0, 0, 1)
+shader_parameter/texture_units_per_world_unit = 2
+shader_parameter/debug_texture_view = false
+shader_parameter/world_visibility_texture = SubResource("ViewportTexture_v46ss")
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_ysn5a"]
+viewport_path = NodePath("FogOfWar/CombinedViewport")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_7blp5"]
+resource_local_to_scene = true
+shader = ExtResource("10_t0wf4")
+shader_parameter/reference_texture = SubResource("ViewportTexture_ysn5a")
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_5lqnb"]
+viewport_path = NodePath("HUD/MarginContainer/Minimap/MarginContainer/MinimapViewport")
+
+[node name="Match" instance=ExtResource("1_f87ft")]
+script = ExtResource("2_iedaw")
+settings = SubResource("Resource_e2qbq")
+
+[node name="Map" parent="." index="0" instance=ExtResource("10_3dtqy")]
+
+[node name="Human" parent="Players" index="0" instance=ExtResource("5_jt74q")]
+
+[node name="ScreenOverlay" parent="FogOfWar" index="1"]
+material_override = SubResource("ShaderMaterial_67o07")
+
+[node name="HUD" parent="." index="12"]
+visible = false
+
+[node name="FogOfWarMask" parent="HUD/MarginContainer/Minimap/MarginContainer/MinimapViewport" index="3"]
+material = SubResource("ShaderMaterial_7blp5")
+
+[node name="MinimapTextureRect" parent="HUD/MarginContainer/Minimap/MarginContainer" index="1"]
+texture = SubResource("ViewportTexture_5lqnb")
+[node name="Enemy" type="Node3D" parent="Players" index="1"]
+script = ExtResource("p_enemy")
+color = Color(1, 0.3, 0.3, 1)
+
+[node name="CommandCenter1" parent="Players/Human" instance=ExtResource("p_unit_0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.000, 0, 40.000)
+
+[node name="Worker2" parent="Players/Human" instance=ExtResource("p_unit_3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 37.000, 0, 38.000)
+
+[node name="Worker3" parent="Players/Human" instance=ExtResource("p_unit_3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 37.000, 0, 42.000)
+
+[node name="Tank4" parent="Players/Human" instance=ExtResource("p_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44.000, 0, 40.000)
+
+[node name="Tank5" parent="Players/Human" instance=ExtResource("p_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44.000, 0, 44.000)
+
+[node name="Infantry1" parent="Players/Enemy" instance=ExtResource("p_unit_1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 70.000, 0, 40.000)
+
+[node name="Infantry2" parent="Players/Enemy" instance=ExtResource("p_unit_1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 70.000, 0, 44.000)
+

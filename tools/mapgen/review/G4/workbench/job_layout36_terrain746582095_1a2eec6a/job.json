@@ -1,0 +1,144 @@
+{
+  "id": "1a2eec6a8a304392885e19ecb4339403",
+  "baseline": false,
+  "status": "error",
+  "config": {
+    "schema_version": 2,
+    "algo_version": "7.11.0",
+    "layout_seed": 36,
+    "terrain_seed": 746582095,
+    "player_spacing": "any",
+    "controls": {
+      "river_layout": 2,
+      "river_enabled": 1,
+      "lake_count": 0,
+      "lake_area": 5000,
+      "neutral_plateau_scale": 1.7,
+      "plateau_max": 8,
+      "landform_elongation": 1.2,
+      "landform_recess": 0.2,
+      "landform_softness": 0.16,
+      "plateau_ramp_width": 8,
+      "river_width": 18,
+      "river_bend_scale": 1.0,
+      "river_crossings": 6,
+      "obstacle_percent": 40,
+      "cover_cluster_max": 10,
+      "layout_attempts": 4
+    }
+  },
+  "target": "full",
+  "spacing": "far",
+  "created_at": "2026-09-24T15:44:41",
+  "started": 1790235881.1564906,
+  "duration": 0.2,
+  "title": "布局 36 · 地貌 746582095",
+  "pipeline_version": "1.0.0",
+  "stage_versions": {
+    "G1": "2.0.0",
+    "G2": "7.11.0",
+    "G3": "2.2.0",
+    "G4": "2.0.0"
+  },
+  "stages": {
+    "g1_input": {
+      "status": "done",
+      "started_at": "2026-09-24T15:44:41",
+      "duration_s": 0.1,
+      "error": null,
+      "pass": true,
+      "stage": "G1",
+      "version": "2.0.0",
+      "finished_at": "2026-09-24T15:44:41",
+      "source": "G:\\AIRTS\\AI_RTS\\tools\\mapgen\\runs\\36\\G1",
+      "source_hashes": {
+        "manifest.json": "493acf952e6af77c71f054ae5d9ca48fecb3fbd20b86cfaef73eb8cf20b7a742",
+        "mapgrid.npz": "f201ddc5e125d46ff9d07c52bdfc51dec2b9a158037f4961b6dfa063abadc5d7",
+        "mapspec.json": "d47149d632f1208f0240526df0c66073aaea51ec89f99dd9ce6e079593ea8c23",
+        "starts.png": "7fa4725ed3620f82056f8f774eca2e5c669fbce0421c5c2cd2e30bb503ed2c49",
+        "starts.png.import": "f49acc8fe32c728b3ecc0062e5a8c90cfef05aa77bf3b88bcdf140d1fe556fb1",
+        "starts_table.png": "e583d105f9ec8d2b5a4ee471e5ff9c589e43e1cc566b32099cd1aa90ee7bb376",
+        "starts_table.png.import": "b0b46eb52138c221980d5cf6423f613088d4d2e6501890d4e9eac76bfbca1540",
+        "territory.png": "af4290d9b9927ff939cfe8bcc89e9851e3208ccc9625b37475f697e67ec85211",
+        "territory.png.import": "fee6908133520c785d600ae04cfe3539c1af5f40786e581fa95404dab7a23e66"
+      },
+      "starts": [
+        [
+          59.77,
+          228.12
+        ],
+        [
+          224.95,
+          224.56
+        ],
+        [
+          19.88,
+          48.46
+        ],
+        [
+          231.23,
+          27.87
+        ]
+      ],
+      "spacing": "far",
+      "g1_approved": false,
+      "output_hashes": {
+        "mapgrid.npz": "f201ddc5e125d46ff9d07c52bdfc51dec2b9a158037f4961b6dfa063abadc5d7"
+      }
+    },
+    "g2_terrain": {
+      "status": "error",
+      "started_at": "2026-09-24T15:44:41",
+      "duration_s": 0.0,
+      "error": "A child process terminated abruptly, the process pool is not usable anymore",
+      "pass": true,
+      "stage": "G2",
+      "version": "7.11.0",
+      "finished_at": "2026-09-24T15:44:41",
+      "error_kind": "stage_error",
+      "attempts": null
+    }
+  },
+  "layout_locked": false,
+  "terrain_locked": false,
+  "layout_pool": [
+    36,
+    5,
+    61,
+    49,
+    15,
+    42,
+    18,
+    54,
+    39,
+    31,
+    51,
+    14,
+    16,
+    4,
+    17,
+    38,
+    3,
+    46,
+    55,
+    25,
+    37,
+    13,
+    23,
+    12,
+    8,
+    35,
+    21,
+    2,
+    27,
+    47
+  ],
+  "layout_tried": [],
+  "preview_only": false,
+  "progress": {
+    "stage": "G1",
+    "phase": "出生布局已就绪"
+  },
+  "error_kind": "generation_error",
+  "error": "A child process terminated abruptly, the process pool is not usable anymore"
+}

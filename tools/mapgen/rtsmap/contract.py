@@ -187,11 +187,22 @@ G2_DEFAULTS = {
     "water_level": -2.4, "ground_level": 0.6, "plateau_level": 8.1,
     "plateau_count": (6, 8),        # Two home heights and substantial neutral bank positions.
     "plateau_top_fraction_min": .12,
-    "plateau_radius": (18.0, 26.0),
+    # 中立台地**基础半径**（再乘 neutral_plateau_scale=1.7 得实际半径）。
+    # 2026-09-24 修：原值 (18, 26) 与 1.7 相乘得 30.6–44.2m，256m 图上一座都放不下
+    # （实测 557 次候选 328 次出界、195 次撞禁入，仅 2 座出生台地成活）⇒
+    # plateau_full/neutral_contest/plateau_area 全挂 → pipeline 退保底烘焙 → G3 崩 →
+    # 游戏只能退回旧图（用户看到的“台地/坡道/山地是旧方案”）。
+    # 现取 (9, 11)：实际半径 15.3–18.7m，对齐 G2-strategic-highlands.md 的
+    # “基础半径优先 24，退让档位 21、18”里的最小退让步，6–8 座可稳定落下。
+    "plateau_radius": (9.0, 11.0),
     "plateau_ramp_count": (2, 2),   # v6 固定双向对坡（首坡朝争夺区+反侧）：入口双侧→公平性稳定
     "plateau_ramp_width": 8.0,      # 坡道宽（m，≥5 供阶段2 坡烘焙）
     "bridge_count": (1, 2),         # 每水带桥数
-    "bridge_width": 8.0,            # v7 bridge deck width (m)
+    # 2026-09-24 8.0 → 12.0（用户报"桥上卡单位非常严重"）：可走净宽 = 桥宽 - 2×护栏宽
+    # = 8-1.3 = 6.7m。9 个工人+士兵挤一条 6.7m 的走廊，RVO 互相推 + 撞护栏物理体，
+    # 单位被弹下桥、随后路径查不到起点格而永久冻结（实测 t=5s 上桥 y=1.30，
+    # t=10s 被拖回岸 y=0.60，之后 30s 不动）。12m → 净宽 10.7m，可并行 6~7 个单位。
+    "bridge_width": 12.0,           # v7 bridge deck width (m)
     "plateau_home_cover": 60.0,     # v6 公平修补：每家到最近台地中心上限（超则补位）
     # v6 战略结构：分布式争夺区 + 出生点局部防守 + 公平
     "river_count": (2, 2),          # Two boundary-to-boundary channels with one intersection.
@@ -205,6 +216,7 @@ G2_DEFAULTS = {
     "plateau_route_reach": 18.0,
     "expansion_fair_ratio": 1.3,
     "route_width_min": 5.0,
+    "bridge_keepclear_m": 9.0,       # 桥口山体净空（米）：山体可贴河岸，但不得挤占桥通道
     "plateau_fair_ratio": 1.7,      # 各家→最近台地入口 路径比上限（绕路不对称容差；直线覆盖由 plateau_home_cover 修补保证）
     "contest_fair_ratio": 1.3,      # 争夺区两_owner 路径比上限
     "route_cover_radius": 30.0,     # 可读性报告：路线覆盖半径
@@ -236,7 +248,8 @@ G2_DEFAULTS = {
     # 验收（开阔地模型：障碍是点缀；v5 障碍含 ring+water+wall+cover，区间 12–22%）
     "obstacle_frac_min": 0.395,
     "obstacle_frac_max": 0.405,
-    "bridge_width_pass": (5.0, 9.0),  # 桥实测贯通宽验收区间（标称 6）
+    # 桥实测贯通宽验收区间：随 bridge_width 8→12 同步放宽（净宽 = 桥宽-2×护栏宽）。
+    "bridge_width_pass": (5.0, 12.5),
     "solid_comp_min": 4,
     "solid_comp_max": 400,
     "max_solid_block_frac": 0.35,   # 贯图分隔线互相交叉会连成一个大网络，放宽单块上限
@@ -289,7 +302,11 @@ G3_DEFAULTS = {
     "rock_scale_range": (0.9, 1.2),
     # 植被/装饰密度：3% 在 2048m 地图上过稀（实测树/草几乎不可见），
     # 参照主流 RTS 的地表植被覆盖感提升到 10%（战区 home/expansion 仍为 0）。
-    "deco_density": {5: 0.10, 3: 0.10, 2: 0.06},
+    # 2026-09-24 用户反馈："生成地图上面是没有这么多摆件的，这是之前错的方案，
+    # 地图上有零散的摆件就行了"。原密度 10%/10%/6% = 每 10 个开阔格就有一件
+    # 摆件（花草/碎石/废料），256m 图上实测 2466 件，把整张地图铺成摆件地毯、
+    # 盖住台地/坡道/山体本身。降到约 1/15：零散点缀，不再成片。
+    "deco_density": {5: 0.006, 3: 0.006, 2: 0.004},
     "deco_spawn_dist": 10.0,
     "deco_res_dist": 2.0,
     # 装饰件 XZ 最大边：4.5 -> 9.0（树/岩件尺度接近单位体量，远看才成立）

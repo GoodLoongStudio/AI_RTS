@@ -1,0 +1,40 @@
+{
+  "job_id": "34768e02a94c4545b2f1696841624eaf",
+  "seed": 16,
+  "terrain": 1160160445,
+  "target": "full",
+  "status": "done",
+  "title": "布局 16 · 地貌 1160160445",
+  "label": null,
+  "map_pass": false,
+  "created_at": "2026-09-25T13:58:48",
+  "reverified_with_current_code": false,
+  "visual_version": 1,
+  "visual_profile": "default",
+  "map_id": null,
+  "checks_summary": {
+    "g2_pass": true,
+    "g3_pass": false,
+    "engine_pass": null
+  },
+  "failed_paths": [],
+  "failed_forbidden": [],
+  "nav_all": null,
+  "smoke_assertions": {},
+  "stages": {
+    "G1": {
+      "state": "通过",
+      "images": [
+        "contact.png"
+      ],
+      "preview": "contact.png",
+      "version": "2.0.0",
+      "history_versions": []
+    }
+  },
+  "folder": "job_layout16_terrain1160160445_34768e02",
+  "gate": "G1",
+  "source_job": "G:\\AIRTS\\AI_RTS\\tools\\mapgen\\workbench_output\\34768e02a94c4545b2f1696841624eaf\\job.json",
+  "synced_at": "2026-09-25T13:59:33",
+  "note": "图像来自本任务权威数据/真实引擎输出；生成或导航通过不等于实战通过。"
+}

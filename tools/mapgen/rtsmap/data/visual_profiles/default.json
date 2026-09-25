@@ -21,7 +21,7 @@
     ],
     "large_chance": 0.25,
     "max_footprint_m": 26.0,
-    "budget": 170
+    "budget": 70
   },
   "shore_props": {
     "enabled": true,
@@ -34,15 +34,15 @@
       1.2
     ],
     "plant_chance": 0.35,
-    "budget": 130
+    "budget": 25
   },
   "scatter": {
     "enabled": true,
     "attempts": 8000,
-    "budget": 350,
+    "budget": 40,
     "max_size_m": 4.5
   },
-  "budget_total": 700,
+  "budget_total": 150,
   "tint": {
     "cliff": "1.26,1.10,0.88",
     "shore": "1.18,1.05,0.90",

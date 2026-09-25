@@ -1,0 +1,106 @@
+{
+  "job_id": "34768e02a94c4545b2f1696841624eaf",
+  "seed": 16,
+  "terrain": 1160160445,
+  "target": "full",
+  "status": "done",
+  "title": "布局 16 · 地貌 1160160445",
+  "label": null,
+  "map_pass": false,
+  "created_at": "2026-09-25T13:58:48",
+  "reverified_with_current_code": false,
+  "visual_version": 1,
+  "visual_profile": "default",
+  "map_id": null,
+  "checks_summary": {
+    "g2_pass": true,
+    "g3_pass": false,
+    "engine_pass": null
+  },
+  "failed_paths": [],
+  "failed_forbidden": [],
+  "nav_all": null,
+  "smoke_assertions": {},
+  "stages": {
+    "G1": {
+      "state": "通过",
+      "images": [
+        "contact.png"
+      ],
+      "preview": "contact.png",
+      "version": "2.0.0",
+      "history_versions": []
+    },
+    "G2": {
+      "state": "通过",
+      "images": [
+        "contact.png",
+        "seed_16_minimap.png",
+        "seed_16_overview.png",
+        "seed_16_strategy.png",
+        "seed_17_minimap.png",
+        "seed_17_overview.png",
+        "seed_17_strategy.png",
+        "seed_21_minimap.png",
+        "seed_21_overview.png",
+        "seed_21_strategy.png",
+        "seed_23_minimap.png",
+        "seed_23_overview.png",
+        "seed_23_strategy.png",
+        "seed_31_minimap.png",
+        "seed_31_overview.png",
+        "seed_31_strategy.png",
+        "seed_36_minimap.png",
+        "seed_36_overview.png",
+        "seed_36_strategy.png",
+        "seed_38_minimap.png",
+        "seed_38_overview.png",
+        "seed_38_strategy.png",
+        "seed_47_minimap.png",
+        "seed_47_overview.png",
+        "seed_47_strategy.png",
+        "seed_49_minimap.png",
+        "seed_49_overview.png",
+        "seed_49_strategy.png",
+        "seed_4_minimap.png",
+        "seed_4_overview.png",
+        "seed_4_strategy.png",
+        "seed_51_minimap.png",
+        "seed_51_overview.png",
+        "seed_51_strategy.png",
+        "seed_54_minimap.png",
+        "seed_54_overview.png",
+        "seed_54_strategy.png",
+        "seed_5_minimap.png",
+        "seed_5_overview.png",
+        "seed_5_strategy.png"
+      ],
+      "preview": "seed_16_overview.png",
+      "version": "7.11.0",
+      "history_versions": []
+    },
+    "G3": {
+      "state": "需检查",
+      "images": [
+        "contact.png",
+        "seed_16_overview.png",
+        "seed_4_overview.png"
+      ],
+      "preview": "seed_16_overview.png",
+      "version": "2.2.0",
+      "history_versions": []
+    },
+    "G4": {
+      "state": "未生成",
+      "images": [],
+      "preview": null,
+      "version": null,
+      "history_versions": []
+    }
+  },
+  "folder": "job_layout16_terrain1160160445_34768e02",
+  "gate": "G4",
+  "source_job": "G:\\AIRTS\\AI_RTS\\tools\\mapgen\\workbench_output\\34768e02a94c4545b2f1696841624eaf\\job.json",
+  "synced_at": "2026-09-25T13:59:34",
+  "note": "图像来自本任务权威数据/真实引擎输出；生成或导航通过不等于实战通过。"
+}

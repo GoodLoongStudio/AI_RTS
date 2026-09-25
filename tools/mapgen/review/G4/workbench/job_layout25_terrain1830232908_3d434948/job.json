@@ -1,0 +1,268 @@
+{
+  "id": "3d4349488f1e4a77a43ac2f2673a5982",
+  "baseline": false,
+  "status": "error",
+  "config": {
+    "schema_version": 2,
+    "algo_version": "7.11.0",
+    "layout_seed": 25,
+    "terrain_seed": 1830232908,
+    "player_spacing": "any",
+    "controls": {
+      "river_layout": 2,
+      "river_enabled": 1,
+      "lake_count": 0,
+      "lake_area": 5000,
+      "neutral_plateau_scale": 1.7,
+      "plateau_max": 8,
+      "landform_elongation": 1.2,
+      "landform_recess": 0.2,
+      "landform_softness": 0.16,
+      "plateau_ramp_width": 8,
+      "river_width": 18,
+      "river_bend_scale": 1.0,
+      "river_crossings": 6,
+      "obstacle_percent": 40,
+      "cover_cluster_max": 10,
+      "layout_attempts": 4
+    }
+  },
+  "target": "full",
+  "spacing": "close",
+  "created_at": "2026-09-24T15:46:09",
+  "started": 1790235969.0996943,
+  "duration": 16.7,
+  "title": "布局 25 · 地貌 1830232908",
+  "pipeline_version": "1.0.0",
+  "stage_versions": {
+    "G1": "2.0.0",
+    "G2": "7.11.0",
+    "G3": "2.2.0",
+    "G4": "2.0.0"
+  },
+  "stages": {
+    "g1_input": {
+      "status": "done",
+      "started_at": "2026-09-24T15:46:22",
+      "duration_s": 0.1,
+      "error": null,
+      "pass": true,
+      "stage": "G1",
+      "version": "2.0.0",
+      "finished_at": "2026-09-24T15:46:23",
+      "source": "G:\\AIRTS\\AI_RTS\\tools\\mapgen\\runs\\25\\G1",
+      "source_hashes": {
+        "manifest.json": "a24dc49e0bc7bd8e219d9e4de663d23c2c472cd7152fe46c798a2c46ca6581f3",
+        "mapgrid.npz": "a0aa20816e878826d85ce069748b13f12d951410e1721b43596256929b897bf8",
+        "mapspec.json": "d1ad291d938c25650b6320eafc10ff3267c0a967ef59c7e98eeecc077a705f3e",
+        "starts.png": "ac5070e72494a84892b461c59c1346f174dd843a172f829308f5fb467d138b0b",
+        "starts.png.import": "371ff3fa94458cb00761869872e1dc5bdce7fdfa4b1d2873b52037b3fff98a6d",
+        "starts_table.png": "12e6e637014e42a345716fa9160c4de843fe553e384ec116c8ff07931b532d9c",
+        "starts_table.png.import": "5e25d7102a8dfae326f0b2c6adab77275d40b038f903c47c03002ff94febb5a0",
+        "territory.png": "d6c2aa865fd6f8a14bb8a72c9f7ca43ac92d837388dc6f108d981c5a2b58040a",
+        "territory.png.import": "b5bcac9158db5a13cc9447728b29d1efeed202bcd350dbdf31cd44c0a03cac8a"
+      },
+      "starts": [
+        [
+          64.07,
+          49.96
+        ],
+        [
+          48.27,
+          156.65
+        ],
+        [
+          238.5,
+          87.34
+        ],
+        [
+          191.8,
+          218.49
+        ]
+      ],
+      "spacing": "close",
+      "g1_approved": false,
+      "output_hashes": {
+        "mapgrid.npz": "a0aa20816e878826d85ce069748b13f12d951410e1721b43596256929b897bf8"
+      }
+    },
+    "g2_terrain": {
+      "status": "done",
+      "started_at": "2026-09-24T15:46:23",
+      "duration_s": 0.0,
+      "error": null,
+      "pass": true,
+      "stage": "G2",
+      "version": "7.11.0",
+      "finished_at": "2026-09-24T15:46:25",
+      "all_pass": true,
+      "checks": {},
+      "input_hash": "a0aa20816e878826d85ce069748b13f12d951410e1721b43596256929b897bf8",
+      "output_hash": {
+        "mapgrid.npz": "1fc526ed4601b3680ac8c2214640406a5431770431b981f16db800c812b1f185",
+        "mapspec.json": "95086979a684a7814717f54270667315b59a6ff6a789dd1d32b8b0f068eb1db5"
+      },
+      "params_version": "7.11.0",
+      "chosen_attempt": -1,
+      "summary": {
+        "all_pass": true,
+        "solid_percent": 92.8,
+        "plateaus": 6,
+        "rivers": 1,
+        "lakes": 1,
+        "lake_area_m2": 2472,
+        "crossings": 3
+      },
+      "baked": true
+    },
+    "g3_content": {
+      "status": "done",
+      "started_at": "2026-09-24T15:46:25",
+      "duration_s": 0.4,
+      "error": null,
+      "pass": false,
+      "stage": "G3",
+      "version": "2.2.0",
+      "finished_at": "2026-09-24T15:46:25",
+      "all_pass": false,
+      "checks": {
+        "quota_equal": false,
+        "fairness_pass": false,
+        "recheck_components": true,
+        "recheck_keypoints": false,
+        "recheck_widths": true,
+        "cluster_cover": true,
+        "budget": true,
+        "no_resource_failures": false
+      },
+      "input_hash": "bc65763c07f221e1d937e8e6121a787271321072a73c0b3d2ec19bf872e8331f",
+      "output_hash": {
+        "mapgrid.npz": "d3fa65530f94be939353a8b4a9f1a1c89bcbb71df8580c003c1bf5f614ef9549",
+        "mapspec.json": "281339f96cc9ede72f5adecd1a2a5821f219298aedbe1842f6e1917d87e33571"
+      },
+      "instance_count": 0,
+      "resource_failures": [
+        "near(P0): 无候选（距离带 (6.0, 9.0)）",
+        "near(P0): 无候选（距离带 (6.0, 9.0)）",
+        "near(P1): 无候选（距离带 (6.0, 9.0)）",
+        "near(P1): 无候选（距离带 (6.0, 9.0)）",
+        "near(P2): 无候选（距离带 (6.0, 9.0)）",
+        "near(P2): 无候选（距离带 (6.0, 9.0)）",
+        "near(P3): 无候选（距离带 (6.0, 9.0)）",
+        "near(P3): 无候选（距离带 (6.0, 9.0)）",
+        "shared(flank_0): 无候选",
+        "shared(flank_1): 无候选",
+        "shared(flank_2): 无候选",
+        "shared(flank_3): 无候选"
+      ]
+    },
+    "g4_scene": {
+      "status": "skipped",
+      "reason": "G3 检查未通过，依赖阶段不运行",
+      "finished_at": "2026-09-24T15:46:25"
+    },
+    "engine": {
+      "status": "skipped",
+      "reason": "G3 检查未通过，依赖阶段不运行",
+      "finished_at": "2026-09-24T15:46:25"
+    }
+  },
+  "layout_locked": false,
+  "terrain_locked": false,
+  "layout_pool": [
+    36,
+    5,
+    54,
+    27,
+    13,
+    51,
+    37,
+    25,
+    12,
+    2,
+    46,
+    39,
+    15,
+    8,
+    4,
+    55,
+    38,
+    31,
+    42,
+    3,
+    17,
+    61,
+    49,
+    14,
+    35,
+    21,
+    18,
+    23,
+    47,
+    16
+  ],
+  "layout_tried": [
+    {
+      "seed": 36,
+      "reason": "checks",
+      "attempts": 0,
+      "rejected": null
+    },
+    {
+      "seed": 5,
+      "reason": "checks",
+      "attempts": 0,
+      "rejected": null
+    },
+    {
+      "seed": 54,
+      "reason": "checks",
+      "attempts": 0,
+      "rejected": null
+    },
+    {
+      "seed": 27,
+      "reason": "no_candidate",
+      "attempts": 3,
+      "rejected": "No connected river corridor clears the spawn plateaus; regenerate the layout, never cut the water."
+    },
+    {
+      "seed": 13,
+      "reason": "checks",
+      "attempts": 0,
+      "rejected": null
+    },
+    {
+      "seed": 51,
+      "reason": "checks",
+      "attempts": 0,
+      "rejected": null
+    },
+    {
+      "seed": 37,
+      "reason": "no_candidate",
+      "attempts": 3,
+      "rejected": "No complete river corridors satisfy the selected layout and home clearance."
+    },
+    {
+      "seed": 25,
+      "reason": "checks",
+      "attempts": 0,
+      "rejected": null
+    }
+  ],
+  "preview_only": false,
+  "progress": {
+    "stage": "G2",
+    "phase": "地形检查通过"
+  },
+  "hard_reject_streak": 2,
+  "map_pass": false,
+  "checks_summary": {
+    "g2_pass": true,
+    "g3_pass": false,
+    "engine_pass": null
+  },
+  "error_kind": "generation_error",
+  "error": "'lane_widths'"
+}

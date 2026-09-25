@@ -4,8 +4,9 @@
 - SM_Bld_Bridge_01        沿桥轴重复拼接主桥面（标准段，优先重复、仅有限调长）。
 - SM_Bld_Bridge_End_01    每岸仅一层收口，连接桥面与岸面（0.7m 高差的过渡坡）。
 - SM_Bld_Bridge_Rail_01   两侧连续护栏。
-- SM_Bld_Bridge_Rail_Pillar_01 桥端立柱。
 不使用双层收口或间隔护栏。
+2026-09-24：SM_Bld_Bridge_Rail_Pillar_01 桥端立柱按用户要求取消——它的内缘压在
+可走净宽内，站在坡口行走线上（详见 build_bridge_assembly 内注释）。
 
 模型实测尺寸（tools/godot/bridge_assemblies.gd 产出的 measurements.json，模型局部 AABB）：
   deck   SM_Bld_Bridge_01            w=10.049 h=0.926 l=10.0   顶面 y=0
@@ -108,13 +109,13 @@ def build_bridge_assembly(br, sample_h, deck_width=None):
         parts.append(dict(kind="rail", res=PART_RES["rail"],
                           transform=fmt_scaled(x, deck_top, z, yaw,
                                                rail_sx, 1.0, rail_len / RAIL["l"])))
-    # 桥端立柱
-    for t0 in (0.4, span - 0.4):
-        for side in (-1, 1):
-            lat = side * (W / 2.0 - RAIL_WIDTH / 2.0)
-            x, z = along(t0, lat)
-            parts.append(dict(kind="pillar", res=PART_RES["pillar"],
-                              transform=fmt_scaled(x, deck_top, z, yaw, 1.0, 1.0, 1.0)))
+    # 【2026-09-24 用户反馈"桥两端那 2 个柱子不方便寻路"】桥端立柱已移除。
+    # 原因：立柱放在 t=0.4 / span-0.4、lat=±(W/2-RAIL_WIDTH/2)，而可走净宽是
+    # ±(W/2-RAIL_WIDTH)——立柱宽 1.5m，内缘正好压在净宽边界内约 0.43m，
+    # 于是每岸两根柱子站在坡口行走线上：单位明明能过（立柱无碰撞体）却从柱子里
+    # 穿过去，观感就是"桥口被堵、点不上去"。净宽外侧只剩 0.65m 甲板，挪不出去，
+    # 故直接取消；护栏本身已围出桥缘，收口件（End）负责岸面过渡。
+    # 如需桥头立柱，可放到岸侧（t<0 / t>span、lat 超出甲板半宽）另做一轮。
 
     # 导航/碰撞可走板：端坡(岸→deck_top) + 平桥面，宽度=净宽
     walk = []

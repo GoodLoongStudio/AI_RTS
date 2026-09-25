@@ -94,42 +94,46 @@ TREE_SHARE = 0.30           # 树区占可装饰陆地的目标比例（分位�
 
 # 预算上限：cap = clamp(建议密度×格数×1.5, 下限, 绝对上限)
 # 上限保证装饰不淹没单位与战略地貌；下限保证小块区仍能表达。
+# 2026-09-24 用户反馈："生成地图上面是没有这么多摆件的，这是之前错的方案，
+# 地图上有零散的摆件就行了"。原上限合计 2900（grass 一项就 1200），256m 图上
+# 实测 2681 个实例，把整张图铺成摆件地毯、盖住台地/坡道/山体本身。
+# 按"零散"重定：绝对上限合计 ~245，密度同步下调，小块区仍由 floor 保底可辨。
 BUDGET_CAP_ABS = {
-    "tree_zone": 320, "grass_zone": 1200, "stone_zone": 700,
-    "shore_zone": 260, "mountain_foot_zone": 420, "clear_zone": 0,
+    "tree_zone": 40, "grass_zone": 90, "stone_zone": 50,
+    "shore_zone": 30, "mountain_foot_zone": 40, "clear_zone": 0,
 }
-BUDGET_CAP_FLOOR = {"tree_zone": 40, "grass_zone": 60, "stone_zone": 60,
-                    "shore_zone": 30, "mountain_foot_zone": 40, "clear_zone": 0}
+BUDGET_CAP_FLOOR = {"tree_zone": 10, "grass_zone": 20, "stone_zone": 12,
+                    "shore_zone": 8, "mountain_foot_zone": 10, "clear_zone": 0}
 
 # 建议密度（每 100 m² = 每 100 格）与最小间距
 ZONE_CONFIG = {
     "tree_zone": dict(
-        suggested_density_per_100m2=0.55, min_spacing_m=3.6,
+        suggested_density_per_100m2=0.05, min_spacing_m=3.6,
         asset_role="tree",
         source_semantics=["flank_and_rear_open_land", "rock_edge_clusters",
                           "far_from_spawn_hinterland"],
         notes="成簇分布；簇心偏向侧翼、后方与岩缘。出生圈/资源圈/桥头/坡道/主通道内为 0。",
     ),
     "grass_zone": dict(
-        suggested_density_per_100m2=2.00, min_spacing_m=1.4,
+        suggested_density_per_100m2=0.15, min_spacing_m=1.4,
         asset_role="grass",
         source_semantics=["open_land_filler", "dry_plains", "shore_inland_fringe"],
         notes="低矮干草与小簇植物；作为开阔地填充层，仍受全部保护区约束。",
     ),
     "stone_zone": dict(
-        suggested_density_per_100m2=0.45, min_spacing_m=2.8,
+        suggested_density_per_100m2=0.04, min_spacing_m=2.8,
         asset_role="stone",
         source_semantics=["rock_mass_surface", "gravel_ground_patches"],
         notes="碎石与小型岩块；可贴附山体/岩体表面，禁止进入水面。",
     ),
     "shore_zone": dict(
-        suggested_density_per_100m2=1.20, min_spacing_m=2.6,
+        suggested_density_per_100m2=0.10, min_spacing_m=2.6,
         asset_role="shore",
         source_semantics=["river_bank_land_side", "lake_shore_land_side"],
         notes="连续岸线带，只在水陆交界的陆侧；不向河心延伸，不含水面格。",
     ),
     "mountain_foot_zone": dict(
-        suggested_density_per_100m2=0.80, min_spacing_m=2.4,
+        suggested_density_per_100m2=0.07, min_spacing_m=2.4,
         asset_role="mountain_foot",
         source_semantics=["deposition_fan", "scree_apron", "cliff_foot_transition"],
         notes="山脚沉积扇与岩屑过渡带；台地崖脚同样计入。",

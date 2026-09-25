@@ -1,0 +1,81 @@
+{
+  "job_id": "e571a763d79a4c7db946b0a35292e684",
+  "seed": 46,
+  "terrain": 1063736776,
+  "target": "full",
+  "status": "error",
+  "title": "布局 46 · 地貌 1063736776",
+  "label": null,
+  "map_pass": null,
+  "created_at": "2026-09-24T15:57:16",
+  "reverified_with_current_code": false,
+  "visual_version": 1,
+  "visual_profile": "default",
+  "map_id": null,
+  "checks_summary": {},
+  "failed_paths": [],
+  "failed_forbidden": [],
+  "nav_all": null,
+  "smoke_assertions": {},
+  "stages": {
+    "G1": {
+      "state": "通过",
+      "images": [
+        "contact.png"
+      ],
+      "preview": "contact.png",
+      "version": "2.0.0",
+      "history_versions": []
+    },
+    "G2": {
+      "state": "通过",
+      "images": [
+        "contact.png",
+        "seed_13_minimap.png",
+        "seed_13_overview.png",
+        "seed_13_strategy.png",
+        "seed_17_minimap.png",
+        "seed_17_overview.png",
+        "seed_17_strategy.png",
+        "seed_18_minimap.png",
+        "seed_18_overview.png",
+        "seed_18_strategy.png",
+        "seed_25_minimap.png",
+        "seed_25_overview.png",
+        "seed_25_strategy.png",
+        "seed_36_minimap.png",
+        "seed_36_overview.png",
+        "seed_36_strategy.png",
+        "seed_5_minimap.png",
+        "seed_5_overview.png",
+        "seed_5_strategy.png"
+      ],
+      "preview": "seed_13_overview.png",
+      "version": "7.11.0",
+      "history_versions": []
+    },
+    "G3": {
+      "state": "需检查",
+      "images": [
+        "contact.png",
+        "seed_13_overview.png",
+        "seed_25_overview.png"
+      ],
+      "preview": "seed_13_overview.png",
+      "version": null,
+      "history_versions": []
+    },
+    "G4": {
+      "state": "未生成",
+      "images": [],
+      "preview": null,
+      "version": null,
+      "history_versions": []
+    }
+  },
+  "folder": "job_layout46_terrain1063736776_e571a763",
+  "gate": "G4",
+  "source_job": "G:\\AIRTS\\AI_RTS\\tools\\mapgen\\workbench_output\\e571a763d79a4c7db946b0a35292e684\\job.json",
+  "synced_at": "2026-09-24T15:57:34",
+  "note": "图像来自本任务权威数据/真实引擎输出；生成或导航通过不等于实战通过。"
+}
