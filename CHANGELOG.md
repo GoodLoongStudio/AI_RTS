@@ -4,6 +4,7 @@
 
 ### Added
 
+- Added `docs/程序文档/AI_RTS_现有架构渐进式优化方案_2026-09-25.md` as a canonical architecture guardrail: preserve the current major structure while improving boundaries, single-source-of-truth ownership, config, observability, runtime lifecycle, testing, and measured performance.
 - Added `docs/策划文档/AI_RTS_当前产品策划基线_2026-09-25.md` as the canonical product baseline derived from the current `main` implementation.
 - Added `docs/策划文档/策划变更日志.md` to track changes in product rules, AI responsibilities, priorities, and delivery assumptions separately from code-level history.
 - Documented the implemented RTS foundation, traditional rule AI, AI adjutant, procedural map tooling, growth system, multiplayer demo, campaign/outcome capabilities, local model runtime, and current delivery modes.
