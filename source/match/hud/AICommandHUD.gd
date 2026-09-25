@@ -505,7 +505,7 @@ func _on_text_submitted(text: String):
 	if not question.is_empty():
 		_respond_to_ai_question(question)
 		_mock_agent_busy = false
-		_set_agent_state(STATE_ONLINE)
+		_restore_real_adjutant_state()
 		return
 
 	var squad_id = _parse_squad(command_text)
@@ -515,12 +515,12 @@ func _on_text_submitted(text: String):
 	if command.is_empty():
 		_append_ai("我理解了你的意图，但还需要你在地图上确认目标位置。你可以直接说‘去前面看看’、‘原地警戒’、‘攻击目标’，或者问我‘下一步做什么’。")
 		_mock_agent_busy = false
-		_set_agent_state(STATE_ONLINE)
+		_restore_real_adjutant_state()
 		return
 	_append_ai("我的理解：%s需要%s。%s" % [_control_display(active_squad), COMMAND_LABELS[command], _command_reasoning(command)])
 	_begin_command(command)
 	_mock_agent_busy = false
-	_set_agent_state(STATE_ONLINE)
+	_restore_real_adjutant_state()
 
 
 func _parse_ai_question(text: String) -> String:
@@ -541,7 +541,7 @@ func _ask_mock_agent(question: String):
 	await get_tree().create_timer(0.22).timeout
 	_respond_to_ai_question(question)
 	_mock_agent_busy = false
-	_set_agent_state(STATE_ONLINE)
+	_restore_real_adjutant_state()
 
 
 func _respond_to_ai_question(question: String):
@@ -676,6 +676,20 @@ func _set_agent_state(text: String):
 ## 副官链路把真实运行状态写到标题行（接管/停止/外部进程），不要恒显示“已接入”。
 func set_adjutant_state_text(text: String) -> void:
 	_set_agent_state(text)
+
+
+## 聊天结束后的状态行恢复（2026-09-23 修"副官没启动却显示已接入"）：
+## 旧实现在问答/命令解析后硬编码 `STATE_ONLINE`（"● 副官已接入，正在观察"），
+## 哪怕副官根本没启动——玩家看到的就是"基本错误"：副官没跑却显示已接入。
+## 现在向权威源（`/root/AdjutantButton`）要当前真实文案；取不到才回落 OFFLINE。
+func _restore_real_adjutant_state() -> void:
+	var adjutant := get_node_or_null("/root/AdjutantButton")
+	if adjutant != null and adjutant.has_method("current_state_text"):
+		var text: String = adjutant.current_state_text()
+		if not text.is_empty():
+			_set_agent_state(text)
+			return
+	_set_agent_state(STATE_OFFLINE)
 
 
 func post_agent_message(speaker: String, text: String):

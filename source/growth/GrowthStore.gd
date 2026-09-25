@@ -4,25 +4,17 @@ const SAVE_PATH := "user://growth_state.json"
 const PROFILE_PATH := "user://player_profile.json"
 const REPORTS_PATH := "user://match_reports.json"
 const MAX_GROWTH_PER_MATCH := 8
+## 局后发点规则：赢 3、输 1（都远低于 MAX_GROWTH_PER_MATCH，该常量是硬顶，
+## 供以后加"表现分"时兜底，不得被单局突破）。
+const MATCH_WIN_POINTS := 3
+const MATCH_LOSE_POINTS := 1
 const LOCAL_PLAYER_ID := "local_player_demo"
 
-var DEFINITIONS := {
-	"combat": [
-		{"id":"combat_power","name":"战术火力","description":"提升部队战斗效率。","max_level":5,"costs":[1,1,2,2,3],"prerequisite":""},
-		{"id":"combat_guard","name":"战场韧性","description":"提高部队持续作战能力。","max_level":5,"costs":[1,2,2,3,3],"prerequisite":"combat_power"},
-		{"id":"combat_skill","name":"技能专精","description":"强化主动技能与副官协同。","max_level":3,"costs":[2,3,4],"prerequisite":"combat_guard"}
-	],
-	"economy": [
-		{"id":"economy_gather","name":"高效采集","description":"提升资源采集效率。","max_level":5,"costs":[1,1,2,2,3],"prerequisite":""},
-		{"id":"economy_stock","name":"资源储备","description":"提高资源上限与周转空间。","max_level":5,"costs":[1,2,2,3,3],"prerequisite":"economy_gather"},
-		{"id":"economy_production","name":"生产调度","description":"提升生产队列的运营效率。","max_level":3,"costs":[2,3,4],"prerequisite":"economy_stock"}
-	],
-	"construction": [
-		{"id":"construction_speed","name":"快速施工","description":"缩短建筑施工时间。","max_level":5,"costs":[1,1,2,2,3],"prerequisite":""},
-		{"id":"construction_armor","name":"坚固工事","description":"提高建筑耐久与防守价值。","max_level":5,"costs":[1,2,2,3,3],"prerequisite":"construction_speed"},
-		{"id":"construction_network","name":"建设网络","description":"改善扩张与前线建设能力。","max_level":3,"costs":[2,3,4],"prerequisite":"construction_armor"}
-	]
-}
+## 成长树定义：**唯一数据源是 `res://config/growth_definitions.json`**
+## （每个节点的 name/description/max_level/costs/prerequisite 与 `effect`）。
+## 这里刻意不内置任何兜底副本：内置副本没有 `effect`，一旦 json 读取失败，
+## 成长会"看起来能加点、实际不生效"地静默退化 —— 那正是 2026-09-21 修复的那个坑。
+var DEFINITIONS := {}
 
 var state: Dictionary = {"available_points": 12, "levels": {}, "earned_total": 12, "spent_total": 0}
 var profile: Dictionary = {}
@@ -39,10 +31,13 @@ func _ready() -> void:
 func _load_definitions() -> void:
 	var file := FileAccess.open("res://config/growth_definitions.json", FileAccess.READ)
 	if file == null:
+		push_error("成长定义缺失：res://config/growth_definitions.json（成长树将为空）")
 		return
 	var parsed = JSON.parse_string(file.get_as_text())
 	if parsed is Dictionary and parsed.has("branches"):
 		DEFINITIONS = parsed.branches
+		return
+	push_error("成长定义格式错误：缺少 branches 字段")
 
 func _load_json(path: String, target: String) -> void:
 	if not FileAccess.file_exists(path):
@@ -67,6 +62,34 @@ func _save_json(path: String, value: Variant) -> bool:
 
 func save_state() -> bool:
 	return _save_json(SAVE_PATH, state)
+
+
+## 对局奖励成长点：**唯一**发点入口（胜 3 / 负 1，单局硬顶 MAX_GROWTH_PER_MATCH）。
+##
+## 为什么必须存在：加点系统此前只有初始 12 点，玩家点完就永久停滞 —— "跨对局的永久
+## 成长"根本没有来源（2026-09-21 核查）。发点与加点闭环后，玩家才有继续加点的动机。
+##
+## 不变式与加点同口径：`available + spent == earned`，所以 earned_total 与
+## available_points 必须同时增加；写盘失败要整体回滚，不许留下"领了点但没存上"的状态。
+func award_match_points(outcome: String) -> Dictionary:
+	var amount := 0
+	match outcome:
+		"victory":
+			amount = MATCH_WIN_POINTS
+		"defeat":
+			amount = MATCH_LOSE_POINTS
+		_:
+			return {"ok": false, "awarded": 0, "reason": "未知对局结果：%s" % outcome}
+	amount = mini(amount, MAX_GROWTH_PER_MATCH)
+	if amount <= 0:
+		return {"ok": false, "awarded": 0, "reason": "本局不发点"}
+	var before := state.duplicate(true)
+	state["available_points"] = int(state.get("available_points", 0)) + amount
+	state["earned_total"] = int(state.get("earned_total", 0)) + amount
+	if not save_state():
+		state = before
+		return {"ok": false, "awarded": 0, "reason": "无法保存成长状态"}
+	return {"ok": true, "awarded": amount, "reason": ""}
 
 func get_level(node_id: String, pending: Dictionary = {}) -> int:
 	if pending.has(node_id):

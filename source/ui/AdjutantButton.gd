@@ -1,6 +1,7 @@
 extends Node
 
 const AdjutantRunnerLauncher := preload("res://source/ui/AdjutantRunnerLauncher.gd")
+const AdjutantModelService := preload("res://source/ui/AdjutantModelService.gd")
 
 ## AI 副官按钮组：对局 HUD 右上角的"AI 接管/停止"开关 + 连通性测试
 ## + 左上角实时思考状态面板（轮询副官会话日志尾部）。
@@ -25,6 +26,17 @@ const TAIL_INTERVAL := 5.0
 ## `user://adjutant_logs` 写 jsonl（tick 行），但单轮里可能包含一次慢模型调用
 ## （实测最坏 ~45s）→ 窗口取 90s，留一倍余量，既不误判死、也不长时间挂着已死的 runner。
 const LIVENESS_FRESH_SECONDS := 90.0
+## `hud_status.json` 的新鲜度窗口（秒），与 `LIVENESS_FRESH_SECONDS` 同口径：
+## runner 每轮循环都会覆写它（写点在最慢的一次模型调用**之后**，实测最坏 ~45s），
+## 取 90s 留一倍余量。用途是把"上一局残留的旧状态文件"与"此刻正在写的"分开
+## （实测 `user://adjutant_logs` 里常年躺着好几天前的 hud_status.json，
+## 不判新鲜度就会把陈旧结论当成副官此刻的想法显示）。
+const HUD_STATUS_FRESH_SECONDS := 90.0
+## 外部副官日志目录的扫描上限（找到这么多就停）与扫描结果缓存间隔（秒）。
+## `tmp_logs` 下历史目录成百上千，每轮全扫既慢又没必要：副官的日志目录布局
+## 不会几秒就变，缓存 15 秒足够跟上"换了一个外部 runner"的变化。
+const EXTERNAL_HUD_DIR_LIMIT := 24
+const EXTERNAL_HUD_SCAN_CACHE_SECONDS := 15.0
 
 ## 本机副官权威通道：DebugControlServer 的**裸 TCP + 一行 JSON** 协议
 ## （注意不是 HTTP，所以不能用 HTTPRequest；见 DebugControlServer._dispatch）。
@@ -496,21 +508,13 @@ func _load_runner_config() -> Dictionary:
 
 
 func _autodetect_runner_config() -> Dictionary:
-	# 仓库约定：AI_RTS 与 临时文件夹/airts_agent_venv 同级位于 G:\AIRTS 下。
-	var project_dir := ProjectSettings.globalize_path("res://")
-	var repo_root := project_dir.path_join("..").simplify_path()
-	var venv_python := repo_root.path_join("临时文件夹/airts_agent_venv/Scripts/python.exe")
-	var src_root := project_dir.path_join("source").simplify_path()
-	if not FileAccess.file_exists(venv_python):
-		return {}
-	return {
-		"python": venv_python,
-		"src_root": src_root,
-		"work_dir": src_root,
-		"authority_port": 24579,
-		"player": "",
-		"env_file": src_root.path_join("adjutant_coordinator/.env.local"),
-	}
+	# 【2026-09-21 收敛：消除第二次漂移】
+	# 这里原先自己复制了一份"仓库布局"探测，于是 `AdjutantRunnerLauncher` 增加了
+	# **分发布局**（`<exe 同级>/adjutant_runtime`）后，面板这份没有跟上 →
+	# 导出版点「接管」永远解析不到 python，面板停在"副官尚未启动"
+	# （加载页预热却能用，因为那条路径走 Launcher —— 正是"两份实现各自解析"的典型症状）。
+	# 装配入口只保留 `AdjutantRunnerLauncher.autodetect_config()` 一处，这里直接委托。
+	return AdjutantRunnerLauncher.autodetect_config()
 
 
 func _start_local_runner() -> void:
@@ -520,6 +524,9 @@ func _start_local_runner() -> void:
 	if _runner_pid > 0 and (OS.is_process_running(_runner_pid) or _runner_heartbeat_fresh()):
 		_active = true
 		AdjutantRunnerLauncher.set_auto_takeover(true)
+		# 按钮与标题必须一起渲染：只刷标题会让按钮停在"接管"，玩家点了没反应
+		# （2026-09-23 UI 一致性：一处状态变化 = 三个 UI 元素一起渲染）。
+		_restore_button()
 		_update_status_line()
 		return
 	var cfg := _load_runner_config()
@@ -575,8 +582,14 @@ func _start_local_runner() -> void:
 		push_warning("[ADJ] 无法写入 runner 引导文件：%s" % bootstrap_path)
 		_set_panel_texts("runner 引导文件不可写", PANEL_DASH, PANEL_DASH, PANEL_DASH)
 		return
+	# 【2026-09-23】先把本地模型服务保障起来（起服务 + 预热模型）。
+	# 不走 `启动AI_RTS.bat` 启动游戏时，战略层本来必然每轮 Connection error；
+	# 用户要求"游戏启动自动满足所有条件"。非阻塞拉起，面板如实显示预热进度。
+	AdjutantModelService.ensure_started(self)
 	bootstrap_file.store_string("\n".join([
 		"import os, sys",
+		# 模型端点：钉死成游戏实际保障的那个端口（唯一口径见 AdjutantModelService）。
+		AdjutantModelService.bootstrap_env_lines(),
 		"os.chdir(%s)" % JSON.stringify(str(cfg["work_dir"])),
 		"sys.path.insert(0, %s)" % JSON.stringify(str(cfg["src_root"])),
 		"sys.argv = ['agent_runner'] + %s" % JSON.stringify(args),
@@ -594,6 +607,9 @@ func _start_local_runner() -> void:
 	_runner_owned = true
 	_active = true
 	AdjutantRunnerLauncher.set_auto_takeover(true)
+	# 起点亮按钮：起进程成功后 _active 已为真，若此处不渲染，按钮会停在
+	# "处理中…"直到下一次轮询发现状态变化（用户截图里按钮与标题打脸的另一来源）。
+	_restore_button()
 
 
 func _stop_local_runner() -> void:
@@ -691,11 +707,21 @@ func _poll_tail() -> void:
 		_set_panel_texts(idle_text, PANEL_DASH, PANEL_DASH, PANEL_DASH)
 		return
 	if _external_runner:
-		# 外部副官在指挥，但它的日志不在本面板的目录里（隔离要求）→ 如实说清，
-		# 不要显示"副官尚未启动"（那会与屏幕上正在发生的指挥自相矛盾）。
-		# 判据来源也写出来：是 match_id 对齐（强）还是租约单位命中（弱），玩家/排查都能看懂。
-		_set_panel_texts(PANEL_EXTERNAL, PANEL_DASH, PANEL_DASH,
-			"本局由外部副官进程指挥（%s）" % _authority_basis)
+		# 外部副官在指挥，它的日志不在本面板目录里（隔离要求）。过去这里只能显示
+		# 四行"—"，副官的决策思考完全看不见（2026-09-20 用户实测反馈）。
+		# 现在：那份 `hud_status.json`（阶段/在想什么/为什么/结果）就在磁盘上，
+		# 按仓库约定扫候选目录、用"新鲜度 + 对局身份"两道闸找出来照样渲染；
+		# 判据（match 对齐还是租约单位命中）仍附在执行结果行，不假装是强证据。
+		var own_match := str(await _own_match_id()).substr(0, 8)
+		var discovered := _discover_hud_status(own_match)
+		if discovered.is_empty():
+			_set_panel_texts(PANEL_EXTERNAL, PANEL_DASH, PANEL_DASH,
+				"本局由外部副官进程指挥（%s）" % _authority_basis)
+		else:
+			_apply_hud_status(discovered, PANEL_EXTERNAL, _authority_basis)
+		# 预留额度由权威端持有：外部局同样每轮同步（此前这里提前 return，
+		# 预留行会一直显示上一次的旧值，玩家以为那就是当前余额）。
+		_refresh_reserves()
 		return
 	var status := _read_hud_status()
 	if status.is_empty():
@@ -755,7 +781,12 @@ func _read_local_runner_tail() -> Array:
 ## 为什么不用"扫目录 + tail 事件 jsonl"：实测在游戏进程里读出来是空的（同一文件
 ## 外部工具读得到），而它只是表现层，不值得为它继续深挖 —— 一个单行文件最小、最稳。
 func _read_hud_status() -> Dictionary:
-	var path := ProjectSettings.globalize_path(RUNNER_LOG_DIR).path_join("hud_status.json")
+	return _read_hud_status_in(ProjectSettings.globalize_path(RUNNER_LOG_DIR))
+
+
+## 读**指定目录**里的 hud_status.json（单行 JSON：阶段/在想什么/为什么/结果/目标/单位数）。
+func _read_hud_status_in(dir_path: String) -> Dictionary:
+	var path := dir_path.path_join("hud_status.json")
 	if not FileAccess.file_exists(path):
 		return {}
 	var fh := FileAccess.open(path, FileAccess.READ)
@@ -767,19 +798,190 @@ func _read_hud_status() -> Dictionary:
 	return parsed if parsed is Dictionary else {}
 
 
+## ---------- 副官状态文件发现：外部进程也要能显示思考 ----------
+##
+## 2026-09-20 用户实测：副官在指挥（外部进程）时，面板四行是
+## "当前状态：副官正在指挥（外部进程）/ 最近行动：—/ 为什么：—/ 执行结果：…"，
+## **副官的决策思考完全看不见**。根因：面板只读自己目录（`user://adjutant_logs`）里的
+## `hud_status.json`，而外部/验收起的 runner 按隔离要求不写那个目录。
+## 但那份文件（runner 每轮覆写）就在磁盘上——所以这里按仓库约定把候选目录找出来，
+## 用"新鲜度 + 对局身份"两道闸挑出"此刻正在指挥本局"的那一份。
+
+## 自己这一侧的候选目录：面板/加载页预热起的 runner 写在这里
+## （`AIRTS_RUNNER_HUD` 可覆盖，与验收工装同口径；默认目录一并纳入，两者通常相同）。
+func _own_hud_dirs() -> Array:
+	var dirs: Array = []
+	var overridden := AdjutantRunnerLauncher.log_dir()
+	if not overridden.is_empty() and not dirs.has(overridden):
+		dirs.append(overridden)
+	var default_dir := ProjectSettings.globalize_path(RUNNER_LOG_DIR)
+	if not default_dir.is_empty() and not dirs.has(default_dir):
+		dirs.append(default_dir)
+	return dirs
+
+
+## 外部副官的候选日志目录：按仓库约定扫 `<工程>/tmp_logs/<标签>/<子目录>`。
+## 只扫两层、有上限、带缓存：面板不需要枚举全盘，只要找到"正在写的那个目录"
+## （实测外部 runner 的 `--log-dir` 形如 `G:\AIRTS\tmp_logs\campaign_accept\hud`）。
+## `override_roots` 只给测试用（传入时**只扫这些根**，不碰真实 tmp_logs）。
+func _external_hud_dirs(override_roots: Array = []) -> Array:
+	var now_msec := Time.get_ticks_msec()
+	if override_roots.is_empty() and not _external_hud_dirs_cache.is_empty() \
+			and now_msec - _external_hud_dirs_cache_at_msec \
+			< int(EXTERNAL_HUD_SCAN_CACHE_SECONDS * 1000.0):
+		return _external_hud_dirs_cache
+	var dirs: Array = []
+	var project_dir := ProjectSettings.globalize_path("res://")
+	# 工程目录本身 + 两级父目录：覆盖"从仓库里跑"与"装在构建目录下的导出版"两种布局。
+	var roots: Array = [project_dir,
+		project_dir.path_join("..").simplify_path(),
+		project_dir.path_join("../..").simplify_path()]
+	if not override_roots.is_empty():
+		roots = override_roots
+	for root in roots:
+		var tmp_path := String(root).path_join("tmp_logs")
+		var tmp := DirAccess.open(tmp_path)
+		if tmp == null:
+			continue
+		for tag in tmp.get_directories():
+			if dirs.size() >= EXTERNAL_HUD_DIR_LIMIT:
+				break
+			var tag_dir := tmp_path.path_join(String(tag))
+			if FileAccess.file_exists(tag_dir.path_join("hud_status.json")) and not dirs.has(tag_dir):
+				dirs.append(tag_dir)
+			var tag_handle := DirAccess.open(tag_dir)
+			if tag_handle == null:
+				continue
+			for sub in tag_handle.get_directories():
+				if dirs.size() >= EXTERNAL_HUD_DIR_LIMIT:
+					break
+				var sub_dir := tag_dir.path_join(String(sub))
+				if FileAccess.file_exists(sub_dir.path_join("hud_status.json")) and not dirs.has(sub_dir):
+					dirs.append(sub_dir)
+	_external_hud_dirs_cache = dirs
+	_external_hud_dirs_cache_at_msec = now_msec
+	return dirs
+
+
+## 目录里的 hud_status.json 是否在新鲜度窗口内（mtime 判据，与心跳同源思路）。
+## `now_unix` 只给测试用（注入"当前时间"以模拟陈旧文件）；<=0 取系统时间。
+func _hud_status_fresh(dir_path: String, now_unix := 0) -> bool:
+	var path := dir_path.path_join("hud_status.json")
+	if not FileAccess.file_exists(path):
+		return false
+	var now := int(now_unix) if int(now_unix) > 0 else int(Time.get_unix_time_from_system())
+	var age := now - int(FileAccess.get_modified_time(path))
+	return age >= 0 and age <= int(HUD_STATUS_FRESH_SECONDS)
+
+
+## 从 runner 事件日志文件名取对局身份前缀（纯函数，便于测试）。
+## runner 命名约定：`agent_runner_events_<%Y%m%d_%H%M%S>_<match_id[:8]>.jsonl`；
+## 没挂上对局时后缀是 `nomatch`。非事件日志返回空串。
+static func _events_file_match_prefix(file_name: String) -> String:
+	var name := String(file_name)
+	if not name.begins_with("agent_runner_events_") or not name.ends_with(".jsonl"):
+		return ""
+	var parts := name.get_basename().split("_")
+	return str(parts[parts.size() - 1]) if parts.size() >= 2 else ""
+
+
+## 目录里**最新**一条 runner 事件日志的对局身份前缀（空 = 该目录没有事件日志）。
+func _hud_dir_match_prefix(dir_path: String) -> String:
+	var dir := DirAccess.open(dir_path)
+	if dir == null:
+		return ""
+	var newest := ""
+	var newest_time := 0
+	for file_name in dir.get_files():
+		var name := str(file_name)
+		if _events_file_match_prefix(name).is_empty():
+			continue
+		var mtime := int(FileAccess.get_modified_time(dir_path.path_join(name)))
+		if mtime > newest_time:
+			newest_time = mtime
+			newest = name
+	return _events_file_match_prefix(newest)
+
+
+## 一个候选目录的状态记录（过新鲜度闸后才生成；空字典 = 不可用）。
+func _hud_candidate(dir_path: String, is_own: bool) -> Dictionary:
+	if dir_path.is_empty() or not _hud_status_fresh(dir_path):
+		return {}
+	var status := _read_hud_status_in(dir_path)
+	if status.is_empty():
+		return {}
+	return {
+		"dir": dir_path,
+		"own": is_own,
+		"status": status,
+		"match": _hud_dir_match_prefix(dir_path),
+		"mtime": int(FileAccess.get_modified_time(dir_path.path_join("hud_status.json"))),
+	}
+
+
+## 在候选状态里挑"此刻正在指挥本局"的那一份（纯函数，便于测试）。
+## 规则：① 对局身份对齐的优先——同一台机器上所有副官都连同一个权威口，
+##   事件日志文件名里的 match_id 前缀一致，这是"这份状态属于本局"的硬证据；
+##   ② 身份拿不到/对不上时（如联机局 match_id 两边天生不同），自己这一侧的目录优先，
+##   ③ 最后才按新鲜度取最新——保证"总有内容可显示"，但不冒充身份对齐。
+func _select_hud_status(candidates: Array, own_match_prefix: String) -> Dictionary:
+	if not own_match_prefix.is_empty():
+		for item in candidates:
+			if str(item.get("match", "")) == own_match_prefix:
+				return item.get("status", {}) as Dictionary
+	for item in candidates:
+		if bool(item.get("own", false)):
+			return item.get("status", {}) as Dictionary
+	var best := {}
+	var best_time := -1
+	for item in candidates:
+		if int(item.get("mtime", 0)) > best_time:
+			best = item.get("status", {}) as Dictionary
+			best_time = int(item.get("mtime", 0))
+	return best
+
+
+## 找到"正在指挥本局的副官"写的 hud_status.json：自己目录 + 外部候选目录，
+## 过新鲜度闸，再按对局身份挑。返回空字典 = 当前没有可读的副官状态。
+## `override_roots` 只给测试用（见 `_external_hud_dirs`）。
+func _discover_hud_status(own_match_prefix: String, override_roots: Array = []) -> Dictionary:
+	var candidates: Array = []
+	for dir_path in _own_hud_dirs():
+		var own_candidate := _hud_candidate(dir_path, true)
+		if not own_candidate.is_empty():
+			candidates.append(own_candidate)
+	for dir_path in _external_hud_dirs(override_roots):
+		var external_candidate := _hud_candidate(dir_path, false)
+		if not external_candidate.is_empty():
+			candidates.append(external_candidate)
+	return _select_hud_status(candidates, own_match_prefix)
+
+
 ## 渲染面板四行（**中文人话**；文案由 runner 保证，这里只做拼装，不再猜字段）。
-func _apply_hud_status(status: Dictionary) -> void:
+## `state_prefix`：外部副官时把"副官正在指挥（外部进程）"放在状态行最前面——
+## 玩家一眼知道"在指挥的不是本面板起的那个"，同时不丢掉阶段信息；
+## `result_note`：附在执行结果行尾的判据说明（如"权威口 24579 对局身份一致"）。
+func _apply_hud_status(status: Dictionary, state_prefix := "", result_note := "") -> void:
 	var phase := str(status.get("phase", "")).strip_edges()
 	var goal := str(status.get("goal", "")).strip_edges()
 	var thinking := str(status.get("thinking", "")).strip_edges()
 	var why := str(status.get("why", "")).strip_edges()
 	var result := str(status.get("result", "")).strip_edges()
 	var units := int(status.get("units", 0))
+	# 【2026-09-23】本地模型还在启动/预热时，"为什么"必须是**真实原因**而不是
+	# runner 那句"战略思考这一轮没成功"——玩家看到后者只会以为副官坏了，
+	# 实际只是冷模型还没载入（首次 ~70s）。预热完成后这句让位给 runner 自己的结论。
+	if AdjutantModelService.is_warming():
+		why = AdjutantModelService.status_text()
 	var head := phase if not phase.is_empty() else "运行中"
+	if not state_prefix.is_empty():
+		head = "%s · %s" % [state_prefix, head]
 	if not goal.is_empty():
 		head += "（目标：%s）" % goal
 	if units > 0:
 		result += "（指挥 %d 个单位）" % units
+	if not result_note.is_empty():
+		result += "（%s）" % result_note
 	_set_panel_texts(
 		head,
 		thinking if not thinking.is_empty() else PANEL_DASH,
@@ -901,7 +1103,23 @@ func _legacy_poll_tail() -> void:
 	_panel.visible = true
 
 
+## 重入守卫（2026-09-23）：定时器、按钮点击、自检、_poll_tail 都会调
+## `_query_status`，而它是协程（内部 await 权威口探测）。两个副本交错读写
+## `_active` 时，按钮/标题/正文会各自渲染成不同时刻的状态（用户截图实测：
+## 按钮"停止" + 标题"尚未启动" + 正文"运行中"三脸互相打脸）。在飞就跳过，
+## 下一个轮询周期会补上最新结论。
+var _query_status_in_flight := false
+
+
 func _query_status() -> void:
+	if _query_status_in_flight:
+		return
+	_query_status_in_flight = true
+	await _query_status_inner()
+	_query_status_in_flight = false
+
+
+func _query_status_inner() -> void:
 	# 本机模式：运行状态 = runner 进程是否存活（不再轮询云端 /status）。
 	#
 	# 【2026-09-11 实测根因，别再改回 is_process_running 判活】
@@ -1112,6 +1330,10 @@ var _own_units_cache := {}
 var _own_units_cache_at_msec := 0
 const OWN_UNITS_CACHE_MS := 1000
 
+## 外部副官候选目录的扫描缓存（布局不会几秒就变；见 `_external_hud_dirs`）。
+var _external_hud_dirs_cache: Array = []
+var _external_hud_dirs_cache_at_msec := 0
+
 
 func _own_unit_names() -> Dictionary:
 	var now_msec := Time.get_ticks_msec()
@@ -1226,9 +1448,12 @@ func _find_agent_hud() -> Node:
 	return _agent_hud
 
 
+## HUD 标题文案：与面板标题同一份 state（唯一口径，别处不许自己拼）。
+func _hud_state_text(state: String) -> String:
+	return ("● 副官%s" % state) if _active else "● 副官尚未启动"
+
+
 func _update_status_line() -> void:
-	if _title_label == null or not is_instance_valid(_title_label):
-		return
 	var engine_label: String = {"langgraph": "LangGraph", "hermes": "Hermes"}.get(_engine, _engine)
 	var state := "运行中" if _active else "已停止"
 	# 【2026-09-15】本面板刚起的 runner 在挂上对局前（冷启动 30~65 秒）如实显示"启动中"，
@@ -1242,14 +1467,18 @@ func _update_status_line() -> void:
 		state += "（%s）" % engine_label
 	# 【2026-09-15 去重复】外层"岚 · AI副官"已是标题，这里只显示运行状态
 	#（运行中 / 已停止 / 运行中（外部进程）），避免同屏出现两个"AI 副官"。
-	_title_label.text = "🔹 %s" % state
+	# 【2026-09-23 修"按钮说停止、标题说尚未启动"】_title_label 缺失时**不能**
+	# 提前 return：那会把下面的 HUD 标题同步一起跳过，三个 UI 元素从不同路径
+	# 各自渲染，时机一错就互相打脸（用户截图实测）。标题缺失只跳过标题本身。
+	if _title_label != null and is_instance_valid(_title_label):
+		_title_label.text = "🔹 %s" % state
 	# 【2026-09-15 用户要求：AI 副官 UI 必须同步】"岚"面板标题行原来恒显示常量
 	# "● 副官已接入，正在观察"（副官在分派任务时也不变）——这里把**真实状态**同步过去。
+	# 显式加括号： ternery 与 `%` 混写靠猜优先级是"基本错误"的来源之一。
 	var agent_hud: Node = _find_agent_hud()
 	if agent_hud != null:
-		agent_hud.set_adjutant_state_text(
-			"● 副官%s" % state if _active else "● 副官尚未启动"
-		)
+		# 与 current_state_text() 同一套判据（副官 UI 一致性的唯一口径）。
+		agent_hud.set_adjutant_state_text(_hud_state_text(state))
 	# 结论变化时**留一行日志**（玩家能看到、我也能据此核对面板到底怎么判断的）：
 	# 用户两次问过"副官没开怎么还在操作" —— 面板的判断依据必须可查，而不是只在屏幕上。
 	if state != _last_state_logged:
@@ -1257,6 +1486,22 @@ func _update_status_line() -> void:
 		print("[PANEL] 副官状态 → %s（权威口=%d，外部=%s，判据=%s）"
 			% [state, _authority_port, str(_external_runner),
 			   _authority_basis if not _authority_basis.is_empty() else "本机 runner 心跳"])
+
+
+## 当前真实状态行文案（2026-09-23：副官 UI 一致性的**唯一权威源**）。
+## "岚"面板聊天结束后向本面板要这份文本来恢复状态行 —— 过去它硬编码
+## "● 副官已接入，正在观察"，副官没启动也这么显示（用户截图的基本错误）。
+## 取不到（面板未就绪）时返回空串，由调用方回落。
+func current_state_text() -> String:
+	var engine_label: String = {"langgraph": "LangGraph", "hermes": "Hermes"}.get(_engine, _engine)
+	var state := "运行中" if _active else "已停止"
+	if _active and _runner_owned and not _runner_heartbeat_fresh():
+		state = "启动中（等待挂上对局…）"
+	elif _active and _external_runner:
+		state = "运行中（外部进程）"
+	elif _active and not _engine.is_empty():
+		state += "（%s）" % engine_label
+	return _hud_state_text(state)
 
 
 ## daemon 拒绝原因 → 玩家可读文本（409 有两种：already running / no active match）。

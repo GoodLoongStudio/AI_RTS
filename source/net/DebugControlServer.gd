@@ -238,6 +238,8 @@ func _dispatch(line: String) -> String:
 			return _op_force_attack(match_node, parsed)
 		"rules":
 			return JSON.stringify(_op_rules(match_node))
+		"match_forces":
+			return _timed_json("match_forces_ms", func(): return _op_match_forces(match_node, parsed))
 		"tactical":
 			return _timed_json("tactical_ms", func(): return _op_tactical(match_node, parsed))
 		"strategic":
@@ -568,13 +570,49 @@ func _op_build(match_node, parsed) -> String:
 			"reason": "找不到属于该玩家的建造单位，请先从 status 的 units 里选择我方工人。",
 			"error": "no builders",
 		})
-	var pos_raw: Array = parsed.get("pos", [0.0, 0.0])
-	if pos_raw.is_empty():
-		pos_raw = [0.0, 0.0]
-	var position := Vector3(float(pos_raw[0]), 0.0, float(pos_raw[1]))
+	var scene_path := str(parsed.get("scene", "res://source/match/units/VehicleFactory.tscn"))
+	# 注意：**不能**用 `parsed.get("pos", [0.0, 0.0])` 判空 —— 缺省值本身是
+	# 长度 2 的数组，会把"调用方没带坐标"误判成"坐标是 (0,0)"（实测：自动放置
+	# 永远走到地图角、全线 NotVisible）。必须显式问 has + 类型/长度。
+	var pos_value: Variant = parsed.get("pos", null)
+	var has_pos: bool = pos_value is Array and (pos_value as Array).size() >= 2
+	var auto_place := not has_pos
+	var position := Vector3.ZERO
+	if auto_place:
+		# ---------- 自动相邻放置（2026-09-23 用户口径"建筑自动相邻造"） ----------
+		# 副官/脚本只发"建什么"不带坐标：权威端在自己的基地（或远端新矿）周围
+		# 搜第一个合法落点。副官侧因此不再需要算坐标、也不再产生越界/不可见/
+		# 占用三类拒绝（placement.py 降级为兜底）。显式带 pos 的老行为不变。
+		var auto_mode := str(parsed.get("auto", ""))
+		if auto_mode.is_empty():
+			auto_mode = "resource" if ("CommandCenter" in scene_path or "OreRefinery" in scene_path) else "base"
+		var hint_raw: Array = parsed.get("hint", []) if parsed.get("hint") is Array else []
+		var hint: Variant = null
+		if hint_raw.size() >= 2:
+			hint = Vector3(float(hint_raw[0]), 0.0, float(hint_raw[1]))
+		var auto_spot: Vector3 = Vector3.ZERO
+		var auto_found := false
+		if match_node != null:
+			var pr: Node = match_node.get_node_or_null("StructurePlacementRuntime")
+			if pr != null and pr.has_method("FindAutoSpot"):
+				var hint_vec: Vector3 = hint if hint != null else Vector3.INF
+				var reply: Variant = pr.FindAutoSpot(player, load(scene_path), auto_mode, hint_vec, 0.0)
+				if reply is Dictionary:
+					auto_found = bool(reply.get("found", false))
+					auto_spot = reply.get("pos", Vector3.ZERO)
+		if not auto_found:
+			return JSON.stringify({
+				"ok": false,
+				"status": "Rejected",
+				"reason": "NoValidSite",
+				"detail": "自动放置找不到合法落点（基地周围无可建地面/没有已探明的新矿点）。",
+				"error": "no valid auto site",
+			})
+		position = auto_spot
+	else:
+		position = Vector3(float((pos_value as Array)[0]), 0.0, float((pos_value as Array)[1]))
 	if match_node != null and match_node.has_method("_sample_generated_height"):
 		position.y = float(match_node._sample_generated_height(position))
-	var scene_path := str(parsed.get("scene", "res://source/match/units/VehicleFactory.tscn"))
 	# ---------- 续建路由（2026-09-12 已授权，见 docs/程序文档/AI副官_当前执行入口.md Q6） ----------
 	# 背景（实测）：`build` 走 `StructurePlacementRuntime.Place()` = **新建一座**；
 	# 目标是"已放置但未完工"的建筑时，同位置再 Place 必然被判 `Occupied`
@@ -1451,6 +1489,34 @@ func _op_rules(match_node) -> Dictionary:
 ## 参数：as_player（必填）、center:[x,z]、radius、limit（默认 128）、offset（续取）。
 ## 实体统一放 entities 数组，kind ∈ unit_self / unit_enemy / unit_enemy_frozen /
 ## unit_enemy_dead / resource；truncated + next_offset 显式截断续取。
+## op=match_forces：对局各方当前单位/建筑**计数**（无迷雾；自动化评估专用）。
+## 自对局训练（副官 vs 电脑）需要"双方各剩多少"来判定胜负，而 op=tactical 受
+## 迷雾限制只能看到可见敌人。只给计数、不给位置，不改变任何玩法。
+func _op_match_forces(match_node, parsed) -> Dictionary:
+	if match_node == null:
+		return {"error": "no match scene"}
+	var players_node = match_node.get_node_or_null("Players")
+	if players_node == null:
+		return {"error": "no players node"}
+	var forces: Dictionary = {}
+	for player in players_node.get_children():
+		if not (player is Node3D):
+			continue
+		var units: Dictionary = {}
+		for unit in get_tree().get_nodes_in_group("units"):
+			if not is_instance_valid(unit) or unit.get_parent() != player:
+				continue
+			var utype := str(unit.get("unit_type_id")) if "unit_type_id" in unit else str(unit.get("unit_type"))
+			if utype.is_empty():
+				continue
+			units[utype] = int(units.get(utype, 0)) + 1
+		var total := 0
+		for count in units.values():
+			total += int(count)
+		forces[str(player.name)] = {"units": units, "total": total}
+	return {"ok": true, "forces": forces}
+
+
 func _op_tactical(match_node, parsed) -> Dictionary:
 	var guard := _adjutant_require_observation()
 	if not guard.is_empty():
@@ -1634,6 +1700,9 @@ func _tactical_self_entry(unit) -> Dictionary:
 		"movement": unit.find_child("Movement", false, false) != null,
 		"queue": unit.find_child("ProductionQueue", false, false) != null,
 		"attack": "attack_range" in unit,
+		# 武器射程（米，加法字段）：副官据此判断"是否已在射程内"——到位即点攻击
+		# 驻留，不再 attack_move 路过扫一枪（2026-09-22 D12）。0=无武器/未知。
+		"attack_range": float(unit.attack_range) if "attack_range" in unit and unit.attack_range != null else 0.0,
 		"gather": "resource_a" in unit and "resource_b" in unit,
 		"construct": "construction_work_per_tick" in unit and int(unit.get("construction_work_per_tick")) > 0,
 		# 移动域（air/terrain）：**能力事实**，副官据此分开规划与统计。
@@ -3056,14 +3125,20 @@ func _op_adjutant_nav_path(match_node, parsed) -> Dictionary:
 				else Constants.Match.Navigation.Domain.TERRAIN)
 			map_rid = nav_node.get_navigation_map_rid_by_domain(domain_value)
 	var nav_revision := _fast_nav_revision(match_node)
-	if not map_rid.is_valid():
-		return {"ok": false, "reason": "navmesh_unavailable", "nav_revision": nav_revision,
-			"detail": "导航地图 RID 无效（导航未初始化）。"}
 	var start := Vector3(float(from_raw[0]), plane_y, float(from_raw[1]))
 	var goal := Vector3(float(to_raw[0]), plane_y, float(to_raw[1]))
 	# 网格是否可用：`map_get_closest_point_owner` 无效 = 网格退化/正在重烘。
-	var owner_rid := NavigationServer3D.map_get_closest_point_owner(map_rid, start)
+	var owner_rid := NavigationServer3D.map_get_closest_point_owner(map_rid, start) if map_rid.is_valid() else RID()
 	if not owner_rid.is_valid():
+		# G4 生成图/逻辑地形不烘 Recast（`Navigation.should_skip_runtime_navigation`），
+		# 地图的权威寻路是 `GeneratedTerrain` 的粗网格 A*（`find_ground_path`）——
+		# 单位自己走的就是它。旧实现在这里直接回 `navmesh_unavailable`，副官侧移动闸门
+		# 把**每一个**移动意图都拦成 `movement_gated:navmesh_unavailable`（实测一局
+		# 728 次、全军在家站桩），等于"随机图上副官永远不能动"。
+		# 这里先回退到逻辑地形路径，拿不到才按原语义失败。
+		var logic := _logic_ground_nav_reply(match_node, domain, start, goal, nav_revision)
+		if not logic.is_empty():
+			return logic
 		# 失败分支**必须带上下文**（域 / 查询高度 / 单位），否则调用方只能把它折叠成"没路"
 		# ——计划 U1 明确禁止这种折叠。
 		return {"ok": false, "reason": "navmesh_unavailable", "nav_revision": nav_revision,
@@ -3094,6 +3169,77 @@ func _op_adjutant_nav_path(match_node, parsed) -> Dictionary:
 		"end_clamped": _nav_clamped(goal, end_point),
 		"start": [_round2(start_point.x), _round2(start_point.z)],
 		"goal": [_round2(end_point.x), _round2(end_point.z)],
+	}
+
+
+## 逻辑地形（G4 生成图/大图）的权威路径回执；空字典 = 本图没有逻辑寻路可用
+## （普通小图的 Recast 路径走不到这里）。
+##
+## 为什么需要：这些图**不烘 Recast**（性能口径，见 Navigation.should_skip_runtime_navigation），
+## 地面单位的权威寻路是 `GeneratedTerrain` 的粗网格 A*（`find_ground_path`）——
+## 单位自己走的就是它。副官的 `op=adjutant_nav_path` 若只认 Recast 地图，就会把图上
+## 每一次移动查询都判成"网格不可用"。
+##
+## 回执语义与 Recast 分支保持一致：
+## - 空域：单位本来就是直线飞（Movement._physics_process_air_move 直扑 committed target），
+##   两点直线即权威路径；
+## - 地面：A* 航点；起点格=终点格时游戏侧只回一个落点，补上真实起点凑成两点；
+## - A* 明确找不到路 → `no_path`（两点不连通，调用方应换目标，而不是傻等网格）。
+func _logic_ground_nav_reply(match_node, domain: String, start: Vector3, goal: Vector3,
+		nav_revision: int) -> Dictionary:
+	var map_node: Node = null
+	if match_node != null:
+		map_node = match_node.get_node_or_null("Map")
+		if map_node == null and "map" in match_node:
+			var map_value: Variant = match_node.map
+			map_node = map_value if map_value is Node else null
+	if map_node == null or not map_node.has_meta("water_occupancy"):
+		return {}
+	var occupancy: Variant = map_node.get_meta("water_occupancy")
+	if not (occupancy is Node) or not is_instance_valid(occupancy):
+		return {}
+	if domain == "air":
+		var straight := PackedVector3Array([start, goal])
+		return _nav_reply_from_points(domain, straight, nav_revision, start, goal)
+	if not occupancy.has_method("find_ground_path"):
+		return {}
+	var path: Variant = occupancy.find_ground_path(start, goal)
+	var points := PackedVector3Array()
+	if path is PackedVector3Array:
+		points = path
+	elif path is Array:
+		points = PackedVector3Array(path)
+	if points.size() >= 2:
+		return _nav_reply_from_points(domain, points, nav_revision, start, goal)
+	if points.size() == 1:
+		# 同一粗格：游戏侧只回落点，补真实起点（调用方要求 waypoints >= 2）。
+		return _nav_reply_from_points(
+			domain, PackedVector3Array([start, points[0]]), nav_revision, start, goal)
+	# A* 有权威答案：确实不连通。按 `no_path` 回执，别折叠成"网格不可用"。
+	return {"ok": false, "reason": "no_path", "nav_revision": nav_revision,
+		"reachable": false, "waypoints": [], "domain": domain,
+		"detail": "逻辑地形 A* 未找到连通路径（水/崖/建筑阻断）。"}
+
+
+## 把世界坐标航点串成副官回执（[x, z] 两位小数；与 Recast 分支同格式）。
+func _nav_reply_from_points(domain: String, points: PackedVector3Array, nav_revision: int,
+		start: Vector3, goal: Vector3) -> Dictionary:
+	var waypoints: Array = []
+	var route_length := 0.0
+	var previous := Vector3(start.x, start.y, start.z)
+	for point in points:
+		waypoints.append([_round2(point.x), _round2(point.z)])
+		route_length += Vector2(point.x - previous.x, point.z - previous.z).length()
+		previous = point
+	return {
+		"ok": true, "reachable": true, "domain": domain,
+		"nav_revision": nav_revision,
+		"waypoints": waypoints,
+		"route_length": _round2(route_length),
+		"start_clamped": false,
+		"end_clamped": false,
+		"start": [_round2(start.x), _round2(start.z)],
+		"goal": [_round2(goal.x), _round2(goal.z)],
 	}
 
 
@@ -3233,6 +3379,12 @@ func _adjutant_execute(match_node, player, action: String, params: Dictionary,
 	if not scene_guard.is_empty():
 		return scene_guard
 	_adjutant_executing = true
+	# 傀儡端（联机客户端）上副官命令要经 NetCommandProxy 转发：给 NetSync 打上
+	# 来源标记，局服 `_rpc_command` 才不会再把它当成"玩家手动命令"收回托管
+	# （2026-09-21 事故修复，见 NetSync.ADJUTANT_SOURCE_MARKER）。
+	var sync_node = match_node.get_node_or_null("NetSync") if match_node != null else null
+	if sync_node != null and sync_node.has_method("set_adjutant_source"):
+		sync_node.set_adjutant_source(true)
 	var result: Dictionary
 	match action:
 		"move":
@@ -3253,6 +3405,8 @@ func _adjutant_execute(match_node, player, action: String, params: Dictionary,
 			result = {"accepted": false, "status": "UnsupportedAction",
 				"reason": "动作 %s 不在第一阶段副官动作集内（未知机制显式 unsupported）。" % action}
 	_adjutant_executing = false
+	if sync_node != null and sync_node.has_method("set_adjutant_source"):
+		sync_node.set_adjutant_source(false)
 	return result
 
 

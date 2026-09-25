@@ -367,6 +367,23 @@ internal sealed class GodotStructurePlacementWorldPort : IStructurePlacementWorl
         return _unitsThisFrame.Where(GodotObject.IsInstanceValid);
     }
 
+    /// <summary>
+    /// 立即使本帧缓存失效（2026-09-23 修"电脑玩家造重叠建筑"）。
+    ///
+    /// 根因：`Units()` 按物理帧缓存"units"组快照。同一物理帧内**先**放置的建筑
+    /// 落地入组后，缓存不会刷新 —— **后**一次放置的占用检查看不到它，两个建筑
+    /// 落在同一位置也被判合法（实测：电脑玩家的经济/生产/防御三个控制器都是
+    /// ~0.5s 定时器，同帧触发时必然复现）。
+    /// 放置成功/失败后都应调用：让同帧的下一次评估看到最新世界。
+    /// </summary>
+    public void InvalidateCaches()
+    {
+        _unitsThisFrame = null;
+        _unitsFrame = long.MinValue;
+        _resourcesThisFrame = null;
+        _resourcesFrame = long.MinValue;
+    }
+
     /// <summary>枚举当前仍有效的资源节点（按物理帧缓存，口径同 `Units()`）。</summary>
     private IEnumerable<Node3D> Resources()
     {

@@ -7,6 +7,11 @@ const FollowingToReachDistance = preload(
 
 const POLICY_REFRESH_INTERVAL := 1.0 / 6.0
 const AGGRESSIVE_MAX_CHASE_DISTANCE_FACTOR := 2.0
+## 警戒（Guard）姿态的追逐上限：相对**岗位点**的视野倍数。
+## 1.5 = 比视野远半程——够追"差几步就够着"的敌人，又不至于被风筝到天涯海角。
+## 与 `WaitingForTargets` 的索敌/归途判据**同一个常量**（追逐收手与不再接新战
+## 必须同源，否则"追远→收手→眼前又有人→再追"会无限循环）。
+const GUARD_MAX_CHASE_FACTOR := 1.5
 
 var _target_unit = null
 var _sub_action = null
@@ -82,8 +87,15 @@ func _on_sub_action_finished():
 		or is_queued_for_deletion()
 		or _unit == null
 		or not is_instance_valid(_unit)
-		or _unit.action != self
 	):
+		return
+	# 【2026-09-21 真机回归】原守卫 `_unit.action != self` 会把**交战子动作**用法
+	# （GroundAttackMoving 的子节点）永久挡死：单位的当前动作是父动作而不是本节点，
+	# 于是子动作结束（目标移出射程被 teardown）后既不重连也不清理 —— 单位既不开火
+	# 也不推进，攻击移动订单永不结束（冒烟见 GroundAttackMoveArrivalSmokeTest）。
+	# 两种用法都放行：本节点是当前动作（WaitingForTargets 自主交战），或**父动作**
+	# 是当前动作（攻击移动中的交战）；单位已换成别的动作时才确实退出。
+	if _unit.action != self and get_parent() != _unit.action:
 		return
 	if not is_instance_valid(_target_unit) or not _target_unit.is_inside_tree():
 		return
@@ -105,9 +117,20 @@ func _enforce_combat_policy():
 		return
 	if stance == "Guard":
 		var guard_anchor: Vector3 = _command_runtime.GetGuardAnchor(_unit)
-		if guard_anchor.is_finite() and (
-			_target_unit.global_position_yless.distance_to(guard_anchor * Vector3(1, 0, 1))
+		# 收手条件（用户口径 2026-09-22）——两条并列，任一满足即停止追击，
+		# 由 WaitingForTargets 接手回岗位点：
+		# ① **敌人逃出本单位视野**（索敌按本单位视野判定，收手也按它，同口径）；
+		# ② **本单位追离岗位太远**（上限 = 视野 × GUARD_MAX_CHASE_FACTOR）。
+		# 旧口径只看"敌人离岗位多远"：敌人以本单位同速逃跑时，刚被拖到岗位视野
+		# 边缘就收手，单位永远打不到一个正在逃的敌人（被风筝）。
+		if (
+			_target_unit.global_position_yless.distance_to(_unit.global_position_yless)
 			> _unit.sight_range
+			or (
+				guard_anchor.is_finite()
+				and _unit.global_position_yless.distance_to(guard_anchor * Vector3(1, 0, 1))
+				> _unit.sight_range * GUARD_MAX_CHASE_FACTOR
+			)
 		):
 			queue_free()
 		return

@@ -57,3 +57,7 @@ tmp_ui_shots/
 # 2026-09-20 瘦身：临时诊断产物 / 本机缓存不再跟踪
 tmp_logs/
 Godot/shader_cache/
+
+# 导出产物（体积大，绝不入库；保留 .gdignore 让 Godot 跳过该目录）
+build/*
+!build/.gdignore

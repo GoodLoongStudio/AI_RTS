@@ -1,0 +1,197 @@
+{
+  "id": "d4f1fc39f4894c648203525997d09635",
+  "baseline": false,
+  "status": "error",
+  "config": {
+    "schema_version": 2,
+    "algo_version": "7.11.0",
+    "layout_seed": 18,
+    "terrain_seed": 2042010681,
+    "player_spacing": "any",
+    "controls": {
+      "river_layout": 2,
+      "river_enabled": 1,
+      "lake_count": 0,
+      "lake_area": 5000,
+      "neutral_plateau_scale": 1.7,
+      "plateau_max": 8,
+      "landform_elongation": 1.2,
+      "landform_recess": 0.2,
+      "landform_softness": 0.16,
+      "plateau_ramp_width": 8,
+      "river_width": 18,
+      "river_bend_scale": 1.0,
+      "river_crossings": 6,
+      "obstacle_percent": 40,
+      "cover_cluster_max": 10,
+      "layout_attempts": 4
+    }
+  },
+  "target": "full",
+  "spacing": "close",
+  "created_at": "2026-09-24T01:09:39",
+  "started": 1790183379.3186631,
+  "duration": 12.0,
+  "title": "布局 18 · 地貌 2042010681",
+  "pipeline_version": "1.0.0",
+  "stage_versions": {
+    "G1": "2.0.0",
+    "G2": "7.11.0",
+    "G3": "2.2.0",
+    "G4": "2.0.0"
+  },
+  "stages": {
+    "g1_input": {
+      "status": "done",
+      "started_at": "2026-09-24T01:09:48",
+      "duration_s": 0.1,
+      "error": null,
+      "pass": true,
+      "stage": "G1",
+      "version": "2.0.0",
+      "finished_at": "2026-09-24T01:09:48",
+      "source": "G:\\AIRTS\\AI_RTS\\tools\\mapgen\\runs\\18\\G1",
+      "source_hashes": {
+        "manifest.json": "5a03284e80a3d8a07821d1190ba9ef428ceaf1f2188ba33cc4168be3080b7738",
+        "mapgrid.npz": "86fdedf18538c9c878b3c85fa5d7f315a683e1485da472c1f315331f1f490360",
+        "mapspec.json": "3259c4fdd3ab68951a2950169d60e9898f52b0cb93ea675af9c2300c9c354e5b",
+        "starts.png": "22160ad95512071de69b426de253bca1da32910f199800d0fc562ef454982caf",
+        "starts.png.import": "4e4d4f7778db49321c77fb64f4ddd02516428c6fe04a067f6a69c5d3060be069",
+        "starts_table.png": "18540592dc5878e80a95507acca26a585c1781f6703242081385965b5c941c9d",
+        "starts_table.png.import": "15cf4671fd1d075d73a077eb43cf19f3c31b94b9c0652310e91a2271dbf43b64",
+        "territory.png": "1c540db95aaf8a7a37b6a8e24c2bf28e5e159c6d10d5a068969ab5dba163f402",
+        "territory.png.import": "3db11965a814ade33ff418133939cc5839485673bbe0205f2e56882546b4256e"
+      },
+      "starts": [
+        [
+          62.17,
+          137.25
+        ],
+        [
+          89.66,
+          24.53
+        ],
+        [
+          236.54,
+          115.1
+        ],
+        [
+          141.07,
+          197.99
+        ]
+      ],
+      "spacing": "close",
+      "g1_approved": false,
+      "output_hashes": {
+        "mapgrid.npz": "86fdedf18538c9c878b3c85fa5d7f315a683e1485da472c1f315331f1f490360"
+      }
+    },
+    "g2_terrain": {
+      "status": "done",
+      "started_at": "2026-09-24T01:09:48",
+      "duration_s": 0.0,
+      "error": null,
+      "pass": true,
+      "stage": "G2",
+      "version": "7.11.0",
+      "finished_at": "2026-09-24T01:09:51",
+      "all_pass": true,
+      "checks": {},
+      "input_hash": "86fdedf18538c9c878b3c85fa5d7f315a683e1485da472c1f315331f1f490360",
+      "output_hash": {
+        "mapgrid.npz": "b84b630446123ade1e12edb72e82d7bc674919e7bef523d4e36eaf0b78794bef",
+        "mapspec.json": "c07b73febbff7f107a8f7ea82fb15ecd1b54a2691b70d46867173f5fd93bff3b"
+      },
+      "params_version": "7.11.0",
+      "chosen_attempt": -1,
+      "summary": {
+        "all_pass": true,
+        "solid_percent": 92.8,
+        "plateaus": 6,
+        "rivers": 1,
+        "lakes": 1,
+        "lake_area_m2": 2472,
+        "crossings": 3
+      },
+      "baked": true
+    },
+    "g3_content": {
+      "status": "error",
+      "started_at": "2026-09-24T01:09:51",
+      "duration_s": 0.1,
+      "error": "list index out of range",
+      "pass": true,
+      "stage": "G3",
+      "version": "2.2.0",
+      "finished_at": "2026-09-24T01:09:51",
+      "error_kind": "stage_error"
+    }
+  },
+  "layout_locked": false,
+  "terrain_locked": false,
+  "layout_pool": [
+    36,
+    5,
+    4,
+    18,
+    38,
+    23,
+    54,
+    21,
+    46,
+    51,
+    47,
+    61,
+    31,
+    8,
+    12,
+    27,
+    14,
+    35,
+    42,
+    13,
+    3,
+    37,
+    55,
+    16,
+    25,
+    39,
+    49,
+    2,
+    17,
+    15
+  ],
+  "layout_tried": [
+    {
+      "seed": 36,
+      "reason": "checks",
+      "attempts": 0,
+      "rejected": null
+    },
+    {
+      "seed": 5,
+      "reason": "checks",
+      "attempts": 0,
+      "rejected": null
+    },
+    {
+      "seed": 4,
+      "reason": "checks",
+      "attempts": 0,
+      "rejected": null
+    },
+    {
+      "seed": 18,
+      "reason": "checks",
+      "attempts": 0,
+      "rejected": null
+    }
+  ],
+  "preview_only": false,
+  "progress": {
+    "stage": "G2",
+    "phase": "地形检查通过"
+  },
+  "error_kind": "generation_error",
+  "error": "list index out of range"
+}

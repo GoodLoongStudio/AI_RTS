@@ -129,6 +129,11 @@ class GraphStateDict(TypedDict, total=False):
     #: **必须声明**：这是"去过哪、下一个去哪"的跨轮记忆，漏声明就每轮清空 →
     #: 又回到"反复去同一个固定点"（审查 F01）。
     explore: Dict[str, Any]
+    #: 【2026-09-22 D10】扩张前探退避记忆（连续探不出合法落点就停一段时间；
+    #: 实测 det_17：300 秒 71 条前探令把部队全占住）。必须进图通道，否则每轮归零。
+    expansion_probe_backoff: Dict[str, Any]
+    #: 【2026-09-22 D13】侦察双保险跨 tick 记忆（轮转游标 + 每单位冷却）。
+    scout_confirm: Dict[str, Any]
     #: 已侦察到的敌方位置（公开情报）：前压目标用它，小队才会真的走到敌人那儿去打。
     enemy_intel_points: List[Any]
     #: 【迭代2】一批"跨轮记忆"键：原先只在节点里 `state["x"] = …` 写，没进通道也没进 dataclass
@@ -138,6 +143,10 @@ class GraphStateDict(TypedDict, total=False):
     blocked_build_spots: List[Any]
     build_backoff_until_tick: int
     build_reject_streak: int
+    #: 【2026-09-21】战略层失败退避（同步调用一次超时堵 15s；runner 配成
+    #: strategy_interval_ticks）。与 build_backoff 同一模式：必须进通道 + dataclass，
+    #: 否则每轮归零、退避失效。
+    strategy_backoff_until_tick: int
     #: 退避等级（每次触发加倍：900→1800→3600→上限 7200 tick）：一片地形整体不可建时，
     #: "换点重试"会一直烧命令（实测一局 10 次 `SurfaceNotBuildable`）。
     build_backoff_level: int

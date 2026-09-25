@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import os
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeout
 from dataclasses import dataclass, field
@@ -25,9 +26,20 @@ from ..redaction import redact_mapping
 from .contracts import (
     DirectiveBatch, IntentBatch, StrategicPlan, directives_to_intents,
 )
+from .laya_provider import (
+    BACKEND_LAYA, BACKEND_OFF, answer_view, dataset_path, get_provider,
+    label_from_decode, laya_timeout, load_demos, question_view, record_dataset,
+    s1_backend,
+)
 from .task_patch import (
-    MODE_FAST, MODES, MODE_LIMITS, TaskPatchBatch, effective_max_rows,
-    parse_task_patch,
+    ACTOR_ALLOWED_SKILLS, LAYA_MAX_OPTIONS, MODE_FAST, MODES, MODE_LIMITS,
+    SKILL_ALLOWED_TARGETS, SKILL_BUILD, SKILL_HOLD, SKILL_PRODUCE, TaskPatchBatch,
+    TARGET_PRODUCT, actor_options, effective_max_rows, parse_task_patch,
+)
+from .task_patch import (
+    Q_ACTOR, Q_ACTOR_GROUP, Q_TARGET, Q_TARGET_KIND, Q_TASK,
+    actor_fine_options, answers_to_decode, frame_to_questions,
+    modifications_to_intents, target_fine_options,
 )
 from .task_patch_bridge import expand_patch
 from .task_patch_prompt import NEW_SYSTEM_PROMPT, build_user_prompt, normalize_json_text
@@ -434,6 +446,15 @@ def _is_local_endpoint(url: Any) -> bool:
 class _PydanticAgentBase:
     """PydanticAI Agent 的共同装配与运行（超时保护 + 结构化错误归一化）。"""
 
+    #: 结构化输出的自动纠错重试次数（子类可覆盖）。
+    #: **战略层必须是 0**（2026-09-21 真机实测 P5）：战略是**同步**调用，带 2 次
+    #: 重试时一次校验失败要烧 3 个完整调用（15s 超时 ×3）把主循环堵死；且本机 2B
+    #: 对 StrategicPlan 的校验失败率不低（真机 12 次请求 2 次 `Exceeded maximum
+    #: output retries`），重试并不能提高成功率。失败应**便宜地**降级：campaign
+    #: 上下文由规则式里程碑跟踪（campaign.py）常驻提供，不空白。
+    #: 战术层（四列/legacy）保持 2：异步调度 + 纯文本输出，重试成本可接受。
+    agent_retries = 2
+
     system_prompt = ""
     #: True = 用 `PromptedOutput` 做声明式结构校验（旧 DirectiveBatch 路径）；
     #: False = 纯文本输出，结构由程序自己解析（四列接口，见 PydanticAITaskPatchAgent）。
@@ -493,7 +514,8 @@ class _PydanticAgentBase:
         # 这是满足 10 秒硬线的前提。
         if self.structured_output:
             self._agent = Agent(resolved, output_type=PromptedOutput(self.output_type),
-                                system_prompt=self.system_prompt, retries=2,
+                                system_prompt=self.system_prompt,
+                                retries=self.agent_retries,
                                 model_settings=model_settings or None)
         else:
             # 纯文本输出（四列接口用）：模型只需按系统提示给出 JSON 文本，
@@ -617,6 +639,8 @@ class PydanticAIStrategyAgent(_PydanticAgentBase):
 
     system_prompt = STRATEGY_SYSTEM_PROMPT
     output_type = StrategicPlan
+    #: 同步低频层：重试 0（失败便宜地降级到规则式 campaign 上下文，见基类注释）。
+    agent_retries = 0
 
     def __init__(self, settings: GraphModelSettings, model: Any = None) -> None:
         super().__init__(ROLE_STRATEGY, settings, model)
@@ -694,16 +718,60 @@ class PydanticAITaskPatchAgent(_PydanticAgentBase):
     structured_output = False
 
     def __init__(self, settings: GraphModelSettings, model: Any = None,
-                 mode: str = MODE_FAST) -> None:
+                 mode: str = MODE_FAST, logger: Any = None) -> None:
         # mode 必须在 super().__init__ 之前设置（_max_tokens 在构造期被调用）。
         self.mode = mode if mode in MODES else MODE_FAST
         super().__init__(ROLE_TACTICS, settings, model)
         self.last_decode = None
+        #: Laya（System 1）结构化日志出口（runner 装配好留档后补挂；缺省 None = 静默，
+        #: provider 仍记 last_event/last_error 供诊断）。
+        self.logger = logger
+        #: 最近一次 Laya 决策的摘要（事件/延迟/选择/拒绝原因；进模型调用留档）。
+        self.last_laya: Dict[str, Any] = {}
+        #: 最近一次 Laya 调用的输入（state/questions/fine_questions；训练采集与
+        #: 失败回退共用）。
+        self._laya_input: Dict[str, Any] = {}
+
+    def attach_logger(self, logger: Any) -> None:
+        """补挂结构化日志（模型先于留档装配，与 runner 的 sink_writer 同一模式）。"""
+        self.logger = logger
 
     def _max_tokens(self) -> int:
         return int(MODE_LIMITS[self.mode]["output_budget"])
 
     def propose_task_patch(self, frame: Any) -> Optional[IntentBatch]:
+        """实时链路唯一决策入口：Laya（若开启且成功）→ 现有 2B 链路 → 规则中台。
+
+        `AIRTS_S1_BACKEND=laya` 时先走判别式引擎；它不可用/超时/本轮全拒时
+        **原样**退回下面的模型链路（默认 `model` 时行为与改动前逐字节一致）。
+        `off` = 两层都关：返回 None（该拍无模型决策，规则中台继续指挥）。
+        """
+        backend = s1_backend()
+        if backend == BACKEND_OFF:
+            self.last_laya = {"event": "s1_off"}
+            return None
+        if backend == BACKEND_LAYA:
+            try:
+                return self._propose_via_laya(frame)
+            except (ModelTimeout, ModelUnavailable) as exc:
+                # Laya 这一拍没成功：按 Fallback 顺序退回现有模型链路。
+                # 同时把结果喂给健康熔断（持续不健康时直接断开，别再每拍白等超时）。
+                provider = get_provider(logger=self.logger)
+                provider.note_decision("timeout" if isinstance(exc, ModelTimeout)
+                                       else "unavailable")
+                # 训练数据：这一次 Laya 没给出可用答案（无教师标签也记录，
+                # 负样本对训练有用——见 record_dataset 的说明）。
+                self._record_laya_sample(answers=None, label_decode=None,
+                                         laya_accepted=False, frame=frame,
+                                         fallback_reason=str(exc)[:120])
+                self.last_laya = {"event": "laya_fallback",
+                                  "reason": "%s: %s" % (type(exc).__name__, exc)}
+                self._log_laya("laya_fallback", status="fallback",
+                               reason=str(exc)[:200])
+        return self._propose_via_model(frame)
+
+    def _propose_via_model(self, frame: Any) -> Optional[IntentBatch]:
+        """既有四列链路（原 `propose_task_patch` 主体，未改动一行）。"""
         user = build_user_prompt(frame, max_rows=effective_max_rows(frame))
         text = self._run_text(user, record={
             "interface": "task_patch", "mode": self.mode,
@@ -728,7 +796,278 @@ class PydanticAITaskPatchAgent(_PydanticAgentBase):
         batch = parse_task_patch(payload)
         intent_batch, decode = expand_patch(batch, frame)
         self.last_decode = decode
+        # 训练数据（教师局）：`AIRTS_LAYA_DATASET` 配置了时，把 2B 的实际下发也按
+        # Laya 同款问题集记录——2B 是当前最强的独立教师，学生局（laya）的标签则
+        # 取自各层实际下发（见 _propose_via_laya）。两次调用同一张候选表，同源。
+        if dataset_path() and decode is not None:
+            try:
+                state, questions = frame_to_questions(frame, demos=load_demos())
+                record_dataset({
+                    "ts": time.time(),
+                    "mode": str(self.mode),
+                    "state": state,
+                    "questions": question_view(questions),
+                    "fine_questions": {},
+                    "laya_answers": {},
+                    "laya_accepted": False,
+                    "fallback_reason": "teacher_model",
+                    "label": label_from_decode(decode,
+                                               branch=self._branch_label(frame)),
+                })
+            except Exception:  # noqa: BLE001 —— 采集失败绝不影响决策
+                pass
         return intent_batch
+
+    # ---------------- Laya（System 1）路径 ----------------
+
+    def _log_laya(self, event: str, **fields: Any) -> None:
+        if self.logger is None:
+            return
+        try:
+            self.logger.log(event, **fields)
+        except Exception:  # noqa: BLE001 —— 日志失败不改变决策路径。
+            pass
+
+    @staticmethod
+    def _branch_label(frame: Any) -> str:
+        """当时主线实际沿用的决策地图节点（分支问题的教师标签）。
+
+        优先 `mainline_node`（前沿里程碑绑定的节点 = 基线实际走向）；
+        模型显式选过分支时用 `model_branch`（那也是当时真实沿用的选择）。
+        """
+        campaign = getattr(frame, "campaign", None) or {}
+        return (str(campaign.get("mainline_node", "") or "")
+                or str(campaign.get("model_branch", "") or ""))
+
+    def _record_laya_sample(self, *, answers: Any, label_decode: Any,
+                            laya_accepted: bool, fallback_reason: str = "",
+                            frame: Any = None) -> None:
+        """落一条 Laya 训练样本（`AIRTS_LAYA_DATASET` 配置了才写）。
+
+        字段：state / questions（选项集）/ laya 的选择与置信度 / 教师标签
+        （最终实际下发的四列行）/ 是否回退及原因。采集失败静默跳过。
+        """
+        ctx = getattr(self, "_laya_input", None) or {}
+        if not ctx.get("state"):
+            return
+        record = {
+            "ts": time.time(),
+            "mode": str(self.mode),
+            "state": ctx.get("state", ""),
+            "questions": question_view(ctx.get("questions") or {}),
+            "fine_questions": question_view(ctx.get("fine_questions") or {}),
+            "laya_answers": answer_view(answers) if answers else {},
+            "laya_accepted": bool(laya_accepted),
+            "fallback_reason": str(fallback_reason or ""),
+            "label": (label_from_decode(label_decode,
+                                        branch=self._branch_label(frame))
+                      if label_decode is not None else None),
+        }
+        record_dataset(record)
+
+    def _call_laya(self, provider: Any, state: str,
+                   questions: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """带在途/超时纪律的 Laya 调用（复用共享线程池；超时不 cancel，迟到自清）。
+
+        纪律与 2B 路径同源：同一 Agent 至多一个在途（超时后服务端/GPU 可能仍在算），
+        超时抛 `ModelTimeout` 由调用方按 Fallback 顺序处理。
+        """
+        if self._inflight.is_set():
+            raise ModelTimeout(
+                "上一轮推理仍在进行中，本轮跳过以避免堆积。")
+        self._inflight.set()
+        future = _call_pool().submit(provider.predict, state, questions)
+        # 迟到线程跑完（或异常结束）时才释放在途标记。
+        future.add_done_callback(lambda _f: self._inflight.clear())
+        call_timeout = laya_timeout()
+        try:
+            value = future.result(timeout=call_timeout)
+        except FuturesTimeout as exc:
+            # 不 cancel、**不清标记**：让它在后台自然结束，迟到完成时由 done_callback
+            # 放行（否则下一趟会与这趟迟到推理撞在同一块 GPU 上）。
+            raise ModelTimeout("Laya 调用超时（%.1fs）" % call_timeout) from exc
+        except Exception as exc:  # noqa: BLE001 —— provider 的任何异常归一化，
+            # 与 2B 路径同一失败方向：绝不让 Laya 的异常形态漏进指挥链。
+            self.last_error_detail = "%s: %s" % (type(exc).__name__, exc)
+            self._inflight.clear()   # future 已完成（异常）：立即放行下一趟。
+            raise ModelUnavailable("Laya 调用失败：%s" % exc) from exc
+        # 【竞态修复 2026-09-20】正常返回也必须**在主线程**立即清标记：
+        # `future.result()` 返回时 done_callback 可能还没执行（回调和唤醒之间
+        # 有窗口），紧接着的第二次前向（目标/执行者细选）会误判"上一轮仍在进行中"
+        # 而抛 ModelTimeout。生产上 GPU 前向数百毫秒掩盖了它；快路径（CPU/小帧）
+        # 会稳定触发。迟到（超时）路径仍由 callback 清，语义不变。
+        self._inflight.clear()
+        return value
+
+    def _propose_via_laya(self, frame: Any) -> Optional[IntentBatch]:
+        """判别式决策：帧 → 问题 →（粗级一问 + 必要的细级追问）→ 既有校验 → 意图。
+
+        细级追问（第二次前向，选项收敛后仍 ≤20）：
+        - 目标：Q1 选了需要目标的技能时，按该技能允许的目标类别问"具体哪个"；
+        - 执行者：执行者 >20 时 Q2 只问类别，这里追问"具体哪个"。
+        """
+        provider = get_provider(logger=self.logger)
+        if not provider.available():
+            # 依赖缺失/模型不可用：既有链路原样继续（provider 已留 laya_unavailable 日志）。
+            raise ModelUnavailable("Laya 不可用：%s" % provider.last_error[:120])
+        state, questions = frame_to_questions(frame, demos=load_demos())
+        self._laya_input = {"state": state, "questions": questions}
+        started = time.perf_counter()
+        answers = self._call_laya(provider, state, questions)
+        if answers is None:
+            # predict 自吞了异常并返回 None：这一拍不算 Laya 成功 → 回退模型链路。
+            raise ModelUnavailable("Laya 本轮无答案：%s" % provider.last_error[:120])
+        task = str((answers.get(Q_TASK) or {}).get("choice") or "").strip().upper()
+        extra_passes = 0
+
+        self._laya_input.setdefault("fine_questions", {})
+        # ---- 细级追问：目标（技能需要目标时）----
+        need = SKILL_ALLOWED_TARGETS.get(task)
+        if need is not None:
+            kind = str((answers.get(Q_TARGET_KIND) or {}).get("choice") or "")
+            if kind not in need:
+                # 粗类答案与该技能允许的类别不符：按技能允许的类别里**本帧存在**的取第一个，
+                # 不猜、不自动挑目标（没有细级答案时该行会被既有校验拒绝）。
+                kind = next((k for k in need
+                             if any(str(t.get("kind", "")) == k
+                                    for t in frame.targets.values())), "")
+            # product 子类别必须按技能语义过滤（真机实测：PROD 选到建筑类目标 V4，
+            # 60/74 个决策因 capability_mismatch 回退）——候选与校验同源。
+            category = ""
+            if task == SKILL_PRODUCE:
+                category = "unit"
+            elif task == SKILL_BUILD:
+                category = "building"
+            if kind:
+                fine = dict(questions)
+                fine[Q_TARGET] = {"type": "choice",
+                                  "instructions": "目标选哪个？",
+                                  "criteria": target_fine_options(frame, kind,
+                                                                  category=category)}
+                self._laya_input["fine_questions"][Q_TARGET] = fine[Q_TARGET]
+                if fine[Q_TARGET]["criteria"]:
+                    more = self._call_laya(provider, state, fine)
+                    if more is not None:
+                        answers = dict(answers)
+                        answers[Q_TARGET] = more.get(Q_TARGET)
+                        extra_passes += 1
+
+        # ---- 细级追问：执行者（>20 分两级时）----
+        if Q_ACTOR not in answers and Q_ACTOR_GROUP in answers:
+            group = str((answers.get(Q_ACTOR_GROUP) or {}).get("choice") or "")
+            fine = dict(questions)
+            fine[Q_ACTOR] = {"type": "choice",
+                             "instructions": "具体派哪个执行者？",
+                             "criteria": actor_fine_options(frame, group)}
+            if fine[Q_ACTOR]["criteria"]:
+                more = self._call_laya(provider, state, fine)
+                if more is not None:
+                    answers = dict(answers)
+                    answers[Q_ACTOR] = more.get(Q_ACTOR)
+                    extra_passes += 1
+
+        latency_ms = round((time.perf_counter() - started) * 1000.0, 1)
+        result = answers_to_decode(answers, frame)
+        if not result.modifications and task and task != SKILL_HOLD:
+            # (任务, 执行者) 被既有校验拒（Q1/Q2 是**独立**的两问，可能选出土客不相容的
+            # 组合，如"小队去 PROD"）：把执行者选项缩窄到"能做该任务的"再问一次
+            # （仍是一次前向、选项 ≤20；缩窄后 Laya 只能选相容执行者）。
+            #
+            # 【真机教训 2026-09-20】相容集合必须从**全部**执行者里筛，不能先用
+            # `actor_options` 的就近截断表：大帧（>20 执行者）时基地里的设施离部队
+            # 质心远、会被截掉 → 相容集合为空 → 修正失效 → 46% 的决策白白回退 2B。
+            # 筛完再按同一距离口径截到 ≤20。
+            compatible: Dict[str, str] = {}
+            for ref, entry in frame.actors.items():
+                if task not in ACTOR_ALLOWED_SKILLS.get(str(entry.get("kind", "")), ()):
+                    continue
+                compatible[str(ref)] = "%s×%d" % (str(entry.get("kind", "")),
+                                                  int(entry.get("count", 0) or 0))
+            if len(compatible) > LAYA_MAX_OPTIONS:
+                near = actor_options(frame)
+                compatible = {ref: compatible[ref] for ref in near
+                              if ref in compatible}
+            if compatible:
+                fine = dict(questions)
+                fine[Q_ACTOR] = {"type": "choice",
+                                 "instructions": "具体派哪个执行者？",
+                                 "criteria": compatible}
+                self._laya_input["fine_questions"][Q_ACTOR] = fine[Q_ACTOR]
+                more = self._call_laya(provider, state, fine)
+                if more is not None and (more.get(Q_ACTOR) or {}).get("choice"):
+                    answers = dict(answers)
+                    answers[Q_ACTOR] = more.get(Q_ACTOR)
+                    result = answers_to_decode(answers, frame)
+                    extra_passes += 1
+                    # 执行者定了还被拒（capability_mismatch）：把目标缩窄到
+                    # **该执行者**能生产/建造的项目再问一次（设施→产品、工人→建筑）。
+                    if (not result.modifications and task in (SKILL_PRODUCE, SKILL_BUILD)
+                            and any(r.reason == "capability_mismatch"
+                                    for r in result.rejections)):
+                        actor_ref = str((answers.get(Q_ACTOR) or {}).get("choice") or "")
+                        entry = frame.actors.get(actor_ref) or {}
+                        allowed = [str(x) for x in (
+                            entry.get("products") if task == SKILL_PRODUCE
+                            else entry.get("buildings")) or []]
+                        if allowed:
+                            scenes = {str(t.get("scene", "")): str(t.get("ref", ""))
+                                      for t in frame.targets.values()
+                                      if str(t.get("kind", "")) == TARGET_PRODUCT
+                                      and str(t.get("scene", "")) in allowed}
+                            if scenes:
+                                labels = {ref: scene for scene, ref in scenes.items()}
+                                fine = dict(questions)
+                                fine[Q_TARGET] = {
+                                    "type": "choice",
+                                    "instructions": "目标选哪个？",
+                                    "criteria": labels}
+                                more = self._call_laya(provider, state, fine)
+                                if more is not None and (more.get(Q_TARGET) or {}).get("choice"):
+                                    answers = dict(answers)
+                                    answers[Q_TARGET] = more.get(Q_TARGET)
+                                    result = answers_to_decode(answers, frame)
+                                    extra_passes += 1
+        self.last_decode = result
+        self.last_laya = {
+            "event": "laya_decided",
+            "task": task,
+            "actor": str((answers.get(Q_ACTOR) or {}).get("choice") or ""),
+            "target": str((answers.get(Q_TARGET) or {}).get("choice") or ""),
+            "confidence": (answers.get(Q_TASK) or {}).get("confidence"),
+            "latency_ms": latency_ms,
+            "extra_passes": extra_passes,
+            "accepted": len(result.modifications),
+            "rejected": len(result.rejections),
+            "reject_reasons": sorted({r.reason for r in result.rejections}),
+        }
+        self._log_laya("laya_decided", status="ok", **{
+            key: self.last_laya[key] for key in
+            ("task", "actor", "target", "latency_ms", "extra_passes",
+             "accepted", "rejected")})
+        if result.modifications:
+            provider.note_decision("ok")
+            self._record_laya_sample(answers=answers, label_decode=result,
+                                     laya_accepted=True, frame=frame)
+            return modifications_to_intents(result, frame)
+        if task == SKILL_HOLD:
+            # 显式"维持现有任务"：合法空批（与 `{"u":[]}` 同义），不算失败。
+            provider.note_decision("ok")
+            self._record_laya_sample(answers=answers, label_decode=result,
+                                     laya_accepted=True, frame=frame)
+            return modifications_to_intents(result, frame)
+        # 选了任务但全部被既有校验拒绝（越界/粗级未解析）：这一拍 Laya 没成功 →
+        # 按 Fallback 顺序退回现有模型链路（provider 已留 reject 摘要）。
+        # 全拒是**质量信号**，计入熔断窗口（与超时同等看待）。
+        provider.note_decision("rejected")
+        self._log_laya("laya_all_rejected", status="fallback",
+                       task=task,
+                       reasons=",".join(sorted({r.reason for r in result.rejections})))
+        fallback_batch = self._propose_via_model(frame)
+        # 训练数据：Laya 自己被拒，这一拍的教师标签取 2B 回退实际下发的那一行。
+        self._record_laya_sample(answers=answers, label_decode=self.last_decode,
+                                 laya_accepted=False, frame=frame,
+                                 fallback_reason="all_rejected")
+        return fallback_batch
 
 
 def build_agents(settings: Optional[GraphModelSettings] = None,

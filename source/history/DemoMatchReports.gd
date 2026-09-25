@@ -131,11 +131,6 @@ const PLAN := [
 const MAPS := [
 	{"name": "Plain & Simple", "path": "res://source/match/maps/PlainAndSimple.tscn", "players": 4, "size": "100×100"},
 	{"name": "Big Arena", "path": "res://source/match/maps/BigArena.tscn", "players": 8, "size": "100×100"},
-	{
-		"name": "G4 大湖 seed16",
-		"path": "res://source/match/maps/generated/16-0-1ca6e21aa1/map_16-0-1ca6e21aa1.tscn",
-		"players": 4, "size": "256×256",
-	},
 ]
 
 ## 报告生成基准时刻（本地时间）。真实对局由 `Time.get_datetime_string_from_system()` 填。

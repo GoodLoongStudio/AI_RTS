@@ -1,5 +1,8 @@
 extends Control
 
+const AdjutantRunnerLauncher := preload("res://source/ui/AdjutantRunnerLauncher.gd")
+const AdjutantModelService := preload("res://source/ui/AdjutantModelService.gd")
+
 ## 主菜单背景音乐由常驻自动加载 MenuMusic 播放（跨菜单场景不断），
 ## 此处不再单独挂载（2026-09-08）。
 
@@ -31,6 +34,13 @@ func _ready() -> void:
 		"CenterContainer/PanelContainer/MarginContainer/VBoxContainer/PlayButton") as Button
 	if first != null:
 		first.grab_focus()
+	# 【2026-09-20 用户要求】联机暂不开放：隐藏「在线匹配」入口。
+	# 只藏 UI，不删场景/信号/autojoin 钩子（--autojoin 自动化仍可进联机页，便于日后开放）。
+	var online_btn := get_node_or_null(
+		"CenterContainer/PanelContainer/MarginContainer/VBoxContainer/OnlineButton") as Button
+	if online_btn != null:
+		online_btn.visible = false
+		online_btn.disabled = true
 	# 调试钩子：--autojoin（或 res://autojoin.txt）→ 直接进联机界面，
 	# Online._ready 的 autojoin 钩子接管加入+立即开局（供 Godot MCP 一键开局）。
 	# 复核 2026-09-02：只在本进程第一次加载 Main 时生效——自动化会话遗留/重建
@@ -38,11 +48,35 @@ func _ready() -> void:
 	if not _autojoin_fired and "--autojoin" in OS.get_cmdline_user_args():
 		_autojoin_fired = true
 		_on_online_button_pressed()
+	_prewarm_model_service()
+
+
+## 【2026-09-23】主菜单就把本地模型服务拉起来并预热。
+##
+## 为什么放这儿：冷模型首次推理 ~70s（2.6GB 载入）。只在加载页/点"接管"时才开始，
+## 玩家从主菜单走到开局通常没这么久 → 头几分钟面板一直显示"预热中"。
+## 主菜单是玩家停留最久的地方，把这段时间用起来，等真开局时模型大概率已经热了。
+##
+## 两个护栏，避免替玩家决定/拖累无关玩家：
+##   ① 只对**开过副官接管**的玩家预热（`auto_takeover`）——没开过的不替他决定；
+##   ② 专用服实例不预热（副官是玩家自己的，服务端起它是浪费 2.6GB）。
+## 非阻塞：服务在后台起，菜单该干嘛干嘛。
+func _prewarm_model_service() -> void:
+	if OS.get_cmdline_user_args().has("--server"):
+		return
+	if not AdjutantRunnerLauncher.auto_takeover():
+		return
+	if AdjutantModelService.is_ready() and AdjutantModelService.is_listening():
+		return
+	AdjutantModelService.ensure_started(self)
+	print("[MainMenu] 已在主菜单开始预热本地模型服务（端口 %d）"
+		% AdjutantModelService.PORT)
 
 
 func _add_system_header() -> void:
 	var header := Label.new()
-	header.text = "HERMES COMMAND // ONLINE"
+	# 联机暂不开放（2026-09-20），横幅不再宣称 ONLINE。
+	header.text = "HERMES COMMAND // LOCAL"
 	header.position = Vector2(28, 22)
 	header.add_theme_font_size_override("font_size", 14)
 	header.add_theme_color_override("font_color", SystemUIStyle.CYAN)

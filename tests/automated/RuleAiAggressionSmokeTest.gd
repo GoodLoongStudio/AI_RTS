@@ -21,6 +21,10 @@ func _ready():
 	rule_ai.expected_number_of_battlegroups = 1
 	rule_ai.expected_number_of_units_in_battlegroup = 1
 	rule_ai.first_wave_delay_s = 0.0
+	# 【2026-09-21】首波**出击**门槛（attack_wave_delay_s）与生产门槛分离后，
+	# 默认会等 32 模拟秒才允许第一波出门。本测试只验证"推进链路不站桩"，
+	# 不等首波窗口 ⇒ 显式归零（测首波时间本身的是 RuleAiFirstWave 类测试）。
+	rule_ai.attack_wave_delay_s = 0.0
 	add_child(match_instance)
 	await get_tree().process_frame
 	await get_tree().physics_frame

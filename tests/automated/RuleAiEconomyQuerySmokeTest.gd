@@ -50,19 +50,35 @@ func _ready():
 		func(entity): return entity.get("production", null) != null
 	)
 	_check(not workers.is_empty(), "己方查询应返回规则 AI 的稳定 Worker ID")
-	var gathering_workers: Array = workers.filter(
-		func(worker):
-			var order = worker.get("order", null)
-			return order != null and order.get("kind", "") == "Gather"
-	)
+	# 【2026-09-21 观测方式修正（目标不变、证据更直接）】原断言读 WorldQuery 的
+	# `order.kind == "Gather"`——但底层 C# `UnitOrderKind` **没有 Gather**：采集在权威侧是
+	# GDScript 单位动作 `CollectingResourcesSequentially`，不是订单种类，因此 `order`
+	# 投影里**永远**不出现它（实测：Gather 被 Accepted、单位进入 MOVING_TO_RESOURCE，
+	# 同拍重查 order 仍为 null）⇒ 原断言必然失败。
+	# 现改为用**权威侧实际行为**验证同一目标：AI 的 Worker 节点上挂着的 action
+	# 就是采集动作（`Unit.action` 是公开访问器，采集动作提供 `get_resource_unit()`）。
+	var worker_ids := {}
+	for worker in workers:
+		worker_ids[worker["id"]] = true
+	# 分配发生在 EconomyController 的刷新拍上，轮询等待（夹具加固，上限 10s）。
+	var gathering_workers: Array = []
+	var waited := 0.0
+	while waited < 10.0:
+		gathering_workers = _collect_gathering_workers(rule_ai, worker_ids)
+		if not gathering_workers.is_empty():
+			break
+		await get_tree().create_timer(0.3).timeout
+		waited += 0.3
 	_check(not gathering_workers.is_empty(),
 		"EconomyController 应通过稳定 ID Gather 为无订单 Worker 分配可见资源")
 	if not gathering_workers.is_empty():
-		var target = gathering_workers[0]["order"].get("target", null)
+		var gather_action = gathering_workers[0]["action"]
+		var resource_node = gather_action.get_resource_unit()
+		var resource_script := ""
+		if resource_node != null and resource_node.get_script() != null:
+			resource_script = str(resource_node.get_script().resource_path)
 		_check(
-			target != null
-			and target.get("entity_kind", "") == "ResourceNode"
-			and target.get("type_id", "") in ["resource_a", "resource_b"],
+			resource_script.ends_with("ResourceA.gd") or resource_script.ends_with("ResourceB.gd"),
 			"Gather 活动订单应返回下令时确认的资源 ID 与稳定类型"
 		)
 		var invalid_gather: Dictionary = rule_ai.get_node("RuleAiCommandGateway").Gather(
@@ -75,18 +91,8 @@ func _ready():
 			== "ResourceTargetNotFound",
 			"固定身份 Gather 应拒绝不存在的稳定资源 ID"
 		)
-		var gathering_worker_id: String = gathering_workers[0]["id"]
-		var gathering_worker_node = null
-		for unit in get_tree().get_nodes_in_group("units"):
-			var reference: Dictionary = (
-			rule_ai
-				. get("_world_query_runtime")
-				. GetOwnEntityReferenceForTests(unit, rule_ai)
-			)
-			if reference.get("id", "") == gathering_worker_id:
-				gathering_worker_node = unit
-				break
-		_check(gathering_worker_node != null,
+		var gathering_worker_node = gathering_workers[0]["node"]
+		_check(is_instance_valid(gathering_worker_node),
 			"测试应能用稳定 ID 定位正在 Gather 的 AI Worker")
 		if gathering_worker_node != null:
 			var stop_result: Dictionary = (
@@ -97,16 +103,10 @@ func _ready():
 			_check(stop_result.get("status", "") == "Accepted",
 				"测试 Stop 应把规则 AI 的 Gather 订单暂停")
 			await get_tree().create_timer(0.6).timeout
-			var after_stop: Dictionary = rule_ai.get("_world_query_runtime").GetOwnForces(
-				rule_ai.get("_query_session_id"),
-				FIELD_TYPE | FIELD_ORDER
-			)
-			var stopped_worker: Dictionary = after_stop["entities"].filter(
-				func(entity): return entity.get("id", "") == gathering_worker_id
-			)[0]
 			_check(
-				stopped_worker.get("order", null) != null
-				and stopped_worker["order"].get("state", "") == "Suspended",
+				is_instance_valid(gather_action)
+				and gather_action.has_method("is_task_suspended")
+				and gather_action.is_task_suspended(),
 				"EconomyController 刷新后仍应保留暂停的 Gather，不得自动恢复"
 			)
 	_check(not completed_structures.is_empty(),
@@ -147,6 +147,27 @@ func _ready():
 	match_instance.queue_free()
 	await get_tree().process_frame
 	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1)
+
+
+## 收集"正在采集"的 AI 工人（权威侧动作证据，不依赖 WorldQuery 的 order 投影）。
+## 判定：单位属于 AI 的 worker 稳定 ID 集合 **且** 其 `action` 是采集动作
+## （有 `get_resource_unit()` 且目标非空）。返回 [{id, node, action}]。
+func _collect_gathering_workers(rule_ai, worker_ids: Dictionary) -> Array:
+	var result: Array = []
+	for unit in get_tree().get_nodes_in_group("units"):
+		if unit.action == null or not unit.action.has_method("get_resource_unit"):
+			continue
+		if unit.action.get_resource_unit() == null:
+			continue
+		var reference: Dictionary = (
+			rule_ai
+			.get("_world_query_runtime")
+			.GetOwnEntityReferenceForTests(unit, rule_ai)
+		)
+		var unit_id: String = str(reference.get("id", ""))
+		if worker_ids.has(unit_id):
+			result.append({"id": unit_id, "node": unit, "action": unit.action})
+	return result
 
 
 ## 累计断言失败并输出可定位原因。

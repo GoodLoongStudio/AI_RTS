@@ -309,15 +309,24 @@ class RuleFloorFollowsMainlineTest(unittest.TestCase):
                          RULES_VIEW["constructions"][0]["blueprint_scene_path"])
 
     def test_expansion_probe_when_no_candidate(self):
-        """扩张选址没有合法落点时，规则中台派机动单位前探（否则主线永远卡住）。"""
+        """扩张选址没有合法落点时，规则中台派机动单位前探（否则主线永远卡住）。
+
+        2026-09-22：前探门槛改为"主攻兵力成形"（`EXPANSION_PROBE_MIN_ARMY`）后才准
+        扩张（实测：开局唯一空闲单位是无人机，前探反复派给它 → 整局不探敌 →
+        敌方建筑 0 条情报）。这里按新纪律给一队兵，断言本身（必须发前探）不变。
+        """
         state, campaign = self._state_with_frontier(cm.M04)
         campaign["milestones"][cm.M01]["status"] = "done"
         campaign["milestones"][cm.M02]["status"] = "done"
         campaign["expansion_candidates"] = []
-        state["ai_controlled_units"] = ["Unit_3"]
-        state["unit_generations"] = {"Unit_3": 1}
+        # 主攻波次（>= EXPANSION_PROBE_MIN_ARMY=6 个作战单位）成形后才准前探。
+        squad = ["Unit_%d" % (20 + i) for i in range(6)]
+        state["ai_controlled_units"] = ["Unit_3"] + squad
+        state["unit_generations"] = {name: 2 + i for i, name in enumerate(squad)}
         entities = [unit("Unit_0", "command_center", queue=True),
                     unit("Unit_3", "drone", pos=(5.0, 0.0, 5.0), movement=True)]
+        entities += [unit(name, "soldier", pos=(8.0 + i, 0.0, 8.0 + i), movement=True)
+                     for i, name in enumerate(squad)]
         # 远端矿点（>=30m）：候选落点算不出来（视野内无合法空位），但前探点应给出。
         far = [resource("R_far", (100.0, 0.0, 100.0))]
         cm.update(state, observation(entities + far), 600)
@@ -327,6 +336,8 @@ class RuleFloorFollowsMainlineTest(unittest.TestCase):
                                     rules=RULES_VIEW, server_tick=600)
         self.assertTrue(out)
         self.assertEqual(out[0]["intent_id"].split("-")[1], "probe")
+        self.assertEqual(out[0]["unit_ids"], ["Unit_20"],
+                         "有战斗单位时前探不得抽走唯一的侦察")
 
     def test_expansion_probe_while_second_base_pending(self):
         """M05 分基地还没开工、候选又丢了 → 必须再派人去远端矿（否则永远盖不出第二座）。"""
@@ -334,10 +345,14 @@ class RuleFloorFollowsMainlineTest(unittest.TestCase):
         for key in (cm.M01, cm.M02, cm.M03, cm.M04):
             campaign["milestones"][key]["status"] = "done"
         campaign["expansion_candidates"] = []
-        state["ai_controlled_units"] = ["Unit_3"]
-        state["unit_generations"] = {"Unit_3": 1}
+        # 主攻波次（>= EXPANSION_PROBE_MIN_ARMY=6 个作战单位）成形后才准前探。
+        squad = ["Unit_%d" % (20 + i) for i in range(6)]
+        state["ai_controlled_units"] = ["Unit_3"] + squad
+        state["unit_generations"] = {name: 2 + i for i, name in enumerate(squad)}
         entities = [unit("Unit_0", "command_center", queue=True),
                     unit("Unit_3", "drone", pos=(5.0, 0.0, 5.0), movement=True)]
+        entities += [unit(name, "soldier", pos=(8.0 + i, 0.0, 8.0 + i), movement=True)
+                     for i, name in enumerate(squad)]
         far = [resource("R_far", (100.0, 0.0, 100.0))]
         cm.update(state, observation(entities + far), 600)
         prefs = cm.frontier_preferences(state)
@@ -346,6 +361,27 @@ class RuleFloorFollowsMainlineTest(unittest.TestCase):
                                     rules=RULES_VIEW, server_tick=600)
         self.assertTrue(out)
         self.assertEqual(out[0]["intent_id"].split("-")[1], "probe")
+
+    def test_no_probe_before_attack_force_forms(self):
+        """【2026-09-22】主攻兵力未成形 → 不发扩张前探（侦察不能被远角前探占死）。
+
+        实测（base_off_2/3/4）：开局只有无人机闲 → 前探 TTL 3600 tick 把它整局钉在
+        地图远角，敌方建筑 0 条情报。参谋阶段 A：扩张延后到主攻条件满足。
+        """
+        state, campaign = self._state_with_frontier(cm.M04)
+        campaign["milestones"][cm.M01]["status"] = "done"
+        campaign["milestones"][cm.M02]["status"] = "done"
+        campaign["expansion_candidates"] = []
+        state["ai_controlled_units"] = ["Unit_3"]
+        state["unit_generations"] = {"Unit_3": 1}
+        entities = [unit("Unit_0", "command_center", queue=True),
+                    unit("Unit_3", "drone", pos=(5.0, 0.0, 5.0), movement=True)]
+        far = [resource("R_far", (100.0, 0.0, 100.0))]
+        cm.update(state, observation(entities + far), 600)
+        out = rf.development_intents(state, tactical=tactical(entities + far),
+                                    rules=RULES_VIEW, server_tick=600)
+        probes = [it for it in out if "probe" in str(it.get("intent_id", ""))]
+        self.assertEqual(probes, [], "主攻兵力成形前不许前探（侦察优先）")
 
     def test_second_base_is_not_blocked_by_unfinished_home_site(self):
         """主基地旁还有未完工车厂时，M05 仍必须能在远端矿开第二座指挥中心。"""

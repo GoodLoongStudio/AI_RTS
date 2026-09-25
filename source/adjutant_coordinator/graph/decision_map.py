@@ -359,6 +359,9 @@ def retrieve(facts: Dict[str, Any], campaign: Dict[str, Any],
             available.append(entry)
         else:
             locked.append(entry)
+    # 【2026-09-21 决策地图接入 Laya】主线当前节点的晋升在 campaign 更新处做
+    # （与分支教师标签 `_mainline_node_id` 同一来源，避免"菜单有的"与"标签给的"
+    # 不是同一个节点——那会让分支监督大面积落空）。此处保持 retrieve 纯净。
     available.sort(key=lambda item: (int(item["priority"]), str(item["id"])))
     locked.sort(key=lambda item: (len(item["unmet"]), int(item["priority"]), str(item["id"])))
     return {"available": available[:max(1, int(limit))],

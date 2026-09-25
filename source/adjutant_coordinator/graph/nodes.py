@@ -88,6 +88,12 @@ class GraphConfig:
     max_batch: int = 8                        # 每轮最多提交意图数
     model_error_limit: int = 3                # 连续模型失败上限
     model_retry_cooldown_ticks: int = 60      # 达到上限后的冷却
+    #: 战略失败退避（tick；0=关闭，保持历史行为）。
+    #: 【2026-09-21 真机实测 P5】战略层是**同步**调用，一次超时直接堵主循环
+    #: （默认 15s），而 60 tick 的通用冷却≈不冷却——真机上 5 分钟 5 次 15s 超时
+    #: 堵了 75s。runner 把它设成 strategy_interval_ticks（失败也按满间隔再试）。
+    #: 默认 0：直接构造 runtime 的调用方（测试/回放）保持历史节流不变。
+    strategy_backoff_ticks: int = 0
     pending_timeout_ticks: int = 240          # PendingAuthority 复核超时（不重下单）
     recheck_pending: bool = True              # 每轮按 command_id 复核在途命令
     pause_on_player_interrupt: bool = True    # 玩家打断时暂停图（LangGraph interrupt）
@@ -942,6 +948,11 @@ def node_strategic_agent(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, A
         _keep_baseline(state)
         return state
     tick = int(state.get("server_tick", 0))
+    if tick < int(state.get("strategy_backoff_until_tick", 0) or 0):
+        # 失败退避期内不调战略模型（同步调用一次堵 15s；退避口径见 _on_model_failure）。
+        _decide(state, "strategy_skipped", reason="strategy_backoff")
+        _keep_baseline(state)
+        return state
     context = build_strategy_context(
         _StateView(state), strategic=ctx.observation.get("strategic"),
         rules=ctx.observation.get("rules"), events=events,
@@ -1310,6 +1321,10 @@ def _run_micro_layer(state: Dict[str, Any], ctx: NodeContext) -> None:
         ladder_extras, tree_extras = behavior_tree.micro_parts(
             state, tactical=ctx.observation.get("tactical"),
             rules=ctx.observation.get("rules"),
+            # 默认交火改用移动并攻击（用户 2026-09-21：副官不要每次只点兵）；
+            # AIRTS_ENGAGE_ATTACK_MOVE=0 可回退到点攻击口径（测试默认走旧口径）。
+            config={"prefer_attack_move_engage":
+                    rules_fallback.prefer_attack_move_engage()},
             ttl_ticks=int(ctx.config.intent_ttl_ticks), server_tick=tick,
             snapshot_id=int(state.get("latest_snapshot_id", 0) or 0))
     except Exception as exc:  # noqa: BLE001
@@ -1412,8 +1427,15 @@ def _apply_model_branch(state: Dict[str, Any], ctx: NodeContext, decode: Any,
         ref = str(getattr(decode, "goal_ref", "") or "")
     if not ref:
         return
+    # 分支来源（2B 链路 / Laya 判别式）从解码结果带出，归档可分辨。
+    branch_source = ""
+    if isinstance(decode, dict):
+        branch_source = str(decode.get("branch_source", "") or "")
+    elif decode is not None:
+        branch_source = str(getattr(decode, "branch_source", "") or "")
     try:
-        result = campaign_mod.note_model_branch(state, ref, tick)
+        result = campaign_mod.note_model_branch(state, ref, tick,
+                                                source=branch_source or "model")
     except Exception as exc:  # noqa: BLE001 —— 分支选择失败不影响本轮任务落地
         _decide(state, "campaign_branch_ignored", ref=ref, reason="error:%s" % str(exc)[:60])
         return
@@ -1841,14 +1863,34 @@ def _blocked_move_fallbacks(state: Dict[str, Any], ctx: NodeContext,
     fallback = movement_mod.fallback_action_for(action, reason)
     by_name = movement_mod._by_name(ctx.observation.get("tactical"))
     nav_query = getattr(getattr(ctx, "services", None), "nav_query", None)
+    tactical = (ctx.observation or {}).get("tactical")
     out: List[Dict[str, Any]] = []
     for member in units or []:
         chosen = fallback
         target_pos: Optional[List[float]] = None
         note = str(reason)
+        if chosen == movement_mod.FALLBACK_RETREAT and str(reason) == "threat_too_high":
+            # 集结修复（2026-09-21）：援军已在赶来这一仗 → 原地守卫等大队，
+            # 不擅自后撤（后撤会把正在集结的大军逐个抽走，永远攒不起来）。
+            # 接触点取该单位自己路线的目标（它正要去的方向），没有路线就取现位。
+            route = (state.get("routes") or {}).get(str(member)) or {}
+            contact = route.get("target") if isinstance(route, dict) else None
+            if not (isinstance(contact, list) and len(contact) >= 2):
+                contact = rules_fallback._pos2d(by_name.get(member) or {})
+            if isinstance(contact, list) and len(contact) >= 2:
+                support = movement_mod.committed_support(
+                    state, tactical, contact,
+                    combat_types=movement_mod._combat_types_of(state),
+                    exclude=str(member))
+                _, local_enemy = movement_mod.local_force(
+                    tactical, contact, combat_types=movement_mod._combat_types_of(state))
+                chosen = movement_mod.fallback_action_for(
+                    action, reason, support=support, local_enemy=local_enemy)
+                if chosen != movement_mod.FALLBACK_RETREAT:
+                    note = "%s:reinforcements_coming(%.1f/%.1f)" % (
+                        str(reason), support, local_enemy)
         if chosen == movement_mod.FALLBACK_RETREAT:
             info = by_name.get(member) or {}
-            tactical = (ctx.observation or {}).get("tactical")
             target_pos = rules_fallback.disengage_point(
                 rules_fallback._pos2d(info),
                 home=rules_fallback.base_anchor_pos(by_name),
@@ -1860,7 +1902,6 @@ def _blocked_move_fallbacks(state: Dict[str, Any], ctx: NodeContext,
         elif chosen == movement_mod.FALLBACK_REGROUP:
             target_pos = list(rally or [])
             if not target_pos:
-                tactical = (ctx.observation or {}).get("tactical")
                 combat_pos = [
                     rules_fallback._pos2d(by_name.get(name) or {})
                     for name in units
@@ -2941,6 +2982,19 @@ def _on_model_failure(state: Dict[str, Any], ctx: NodeContext, role: str,
         # 战略失败保留当前计划（不清空任务），战术层与 Godot 继续工作。
         # （连续失败进冷却后由 `interrupts.strategy_in_cooldown` 让位给战术，
         #  避免 active_plan 为空时战略永久独占路由。）
+        #
+        # 【2026-09-21 真机实测（P5 全栈对照）】战略层是**同步**调用：一次超时
+        # （STRATEGY_TIMEOUT_SECONDS，默认 15s）直接堵住主循环。而默认冷却只有
+        # `model_retry_cooldown_ticks=60`（1s）≈不冷却——真机上 5 分钟里 5 次 15s
+        # 超时把主循环堵了 75s、战术层被饿死（task_patch p95 冲到 20s）。
+        # 因此战略失败后退避**满一个战略间隔**（`strategy_backoff_ticks`，runner
+        # 配成 strategy_interval_ticks）再试：最坏失败成本从"每秒一次 15s 阻塞"
+        # 降到"每 30s 一次"，期间 campaign 上下文由规则式里程碑跟踪（campaign.py）
+        # 提供，不空白。默认 0=关闭：直接构造 runtime 的调用方保持历史节流。
+        backoff = int(getattr(ctx.config, "strategy_backoff_ticks", 0) or 0)
+        if backoff > 0:
+            state["strategy_backoff_until_tick"] = int(
+                state.get("server_tick", 0)) + backoff
         _decide(state, "strategy_degraded", reason=str(exc),
                 plan_preserved=state.get("active_plan") is not None,
                 model_errors=state["model_errors"])

@@ -1,206 +1,147 @@
 {
   "schema": "growth-definitions/1",
+  "effect_scale": "per_level",
+  "effect_note": "每个节点的 effect 都是【每级】增量：level 级时实际倍率 = 1 + value * level（start_resources 为 1 级起每级 +value 资源）。效果类型由 source/growth/GrowthModifiers.gd 唯一解释并施加，任何其它位置不得自行换算。",
   "branches": {
     "combat": [
       {
         "id": "combat_power",
         "name": "战术火力",
-        "description": "提升部队战斗效率。",
+        "description": "每级 +4% 部队伤害（满级 +20%）。",
         "max_level": 5,
-        "costs": [
-          1,
-          1,
-          2,
-          2,
-          3
-        ],
-        "prerequisite": ""
+        "costs": [1, 1, 2, 2, 3],
+        "prerequisite": "",
+        "effect": {"type": "damage_mult", "value": 0.04}
       },
       {
         "id": "combat_guard",
         "name": "战场韧性",
-        "description": "提高部队持续作战能力。",
+        "description": "每级 +4% 作战单位生命（满级 +20%）。",
         "max_level": 5,
-        "costs": [
-          1,
-          2,
-          2,
-          3,
-          3
-        ],
-        "prerequisite": "combat_power"
+        "costs": [1, 2, 2, 3, 3],
+        "prerequisite": "combat_power",
+        "effect": {"type": "unit_hp_mult", "value": 0.04}
       },
       {
         "id": "combat_skill",
         "name": "技能专精",
-        "description": "强化主动技能与副官协同。",
+        "description": "班组协同更熟练：每级 +3% 部队伤害（满级 +9%）。",
         "max_level": 3,
-        "costs": [
-          2,
-          3,
-          4
-        ],
-        "prerequisite": "combat_guard"
+        "costs": [2, 3, 4],
+        "prerequisite": "combat_guard",
+        "effect": {"type": "damage_mult", "value": 0.03}
       },
       {
         "id": "combat_mobility",
         "name": "机动作战",
-        "description": "提升部队移动与转场响应速度。",
+        "description": "每级 +3% 单位移动速度（满级 +12%）。",
         "max_level": 4,
-        "costs": [
-          1,
-          2,
-          2,
-          3
-        ],
-        "prerequisite": "combat_power"
+        "costs": [1, 2, 2, 3],
+        "prerequisite": "combat_power",
+        "effect": {"type": "speed_mult", "value": 0.03}
       },
       {
         "id": "combat_command",
         "name": "战术网络",
-        "description": "扩大副官技能覆盖并降低指挥冷却。",
+        "description": "每级 +5% 单位视野半径（满级 +20%）。",
         "max_level": 4,
-        "costs": [
-          2,
-          2,
-          3,
-          4
-        ],
-        "prerequisite": "combat_skill"
+        "costs": [2, 2, 3, 4],
+        "prerequisite": "combat_skill",
+        "effect": {"type": "sight_mult", "value": 0.05}
       }
     ],
     "economy": [
       {
         "id": "economy_gather",
         "name": "高效采集",
-        "description": "提升资源采集效率。",
+        "description": "每级 +5% 资源交付量（满级 +25%）。",
         "max_level": 5,
-        "costs": [
-          1,
-          1,
-          2,
-          2,
-          3
-        ],
-        "prerequisite": ""
+        "costs": [1, 1, 2, 2, 3],
+        "prerequisite": "",
+        "effect": {"type": "gather_mult", "value": 0.05}
       },
       {
         "id": "economy_stock",
         "name": "资源储备",
-        "description": "提高资源上限与周转空间。",
+        "description": "每级开局 +400 资源（满级 +2000）。",
         "max_level": 5,
-        "costs": [
-          1,
-          2,
-          2,
-          3,
-          3
-        ],
-        "prerequisite": "economy_gather"
+        "costs": [1, 2, 2, 3, 3],
+        "prerequisite": "economy_gather",
+        "effect": {"type": "start_resources", "value": 400}
       },
       {
         "id": "economy_production",
         "name": "生产调度",
-        "description": "提升生产队列的运营效率。",
+        "description": "每级 +8% 生产进度速度（满级 +24%）。",
         "max_level": 3,
-        "costs": [
-          2,
-          3,
-          4
-        ],
-        "prerequisite": "economy_stock"
+        "costs": [2, 3, 4],
+        "prerequisite": "economy_stock",
+        "effect": {"type": "production_rate", "value": 0.08}
       },
       {
         "id": "economy_logistics",
         "name": "后勤链路",
-        "description": "降低补给损耗并提升运输效率。",
+        "description": "每级 +10% 工人单次载量（满级 +40%）。",
         "max_level": 4,
-        "costs": [
-          1,
-          2,
-          2,
-          3
-        ],
-        "prerequisite": "economy_stock"
+        "costs": [1, 2, 2, 3],
+        "prerequisite": "economy_stock",
+        "effect": {"type": "carry_mult", "value": 0.10}
       },
       {
         "id": "economy_trade",
         "name": "战略贸易",
-        "description": "提高多资源转换与市场收益。",
+        "description": "资源周转更高效：每级 +4% 资源交付量（满级 +12%）。",
         "max_level": 3,
-        "costs": [
-          2,
-          3,
-          4
-        ],
-        "prerequisite": "economy_production"
+        "costs": [2, 3, 4],
+        "prerequisite": "economy_production",
+        "effect": {"type": "gather_mult", "value": 0.04}
       }
     ],
     "construction": [
       {
         "id": "construction_speed",
         "name": "快速施工",
-        "description": "缩短建筑施工时间。",
+        "description": "每级 +6% 施工工效（满级 +30%）。",
         "max_level": 5,
-        "costs": [
-          1,
-          1,
-          2,
-          2,
-          3
-        ],
-        "prerequisite": ""
+        "costs": [1, 1, 2, 2, 3],
+        "prerequisite": "",
+        "effect": {"type": "build_work_mult", "value": 0.06}
       },
       {
         "id": "construction_armor",
         "name": "坚固工事",
-        "description": "提高建筑耐久与防守价值。",
+        "description": "每级 +5% 建筑生命（满级 +25%）。",
         "max_level": 5,
-        "costs": [
-          1,
-          2,
-          2,
-          3,
-          3
-        ],
-        "prerequisite": "construction_speed"
+        "costs": [1, 2, 2, 3, 3],
+        "prerequisite": "construction_speed",
+        "effect": {"type": "structure_hp_mult", "value": 0.05}
       },
       {
         "id": "construction_network",
         "name": "建设网络",
-        "description": "改善扩张与前线建设能力。",
+        "description": "每级 +6% 建筑视野半径（满级 +18%）。",
         "max_level": 3,
-        "costs": [
-          2,
-          3,
-          4
-        ],
-        "prerequisite": "construction_armor"
+        "costs": [2, 3, 4],
+        "prerequisite": "construction_armor",
+        "effect": {"type": "structure_sight_mult", "value": 0.06}
       },
       {
         "id": "construction_fortify",
         "name": "区域防御",
-        "description": "强化关键建筑的护盾与驻军容量。",
+        "description": "每级 +4% 建筑生命（满级 +16%）。",
         "max_level": 4,
-        "costs": [
-          1,
-          2,
-          2,
-          3
-        ],
-        "prerequisite": "construction_armor"
+        "costs": [1, 2, 2, 3],
+        "prerequisite": "construction_armor",
+        "effect": {"type": "structure_hp_mult", "value": 0.04}
       },
       {
         "id": "construction_frontier",
         "name": "前线工程",
-        "description": "降低远端建造成本并提升占领速度。",
+        "description": "每级 +5% 施工工效（满级 +15%）。",
         "max_level": 3,
-        "costs": [
-          2,
-          3,
-          4
-        ],
-        "prerequisite": "construction_network"
+        "costs": [2, 3, 4],
+        "prerequisite": "construction_network",
+        "effect": {"type": "build_work_mult", "value": 0.05}
       }
     ]
   }

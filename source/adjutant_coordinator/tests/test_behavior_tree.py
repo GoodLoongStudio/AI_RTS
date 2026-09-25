@@ -111,6 +111,88 @@ class MicroTreeTest(unittest.TestCase):
         self.assertEqual(len(intents), 1)
         self.assertEqual(intents[0]["action"], "defend")
 
+    def test_far_line_keeps_task_when_base_is_raided(self):
+        """【2026-09-22 振荡事故回归】受袭只召回**必要局部兵力**，远处战线不得清空。
+
+        实测（backend=off 基线局 base_off_2，240s 纯规则层）两个缺陷叠加：
+        ① 回防**响应**半径曾与判定半径同用 40m，军事轨前压点长期落在 20~40m
+           → 整局泡在回防圈里；
+        ② `defense_recall_names` 每 tick 把圈内人数补满到配额（传送带式召回），
+           近处的赶到家后下一 tick 又召下一批。
+        合计 `bt-defend` 286 条 vs `bt-attack_move` 122 条，大军在家与 40m 外
+        来回振荡、前 180 秒几乎零输出（手册明令"一条线的威胁不得升级为全军回防"）。
+        现在：响应半径 20m；圈内有人 → 不召任何野外单位；圈内真空 → 只召 ≤3 个。
+        """
+        self.state["ai_controlled_units"] = ["U_near", "U_far"]
+        tac = _tactical([
+            _entity("unit_self", "U_near", "soldier", pos=(12, 0, 0)),
+            _entity("unit_self", "U_far", "soldier", pos=(35, 0, 0)),
+            _entity("unit_self", "U_cc", "command_center", pos=(0, 0, 0)),
+            _entity("unit_enemy", entity_id="E_raid", pos=(5, 0, 5)),
+        ])
+        intents = behavior_tree.micro_intents(self.state, tactical=tac)
+        by_unit = self._units(intents)
+        # 圈内单位必须响应这一仗（回防或就地打都算，不许闲着）。
+        self.assertIn(by_unit["U_near"]["action"], ("defend", "attack"),
+                      "圈内单位必须响应受袭")
+        # 圈外单位：**不许**被召回守家（圈内已经有人打了）。
+        self.assertIn("U_far", by_unit, "远处战线必须继续有任务，不得被清空")
+        self.assertNotEqual(by_unit["U_far"]["action"], "defend",
+                            "圈内已有作战单位时不得再召回野外的")
+        # 回防兵力有界：这一仗只有圈内那一个。
+        defenders = [it for it in intents if it["action"] == "defend"]
+        self.assertEqual(len(defenders), 1, "受袭响应只限圈内必要兵力")
+
+    def test_recall_only_when_home_circle_is_empty(self):
+        """【2026-09-22 传送带召回回归】圈内有人 → 一个都不召；真空 → 只召最近 3 个。"""
+        from adjutant_coordinator.graph import rules_fallback as rf
+
+        by_name = {
+            "U_home": {"type": "soldier", "pos": [10.0, 0.0, 0.0]},
+            "U_f1": {"type": "soldier", "pos": [40.0, 0.0, 0.0]},
+            "U_f2": {"type": "soldier", "pos": [50.0, 0.0, 0.0]},
+            "U_f3": {"type": "soldier", "pos": [60.0, 0.0, 0.0]},
+            "U_f4": {"type": "soldier", "pos": [70.0, 0.0, 0.0]},
+            "U_cc": {"type": "command_center", "pos": [0.0, 0.0, 0.0]},
+        }
+        combat = ["U_home", "U_f1", "U_f2", "U_f3", "U_f4"]
+        # 圈内（20m）有 U_home → 不召任何野外单位（传送带就此断开）。
+        self.assertEqual(rf.defense_recall_names(combat, by_name, (0.0, 0.0)), [])
+        # 圈内真空 → 只召最近的 3 个（配额上限），不是全部。
+        self.assertEqual(
+            rf.defense_recall_names(["U_f1", "U_f2", "U_f3", "U_f4"], by_name,
+                                    (0.0, 0.0)),
+            ["U_f1", "U_f2", "U_f3"])
+        # 配额可显式调小（评测/实验用），但不许变成负数语义。
+        self.assertEqual(
+            rf.defense_recall_names(["U_f1", "U_f2", "U_f3", "U_f4"], by_name,
+                                    (0.0, 0.0), quota=1),
+            ["U_f1"])
+
+    def test_respond_radius_covers_max_weapon_range(self):
+        """响应半径必须覆盖当前平衡表的最大武器射程（反地炮塔 16m）——否则
+        "圈内"单位够不着贴楼的敌人，回防形同虚设。这是常量之间的关系，不许谁单改。"""
+        import json
+        import os
+
+        from adjutant_coordinator.graph import rules_fallback as rf
+
+        balance_path = os.path.join(
+            os.path.dirname(rf.__file__), "..", "..", "..", "config", "balance",
+            "demo.balance.v1.json")
+        max_range = 0.0
+        try:
+            with open(os.path.normpath(balance_path), encoding="utf-8") as handle:
+                balance = json.load(handle)
+            for weapon in balance.get("weapons") or []:
+                max_range = max(max_range, float(weapon.get("rangeMeters") or 0.0))
+        except OSError:
+            self.skipTest("平衡配置不可读：%s" % balance_path)
+        self.assertGreaterEqual(rf.DEFEND_RESPOND_RADIUS_M, max_range,
+                                "响应半径小于最大武器射程时回防够不着敌人")
+        # 响应半径必须显著小于判定半径，否则又变成"整局泡在回防圈"。
+        self.assertLess(rf.DEFEND_RESPOND_RADIUS_M, rf.DEFENSE_RADIUS_M)
+
     def test_not_outnumbered_engages_nearest_enemy(self):
         self.state["ai_controlled_units"] = ["U_s1", "U_s2"]
         tac = _tactical([
@@ -121,6 +203,59 @@ class MicroTreeTest(unittest.TestCase):
         intents = self._units(behavior_tree.micro_intents(self.state, tactical=tac))
         self.assertEqual(intents["U_s1"]["action"], "attack")
         self.assertEqual(intents["U_s1"]["target"], {"entity_id": "E_1"})
+
+    def test_workers_and_buildings_do_not_count_as_outnumbering(self):
+        """【2026-09-23 r9_4 超时事故回归】敌后只剩工人+建筑时**不算劣势**。
+
+        旧口径拿"全部可见敌方实体"比"我方作战单位"：我军 7 个兵面对敌军
+        5 工人 + 2 指挥中心 + 兵营 + 车厂 + 1 炮塔 被判 12 > 7 永久劣势，
+        优先级 95 的撤退令每拍重发，部队在"贴近→撤退→地图角落"之间乒乓
+        200 秒，最后 2 座敌建筑就在 100m 外没人打，600s 超时。
+        """
+        self.state["ai_controlled_units"] = ["U_s1"]
+        tac = _tactical([
+            _entity("unit_self", "U_s1", "soldier", pos=(60, 0, 60)),
+            _entity("unit_self", "U_cc", "command_center", pos=(0, 0, 0)),
+            _entity("unit_enemy", entity_id="E_w1", unit_type="worker",
+                    pos=(62, 0, 62)),
+            _entity("unit_enemy", entity_id="E_cc", unit_type="command_center",
+                    pos=(64, 0, 64)),
+            _entity("unit_enemy", entity_id="E_bar", unit_type="barracks",
+                    pos=(66, 0, 66)),
+            _entity("unit_enemy", entity_id="E_tur", unit_type="anti_ground_turret",
+                    pos=(68, 0, 68)),
+        ])
+        intents = self._units(behavior_tree.micro_intents(self.state, tactical=tac))
+        self.assertEqual(intents["U_s1"]["action"], "attack",
+                         "敌后只剩工人/建筑/炮塔时必须接战，不是撤退")
+
+    def test_more_enemy_combat_units_still_retreats(self):
+        """对称修好后**真劣势仍要撤**（治"1 个兵硬冲 3 个兵"的老病不能破）。"""
+        self.state["ai_controlled_units"] = ["U_s1"]
+        tac = _tactical([
+            _entity("unit_self", "U_s1", "soldier", pos=(80, 0, 80)),
+            _entity("unit_self", "U_cc", "command_center", pos=(0, 0, 0)),
+            _entity("unit_enemy", entity_id="E_1", unit_type="soldier",
+                    pos=(82, 0, 82)),
+            _entity("unit_enemy", entity_id="E_2", unit_type="tank",
+                    pos=(84, 0, 84)),
+        ])
+        intents = behavior_tree.micro_intents(self.state, tactical=tac)
+        self.assertEqual(len(intents), 1)
+        self.assertEqual(intents[0]["action"], "retreat")
+
+    def test_unknown_enemy_type_still_counts_as_threat(self):
+        """类型缺失的敌人**仍然算**（宁可多撤一步，不把未知实体当工人）。"""
+        self.state["ai_controlled_units"] = ["U_s1"]
+        tac = _tactical([
+            _entity("unit_self", "U_s1", "soldier", pos=(80, 0, 80)),
+            _entity("unit_self", "U_cc", "command_center", pos=(0, 0, 0)),
+            _entity("unit_enemy", entity_id="E_1", pos=(82, 0, 82)),
+            _entity("unit_enemy", entity_id="E_2", pos=(84, 0, 84)),
+        ])
+        intents = behavior_tree.micro_intents(self.state, tactical=tac)
+        self.assertEqual(len(intents), 1)
+        self.assertEqual(intents[0]["action"], "retreat")
 
     def test_ids_from_name_field_match_real_dcs_payload(self):
         """观测实体**只有 `name`**（游戏端真实导出形状）时，行为树仍必须看得见敌人与资源。
@@ -474,6 +609,81 @@ class RegroupTest(unittest.TestCase):
             _entity("unit_self", "U_s3", "tank", pos=(40, 0, 40)),
         ])
         self.assertEqual(behavior_tree.micro_intents(self.state, tactical=tac), [])
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+
+class DefendQuotaTest(unittest.TestCase):
+    """【2026-09-22 D17 回防配额】受袭只放行"来犯之敌+余量"个单位回防。
+
+    实测（det_55）：EASY 反复搔扰我家，`bt-defend`（优先级 92）把回防圈内**所有**
+    单位摁在家里——56 个作战单位 50 个堆在离家 15m 内，前探令（优先级 2）永远被压，
+    用户截图"攻击移动 3 个单位"。用户指令："生产部队只留少部分在家，其他都去
+    探索和进攻。"配额外的单位必须落回交火/前压分支。
+    """
+
+    def _tac(self, near=1, far=1, enemies=1):
+        entities = [_entity("unit_self", "U_cc", "command_center", pos=(0, 0, 0),
+                            movement=False, queue=True)]
+        names = []
+        for i in range(near):
+            name = "U_near%d" % i
+            entities.append(_entity("unit_self", name, "soldier", pos=(6 + i, 0, 6)))
+            names.append(name)
+        for i in range(far):
+            name = "U_far%d" % i
+            entities.append(_entity("unit_self", name, "soldier", pos=(30 + i, 0, 30)))
+            names.append(name)
+        for i in range(enemies):
+            entities.append(_entity("unit_enemy", "E_%d" % i, unit_type="soldier",
+                                    pos=(10 + i, 0, 8)))
+        return {"entities": entities}, names
+
+    def _run(self, tac, units):
+        state = {"server_tick": 1000, "latest_snapshot_id": 3,
+                 "ai_controlled_units": units, "player_controlled_units": []}
+        intents = behavior_tree.micro_intents(state, tactical=tac)
+        out = {}
+        for item in intents:
+            for u in item["unit_ids"]:
+                out[str(u)] = item
+        return out
+
+    def test_quota_limits_defenders(self):
+        """圈内 4 个、来犯 1 个 → 回防数 ≤ 配额（敌+2=3），且**必须有人去打仗**。
+
+        不写死"恰好 3 个"：阶梯骨架会先认领一个单位去出击（rule-attack），
+        真正要钉的不变式是"不全军蹲守"——至少一个单位在手上来犯之敌交战。
+        """
+        tac, names = self._tac(near=4, far=0, enemies=1)
+        out = self._run(tac, names)
+        defenders = [u for u, it in out.items() if it["action"] == "defend"]
+        fighters = [u for u, it in out.items()
+                    if it["action"] in ("attack", "attack_move")]
+        self.assertLessEqual(len(defenders), 3,
+                             "回防数不得超过配额（来犯1+余量2）：%d" % len(defenders))
+        self.assertTrue(fighters, "必须有人去打仗，不许全军蹲守：%s" % out)
+
+    def test_quota_grows_with_attackers(self):
+        """来犯 6 个 → 配额 8（上限 10）：圈内 10 个单位不能全回防。"""
+        tac, names = self._tac(near=10, far=0, enemies=6)
+        out = self._run(tac, names)
+        defenders = [u for u, it in out.items() if it["action"] == "defend"]
+        self.assertLessEqual(len(defenders), 8,
+                             "配额应随来犯规模增长但受限（上限 10）：%d" % len(defenders))
+        self.assertGreater(len(defenders), 3,
+                           "来犯多时回防力量也要够：%d" % len(defenders))
+
+    def test_far_units_never_defend(self):
+        """远处的单位永远不进回防配额（它们该去探索/进攻）。"""
+        tac, names = self._tac(near=2, far=3, enemies=2)
+        out = self._run(tac, names)
+        for name in names:
+            if name.startswith("U_far"):
+                self.assertNotEqual(out[name]["action"], "defend",
+                                    "远处单位不该被召回守家：%s" % out[name])
 
 
 if __name__ == "__main__":

@@ -1,0 +1,207 @@
+{
+ "algo_version": "7.11.0",
+ "approved": false,
+ "approved_at": null,
+ "approved_note": null,
+ "created_at": "2026-09-24T01:20:56",
+ "decoration": {
+  "algo_version": "1.0.0",
+  "all_pass": true,
+  "files": [
+   "decoration_hints.npz",
+   "decoration_hints.json"
+  ],
+  "note": "纯附加提示层；不参与 blocking/passable/导航，不改已有 G2 掩码",
+  "zone_cells": {
+   "clear_zone": 39303,
+   "grass_zone": 5124,
+   "mountain_foot_zone": 3329,
+   "shore_zone": 3293,
+   "stone_zone": 12290,
+   "tree_zone": 2197
+  }
+ },
+ "execution_mode": "workbench_auto",
+ "gate": "G2",
+ "gate_seed": 10204963366643844107,
+ "input_hash": "f201ddc5e125d46ff9d07c52bdfc51dec2b9a158037f4961b6dfa063abadc5d7",
+ "master_seed": 36,
+ "output_hash": {
+  "mapgrid.npz": "3d92e66c453c6bcbdc71e66fb6e264ef0a88961659fdb4d0d10d5094999a4400",
+  "mapspec.json": "0dcee7796912b4f7d7a2a9d6d9ff12db8b938a27c4c2f0442b023974a231f862"
+ },
+ "params": {
+  "agent_radius": 0.9,
+  "bridge_count": [
+   1,
+   2
+  ],
+  "bridge_width": 8.0,
+  "bridge_width_pass": [
+   5.0,
+   9.0
+  ],
+  "candidate_workers": 3,
+  "choke_any_min": 8.0,
+  "choke_flank_target": [
+   8.0,
+   12.0
+  ],
+  "choke_main_min": 8.0,
+  "choke_width_range": [
+   10.0,
+   13.0
+  ],
+  "cliff_count": [
+   0,
+   0
+  ],
+  "cliff_gap_width": [
+   9.0,
+   12.0
+  ],
+  "cliff_len": [
+   60.0,
+   120.0
+  ],
+  "cliff_width": [
+   6.0,
+   9.0
+  ],
+  "compound_plateaus": true,
+  "connect_width": 4.0,
+  "contest_fair_ratio": 1.3,
+  "contest_min_spawn_dist": 34.0,
+  "contest_neutral_count": [
+   1,
+   2
+  ],
+  "contest_radius": 10.0,
+  "cover_branch_prob": 0.35,
+  "cover_chain_steps": [
+   3,
+   7
+  ],
+  "cover_cluster_max": 10,
+  "cover_grid": 4,
+  "cover_max_attempts": 3000,
+  "cover_radius_range": [
+   5.0,
+   10.0
+  ],
+  "cover_satellites": [
+   0,
+   0
+  ],
+  "cover_step_len": [
+   4.0,
+   8.0
+  ],
+  "cover_target_frac": 0.4,
+  "cover_turn": 0.9,
+  "density_delta_max": 0.02,
+  "density_total_max": 0.3,
+  "density_total_min": 0.12,
+  "detour_min": 1.0,
+  "expansion_connector_width": 8.0,
+  "expansion_deflect2_deg": 60.0,
+  "expansion_deflect_deg": 35.0,
+  "expansion_fair_ratio": 1.3,
+  "expansion_min_center_dist": 30.0,
+  "expansion_min_edge_dist": 20.0,
+  "expansion_offset": 44.0,
+  "expansion_radius": 16.0,
+  "fairness_ratio": 1.6,
+  "flank_radius": 13.0,
+  "flank_width_target": [
+   8.0,
+   40.0
+  ],
+  "ground_level": 0.6,
+  "home_noise": 3.5,
+  "home_plateau_count": 2,
+  "home_radius": 20.0,
+  "lake_area": 5000,
+  "lake_count": 0,
+  "landform_elongation": 1.2,
+  "landform_recess": 0.2,
+  "landform_softness": 0.16,
+  "lane_clear_width": 10.0,
+  "lane_sample_step": 3.0,
+  "lane_width_cap": 60.0,
+  "layout_attempts": 4,
+  "line_bow": 0.1,
+  "line_meander": 0.05,
+  "max_recarve": 3,
+  "max_solid_block_frac": 0.35,
+  "min_blob_cells": 20,
+  "min_obstacle_area": 8,
+  "neighbor_wall_frac_min": 0.3,
+  "neutral_plateau_scale": 1.7,
+  "noise_harmonics": [
+   3,
+   5
+  ],
+  "obstacle_frac_max": 0.405,
+  "obstacle_frac_min": 0.395,
+  "plateau_count": [
+   6,
+   8
+  ],
+  "plateau_fair_ratio": 1.7,
+  "plateau_home_cover": 60.0,
+  "plateau_level": 8.1,
+  "plateau_radius": [
+   18.0,
+   26.0
+  ],
+  "plateau_ramp_count": [
+   2,
+   2
+  ],
+  "plateau_ramp_width": 8,
+  "plateau_rough_frac": 0.28,
+  "plateau_route_reach": 18.0,
+  "plateau_top_fraction_min": 0.12,
+  "pocket_fill_max": 3000,
+  "ridge_bridge_count": [
+   1,
+   1
+  ],
+  "ridge_half_span_frac": 0.4,
+  "ridge_noise_amp": 3.0,
+  "ridge_rough": 2.5,
+  "ridge_width_range": [
+   12.0,
+   16.0
+  ],
+  "ridge_wiggle_wavelength": [
+   60.0,
+   90.0
+  ],
+  "river_bend_scale": 1.0,
+  "river_count": [
+   2,
+   2
+  ],
+  "river_crossings": 6,
+  "river_enabled": 1,
+  "river_layout": 2,
+  "river_rough": 2.5,
+  "river_tributaries": 0,
+  "river_width": [
+   16.0,
+   20.0
+  ],
+  "rock_area_min": 120,
+  "route_cover_radius": 30.0,
+  "route_width_min": 5.0,
+  "ruin_area_min": 400,
+  "solid_comp_max": 400,
+  "solid_comp_min": 4,
+  "terrain_seed": 2042010681,
+  "wall_area_min": 40,
+  "wall_aspect_min": 3.0,
+  "water_level": -2.4
+ }
+}

@@ -14,11 +14,23 @@ const HumanScript := preload("res://source/match/players/human/Human.gd")
 const CommandVisualizerScript := preload("res://source/match/hud/CommandVisualizer.gd")
 # 客户端 HP 首次同步标记：见 `_apply_authoritative_hp` 的注释（防"建造误播受击"）。
 const NET_HP_SYNCED_META := "net_authoritative_hp_synced"
+# 副官来源标记（2026-09-21 双 runner/自接管事故修复）：加在转发命令 `extra` 的
+# **前缀**上随 RPC 带到局服。副官自己的命令**不是**玩家手动命令，绝不能被
+# `_notify_adjutant_player_override` 当成"玩家接管"——否则副官每下发一条命令，
+# 受令单位就被踢出 AI 托管（实测 sp_ft2_branch 局 112 个机动单位全部被踢，
+# 军事/侦察轨再无执行者，全军在家攒兵直至超时）。
+# 前缀形式（而非独占 extra）：produce/build 的 `scene|cmd_id` 协议原样保留，
+# 局服侧先摘前缀再按原协议解析。
+const ADJUTANT_SOURCE_MARKER := "src=adjutant|"
 
 var _match: Node = null
 var _frame := 0
 var _live := false
 var _local_match_started := false
+# 当前转发的命令是否副官下发（DCS `_adjutant_execute` 期间置位）：
+# 客户端傀儡端的副官命令同样走 `forward_command`，必须带来源标记，
+# 否则局服会把它们当成玩家手动命令并收回托管（见 ADJUTANT_SOURCE_MARKER）。
+var _adjutant_source := false
 
 # 复核 P0-1：初始实体清单——NodePath 一致性的启动期硬校验，错了拒绝 go-live。
 var _own_manifest: PackedStringArray = PackedStringArray()
@@ -348,6 +360,12 @@ func reset_presentation_yaw(path: String, yaw: float) -> void:
 		unit.rotation.y = yaw
 
 
+## 标记/解除"接下来转发的命令来自副官"（调用方：DebugControlServer 的
+## `_adjutant_execute`，与本进程 DCS 的 `_adjutant_executing` 同步置位）。
+func set_adjutant_source(value: bool) -> void:
+	_adjutant_source = bool(value)
+
+
 func forward_command(
 	op: String,
 	unit_nodes: Array,
@@ -363,8 +381,12 @@ func forward_command(
 	var target_path := ""
 	if target != null and is_instance_valid(target):
 		target_path = str(_match.get_path_to(target))
+	# 副官来源随命令带到局服（前缀，不覆盖 produce/build 的 extra 协议）。
+	var extra_out := extra
+	if _adjutant_source and not extra_out.begins_with(ADJUTANT_SOURCE_MARKER):
+		extra_out = ADJUTANT_SOURCE_MARKER + extra_out
 	print("[CMD] 客户端提交 op=%s units=%s dest=%s" % [op, paths, destination])
-	_rpc_command.rpc_id(1, op, paths, destination, target_path, extra)
+	_rpc_command.rpc_id(1, op, paths, destination, target_path, extra_out)
 	# 联机客户端**拿不到**逐单位结果（服务器异步执行）：返回"已发送"口径，
 	# 由 HUD 显示"已发送（等待服务器确认）"，不再伪造 Accepted + 空结果
 	# （旧版让命令栏恒显示"接受 0，拒绝 0"，玩家无法判断命令是否生效 — 2026-09-14）。
@@ -657,6 +679,12 @@ func _rpc_command(
 ) -> void:
 	if not NetSession.is_server():
 		return
+	# 副官来源摘前缀（副官命令不是玩家手动命令；见 ADJUTANT_SOURCE_MARKER）。
+	# 必须在任何 extra 协议解析（produce/build 的 scene|cmd_id）**之前**摘干净。
+	var from_adjutant := str(extra).begins_with(ADJUTANT_SOURCE_MARKER)
+	var extra_clean := str(extra)
+	if from_adjutant:
+		extra_clean = extra_clean.substr(ADJUTANT_SOURCE_MARKER.length())
 	var slot := NetSession.slot_of(multiplayer.get_remote_sender_id())
 	var players := get_tree().get_nodes_in_group("players")
 	if slot < 0 or slot >= players.size():
@@ -682,12 +710,12 @@ func _rpc_command(
 			units.append(unit)
 	if op == "produce":
 		# extra 协议：scene_path[|command_id]；command_id 由客户端生成用于复核关联。
-		var extra_parts: PackedStringArray = extra.split("|")
+		var extra_parts: PackedStringArray = extra_clean.split("|")
 		var produce_scene := str(extra_parts[0])
 		var produce_command_id := str(extra_parts[1]) if extra_parts.size() > 1 else ""
 		if units.is_empty() or produce_scene.is_empty():
 			print("[CMD][服务器] produce 拒绝: units=%d extra='%s' paths=%s" % [
-				units.size(), extra, paths])
+				units.size(), extra_clean, paths])
 			return
 		var queue = units[0].find_child("ProductionQueue")
 		if queue == null:
@@ -707,11 +735,11 @@ func _rpc_command(
 	if op == "place_structure":
 		# 人类玩家放置建筑（复核 2026-08-31：此前傀儡端 Place 只在本地生成, 服务器毫不知情）。
 		var placement_runtime = _match.get_node_or_null("StructurePlacementRuntime")
-		if placement_runtime == null or units.is_empty() or extra.is_empty():
+		if placement_runtime == null or units.is_empty() or extra_clean.is_empty():
 			print("[CMD][服务器] place_structure 拒绝: runtime/参数缺失")
 			return
 		# extra 协议：scene_path|yaw[|command_id]；command_id 由客户端生成用于复核关联。
-		var parts: PackedStringArray = extra.split("|")
+		var parts: PackedStringArray = extra_clean.split("|")
 		var yaw: float = float(parts[1]) if parts.size() > 1 else 0.0
 		var build_command_id := str(parts[2]) if parts.size() > 2 else ""
 		var structure_transform := Transform3D(
@@ -798,7 +826,11 @@ func _rpc_command(
 				nearest = d
 				target = candidate
 	print("[CMD][服务器] 应用 op=%s units=%d dest=%s" % [op, units.size(), destination])
-	_notify_adjutant_player_override(issuer, units)
+	# 副官自己的命令**不是**玩家手动命令：不收回托管、不发 override 事件。
+	# （2026-09-21 事故：傀儡端副官命令经这条 RPC 落地，被当成玩家接管，
+	#  受令单位全部离开 AI 托管，军事/侦察轨失去执行者，全军在家攒兵。）
+	if not from_adjutant:
+		_notify_adjutant_player_override(issuer, units)
 	match op:
 		"move":
 			var move_result: Dictionary = gateway.MoveUnits(units, destination, issuer)
@@ -851,10 +883,10 @@ func _rpc_command(
 			if target != null:
 				gateway.CancelConstruction(target, issuer)
 		"set_engagement_stance":
-			var stance_result: Dictionary = gateway.SetEngagementStance(units, extra, issuer)
+			var stance_result: Dictionary = gateway.SetEngagementStance(units, extra_clean, issuer)
 			print("[CMD][服务器] SetEngagementStance 结果: ", stance_result)
 		"set_fire_policy":
-			var policy_result: Dictionary = gateway.SetFirePolicy(units, extra, issuer)
+			var policy_result: Dictionary = gateway.SetFirePolicy(units, extra_clean, issuer)
 			print("[CMD][服务器] SetFirePolicy 结果: ", policy_result)
 		"cancel_produce":
 			# 客户端取消生产（extra = item_id 或 "*" 表示全部）：权威端执行，
@@ -903,11 +935,11 @@ func _rpc_command(
 			print("[CMD][服务器] clear_rally_point 结果: ", rally_clear_result)
 		"cast_skill":
 			# 客户端技能施放（extra = skill_id；target 为空 = 自身技能）：权威端执行（2026-09-14）。
-			var skill_result: Dictionary = gateway.CastSkill(units, extra, issuer, target)
+			var skill_result: Dictionary = gateway.CastSkill(units, extra_clean, issuer, target)
 			print("[CMD][服务器] CastSkill 结果: ", skill_result)
 		"cast_skill_ground":
 			var skill_ground_result: Dictionary = gateway.CastSkillGround(
-				units, extra, destination, issuer
+				units, extra_clean, destination, issuer
 			)
 			print("[CMD][服务器] CastSkillGround 结果: ", skill_ground_result)
 

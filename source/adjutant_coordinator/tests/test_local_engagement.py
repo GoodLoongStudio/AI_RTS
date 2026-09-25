@@ -79,14 +79,38 @@ class LocalEngagementTest(unittest.TestCase):
         self.assertFalse(plan.ok, "远方友军被当成了即时支援")
         self.assertLessEqual(plan.local_own, 1.0)
 
-    def test_scout_still_avoids_contact(self):
-        """侦察**优先避战**（计划 §4.1 原文）：即使局部占优，侦察兵也不主动压上去。"""
+    def test_scout_avoids_losing_fight(self):
+        """【2026-09-22 D14 重新钉】侦察不再"见敌就停"，但**明显以卵击石仍然拦**。
+
+        用户明确要求"很快发现敌家位置"——旧口径"路径上有任何敌人就停"让侦察
+        永远摸不到敌家（敌家本就在防御圈里），v6 轮 5 局只有 1 局看见敌家。
+        新纪律：局部战力 ≥ `SCOUT_ENGAGE_RATIO`（0.5）即放行，用一条便宜单位
+        换情报；只有对面有我方两倍以上战力才撤。
+        """
+        entities = [own("Unit_1", "soldier", (10, 7))]
+        entities += [foe("E_%d" % i, (18 + i, 7), unit_type="soldier") for i in range(3)]
+        plan = plan_with(entities, role=mv.ROLE_SCOUT)
+        self.assertFalse(plan.ok, "1 个侦察撞 3 个敌兵仍必须拦（保命）")
+        self.assertEqual(plan.reason, mv.REJECT_THREAT)
+
+    def test_scout_passes_when_not_outmatched(self):
+        """D14：不是明显劣势 → 侦察放行（"看见敌家"是它的职责）。"""
         entities = [own("Unit_1", "soldier", (10, 7))]
         entities += [own("Unit_%d" % i, "soldier", (11 + i, 7)) for i in range(3)]
         entities.append(foe("E_1", (18, 7), unit_type="soldier"))
         plan = plan_with(entities, role=mv.ROLE_SCOUT)
-        self.assertFalse(plan.ok)
-        self.assertEqual(plan.reason, mv.REJECT_THREAT)
+        self.assertTrue(plan.ok, "4 打 1 的局面侦察必须能摸过去：%s" % plan.reason)
+
+    def test_scout_passes_static_only_threat(self):
+        """D14：路径上只有静态威胁（炮塔/建筑，foe=0）→ 一律放行。
+
+        炮塔不会追击，而"看见敌家"正是侦察的职责——旧口径把它们当成
+        "路径附近有敌人"把侦察拦在门外。
+        """
+        entities = [own("Unit_1", "drone", (10, 7))]
+        entities.append(foe("E_turret", (18, 7), unit_type="anti_ground_turret"))
+        plan = plan_with(entities, role=mv.ROLE_SCOUT)
+        self.assertTrue(plan.ok, "只有炮塔挡路时侦察必须能过去：%s" % plan.reason)
 
     def test_worker_then_threat_combo_flips(self):
         """T05：先遇工人放行，换成有威胁组合后按战力拦停。"""
@@ -116,6 +140,40 @@ class LocalEngagementTest(unittest.TestCase):
         entities = [own("Unit_1", "soldier", (10, 7))]
         plan = plan_with(entities)
         self.assertTrue(plan.ok)
+
+    def test_committed_reinforcements_flip_decision(self):
+        """T07（2026-09-21 集结修复）：受命开往这一仗的单位算即时战力。
+
+        没有这一条时大军会被逐个评估：每个单位只看得见**已经进圈**的战友，
+        永远凑不齐 `ENGAGE_ADVANTAGE_RATIO`，整支部队卡在威胁圈外缘
+        （v11 实测 413 次推进只放行 56 次、`threat_too_high` 拦 222 次，
+        90:31 的优势兵力超时亡）。路线台账里 target 落在战区敌人接触圈内的
+        单位就是"正在赶来打这一仗"的部队，必须计入。
+        """
+        entities = [own("Unit_1", "soldier", (10, 7))]
+        entities += [foe("E_%d" % i, (18 + i, 7), unit_type="soldier") for i in range(2)]
+        # 3 个战友人还在 50m 外（**不在**接触圈内），但受命开往敌人所在处。
+        routes = {}
+        for i in range(3):
+            name = "Ref_%d" % i
+            routes[name] = {"ok": True, "target": [18.0 + i, 7.0]}
+            entities.append(own(name, "soldier", (60 + i, 60)))
+        plan = plan_with(entities, state_extra={"routes": routes})
+        self.assertTrue(plan.ok, "受命赶来的援军应让局部战力翻转：%s" % plan.reason)
+        self.assertGreaterEqual(plan.local_own, 3.0)
+
+    def test_routed_elsewhere_still_not_support(self):
+        """T08：有路线但 target 不在战区 → 仍然不算支援（别把"赶来"搞成"存在就算"）。"""
+        entities = [own("Unit_1", "soldier", (10, 7))]
+        entities += [foe("E_%d" % i, (18 + i, 7), unit_type="soldier") for i in range(2)]
+        routes = {}
+        for i in range(3):
+            name = "Elsewhere_%d" % i
+            routes[name] = {"ok": True, "target": [80.0 + i, 80.0]}
+            entities.append(own(name, "soldier", (60 + i, 60)))
+        plan = plan_with(entities, state_extra={"routes": routes})
+        self.assertFalse(plan.ok, "开往别处的部队不该算这一仗的支援")
+        self.assertEqual(plan.reason, mv.REJECT_THREAT)
 
 
 if __name__ == "__main__":

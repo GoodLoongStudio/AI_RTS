@@ -990,6 +990,71 @@ class BlockedMoveFallbackTest(unittest.TestCase):
         self.assertEqual(first, same_window)
         self.assertNotEqual(first, next_window)
 
+    def test_reinforcements_coming_lets_the_mass_advance(self):
+        """集结修复（2026-09-21）：援军已在赶来这一仗 → 闸门放行，大军压得上去。
+
+        没有这一条时，被 `threat_too_high` 拦下的单位会逐个后撤，正在集结的
+        大军被一根根抽走（实测 v11：114 次 retreat，413 次推进只放行 56 次，
+        90:31 的优势兵力超时亡）。判据：受命赶来这一仗的援军战力 ≥ 接敌门槛 × 当面之敌。
+        """
+        from adjutant_coordinator.graph import nodes
+        state = self._state()
+        # Unit_4 的路线目标 = 敌人所在处（20,7）；3 个战友受命开往同一战区（16,7）。
+        state["routes"] = {
+            "Unit_4": {"ok": True, "target": [20.0, 7.0], "nav_revision": 1,
+                       "last_replan_tick": 590, "relay_point": [14.0, 7.0]},
+            "Ref_1": {"ok": True, "target": [16.0, 7.0]},
+            "Ref_2": {"ok": True, "target": [16.5, 7.0]},
+            "Ref_3": {"ok": True, "target": [17.0, 7.0]},
+        }
+        entities = [unit("Unit_4", "soldier", (10, 7))]
+        entities.append(unit("Ref_1", "soldier", (30, 30)))
+        entities.append(unit("Ref_2", "soldier", (31, 30)))
+        entities.append(unit("Ref_3", "soldier", (32, 30)))
+        entities.append(unit("Unit_0", "command_center", (5, 5), movement=False))
+        entities.append(enemy("Enemy_1", (14, 7)))
+        view = tactical(entities)
+        kept, blocked = nodes._gate_movement(
+            state, _ctx_with(self._nav(), view), [self._advance()])
+        self.assertEqual(blocked, [], "援军在路上时不许再拦：%s" % blocked)
+        self.assertTrue(kept, "放行后必须有可下发的推进")
+
+    def test_threat_blocked_unit_still_retreats_when_alone(self):
+        """对照组：孤立无援 → 仍然撤退（求生纪律不因集结修复而放宽）。"""
+        from adjutant_coordinator.graph import nodes
+        state = self._state()
+        state["routes"] = {
+            "Unit_4": {"ok": True, "target": [20.0, 7.0], "nav_revision": 1,
+                       "last_replan_tick": 590, "relay_point": [14.0, 7.0]},
+        }
+        kept, blocked = nodes._gate_movement(
+            state, _ctx_with(self._nav(), self._view()), [self._advance()])
+        self.assertEqual(blocked[0]["detail"], mv.REJECT_THREAT)
+        actions = [str(item["action"]) for item in kept]
+        self.assertIn("retreat", actions,
+                      "没有援军时必须照旧撤离：%s" % actions)
+
+    def test_fallback_holds_instead_of_retreat_when_support_coming(self):
+        """已拦下时的第二道判据：援军在路上 → 守卫等大队，不后撤。
+
+        闸门那道判据用"本次路径终点"算支援；这里用"该单位自己路线的目标"再判一次
+        （两个点可能不同），保证同一条纪律在两处都不会把大军放跑。
+        """
+        held = mv.fallback_action_for("attack_move", mv.REJECT_THREAT,
+                                      support=3.0, local_enemy=1.0)
+        self.assertEqual(held, mv.FALLBACK_GUARD)
+        alone = mv.fallback_action_for("attack_move", mv.REJECT_THREAT,
+                                       support=0.0, local_enemy=1.0)
+        self.assertEqual(alone, mv.FALLBACK_RETREAT)
+        # 支援不足（< 1.2 × 当面之敌）→ 仍然撤退。
+        thin = mv.fallback_action_for("attack_move", mv.REJECT_THREAT,
+                                      support=1.0, local_enemy=1.0)
+        self.assertEqual(thin, mv.FALLBACK_RETREAT)
+        # 没有敌人时不存在"这一仗"，不改变原有分档。
+        no_foe = mv.fallback_action_for("attack_move", mv.REJECT_THREAT,
+                                        support=5.0, local_enemy=0.0)
+        self.assertEqual(no_foe, mv.FALLBACK_RETREAT)
+
 
 if __name__ == "__main__":
     unittest.main()

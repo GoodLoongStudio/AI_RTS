@@ -27,7 +27,9 @@ public readonly record struct UnitCommandSnapshot(
     WorldPosition Position = default,
     bool IsAlive = true,
     float CurrentHealth = 0,
-    float MaximumHealth = 0);
+    float MaximumHealth = 0,
+    /// <summary>施工工效倍率；1.0 表示默认速度。成长系统的「快速施工」注入。</summary>
+    float ConstructionWorkRate = 1.0f);
 
 /// <summary>为命令服务提供不依赖 Godot Node 的单位查询。</summary>
 public interface IUnitCommandUnitRepository

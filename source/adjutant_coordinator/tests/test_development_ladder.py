@@ -382,10 +382,15 @@ class ExpansionLadderTest(unittest.TestCase):
                                      server_tick=1000, snapshot_id=5)
         self.assertEqual(out[0]["action"], "build")
         self.assertEqual(out[0]["target"]["scene"], "res://units/anti_air_turret.tscn")
-        pos = out[0]["target"]["pos"]
-        distance = ((pos[0] - 10.0) ** 2 + (pos[1] - 7.0) ** 2) ** 0.5
+        # 2026-09-23 自动相邻放置：副官不再下发坐标（pos 缺席 = 权威端自己搜合法
+        # 落点），只把政策点作为 hint 供游戏侧优先围着搜。防御塔的政策判据
+        # （基地外围）仍然要在 hint 上成立。
+        self.assertNotIn("pos", out[0]["target"],
+                         "落点已移交权威端，副官不得再自带坐标")
+        hint = out[0]["target"]["hint"]
+        distance = ((hint[0] - 10.0) ** 2 + (hint[1] - 7.0) ** 2) ** 0.5
         self.assertGreaterEqual(distance, 8.0,
-                                "产能建筑已在外侧时，防御塔应落在基地外围：%s" % (pos,))
+                                "产能建筑已在外侧时，防御塔政策点应落在基地外围：%s" % (hint,))
 
     def test_builds_second_command_center_near_far_resource(self):
         st, tact, _ = self._state([
@@ -403,9 +408,12 @@ class ExpansionLadderTest(unittest.TestCase):
                                      server_tick=1000, snapshot_id=5)
         self.assertEqual(out[0]["action"], "build")
         self.assertEqual(out[0]["target"]["scene"], "res://units/command_center.tscn")
-        # 分基地必须**离开主基地**（不能贴着主基地再盖一座）。
-        pos = out[0]["target"]["pos"]
-        self.assertGreater(((pos[0] - 10.0) ** 2 + (pos[1] - 7.0) ** 2) ** 0.5,
+        # 分基地必须**离开主基地**（不能贴着主基地再盖一座）。坐标已移交权威端
+        # （2026-09-23 自动放置），政策判据落在 hint 上。
+        self.assertNotIn("pos", out[0]["target"],
+                         "落点已移交权威端，副官不得再自带坐标")
+        hint = out[0]["target"]["hint"]
+        self.assertGreater(((hint[0] - 10.0) ** 2 + (hint[1] - 7.0) ** 2) ** 0.5,
                            rf.EXPANSION_MIN_DISTANCE_M)
 
     def test_no_second_base_when_far_resource_is_unseen(self):

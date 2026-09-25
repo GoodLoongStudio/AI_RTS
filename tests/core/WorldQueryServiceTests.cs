@@ -574,5 +574,15 @@ internal sealed class WorldQueryServiceTests
             CaptureCalls++;
             return Snapshot;
         }
+
+        // 共享观测入口与 Capture 同源（测试只关心两条查询路径都读到同一份快照），
+        // 分开计数以便断言 `CaptureShared` 路径确实走过仓储。
+        public int SharedCaptureCalls { get; private set; }
+
+        public WorldObservationSnapshot CaptureShared()
+        {
+            SharedCaptureCalls++;
+            return Snapshot;
+        }
     }
 }

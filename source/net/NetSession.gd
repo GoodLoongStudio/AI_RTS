@@ -917,6 +917,12 @@ func _start_loading(kinds: PackedInt32Array, map_path: String = MAP_PATH) -> voi
 			player_settings.controller = Constants.PlayerType.HUMAN
 		elif i < kinds.size() and int(kinds[i]) == SLOT_AI:
 			player_settings.controller = Constants.PlayerType.SIMPLE_CLAIRVOYANT_AI
+			# 自对局训练覆盖（2026-09-21）：AIRTS_SELFPLAY_DIFFICULTY=0/1/2 指定 AI
+			# 难度（副官 vs 电脑的迭代训练从简单电脑开始）。**默认不干预**——环境变量
+			# 缺失或非法时保持原默认（NORMAL），正常游玩行为不变。
+			var sp_difficulty := OS.get_environment("AIRTS_SELFPLAY_DIFFICULTY")
+			if sp_difficulty == "0" or sp_difficulty == "1" or sp_difficulty == "2":
+				player_settings.difficulty = int(sp_difficulty)
 		else:
 			# 大厅里被房主撤掉 AI 的空槽：占位玩家，不再无脑补 AI。
 			player_settings.controller = Constants.PlayerType.NONE

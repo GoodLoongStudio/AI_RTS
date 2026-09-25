@@ -798,6 +798,9 @@ class AgentRunner:
             logger=self.structured_logger,
             config=RuntimeConfig(
                 strategy_interval_ticks=int(self.args.strategy_interval),
+                # 战略失败也按满间隔再试（同步调用一次超时堵 15s；真机实测教训
+                # 见 GraphConfig.strategy_backoff_ticks 与验证报告 §4.5）。
+                strategy_backoff_ticks=int(self.args.strategy_interval),
                 tactics_interval_ticks=int(self.args.tactics_interval),
                 emergency_min_interval_ticks=int(self.args.emergency_interval),
                 intent_ttl_ticks=int(self.args.ttl),
@@ -835,6 +838,12 @@ class AgentRunner:
         for model in (strategy_model, tactics_model):
             if isinstance(model, MeteredModel) and self.archive is not None:
                 model.sink_writer = self.archive.model
+            # Laya（System 1）的结构化日志同样后置挂载：依赖缺失/超时/全拒都要留点
+            # （`AIRTS_S1_BACKEND=laya` 时排障全靠它）。attach_logger 只有四列 Agent 有。
+            if isinstance(model, MeteredModel) and self.structured_logger is not None:
+                attach = getattr(model.inner, "attach_logger", None)
+                if callable(attach):
+                    attach(self.structured_logger)
         self._log({
             "kind": "start", "match_id": self.match_id, "player": self.player,
             "rules_version": self.rules_version, "server_tick": tick,
@@ -887,10 +896,13 @@ class AgentRunner:
                   % model_mode)
             return None, MeteredModel("tactics", FaultTacticsModel(model_mode),
                                       self.model_sink)
-        # 战略层默认关闭：计划 §6 阶段 A 允许"省略高层的单一模型决策入口，并在状态里标注
-        # 高层意图缺省"。实测依据（2026-09-12）：战略模型在真实对局里 18 次
-        # `ModelInvalidOutput: Exceeded maximum retries`，每次重试都是**同步阻塞**调用，
-        # 把主循环拖到 4.7s/轮，并让战术决策结果来不及被取（全部 expired）。
+        # 战略层默认**开启**（2026-09-21 混合架构定版：System 2 生成层 = 本机 2B，
+        # 与 System 1 选择层分工；提示词 §0"生成用 LLM"）。同步阻塞风险用两个手段
+        # 兜住：① 间隔保持 1800 tick≈30s（`--strategy-interval` 的实测警告：砍到 900
+        # 以下会把微操层饿死）；② 超时收敛到 STRATEGY_TIMEOUT_SECONDS（.env.local）。
+        # 历史上它被关掉的原因（2026-09-12：18 次 ModelInvalidOutput、同步重试把主循环
+        # 拖到 4.7s/轮）对应的是"高频 + 长超时"组合，不是"开"本身；真机对照见
+        # docs/程序文档/AI副官_Laya接入_验证报告_2026-09-20.md §4。
         strategy_enabled = str(self.args.strategy_mode) == "plan"
         if not strategy_enabled:
             print("[runner] 战略层=off（四列单入口，高层意图缺省；--strategy-mode plan 可开）")
@@ -911,6 +923,13 @@ class AgentRunner:
             settings = GraphModelSettings.from_env()
             if self.args.llm_timeout:
                 settings.timeout_seconds = float(self.args.llm_timeout)
+            if strategy_enabled:
+                # 三层在环的启动确认（System 2 生成层 = 本机 2B；同步调用，
+                # 超时/间隔见 .env.local 与 --strategy-interval 的实测警告）。
+                print("[runner] 战略层=on（System 2 生成层：%s，%ss/次超时，%d tick/次）"
+                      % (settings.model_for("strategy"),
+                         settings.timeout_for("strategy"),
+                         int(self.args.strategy_interval)))
             if not availability["available"]:
                 raise RunnerError("pydantic-ai 不可用：%s" % availability["reason"])
             if not settings.resolve_api_key() or not settings.model_for("strategy"):
@@ -1977,9 +1996,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--tactics-mode", choices=("fast", "deep"), default="fast",
                         help="四列接口的推理模式：fast=关注范围小/输出 96 token（默认）；"
                              "deep=信息范围更完整/输出 256 token")
-    parser.add_argument("--strategy-mode", choices=("off", "plan"), default="off",
-                        help="战略层：off=关闭（默认，四列单入口/高层意图缺省）；"
-                             "plan=启用低频战略计划")
+    parser.add_argument("--strategy-mode", choices=("off", "plan"), default="plan",
+                        help="战略层：plan=启用低频战略计划（默认，2026-09-21 混合架构定版："
+                             "System 2 生成层用本机 2B，30s/次，失败自动降级不影响微操）；"
+                             "off=关闭（四列单入口/高层意图缺省，仅对照用）")
     parser.add_argument("--scheduling", choices=("async", "sync"), default="async",
                         help="调度方式：async=有界异步（默认，主循环不被推理阻塞）；"
                              "sync=旧同步等待（仅对照/回退）")

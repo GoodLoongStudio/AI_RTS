@@ -210,6 +210,24 @@ public partial class BalanceConfigRuntime : Node
             Catalog.FindConstruction(new StructureDefinitionId(unitTypeId));
     }
 
+    /// <summary>按运行时节点判断是否为"可建造建筑"（建造建筑）：其单位类型在平衡表里有
+    /// 施工定义 —— 基地/车厂/机场/兵营与三种炮塔，与侧栏「建筑」页签同一口径。
+    /// 配置降级或场景未登记时返回 false，由调用方决定"识别不了"的兜底口径
+    /// （绝不静默当成非建筑，见 <see cref="Match.MatchOutcomeRuntime"/>）。</summary>
+    public bool IsBuildStructure(Node unit)
+    {
+        if (unit is null || Catalog is null || Assets is null)
+        {
+            return false;
+        }
+        return FindConstruction(unit) is not null;
+    }
+
+    /// <summary>运行时节点是否携带受信任的单位类型（由 <see cref="ConfigureUnit"/> 注入）。
+    /// 测试夹具的裸节点与配置降级时为 false —— 调用方据此区分"不是建筑"与"识别不了"。</summary>
+    public bool HasTrustedUnitType(Node unit) =>
+        unit is not null && !string.IsNullOrWhiteSpace(unit.Get("unit_type_id").AsString());
+
     /// <summary>按产品场景查询唯一生产定义。</summary>
     internal ProductionDefinition? FindProduction(PackedScene scene)
     {

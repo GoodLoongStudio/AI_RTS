@@ -1,605 +1,718 @@
 {
- "schema_version": 1,
- "required_sdk_prefix": "8.",
- "forbidden_output_patterns": [
-  "SCRIPT ERROR",
-  "Parse Error",
-  "UNUSED_PARAMETER",
-  "SHADOWED_VARIABLE_BASE_CLASS",
-  "Failed to load script",
-  "Cannot open file 'res://source/",
-  "Failed loading resource: res://source/",
-  "Assertion failed",
-  "ASSERTION_FAILED",
-  "RID allocations of type .* were leaked at exit",
-  "ObjectDB instances were leaked at exit",
-  "resources still in use at exit"
- ],
- "excluded_scenes": [
-  "res://tests/automated/SniperDiagSmokeTest.tscn",
-  "res://tests/automated/SniperMuzzleDiagSmokeTest.tscn",
-  "res://tests/automated/TankMuzzleDiagNormalSmokeTest.tscn",
-  "res://tests/automated/TankMuzzleDiagSmokeTest.tscn"
- ],
- "godot_tests": [
-  {
-   "expected_marker": "Adjutant command protocol smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "adjutant",
-   "scene": "res://tests/automated/AdjutantCommandProtocolSmokeTest.tscn",
-   "id": "adjutant-command-protocol",
-   "extra_args": ["--", "--debugport", "{free_port}"]
-  },
-  {
-   "expected_marker": "Adjutant credential smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "adjutant",
-   "scene": "res://tests/automated/AdjutantCredentialSmokeTest.tscn",
-   "id": "adjutant-credential"
-  },
-  {
-   "expected_marker": "Adjutant connectivity smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "adjutant",
-   "scene": "res://tests/automated/AdjutantConnectivitySmokeTest.tscn",
-   "id": "adjutant-connectivity"
-  },
-  {
-   "expected_marker": "Adjutant observation smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "adjutant",
-   "scene": "res://tests/automated/AdjutantObservationSmokeTest.tscn",
-   "id": "adjutant-observation",
-   "extra_args": ["--", "--debugport", "{free_port}"]
-  },
-  {
-   "expected_marker": "Adjutant rules export smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "adjutant",
-   "scene": "res://tests/automated/AdjutantRulesExportSmokeTest.tscn",
-   "id": "adjutant-rules-export",
-   "extra_args": ["--", "--debugport", "{free_port}"]
-  },
-  {
-   "expected_marker": "Air entity move smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "commands",
-   "scene": "res://tests/automated/AirEntityMoveSmokeTest.tscn",
-   "id": "air-entity-move"
-  },
-  {
-   "expected_marker": "Attack simulation time smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "combat",
-   "scene": "res://tests/automated/AttackSimulationTimeSmokeTest.tscn",
-   "id": "attack-simulation-time"
-  },
-  {
-   "expected_marker": "Background music smoke test completed: 0 failure(s)",
-   "timeout_seconds": 120,
-   "category": "audio",
-   "scene": "res://tests/automated/BackgroundMusicSmokeTest.tscn",
-   "id": "background-music"
-  },
-  {
-   "expected_marker": "Balance config runtime smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "configuration",
-   "scene": "res://tests/automated/BalanceConfigRuntimeSmokeTest.tscn",
-   "id": "balance-config-runtime"
-  },
-  {
-   "expected_marker": "Battlefield event camera smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "input-ui",
-   "scene": "res://tests/automated/BattlefieldEventCameraSmokeTest.tscn",
-   "id": "battlefield-event-camera"
-  },
-  {
-   "expected_marker": "Building occlusion fade smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "visual",
-   "scene": "res://tests/automated/BuildingOcclusionFadeSmokeTest.tscn",
-   "id": "building-occlusion-fade"
-  },
-  {
-   "expected_marker": "Combat sfx smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "audio",
-   "scene": "res://tests/automated/CombatSfxSmokeTest.tscn",
-   "id": "combat-sfx"
-  },
-  {
-   "expected_marker": "Command center worker production smoke test completed: 0 failure(s)",
-   "timeout_seconds": 120,
-   "category": "production",
-   "scene": "res://tests/automated/CommandCenterWorkerProductionSmokeTest.tscn",
-   "id": "command-center-worker-production"
-  },
-  {
-   "expected_marker": "Control group runtime smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "selection",
-   "scene": "res://tests/automated/ControlGroupRuntimeSmokeTest.tscn",
-   "id": "control-groups"
-  },
-  {
-   "expected_marker": "C# command smoke test completed: 0 failure(s)",
-   "timeout_seconds": 60,
-   "category": "commands",
-   "scene": "res://tests/automated/CSharpCommandSmokeTest.tscn",
-   "id": "csharp-command"
-  },
-  {
-   "expected_marker": "Death cleanup smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "combat",
-   "scene": "res://tests/automated/DeathCleanupSmokeTest.tscn",
-   "id": "death-cleanup"
-  },
-  {
-   "expected_marker": "Economy account smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "economy",
-   "scene": "res://tests/automated/EconomyAccountSmokeTest.tscn",
-   "id": "economy-account"
-  },
-  {
-   "expected_marker": "Enemy health bar smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "visual",
-   "scene": "res://tests/automated/EnemyHealthBarSmokeTest.tscn",
-   "id": "enemy-health-bar"
-  },
-  {
-   "expected_marker": "Entity ForceMove smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "commands",
-   "scene": "res://tests/automated/EntityForceMoveSmokeTest.tscn",
-   "id": "entity-force-move"
-  },
-  {
-   "expected_marker": "ESC return smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "input-ui",
-   "scene": "res://tests/automated/EscReturnSmokeTest.tscn",
-   "id": "esc-return"
-  },
-  {
-   "expected_marker": "Force attack friendly smoke test completed: 0 failure(s)",
-   "timeout_seconds": 120,
-   "category": "combat",
-   "scene": "res://tests/automated/ForceAttackFriendlySmokeTest.tscn",
-   "id": "force-attack-friendly"
-  },
-  {
-   "expected_marker": "Health bar flicker smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "visual",
-   "scene": "res://tests/automated/HealthBarFlickerSmokeTest.tscn",
-   "id": "health-bar-flicker"
-  },
-  {
-   "expected_marker": "Helicopter command smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "commands",
-   "scene": "res://tests/automated/HelicopterCommandSmokeTest.tscn",
-   "id": "helicopter-command"
-  },
-  {
-   "expected_marker": "InfantryAnimClipsSmokeTest completed: 0 failure(s)",
-   "timeout_seconds": 120,
-   "category": "visual",
-   "scene": "res://tests/automated/InfantryAnimClipsSmokeTest.tscn",
-   "id": "infantry-anim-clips"
-  },
-  {
-   "expected_marker": "InfantryAnimDriverSmokeTest completed: 0 failure(s)",
-   "timeout_seconds": 150,
-   "category": "visual",
-   "scene": "res://tests/automated/InfantryAnimDriverSmokeTest.tscn",
-   "id": "infantry-anim-driver"
-  },
-  {
-   "expected_marker": "Infantry queue smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "commands",
-   "scene": "res://tests/automated/InfantrySmokeTest.tscn",
-   "id": "infantry-queue"
-  },
-  {
-   "expected_marker": "Keyboard shortcuts smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "input-ui",
-   "scene": "res://tests/automated/KeyboardShortcutsSmokeTest.tscn",
-   "id": "keyboard-shortcuts"
-  },
-  {
-   "expected_marker": "Legacy HUD visibility smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "input-ui",
-   "scene": "res://tests/automated/LegacyHudVisibilitySmokeTest.tscn",
-   "id": "legacy-hud-visibility"
-  },
-  {
-   "expected_marker": "Local avoidance smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "navigation",
-   "scene": "res://tests/automated/LocalAvoidanceSmokeTest.tscn",
-   "id": "local-avoidance"
-  },
-  {
-   "expected_marker": "Match outcome runtime smoke test completed: 0 failure(s)",
-   "timeout_seconds": 150,
-   "category": "match",
-   "scene": "res://tests/automated/MatchOutcomeRuntimeSmokeTest.tscn",
-   "id": "match-outcome"
-  },
-  {
-   "expected_marker": "Movement recovery smoke test completed: 0 failure(s)",
-   "timeout_seconds": 180,
-   "category": "navigation",
-   "scene": "res://tests/automated/MovementRecoverySmokeTest.tscn",
-   "id": "movement-recovery"
-  },
-  {
-   "expected_marker": "Movement scale smoke test completed: 0 failure(s)",
-   "timeout_seconds": 300,
-   "category": "navigation",
-   "scene": "res://tests/automated/MovementScaleSmokeTest.tscn",
-   "id": "movement-scale"
-  },
-  {
-   "expected_marker": "Multi-unit command smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "commands",
-   "scene": "res://tests/automated/MultiUnitCommandSmokeTest.tscn",
-   "id": "multi-unit-command"
-  },
-  {
-   "expected_marker": "Navigation stability smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "navigation",
-   "scene": "res://tests/automated/NavigationStabilitySmokeTest.tscn",
-   "id": "navigation-stability"
-  },
-  {
-   "expected_marker": "Net infantry smoke test completed: 0 failure(s)",
-   "timeout_seconds": 300,
-   "category": "network",
-   "scene": "res://tests/automated/NetInfantrySmokeTest.tscn",
-   "id": "net-infantry",
-   "prelaunch_server": true
-  },
-  {
-   "expected_marker": "Production queue smoke test completed: 0 failure(s)",
-   "timeout_seconds": 120,
-   "category": "production",
-   "scene": "res://tests/automated/ProductionQueueSmokeTest.tscn",
-   "id": "production-queue"
-  },
-  {
-   "expected_marker": "Projectile lifecycle smoke test completed: 0 failure(s)",
-   "timeout_seconds": 120,
-   "category": "combat",
-   "scene": "res://tests/automated/ProjectileLifecycleSmokeTest.tscn",
-   "id": "projectile-lifecycle"
-  },
-  {
-   "expected_marker": "Rally point smoke test completed: 0 failure(s)",
-   "timeout_seconds": 120,
-   "category": "production",
-   "scene": "res://tests/automated/RallyPointSmokeTest.tscn",
-   "id": "rally-point"
-  },
-  {
-   "expected_marker": "Rule AI aggression smoke test completed: 0 failure(s)",
-   "timeout_seconds": 120,
-   "category": "traditional-ai",
-   "scene": "res://tests/automated/RuleAiAggressionSmokeTest.tscn",
-   "id": "rule-ai-aggression"
-  },
-  {
-   "expected_marker": "Rule AI battlegroup smoke test completed: 0 failure(s)",
-   "timeout_seconds": 120,
-   "category": "traditional-ai",
-   "scene": "res://tests/automated/RuleAiBattlegroupSmokeTest.tscn",
-   "id": "rule-ai-battlegroup"
-  },
-  {
-   "expected_marker": "Rule AI defense smoke test completed: 0 failure(s)",
-   "timeout_seconds": 120,
-   "category": "traditional-ai",
-   "scene": "res://tests/automated/RuleAiDefenseSmokeTest.tscn",
-   "id": "rule-ai-defense"
-  },
-  {
-   "expected_marker": "Rule AI economy query smoke test completed: 0 failure(s)",
-   "timeout_seconds": 120,
-   "category": "traditional-ai",
-   "scene": "res://tests/automated/RuleAiEconomyQuerySmokeTest.tscn",
-   "id": "rule-ai-economy-query"
-  },
-  {
-   "expected_marker": "Rule AI expansion smoke test completed: 0 failure(s)",
-   "timeout_seconds": 120,
-   "category": "traditional-ai",
-   "scene": "res://tests/automated/RuleAiExpansionSmokeTest.tscn",
-   "id": "rule-ai-expansion"
-  },
-  {
-   "expected_marker": "Rule AI intelligence smoke test completed: 0 failure(s)",
-   "timeout_seconds": 120,
-   "category": "traditional-ai",
-   "scene": "res://tests/automated/RuleAiIntelligenceSmokeTest.tscn",
-   "id": "rule-ai-intelligence"
-  },
-  {
-   "expected_marker": "Rule AI offense logistics smoke test completed: 0 failure(s)",
-   "timeout_seconds": 150,
-   "category": "traditional-ai",
-   "scene": "res://tests/automated/RuleAiOffenseLogisticsSmokeTest.tscn",
-   "id": "rule-ai-offense-logistics"
-  },
-  {
-   "expected_marker": "Runtime placement smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "placement",
-   "scene": "res://tests/automated/RuntimePlacementSmokeTest.tscn",
-   "id": "runtime-placement"
-  },
-  {
-   "expected_marker": "Selection portrait panel smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "input-ui",
-   "scene": "res://tests/automated/SelectionPortraitPanelSmokeTest.tscn",
-   "id": "selection-portrait-panel"
-  },
-  {
-   "expected_marker": "Structure placement smoke test completed: 0 failure(s)",
-   "timeout_seconds": 120,
-   "category": "construction",
-   "scene": "res://tests/automated/StructurePlacementSmokeTest.tscn",
-   "id": "structure-placement"
-  },
-  {
-   "expected_marker": "Tank combat policy smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "combat",
-   "scene": "res://tests/automated/TankCombatPolicySmokeTest.tscn",
-   "id": "tank-combat-policy"
-  },
-  {
-   "expected_marker": "Tank command bridge smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "commands",
-   "scene": "res://tests/automated/TankCommandBridgeSmokeTest.tscn",
-   "id": "tank-command-bridge"
-  },
-  {
-   "expected_marker": "Tank entity attack move smoke test completed: 0 failure(s)",
-   "timeout_seconds": 120,
-   "category": "combat",
-   "scene": "res://tests/automated/TankEntityAttackMoveSmokeTest.tscn",
-   "id": "tank-entity-attack-move"
-  },
-  {
-   "expected_marker": "Tank force attack smoke test completed: 0 failure(s)",
-   "timeout_seconds": 120,
-   "category": "combat",
-   "scene": "res://tests/automated/TankForceAttackSmokeTest.tscn",
-   "id": "tank-force-attack"
-  },
-  {
-   "expected_marker": "Tank ground attack move smoke test completed: 0 failure(s)",
-   "timeout_seconds": 120,
-   "category": "combat",
-   "scene": "res://tests/automated/TankGroundAttackMoveSmokeTest.tscn",
-   "id": "tank-ground-attack-move"
-  },
-  {
-   "expected_marker": "Tank move fire smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "combat",
-   "scene": "res://tests/automated/TankMoveFireSmokeTest.tscn",
-   "id": "tank-move-fire"
-  },
-  {
-   "expected_marker": "Tank ordinary attack smoke test completed: 0 failure(s)",
-   "timeout_seconds": 120,
-   "category": "combat",
-   "scene": "res://tests/automated/TankOrdinaryAttackSmokeTest.tscn",
-   "id": "tank-ordinary-attack"
-  },
-  {
-   "expected_marker": "Tank return to base smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "commands",
-   "scene": "res://tests/automated/TankReturnToBaseSmokeTest.tscn",
-   "id": "tank-return-to-base"
-  },
-  {
-   "expected_marker": "Tank tactical withdraw smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "commands",
-   "scene": "res://tests/automated/TankTacticalWithdrawSmokeTest.tscn",
-   "id": "tank-tactical-withdraw"
-  },
-  {
-   "expected_marker": "Traditional unit command HUD smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "input-ui",
-   "scene": "res://tests/automated/TraditionalUnitCommandHudSmokeTest.tscn",
-   "id": "traditional-command-hud"
-  },
-  {
-   "expected_marker": "Turret aiming smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "combat",
-   "scene": "res://tests/automated/TurretAimingSmokeTest.tscn",
-   "id": "turret-aiming"
-  },
-  {
-   "expected_marker": "UI sfx smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "audio",
-   "scene": "res://tests/automated/UISfxSmokeTest.tscn",
-   "id": "ui-sfx"
-  },
-  {
-   "expected_marker": "Worker engagement policy smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "economy",
-   "scene": "res://tests/automated/WorkerEngagementPolicySmokeTest.tscn",
-   "id": "worker-engagement-policy"
-  },
-  {
-   "expected_marker": "Worker Gather smoke test completed: 0 failure(s)",
-   "timeout_seconds": 150,
-   "category": "economy",
-   "scene": "res://tests/automated/WorkerGatherSmokeTest.tscn",
-   "id": "worker-gather"
-  },
-  {
-   "expected_marker": "World query runtime smoke test completed: 0 failure(s)",
-   "timeout_seconds": 120,
-   "category": "queries",
-   "scene": "res://tests/automated/WorldQueryRuntimeSmokeTest.tscn",
-   "id": "world-query-runtime"
-  },
-  {
-   "expected_marker": "Attack range indicator smoke test completed: 0 failure(s)",
-   "timeout_seconds": 120,
-   "category": "hud",
-   "scene": "res://tests/automated/AttackRangeIndicatorSmokeTest.tscn",
-   "id": "attack-range-indicator"
-  },
-  {
-   "expected_marker": "APC smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "combat",
-   "scene": "res://tests/automated/APCSmokeTest.tscn",
-   "id": "apc-smoke"
-  },
-  {
-   "expected_marker": "APC stability smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "combat",
-   "scene": "res://tests/automated/APCStabilitySmokeTest.tscn",
-   "id": "apc-stability"
-  },
-  {
-   "expected_marker": "Machine gun turret smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "combat",
-   "scene": "res://tests/automated/MachineGunTurretSmokeTest.tscn",
-   "id": "machine-gun-turret"
-  },
-  {
-   "expected_marker": "New units lineup test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "combat",
-   "scene": "res://tests/automated/NewUnitsLineupSmokeTest.tscn",
-   "id": "new-units-lineup"
-  },
-  {
-   "expected_marker": "Presentation sync smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "presentation",
-   "scene": "res://tests/automated/PresentationSyncSmokeTest.tscn",
-   "id": "presentation-sync"
-  },
-  {
-   "expected_marker": "Repair/Sell targeting smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "input",
-   "scene": "res://tests/automated/RepairSellTargetingSmokeTest.tscn",
-   "id": "repair-sell-targeting"
-  },
-  {
-   "expected_marker": "Structure repair/sell smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "input",
-   "scene": "res://tests/automated/StructureRepairSellSmokeTest.tscn",
-   "id": "structure-repair-sell"
-  },
-  {
-   "expected_marker": "Transport truck smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "combat",
-   "scene": "res://tests/automated/TransportTruckSmokeTest.tscn",
-   "id": "transport-truck"
-  },
-  {
-   "expected_marker": "Unit registration consistency smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "config",
-   "scene": "res://tests/automated/UnitRegistrationConsistencySmokeTest.tscn",
-   "id": "unit-registration-consistency"
-  },
-  {
-   "expected_marker": "Command cursor smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "ui",
-   "scene": "res://tests/automated/CommandCursorSmokeTest.tscn",
-   "id": "command-cursor"
-  },
-  {
-   "expected_marker": "Net structure command contract smoke test completed: 0 failure(s)",
-   "timeout_seconds": 60,
-   "category": "network",
-   "scene": "res://tests/automated/NetStructureCommandContractSmokeTest.tscn",
-   "id": "net-structure-command-contract"
-  },
-  {
-   "expected_marker": "Sniper/Rocketeer smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "combat",
-   "scene": "res://tests/automated/SniperRocketeerSmokeTest.tscn",
-   "id": "sniper-rocketeer"
-  },
-  {
-   "expected_marker": "Chinese voice mapping smoke test completed: 0 failure(s)",
-   "timeout_seconds": 90,
-   "category": "audio",
-   "scene": "res://tests/automated/ChineseVoiceMappingSmokeTest.tscn",
-   "id": "chinese-voice-mapping"
-  },
-  {
-   "id": "performance-governor",
-   "category": "visual",
-   "scene": "res://tests/automated/PerformanceGovernorSmokeTest.tscn",
-   "expected_marker": "Performance governor smoke test completed: 0 failure(s)",
-   "timeout_seconds": 60
-  },
-  {
-   "id": "terrain-ground-collision",
-   "category": "navigation",
-   "scene": "res://tests/automated/TerrainGroundCollisionSmokeTest.tscn",
-   "expected_marker": "Terrain ground collision smoke test completed: 0 failure(s)",
-   "timeout_seconds": 120
-  },
-  {
-   "id": "match-history",
-   "category": "ui",
-   "scene": "res://tests/automated/MatchHistorySmokeTest.tscn",
-   "expected_marker": "Match history smoke test completed: 0 failure(s)",
-   "timeout_seconds": 180
-  },
-  {
-   "id": "match-history-hook",
-   "category": "ui",
-   "scene": "res://tests/automated/MatchHistoryHookSmokeTest.tscn",
-   "expected_marker": "Match history hook smoke test completed: 0 failure(s)",
-   "timeout_seconds": 120
-  },
-  {
-   "id": "match-augments",
-   "category": "match",
-   "scene": "res://tests/automated/MatchAugmentSmokeTest.tscn",
-   "expected_marker": "Match augment smoke test completed: 0 failure(s)",
-   "timeout_seconds": 120,
-   "extra_args": ["--", "--debugport", "{free_port}"]
-  }
- ]
+  "schema_version": 1,
+  "required_sdk_prefix": "8.",
+  "forbidden_output_patterns": [
+    "SCRIPT ERROR",
+    "Parse Error",
+    "UNUSED_PARAMETER",
+    "SHADOWED_VARIABLE_BASE_CLASS",
+    "Failed to load script",
+    "Cannot open file 'res://source/",
+    "Failed loading resource: res://source/",
+    "Assertion failed",
+    "ASSERTION_FAILED",
+    "RID allocations of type .* were leaked at exit",
+    "ObjectDB instances were leaked at exit",
+    "resources still in use at exit"
+  ],
+  "excluded_scenes": [
+    "res://tests/automated/SniperDiagSmokeTest.tscn",
+    "res://tests/automated/SniperMuzzleDiagSmokeTest.tscn",
+    "res://tests/automated/TankMuzzleDiagNormalSmokeTest.tscn",
+    "res://tests/automated/TankMuzzleDiagSmokeTest.tscn",
+    "res://tests/automated/BridgeCrossingTest.tscn",
+    "res://tests/automated/AiOverlapBuildCheck.tscn",
+    "res://tests/automated/GroundingScreenshotTest.tscn",
+    "res://tests/automated/NoEnemyAdjutantRepro.tscn",
+    "res://tests/automated/RealCombatDestructionTest.tscn",
+    "res://tests/automated/StructureGhostCleanupTest.tscn"
+  ],
+  "godot_tests": [
+    {
+      "expected_marker": "Adjutant command protocol smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "adjutant",
+      "scene": "res://tests/automated/AdjutantCommandProtocolSmokeTest.tscn",
+      "id": "adjutant-command-protocol",
+      "extra_args": [
+        "--",
+        "--debugport",
+        "{free_port}"
+      ]
+    },
+    {
+      "expected_marker": "Adjutant credential smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "adjutant",
+      "scene": "res://tests/automated/AdjutantCredentialSmokeTest.tscn",
+      "id": "adjutant-credential"
+    },
+    {
+      "expected_marker": "Adjutant connectivity smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "adjutant",
+      "scene": "res://tests/automated/AdjutantConnectivitySmokeTest.tscn",
+      "id": "adjutant-connectivity"
+    },
+    {
+      "expected_marker": "Adjutant observation smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "adjutant",
+      "scene": "res://tests/automated/AdjutantObservationSmokeTest.tscn",
+      "id": "adjutant-observation",
+      "extra_args": [
+        "--",
+        "--debugport",
+        "{free_port}"
+      ]
+    },
+    {
+      "expected_marker": "Adjutant rules export smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "adjutant",
+      "scene": "res://tests/automated/AdjutantRulesExportSmokeTest.tscn",
+      "id": "adjutant-rules-export",
+      "extra_args": [
+        "--",
+        "--debugport",
+        "{free_port}"
+      ]
+    },
+    {
+      "expected_marker": "Air entity move smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "commands",
+      "scene": "res://tests/automated/AirEntityMoveSmokeTest.tscn",
+      "id": "air-entity-move"
+    },
+    {
+      "expected_marker": "Attack simulation time smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "combat",
+      "scene": "res://tests/automated/AttackSimulationTimeSmokeTest.tscn",
+      "id": "attack-simulation-time"
+    },
+    {
+      "expected_marker": "Background music smoke test completed: 0 failure(s)",
+      "timeout_seconds": 120,
+      "category": "audio",
+      "scene": "res://tests/automated/BackgroundMusicSmokeTest.tscn",
+      "id": "background-music"
+    },
+    {
+      "expected_marker": "Balance config runtime smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "configuration",
+      "scene": "res://tests/automated/BalanceConfigRuntimeSmokeTest.tscn",
+      "id": "balance-config-runtime"
+    },
+    {
+      "expected_marker": "Battlefield event camera smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "input-ui",
+      "scene": "res://tests/automated/BattlefieldEventCameraSmokeTest.tscn",
+      "id": "battlefield-event-camera"
+    },
+    {
+      "expected_marker": "Building occlusion fade smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "visual",
+      "scene": "res://tests/automated/BuildingOcclusionFadeSmokeTest.tscn",
+      "id": "building-occlusion-fade"
+    },
+    {
+      "expected_marker": "Combat sfx smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "audio",
+      "scene": "res://tests/automated/CombatSfxSmokeTest.tscn",
+      "id": "combat-sfx"
+    },
+    {
+      "expected_marker": "Command center worker production smoke test completed: 0 failure(s)",
+      "timeout_seconds": 120,
+      "category": "production",
+      "scene": "res://tests/automated/CommandCenterWorkerProductionSmokeTest.tscn",
+      "id": "command-center-worker-production"
+    },
+    {
+      "expected_marker": "Control group runtime smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "selection",
+      "scene": "res://tests/automated/ControlGroupRuntimeSmokeTest.tscn",
+      "id": "control-groups"
+    },
+    {
+      "expected_marker": "C# command smoke test completed: 0 failure(s)",
+      "timeout_seconds": 60,
+      "category": "commands",
+      "scene": "res://tests/automated/CSharpCommandSmokeTest.tscn",
+      "id": "csharp-command"
+    },
+    {
+      "expected_marker": "Death cleanup smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "combat",
+      "scene": "res://tests/automated/DeathCleanupSmokeTest.tscn",
+      "id": "death-cleanup"
+    },
+    {
+      "expected_marker": "Economy account smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "economy",
+      "scene": "res://tests/automated/EconomyAccountSmokeTest.tscn",
+      "id": "economy-account"
+    },
+    {
+      "expected_marker": "Enemy health bar smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "visual",
+      "scene": "res://tests/automated/EnemyHealthBarSmokeTest.tscn",
+      "id": "enemy-health-bar"
+    },
+    {
+      "expected_marker": "Entity ForceMove smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "commands",
+      "scene": "res://tests/automated/EntityForceMoveSmokeTest.tscn",
+      "id": "entity-force-move"
+    },
+    {
+      "expected_marker": "ESC return smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "input-ui",
+      "scene": "res://tests/automated/EscReturnSmokeTest.tscn",
+      "id": "esc-return"
+    },
+    {
+      "expected_marker": "Force attack friendly smoke test completed: 0 failure(s)",
+      "timeout_seconds": 120,
+      "category": "combat",
+      "scene": "res://tests/automated/ForceAttackFriendlySmokeTest.tscn",
+      "id": "force-attack-friendly"
+    },
+    {
+      "expected_marker": "Health bar flicker smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "visual",
+      "scene": "res://tests/automated/HealthBarFlickerSmokeTest.tscn",
+      "id": "health-bar-flicker"
+    },
+    {
+      "expected_marker": "Helicopter command smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "commands",
+      "scene": "res://tests/automated/HelicopterCommandSmokeTest.tscn",
+      "id": "helicopter-command"
+    },
+    {
+      "expected_marker": "InfantryAnimClipsSmokeTest completed: 0 failure(s)",
+      "timeout_seconds": 120,
+      "category": "visual",
+      "scene": "res://tests/automated/InfantryAnimClipsSmokeTest.tscn",
+      "id": "infantry-anim-clips"
+    },
+    {
+      "expected_marker": "InfantryAnimDriverSmokeTest completed: 0 failure(s)",
+      "timeout_seconds": 150,
+      "category": "visual",
+      "scene": "res://tests/automated/InfantryAnimDriverSmokeTest.tscn",
+      "id": "infantry-anim-driver"
+    },
+    {
+      "expected_marker": "Infantry queue smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "commands",
+      "scene": "res://tests/automated/InfantrySmokeTest.tscn",
+      "id": "infantry-queue"
+    },
+    {
+      "expected_marker": "Keyboard shortcuts smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "input-ui",
+      "scene": "res://tests/automated/KeyboardShortcutsSmokeTest.tscn",
+      "id": "keyboard-shortcuts"
+    },
+    {
+      "expected_marker": "Legacy HUD visibility smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "input-ui",
+      "scene": "res://tests/automated/LegacyHudVisibilitySmokeTest.tscn",
+      "id": "legacy-hud-visibility"
+    },
+    {
+      "expected_marker": "Local avoidance smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "navigation",
+      "scene": "res://tests/automated/LocalAvoidanceSmokeTest.tscn",
+      "id": "local-avoidance"
+    },
+    {
+      "expected_marker": "Match outcome runtime smoke test completed: 0 failure(s)",
+      "timeout_seconds": 150,
+      "category": "match",
+      "scene": "res://tests/automated/MatchOutcomeRuntimeSmokeTest.tscn",
+      "id": "match-outcome"
+    },
+    {
+      "expected_marker": "Movement recovery smoke test completed: 0 failure(s)",
+      "timeout_seconds": 180,
+      "category": "navigation",
+      "scene": "res://tests/automated/MovementRecoverySmokeTest.tscn",
+      "id": "movement-recovery"
+    },
+    {
+      "expected_marker": "Movement scale smoke test completed: 0 failure(s)",
+      "timeout_seconds": 300,
+      "category": "navigation",
+      "scene": "res://tests/automated/MovementScaleSmokeTest.tscn",
+      "id": "movement-scale"
+    },
+    {
+      "expected_marker": "Multi-unit command smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "commands",
+      "scene": "res://tests/automated/MultiUnitCommandSmokeTest.tscn",
+      "id": "multi-unit-command"
+    },
+    {
+      "expected_marker": "Navigation stability smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "navigation",
+      "scene": "res://tests/automated/NavigationStabilitySmokeTest.tscn",
+      "id": "navigation-stability"
+    },
+    {
+      "expected_marker": "Net infantry smoke test completed: 0 failure(s)",
+      "timeout_seconds": 300,
+      "category": "network",
+      "scene": "res://tests/automated/NetInfantrySmokeTest.tscn",
+      "id": "net-infantry",
+      "prelaunch_server": true
+    },
+    {
+      "expected_marker": "Production queue smoke test completed: 0 failure(s)",
+      "timeout_seconds": 120,
+      "category": "production",
+      "scene": "res://tests/automated/ProductionQueueSmokeTest.tscn",
+      "id": "production-queue"
+    },
+    {
+      "expected_marker": "Projectile lifecycle smoke test completed: 0 failure(s)",
+      "timeout_seconds": 120,
+      "category": "combat",
+      "scene": "res://tests/automated/ProjectileLifecycleSmokeTest.tscn",
+      "id": "projectile-lifecycle"
+    },
+    {
+      "expected_marker": "Rally point smoke test completed: 0 failure(s)",
+      "timeout_seconds": 120,
+      "category": "production",
+      "scene": "res://tests/automated/RallyPointSmokeTest.tscn",
+      "id": "rally-point"
+    },
+    {
+      "expected_marker": "Rule AI aggression smoke test completed: 0 failure(s)",
+      "timeout_seconds": 120,
+      "category": "traditional-ai",
+      "scene": "res://tests/automated/RuleAiAggressionSmokeTest.tscn",
+      "id": "rule-ai-aggression"
+    },
+    {
+      "expected_marker": "Rule AI battlegroup smoke test completed: 0 failure(s)",
+      "timeout_seconds": 120,
+      "category": "traditional-ai",
+      "scene": "res://tests/automated/RuleAiBattlegroupSmokeTest.tscn",
+      "id": "rule-ai-battlegroup"
+    },
+    {
+      "expected_marker": "Rule AI defense smoke test completed: 0 failure(s)",
+      "timeout_seconds": 120,
+      "category": "traditional-ai",
+      "scene": "res://tests/automated/RuleAiDefenseSmokeTest.tscn",
+      "id": "rule-ai-defense"
+    },
+    {
+      "expected_marker": "Rule AI economy query smoke test completed: 0 failure(s)",
+      "timeout_seconds": 120,
+      "category": "traditional-ai",
+      "scene": "res://tests/automated/RuleAiEconomyQuerySmokeTest.tscn",
+      "id": "rule-ai-economy-query"
+    },
+    {
+      "expected_marker": "Rule AI expansion smoke test completed: 0 failure(s)",
+      "timeout_seconds": 120,
+      "category": "traditional-ai",
+      "scene": "res://tests/automated/RuleAiExpansionSmokeTest.tscn",
+      "id": "rule-ai-expansion"
+    },
+    {
+      "expected_marker": "Rule AI intelligence smoke test completed: 0 failure(s)",
+      "timeout_seconds": 120,
+      "category": "traditional-ai",
+      "scene": "res://tests/automated/RuleAiIntelligenceSmokeTest.tscn",
+      "id": "rule-ai-intelligence"
+    },
+    {
+      "expected_marker": "Rule AI offense logistics smoke test completed: 0 failure(s)",
+      "timeout_seconds": 150,
+      "category": "traditional-ai",
+      "scene": "res://tests/automated/RuleAiOffenseLogisticsSmokeTest.tscn",
+      "id": "rule-ai-offense-logistics"
+    },
+    {
+      "expected_marker": "Runtime placement smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "placement",
+      "scene": "res://tests/automated/RuntimePlacementSmokeTest.tscn",
+      "id": "runtime-placement"
+    },
+    {
+      "expected_marker": "Selection portrait panel smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "input-ui",
+      "scene": "res://tests/automated/SelectionPortraitPanelSmokeTest.tscn",
+      "id": "selection-portrait-panel"
+    },
+    {
+      "expected_marker": "Structure placement smoke test completed: 0 failure(s)",
+      "timeout_seconds": 120,
+      "category": "construction",
+      "scene": "res://tests/automated/StructurePlacementSmokeTest.tscn",
+      "id": "structure-placement"
+    },
+    {
+      "expected_marker": "Tank combat policy smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "combat",
+      "scene": "res://tests/automated/TankCombatPolicySmokeTest.tscn",
+      "id": "tank-combat-policy"
+    },
+    {
+      "expected_marker": "Tank command bridge smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "commands",
+      "scene": "res://tests/automated/TankCommandBridgeSmokeTest.tscn",
+      "id": "tank-command-bridge"
+    },
+    {
+      "expected_marker": "Tank entity attack move smoke test completed: 0 failure(s)",
+      "timeout_seconds": 120,
+      "category": "combat",
+      "scene": "res://tests/automated/TankEntityAttackMoveSmokeTest.tscn",
+      "id": "tank-entity-attack-move"
+    },
+    {
+      "expected_marker": "Tank force attack smoke test completed: 0 failure(s)",
+      "timeout_seconds": 120,
+      "category": "combat",
+      "scene": "res://tests/automated/TankForceAttackSmokeTest.tscn",
+      "id": "tank-force-attack"
+    },
+    {
+      "expected_marker": "Tank ground attack move smoke test completed: 0 failure(s)",
+      "timeout_seconds": 120,
+      "category": "combat",
+      "scene": "res://tests/automated/TankGroundAttackMoveSmokeTest.tscn",
+      "id": "tank-ground-attack-move"
+    },
+    {
+      "expected_marker": "Tank move fire smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "combat",
+      "scene": "res://tests/automated/TankMoveFireSmokeTest.tscn",
+      "id": "tank-move-fire"
+    },
+    {
+      "expected_marker": "Tank ordinary attack smoke test completed: 0 failure(s)",
+      "timeout_seconds": 120,
+      "category": "combat",
+      "scene": "res://tests/automated/TankOrdinaryAttackSmokeTest.tscn",
+      "id": "tank-ordinary-attack"
+    },
+    {
+      "expected_marker": "Tank return to base smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "commands",
+      "scene": "res://tests/automated/TankReturnToBaseSmokeTest.tscn",
+      "id": "tank-return-to-base"
+    },
+    {
+      "expected_marker": "Tank tactical withdraw smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "commands",
+      "scene": "res://tests/automated/TankTacticalWithdrawSmokeTest.tscn",
+      "id": "tank-tactical-withdraw"
+    },
+    {
+      "expected_marker": "Traditional unit command HUD smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "input-ui",
+      "scene": "res://tests/automated/TraditionalUnitCommandHudSmokeTest.tscn",
+      "id": "traditional-command-hud"
+    },
+    {
+      "expected_marker": "Turret aiming smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "combat",
+      "scene": "res://tests/automated/TurretAimingSmokeTest.tscn",
+      "id": "turret-aiming"
+    },
+    {
+      "expected_marker": "UI sfx smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "audio",
+      "scene": "res://tests/automated/UISfxSmokeTest.tscn",
+      "id": "ui-sfx"
+    },
+    {
+      "expected_marker": "Worker engagement policy smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "economy",
+      "scene": "res://tests/automated/WorkerEngagementPolicySmokeTest.tscn",
+      "id": "worker-engagement-policy"
+    },
+    {
+      "expected_marker": "Worker Gather smoke test completed: 0 failure(s)",
+      "timeout_seconds": 150,
+      "category": "economy",
+      "scene": "res://tests/automated/WorkerGatherSmokeTest.tscn",
+      "id": "worker-gather"
+    },
+    {
+      "expected_marker": "World query runtime smoke test completed: 0 failure(s)",
+      "timeout_seconds": 120,
+      "category": "queries",
+      "scene": "res://tests/automated/WorldQueryRuntimeSmokeTest.tscn",
+      "id": "world-query-runtime"
+    },
+    {
+      "expected_marker": "Attack range indicator smoke test completed: 0 failure(s)",
+      "timeout_seconds": 120,
+      "category": "hud",
+      "scene": "res://tests/automated/AttackRangeIndicatorSmokeTest.tscn",
+      "id": "attack-range-indicator"
+    },
+    {
+      "expected_marker": "APC smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "combat",
+      "scene": "res://tests/automated/APCSmokeTest.tscn",
+      "id": "apc-smoke"
+    },
+    {
+      "expected_marker": "APC stability smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "combat",
+      "scene": "res://tests/automated/APCStabilitySmokeTest.tscn",
+      "id": "apc-stability"
+    },
+    {
+      "expected_marker": "Machine gun turret smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "combat",
+      "scene": "res://tests/automated/MachineGunTurretSmokeTest.tscn",
+      "id": "machine-gun-turret"
+    },
+    {
+      "expected_marker": "New units lineup test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "combat",
+      "scene": "res://tests/automated/NewUnitsLineupSmokeTest.tscn",
+      "id": "new-units-lineup"
+    },
+    {
+      "expected_marker": "Presentation sync smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "presentation",
+      "scene": "res://tests/automated/PresentationSyncSmokeTest.tscn",
+      "id": "presentation-sync"
+    },
+    {
+      "expected_marker": "Repair/Sell targeting smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "input",
+      "scene": "res://tests/automated/RepairSellTargetingSmokeTest.tscn",
+      "id": "repair-sell-targeting"
+    },
+    {
+      "expected_marker": "Structure repair/sell smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "input",
+      "scene": "res://tests/automated/StructureRepairSellSmokeTest.tscn",
+      "id": "structure-repair-sell"
+    },
+    {
+      "expected_marker": "Transport truck smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "combat",
+      "scene": "res://tests/automated/TransportTruckSmokeTest.tscn",
+      "id": "transport-truck"
+    },
+    {
+      "expected_marker": "Unit registration consistency smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "config",
+      "scene": "res://tests/automated/UnitRegistrationConsistencySmokeTest.tscn",
+      "id": "unit-registration-consistency"
+    },
+    {
+      "expected_marker": "Command cursor smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "ui",
+      "scene": "res://tests/automated/CommandCursorSmokeTest.tscn",
+      "id": "command-cursor"
+    },
+    {
+      "expected_marker": "Net structure command contract smoke test completed: 0 failure(s)",
+      "timeout_seconds": 60,
+      "category": "network",
+      "scene": "res://tests/automated/NetStructureCommandContractSmokeTest.tscn",
+      "id": "net-structure-command-contract"
+    },
+    {
+      "expected_marker": "Sniper/Rocketeer smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "combat",
+      "scene": "res://tests/automated/SniperRocketeerSmokeTest.tscn",
+      "id": "sniper-rocketeer"
+    },
+    {
+      "expected_marker": "Unit guard stance smoke test completed: 0 failure(s)",
+      "timeout_seconds": 150,
+      "category": "combat",
+      "scene": "res://tests/automated/UnitGuardStanceSmokeTest.tscn",
+      "id": "unit-guard-stance"
+    },
+    {
+      "expected_marker": "Chinese voice mapping smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "audio",
+      "scene": "res://tests/automated/ChineseVoiceMappingSmokeTest.tscn",
+      "id": "chinese-voice-mapping"
+    },
+    {
+      "id": "performance-governor",
+      "category": "visual",
+      "scene": "res://tests/automated/PerformanceGovernorSmokeTest.tscn",
+      "expected_marker": "Performance governor smoke test completed: 0 failure(s)",
+      "timeout_seconds": 60
+    },
+    {
+      "id": "terrain-ground-collision",
+      "category": "navigation",
+      "scene": "res://tests/automated/TerrainGroundCollisionSmokeTest.tscn",
+      "expected_marker": "Terrain ground collision smoke test completed: 0 failure(s)",
+      "timeout_seconds": 120
+    },
+    {
+      "id": "unit-grounding",
+      "category": "navigation",
+      "scene": "res://tests/automated/UnitGroundingSmokeTest.tscn",
+      "expected_marker": "Unit grounding smoke test completed: 0 failure(s)",
+      "timeout_seconds": 300
+    },
+    {
+      "id": "generated-path-monitor",
+      "category": "navigation",
+      "scene": "res://tests/automated/GeneratedPathMonitorTest.tscn",
+      "expected_marker": "Generated path monitor completed: 0 failure(s)",
+      "timeout_seconds": 400
+    },
+    {
+      "id": "match-history",
+      "category": "ui",
+      "scene": "res://tests/automated/MatchHistorySmokeTest.tscn",
+      "expected_marker": "Match history smoke test completed: 0 failure(s)",
+      "timeout_seconds": 180
+    },
+    {
+      "id": "match-history-hook",
+      "category": "ui",
+      "scene": "res://tests/automated/MatchHistoryHookSmokeTest.tscn",
+      "expected_marker": "Match history hook smoke test completed: 0 failure(s)",
+      "timeout_seconds": 120
+    },
+    {
+      "id": "match-augments",
+      "category": "match",
+      "scene": "res://tests/automated/MatchAugmentSmokeTest.tscn",
+      "expected_marker": "Match augment smoke test completed: 0 failure(s)",
+      "timeout_seconds": 120,
+      "extra_args": [
+        "--",
+        "--debugport",
+        "{free_port}"
+      ]
+    },
+    {
+      "expected_marker": "AdjutantHudStatusDiscovery: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "adjutant",
+      "scene": "res://tests/automated/AdjutantHudStatusDiscoveryTest.tscn",
+      "id": "adjutant-hud-status-discovery"
+    },
+    {
+      "expected_marker": "Adjutant model service smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "adjutant",
+      "scene": "res://tests/automated/AdjutantModelServiceSmokeTest.tscn",
+      "id": "adjutant-model-service"
+    },
+    {
+      "expected_marker": "Adjutant UI state consistency: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "ui",
+      "scene": "res://tests/automated/AdjutantUIStateConsistencyTest.tscn",
+      "id": "adjutant-ui-state-consistency"
+    },
+    {
+      "expected_marker": "Client HP first-sync smoke test completed: 0 failure(s)",
+      "timeout_seconds": 120,
+      "category": "network",
+      "scene": "res://tests/automated/ClientHpFirstSyncSmokeTest.tscn",
+      "id": "client-hp-first-sync"
+    },
+    {
+      "expected_marker": "Ground attack move arrival smoke test completed: 0 failure(s)",
+      "timeout_seconds": 120,
+      "category": "combat",
+      "scene": "res://tests/automated/GroundAttackMoveArrivalSmokeTest.tscn",
+      "id": "ground-attack-move-arrival"
+    },
+    {
+      "expected_marker": "[GROWTH-SMOKE] failures= 0",
+      "timeout_seconds": 90,
+      "category": "economy",
+      "scene": "res://tests/automated/GrowthModifiersSmokeTest.tscn",
+      "id": "growth-modifiers"
+    },
+    {
+      "expected_marker": "Same-frame overlap placement: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "placement",
+      "scene": "res://tests/automated/SameFrameOverlapPlacementTest.tscn",
+      "id": "same-frame-overlap-placement"
+    },
+    {
+      "expected_marker": "Unit auto attack smoke test completed: 0 failure(s)",
+      "timeout_seconds": 150,
+      "category": "combat",
+      "scene": "res://tests/automated/UnitAutoAttackSmokeTest.tscn",
+      "id": "unit-auto-attack"
+    },
+    {
+      "expected_marker": "Audio settings: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "audio",
+      "scene": "res://tests/automated/AudioSettingsTest.tscn",
+      "id": "audio-settings"
+    },
+    {
+      "expected_marker": "Structure destruction cleanup: 0 failure(s)",
+      "timeout_seconds": 150,
+      "category": "combat",
+      "scene": "res://tests/automated/StructureDestructionTest.tscn",
+      "id": "structure-destruction"
+    }
+  ]
 }

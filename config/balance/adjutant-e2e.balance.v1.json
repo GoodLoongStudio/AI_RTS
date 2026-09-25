@@ -255,6 +255,13 @@
    }
   },
   {
+   "id": "ore_refinery",
+   "maxHp": 15.0,
+   "sightRangeMeters": 10.0,
+   "weaponIds": [],
+   "canForceFireGround": false
+  },
+  {
    "id": "vehicle_factory",
    "maxHp": 16.0,
    "sightRangeMeters": 8.0,
@@ -565,6 +572,19 @@
     {
      "kind": "A",
      "amount": 2400
+    }
+   ],
+   "environmentId": "terrain.surface",
+   "footprintRadiusMeters": 2.0
+  },
+  {
+   "id": "ore_refinery",
+   "unitTypeId": "ore_refinery",
+   "requiredWork": 200,
+   "cost": [
+    {
+     "kind": "A",
+     "amount": 900
     }
    ],
    "environmentId": "terrain.surface",

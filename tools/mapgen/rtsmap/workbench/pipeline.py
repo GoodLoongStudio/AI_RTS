@@ -182,10 +182,27 @@ def run_pipeline(job, project, folder, save, progress):
 
     seed = config["layout_seed"]
     if not stage_passed("g2_terrain"):
-        for name in ("g3_content", "g4_scene", "engine"):
-            rec.skip(name, "G2 几何检查未通过，依赖阶段不运行")
-        _finalize(job, folder, save)
-        return
+        # 【2026-09-20 保底出图】原先 G2 未过检就整条 skipped ⇒ 任务 done 却没有场景，
+        # 大厅「随机地图」因此失败。现在改为：用 `g2_bake.bake_playable` 程序化烘焙
+        # 一张**确定可玩**的地形（同 tools/regen_large_lake_256.py 让大湖稳定生成的做法），
+        # 它会一并写好 G2 与 G3 的产物，后续阶段可直接继续。
+        # 诚实标记：bake 出的图布局固定（只有出生点来自 G1 的随机），保证"能玩"而非"多变"。
+        try:
+            from ..gates import g2_bake
+            g1_spec = read_json(run_dir(runs, seed, "G1") / "mapspec.json")
+            starts = [tuple(s) for s in g1_spec["starts"]]
+            spec = g2_bake.bake_playable(starts, runs, seed, generator_params(config))
+            rec.done("g2_terrain", all_pass=True, checks={}, baked=True,
+                     chosen_attempt=-1, summary=_g2_summary(spec))
+            stages["g2_terrain"]["pass"] = True
+            save(job)
+            progress(dict(stage="G2", phase="地形检查未通过，已用保底烘焙出可玩地形"))
+        except Exception as bake_error:
+            rec.fail("g2_terrain", bake_error, kind="bake_failed")
+            for name in ("g3_content", "g4_scene", "engine"):
+                rec.skip(name, "G2 几何检查未通过且保底烘焙也失败，依赖阶段不运行")
+            _finalize(job, folder, save)
+            return
     progress(dict(stage="G2", phase="地形检查通过"))
 
     # ---- G3 资源与素材 ----

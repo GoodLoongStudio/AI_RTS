@@ -21,6 +21,10 @@ const LOG_DIR_DEFAULT := "user://adjutant_logs"
 const PIDFILE_NAME := "agent_runner.pid"
 const BOOTSTRAP_NAME := "runner_bootstrap.py"
 const AUTHORITY_PORT_DEFAULT := 24579
+##: 本地模型服务的自动保障（起服务 + 预热模型）。runner 的战略层要连它，
+##: 而"把它拉起来"原来只写在 `build/启动AI_RTS.bat` 里——不走 .bat 启动游戏
+##: 就必然连不上（2026-09-23 用户实测"战略思考这一轮没成功"的真因）。
+const AdjutantModelService := preload("res://source/ui/AdjutantModelService.gd")
 ##: runner 心跳新鲜度窗口（秒）。与 `AdjutantButton.LIVENESS_FRESH_SECONDS` 同值：
 ##: 单轮最坏含一次慢模型调用（实测 ~45s），取 90s 留一倍余量。
 const LIVENESS_FRESH_SECONDS := 90.0
@@ -55,8 +59,42 @@ static func config() -> Dictionary:
 	return loaded
 
 
-## 仓库约定的自动探测（G:\AIRTS 布局：AI_RTS 与 临时文件夹/airts_agent_venv 同级）。
+## 自动探测 runner 装配，两种形态按优先级：
+##   ① **分发布局**（Release 包 / 评委机器）：`<exe 同级>/adjutant_runtime/`
+##      —— 随包分发的便携 Python + runner 源码。评委机器上没有任何开发环境，
+##      这是**唯一**能命中的形态（旧版只认下面 ②，于是导出版永远"副官尚未启动"）。
+##   ② **仓库布局**（开发机 G:\AIRTS 约定）：AI_RTS 与 临时文件夹/airts_agent_venv 同级。
+## 返回空字典 = 两处都没找到 python（面板会显示"尚未启动"，不崩）。
 static func autodetect_config() -> Dictionary:
+	var dist := _dist_config()
+	if not dist.is_empty():
+		return dist
+	return _repo_config()
+
+
+## 分发布局：`<exe 目录>/adjutant_runtime/{python/python.exe, src/, .env.local}`。
+## 只以 python.exe 是否存在为判据（其余缺项交给 runner 自己报错，便于定位）。
+static func _dist_config() -> Dictionary:
+	var exe_dir := OS.get_executable_path().get_base_dir()
+	if exe_dir.is_empty():
+		return {}
+	var rt := exe_dir.path_join("adjutant_runtime").simplify_path()
+	var venv_python := rt.path_join("python/python.exe")
+	if not FileAccess.file_exists(venv_python):
+		return {}
+	# 日志/握手目录仍走 `user://`（可写）；安装目录可能只读，不要往里写。
+	return {
+		"python": venv_python,
+		"src_root": rt.path_join("src"),
+		"work_dir": rt.path_join("src"),
+		"authority_port": AUTHORITY_PORT_DEFAULT,
+		"player": "",
+		"env_file": rt.path_join(".env.local"),
+	}
+
+
+## 仓库约定的自动探测（G:\AIRTS 布局：AI_RTS 与 临时文件夹/airts_agent_venv 同级）。
+static func _repo_config() -> Dictionary:
 	var project_dir := ProjectSettings.globalize_path("res://")
 	var repo_root := project_dir.path_join("..").simplify_path()
 	var venv_python := repo_root.path_join("临时文件夹/airts_agent_venv/Scripts/python.exe")
@@ -155,7 +193,9 @@ static func recent_activity(window_seconds: float = ACTIVITY_WINDOW_SECONDS) -> 
 # ---------------- 启动 / 停止 ----------------
 
 ## 启动本机 runner，返回子进程 pid（<=0 = 失败）。已在跑则不重复起（返回现有 pid）。
-static func start(authority_port_value: int = 0) -> int:
+## `parent`：本地模型服务保障的宿主节点（见 `AdjutantModelService.ensure_started`）；
+## 传 null 时模型服务仍会尝试用场景树根节点，但早期初始化阶段可能拿不到。
+static func start(authority_port_value: int = 0, parent: Node = null) -> int:
 	var cfg := config()
 	if cfg.is_empty():
 		push_warning("[ADJ] 未找到本机 runner 配置（user://adjutant_local.cfg 或仓库约定布局）")
@@ -190,11 +230,19 @@ static func start(authority_port_value: int = 0) -> int:
 	if handle == null:
 		push_warning("[ADJ] 引导文件不可写：%s" % bootstrap_path)
 		return 0
+	# 【2026-09-23】先把本地模型服务保障起来（起服务 + 预热模型），再起 runner。
+	# 原来"把 Ollama 拉起来"只写在 `build/启动AI_RTS.bat` 里，玩家只要不是用那个
+	# .bat 启动游戏，战略层就每轮 Connection error、面板显示"战略思考这一轮没成功"。
+	# 用户要求：游戏启动自动满足所有条件。这里**非阻塞**拉起（冷模型预热要 ~70s，
+	# 卡启动不可接受），状态由 `AdjutantModelService.status_text()` 如实上面板。
+	AdjutantModelService.ensure_started(parent)
 	handle.store_string("\n".join([
 		"import os, sys",
 		# 冷启动体检：runner 的 start 事件会带 `since_spawn_ms`（从这一刻起算）。
 		"import time",
 		"os.environ['ADJUTANT_SPAWN_TS'] = '%.3f' % time.time()",
+		# 模型端点：显式覆盖 `.env.local` 里的 11434（唯一口径见 AdjutantModelService）。
+		AdjutantModelService.bootstrap_env_lines(),
 		"os.chdir(%s)" % JSON.stringify(str(cfg["work_dir"])),
 		"sys.path.insert(0, %s)" % JSON.stringify(str(cfg["src_root"])),
 		"sys.argv = ['agent_runner'] + %s" % JSON.stringify(args),

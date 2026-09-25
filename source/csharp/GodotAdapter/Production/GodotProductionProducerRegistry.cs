@@ -52,7 +52,24 @@ public sealed class GodotProductionProducerRegistry : IProductionProducerReposit
             entry.DefinitionId,
             true,
             constructed,
-            entry.QueueLimit);
+            entry.QueueLimit,
+            WorkPerTickOf(producer));
+    }
+
+    /// <summary>读取生产建筑的每 Tick 工作量；未配置或非法值一律回退 1.0（默认速度）。</summary>
+    /// <remarks>
+    /// 成长系统的「生产调度」会在单位出生时把倍率写进 Godot 属性
+    /// `production_work_per_tick`；这里**实时**读取，所以改属性立刻生效。
+    /// </remarks>
+    private static float WorkPerTickOf(Node producer)
+    {
+        var value = producer.Get("production_work_per_tick");
+        if (value.VariantType == Variant.Type.Nil)
+        {
+            return 1.0f;
+        }
+        var rate = value.AsSingle();
+        return float.IsFinite(rate) && rate > 0.0f ? rate : 1.0f;
     }
 
     /// <summary>尝试取得仍位于 SceneTree 的生产建筑。</summary>

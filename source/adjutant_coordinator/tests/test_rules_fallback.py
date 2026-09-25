@@ -5,6 +5,7 @@
 兜底必须做到两件事：① 不抢模型的目标推理（只做事实可判定的事）；
 ② 产出的意图**必须能通过契约校验**，否则等于没兜底。
 """
+import os
 import unittest
 
 from adjutant_coordinator.graph import placement, rules_fallback
@@ -477,6 +478,171 @@ class TurretPerimeterTest(unittest.TestCase):
         self.assertTrue(spot)
         overlap = ((spot[0] - 26.0) ** 2 + (spot[1] - 7.0) ** 2) ** 0.5
         self.assertGreaterEqual(overlap, 3.0, "第二座塔不应叠在第一座上：%s" % (spot,))
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+
+class EngageHoldAttackTest(unittest.TestCase):
+    """【2026-09-22 D12】已在武器射程内 → 点攻击驻留，不再 attack_move 路过。
+
+    实测依据（det_16）：我方 45 个作战单位、任意 30s 采样时刻"在任一敌方建筑
+    射程内的单位数"全部为 0 —— 单位扫进来打一两下、到达后订单结束又去前压，
+    140 秒只对建筑造成 17.5 伤害。点攻击让单位停在射程内持续输出。
+    """
+
+    TAC = {
+        "entities": [
+            {"kind": "unit_self", "name": "Unit_0", "unit_type": "command_center",
+             "pos": [10.0, 0.0, 7.0], "queue": True, "movement": False},
+            # Unit_9 已前出到敌方炮塔跟前（5m，在 7.5m 射程内）；
+            # Unit_10 还坐在家里（离炮塔 50m，不在射程内）。
+            {"kind": "unit_self", "name": "Unit_9", "unit_type": "tank",
+             "pos": [55.0, 0.0, 7.0], "movement": True, "hp": 10, "hp_max": 10,
+             "attack_range": 7.5},
+            {"kind": "unit_self", "name": "Unit_10", "unit_type": "tank",
+             "pos": [12.0, 0.0, 9.0], "movement": True, "hp": 10, "hp_max": 10,
+             "attack_range": 7.5},
+            # 敌方炮塔：离家 50m（不触发"基地受袭"），离 Unit_9 只有 5m。
+            {"kind": "unit_enemy", "name": "E_turret", "unit_type": "anti_ground_turret",
+             "pos": [60.0, 0.0, 7.0], "hp": 16.0, "hp_max": 16.0},
+        ]
+    }
+
+    def setUp(self) -> None:
+        # 生产配置（.env.local）默认打开"移动并攻击交火"，这里显式打开以复现实网。
+        self._saved = os.environ.get("AIRTS_ENGAGE_ATTACK_MOVE")
+        os.environ["AIRTS_ENGAGE_ATTACK_MOVE"] = "1"
+
+    def tearDown(self) -> None:
+        if self._saved is None:
+            os.environ.pop("AIRTS_ENGAGE_ATTACK_MOVE", None)
+        else:
+            os.environ["AIRTS_ENGAGE_ATTACK_MOVE"] = self._saved
+
+    def _intents(self):
+        # 两个作战单位：满足"小队成形才允许出击"的门槛（ARMY_ATTACK_THRESHOLD=2）。
+        state = {
+            "ai_controlled_units": ["Unit_0", "Unit_9", "Unit_10"],
+            "active_intents": [], "pending_requests": {},
+            "server_tick": 1000, "latest_snapshot_id": 10,
+            "map_bounds": [100.0, 100.0],
+            "own_unit_types": {"Unit_0": "command_center", "Unit_9": "tank",
+                               "Unit_10": "tank"},
+            "combat_types": ["soldier", "tank", "helicopter"],
+            "campaign_state": None,
+        }
+        return rules_fallback.batch_from_rules(
+            state, tactical=self.TAC, rules={}, ttl_ticks=3600,
+            server_tick=1000, snapshot_id=10)["intents"]
+
+    def _for(self, intents, unit):
+        return [item for item in intents
+                if str(item.get("unit_ids", [None])[0]) == unit]
+
+    def test_in_range_unit_gets_point_attack(self):
+        """射程内 → 点攻击（驻留），不是 attack_move。"""
+        intents = self._intents()
+        attacks = self._for(intents, "Unit_9")
+        self.assertTrue(attacks, "射程内的单位必须开火：%s" % intents)
+        self.assertEqual(attacks[0]["action"], "attack",
+                         "射程内应点攻击驻留：%s" % attacks[0])
+        self.assertEqual(attacks[0]["target"].get("entity_id"), "E_turret")
+
+    def test_out_of_range_unit_keeps_attack_move(self):
+        """射程外 → 仍是移动并攻击迫近（D12 只改"到位之后"）。"""
+        intents = self._intents()
+        attacks = self._for(intents, "Unit_10")
+        self.assertTrue(attacks, "射程外的单位也必须行动：%s" % intents)
+        self.assertEqual(attacks[0]["action"], "attack_move",
+                         "射程外应继续迫近：%s" % attacks[0])
+        self.assertIn("pos", attacks[0]["target"])
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+
+class ScoutConfirmDoubleInsuranceTest(unittest.TestCase):
+    """【2026-09-22 D13 侦察双保险】除主侦察外定时派战斗单位沿走廊确认扫描。
+
+    实测依据：无人机会被敌方防空击落（det_9/14/17），D9 转交只在"专职不在编制"
+    后触发且要求候选空闲 + 不在接触圈——三批对局发现率 2/3 → 1/3 → 0/3。
+    双保险让"有人沿走廊看敌家方向"不依赖任何单一单位存活。
+    """
+
+    def _state(self, tick):
+        return {
+            "ai_controlled_units": ["Unit_0", "Unit_10", "Unit_11", "Unit_12"],
+            "active_intents": [], "pending_requests": {},
+            "server_tick": tick, "latest_snapshot_id": 10,
+            "map_bounds": [100.0, 100.0],
+            "own_unit_types": {"Unit_0": "command_center", "Unit_10": "soldier",
+                               "Unit_11": "soldier", "Unit_12": "soldier"},
+            "combat_types": ["soldier", "tank", "helicopter"],
+            "explore": {}, "enemy_intel_points": [[35.6, 12.4]],
+            "campaign_state": {"milestones": {}},
+        }
+
+    TAC = {
+        "entities": [
+            {"kind": "unit_self", "name": "Unit_0", "unit_type": "command_center",
+             "pos": [20.0, 0.0, 6.0], "queue": True, "movement": False},
+            {"kind": "unit_self", "name": "Unit_10", "unit_type": "soldier",
+             "pos": [25.0, 0.0, 12.0], "movement": True, "hp": 4, "hp_max": 4},
+            {"kind": "unit_self", "name": "Unit_11", "unit_type": "soldier",
+             "pos": [26.0, 0.0, 12.0], "movement": True, "hp": 4, "hp_max": 4},
+            {"kind": "unit_self", "name": "Unit_12", "unit_type": "soldier",
+             "pos": [27.0, 0.0, 12.0], "movement": True, "hp": 4, "hp_max": 4},
+            {"kind": "resource", "name": "R1", "pos": [24.0, 0.0, 10.0],
+             "resource_a": True},
+        ]
+    }
+
+    def _run(self, state, tick):
+        state["server_tick"] = tick
+        intents = rules_fallback.batch_from_rules(
+            state, tactical=self.TAC, rules={}, ttl_ticks=3600,
+            server_tick=tick, snapshot_id=10)["intents"]
+        return [item for item in intents
+                if "scoutconfirm" in str(item.get("intent_id", ""))]
+
+    def test_confirm_scan_issued_and_rotates(self):
+        """间隔到达即发；未到不发；再到达换单位（轮转，不抽同一个兵）。"""
+        state = self._state(1800)      # 同一份 state 跨调用（模拟跨 tick 持久）
+        first = self._run(state, 1800)
+        self.assertEqual(len(first), 1, "首次必须发双保险扫描")
+        self.assertEqual(first[0]["action"], "scout")
+        self.assertIn("pos", first[0]["target"])
+        # 兼职订单 TTL 短于主侦察（到点自动回去作战）。
+        self.assertLessEqual(first[0]["expires_tick"] - 1800,
+                             rules_fallback.SCOUT_CONFIRM_TTL_TICKS)
+        again = self._run(state, 1900)
+        self.assertEqual(again, [], "间隔未到不得重复发")
+        third = self._run(state, 4000)
+        self.assertEqual(len(third), 1, "间隔到达应再发")
+        self.assertNotEqual(third[0]["unit_ids"], first[0]["unit_ids"],
+                            "必须轮转到另一个单位")
+
+    def test_unit_in_contact_is_not_picked(self):
+        """保命：与可见敌人接触的单位不抽去扫描（与 D9 同口径）。"""
+        # 敌人只贴在 Unit_12 身边（另两个单位离它 >20m）。
+        tac = {"entities": list(self.TAC["entities"]) + [
+            {"kind": "unit_enemy", "name": "E1", "unit_type": "soldier",
+             "pos": [27.5, 0.0, 12.2], "hp": 4.0, "hp_max": 4.0},
+        ]}
+        tac["entities"][3]["pos"] = [60.0, 0.0, 60.0]   # Unit_11 挪远
+        tac["entities"][2]["pos"] = [62.0, 0.0, 62.0]   # Unit_10 挪远
+        state = self._state(1800)
+        intents = rules_fallback.batch_from_rules(
+            state, tactical=tac, rules={}, ttl_ticks=3600,
+            server_tick=1800, snapshot_id=10)["intents"]
+        confirms = [item for item in intents
+                    if "scoutconfirm" in str(item.get("intent_id", ""))]
+        self.assertEqual(len(confirms), 1, "应当改派不接触的单位：%s" % confirms)
+        self.assertNotIn("Unit_12", confirms[0]["unit_ids"],
+                         "贴着敌人的 Unit_12 不该被拉去扫描")
 
 
 if __name__ == "__main__":

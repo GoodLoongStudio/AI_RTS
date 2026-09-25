@@ -42,6 +42,31 @@ class ExploreFrontierTest(unittest.TestCase):
                                               rf.ADVANCE_EDGE_MARGIN_M))
         self.assertEqual(state_now["explore"]["current"], first["cell"])
 
+    def test_position_settles_frontier_when_route_ledger_never_arrives(self):
+        """回归守卫（2026-09-21 实时对局取证）：路线台账不落 `arrived` 时，**位置事实**
+        必须能结算前沿 —— 否则 `hold_assigned` 原样返回同一航点，侦察单位整局卡死。
+
+        真机链路：副官持续建造 → 导航网格反复重烘 → `nav_revision` 每轮变化 →
+        新计划被判 `stale_nav_revision` → 路线记录不刷新、`arrived` 永不落账
+        （实测一局 457 次 stale）。旧实现在这里会 100% 复现"钉在同一格"。
+        """
+        state_now = state()
+        seen = []
+        current_pos = list(BASE)
+        for index in range(4):
+            picked = rf.explore_frontier(state_now, BASE, BOUNDS, unit="Unit_1",
+                                         unit_pos=list(current_pos))
+            self.assertIsNotNone(picked)
+            seen.append(picked["cell"])
+            # 单位确实走到了这一格（下一步它就站在格心附近）。
+            current_pos = list(picked["point"])
+            # 台账**永远不落 arrived**：只有一条 ok=True 的陈旧路线，目标还是老点。
+            state_now["routes"] = {"Unit_1": {"ok": True, "target": [0.0, 0.0],
+                                              "invalidated_reason": "",
+                                              "nav_revision": index}}
+        self.assertGreaterEqual(len(set(seen)), 3,
+                                "位置已到格心就必须换前沿（台账坏掉也不能卡死）：%s" % seen)
+
     def test_arrival_moves_to_a_different_frontier(self):
         """到达 → 换前沿（≥3 个不同格）。旧口径在这里会返回同一个坐标。"""
         state_now = state()
@@ -239,6 +264,40 @@ class ExploreFrontierTest(unittest.TestCase):
             by_name, ["Unit_1", "Unit_2"], {"Unit_1"})
         self.assertEqual(picked, "")
 
+    def test_probing_drone_transfers_scout(self):
+        """【2026-09-22 侦察断线回归】专职被**扩张前探**占着 → 必须转交。
+
+        实测（base_off_2/3，240s 纯规则局）：无人机被 `rule-probe-expansion`
+        占走后再也不探敌，`enemy_intel_points` 只剩贴身 3 点、**敌方建筑 0 条
+        情报**——"建筑不掉血"排查清单第 1 项（是否发现合法建筑目标）就断在这。
+        T03 的本意是"侦察不能断"：被别的工作占着不动与阵亡等效。
+        """
+        by_name = {
+            "Unit_1": {"type": "drone", "movement": True, "hp": 6},
+            "Unit_10": {"type": "soldier", "movement": True, "hp": 4},
+        }
+        state = {"active_intents": [{
+            "intent_id": "rule-probe-expansion-Unit_1-1768", "action": "move",
+            "unit_ids": ["Unit_1"], "state": "active", "expires_tick": 99999,
+        }]}
+        picked = rf.pick_scout_executor(
+            by_name, ["Unit_1", "Unit_10"], set(), state=state)
+        self.assertEqual(picked, "Unit_10", "无人机被前探占着时必须转交地面单位")
+
+    def test_scouting_drone_is_not_transferred(self):
+        """对照组：无人机正在执行**侦察**意图 → 它就是执行者，不转交。"""
+        by_name = {
+            "Unit_1": {"type": "drone", "movement": True, "hp": 6},
+            "Unit_10": {"type": "soldier", "movement": True, "hp": 4},
+        }
+        state = {"active_intents": [{
+            "intent_id": "rule-fill-scout-Unit_1-900", "action": "move",
+            "unit_ids": ["Unit_1"], "state": "active", "expires_tick": 99999,
+        }]}
+        picked = rf.pick_scout_executor(
+            by_name, ["Unit_1", "Unit_10"], set(), state=state)
+        self.assertEqual(picked, "Unit_1", "正在侦察的专职就是执行者，不该被顶掉")
+
     def test_parallel_fill_issues_scout_to_replacement(self):
         state_now = {
             "server_tick": 2000, "map_bounds": [50.0, 50.0],
@@ -320,6 +379,143 @@ class ExploreFrontierTest(unittest.TestCase):
                  if str(item.get("intent_id", "")).startswith("rule-fill-scout")]
         self.assertEqual(scout, [])
         self.assertEqual(state_now["active_intents"][1]["state"], "active")
+
+
+class ScoutTransferSurvivalTest(unittest.TestCase):
+    """【2026-09-22 D9】侦察备份 + 保命：专职阵亡后转交，且不抽交火中的单位。
+
+    实测（det_9）：唯一无人机被击落后全程失明——转交链路存在却没发生，
+    因为 (a) 替代者被军事轨的 attack_move 订单占着（`_en_route` 为真 →
+    侦察令发不出去），(b) 转交侦察令优先级 3 被 advance 的 45 压掉。
+    """
+
+    def test_contact_unit_is_not_picked_as_replacement(self):
+        """正在交火的单位不转交（保命）：有安全候选时选安全的。"""
+        by_name = {
+            "Unit_1": {"type": "drone", "movement": True, "hp": 0,
+                       "confirmed_dead": True},
+            "Unit_10": {"type": "soldier", "movement": True, "hp": 4,
+                        "pos": [25.0, 0.0, 12.0]},
+            "Unit_11": {"type": "soldier", "movement": True, "hp": 4,
+                        "pos": [27.0, 0.0, 12.5]},
+        }
+        enemies = [{"name": "E1", "pos": [27.5, 0.0, 12.6]}]
+        picked = rf.pick_scout_executor(by_name, ["Unit_10", "Unit_11"], set(),
+                                        enemies=enemies)
+        self.assertEqual(picked, "Unit_10", "交火中的 Unit_11 不该被拉去侦察")
+
+    def test_transfer_releases_attack_move(self):
+        """转交必须释放替代者的 attack_move，否则侦察令永远发不出去。"""
+        state = {"active_intents": [
+            {"intent_id": "rule-fill-advance-Unit_10-900", "action": "attack_move",
+             "unit_ids": ["Unit_10"], "state": "active", "expires_tick": 99999},
+            {"intent_id": "rule-fill-advance-Unit_11-900", "action": "attack_move",
+             "unit_ids": ["Unit_11"], "state": "active", "expires_tick": 99999},
+        ]}
+        released = rf.release_unit_for_scout_transfer(state, "Unit_10")
+        self.assertEqual(released, 1, "attack_move 必须被释放（D9）")
+        states = {str(item["intent_id"]): str(item.get("state"))
+                  for item in state["active_intents"]}
+        self.assertEqual(states["rule-fill-advance-Unit_10-900"], "dropped")
+        self.assertEqual(states["rule-fill-advance-Unit_11-900"], "active",
+                         "只释放指定单位，不牵连其它")
+
+    def test_transfer_priority_beats_idle_advance(self):
+        """转交侦察令优先级必须压过空闲前压（45），否则立刻被顶掉。"""
+        self.assertGreater(rf.SCOUT_TRANSFER_PRIORITY, 45)
+        self.assertLess(rf.SCOUT_TRANSFER_PRIORITY, 92,
+                        "仍须低于基地受袭回防（安全第一）")
+
+    def test_safe_radius_covers_max_weapon_range(self):
+        """保命半径必须覆盖当前平衡表的最大武器射程（反地炮塔 16m）。"""
+        import json
+        import os
+
+        balance_path = os.path.join(
+            os.path.dirname(rf.__file__), "..", "..", "..", "config", "balance",
+            "demo.balance.v1.json")
+        max_range = 0.0
+        try:
+            with open(os.path.normpath(balance_path), encoding="utf-8") as handle:
+                balance = json.load(handle)
+            for weapon in balance.get("weapons") or []:
+                max_range = max(max_range, float(weapon.get("rangeMeters") or 0.0))
+        except OSError:
+            self.skipTest("平衡配置不可读")
+        self.assertGreaterEqual(rf.SCOUT_TRANSFER_SAFE_M, max_range)
+
+
+class IntelPointFormatTest(unittest.TestCase):
+    """敌情点形状容错 + 持续前压（2026-09-22 D5/D6 回归）。
+
+    D6（重大）：`enemy_intel_points` 的真实形状是 `[[x, z], ...]`，而
+    `military_waypoint` 原先直接调 `pos2d`（要 dict）→ AttributeError 穿过
+    `_parallel_intents` 冒到 `development_intents` 外被整块吞掉 ——
+    **无可见敌人且有情报时，整条规则层当拍全灭**（生产/建造/采集/军事/侦察轨）。
+    D5：单位站在情报点上时旧实现返回 None（站桩），必须落到探索前沿继续推。
+    """
+
+    BASE = [20.0, 6.0]
+    BOUNDS = [100.0, 100.0]
+
+    def _state(self):
+        return {"map_bounds": list(self.BOUNDS), "server_tick": 1000,
+                "explore": {}, "own_unit_types": {}}
+
+    def test_raw_list_and_dict_intel_agree(self):
+        state = self._state()
+        raw = rf.military_waypoint(self.BASE, bounds=self.BOUNDS,
+                                   intel=[[58.9, 16.4]], search=True,
+                                   state=state, unit="U1")
+        state2 = self._state()
+        as_dict = rf.military_waypoint(self.BASE, bounds=self.BOUNDS,
+                                       intel=[{"pos": [58.9, 0.0, 16.4]}],
+                                       search=True, state=state2, unit="U1")
+        self.assertEqual(raw, as_dict, "两种情报形状必须给同一个航点")
+
+    def test_ladder_survives_raw_list_intel(self):
+        """回归 D6：无可见敌人 + 原始列表情报时，规则层不许整块崩掉。"""
+        entities = [
+            {"kind": "unit_self", "name": "Unit_0", "unit_type": "command_center",
+             "pos": [20.0, 0.0, 6.0], "movement": False, "queue": True,
+             "hp": 100, "hp_max": 100},
+            {"kind": "unit_self", "name": "Unit_1", "unit_type": "drone",
+             "pos": [30.0, 0.0, 20.0], "movement": True, "hp": 6, "hp_max": 6},
+            {"kind": "unit_self", "name": "Unit_10", "unit_type": "soldier",
+             "pos": [25.0, 0.0, 12.0], "movement": True, "hp": 4, "hp_max": 4},
+            {"kind": "resource", "name": "R1", "pos": [24.0, 0.0, 10.0],
+             "resource_a": True},
+        ]
+        state = {"map_bounds": list(self.BOUNDS), "server_tick": 1800,
+                 "ai_controlled_units": ["Unit_0", "Unit_1", "Unit_10"],
+                 "own_unit_types": {"Unit_0": "command_center", "Unit_1": "drone",
+                                    "Unit_10": "soldier"},
+                 "active_intents": [], "explore": {},
+                 "enemy_intel_points": [[58.9, 16.4]]}
+        out = rf.development_intents(state, tactical={"entities": entities},
+                                     rules={}, server_tick=1800)
+        self.assertTrue(out, "有情报时规则层必须照常产出（D6：曾整块崩掉）")
+
+    def test_unit_standing_on_intel_keeps_exploring(self):
+        """回归 D5：站在情报点上不许站桩——必须持续往未探区推进。
+
+        注意 D7 之后"回情报点一次"是合法的（扫描网格中心就是情报点，
+        回看最后一次目击是合理动作）；判据是**多次调用必须推进**，不是
+        "下一跳必须不同于当前点"。
+        """
+        state = self._state()
+        state["own_unit_types"] = {"U1": "drone"}
+        seen = []
+        pos = [58.9, 16.4]
+        for _ in range(4):
+            point = rf.military_waypoint(pos, bounds=self.BOUNDS,
+                                         intel=[[58.9, 16.4]], search=True,
+                                         state=state, unit="U1", unit_pos=pos)
+            self.assertIsNotNone(point, "站在情报点上必须有下一跳（不许返回 None）")
+            seen.append((round(float(point[0]), 1), round(float(point[1]), 1)))
+            pos = list(point)
+        self.assertGreater(len(set(seen)), 1,
+                           "必须持续换点推进，不许钉死在情报点：%s" % (seen,))
 
 
 if __name__ == "__main__":

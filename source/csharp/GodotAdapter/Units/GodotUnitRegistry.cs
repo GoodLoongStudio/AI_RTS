@@ -63,7 +63,24 @@ public sealed class GodotUnitRegistry : IUnitCommandUnitRepository
             position,
             hp.VariantType == Variant.Type.Nil || hp.AsSingle() > 0.0f,
             hp.VariantType == Variant.Type.Nil ? 0.0f : hp.AsSingle(),
-            unit.Get("hp_max").VariantType == Variant.Type.Nil ? 0.0f : unit.Get("hp_max").AsSingle());
+            unit.Get("hp_max").VariantType == Variant.Type.Nil ? 0.0f : unit.Get("hp_max").AsSingle(),
+            ConstructionWorkRateOf(unit));
+    }
+
+    /// <summary>读取施工工效倍率；缺失或非法值一律回退 1.0（默认速度）。</summary>
+    /// <remarks>
+    /// 每 Tick 工作量是整数（`construction_work_per_tick` 通常为 1），倍率直接乘上去会被
+    /// 取整吃掉（1 × 1.3 = 1）⇒ 倍率必须单独走这个浮点属性，由施工服务按小数累加。
+    /// </remarks>
+    private static float ConstructionWorkRateOf(Node unit)
+    {
+        var value = unit.Get("construction_work_rate");
+        if (value.VariantType == Variant.Type.Nil)
+        {
+            return 1.0f;
+        }
+        var rate = value.AsSingle();
+        return float.IsFinite(rate) && rate > 0.0f ? rate : 1.0f;
     }
 
     /// <summary>尝试取得仍有效且位于 SceneTree 中的单位节点。</summary>
