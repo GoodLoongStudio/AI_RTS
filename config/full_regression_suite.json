@@ -25,7 +25,13 @@
     "res://tests/automated/GroundingScreenshotTest.tscn",
     "res://tests/automated/NoEnemyAdjutantRepro.tscn",
     "res://tests/automated/RealCombatDestructionTest.tscn",
-    "res://tests/automated/StructureGhostCleanupTest.tscn"
+    "res://tests/automated/StructureGhostCleanupTest.tscn",
+    "res://tests/automated/EnemyBuildingDeathGhostTest.tscn",
+    "res://tests/automated/EnemyDeathVisualTest.tscn",
+    "res://tests/automated/GhostLeakOnDeathFrameTest.tscn",
+    "res://tests/automated/LiveDcsMatchBoot.tscn",
+    "res://tests/automated/LiveEnemyBuildingDeathTest.tscn",
+    "res://tests/automated/PostDestructionScanTest.tscn"
   ],
   "godot_tests": [
     {
@@ -713,6 +719,20 @@
       "category": "combat",
       "scene": "res://tests/automated/StructureDestructionTest.tscn",
       "id": "structure-destruction"
+    },
+    {
+      "category": "combat",
+      "expected_marker": "Target acquisition grid smoke test completed: 0 failure(s)",
+      "id": "target-acquisition-grid",
+      "scene": "res://tests/automated/TargetAcquisitionGridSmokeTest.tscn",
+      "timeout_seconds": 120
+    },
+    {
+      "expected_marker": "Audio persist: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "audio",
+      "scene": "res://tests/automated/AudioPersistTest.tscn",
+      "id": "audio-persist"
     }
   ]
 }

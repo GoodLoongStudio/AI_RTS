@@ -58,6 +58,8 @@ var _prev_physics_interpolation := true
 var last_physics_script_ms := 0.0
 var _physics_script_t0_us := 0
 var _physics_script_armed := false
+## 空间网格索敌索引（2026-09-26 优化）：`WaitingForTargets` 的候选筛选源。
+var _target_grid = null
 
 
 ## 返回当前战局模拟毫秒；树暂停时不会继续增加。
@@ -104,6 +106,7 @@ func _lock_large_map_before_first_frame() -> void:
 
 func _ready():
 	_ensure_match_augments()
+	_ensure_target_acquisition_grid()
 	if NetSession.is_networked():
 		# 防御：联机模式下加载 NetSync。在 C# 项目编译后环境下
 		# preload(...).new() 会触发 “Nonexistent function 'new' in base 'GDScript'”，
@@ -740,6 +743,9 @@ func _setup_and_spawn_unit(unit, a_transform, player, mark_structure_under_const
 
 func _setup_unit_groups(unit, player):
 	unit.add_to_group("units")
+	# 空间网格索敌索引：所有单位/建筑的注册漏斗（出场入口与预置单位都经过这里）。
+	if _target_grid != null:
+		_target_grid.register(unit)
 	if player == get_local_player():
 		unit.add_to_group("controlled_units")
 	else:
@@ -759,6 +765,24 @@ func _ensure_match_augments() -> void:
 		var runtime: Node = AugmentRuntimeScript.new()
 		runtime.name = "AugmentRuntime"
 		add_child(runtime)
+
+
+## 空间网格索敌索引：必须在 `_setup_players()`/`_setup_player_units()` 之前建好，
+## 预置单位的注册漏斗 `_setup_unit_groups()` 才有地方写。
+## AIRTS_TARGETING=baseline 时完全不创建（性能对照基线 = 旧代码等价形态）。
+func _ensure_target_acquisition_grid() -> void:
+	if get_node_or_null("TargetAcquisitionGrid") != null:
+		return
+	if OS.get_environment("AIRTS_TARGETING") == "baseline":
+		return
+	var grid_script: Script = load("res://source/match/TargetAcquisitionGrid.gd") as Script
+	if grid_script == null:
+		push_warning("TargetAcquisitionGrid 脚本加载失败，索敔回退全场组扫描")
+		return
+	var grid: Node = grid_script.new()
+	grid.name = "TargetAcquisitionGrid"
+	add_child(grid)
+	_target_grid = grid
 
 
 func get_local_player():

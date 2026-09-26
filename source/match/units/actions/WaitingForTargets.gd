@@ -15,6 +15,8 @@ var _timer = null
 var _sub_action = null
 ## 是否正在"回岗位点"的归途中（归途可被敌人进视野打断）。
 var _returning_home = false
+## 空间网格索敌索引（Match 级，2026-09-26 优化）。为 null 时回退全场组扫描。
+var _target_grid = null
 
 @onready var _unit = Utils.NodeEx.find_parent_with_group(self, "units")
 @onready var _command_runtime = null
@@ -30,9 +32,27 @@ func _ready():
 		var match_node = _unit.find_parent("Match")
 		if match_node != null:
 			_command_runtime = match_node.get_node_or_null("CommandRuntime")
+			_target_grid = match_node.get_node_or_null("TargetAcquisitionGrid")
 	_timer = Timer.new()
 	_timer.timeout.connect(_on_timer_timeout)
 	add_child(_timer)
+	_start_acquisition_timer(true)
+
+
+## 索敌计时器：稳态周期恒为 REFRESH_INTERVAL（~167ms），AI 反应节奏不变。
+## 错峰：首个回调按网格分配的相位槽推迟（slot/STAGGER_SLOTS 个周期），
+## 把 N 个单位原本"同帧对齐"的全场扫描摊开到一个索敌周期内——
+## 相位由注册顺序决定（稳定、可复现，不用随机数或墙上时钟）。
+## 玩家显式命令与战斗策略变化的立即刷新（refresh_combat_policy）不走本队列。
+func _start_acquisition_timer(first: bool) -> void:
+	if first and _target_grid != null and _target_grid.use_stagger and _unit != null:
+		_timer.one_shot = true
+		_timer.start(
+			REFRESH_INTERVAL * float(_target_grid.get_phase_slot(_unit))
+			/ float(_target_grid.STAGGER_SLOTS)
+		)
+		return
+	_timer.one_shot = false
 	_timer.start(REFRESH_INTERVAL)
 
 
@@ -79,21 +99,35 @@ func _get_units_to_attack():
 			guard_anchor * Vector3(1, 0, 1)
 		) > _unit.sight_range * GUARD_MAX_CHASE_FACTOR:
 			return []
-	return get_tree().get_nodes_in_group("units").filter(
+	# 索敌圆心 = **本单位自己的位置**（用户口径 2026-09-22：敌方单位进入
+	# 本单位视野就该打）。警戒旧口径拿"岗位点"当圆心——单位一旦离开岗位
+	# （归途/被命令挪动），贴着他身边的敌人反而进不了索敌圈，单位站着挨打。
+	var detection_origin: Vector3 = _unit.global_position_yless
+	var detection_range: float = _unit.sight_range
+	if stance == "HoldGround":
+		detection_range = _unit.attack_range
+	# 候选筛选源（2026-09-26 优化）：默认走 Match 级空间网格（XZ 分格，
+	# 覆盖检测圆的所有格子，不只 9 宫格）；敌我/域/姿态/有效性仍在此处按
+	# 原规则精确检查。AIRTS_TARGETING=basestats/baseline 时回退全场组扫描。
+	var scan_t0 := Time.get_ticks_usec()
+	var candidates: Array = (
+		_target_grid.acquire_candidates(detection_origin, detection_range)
+		if _target_grid != null
+		else get_tree().get_nodes_in_group("units")
+	)
+	var result := candidates.filter(
 		func(unit):
-			# 索敌圆心 = **本单位自己的位置**（用户口径 2026-09-22：敌方单位进入
-			# 本单位视野就该打）。警戒旧口径拿"岗位点"当圆心——单位一旦离开岗位
-			# （归途/被命令挪动），贴着他身边的敌人反而进不了索敌圈，单位站着挨打。
-			var detection_origin: Vector3 = _unit.global_position_yless
-			var detection_range: float = _unit.sight_range
-			if stance == "HoldGround":
-				detection_range = _unit.attack_range
 			return (
-				unit.player != _unit.player
+				is_instance_valid(unit)
+				and unit.player != _unit.player
 				and unit.movement_domain in _unit.attack_domains
 				and detection_origin.distance_to(unit.global_position_yless) <= detection_range
 			)
 	)
+	# 诊断：索敌总耗时 = 候选收集 + 精确过滤（基线/网格两口径对称计入）。
+	if _target_grid != null:
+		_target_grid.note_scan(candidates.size(), Time.get_ticks_usec() - scan_t0)
+	return result
 
 
 func _attack_unit(unit):
@@ -121,6 +155,10 @@ func force_attack(target_unit) -> bool:
 
 
 func _on_timer_timeout():
+	if _timer.one_shot:
+		# 相位偏移的首跑结束 → 转入标准周期（此后一直重复，动作期间只摘回调不停表，
+		# 攻击开始/结束不会让相位重新扎堆）。
+		_start_acquisition_timer(false)
 	if _command_runtime == null:
 		# 单位创建早于 Match 就绪时 @onready 解析为 Nil（基线既有问题），
 		# 每个计时周期静默跳过，避免对 Nil 调 C# 方法刷屏。
@@ -182,13 +220,20 @@ func _abort_return_home():
 
 static func _pick_closest_unit(units, unit):
 	assert(not units.is_empty())
-	var distance_to_closest_unit = unit.global_position_yless.distance_to(
-		units[0].global_position_yless
-	)
-	var closest_unit = units[0]
+	# 平方距离与距离同序，省掉每候选一次 sqrt。
+	# 等距目标的 tie-break 用 instance_id（稳定、与遍历顺序无关）：
+	# 不允许候选来源的遍历顺序（格子顺序/组顺序）让单位在等距目标间随机换目标。
+	var distance_to_closest_unit := INF
+	var closest_unit = null
 	for unit_to_check in units:
-		var distance = unit.global_position_yless.distance_to(unit_to_check.global_position_yless)
-		if distance < distance_to_closest_unit:
+		var distance = unit.global_position_yless.distance_squared_to(
+			unit_to_check.global_position_yless
+		)
+		if distance < distance_to_closest_unit or (
+			is_equal_approx(distance, distance_to_closest_unit)
+			and closest_unit != null
+			and unit_to_check.get_instance_id() < closest_unit.get_instance_id()
+		):
 			distance_to_closest_unit = distance
 			closest_unit = unit_to_check
 	return closest_unit

@@ -1,0 +1,661 @@
+[gd_scene load_steps=20 format=3 uid="uid://tcq8nbsari5i"]
+
+[ext_resource type="PackedScene" uid="uid://camns8fqod8d4" path="res://source/match/Match.tscn" id="1_f87ft"]
+[ext_resource type="PackedScene" path="res://source/match/units/APC.tscn" id="pg_unit_0"]
+[ext_resource type="PackedScene" path="res://source/match/units/HeavyTank.tscn" id="pg_unit_1"]
+[ext_resource type="PackedScene" path="res://source/match/units/Infantry.tscn" id="pg_unit_2"]
+[ext_resource type="PackedScene" path="res://source/match/units/Sniper.tscn" id="pg_unit_3"]
+[ext_resource type="PackedScene" uid="uid://i58ffvwxbbwm" path="res://source/match/units/Tank.tscn" id="pg_unit_4"]
+[ext_resource type="Script" path="res://source/match/players/Player.gd" id="pg_enemy"]
+[ext_resource type="Script" path="res://tests/manual/Match.gd" id="2_iedaw"]
+[ext_resource type="Shader" path="res://source/shaders/3d/simple_fog_of_war.gdshader" id="2_ojmlq"]
+[ext_resource type="Script" path="res://source/data-model/MatchSettings.gd" id="4_xj1co"]
+[ext_resource type="PackedScene" uid="uid://dh8dedilkhuoy" path="res://source/match/players/human/Human.tscn" id="5_jt74q"]
+[ext_resource type="PackedScene" uid="uid://cbe63rdjw7y4p" path="res://source/match/maps/PlainAndSimple.tscn" id="10_3dtqy"]
+[ext_resource type="Shader" path="res://source/shaders/2d/white_transparent.gdshader" id="10_t0wf4"]
+
+[sub_resource type="Resource" id="Resource_e2qbq"]
+script = ExtResource("4_xj1co")
+players = Array[Resource]([])
+visibility = 1
+visible_player = 0
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_v46ss"]
+viewport_path = NodePath("FogOfWar/CombinedViewport")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_67o07"]
+resource_local_to_scene = true
+render_priority = 1
+shader = ExtResource("2_ojmlq")
+shader_parameter/color = Color(0, 0, 0, 1)
+shader_parameter/texture_units_per_world_unit = 2
+shader_parameter/debug_texture_view = false
+shader_parameter/world_visibility_texture = SubResource("ViewportTexture_v46ss")
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_ysn5a"]
+viewport_path = NodePath("FogOfWar/CombinedViewport")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_7blp5"]
+resource_local_to_scene = true
+shader = ExtResource("10_t0wf4")
+shader_parameter/reference_texture = SubResource("ViewportTexture_ysn5a")
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_5lqnb"]
+viewport_path = NodePath("HUD/MarginContainer/Minimap/MarginContainer/MinimapViewport")
+
+[node name="Match" instance=ExtResource("1_f87ft")]
+script = ExtResource("2_iedaw")
+settings = SubResource("Resource_e2qbq")
+
+[node name="Map" parent="." index="0" instance=ExtResource("10_3dtqy")]
+
+[node name="Human" parent="Players" index="0" instance=ExtResource("5_jt74q")]
+
+[node name="ScreenOverlay" parent="FogOfWar" index="1"]
+material_override = SubResource("ShaderMaterial_67o07")
+
+[node name="FogOfWarMask" parent="HUD/MarginContainer/Minimap/MarginContainer/MinimapViewport" index="3"]
+material = SubResource("ShaderMaterial_7blp5")
+
+[node name="MinimapTextureRect" parent="HUD/MarginContainer/Minimap/MarginContainer" index="1"]
+texture = SubResource("ViewportTexture_5lqnb")
+[node name="Tank1" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.000, 0, 32.000)
+
+[node name="Tank2" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.000, 0, 32.000)
+
+[node name="HeavyTank3" parent="Players/Human" instance=ExtResource("pg_unit_1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16.000, 0, 32.000)
+
+[node name="Infantry4" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20.000, 0, 32.000)
+
+[node name="Infantry5" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.000, 0, 32.000)
+
+[node name="APC6" parent="Players/Human" instance=ExtResource("pg_unit_0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.000, 0, 32.000)
+
+[node name="Sniper7" parent="Players/Human" instance=ExtResource("pg_unit_3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32.000, 0, 32.000)
+
+[node name="Tank8" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36.000, 0, 32.000)
+
+[node name="Tank9" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.000, 0, 32.000)
+
+[node name="HeavyTank10" parent="Players/Human" instance=ExtResource("pg_unit_1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44.000, 0, 32.000)
+
+[node name="Infantry11" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48.000, 0, 32.000)
+
+[node name="Infantry12" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52.000, 0, 32.000)
+
+[node name="APC13" parent="Players/Human" instance=ExtResource("pg_unit_0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 56.000, 0, 32.000)
+
+[node name="Sniper14" parent="Players/Human" instance=ExtResource("pg_unit_3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60.000, 0, 32.000)
+
+[node name="Tank15" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64.000, 0, 32.000)
+
+[node name="Tank16" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 68.000, 0, 32.000)
+
+[node name="HeavyTank17" parent="Players/Human" instance=ExtResource("pg_unit_1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72.000, 0, 32.000)
+
+[node name="Infantry18" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 76.000, 0, 32.000)
+
+[node name="Infantry19" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80.000, 0, 32.000)
+
+[node name="APC20" parent="Players/Human" instance=ExtResource("pg_unit_0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 84.000, 0, 32.000)
+
+[node name="Sniper21" parent="Players/Human" instance=ExtResource("pg_unit_3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 88.000, 0, 32.000)
+
+[node name="Tank22" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 92.000, 0, 32.000)
+
+[node name="Tank23" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.000, 0, 36.000)
+
+[node name="HeavyTank24" parent="Players/Human" instance=ExtResource("pg_unit_1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.000, 0, 36.000)
+
+[node name="Infantry25" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16.000, 0, 36.000)
+
+[node name="Infantry26" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20.000, 0, 36.000)
+
+[node name="APC27" parent="Players/Human" instance=ExtResource("pg_unit_0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.000, 0, 36.000)
+
+[node name="Sniper28" parent="Players/Human" instance=ExtResource("pg_unit_3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.000, 0, 36.000)
+
+[node name="Tank29" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32.000, 0, 36.000)
+
+[node name="Tank30" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36.000, 0, 36.000)
+
+[node name="HeavyTank31" parent="Players/Human" instance=ExtResource("pg_unit_1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.000, 0, 36.000)
+
+[node name="Infantry32" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44.000, 0, 36.000)
+
+[node name="Infantry33" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48.000, 0, 36.000)
+
+[node name="APC34" parent="Players/Human" instance=ExtResource("pg_unit_0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52.000, 0, 36.000)
+
+[node name="Sniper35" parent="Players/Human" instance=ExtResource("pg_unit_3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 56.000, 0, 36.000)
+
+[node name="Tank36" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60.000, 0, 36.000)
+
+[node name="Tank37" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64.000, 0, 36.000)
+
+[node name="HeavyTank38" parent="Players/Human" instance=ExtResource("pg_unit_1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 68.000, 0, 36.000)
+
+[node name="Infantry39" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72.000, 0, 36.000)
+
+[node name="Infantry40" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 76.000, 0, 36.000)
+
+[node name="APC41" parent="Players/Human" instance=ExtResource("pg_unit_0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80.000, 0, 36.000)
+
+[node name="Sniper42" parent="Players/Human" instance=ExtResource("pg_unit_3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 84.000, 0, 36.000)
+
+[node name="Tank43" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 88.000, 0, 36.000)
+
+[node name="Tank44" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 92.000, 0, 36.000)
+
+[node name="HeavyTank45" parent="Players/Human" instance=ExtResource("pg_unit_1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.000, 0, 40.000)
+
+[node name="Infantry46" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.000, 0, 40.000)
+
+[node name="Infantry47" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16.000, 0, 40.000)
+
+[node name="APC48" parent="Players/Human" instance=ExtResource("pg_unit_0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20.000, 0, 40.000)
+
+[node name="Sniper49" parent="Players/Human" instance=ExtResource("pg_unit_3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.000, 0, 40.000)
+
+[node name="Tank50" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.000, 0, 40.000)
+
+[node name="Tank51" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32.000, 0, 40.000)
+
+[node name="HeavyTank52" parent="Players/Human" instance=ExtResource("pg_unit_1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36.000, 0, 40.000)
+
+[node name="Infantry53" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.000, 0, 40.000)
+
+[node name="Infantry54" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44.000, 0, 40.000)
+
+[node name="APC55" parent="Players/Human" instance=ExtResource("pg_unit_0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48.000, 0, 40.000)
+
+[node name="Sniper56" parent="Players/Human" instance=ExtResource("pg_unit_3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52.000, 0, 40.000)
+
+[node name="Tank57" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 56.000, 0, 40.000)
+
+[node name="Tank58" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60.000, 0, 40.000)
+
+[node name="HeavyTank59" parent="Players/Human" instance=ExtResource("pg_unit_1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64.000, 0, 40.000)
+
+[node name="Infantry60" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 68.000, 0, 40.000)
+
+[node name="Infantry61" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72.000, 0, 40.000)
+
+[node name="APC62" parent="Players/Human" instance=ExtResource("pg_unit_0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 76.000, 0, 40.000)
+
+[node name="Sniper63" parent="Players/Human" instance=ExtResource("pg_unit_3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80.000, 0, 40.000)
+
+[node name="Tank64" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 84.000, 0, 40.000)
+
+[node name="Tank65" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 88.000, 0, 40.000)
+
+[node name="HeavyTank66" parent="Players/Human" instance=ExtResource("pg_unit_1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 92.000, 0, 40.000)
+
+[node name="Infantry67" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.000, 0, 44.000)
+
+[node name="Infantry68" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.000, 0, 44.000)
+
+[node name="APC69" parent="Players/Human" instance=ExtResource("pg_unit_0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16.000, 0, 44.000)
+
+[node name="Sniper70" parent="Players/Human" instance=ExtResource("pg_unit_3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20.000, 0, 44.000)
+
+[node name="Tank71" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.000, 0, 44.000)
+
+[node name="Tank72" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.000, 0, 44.000)
+
+[node name="HeavyTank73" parent="Players/Human" instance=ExtResource("pg_unit_1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32.000, 0, 44.000)
+
+[node name="Infantry74" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36.000, 0, 44.000)
+
+[node name="Infantry75" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.000, 0, 44.000)
+
+[node name="APC76" parent="Players/Human" instance=ExtResource("pg_unit_0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44.000, 0, 44.000)
+
+[node name="Sniper77" parent="Players/Human" instance=ExtResource("pg_unit_3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48.000, 0, 44.000)
+
+[node name="Tank78" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52.000, 0, 44.000)
+
+[node name="Tank79" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 56.000, 0, 44.000)
+
+[node name="HeavyTank80" parent="Players/Human" instance=ExtResource("pg_unit_1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60.000, 0, 44.000)
+
+[node name="Infantry81" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64.000, 0, 44.000)
+
+[node name="Infantry82" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 68.000, 0, 44.000)
+
+[node name="APC83" parent="Players/Human" instance=ExtResource("pg_unit_0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72.000, 0, 44.000)
+
+[node name="Sniper84" parent="Players/Human" instance=ExtResource("pg_unit_3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 76.000, 0, 44.000)
+
+[node name="Tank85" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80.000, 0, 44.000)
+
+[node name="Tank86" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 84.000, 0, 44.000)
+
+[node name="HeavyTank87" parent="Players/Human" instance=ExtResource("pg_unit_1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 88.000, 0, 44.000)
+
+[node name="Infantry88" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 92.000, 0, 44.000)
+
+[node name="Infantry89" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.000, 0, 48.000)
+
+[node name="APC90" parent="Players/Human" instance=ExtResource("pg_unit_0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.000, 0, 48.000)
+
+[node name="Sniper91" parent="Players/Human" instance=ExtResource("pg_unit_3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16.000, 0, 48.000)
+
+[node name="Tank92" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20.000, 0, 48.000)
+
+[node name="Tank93" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.000, 0, 48.000)
+
+[node name="HeavyTank94" parent="Players/Human" instance=ExtResource("pg_unit_1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.000, 0, 48.000)
+
+[node name="Infantry95" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32.000, 0, 48.000)
+
+[node name="Infantry96" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36.000, 0, 48.000)
+
+[node name="APC97" parent="Players/Human" instance=ExtResource("pg_unit_0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.000, 0, 48.000)
+
+[node name="Sniper98" parent="Players/Human" instance=ExtResource("pg_unit_3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44.000, 0, 48.000)
+
+[node name="Tank99" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48.000, 0, 48.000)
+
+[node name="Tank100" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52.000, 0, 48.000)
+
+[node name="HeavyTank101" parent="Players/Human" instance=ExtResource("pg_unit_1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 56.000, 0, 48.000)
+
+[node name="Infantry102" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60.000, 0, 48.000)
+
+[node name="Infantry103" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64.000, 0, 48.000)
+
+[node name="APC104" parent="Players/Human" instance=ExtResource("pg_unit_0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 68.000, 0, 48.000)
+
+[node name="Sniper105" parent="Players/Human" instance=ExtResource("pg_unit_3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72.000, 0, 48.000)
+
+[node name="Tank106" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 76.000, 0, 48.000)
+
+[node name="Tank107" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80.000, 0, 48.000)
+
+[node name="HeavyTank108" parent="Players/Human" instance=ExtResource("pg_unit_1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 84.000, 0, 48.000)
+
+[node name="Infantry109" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 88.000, 0, 48.000)
+
+[node name="Infantry110" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 92.000, 0, 48.000)
+
+[node name="APC111" parent="Players/Human" instance=ExtResource("pg_unit_0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.000, 0, 52.000)
+
+[node name="Sniper112" parent="Players/Human" instance=ExtResource("pg_unit_3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.000, 0, 52.000)
+
+[node name="Tank113" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16.000, 0, 52.000)
+
+[node name="Tank114" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20.000, 0, 52.000)
+
+[node name="HeavyTank115" parent="Players/Human" instance=ExtResource("pg_unit_1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.000, 0, 52.000)
+
+[node name="Infantry116" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.000, 0, 52.000)
+
+[node name="Infantry117" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32.000, 0, 52.000)
+
+[node name="APC118" parent="Players/Human" instance=ExtResource("pg_unit_0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36.000, 0, 52.000)
+
+[node name="Sniper119" parent="Players/Human" instance=ExtResource("pg_unit_3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.000, 0, 52.000)
+
+[node name="Tank120" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44.000, 0, 52.000)
+
+[node name="Tank121" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48.000, 0, 52.000)
+
+[node name="HeavyTank122" parent="Players/Human" instance=ExtResource("pg_unit_1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52.000, 0, 52.000)
+
+[node name="Infantry123" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 56.000, 0, 52.000)
+
+[node name="Infantry124" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60.000, 0, 52.000)
+
+[node name="APC125" parent="Players/Human" instance=ExtResource("pg_unit_0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64.000, 0, 52.000)
+
+[node name="Sniper126" parent="Players/Human" instance=ExtResource("pg_unit_3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 68.000, 0, 52.000)
+
+[node name="Tank127" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72.000, 0, 52.000)
+
+[node name="Tank128" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 76.000, 0, 52.000)
+
+[node name="HeavyTank129" parent="Players/Human" instance=ExtResource("pg_unit_1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80.000, 0, 52.000)
+
+[node name="Infantry130" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 84.000, 0, 52.000)
+
+[node name="Infantry131" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 88.000, 0, 52.000)
+
+[node name="APC132" parent="Players/Human" instance=ExtResource("pg_unit_0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 92.000, 0, 52.000)
+
+[node name="Sniper133" parent="Players/Human" instance=ExtResource("pg_unit_3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.000, 0, 56.000)
+
+[node name="Tank134" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.000, 0, 56.000)
+
+[node name="Tank135" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16.000, 0, 56.000)
+
+[node name="HeavyTank136" parent="Players/Human" instance=ExtResource("pg_unit_1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20.000, 0, 56.000)
+
+[node name="Infantry137" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.000, 0, 56.000)
+
+[node name="Infantry138" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.000, 0, 56.000)
+
+[node name="APC139" parent="Players/Human" instance=ExtResource("pg_unit_0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32.000, 0, 56.000)
+
+[node name="Sniper140" parent="Players/Human" instance=ExtResource("pg_unit_3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36.000, 0, 56.000)
+
+[node name="Tank141" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.000, 0, 56.000)
+
+[node name="Tank142" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44.000, 0, 56.000)
+
+[node name="HeavyTank143" parent="Players/Human" instance=ExtResource("pg_unit_1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48.000, 0, 56.000)
+
+[node name="Infantry144" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52.000, 0, 56.000)
+
+[node name="Infantry145" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 56.000, 0, 56.000)
+
+[node name="APC146" parent="Players/Human" instance=ExtResource("pg_unit_0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60.000, 0, 56.000)
+
+[node name="Sniper147" parent="Players/Human" instance=ExtResource("pg_unit_3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64.000, 0, 56.000)
+
+[node name="Tank148" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 68.000, 0, 56.000)
+
+[node name="Tank149" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72.000, 0, 56.000)
+
+[node name="HeavyTank150" parent="Players/Human" instance=ExtResource("pg_unit_1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 76.000, 0, 56.000)
+
+[node name="Infantry151" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80.000, 0, 56.000)
+
+[node name="Infantry152" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 84.000, 0, 56.000)
+
+[node name="APC153" parent="Players/Human" instance=ExtResource("pg_unit_0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 88.000, 0, 56.000)
+
+[node name="Sniper154" parent="Players/Human" instance=ExtResource("pg_unit_3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 92.000, 0, 56.000)
+
+[node name="Tank155" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.000, 0, 60.000)
+
+[node name="Tank156" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.000, 0, 60.000)
+
+[node name="HeavyTank157" parent="Players/Human" instance=ExtResource("pg_unit_1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16.000, 0, 60.000)
+
+[node name="Infantry158" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20.000, 0, 60.000)
+
+[node name="Infantry159" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.000, 0, 60.000)
+
+[node name="APC160" parent="Players/Human" instance=ExtResource("pg_unit_0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.000, 0, 60.000)
+
+[node name="Sniper161" parent="Players/Human" instance=ExtResource("pg_unit_3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32.000, 0, 60.000)
+
+[node name="Tank162" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36.000, 0, 60.000)
+
+[node name="Tank163" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.000, 0, 60.000)
+
+[node name="HeavyTank164" parent="Players/Human" instance=ExtResource("pg_unit_1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44.000, 0, 60.000)
+
+[node name="Infantry165" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48.000, 0, 60.000)
+
+[node name="Infantry166" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52.000, 0, 60.000)
+
+[node name="APC167" parent="Players/Human" instance=ExtResource("pg_unit_0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 56.000, 0, 60.000)
+
+[node name="Sniper168" parent="Players/Human" instance=ExtResource("pg_unit_3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60.000, 0, 60.000)
+
+[node name="Tank169" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64.000, 0, 60.000)
+
+[node name="Tank170" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 68.000, 0, 60.000)
+
+[node name="HeavyTank171" parent="Players/Human" instance=ExtResource("pg_unit_1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72.000, 0, 60.000)
+
+[node name="Infantry172" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 76.000, 0, 60.000)
+
+[node name="Infantry173" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80.000, 0, 60.000)
+
+[node name="APC174" parent="Players/Human" instance=ExtResource("pg_unit_0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 84.000, 0, 60.000)
+
+[node name="Sniper175" parent="Players/Human" instance=ExtResource("pg_unit_3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 88.000, 0, 60.000)
+
+[node name="Tank176" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 92.000, 0, 60.000)
+
+[node name="Tank177" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.000, 0, 64.000)
+
+[node name="HeavyTank178" parent="Players/Human" instance=ExtResource("pg_unit_1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.000, 0, 64.000)
+
+[node name="Infantry179" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16.000, 0, 64.000)
+
+[node name="Infantry180" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20.000, 0, 64.000)
+
+[node name="APC181" parent="Players/Human" instance=ExtResource("pg_unit_0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.000, 0, 64.000)
+
+[node name="Sniper182" parent="Players/Human" instance=ExtResource("pg_unit_3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.000, 0, 64.000)
+
+[node name="Tank183" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32.000, 0, 64.000)
+
+[node name="Tank184" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36.000, 0, 64.000)
+
+[node name="HeavyTank185" parent="Players/Human" instance=ExtResource("pg_unit_1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.000, 0, 64.000)
+
+[node name="Infantry186" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44.000, 0, 64.000)
+
+[node name="Infantry187" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48.000, 0, 64.000)
+
+[node name="APC188" parent="Players/Human" instance=ExtResource("pg_unit_0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52.000, 0, 64.000)
+
+[node name="Sniper189" parent="Players/Human" instance=ExtResource("pg_unit_3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 56.000, 0, 64.000)
+
+[node name="Tank190" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60.000, 0, 64.000)
+
+[node name="Tank191" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 64.000, 0, 64.000)
+
+[node name="HeavyTank192" parent="Players/Human" instance=ExtResource("pg_unit_1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 68.000, 0, 64.000)
+
+[node name="Infantry193" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72.000, 0, 64.000)
+
+[node name="Infantry194" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 76.000, 0, 64.000)
+
+[node name="APC195" parent="Players/Human" instance=ExtResource("pg_unit_0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80.000, 0, 64.000)
+
+[node name="Sniper196" parent="Players/Human" instance=ExtResource("pg_unit_3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 84.000, 0, 64.000)
+
+[node name="Tank197" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 88.000, 0, 64.000)
+
+[node name="Tank198" parent="Players/Human" instance=ExtResource("pg_unit_4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 92.000, 0, 64.000)
+
+[node name="HeavyTank199" parent="Players/Human" instance=ExtResource("pg_unit_1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.000, 0, 68.000)
+
+[node name="Infantry200" parent="Players/Human" instance=ExtResource("pg_unit_2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.000, 0, 68.000)
+

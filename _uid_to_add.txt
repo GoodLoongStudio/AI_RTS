@@ -1,0 +1,9 @@
+tests/automated/EnemyBuildingDeathGhostTest.gd.uid
+tests/automated/EnemyDeathVisualTest.gd.uid
+tests/automated/GhostLeakOnDeathFrameTest.gd.uid
+tests/automated/LiveDcsMatchBoot.gd.uid
+tests/automated/LiveEnemyBuildingDeathTest.gd.uid
+tests/automated/PostDestructionScanTest.gd.uid
+tests/automated/RealCombatDestructionTest.gd.uid
+tests/automated/StructureDestructionTest.gd.uid
+tests/automated/StructureGhostCleanupTest.gd.uid

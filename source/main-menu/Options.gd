@@ -334,11 +334,14 @@ func _on_audio_slider_changed(value: float, key: String):
 
 
 ## 总开关回调：勾选 = 关闭所有声音（取反后写入 Globals 并实时静音 Master）。
+## 【2026-09-26 用户要求"设置里的保存一定要能生效"】总开关是低频操作，
+## **立即落盘**而不走 0.25s 防抖——防抖窗口内关游戏/关设置，这次改动就丢了，
+## 用户看到的就是"保存了但下次启动又有声"。与屏幕/分辨率下拉同一口径。
 func _on_sound_toggle_toggled(pressed: bool):
 	Globals.set_sound_enabled(not pressed)
 	_refresh_audio_controls_live()
 	_refresh_audio_controls_enabled()
-	_queue_save()
+	_save_options()
 
 
 ## 关闭声音时让分类滑条置灰（视觉上说明"当前被总开关管着"），不删交互。
