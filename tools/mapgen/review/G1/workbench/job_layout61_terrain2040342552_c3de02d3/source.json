@@ -1,0 +1,40 @@
+{
+  "job_id": "c3de02d3d6bb466a9d486089c0215c09",
+  "seed": 61,
+  "terrain": 2040342552,
+  "target": "full",
+  "status": "done",
+  "title": "布局 61 · 地貌 2040342552",
+  "label": null,
+  "map_pass": false,
+  "created_at": "2026-09-24T15:38:54",
+  "reverified_with_current_code": false,
+  "visual_version": 1,
+  "visual_profile": "default",
+  "map_id": null,
+  "checks_summary": {
+    "g2_pass": true,
+    "g3_pass": false,
+    "engine_pass": null
+  },
+  "failed_paths": [],
+  "failed_forbidden": [],
+  "nav_all": null,
+  "smoke_assertions": {},
+  "stages": {
+    "G1": {
+      "state": "通过",
+      "images": [
+        "contact.png"
+      ],
+      "preview": "contact.png",
+      "version": "2.0.0",
+      "history_versions": []
+    }
+  },
+  "folder": "job_layout61_terrain2040342552_c3de02d3",
+  "gate": "G1",
+  "source_job": "G:\\AIRTS\\AI_RTS\\tools\\mapgen\\workbench_output\\c3de02d3d6bb466a9d486089c0215c09\\job.json",
+  "synced_at": "2026-09-24T15:39:13",
+  "note": "图像来自本任务权威数据/真实引擎输出；生成或导航通过不等于实战通过。"
+}

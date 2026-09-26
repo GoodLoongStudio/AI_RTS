@@ -10,7 +10,7 @@ def _flat_h(x, z):
     return 0.6
 
 
-def make_bridge(a=(75.0, 148.0), b=(93.0, 170.0), width=8.0):
+def make_bridge(a=(75.0, 148.0), b=(93.0, 170.0), width=12.0):
     return ba.build_bridge_assembly(dict(a=list(a), b=list(b), width=width), _flat_h)
 
 
@@ -24,16 +24,20 @@ def test_deck_top_is_shore_plus_offset():
 def test_clear_width_accounts_for_rails():
     asm = make_bridge()
     # 护栏侵占计入通行净宽：净宽 = 桥宽 - 2*护栏宽 < 桥宽
-    assert asm["meta"]["clear_width"] == pytest.approx(8.0 - 2 * ba.RAIL_WIDTH, abs=1e-6)
+    assert asm["meta"]["clear_width"] == pytest.approx(12.0 - 2 * ba.RAIL_WIDTH, abs=1e-6)
     assert asm["meta"]["clear_width"] < asm["meta"]["deck_width"]
     for w in asm["walk"]:
         assert w["width"] == pytest.approx(asm["meta"]["clear_width"], abs=1e-6)
 
 
-def test_parts_use_approved_four_pieces():
+def test_parts_use_approved_pieces():
+    # 2026-09-24 用户反馈"桥两端那 2 个柱子不方便寻路"：端立柱已移除
+    # （它内缘压在可走净宽内约 0.43m，站在坡口行走线上，单位穿柱而过）。
+    # 现行组合 = deck + end + rail 三种。
     asm = make_bridge()
     kinds = {p["kind"] for p in asm["parts"]}
-    assert kinds == {"deck", "end", "rail", "pillar"}
+    assert kinds == {"deck", "end", "rail"}
+    assert not any(p["kind"] == "pillar" for p in asm["parts"])
     # 每岸仅一层收口（2 个 end），两侧连续护栏（2 个 rail）
     assert sum(1 for p in asm["parts"] if p["kind"] == "end") == 2
     assert sum(1 for p in asm["parts"] if p["kind"] == "rail") == 2

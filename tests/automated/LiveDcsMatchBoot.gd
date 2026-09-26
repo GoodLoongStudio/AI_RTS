@@ -11,7 +11,7 @@ extends Node
 
 const MatchSettings = preload("res://source/data-model/MatchSettings.gd")
 
-const MAP_SCENE := "res://source/match/maps/generated/49-1376088014/map_49-1376088014.tscn"
+const MAP_SCENE := "res://source/match/maps/generated/31-1319582492-767a002977/map_31-1319582492-767a002977.tscn"
 
 
 func _ready():

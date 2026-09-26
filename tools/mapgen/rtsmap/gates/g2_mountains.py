@@ -24,7 +24,16 @@ def remove_thin_spurs(mask, radius=MIN_RADIUS):
     return opened[radius+1:-radius-1, radius+1:-radius-1]
 
 
-def mountain_cover(base, forbidden, target_fraction, rng, source):
+def mountain_cover(base, forbidden, target_fraction, rng, source, water=None, keep_clear=None, hard=None):
+    """按目标阻碍率铺山体。
+
+    2026-09-24 修两处让 40% 阻碍率重新可达的问题（256m 图实测）：
+    ① 净空基准改为**硬禁区**（台地/出生点/崖/水域构造 + 桥口），不再把整条国道
+       走廊外撑 10m——国道只保中心走廊（调用方传进来的 forbidden），肩部留给山体。
+       旧实现可用面仅 ~8%，天花板 ~28%，40% 结构性不可达。
+    ② 水面本身仍不可建，但不再向外撑 10m 禁带：河岸本就是山体属地
+       （docs/plan/mountain-foot-moat-plan.md 的“山脚”语义），贴河岸铺山更自然。
+    """
     h, w = base.shape
     # Smooth, anisotropic regional relief creates connected ridges instead of
     # independently scattered rocks. Clearance softens their corridor edges.
@@ -33,9 +42,14 @@ def mountain_cover(base, forbidden, target_fraction, rng, source):
     field = ndimage.gaussian_filter(field, 3.)
     if rng.integers(2):
         field = field.T.copy()
-    clearance = ndimage.distance_transform_edt(~forbidden)
+    _water = np.asarray(water, dtype=bool) if water is not None else np.zeros_like(base, dtype=bool)
+    _keep = np.asarray(keep_clear, dtype=bool) if keep_clear is not None else np.zeros_like(base, dtype=bool)
+    # 净空只相对硬禁区 + 桥口计算（见 docstring ①②）；forbidden 仍是禁入面。
+    _hard = np.asarray(hard, dtype=bool) if hard is not None else forbidden
+    _no_water = (_hard | _keep) & ~_water
+    clearance = ndimage.distance_transform_edt(~_no_water)
     scores = field + np.minimum(clearance, 22.) / 11.
-    available = ~forbidden & (clearance > 10.)
+    available = ~forbidden & (clearance > 3.)
     indices = np.flatnonzero(available)
     target = int(round(target_fraction * base.size))
     ordered = indices[np.argsort(scores.ravel()[indices], kind='stable')]
@@ -50,12 +64,15 @@ def mountain_cover(base, forbidden, target_fraction, rng, source):
         if count:
             cover.ravel()[ordered[-count:]] = True
         cover = remove_thin_spurs(close_narrow_gaps(cover) & available)
-        for _ in range(6):
+        # 连通兜底：把与主区不连通的“口袋”就地填成山体。原实现只 dilate 岛屿一圈
+        # （且把圈加进 cover 后下一轮再无新圈可加），深口袋填不掉 → open_single_pass
+        # 偶发失败。改为直接吞掉岛屿本身，迭代到没有新口袋为止。
+        for _ in range(24):
             walk = compute_passable(base | cover)
             labels, _ = ndimage.label(walk)
             main = labels[source]
             islands = (labels > 0) & (labels != main)
-            fill = dilate8(islands) & ~forbidden
+            fill = islands & ~forbidden
             if not fill.any():
                 break
             cover |= fill

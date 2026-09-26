@@ -53,20 +53,24 @@ def json_safe(value):
 
 
 def summary(spec):
-    sm = spec['strategy_metrics']
+    sm = spec.get('strategy_metrics') or {}
+    # 保底烘焙（g2_bake）产出的 spec 不带 strategy_metrics / plateau_fair_ratio 等
+    # 派生量。这里一律 .get 兜底：汇总代码抛异常会让整次任务判 error，
+    # 游戏只能退回旧图——用户看到的"随机地图是旧方案"正是这条链的末端。
     return dict(version=spec['algo_version'], all_pass=spec['all_pass'],
                 solid_percent=round(spec['solid_frac'] * 100, 1),
-                plateaus=len(spec['plateaus']), crossings=sm['crossings'],
-                plateau_top_percent=round(sm.get('plateau_top_fraction',0)*100,1),
+                plateaus=len(spec['plateaus']), crossings=sm.get('crossings', 0),
+                plateau_top_percent=round(sm.get('plateau_top_fraction', 0) * 100, 1),
                 rivers=len(spec.get('rivers', [])), lakes=len(spec.get('lakes', [])),
                 lake_area_m2=sum(lake['area_m2'] for lake in spec.get('lakes', [])),
                 river_width_m=round(sum(rv['width'] for rv in spec.get('rivers', [])) / len(spec['rivers']), 1) if spec.get('rivers') else 0,
-                nearest_pair_m=round(min(math.dist(a,b) for i,a in enumerate(spec['starts']) for b in spec['starts'][i+1:]), 1),
-                neutral_ratio=spec['plateau_fair_ratio'], expansion_ratio=sm['expansion_ratio'],
-                neighbor_ratio=spec['path_fairness']['flank_ratio'],
-                min_route_width=min(spec['lane_widths'].values(), default=None),
-                chosen_attempt=spec['generation']['chosen_attempt'],
-                checks=spec['checks'], attempts=spec['generation']['attempts'])
+                nearest_pair_m=round(min(math.dist(a, b) for i, a in enumerate(spec['starts']) for b in spec['starts'][i+1:]), 1),
+                neutral_ratio=spec.get('plateau_fair_ratio'),
+                expansion_ratio=sm.get('expansion_ratio'),
+                neighbor_ratio=(spec.get('path_fairness') or {}).get('flank_ratio'),
+                min_route_width=min((spec.get('lane_widths') or {}).values(), default=None),
+                chosen_attempt=(spec.get('generation') or {}).get('chosen_attempt'),
+                checks=spec['checks'], attempts=(spec.get('generation') or {}).get('attempts'))
 
 
 class Workbench:

@@ -2,6 +2,12 @@ extends Node
 
 ## **帧率治理**（用户 2026-09-15：锁 30 帧减轻负载；单位多仍可再降画质）。
 ##
+## 【2026-09-24 用户明确要求删掉"降画质提帧率"】"这个对于游戏体感非常差"。
+## 动态画质（前馈按单位数 + 反馈按帧时自动切 tier）已**默认关闭**：治理器只保留
+## 锁 30 帧与 `op=perf` 统计，不再改动任何渲染档位。`user://performance.cfg`
+## 里的 `dynamic_quality` 置 true 可临时打开（供压测对比），默认值见
+## `DYNAMIC_QUALITY_DEFAULT`。真正要提帧请用设置里的画质选项手动选。
+##
 ## ## 两条腿，缺一条都不稳
 ## ① **前馈（单位数）**：用户点名的那条 —— "单位多就降低渲染效果"。
 ##    单位数是**提前量**：等 FPS 掉下来再降，玩家已经卡了一下（而单位数涨是可预见的）。
@@ -20,6 +26,8 @@ extends Node
 ## 随每轮 10Hz 采样上报（`op=perf` 与 `fast_state`），于是**每局档案里都有画质轨迹**。
 
 const CONFIG_PATH := "user://performance.cfg"
+##: 动态画质总开关（false = 永不自动升降画质档）。用户 2026-09-24 要求默认关闭。
+const DYNAMIC_QUALITY_DEFAULT := false
 ##: 默认帧率上限（用户 2026-09-15 要求锁 30）。旧配置里的 60 会迁到 30。
 const DEFAULT_MAX_FPS := 30
 ##: 锁 30 后的升降档：低于约 80% 上限才降，接近上限才升。
@@ -251,7 +259,7 @@ static func change_text(tier: int, stats: Dictionary, previous: int) -> String:
 ##: 当前档位（0 = 最高画质）。
 var tier := 0
 ##: 是否启用（headless 专用服恒为 false：没有渲染可调）。
-var enabled := true
+var enabled := DYNAMIC_QUALITY_DEFAULT
 ##: 帧率上限（写进 `Engine.max_fps`）。
 var max_fps := DEFAULT_MAX_FPS
 ##: 降档门槛（帧率低于它才算"真卡"）。`user://performance.cfg` 的 `down_fps` 可覆盖。
@@ -298,11 +306,11 @@ func _ready() -> void:
 		set_process(false)
 		return
 	_original = _snapshot()
+	# 帧率上限**始终**生效：它是"锁 30 帧"（用户 2026-09-15 要求），与"动态降画质"
+	# （用户 2026-09-24 要求删掉）是两件事，不跟着 enabled 一起关。
+	Engine.max_fps = int(max_fps)
 	if enabled:
-		Engine.max_fps = int(max_fps)
 		_apply_tier(0, "start")
-	else:
-		Engine.max_fps = int(_original.get("max_fps", 0))
 	if show_toast:
 		_build_toast()
 	print("[PERF] 帧率治理已启动：上限 %d 帧，动态画质=%s，换档提示=%s"
@@ -555,7 +563,8 @@ func _load_config() -> void:
 	var config := ConfigFile.new()
 	if config.load(CONFIG_PATH) != OK:
 		return
-	enabled = bool(config.get_value("performance", "dynamic_quality", true))
+	enabled = bool(config.get_value("performance", "dynamic_quality",
+		DYNAMIC_QUALITY_DEFAULT))
 	var loaded_fps := int(config.get_value("performance", "max_fps", DEFAULT_MAX_FPS))
 	max_fps = mini(loaded_fps, DEFAULT_MAX_FPS)
 	# 旧锁 60 的降档门槛 50 会把锁 30 误判成掉帧，一并迁到新默认。

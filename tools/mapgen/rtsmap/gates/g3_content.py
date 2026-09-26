@@ -131,7 +131,12 @@ def place_resources(grid, spec, lanes, params, rng, exp_anchor_masks=None, flank
             for s in starts:
                 cand &= np.hypot(xs - s[0], ys - s[1]) >= params["res_spawn_dist"]
             for p in placed:
-                cand &= np.hypot(xs - (p["j"] + 0.5), ys - (p["i"] + 0.5)) >= params["res_gap"]
+                # 资源间距按【格心对格心】算：候选格落子后中心是 (j+0.5, i+0.5)，
+                # 已落资源中心同样是 (p.j+0.5, p.i+0.5)，两者相差就是格差。
+                # 原实现拿候选格整数坐标比资源中心，距离最多虚高 ~0.7m，
+                # 斜向相隔 2 格（实距 2.83m）会被判成 3.54m 放过 ——
+                # test_resource_clearance 的 3m 净空就是这么被破的（2026-09-24 定位）。
+                cand &= np.hypot(xs - p["j"], ys - p["i"]) >= params["res_gap"]
             cell = None
             if path_range is not None and dm is not None:
                 idx = np.argwhere(cand)
@@ -162,16 +167,25 @@ def place_resources(grid, spec, lanes, params, rng, exp_anchor_masks=None, flank
     # （M ≥ pmax/1.3 且 M ≤ 1.3·pmin 的交集）；无解时取中位并靠 place_one 的
     # "最接近 target" 选格尽量逼近。96m 的固定 18–28m 在 256m 上不可满足（锚距 14–44m）。
     rel_lo, rel_hi = params["expansion_band_rel"]
+    # 扩张锚点可能为空：G2 地貌检查不过时 pipeline 会用 g2_bake.bake_playable
+    # 保底出图（2026-09-20 起），那条路径的 mapspec 里 expansion_anchors 是空表。
+    # 这里按"无锚点"降级：只留扩张口袋 + 固定距离下界，绝不按下标取锚点
+    # （否则 IndexError 让整次生成失败，游戏只能退回旧图——用户看到的
+    # "台地/坡道/山地是旧方案"正是这条链的末端）。
+    exp_anchors = list(spec.get("expansion_anchors") or [])
     pools = []
     for i in range(4):
         mask_i = (exp_anchor_masks[i] if exp_anchor_masks is not None and
                   i < len(exp_anchor_masks) else (region == (40 + i)))
         mask_i = mask_i | (region == (40 + i))   # 口袋并锚点盘
-        # v6：并入扩张接入走廊（防守环漏斗使口袋内路径偏斜，走廊拓宽可达距离池）
-        mask_i = mask_i | segment_mask(starts[i], tuple(spec["expansion_anchors"][i]),
-                                       params.get("expansion_connector_width", 8.0) + 2.0)
-        d0 = math.hypot(spec["expansion_anchors"][i][0] - starts[i][0],
-                        spec["expansion_anchors"][i][1] - starts[i][1])
+        if i < len(exp_anchors):
+            # v6：并入扩张接入走廊（防守环漏斗使口袋内路径偏斜，走廊拓宽可达距离池）
+            mask_i = mask_i | segment_mask(starts[i], tuple(exp_anchors[i]),
+                                           params.get("expansion_connector_width", 8.0) + 2.0)
+            d0 = math.hypot(exp_anchors[i][0] - starts[i][0],
+                            exp_anchors[i][1] - starts[i][1])
+        else:
+            d0 = 0.0
         lo_i = max(params["expansion_band_min"], rel_lo * d0)
         cand = mask_i & ~blocking.astype(bool) & (overlay == 0) & clear2 & (lane_core == 0)
         dm = df[i]
@@ -245,9 +259,21 @@ def place_resources(grid, spec, lanes, params, rng, exp_anchor_masks=None, flank
         name = next((n for n in lanes if n.startswith(f"pair_{k}_")), None)
         return lanes[name]["pair"] if name else None
 
-    def shared_candidates(k, exclude_ij=None, strict_ratio=True):
+    def shared_candidates(k, exclude_ij=None, strict_ratio=True, mask_override=None):
         pair = flank_pair(k)
-        reg_mask = flank_masks[k] if flank_masks is not None else (region == (30 + k))
+        if pair is None or len(pair) < 2:
+            # 保底烘焙图不产出 pair_k_* 车道：这对侧翼没有"两家之间的中间点"语义，
+            # 无从做路径差公平判定。返回空候选（调用方按"无候选"记 failure），
+            # 不抛异常——G3 崩掉会让整次生成失败、游戏只能退回旧图。
+            return None, None, None
+        # flank_masks 可能比侧翼数短（保底烘焙图的 flank_anchors 为空表）：
+        # 长度不够就退回 region 号判据，别按下标直接取。mask_override 供 B 资源
+        # 锚点盘太挤时放宽搜索用。
+        if mask_override is not None:
+            reg_mask = mask_override
+        else:
+            reg_mask = (flank_masks[k] if flank_masks is not None and k < len(flank_masks)
+                        else (region == (30 + k)))
         cand = reg_mask.copy()
         cand &= ~blocking.astype(bool) & (overlay == 0) & clear2 & (lane_core == 0)
         d_i, d_j = df[pair[0]], df[pair[1]]
@@ -264,16 +290,28 @@ def place_resources(grid, spec, lanes, params, rng, exp_anchor_masks=None, flank
         for p in placed:
             if exclude_ij is not None and (p["i"], p["j"]) == exclude_ij:
                 continue
-            cand &= np.hypot(xs - (p["j"] + 0.5), ys - (p["i"] + 0.5)) >= params["res_gap"]
+            # 资源间距按【格心对格心】算：候选格落子后中心是 (j+0.5, i+0.5)，
+            # 已落资源中心同样是 (p.j+0.5, p.i+0.5)，两者相差就是格差。
+            # 原实现拿候选格整数坐标比资源中心，距离最多虚高 ~0.7m，
+            # 斜向相隔 2 格（实距 2.83m）会被判成 3.54m 放过 ——
+            # test_resource_clearance 的 3m 净空就是这么被破的（2026-09-24 定位）。
+            cand &= np.hypot(xs - p["j"], ys - p["i"]) >= params["res_gap"]
         for s in starts:
             cand &= np.hypot(xs - s[0], ys - s[1]) >= params["res_spawn_dist"]
         return cand, d_i, d_j
 
-    def place_shared_at(cand, d_i, d_j, type_code, k, prefer_player=None):
+    def place_shared_at(cand, d_i, d_j, type_code, k, prefer_player=None, avoid_player=None):
         idx = np.argwhere(cand)
         if len(idx) == 0:
             return None
-        if prefer_player is not None:
+        if avoid_player is not None:
+            # 公平修正用：把资源搬得**离这家更远**（该家 shared 路径和偏小时）。
+            # 与 prefer_player 对称：取最远的 25% 里随机一个。
+            dvals = df[avoid_player][idx[:, 0], idx[:, 1]]
+            order = np.argsort(-dvals, kind="stable")
+            k_top = max(1, int(round(len(order) * 0.25)))
+            pick = int(order[int(rng.integers(0, k_top))])
+        elif prefer_player is not None:
             dvals = df[prefer_player][idx[:, 0], idx[:, 1]]
             order = np.argsort(dvals, kind="stable")
             k_top = max(1, int(round(len(order) * 0.25)))
@@ -298,10 +336,10 @@ def place_resources(grid, spec, lanes, params, rng, exp_anchor_masks=None, flank
     ck = {}
     for k in range(4):
         cand, d_i, d_j = shared_candidates(k, strict_ratio=True)
-        idx = np.argwhere(cand)
+        idx = np.argwhere(cand) if cand is not None else np.empty((0, 2), dtype=int)
         if len(idx) == 0:
             cand, d_i, d_j = shared_candidates(k, strict_ratio=False)
-            idx = np.argwhere(cand)
+            idx = np.argwhere(cand) if cand is not None else np.empty((0, 2), dtype=int)
         if len(idx) == 0:
             med_k.append(None)
             ck[k] = None
@@ -325,19 +363,46 @@ def place_resources(grid, spec, lanes, params, rng, exp_anchor_masks=None, flank
     for k in range(4):
         if ck[k] is None:
             continue
+        placed_b = False
         for strict in (True, False):
             cand, d_i, d_j = shared_candidates(k, strict_ratio=strict)
+            if cand is None:
+                continue
             if place_shared_at(cand, d_i, d_j, OVERLAY_B, k) is not None:
+                placed_b = True
                 break
-        else:
+        if not placed_b:
+            # 2026-09-24：侧翼锚点盘（r10）太挤时放宽到 1.6 倍再试一次。
+            # 原实现直接记 failure → quota_equal 挂 → G3 不过 → G4 跳过 → 整张图交不出来。
+            # 放宽只挪 B 资源的位置（仍在同一侧翼争夺区外圈），不动 A 的公平性判定。
+            from scipy import ndimage as _ndi
+            wide = None
+            if flank_masks is not None and k < len(flank_masks):
+                grow = int(round(params["flank_anchor_radius"] * 0.6))
+                wide = _ndi.binary_dilation(flank_masks[k], iterations=max(1, grow))
+            for strict in (True, False):
+                cand, d_i, d_j = shared_candidates(k, strict_ratio=strict, mask_override=wide)
+                if cand is None:
+                    continue
+                if place_shared_at(cand, d_i, d_j, OVERLAY_B, k) is not None:
+                    placed_b = True
+                    break
+        if not placed_b:
             failures.append(f"shared_b(flank_{k}): 无候选")
 
-    # 公平修正：各家到左右 shared(A) 路径和 max/min ≤1.3；超界家重放其较远的一条
-    for _ in range(4):
+    # 公平修正：各家到左右 shared(A) 路径和 max/min ≤1.3；超界家重放其较远的一条。
+    # 2026-09-24：4 → 12 轮。256m 图上 shared 三项比常落在 1.30~1.36（差一两个资源位），
+    # 4 轮只够搬 4 次、且每轮只搬“最高那家”的一条，收敛不了；G3 一挂 G4 就跳过，
+    # 整张图交不出来。12 轮仍受候选约束（搬不动就原地放回），不会死循环。
+    for _ in range(12):
+        def _pairs_of(i):
+            # flank_pair(k) 在保底烘焙图上为 None（无 pair_k_* 车道），不能直接 in 判
+            return [k for k in range(4) if (flank_pair(k) or ()) and i in flank_pair(k)]
+
         def _sums():
             out = []
             for i in range(4):
-                ks = [k for k in range(4) if i in flank_pair(k)]
+                ks = _pairs_of(i)
                 out.append(sum(float(df[i][p["i"], p["j"]]) for k in ks for p in placed
                                if p["kind"] == "shared" and p["type"] == "A"
                                and p["owner"] == f"flank_{k}"))
@@ -345,23 +410,44 @@ def place_resources(grid, spec, lanes, params, rng, exp_anchor_masks=None, flank
         sums = _sums()
         if min(sums) <= 0 or max(sums) / min(sums) <= 1.3 + 1e-9:
             break
-        worst = int(np.argmax(sums))
-        ks = [k for k in range(4) if worst in flank_pair(k)]
-        farther = max(ks, key=lambda k: next(
-            float(df[worst][p["i"], p["j"]]) for p in placed
-            if p["kind"] == "shared" and p["type"] == "A" and p["owner"] == f"flank_{k}"))
+        # 2026-09-24：原实现只搬"和最大那家"的资源（搬近），但如果最小那家的
+        # shared 路径和偏**小**（资源离它太近），搬谁都不会把比值拉回来 ——
+        # 实测 shared_ratio 1.55 卡死。改为按"偏离四家均值最大"定向修：
+        # 偏高 → 把该家较远的那条 shared 搬近；偏低 → 搬远。
+        mean_s = sum(sums) / float(len(sums))
+        deviations = [s - mean_s for s in sums]
+        worst = int(np.argmax([abs(d) for d in deviations]))
+        pull_closer = deviations[worst] > 0
+        ks = _pairs_of(worst)
+        if not ks:
+            break
+        # 只在该家确有 shared(A) 的侧翼里挑；某侧翼放置失败时没有资源可搬
+        # （next 会 StopIteration，直接跳过该轮修正）。
+        def _shared_dist(k):
+            for p in placed:
+                if (p["kind"] == "shared" and p["type"] == "A"
+                        and p["owner"] == f"flank_{k}"):
+                    return float(df[worst][p["i"], p["j"]])
+            return None
+
+        movable = [k for k in ks if _shared_dist(k) is not None]
+        if not movable:
+            break
+        farther = max(movable, key=lambda k: _shared_dist(k))
         old = next(p for p in placed if p["kind"] == "shared" and p["type"] == "A"
                    and p["owner"] == f"flank_{farther}")
         placed.remove(old)
         overlay[old["i"], old["j"]] = 0
         cand, d_i, d_j = shared_candidates(farther, exclude_ij=(old["i"], old["j"]),
                                            strict_ratio=True)
-        if len(np.argwhere(cand)) == 0:
+        if cand is None or len(np.argwhere(cand)) == 0:
             cand, d_i, d_j = shared_candidates(farther, exclude_ij=(old["i"], old["j"]),
                                                strict_ratio=False)
         rem = None
-        if len(np.argwhere(cand)):
-            rem = place_shared_at(cand, d_i, d_j, OVERLAY_A, farther, prefer_player=worst)
+        if cand is not None and len(np.argwhere(cand)):
+            rem = place_shared_at(cand, d_i, d_j, OVERLAY_A, farther,
+                                  prefer_player=worst if pull_closer else None,
+                                  avoid_player=None if pull_closer else worst)
         if rem is None:
             placed.append(old)
             overlay[old["i"], old["j"]] = OVERLAY_A
@@ -381,19 +467,24 @@ def place_resources(grid, spec, lanes, params, rng, exp_anchor_masks=None, flank
               and p["owner"] == f"P{i}"]
         exp_a.append(pdist(ea[0], i) if ea else math.inf)
         exp_b.append(pdist(eb[0], i) if eb else math.inf)
-        ks = [k for k in range(4) if i in flank_pair(k)]
+        ks = _pairs_of(i)
         shared_sums.append(sum(pdist(p, i) for k in ks for p in placed
                                if p["kind"] == "shared" and p["type"] == "A"
                                and p["owner"] == f"flank_{k}"))
         shared_b_sums.append(sum(pdist(p, i) for k in ks for p in placed
                                  if p["kind"] == "shared" and p["type"] == "B"
                                  and p["owner"] == f"flank_{k}"))
-        own_a = sum(1 for p in placed if p["type"] == "A" and
-                    (p["owner"] == f"P{i}" or (p["kind"] == "shared" and i in flank_pair(
-                        int(p["owner"].split("_")[1])))))
-        own_b = sum(1 for p in placed if p["type"] == "B" and
-                    (p["owner"] == f"P{i}" or (p["kind"] == "shared" and i in flank_pair(
-                        int(p["owner"].split("_")[1])))))
+        def _owns(p):
+            if p["owner"] == f"P{i}":
+                return True
+            if p["kind"] != "shared":
+                return False
+            # flank_pair(k) 在保底烘焙图上为 None：无该侧翼车道即不认领
+            pair = flank_pair(int(p["owner"].split("_")[1]))
+            return bool(pair) and i in pair
+
+        own_a = sum(1 for p in placed if p["type"] == "A" and _owns(p))
+        own_b = sum(1 for p in placed if p["type"] == "B" and _owns(p))
         a_counts.append(own_a)
         b_counts.append(own_b)
     f_near = max(near_sums) / min(near_sums) if min(near_sums) > 0 else math.inf
@@ -1239,13 +1330,15 @@ def run_one(seed, runs_root, params, auto=False):
     baselines = {name: lane_min_width(lane["polyline"], blocking_g2)
                  for name, lane in lanes.items()}
     # 复检关键点集 = G2 的 12 个玩法关键点（4 出生 + 4 flank 锚 + 4 扩张锚）
-    key_ij = [tuple(k) for k in g2_spec.get("keypoints")] or None
+    key_ij = [tuple(k) for k in (g2_spec.get("keypoints") or [])] or None
     # 敏感区：扩张接入道 ±4.5m、扩张口袋 r16、桥口 r8、基地盘 +2 —— 实例外溢禁入
     sensitive = np.zeros((GRID_H, GRID_W), dtype=bool)
+    exp_anchors_spec = list(g2_spec.get("expansion_anchors") or [])
     for i in range(4):
-        sensitive |= segment_mask(starts[i], tuple(g2_spec["expansion_anchors"][i]), 9.0)
-        sensitive |= _dist_field(g2_spec["expansion_anchors"][i][0],
-                                 g2_spec["expansion_anchors"][i][1]) <= 16.0
+        if i < len(exp_anchors_spec):
+            sensitive |= segment_mask(starts[i], tuple(exp_anchors_spec[i]), 9.0)
+            sensitive |= _dist_field(exp_anchors_spec[i][0],
+                                     exp_anchors_spec[i][1]) <= 16.0
         sensitive |= _dist_field(starts[i][0], starts[i][1]) <= 22.0
     for gc in g2_spec.get("gap_centers") or []:
         sensitive |= _dist_field(gc[0], gc[1]) <= 8.0

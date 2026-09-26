@@ -160,13 +160,44 @@ def place_cover(starts, geom, params, rng, target_frac):
         base |= cliff["mask"]
     for rg in geom["ridges"].values():
         base |= rg["ridge"]
-    forbidden = geom["protected"] | base | geom["corridors"] | geom["region_union"]
+    # 国道只保中心走廊（route_width/2 + 1.5m），外侧肩部留给山体：原实现把整条
+    # corridors（±7m）都划成禁入，约 30% 的图面无山可用，40% 阻碍率结构性不可达
+    # （实测天花板 ~35%）。台地/出生点/水域等硬禁区仍按原净空要求保持距离，
+    # 避免山体挤掉台地坡口把顶面变成不连通口袋（open_single_pass）。
+    route_cores = np.zeros_like(base)
+    for lane in geom.get("lanes", {}).values():
+        d, _ = polyline_field(lane["polyline"])
+        route_cores |= d <= params["route_width_min"] / 2.0 + 1.5
+    hard = geom["protected"] | base | geom["region_union"]
     for s in starts:
-        forbidden |= (_dist_field(s[0], s[1]) <= params["home_radius"] + 4.0)
+        hard |= (_dist_field(s[0], s[1]) <= params["home_radius"] + 4.0)
+    # 侧翼争夺点（flank 锚点）同样留硬净空：G3 的 shared 资源就落在这些锚点盘里，
+    # 山体一挤进来盘内无可放格 → shared(flank_k) 无候选 → quota_equal 挂 →
+    # G4 跳过。扩张锚点盘早已在 geom['protected']（exp_masks）里，这里补侧翼。
+    # 用 G2 的 flank_radius（13m，咽喉邻域）而非 G3 的 flank_anchor_radius——
+    # 两者不同契约，G2 侧不读 G3 参数。
+    for fa in geom.get("flank_anchors", []):
+        hard |= (_dist_field(float(fa[0]), float(fa[1]))
+                 <= params["flank_radius"] + 4.0)
+    # 山体禁入面 = 硬禁区 + 国道中心走廊；净空按硬禁区单独算（见 mountain_cover）。
+    forbidden = hard | route_cores
     if target_frac >= .3:
         from .g2_mountains import mountain_cover
         actual_base = build_blocking(geom, params, np.zeros_like(base)) > 0
-        return mountain_cover(actual_base, forbidden, target_frac, rng, cell_of(*starts[0]))
+        # 桥口单独留净空：山体允许贴河岸（mountain_cover 的净空不再被水面外撑），
+        # 但每座桥的 a→b 通道 ±bridge_keepclear 内不得进山，否则桥宽/互通验收失败。
+        bridge_keepclear = np.zeros_like(base)
+        for br in geom.get("bridges", []):
+            a = np.array(br["a"], dtype=float)
+            b = np.array(br["b"], dtype=float)
+            span = float(np.linalg.norm(b - a))
+            steps = max(2, int(span) + 1)
+            for t in np.linspace(0.0, 1.0, steps):
+                p = a + (b - a) * t
+                bridge_keepclear |= _dist_field(float(p[0]), float(p[1])) <= params["bridge_keepclear_m"]
+        return mountain_cover(actual_base, forbidden, target_frac, rng, cell_of(*starts[0]),
+                              water=geom["water_union"], keep_clear=bridge_keepclear,
+                              hard=hard)
     clusters = 0
     attempts = 0
     max_clusters = int(params["cover_cluster_max"])

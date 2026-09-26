@@ -1,0 +1,290 @@
+{
+  "id": "0cc67416b333400680370b1a59a6d221",
+  "baseline": false,
+  "status": "error",
+  "config": {
+    "schema_version": 2,
+    "algo_version": "7.11.0",
+    "layout_seed": 36,
+    "terrain_seed": 1489970188,
+    "player_spacing": "any",
+    "controls": {
+      "river_layout": 2,
+      "river_enabled": 1,
+      "lake_count": 0,
+      "lake_area": 5000,
+      "neutral_plateau_scale": 1.7,
+      "plateau_max": 8,
+      "landform_elongation": 1.2,
+      "landform_recess": 0.2,
+      "landform_softness": 0.16,
+      "plateau_ramp_width": 8,
+      "river_width": 18,
+      "river_bend_scale": 1.0,
+      "river_crossings": 6,
+      "obstacle_percent": 40,
+      "cover_cluster_max": 10,
+      "layout_attempts": 4
+    }
+  },
+  "target": "full",
+  "spacing": "far",
+  "created_at": "2026-09-24T15:19:34",
+  "started": 1790234374.179431,
+  "duration": 5.8,
+  "title": "布局 36 · 地貌 1489970188",
+  "pipeline_version": "1.0.0",
+  "stage_versions": {
+    "G1": "2.0.0",
+    "G2": "7.11.0",
+    "G3": "2.2.0",
+    "G4": "2.0.0"
+  },
+  "stages": {
+    "g1_input": {
+      "status": "done",
+      "started_at": "2026-09-24T15:19:34",
+      "duration_s": 0.1,
+      "error": null,
+      "pass": true,
+      "stage": "G1",
+      "version": "2.0.0",
+      "finished_at": "2026-09-24T15:19:34",
+      "source": "G:\\AIRTS\\AI_RTS\\tools\\mapgen\\runs\\36\\G1",
+      "source_hashes": {
+        "manifest.json": "493acf952e6af77c71f054ae5d9ca48fecb3fbd20b86cfaef73eb8cf20b7a742",
+        "mapgrid.npz": "f201ddc5e125d46ff9d07c52bdfc51dec2b9a158037f4961b6dfa063abadc5d7",
+        "mapspec.json": "d47149d632f1208f0240526df0c66073aaea51ec89f99dd9ce6e079593ea8c23",
+        "starts.png": "7fa4725ed3620f82056f8f774eca2e5c669fbce0421c5c2cd2e30bb503ed2c49",
+        "starts.png.import": "f49acc8fe32c728b3ecc0062e5a8c90cfef05aa77bf3b88bcdf140d1fe556fb1",
+        "starts_table.png": "e583d105f9ec8d2b5a4ee471e5ff9c589e43e1cc566b32099cd1aa90ee7bb376",
+        "starts_table.png.import": "b0b46eb52138c221980d5cf6423f613088d4d2e6501890d4e9eac76bfbca1540",
+        "territory.png": "af4290d9b9927ff939cfe8bcc89e9851e3208ccc9625b37475f697e67ec85211",
+        "territory.png.import": "fee6908133520c785d600ae04cfe3539c1af5f40786e581fa95404dab7a23e66"
+      },
+      "starts": [
+        [
+          59.77,
+          228.12
+        ],
+        [
+          224.95,
+          224.56
+        ],
+        [
+          19.88,
+          48.46
+        ],
+        [
+          231.23,
+          27.87
+        ]
+      ],
+      "spacing": "far",
+      "g1_approved": false,
+      "output_hashes": {
+        "mapgrid.npz": "f201ddc5e125d46ff9d07c52bdfc51dec2b9a158037f4961b6dfa063abadc5d7"
+      }
+    },
+    "g2_terrain": {
+      "status": "done",
+      "started_at": "2026-09-24T15:19:34",
+      "duration_s": 2.6,
+      "error": null,
+      "pass": true,
+      "stage": "G2",
+      "version": "7.11.0",
+      "finished_at": "2026-09-24T15:19:37",
+      "all_pass": true,
+      "checks": {
+        "solid_frac_pass": true,
+        "solid_comp_pass": true,
+        "max_block_pass": true,
+        "open_single_pass": true,
+        "keypoints_pass": true,
+        "struct_connect_pass": true,
+        "plateau_full_pass": true,
+        "plateau_area_pass": true,
+        "plateau_strategy_pass": true,
+        "plateau_ramps_pass": true,
+        "home_plateau_pass": true,
+        "river_presence_pass": true,
+        "lake_count_pass": true,
+        "lake_size_pass": true,
+        "lake_strategy_pass": true,
+        "lake_shape_pass": true,
+        "water_connected_pass": true,
+        "water_crossings_pass": true,
+        "crossing_count_pass": true,
+        "water_semantics_pass": true,
+        "bridge_redundancy_pass": true,
+        "contest_fair_pass": true,
+        "plateau_fair_pass": true,
+        "expansion_fair_pass": true,
+        "neutral_contest_pass": true,
+        "flank_width_pass": true,
+        "routes_clear_pass": true,
+        "route_alternatives_pass": true,
+        "bridge_width_pass": true,
+        "home_clear_pass": true,
+        "path_fairness_pass": true
+      },
+      "input_hash": "f201ddc5e125d46ff9d07c52bdfc51dec2b9a158037f4961b6dfa063abadc5d7",
+      "output_hash": {
+        "mapgrid.npz": "458db6e2158d86d3e24dc82b552e43bd8914e2896d12368aad2d452876c2d375",
+        "mapspec.json": "509bddb1e5a434fbfadb7089b51d53d31b501d6158875ce9ecb90326784cb3ea"
+      },
+      "params_version": "7.11.0",
+      "chosen_attempt": 2,
+      "summary": {
+        "all_pass": true,
+        "solid_percent": 40.4,
+        "plateaus": 8,
+        "rivers": 2,
+        "lakes": 0,
+        "lake_area_m2": 0,
+        "crossings": 6
+      }
+    },
+    "g3_content": {
+      "status": "done",
+      "started_at": "2026-09-24T15:19:37",
+      "duration_s": 0.9,
+      "error": null,
+      "pass": true,
+      "stage": "G3",
+      "version": "2.2.0",
+      "finished_at": "2026-09-24T15:19:38",
+      "all_pass": true,
+      "checks": {
+        "quota_equal": true,
+        "fairness_pass": true,
+        "recheck_components": true,
+        "recheck_keypoints": true,
+        "recheck_widths": true,
+        "cluster_cover": true,
+        "budget": true,
+        "no_resource_failures": true
+      },
+      "input_hash": "458db6e2158d86d3e24dc82b552e43bd8914e2896d12368aad2d452876c2d375",
+      "output_hash": {
+        "mapgrid.npz": "5800d1747ce3e87daeab7b6805109542256c129653dcbb461d25dd0d3d49e591",
+        "mapspec.json": "f752df1b00fdebe0b686ab19aa198bd9b65894bbcbde7fed913c13609a65f21a"
+      },
+      "instance_count": 2300,
+      "resource_failures": []
+    },
+    "g4_scene": {
+      "status": "done",
+      "started_at": "2026-09-24T15:19:38",
+      "duration_s": 1.3,
+      "error": null,
+      "pass": true,
+      "stage": "G4",
+      "version": "2.0.0",
+      "finished_at": "2026-09-24T15:19:39",
+      "map_id": "36-1489970188-767a002977",
+      "scene": "G:\\AIRTS\\AI_RTS\\tools\\mapgen\\workbench_output\\0cc67416b333400680370b1a59a6d221\\g4\\36-1489970188-767a002977\\map_36-1489970188-767a002977.tscn",
+      "scene_res": "res://source/match/maps/generated/36-1489970188-767a002977/map_36-1489970188-767a002977.tscn",
+      "height_data": "G:\\AIRTS\\AI_RTS\\tools\\mapgen\\workbench_output\\0cc67416b333400680370b1a59a6d221\\g4\\36-1489970188-767a002977\\height_data.bin",
+      "height_data_sha256": "e038f047d5de203da83a95baaea712a3ecb58511cb87bc3a15deeede3b5ce4fb",
+      "heightfield_report": {
+        "vertex_shape": [
+          257,
+          257
+        ],
+        "min_height": -2.4,
+        "max_height": 50.334,
+        "max_step_all_m": 16.466,
+        "max_step_walkable_m": 1.478,
+        "walkable_slope_step_ok": false,
+        "plateau_level": 8.1,
+        "ground_level": 0.6,
+        "water_level": -2.4
+      },
+      "visual_seed": 1592074148,
+      "visual_version": 1,
+      "visual_profile": "default",
+      "visual_style_version": "1.0.0",
+      "visual_stats": {
+        "total": 248,
+        "cliff": 0,
+        "shore": 0,
+        "scatter": 248,
+        "tree": 0,
+        "grass": 0,
+        "stone": 0,
+        "shore_zone": 0,
+        "mountain_foot": 0,
+        "budget_total": 700
+      },
+      "visual_warnings": [],
+      "installed_runtime": [
+        "G:\\AIRTS\\AI_RTS\\source\\match\\maps\\generated\\36-1489970188-767a002977\\map_36-1489970188-767a002977.tscn",
+        "G:\\AIRTS\\AI_RTS\\source\\match\\maps\\generated\\36-1489970188-767a002977\\height_data.bin",
+        "G:\\AIRTS\\AI_RTS\\source\\match\\maps\\generated\\36-1489970188-767a002977\\terrain_masks.png",
+        "G:\\AIRTS\\AI_RTS\\source\\match\\maps\\generated\\36-1489970188-767a002977\\minimap_preview.png",
+        "G:\\AIRTS\\AI_RTS\\assets\\map_previews\\map_36-1489970188-767a002977.png",
+        "G:\\AIRTS\\AI_RTS\\source\\match\\maps\\generated\\36-1489970188-767a002977\\map_index.json"
+      ],
+      "airts": "G:\\AIRTS\\AI_RTS"
+    },
+    "engine": {
+      "status": "error",
+      "started_at": "2026-09-24T15:19:39",
+      "duration_s": 0.0,
+      "error": "素材缺失: G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\PolygonScifiWorlds_Texture_01_A.png",
+      "pass": true,
+      "stage": "ENGINE",
+      "version": "godot",
+      "finished_at": "2026-09-24T15:19:39",
+      "error_kind": "stage_error"
+    }
+  },
+  "layout_locked": false,
+  "terrain_locked": false,
+  "layout_pool": [
+    36,
+    5,
+    47,
+    54,
+    12,
+    31,
+    27,
+    42,
+    37,
+    17,
+    21,
+    8,
+    16,
+    23,
+    4,
+    38,
+    51,
+    18,
+    39,
+    15,
+    61,
+    55,
+    3,
+    2,
+    49,
+    35,
+    13,
+    25,
+    14,
+    46
+  ],
+  "layout_tried": [],
+  "preview_only": false,
+  "progress": {
+    "stage": "引擎",
+    "phase": "复制素材依赖（G3+视觉计划+桥组合）"
+  },
+  "map_id": "36-1489970188-767a002977",
+  "visual_seed": 1592074148,
+  "scene_res": "res://source/match/maps/generated/36-1489970188-767a002977/map_36-1489970188-767a002977.tscn",
+  "g4_out_dir": "G:\\AIRTS\\AI_RTS\\tools\\mapgen\\workbench_output\\0cc67416b333400680370b1a59a6d221\\g4\\36-1489970188-767a002977",
+  "error_kind": "generation_error",
+  "error": "素材缺失: G:\\AIRTS\\AI_RTS\\初选素材包\\工程\\预览渲染工程\\assets\\4006_科幻世界\\PolygonSciFiWorlds\\Models\\PolygonScifiWorlds_Texture_01_A.png"
+}
