@@ -18,8 +18,13 @@ import urllib.request
 
 OWNER = "GoodLoongStudio"
 REPO = "AI_RTS"
-TAG = "v0.1-demo"
-RELEASE_NAME = "AI RTS Demo v0.1 — 评委体验版"
+# 【2026-09-28】Release 的 tag 已由 v0.1-demo 改为 test_demo（旧 tag 已删除）。
+# 这里若留着旧 tag，脚本 GET /releases/tags/<旧> 会 404 → 走"创建新 release"分支，
+# 于是资产被上传到**另一个新 Release**，评委看的那个 Release 纹丝不动
+# （实测事故：667MB 新游戏包被传进了误建的 v0.1-demo release）。
+# 改 tag 时**必须同步改这里**。
+TAG = "test_demo"
+RELEASE_NAME = "AI RTS Demo — 评委体验版"
 
 API = "https://api.github.com"
 
