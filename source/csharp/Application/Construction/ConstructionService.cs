@@ -49,6 +49,8 @@ public sealed class ConstructionService : IConstructionService
     {
         if (request.SiteId.Value == Guid.Empty || request.OwnerId.Value == Guid.Empty ||
             string.IsNullOrWhiteSpace(request.DefinitionId.Value) || request.RequiredWork <= 0 ||
+            (request.ProgressSource != ConstructionProgressSource.Worker &&
+                request.AutomaticWorkPerTick <= 0) ||
             request.ConstructionCost is null || request.ConstructionCost.Count == 0 ||
             request.ConstructionCost.Any(cost =>
                 !Enum.IsDefined(cost.Kind) || cost.Amount < 0) ||
@@ -65,6 +67,8 @@ public sealed class ConstructionService : IConstructionService
             0,
             request.ConstructionCost.ToArray(),
             ConstructionSiteState.Active,
+            request.ProgressSource,
+            request.AutomaticWorkPerTick,
             1);
         if (!_sitePort.ApplyProgress(request.SiteId, 0, request.RequiredWork))
         {
@@ -182,6 +186,17 @@ public sealed class ConstructionService : IConstructionService
         _lastAdvancedTick = simulationTick;
 
         var workBySite = new Dictionary<UnitId, double>();
+        // 自动施工：进度不再以"有 Worker 在干活"为前提（阶段 1 的目标语义）。来源为
+        // automatic/hybrid 的现场每 Tick 先记上权威自动工作量，Worker 分配只叠加在上面。
+        foreach (var site in _sites.Values)
+        {
+            if (site.State == ConstructionSiteState.Active &&
+                site.ProgressSource != ConstructionProgressSource.Worker &&
+                site.AutomaticWorkPerTick > 0)
+            {
+                workBySite[site.SiteId] = site.AutomaticWorkPerTick;
+            }
+        }
         foreach (var item in _assignments.ToArray())
         {
             var active = _orders.FindActive(item.Key);
@@ -253,20 +268,32 @@ public sealed class ConstructionService : IConstructionService
                 ConstructionSiteCommandStatus.SiteNotActive, site);
         }
 
-        var refund = _accounts.Apply(new ApplyResourceTransaction(
-            new ResourceTransactionId(context.CommandId.Value),
-            context.MatchId,
-            context.IssuerPlayerId,
-            site.ConstructionCost.Where(cost => cost.Amount > 0)
-                .Select(cost => new ResourceDelta(cost.Kind, cost.Amount)).ToArray(),
-            ResourceChangeReason.ConstructionRefund,
-            site.SiteId.Value,
-            context.SimulationTick));
-        if (refund.Status is not ResourceTransactionStatus.Applied and
-            not ResourceTransactionStatus.AlreadyApplied)
+        // 退款按剩余工作量折算：自动施工让"已投入工作量"不再为零，仍按全额退就等于白送钱。
+        // CompletedWork=0 时折算系数为 1，与旧的"零进度全额退款"逐分一致。
+        var remainingRatio = site.RequiredWork > 0 ?
+            (double)Math.Max(0, site.RequiredWork - site.CompletedWork) / site.RequiredWork : 0.0;
+        var refundDeltas = site.ConstructionCost
+            .Where(cost => cost.Amount > 0)
+            .Select(cost => new ResourceDelta(cost.Kind, (int)Math.Round(
+                cost.Amount * remainingRatio, MidpointRounding.AwayFromZero)))
+            .Where(delta => delta.Amount > 0)
+            .ToArray();
+        if (refundDeltas.Length > 0)
         {
-            return new ConstructionSiteCommandResult(
-                ConstructionSiteCommandStatus.ExecutionUnavailable, site);
+            var refund = _accounts.Apply(new ApplyResourceTransaction(
+                new ResourceTransactionId(context.CommandId.Value),
+                context.MatchId,
+                context.IssuerPlayerId,
+                refundDeltas,
+                ResourceChangeReason.ConstructionRefund,
+                site.SiteId.Value,
+                context.SimulationTick));
+            if (refund.Status is not ResourceTransactionStatus.Applied and
+                not ResourceTransactionStatus.AlreadyApplied)
+            {
+                return new ConstructionSiteCommandResult(
+                    ConstructionSiteCommandStatus.ExecutionUnavailable, site);
+            }
         }
         if (!_sitePort.Cancel(site.SiteId))
         {

@@ -24,6 +24,17 @@ var _frame_ms: PackedFloat64Array = []
 var _render_cpu_ms: PackedFloat64Array = []
 var _render_gpu_ms: PackedFloat64Array = []
 var _unit_snaps: Array = []
+## 卡住量化（用户 2026-09-27 反馈"很多单位卡住了"）：位移型样本 + 脱困计数器差值。
+const STUCK_MOVE_THRESHOLD_M := 0.5
+const MovementScript = preload("res://source/match/units/traits/Movement.gd")
+var _stuck_prev_positions := {}
+var _stuck_snap_count := 0
+var _stuck_max := 0
+var _stuck_ratio_sum := 0.0
+var _stuck_last_ordered := 0
+var _amove_active := 0
+var _recovery_start := {}
+var _recovery_end := {}
 var _render_time_supported := false
 var _mid_shots := {}
 
@@ -85,6 +96,8 @@ func _build_scenario() -> void:
 		"battle200": "PerfGridBattle200", "move200": "PerfGridMove200",
 		"g4idle200": "PerfGridG4Idle200", "g4idle400": "PerfGridG4Idle400",
 		"g4battle200": "PerfGridG4Battle200", "g4move200": "PerfGridG4Move200",
+		# 第二轮任务 A 的计量场景：与 g4move200 同图同兵，唯一差别是不下 HoldFire。
+		"g4amove200": "PerfGridG4Move200",
 	}
 	var scene_name: String = scene_names.get(scenario, "")
 	var scene_path := "res://tests/perfgrid/%s.tscn" % scene_name
@@ -102,34 +115,39 @@ func _build_scenario() -> void:
 		await get_tree().process_frame
 		var human := _match.get_node("Players/Human")
 		var enemy := _match.get_node_or_null("Players/Enemy")
-		# seed_35 实测可行走区只有 (51-99, 59-100) 这一个口袋（其他 SpawnPoints
-		# 标记点外的单位会自动走到最近可行走区，实测 8 秒内跨图滑动）。
-		# 全部场景锚定在口袋内；战斗双方相邻摆放（块心距 9.4m < 块宽）即开打。
+		# 锚点 = map_35-0 自带 SpawnPoints（贴地校正自动落到台地/地面高度）。
+		# 台地平顶 3.6m、地面 0.6m（3m 崖不可爬，跨台地的块由远程单位接战）。
 		match scenario:
 			"g4idle200":
-				_spawn_army(human, Vector3(60, 0, 92), 100)
-				_spawn_army(human, Vector3(72, 0, 86), 100)
+				_spawn_army(human, Vector3(84.2, 0, 54.6), 100)
+				_spawn_army(human, Vector3(210.2, 0, 96.3), 100)
 			"g4idle400":
-				_spawn_army(human, Vector3(62, 0, 90), 100)
-				_spawn_army(human, Vector3(74, 0, 84), 100)
-				_spawn_army(human, Vector3(68, 0, 96), 100)
-				_spawn_army(human, Vector3(80, 0, 90), 100)
+				_spawn_army(human, Vector3(84.2, 0, 54.6), 100)
+				_spawn_army(human, Vector3(210.2, 0, 96.3), 100)
+				_spawn_army(human, Vector3(58.2, 0, 179.5), 100)
+				_spawn_army(human, Vector3(180.8, 0, 191.5), 100)
 			"g4battle200":
-				_spawn_army(human, Vector3(60, 0, 92), 100, true)
+				_spawn_army(human, Vector3(84.2, 0, 54.6), 100, true)
 				if enemy != null:
-					_spawn_army(enemy, Vector3(68, 0, 97), 100, true)
-			"g4move200":
-				_spawn_army(human, Vector3(62, 0, 95), 100)
-				_spawn_army(human, Vector3(75, 0, 85), 100)
+					_spawn_army(enemy, Vector3(96.2, 0, 62.6), 100, true)
+			"g4move200", "g4amove200":
+				_spawn_army(human, Vector3(84.2, 0, 54.6), 100)
+				_spawn_army(human, Vector3(210.2, 0, 96.3), 100)
 	# 移动场景的命令在树内下发（gateway 才能解析）。
 	if scenario.contains("move"):
-		var move_counts := {"move200": 200, "g4move200": 200}
+		var move_counts := {"move200": 200, "g4move200": 200, "g4amove200": 200}
 		await _wait_units_ready(int(move_counts.get(scenario, 200)))
 		var human := _match.get_node("Players/Human")
 		var gateway := human.get_node("UnitCommandGateway")
 		var units: Array = get_tree().get_nodes_in_group("controlled_units")
-		gateway.SetFirePolicy(units, "HoldFire", human)
-		gateway.GroundAttackMoveUnits(units, Vector3(154, 0, 60), human)
+		# HoldFire 会让 GroundAttackMoving._refresh() 在调用 _pick_target() 之前
+		# 就 return（见该文件 :81-83）⇒ g4move200 里移动索敌根本不跑，
+		# 第一轮"三版本索敌计数为 0"是这个原因，不是扫描没被计量。
+		# g4amove200 保留默认开火策略，attack-move 的候选扫描才会发生，
+		# 第二轮 A/B（nomovinggrid vs 网格）才有可比数字。
+		if scenario != "g4amove200":
+			gateway.SetFirePolicy(units, "HoldFire", human)
+		gateway.GroundAttackMoveUnits(units, Vector3(180.8, 0, 191.5), human)
 	_grid = _match.get_node_or_null("TargetAcquisitionGrid")
 
 
@@ -148,7 +166,7 @@ func _spawn_army(player: Node, center: Vector3, count: int, battle_hp_boost: boo
 	for i in range(count):
 		var row := i / cols
 		var col := i % cols
-		var pos := center + Vector3(col * 2.2 - (cols - 1) * 1.1, 0, row * 2.2 - 1.1)
+		var pos := center + Vector3(col * 4.4 - (cols - 1) * 2.2, 0, row * 4.4 - 2.2)
 		var unit: Node = load(G4_ROSTER[i % G4_ROSTER.size()]).instantiate()
 		_match._setup_and_spawn_unit(unit, Transform3D(Basis(), pos), player)
 		if battle_hp_boost and "hp_max" in unit:
@@ -247,6 +265,13 @@ func _diagnose_layout() -> void:
 			lo = lo.min(p)
 			hi = hi.max(p)
 	print("[PERFGRID] layout bbox min=%s max=%s size=%s units=%d" % [lo, hi, hi - lo, units.size()])
+	var camera := _match.get_node_or_null("IsometricCamera3D")
+	if camera != null:
+		print("[PERFGRID] camera height=%.2f size=%.2f" % [
+			camera.global_position.y, camera.size])
+	print("[PERFGRID] map.size=%s is_large=%s logic_terrain=%s" % [
+		str(_match.map.size), str(_match._is_large_generated_map()),
+		str(_match._uses_logic_terrain())])
 	for marker in [Vector3(62, 0, 95), Vector3(154, 0, 60), Vector3(186, 0, 161), Vector3(99, 0, 198)]:
 		var nearby := 0
 		for unit in units:
@@ -275,6 +300,7 @@ func _process(_delta) -> void:
 
 
 func _sample_loop() -> void:
+	_recovery_start = _recovery_snapshot()
 	var t0 := Time.get_ticks_usec()
 	var sample_s := float(_cfg["sample"])
 	var next_units := 0.0
@@ -283,11 +309,13 @@ func _sample_loop() -> void:
 		await get_tree().process_frame
 		var elapsed := float(Time.get_ticks_usec() - t0) / 1e6
 		if elapsed >= sample_s:
+			_recovery_end = _recovery_snapshot()
 			break
 		if elapsed >= next_units:
 			next_units += 2.0
 			var units := get_tree().get_nodes_in_group("units")
 			_unit_snaps.append([snappedf(elapsed, 0.1), units.size()])
+			_sample_stuck()
 		# 采样中段截图（60s 窗口 2 张；读回瞬时 stall 影响 ~1 帧，报告中说明）。
 		if elapsed >= 5.0 and not _mid_shots.has(1):
 			_mid_shots[1] = true
@@ -309,6 +337,64 @@ func _sample_loop() -> void:
 				_render_cpu_ms.append(cpu_ms)
 			if gpu_ms > 0.0:
 				_render_gpu_ms.append(gpu_ms)
+
+
+## 每 2 秒一次位移样本：受控单位里"仍有有效移动目标却几乎没动"的记为卡住。
+## 只统计 controlled_units（被下过移动/attack-move 命令的那批），待机单位不算。
+func _sample_stuck() -> void:
+	var positions := {}
+	var stuck := 0
+	var ordered := 0
+	# 人群 = 所有仍在"有活动移动目标"的单位（含电脑方），不再只看 controlled_units：
+	# 采样窗内多数受控单位已抵达/转入交战，target_position 被清成 INF，
+	# 只统计受控单位会把分母缩到个位数，比例失真（2026-09-27 实测 7/204）。
+	for unit in get_tree().get_nodes_in_group("units"):
+		if not is_instance_valid(unit):
+			continue
+		var movement = unit.find_child("Movement", true, false)
+		if movement == null or movement.target_position == Vector3.INF:
+			continue
+		if str(unit.get("action")) .find("AttackMoving") < 0:
+			_amove_active += 1
+		ordered += 1
+		var position: Vector3 = unit.global_position
+		positions[unit] = position
+		var previous: Variant = _stuck_prev_positions.get(unit)
+		if previous != null and Vector3(previous).distance_to(position) < STUCK_MOVE_THRESHOLD_M:
+			stuck += 1
+	_stuck_prev_positions = positions
+	if ordered > 0:
+		_stuck_snap_count += 1
+		_stuck_ratio_sum += float(stuck) / float(ordered)
+		_stuck_max = maxi(_stuck_max, stuck)
+	_stuck_last_ordered = ordered
+
+
+## Movement 的静态脱困计数器快照（stall/repath/escape/unreachable/软穿行等）。
+func _recovery_snapshot() -> Dictionary:
+	var snapshot := {}
+	for key in MovementScript.recovery_stats:
+		snapshot[key] = int(MovementScript.recovery_stats[key])
+	return snapshot
+
+
+func _recovery_delta() -> Dictionary:
+	var delta := {}
+	for key in _recovery_end:
+		delta[key] = int(_recovery_end[key]) - int(_recovery_start.get(key, 0))
+	return delta
+
+
+func _stuck_summary() -> Dictionary:
+	return {
+		"snapshots": _stuck_snap_count,
+		"ordered_at_last_snap": _stuck_last_ordered,
+		"attack_move_actions_at_last_snap": _amove_active,
+		"max_stuck_at_once": _stuck_max,
+		"stuck_ratio_mean": 0.0 if _stuck_snap_count == 0
+			else _stuck_ratio_sum / float(_stuck_snap_count),
+		"threshold_m": STUCK_MOVE_THRESHOLD_M,
+	}
 
 
 func _result_path() -> String:
@@ -372,6 +458,8 @@ func _write_results() -> void:
 		"units_start": 0 if _unit_snaps.is_empty() else int(_unit_snaps[0][1]),
 		"units_end": 0 if _unit_snaps.is_empty() else int(_unit_snaps[-1][1]),
 		"unit_snaps": _unit_snaps,
+		"stuck": _stuck_summary(),
+		"movement_recovery": _recovery_delta(),
 		"targeting_stats": grid_stats,
 		"code_hashes": {
 			"WaitingForTargets": _file_hash("res://source/match/units/actions/WaitingForTargets.gd"),

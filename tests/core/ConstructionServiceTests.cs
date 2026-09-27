@@ -27,6 +27,12 @@ internal sealed class ConstructionServiceTests
         RunTest(nameof(ActiveBuilderCountTracksOrderLifecycle),
             ActiveBuilderCountTracksOrderLifecycle);
         RunTest(nameof(CancelRefundsButDestructionDoesNot), CancelRefundsButDestructionDoesNot);
+        RunTest(nameof(AutomaticProgressCompletesWithZeroWorkers),
+            AutomaticProgressCompletesWithZeroWorkers);
+        RunTest(nameof(WorkerSourceStillStallsWithoutBuilders), WorkerSourceStillStallsWithoutBuilders);
+        RunTest(nameof(HybridWorkersOnlyAccelerateAutomaticProgress),
+            HybridWorkersOnlyAccelerateAutomaticProgress);
+        RunTest(nameof(CancelRefundsOnlyTheRemainingWork), CancelRefundsOnlyTheRemainingWork);
         Console.WriteLine(
             $"Construction service tests completed: {_tests} test(s), {_failures} failure(s).");
         return _failures;
@@ -154,8 +160,95 @@ internal sealed class ConstructionServiceTests
             "被摧毁的未完成建筑不得退款");
     }
 
+    /// <summary>
+    /// 验证 automatic 进度源不需要任何 Worker 也能自动完工（阶段 1 的目标语义）：
+    /// 旧实现里进度只能由 Worker 的 Construct 分配累积，零 builder 的现场永远静默停摆。
+    /// </summary>
+    private void AutomaticProgressCompletesWithZeroWorkers()
+    {
+        var fixture = CreateFixture(
+            requiredWork: 3, progressSource: ConstructionProgressSource.Automatic, automaticWorkPerTick: 1);
+        var completedEvents = 0;
+        fixture.Service.Completed += _ => completedEvents++;
+
+        fixture.Service.Advance(1);
+        Check(fixture.Service.Find(fixture.SiteId)?.CompletedWork == 1,
+            "automatic 现场应在没有 Worker 分配时仍推进一点工作量");
+        fixture.Service.Advance(2);
+        fixture.Service.Advance(3);
+
+        Check(fixture.Service.Find(fixture.SiteId)?.State == ConstructionSiteState.Completed,
+            "automatic 现场应在三个 Tick 后自行完工");
+        Check(completedEvents == 1 && fixture.Sites.CompleteCalls == 1,
+            "自动完工同样只能发布一次完成事件");
+        Check(fixture.WorkersPort.ActiveCount == 0 && fixture.WorkersPort.ClearCalls == 0,
+            "自动施工不得占用、也不得清理任何 Worker");
+    }
+
+    /// <summary>验证 worker 兼容口径保持旧语义：没有 builder 就一分进度都没有。</summary>
+    private void WorkerSourceStillStallsWithoutBuilders()
+    {
+        var fixture = CreateFixture(requiredWork: 3);
+
+        for (var tick = 1L; tick <= 10L; tick++)
+        {
+            fixture.Service.Advance(tick);
+        }
+
+        Check(fixture.Service.Find(fixture.SiteId) is { } site &&
+            site.State == ConstructionSiteState.Active && site.CompletedWork == 0,
+            "worker 进度源在没有建造者时必须保持零进度");
+    }
+
+    /// <summary>验证 hybrid 下 Worker 只改变速度、不改变能否开工。</summary>
+    private void HybridWorkersOnlyAccelerateAutomaticProgress()
+    {
+        var solo = CreateFixture(
+            requiredWork: 4, progressSource: ConstructionProgressSource.Hybrid, automaticWorkPerTick: 1);
+        solo.Service.Advance(1);
+        solo.Service.Advance(2);
+        solo.Service.Advance(3);
+        Check(solo.Service.Find(solo.SiteId)?.CompletedWork == 3,
+            "hybrid 无人协助时应只按自动速率推进（三个 Tick 三点）");
+        solo.Service.Advance(4);
+        Check(solo.Service.Find(solo.SiteId)?.State == ConstructionSiteState.Completed,
+            "hybrid 无人协助也必须能自行完工");
+
+        var assisted = CreateFixture(
+            requiredWork: 4, progressSource: ConstructionProgressSource.Hybrid, automaticWorkPerTick: 1);
+        assisted.Service.Construct(
+            Context(assisted), new ConstructStructureCommand([assisted.Workers[0]], assisted.SiteId));
+        assisted.Service.Advance(1);
+        assisted.Service.Advance(2);
+        Check(assisted.Service.Find(assisted.SiteId)?.State == ConstructionSiteState.Completed,
+            "hybrid 下 Worker 加速应让同一现场在两个 Tick 内完工（自动 1 + Worker 1）");
+    }
+
+    /// <summary>
+    /// 验证取消退款按剩余工作量折算：自动施工让"已投入工作量"不再为零，
+    /// 若仍按全额退款就等于白送钱。
+    /// </summary>
+    private void CancelRefundsOnlyTheRemainingWork()
+    {
+        var fixture = CreateFixture(
+            requiredWork: 8, progressSource: ConstructionProgressSource.Automatic, automaticWorkPerTick: 1);
+        fixture.Service.Advance(1);
+        fixture.Service.Advance(2);
+
+        var cancel = fixture.Service.Cancel(Context(fixture), new CancelConstructionCommand(fixture.SiteId));
+
+        Check(cancel.Status == ConstructionSiteCommandStatus.Applied, "取消未完成现场应成功");
+        Check(fixture.Accounts.Find(fixture.OwnerId)!.GetBalance(ResourceKind.A) == 9,
+            "完成 2/8 工作量后取消，4 点成本应只退 3 点（实际余额 " +
+            $"{fixture.Accounts.Find(fixture.OwnerId)!.GetBalance(ResourceKind.A)}）");
+    }
+
     /// <summary>创建已经预扣建筑成本并注册现场的纯 C# 测试夹具。</summary>
-    private static Fixture CreateFixture(int requiredWork, int constructionWorkPerTick = 1)
+    private static Fixture CreateFixture(
+        int requiredWork,
+        int constructionWorkPerTick = 1,
+        ConstructionProgressSource progressSource = ConstructionProgressSource.Worker,
+        int automaticWorkPerTick = 0)
     {
         var owner = new PlayerId(Guid.NewGuid());
         var match = new MatchId(Guid.NewGuid());
@@ -185,7 +278,9 @@ internal sealed class ConstructionServiceTests
             owner,
             new StructureDefinitionId("test_structure"),
             requiredWork,
-            [new ResourceAmount(ResourceKind.A, 4)]));
+            [new ResourceAmount(ResourceKind.A, 4)],
+            progressSource,
+            automaticWorkPerTick));
         if (!registered)
         {
             throw new InvalidOperationException("测试施工现场注册失败。");

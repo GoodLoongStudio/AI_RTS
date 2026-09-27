@@ -184,6 +184,15 @@ public partial class AdjutantObservationRuntime : Node
                 ["footprint_radius_meters"] = footprintRadius,
                 ["blueprint_scene_path"] =
                     assets.FindBlueprintScene(construction.UnitTypeId)?.ResourcePath ?? string.Empty,
+                // 施工进度源必须进规则视图：副官据此判断"这条建造意图要不要先占一个工人"。
+                // 不带这个字段，规则中台只能按建筑名硬编码豁免（阶段 0 断点 C-1 的成因）。
+                ["construction_progress_source"] = construction.ProgressSource switch
+                {
+                    ConstructionProgressSource.Automatic => "automatic",
+                    ConstructionProgressSource.Hybrid => "hybrid",
+                    _ => "worker"
+                },
+                ["automatic_work_per_tick"] = construction.AutomaticWorkPerTick,
             });
         }
 

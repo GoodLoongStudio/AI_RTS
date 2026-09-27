@@ -21,6 +21,9 @@ import sys
 BUILDING_TYPES = {
     "command_center", "barracks", "vehicle_factory", "aircraft_factory",
     "anti_air_turret", "anti_ground_turret", "machine_gun_turret",
+    # 矿场是本次主线新增的可建造建筑；漏登记会让分析层完全看不见它的存在，
+    # "没有矿场"与"有矿场但没统计到"就无法区分（2026-09-27 阶段 0 断点 G）。
+    "ore_refinery",
 }
 #: 作战单位类型。
 COMBAT_TYPES = {"soldier", "tank", "heavy_tank", "rocketeer", "helicopter", "apc"}
@@ -107,10 +110,74 @@ def analyze(result_path: str, runner_log: str = "") -> dict:
     out["peak_balance"] = max([int((s.get("balance") or {}).get("a", 0) or 0)
                                for s in result.get("forces_log") or []] or [0])
 
+    # ---- 经济闭环三张账（提示词 §6 逐局报告表）----
+    # 只用 detail_log 里透传的观测原值求"首次时刻/累计量"，不推断、不补零：
+    # 缺项一律 None，读报告的人才能分清"没发生"和"没测到"。
+    out["economy"] = _economy_metrics(samples, elapsed)
+
     # ---- runner 日志：意图/回执/闸门 ----
     if runner_log and os.path.exists(runner_log):
         out.update(_runner_metrics(runner_log, t0))
     return out
+
+
+def _economy_metrics(samples, elapsed) -> dict:
+    """零工人施工 / 矿场接管交付 / 矿点消耗与再生 的逐局实测。"""
+    metrics: dict = {
+        "worker_seconds_on_construction": None,
+        "first_refinery_placed_t": None,
+        "first_refinery_takeover_t": None,
+        "first_refinery_delivery_t": None,
+        "refinery_delivered_amount": None,
+        "ore_nodes": None,
+        "ore_remaining_first": None,
+        "ore_remaining_last": None,
+        "ore_depleted_nodes": None,
+        "entities_truncated": None,
+    }
+    if not any("ore_nodes" in sample for sample in samples):
+        metrics["error"] = "no economy fields sampled (harness too old or op=tactical failed)"
+        return metrics
+
+    def peak(key: str) -> float:
+        values = [float((sample.get("cw_seconds") or {}).get("Player_0", 0.0) or 0.0)
+                  for sample in samples if key in sample]
+        # 仪表是**累计秒数**，单调不减；取末值即整局总量，取峰值防中途玩家改名。
+        return max(values) if values else 0.0
+
+    metrics["worker_seconds_on_construction"] = round(peak("cw_seconds"), 1)
+    metrics["constructing_workers_peak"] = max(
+        [int(sample.get("constructing") or 0) for sample in samples
+         if "constructing" in sample] or [0])
+
+    first_refinery = None
+    first_takeover = None
+    first_delivery = None
+    delivered_amount = 0
+    for sample in samples:
+        if "ore_nodes" not in sample:
+            continue
+        for refinery in sample.get("refineries") or []:
+            if first_refinery is None and refinery.get("constructed"):
+                first_refinery = elapsed(sample)
+            if first_takeover is None and refinery.get("takeovers", 0) > 0:
+                first_takeover = elapsed(sample)
+            if first_delivery is None and refinery.get("delivered", 0) > 0:
+                first_delivery = elapsed(sample)
+            delivered_amount = max(delivered_amount, int(refinery.get("delivered_amount") or 0))
+    metrics["first_refinery_placed_t"] = first_refinery
+    metrics["first_refinery_takeover_t"] = first_takeover
+    metrics["first_refinery_delivery_t"] = first_delivery
+    metrics["refinery_delivered_amount"] = delivered_amount if first_delivery is not None else None
+
+    sampled = [sample for sample in samples if "ore_nodes" in sample]
+    metrics["ore_nodes"] = max(int(s.get("ore_nodes") or 0) for s in sampled)
+    metrics["ore_remaining_first"] = int(sampled[0].get("ore_remaining") or 0)
+    metrics["ore_remaining_last"] = int(sampled[-1].get("ore_remaining") or 0)
+    metrics["ore_depleted_nodes"] = max(int(s.get("ore_depleted") or 0) for s in sampled)
+    # 窗口截断 ⇒ 上面的"全图矿量"只是部分和，禁止当耗尽证据引用（提示词 §5 反假证据）。
+    metrics["entities_truncated"] = any(bool(s.get("truncated")) for s in sampled)
+    return metrics
 
 
 def _runner_metrics(path: str, t0: float) -> dict:

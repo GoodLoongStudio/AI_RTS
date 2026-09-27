@@ -3,14 +3,14 @@ extends Camera3D
 const EXPECTED_X_ROTATION_DEGREES = -45.0
 const EXPECTED_PROJECTION = PROJECTION_ORTHOGONAL
 ## 所有地图开局同一档：正交 size 与镜头离地高度。
+## 【2026-09-26 用户：默认镜头高度统一 30m】普通图与大图开局档位都锚定 30m
+## （原普通图 25m / 大图 35m 两档并存，现统一）；高度锚点 = 本图开局档位。
 const OPENING_SIZE := 21.25
-const OPENING_HEIGHT := 25.0
+const OPENING_HEIGHT := 30.0
 ## 当前生效的开局档位：大图由 configure_for_large_terrain 抬高（2026-09-24
 ## 用户反馈"默认视图太低"）。force_opening_isometric() 无参调用时用它，
-## 否则 Match._ready 第 139 行的统一开学会把大图高度重置回 21.25。
+## 否则 Match._ready 第 139 行的统一开学会把大图档位重置回 21.25。
 var _opening_size := OPENING_SIZE
-## 大图开局镜头目标离地高度（米）。用户 2026-09-24 指定 35。
-const OPENING_HEIGHT_TARGET_M := 35.0
 
 @export_group("Size")
 @export var size_min = 1
@@ -191,19 +191,16 @@ func configure_for_large_terrain(map_size: Vector2, peak_world_y: float = 80.0) 
 	# 【2026-09-24 用户反馈"默认视图太低了"】大图开局就拉到能看清全局态势的高度。
 	# 原实现所有地图共用 OPENING_SIZE=21.25：256m 图上只覆盖约 40m 纵深，
 	# 屏幕大部分是空地，看不清台地/河道/全局路线。改为按地图短边缩放：
-	# 上限 0.24×短边（原 0.16，留出继续拉远的余量）；开局档见下方 35m 反推。
+	# 上限 0.24×短边（原 0.16，留出继续拉远的余量）。
 	# 小图（<120m）仍走原 OPENING_SIZE，手搓小地图观感不变。
+	# 【2026-09-26 用户：开局高度统一 30m】离地高度不再参与档位推导——
+	# `_align_camera_position_to_size` 以**本图开局档位**为高度锚点，任何
+	# 开局 size 都精确落在 OPENING_HEIGHT(30m)；拉远继续抬升的梯子不变。
 	var short_edge := minf(map_size.x, map_size.y)
 	size_max = maxf(size_max, short_edge * 0.24)
 	set_map_bounds(map_size)
-	# 开局档位按"镜头离地 35m"反推（用户 2026-09-24 指定：
-	# "镜头离地改为35吧"）。height = OPENING_HEIGHT + (size-OPENING_SIZE)×sin60°/2
-	# ⇒ size ≈ 44.3。短边 256 时给下限 0.173×短边 ≈ 44.3，两种算法取大者兜底。
-	var opening: float = OPENING_HEIGHT_TARGET_M
-	var derived_size: float = (OPENING_SIZE
-		+ (opening - OPENING_HEIGHT) * 2.0 / sin(deg_to_rad(60.0)))
 	if short_edge >= 120.0:
-		_opening_size = minf(size_max, maxf(derived_size, short_edge * 0.173))
+		_opening_size = minf(size_max, maxf(OPENING_SIZE, short_edge * 0.173))
 	else:
 		_opening_size = OPENING_SIZE
 	force_opening_isometric(_opening_size)
@@ -536,10 +533,12 @@ func _align_camera_properties_to_size(a_size: float):
 
 
 func _align_camera_position_to_size(a_size: float):
-	# 开局固定 25m；拉远/拉近只按 size 差补高度，不再被山峰峰值抬高整段镜头。
+	# 高度锚点 = **本图开局档位**（普通图 21.25、大图 ≈0.173×短边）：
+	# 开局（a_size == _opening_size）时镜头精确落在 OPENING_HEIGHT（统一 30m），
+	# 拉远/拉近只按 size 差补高度，不再被山峰峰值抬高整段镜头。
 	var target_height = (
 		OPENING_HEIGHT
-		+ (a_size - OPENING_SIZE) * sin(deg_to_rad(60.0)) / 2.0
+		+ (a_size - _opening_size) * sin(deg_to_rad(60.0)) / 2.0
 	)
 	var target_camera_plane = Plane(Vector3.UP, target_height)
 	var camera_ray_normal = project_ray_normal(Vector2(0, 0))

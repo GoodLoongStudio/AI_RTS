@@ -67,8 +67,11 @@ func _ready():
 	tank.global_position = guard_anchor + Vector3(0.0, 0.0, sight * BEYOND_CAP_FACTOR)
 	var returning_again: bool = await _wait_for(5.0, func(): return not _is_idle(tank))
 	_check(returning_again, "警戒：追出岗位上限后应返回岗位点")
+	# 单位放大 ×2 后（2026-09-27）：敌人放在 tank **背离岗位点**的一侧 +4m——
+	# 仍在 tank 视野内（索敌圆心=自身位置），但不在回岗路线上，不与 ×2 碰撞体
+	# 互卡；测试意图"视野内有敌但超上限不接战、持续回岗"不变。
 	var beyond_cap_enemy = _add_enemy_unit(
-		enemy_player, tank.global_position + Vector3(0.0, 0.0, -2.0)
+		enemy_player, tank.global_position + Vector3(0.0, 0.0, 4.0)
 	)
 	var no_new_fight: bool = not await _wait_for_hp_below(
 		beyond_cap_enemy, beyond_cap_enemy.hp, NO_NEW_FIGHT_WINDOW_S

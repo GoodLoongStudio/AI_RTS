@@ -49,6 +49,12 @@ def main():
             skipped += 1
             results.append({"id": tid, "result": "skipped_done"})
             continue
+        # 失败也留标记：分块续跑时不再重跑已知失败项（否则每块都会被它们吃掉执行额度），
+        # 但仍按 fail 计入差分 —— 只是记成 fail_cached，不改变"它是失败的"这一结论。
+        if os.path.exists(os.path.join(STATE, tid + ".fail")):
+            skipped += 1  # 计入 skipped，否则汇总数对不上总项数
+            results.append({"id": tid, "result": "fail_cached"})
+            continue
         if max_tests and ran >= max_tests:
             print("[max-tests %d reached]" % max_tests, flush=True)
             break
@@ -75,6 +81,7 @@ def main():
             open(marker_file, "w").write("ok")
         else:
             failed += 1
+            open(os.path.join(STATE, tid + ".fail"), "w").write("fail")
         print("%-42s %s (%.0fs)" % (tid, "PASS" if ok else "FAIL", elapsed), flush=True)
         results.append({"id": tid, "result": "pass" if ok else "fail", "seconds": round(elapsed, 1)})
     with open(os.path.join(LOGDIR, "results.json"), "w", encoding="utf-8") as fh:

@@ -31,7 +31,8 @@
     "res://tests/automated/GhostLeakOnDeathFrameTest.tscn",
     "res://tests/automated/LiveDcsMatchBoot.tscn",
     "res://tests/automated/LiveEnemyBuildingDeathTest.tscn",
-    "res://tests/automated/PostDestructionScanTest.tscn"
+    "res://tests/automated/PostDestructionScanTest.tscn",
+    "res://tests/automated/MusicWiringTest.tscn"
   ],
   "godot_tests": [
     {
@@ -733,6 +734,70 @@
       "category": "audio",
       "scene": "res://tests/automated/AudioPersistTest.tscn",
       "id": "audio-persist"
+    },
+    {
+      "expected_marker": "Heavy tank howitzer: 0 failure(s)",
+      "timeout_seconds": 150,
+      "category": "combat",
+      "scene": "res://tests/automated/HeavyTankHowitzerTest.tscn",
+      "id": "heavy-tank-howitzer",
+      "description": "重坦炮射程 20m 压过全部防御塔；HeavyCannonShell 真抛物线爬升过峰"
+    },
+    {
+      "expected_marker": "Muzzle discipline: 0 failure(s)",
+      "timeout_seconds": 150,
+      "category": "combat",
+      "scene": "res://tests/automated/MuzzleDisciplineTest.tscn",
+      "id": "muzzle-discipline",
+      "description": "全兵种炮弹从炮管挂点出膛；双管炮塔 MuzzleL/R 交替；重坦视野 10/射程 20"
+    },
+    {
+      "id": "automatic-construction",
+      "category": "construction",
+      "scene": "res://tests/automated/AutomaticConstructionSmokeTest.tscn",
+      "expected_marker": "Automatic construction smoke test completed: 0 failure(s)",
+      "timeout_seconds": 150,
+      "description": "零工人自动施工：放置后权威 Tick 自动推进、完工并解锁生产，且不占用采矿 Worker"
+    },
+    {
+      "id": "air-box-selection",
+      "category": "selection",
+      "scene": "res://tests/automated/AirBoxSelectionSmokeTest.tscn",
+      "expected_marker": "Air box selection smoke test completed: 0 failure(s)",
+      "timeout_seconds": 120,
+      "description": "框选空中单位：选框与飞机必须落在同一屏幕-地表投影坐标系"
+    },
+    {
+      "id": "ore-refinery",
+      "category": "economy",
+      "scene": "res://tests/automated/OreRefinerySmokeTest.tscn",
+      "expected_marker": "Ore refinery smoke test completed: 0 failure(s)",
+      "timeout_seconds": 240,
+      "description": "矿场运营闭环：无矿不占名额、接管合资格空闲工人、容量受限、双矿场不重复占用、真实采耗与入账、显式订单优先、矿场消失即释放"
+    },
+    {
+      "expected_marker": "Tutorial entry: 0 failure(s)",
+      "timeout_seconds": 150,
+      "category": "ui",
+      "scene": "res://tests/automated/TutorialEntryTest.tscn",
+      "id": "tutorial-entry",
+      "description": "暂停菜单「教学」按钮 → 教学页（快捷键总览图）→ ESC/返回 关闭"
+    },
+    {
+      "id": "ore-regeneration",
+      "category": "economy",
+      "scene": "res://tests/automated/OreRegenerationSmokeTest.tscn",
+      "expected_marker": "Ore regeneration smoke test completed: 0 failure(s)",
+      "timeout_seconds": 180,
+      "description": "矿点周期再生：耗尽保留实体与计时、按权威模拟毫秒恢复、不超容量、暂停不偷跑、单周期只结算一次、关闭时保持旧语义"
+    },
+    {
+      "expected_marker": "FogOfWar sight range smoke test completed: 0 failure(s)",
+      "timeout_seconds": 150,
+      "category": "visual",
+      "description": "FogOfWar 遇 sight_range 为空（平衡目录未命中）的单位：只警告一次、不中断其余单位迷雾圈、不得逐帧抛错。",
+      "scene": "res://tests/automated/FogOfWarSightRangeSmokeTest.tscn",
+      "id": "fog-of-war-sight-range"
     }
   ]
 }

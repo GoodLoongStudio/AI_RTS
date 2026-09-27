@@ -38,10 +38,13 @@ const STAGGER_SLOTS := 10
 const RECONCILE_INTERVAL_TICKS := 30
 
 ## 测试与环境开关（缺省 = 网格 + 错峰都开启，正常游戏默认生效）：
-## AIRTS_TARGETING=baseline   → 关网格，回到全场组扫描基线（对照测量用）
-## AIRTS_TARGETING=nostagger  → 网格开启，错峰关闭（对照测量用）
+## AIRTS_TARGETING=baseline     → 关网格，回到全场组扫描基线（对照测量用）
+## AIRTS_TARGETING=nostagger    → 网格开启，错峰关闭（对照测量用）
+## AIRTS_TARGETING=nomovinggrid → 仅 GroundAttackMoving 的索敌回退全场扫描
+##                                （第二轮 A 对照：待机索敌仍走网格，单变量）
 var use_grid := true
 var use_stagger := true
+var use_moving_grid := true
 
 ## 诊断计数（WaitingForTargets 累加查询侧；本节点累加维护侧）。
 ## 全部为普通整数累加，开销可忽略；不逐帧打印。
@@ -72,6 +75,8 @@ func _ready() -> void:
 	# nostagger = 网格开启、错峰关闭（B 版本）；缺省 = 网格 + 错峰（C 版本/正常游戏）。
 	use_grid = targeting != "baseline" and targeting != "basestats"
 	use_stagger = use_grid and targeting != "nostagger"
+	# 移动索敌单独对照档：baseline/basestats 时同样回退全场扫描。
+	use_moving_grid = use_grid and targeting != "nomovinggrid"
 	# 物理帧内最后执行：确保刷新快照晚于所有单位 Movement 的位置写入。
 	process_priority = 100000
 	MatchSignals.unit_spawned.connect(_on_unit_spawned)

@@ -60,11 +60,14 @@ RULES_VIEW = {
 
 
 def unit(name, utype, *, pos=(0.0, 0.0, 0.0), gather=False, construct=False,
-         queue=False, constructed=None, movement=True):
+         queue=False, constructed=None, movement=True, refinery=None):
     entity = {"kind": "unit_self", "name": name, "unit_type": utype,
               "pos": list(pos), "hp": 100.0, "hp_max": 100.0,
               "movement": movement, "gather": gather, "construct": construct,
               "queue": queue}
+    if refinery is not None:
+        # 权威端 OreRefinery.delivery_stats() 的形状；矿场里程碑只认这里的交付计数。
+        entity["refinery"] = dict(refinery)
     if constructed is not None:
         entity["constructed"] = constructed
     return entity
@@ -139,9 +142,81 @@ class DefaultMainlineTest(unittest.TestCase):
 
     def test_phase_progression_follows_phase_table(self):
         order = [str(cm.MILESTONES[key]["phase"]) for key in cm.MILESTONE_ORDER]
+        # M08（分矿/远端矿场）是扩张阶段的并行经济里程碑：占一个表项，但不占主线前沿。
         self.assertEqual(order, [cm.PHASE_RECON, cm.PHASE_FOOTHOLD, cm.PHASE_FOOTHOLD,
-                                 cm.PHASE_EXPAND, cm.PHASE_EXPAND, cm.PHASE_PRESSURE,
-                                 cm.PHASE_CONVERGE])
+                                 cm.PHASE_EXPAND, cm.PHASE_EXPAND, cm.PHASE_EXPAND,
+                                 cm.PHASE_PRESSURE, cm.PHASE_CONVERGE])
+        self.assertTrue(cm.MILESTONES[cm.M08].get("parallel"),
+                        "矿场里程碑必须标记为并行，否则会把 M06/M07 永久挡在前沿之外")
+
+
+class RefineryMilestoneTest(unittest.TestCase):
+    """分矿（M08）取证纪律：矿场完工 + 至少一次**实际交付**，且不与分基地互冒充。"""
+
+    @staticmethod
+    def _far_resources():
+        return [resource("R_far", (120.0, 0.0, 120.0))]
+
+    def _refinery(self, *, constructed=True, delivered=0, assigned=0):
+        return unit("Unit_ref", "ore_refinery", pos=(118.0, 0.0, 118.0),
+                    constructed=constructed,
+                    refinery={"constructed": constructed, "assigned": assigned,
+                              "takeovers": assigned, "delivered_count": delivered,
+                              "delivered_amount": delivered * 100,
+                              "service_radius_m": 30.0, "worker_capacity": 4,
+                              "has_ore": True})
+
+    def _run_to(self, entities, ticks=240):
+        # `cm.update` **原地**改 state（返回的是事件/摘要，不是新状态），不能重新赋值。
+        state = base_state()
+        for tick in range(60, ticks + 1, 60):
+            cm.update(state, observation(entities, tick=tick), tick)
+        return state
+
+    def test_refinery_built_without_delivery_is_not_done(self):
+        """只有矿场实体、没有任何交付 → 分矿不算完成（不许拿"存在资产"当结果证据）。"""
+        entities = ([unit("Unit_cc", "command_center", pos=(10.0, 0.0, 10.0)),
+                     unit("Unit_w", "worker", pos=(12.0, 0.0, 12.0), construct=True)]
+                    + [self._refinery(delivered=0)] + self._far_resources())
+        state = self._run_to(entities)
+        entry = state["campaign_state"]["milestones"][cm.M08]
+        self.assertNotEqual(entry["status"], "done",
+                            "矿场一张交付都没收到就判分矿完成：%s" % entry["last_evidence"])
+
+    def test_first_real_delivery_completes_refinery_milestone(self):
+        entities = ([unit("Unit_cc", "command_center", pos=(10.0, 0.0, 10.0)),
+                     unit("Unit_w", "worker", pos=(12.0, 0.0, 12.0), construct=True)]
+                    + [self._refinery(delivered=1, assigned=1)] + self._far_resources())
+        state = self._run_to(entities)
+        entry = state["campaign_state"]["milestones"][cm.M08]
+        self.assertEqual(entry["status"], "done",
+                         "矿场完工且有实际交付时应判分矿完成：%s" % entry["last_evidence"])
+        self.assertIn("交付", entry["last_evidence"])
+
+    def test_second_command_center_does_not_impersonate_refinery_milestone(self):
+        """第二座指挥中心只证明"分基地"（M05），不得顺手把"分矿"（M08）也标成完成。"""
+        entities = [unit("Unit_cc", "command_center", pos=(10.0, 0.0, 10.0)),
+                    unit("Unit_cc2", "command_center", pos=(120.0, 0.0, 120.0)),
+                    unit("Unit_w", "worker", pos=(12.0, 0.0, 12.0), construct=True)]
+        state = self._run_to(entities)
+        campaign = state["campaign_state"]
+        self.assertEqual(campaign["milestones"][cm.M05]["status"], "done",
+                         "两座已完工指挥中心应完成 M05（分基地）")
+        self.assertNotEqual(campaign["milestones"][cm.M08]["status"], "done",
+                            "M05 完成不得自动把 M08（分矿/矿场）标成完成")
+
+    def test_refinery_milestone_never_holds_the_frontier(self):
+        """分矿是并行目标：它没完成时，主线前沿必须能走到施压/收束，不被永久挡死。"""
+        state = base_state()
+        entities = [unit("Unit_cc", "command_center", pos=(10.0, 0.0, 10.0)),
+                    unit("Unit_w", "worker", pos=(12.0, 0.0, 12.0), construct=True),
+                    self._refinery(delivered=0)] + self._far_resources()
+        seen = set()
+        for tick in range(60, 1801, 60):
+            cm.update(state, observation(entities, tick=tick), tick)
+            seen.add(str(state["campaign_state"].get("next_frontier", "")))
+        self.assertNotIn(cm.M08, seen,
+                         "M08 被排进了主线前沿，会把 M06/M07 永久挡在后面")
 
 
 # ---------------------------------------------------------------------------

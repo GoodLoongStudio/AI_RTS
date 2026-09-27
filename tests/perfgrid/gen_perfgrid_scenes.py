@@ -32,8 +32,18 @@ def build_scene(units_human, units_enemy, map_path="res://source/match/maps/Plai
     with open(TEMPLATE, encoding="utf-8") as fh:
         src = fh.read()
     if map_path != "res://source/match/maps/PlainAndSimple.tscn":
-        src = src.replace('path="res://source/match/maps/PlainAndSimple.tscn"',
-                          'path="%s"' % map_path)
+        # 换图必须连 uid 一起换：ext_resource 按 uid 优先解析，沿用模板 uid
+        # 会静默加载 PlainAndSimple（2026-09-26 实测：36 次"G4"矩阵全是 PAS）。
+        with open(map_path.replace("res://", ROOT.replace("\\", "/") + "/"),
+                  encoding="utf-8") as fh:
+            map_uid_m = re.search(r'uid="([^"]+)"', fh.readline())
+        map_uid = map_uid_m.group(1) if map_uid_m else ""
+        uid_attr = ' uid="%s"' % map_uid if map_uid else ""
+        # 只替换 uid+path 片段（模板行尾还有 id 属性，整行匹配会失配）。
+        src = src.replace(
+            'uid="uid://cbe63rdjw7y4p" path="res://source/match/maps/PlainAndSimple.tscn"',
+            '%s path="%s"' % (uid_attr.strip(), map_path),
+        )
     if with_enemy is None:
         with_enemy = bool(units_enemy)
     lines = src.splitlines(True)
@@ -144,11 +154,12 @@ def main():
         build_scene(movers, []))
     print("Move200: %d units" % len(movers))
 
-    # ---- G4 生成地图（seed_35，256x256）：真实"单位多会卡"的环境 ----
-    # 单位全部由 PerfGridRunner 在运行时经真实出场入口 _setup_and_spawn_unit
-    # 生成（自带贴地校正），出生锚定地图自带 SpawnPoints 标记。
-    # tscn 只承载 Match/地图/玩家（with_enemy 供战斗场景）。
-    G4 = "res://source/match/maps/generated/seed_35.tscn"
+    # ---- G4 生成地图（35-0/map_35-0.tscn，256×256，height_data 逻辑高度场）：
+    # 真实"单位多会卡"的环境（20Hz 物理 + 大地图表现锁定 + 统一 30m 相机档）。
+    # 注意：根级 seed_*.tscn 旧方案文件已全部删除（2026-09-27 用户要求）
+    # 不触发大地图路径（2026-09-26 实测），必须用带 map_index 的正式导出目录。
+    # 单位由 PerfGridRunner 运行时经 _setup_and_spawn_unit 生成（贴地校正）。
+    G4 = "res://source/match/maps/generated/16-0-2057e4a0b4/map_16-0-2057e4a0b4.tscn"
     for count in (200, 400):
         path = os.path.join(OUT_DIR, "PerfGridG4Idle%d.tscn" % count)
         write_scene(path, build_scene([], [], G4))

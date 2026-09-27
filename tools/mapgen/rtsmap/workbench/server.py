@@ -160,11 +160,18 @@ class Workbench:
         layout_locked = True
         terrain_locked = True
         layout_pool = None
+        skip_engine_check = False
         if isinstance(request, dict):
             request = dict(request)
             target = request.pop('target', 'full')
             if target not in ('full', 'g2'):
                 raise ValueError('生成目标不正确。')
+            # 游戏内随机地图（RandomMapRuntime）携带 skip_engine_check=true：
+            # 跳过 ENGINE 验收（三张截图 + 定向导航，实测 60s+，且要另起 Godot
+            # 进程——用户 2026-09-27 报"随机生成地图加载的时候还在启动别的 godot
+            # 工程"）。地图在 G4 阶段已装进工程，游戏加载页等不到截图有意义；
+            # 浏览器工作台不带此标志，照旧全量验收。
+            skip_engine_check = bool(request.pop('skip_engine_check', False))
             layout_locked = 'layout_seed' in request
             terrain_locked = 'terrain_seed' in request
             spacing = request.get('player_spacing', 'any')
@@ -205,6 +212,7 @@ class Workbench:
                        stages={},
                        layout_locked=layout_locked,
                        terrain_locked=terrain_locked,
+                       skip_engine_check=skip_engine_check,
                        layout_pool=list(layout_pool or [config['layout_seed']]),
                        layout_tried=[],
                        preview_only=(target == 'g2' and not layout['approved']),

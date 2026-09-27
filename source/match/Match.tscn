@@ -1,4 +1,4 @@
-[gd_scene load_steps=58 format=3 uid="uid://camns8fqod8d4"]
+[gd_scene load_steps=59 format=3 uid="uid://camns8fqod8d4"]
 
 [ext_resource type="Script" path="res://source/match/Match.gd" id="1_1555u"]
 [ext_resource type="Script" path="res://source/csharp/GodotAdapter/Composition/CommandRuntime.cs" id="1_command_runtime"]
@@ -40,6 +40,7 @@
 [ext_resource type="Script" path="res://source/csharp/GodotAdapter/Match/MatchOutcomeRuntime.cs" id="28_match_outcome_runtime"]
 [ext_resource type="Script" path="res://source/csharp/GodotAdapter/Battlefield/BattlefieldEventRuntime.cs" id="29_battlefield_event_runtime"]
 [ext_resource type="Script" path="res://source/match/SimulationClock.gd" id="30_simulation_clock"]
+[ext_resource type="Script" path="res://source/match/ResourceRegeneration.gd" id="30_resource_regeneration"]
 [ext_resource type="Script" path="res://source/match/augments/MatchPauseGate.gd" id="31_pause_gate"]
 [ext_resource type="Script" path="res://source/match/augments/AugmentRuntime.gd" id="32_augment_runtime"]
 [ext_resource type="PackedScene" uid="uid://b8p6lcwubx1tp" path="res://source/match/handlers/UnitVisibilityHandler.tscn" id="32_fci1c"]
@@ -122,7 +123,7 @@ geometry_source_group_name = &"air_navigation_input"
 cell_size = 0.8
 cell_height = 0.8
 agent_height = 2.0
-agent_radius = 0.8
+agent_radius = 2.3
 agent_max_climb = 0.0
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_exfwj"]
@@ -134,7 +135,7 @@ geometry_source_group_name = &"terrain_navigation_input"
 cell_size = 0.6
 cell_height = 0.6
 agent_height = 1.8
-agent_radius = 0.9
+agent_radius = 2.8
 agent_max_climb = 0.5
 edge_max_error = 1.0
 
@@ -189,6 +190,9 @@ script = ExtResource("29_battlefield_event_runtime")
 [node name="SimulationClock" type="Node" parent="."]
 script = ExtResource("30_simulation_clock")
 
+[node name="ResourceRegeneration" type="Node" parent="."]
+script = ExtResource("30_resource_regeneration")
+
 [node name="PauseGate" type="Node" parent="."]
 script = ExtResource("31_pause_gate")
 
@@ -201,7 +205,7 @@ script = ExtResource("32_augment_runtime")
 [node name="Players" type="Node3D" parent="."]
 
 [node name="IsometricCamera3D" type="Camera3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 49.5996, 25.0000, 55.0000)
+transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 49.5996, 30.0000, 55.0000)
 projection = 1
 current = true
 size = 21.25

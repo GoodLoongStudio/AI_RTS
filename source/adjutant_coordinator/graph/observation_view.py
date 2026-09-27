@@ -137,6 +137,9 @@ def normalized_units(tactical: Optional[Dict[str, Any]]) -> Dict[str, Dict[str, 
             # 武器域 / 移动域：首次下令前过滤非法目标（F04），加法字段。
             "attack_domains": list(unit.get("attack_domains") or []),
             "domain": str(unit.get("domain") or ""),
+            # 矿场运营结果账（加法字段，仅 ore_refinery 带）：分矿里程碑与对局报告
+            # 只认这里的**实际交付计数**，不认"存在一座矿场"或"发过一条 build"。
+            "refinery": unit.get("refinery") if isinstance(unit.get("refinery"), dict) else None,
         }
         for unit in own_units(tactical)
     }

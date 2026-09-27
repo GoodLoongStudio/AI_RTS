@@ -1,0 +1,83 @@
+{
+  "job_id": "167946c50ada405c8b0f6aa54f332bb8",
+  "seed": 14,
+  "terrain": 1795193960,
+  "target": "full",
+  "status": "error",
+  "title": "布局 14 · 地貌 1795193960",
+  "label": null,
+  "map_pass": false,
+  "created_at": "2026-09-27T00:35:54",
+  "reverified_with_current_code": false,
+  "visual_version": 1,
+  "visual_profile": "default",
+  "map_id": "14-1795193960-767a002977",
+  "checks_summary": {
+    "g2_pass": true,
+    "g3_pass": true,
+    "engine_pass": false
+  },
+  "failed_paths": [],
+  "failed_forbidden": [],
+  "nav_all": null,
+  "smoke_assertions": {},
+  "stages": {
+    "G1": {
+      "state": "通过",
+      "images": [
+        "contact.png"
+      ],
+      "preview": "contact.png",
+      "version": "2.0.0",
+      "history_versions": []
+    },
+    "G2": {
+      "state": "通过",
+      "images": [
+        "contact.png",
+        "seed_12_minimap.png",
+        "seed_12_overview.png",
+        "seed_12_strategy.png",
+        "seed_14_minimap.png",
+        "seed_14_overview.png",
+        "seed_14_strategy.png",
+        "seed_25_minimap.png",
+        "seed_25_overview.png",
+        "seed_25_strategy.png",
+        "seed_2_minimap.png",
+        "seed_2_overview.png",
+        "seed_2_strategy.png",
+        "seed_36_minimap.png",
+        "seed_36_overview.png",
+        "seed_36_strategy.png",
+        "seed_55_minimap.png",
+        "seed_55_overview.png",
+        "seed_55_strategy.png",
+        "seed_5_minimap.png",
+        "seed_5_overview.png",
+        "seed_5_strategy.png",
+        "seed_61_minimap.png",
+        "seed_61_overview.png",
+        "seed_61_strategy.png"
+      ],
+      "preview": "seed_12_overview.png",
+      "version": "7.11.0",
+      "history_versions": []
+    },
+    "G3": {
+      "state": "通过",
+      "images": [
+        "contact.png",
+        "seed_14_overview.png"
+      ],
+      "preview": "seed_14_overview.png",
+      "version": "2.2.0",
+      "history_versions": []
+    }
+  },
+  "folder": "job_layout14_terrain1795193960_167946c5",
+  "gate": "G3",
+  "source_job": "G:\\AIRTS\\AI_RTS\\tools\\mapgen\\workbench_output\\167946c50ada405c8b0f6aa54f332bb8\\job.json",
+  "synced_at": "2026-09-27T00:40:51",
+  "note": "图像来自本任务权威数据/真实引擎输出；生成或导航通过不等于实战通过。"
+}

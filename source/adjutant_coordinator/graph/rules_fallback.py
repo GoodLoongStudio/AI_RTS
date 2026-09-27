@@ -851,6 +851,21 @@ EXPANSION_RESOURCE_OFFSET_M = 6.0
 EXPANSION_MIN_DISTANCE_M = 30.0
 
 
+#: 不需要建造者的施工进度源（阶段 1 的 constructionProgressSource 贯通到规则视图）。
+NO_BUILDER_REQUIRED_SOURCES = ("automatic", "hybrid")
+
+
+def construction_progress_source(rules, building) -> str:
+    """从规则视图读某建筑的施工进度源；查不到时一律按 "worker" 处理。
+
+    保守方向：宁可继续要求建造者，也不悄悄放开一条权威端未声明过进度源的建造路径。
+    """
+    for item in (rules or {}).get("constructions") or []:
+        if isinstance(item, dict) and str(item.get("id", "")) == str(building):
+            return str(item.get("construction_progress_source") or "worker")
+    return "worker"
+
+
 def pick_expansion_spot(by_name, resources, anchor, blocked=None, bounds=None) -> list:
     """分基地选址：**离主基地较远的可见矿点附近**（而不是主基地旁边再盖一座）。
 
@@ -3464,6 +3479,7 @@ def _development_intents_raw(state: Dict[str, Any], *, tactical=None, rules=None
         if not scene:
             continue
         builders = list(idle_builders)
+        source = construction_progress_source(rules, building)
         if not builders and building == "command_center" and expansion_cc_open:
             suspended = {str(item) for item in (prefs.get("suspended_objects") or [])}
             for name in ai_units:
@@ -3474,7 +3490,22 @@ def _development_intents_raw(state: Dict[str, Any], *, tactical=None, rules=None
                 release_unit_for_expansion_cc(state, name)
                 builders = [name]
                 break
+        # 【施工不再以"先空出一个工人"为开工前置】automatic/hybrid 建筑的进度由权威 Tick
+        # 推进，意图只需要一个**命令载体**把建造送进权威端。载体不在此处被释放、也不被
+        # 抢占采集订单——权威端 `AssignBuildersAfterPlacement` 会按同一进度源短路，
+        # 所以正在采矿的工人当载体不会真的被拉上工地（阶段 0 断点 C-1 的成因即此处的
+        # `if not builders: continue` 静默跳过：没有空闲工人时整条阶梯一分不留痕地停掉）。
+        if not builders and source in NO_BUILDER_REQUIRED_SOURCES:
+            suspended = {str(item) for item in (prefs.get("suspended_objects") or [])}
+            carriers = [name for name in ai_units
+                        if name not in suspended
+                        and bool((by_name.get(name) or {}).get("construct"))]
+            # 仍优先真正空闲者，其次才用忙碌单位，且**不**调用 release_unit_for_expansion_cc。
+            builders = [name for name in carriers if name in set(idle_builders)][:1] or carriers[:1]
         if not builders:
+            _note(state, "build_skipped_no_builder", building=building,
+                  progress_source=source,
+                  note="没有可承载建造意图的我方单位：本轮不发该建造命令")
             continue
         builder = builders[0]
         # 【必须带落点】游戏侧 `_op_build` 取的是 `parsed.pos`，缺省为 (0,0) →
@@ -3493,7 +3524,13 @@ def _development_intents_raw(state: Dict[str, Any], *, tactical=None, rules=None
                                         blocked=blocked_spots,
                                         bounds=state.get("map_bounds"))
             if not place:
-                continue      # 没有"离主基地较远的可见矿点"→ 不建假分基地，继续看下级
+                # 没有"离主基地较远的可见矿点"→ 不建假分基地，继续看下级。**必须留痕**：
+                # 阶段 0 记录扩张路径原本一个日志点都没有，"整局不扩张"无从归因。
+                _note(state, "expansion_spot_exhausted", building="command_center",
+                      min_distance_m=EXPANSION_MIN_DISTANCE_M,
+                      visible_resources=len(resources),
+                      note="没有可见且够远的矿点：不发假分基地命令")
+                continue
             site_note = "派工人到远端矿点附近建造"
         elif building == "ore_refinery":
             # 矿场（2026-09-23）：与分基地同政策——必须去**远端新矿**旁边。
@@ -3503,7 +3540,13 @@ def _development_intents_raw(state: Dict[str, Any], *, tactical=None, rules=None
                                         blocked=blocked_spots,
                                         bounds=state.get("map_bounds"))
             if not place:
-                continue      # 没有可见的远端新矿 → 不开矿场，继续看下级
+                # 没有可见的远端新矿 → 不开矿场（贴主基地盖矿场毫无收益）。留痕是为了
+                # 能回答"这一局为什么没矿场"：是矿没探到，还是阶梯根本没轮到它。
+                _note(state, "expansion_spot_exhausted", building="ore_refinery",
+                      min_distance_m=EXPANSION_MIN_DISTANCE_M,
+                      visible_resources=len(resources),
+                      note="没有可见且够远的矿点：不发贴脸假矿场命令")
+                continue
             site_note = "派工人到远端新矿旁建造（工人自动指派本地采矿）"
         elif is_turret_building(building):
             # 防御塔：当前视野最外围（接近路），不是指挥中心 4m 环。

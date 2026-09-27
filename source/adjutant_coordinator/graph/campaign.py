@@ -174,6 +174,7 @@ M04 = "M04"
 M05 = "M05"
 M06 = "M06"
 M07 = "M07"
+M08 = "M08"
 
 MILESTONES: Dict[str, Dict[str, Any]] = {
     M01: {
@@ -226,7 +227,9 @@ MILESTONES: Dict[str, Dict[str, Any]] = {
         "build_order": (),
     },
     M05: {
-        "id": M05, "name": "分基地/分矿", "phase": PHASE_EXPAND, "track": TRACK_BUILD,
+        # 【不再用"第二座指挥中心"冒充"分矿"】分基地与分矿是两件事：M05 只判分基地，
+        # 分矿（远端矿场 + 真实交付）由 M08 独立取证（阶段 0 断点 D）。
+        "id": M05, "name": "分基地", "phase": PHASE_EXPAND, "track": TRACK_BUILD,
         "priority": 45,
         "preconditions": (M04,),
         "success_evidence": "观测到第二座指挥中心（command_center）且 constructed=True",
@@ -249,6 +252,22 @@ MILESTONES: Dict[str, Dict[str, Any]] = {
         "produce_first": True,
         "build_order": ("anti_air_turret", "anti_ground_turret"),
     },
+    M08: {
+        "id": M08, "name": "分矿（远端矿场）", "phase": PHASE_EXPAND, "track": TRACK_ECONOMY,
+        "priority": 46,
+        "preconditions": (M04,),
+        "success_evidence": "远端矿场 constructed=True，且至少一名 Worker 实际回该矿场交付过资源",
+        "exit": "矿场建成并真实产出（有交付计数，不是「已发 build 意图」）",
+        "failure": "没有可见的远端新矿 → 继续前探（SCT-02），不贴主基地建假矿场；"
+                   "矿场在建未完工 → 等权威自动施工；交付为 0 → 查服务半径内是否还有可采矿点",
+        "retry": {"max_attempts": DEFAULT_RETRY_MAX, "stall_ticks": 18000},
+        "intent_prefixes": ("rule-build-ore_refinery",),
+        "build_order": ("ore_refinery",),
+        # 分矿是**并行的经济目标**，不是主线上的新硬门槛：矿场交付依赖真实对局里的
+        # 远端矿与工人往返，把它排进前沿会让 M06/M07 在矿场没成之前永远轮不到
+        # （正是阶段 0 记录、本任务要消灭的"矿场分支被永久挡死"的镜像问题）。
+        "parallel": True,
+    },
     M07: {
         "id": M07, "name": "收束", "phase": PHASE_CONVERGE, "track": TRACK_MILITARY,
         "priority": 60,
@@ -265,7 +284,7 @@ MILESTONES: Dict[str, Dict[str, Any]] = {
 }
 
 #: 里程碑的稳定顺序（判定"阶段推进到哪"用）。
-MILESTONE_ORDER: Tuple[str, ...] = (M01, M02, M03, M04, M05, M06, M07)
+MILESTONE_ORDER: Tuple[str, ...] = (M01, M02, M03, M04, M05, M08, M06, M07)
 
 
 # ---------------------------------------------------------------------------
@@ -407,6 +426,22 @@ def build_facts(state: Dict[str, Any], observation: Optional[Dict[str, Any]],
                 far_resources.append([round(pos[0], 1), round(pos[1], 1)])
     home_points = _structure_points(by_name, base)
 
+    # 矿场运营结果账（观测里 `refinery` 字段由权威端 `OreRefinery.delivery_stats()` 提供）：
+    # 里程碑与对局报告只认"实际交付次数/矿量"，不认"发过一条 build"或"存在一座矿场"。
+    refinery_delivered = 0
+    refinery_delivered_amount = 0
+    refinery_assigned = 0
+    refinery_constructed = 0
+    for info in by_name.values():
+        stats = (info or {}).get("refinery")
+        if not isinstance(stats, dict):
+            continue
+        refinery_delivered += int(stats.get("delivered_count", 0) or 0)
+        refinery_delivered_amount += int(stats.get("delivered_amount", 0) or 0)
+        refinery_assigned += int(stats.get("assigned", 0) or 0)
+        if bool(stats.get("constructed")):
+            refinery_constructed += 1
+
     return {
         "tick": int(tick),
         "own": sorted(by_name.keys()),
@@ -425,6 +460,10 @@ def build_facts(state: Dict[str, Any], observation: Optional[Dict[str, Any]],
         "resources": [[round(_pos2d(r)[0], 1), round(_pos2d(r)[1], 1)] for r in resources],
         "resource_count": len(resources),
         "far_resources": far_resources,
+        "refinery_constructed": refinery_constructed,
+        "refinery_assigned": refinery_assigned,
+        "refinery_delivered": refinery_delivered,
+        "refinery_delivered_amount": refinery_delivered_amount,
         "base": [round(base[0], 1), round(base[1], 1)] if base else [],
         # 己方建筑点：受袭/解除都看这些点附近，不只看指挥中心。
         "home_points": home_points,
@@ -499,6 +538,25 @@ def _evidence_second_base(facts: Dict[str, Any], campaign: Dict[str, Any]
     return False, "指挥中心 %d 座（分基地尚未开工）" % total
 
 
+def _evidence_refinery(facts: Dict[str, Any], campaign: Dict[str, Any]) -> Tuple[bool, str]:
+    """分矿的完成判据：**矿场完工 + 至少一次真实交付**。
+
+    两座矿场都在但一个工人没采过，不算完成——阶段 0 记的正是"矿场只存在资产/类，
+    没有完工、接管、采集、交付与资源增长的证据"。
+    """
+    built = int(facts.get("refinery_constructed", 0))
+    delivered = int(facts.get("refinery_delivered", 0))
+    if built > 0 and delivered > 0:
+        return True, "矿场 %d 座已完工，累计交付 %d 次 / %d 矿" % (
+            built, delivered, int(facts.get("refinery_delivered_amount", 0)))
+    if built > 0:
+        return False, "矿场已完工 %d 座，但尚无任何实际交付（接管 %d 人）" % (
+            built, int(facts.get("refinery_assigned", 0)))
+    if int(facts.get("counts", {}).get("ore_refinery", 0)) > 0:
+        return False, "矿场工地已出现，尚未完工"
+    return False, "尚无矿场（远端可见矿点 %d 处）" % len(facts.get("far_resources") or [])
+
+
 def _evidence_pressure(facts: Dict[str, Any], campaign: Dict[str, Any]
                        ) -> Tuple[bool, str]:
     accepted = (int(facts["accepted_actions"].get("attack", 0))
@@ -534,6 +592,7 @@ EVIDENCE: Dict[str, Any] = {
     M05: _evidence_second_base,
     M06: _evidence_pressure,
     M07: _evidence_converge,
+    M08: _evidence_refinery,
 }
 
 
@@ -1108,6 +1167,8 @@ def _recompute_frontier(campaign: Dict[str, Any], facts: Dict[str, Any], tick: i
     if not frontier:
         for milestone_id in sorted(MILESTONE_ORDER,
                                    key=lambda key: int(MILESTONES[key]["priority"])):
+            if MILESTONES[milestone_id].get("parallel"):
+                continue    # 并行目标参与判定与汇报，但不占用前沿、不挡后续节点
             entry = campaign["milestones"][milestone_id]
             if str(entry.get("status")) in ("done", "blocked"):
                 continue

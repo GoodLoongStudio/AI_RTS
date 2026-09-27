@@ -19,6 +19,8 @@ var _sync_elapsed := SYNC_INTERVAL
 ## a full extra pass every frame.
 var _runtime_enabled := true
 var _fog_dirty := true
+## 已警告过"缺 sight_range"的单位种类（type_id|脚本名），避免逐帧刷屏。
+var _missing_sight_range_warned := {}
 const DISABLED_VIEWPORT_SIZE := Vector2i(8, 8)
 
 @onready var _revealer = find_child("Revealer")
@@ -74,6 +76,13 @@ func _sync_revealed_circles() -> void:
 	for unit in units_to_sync:
 		if not unit.is_revealing():
 			continue
+		# sight_range 为空 = 该单位没拿到平衡目录定义（ConfigureUnit 未执行或类型缺定义）。
+		# 旧行为是每帧抛 "Invalid operands 'Nil' and 'int'"（一次 rule-ai-expansion
+		# 跑下来 2.1 万条）并中断本函数，后续单位的迷雾圈全部不画。
+		# 现在按类型只警告一次（错误日志保留，不吞）并跳过该单位。
+		if unit.sight_range == null:
+			_warn_missing_sight_range(unit)
+			continue
 		units_synced[unit] = 1
 		if not _unit_is_mapped(unit):
 			_map_unit_to_new_circles(unit)
@@ -82,6 +91,23 @@ func _sync_revealed_circles() -> void:
 		if not mapped_unit in units_synced:
 			_cleanup_mapping(mapped_unit)
 	_fog_dirty = true
+
+
+## 每个"缺 sight_range 的单位种类"只警告一次（按 type_id + 脚本名归并），
+## 既留下可定位的日志又不刷屏。根因修好后这里应当一条都不出。
+func _warn_missing_sight_range(unit) -> void:
+	var script: Script = unit.get_script()
+	var key := "%s|%s" % [
+		str(unit.get("unit_type_id")),
+		script.resource_path.get_file() if script != null else "<no script>",
+	]
+	if _missing_sight_range_warned.has(key):
+		return
+	_missing_sight_range_warned[key] = true
+	push_warning(
+		"[FOG] 单位缺 sight_range（平衡目录未命中）type_id=%s 节点=%s，已跳过其迷雾圈"
+		% [key, String(unit.name)]
+	)
 
 
 func _process(_delta):

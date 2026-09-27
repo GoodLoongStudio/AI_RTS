@@ -152,7 +152,12 @@ func _ready():
 		_setup_ra3_sidebar()
 		_setup_selection_portrait_panel()
 		_setup_command_cursor()
-		# 对局音乐按当前产品要求关闭；菜单音乐独立播放。
+		# 对局背景音乐恢复启用（2026-09-26 用户交付对局双曲《正常》《激情》并要求
+		# "把游戏里的音乐换成这 3 个"）：导演在 Music 总线轮播，进对局起播、
+		# 收局随 Match 释放。此前按产品要求关闭（_setup_music_director 无人调用）。
+		# headless / 专用服不挂：Dummy 音频驱动 + 播放中的流在退出时有泄漏风险
+		# （同 MenuMusic 的 headless 跳过理由），也没有听感需求。
+		_setup_music_director()
 		# 2026-09-14 用户要求"两种模式的副官 UI 必须一致"：这里去掉了历史上的
 		# `if not NetSession.is_networked()` —— 那行是 2026-08-29 "联机 Demo 架构落地"
 		# 时加的，副作用是**单机（本机开房，is_networked()==true）也不挂"岚"面板**，

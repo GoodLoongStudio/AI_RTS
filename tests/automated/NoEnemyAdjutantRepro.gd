@@ -13,16 +13,11 @@ extends Node
 ## 输出：每 10s 一行 [REPRO] 概要；发现卡住打 [STUCK] 明细（含逐帧 [TRACE]）。
 
 const MAPS := {
-	"47-0": "res://source/match/maps/generated/47-0/map_47-0.tscn",
-	"49": "res://source/match/maps/generated/49-1376088014/map_49-1376088014.tscn",
-	"35-0": "res://source/match/maps/generated/35-0/map_35-0.tscn",
-	"16-0": "res://source/match/maps/generated/16-0/map_16-0.tscn",
-	"51": "res://source/match/maps/generated/51-1540056157/map_51-1540056157.tscn",
-	"55": "res://source/match/maps/generated/55-1521782457/map_55-1521782457.tscn",
-	"49-rampfix": "res://source/match/maps/generated/49-1376088014-rampfix/map_49-1376088014-rampfix.tscn",
-	"49-e6c": "res://source/match/maps/generated/49-1376088014-e6c10b27ba/map_49-1376088014-e6c10b27ba.tscn",
-	"35-e6c": "res://source/match/maps/generated/35-0-e6c10b27ba/map_35-0-e6c10b27ba.tscn",
-	"47-e6c": "res://source/match/maps/generated/47-0-12bf758c6e/map_47-0-12bf758c6e.tscn",
+	"14": "res://source/match/maps/generated/14-1795193960-767a002977/map_14-1795193960-767a002977.tscn",
+	"16": "res://source/match/maps/generated/16-0-2057e4a0b4/map_16-0-2057e4a0b4.tscn",
+	"17": "res://source/match/maps/generated/17-210894544-767a002977/map_17-210894544-767a002977.tscn",
+	"25": "res://source/match/maps/generated/25-39141542-767a002977/map_25-39141542-767a002977.tscn",
+	"5": "res://source/match/maps/generated/5-1444805660-767a002977/map_5-1444805660-767a002977.tscn",
 }
 
 const MatchSettings = preload("res://source/data-model/MatchSettings.gd")

@@ -50,10 +50,23 @@ public sealed record StructurePlacementCandidate(
     WorldPosition Position,
     float YawRadians);
 
+/// <summary>施工进度来源。它同时决定权威 Tick 是否自动推进，以及放置后要不要抓 Worker。</summary>
+public enum ConstructionProgressSource
+{
+    /// <summary>放置后由权威 Tick 自动推进；不抓 Worker，Worker 也不是开工前置。</summary>
+    Automatic,
+
+    /// <summary>旧兼容口径：进度只能由 Worker 的 Construct 分配累积，放置后自动派工。</summary>
+    Worker,
+
+    /// <summary>自动推进为主，空闲且不在采集的 Worker 只提供加速，不构成前置。</summary>
+    Hybrid
+}
+
 /// <summary>表示施工现场不可逆的权威生命周期状态。</summary>
 public enum ConstructionSiteState
 {
-    /// <summary>现场有效，等待或正在接受 Worker 工作量。</summary>
+    /// <summary>现场有效，等待或正在接受工作量。</summary>
     Active,
 
     /// <summary>工作量达到要求，建筑正式可用。</summary>
@@ -74,6 +87,8 @@ public enum ConstructionSiteState
 /// <param name="CompletedWork">已经完成的工作量。</param>
 /// <param name="ConstructionCost">主动取消时使用的原始完整成本。</param>
 /// <param name="State">当前不可逆生命周期状态。</param>
+/// <param name="ProgressSource">该现场的进度来源（是否自动推进、是否该抓 Worker）。</param>
+/// <param name="AutomaticWorkPerTick">每个权威 Tick 自动推进的工作量；Worker 源为 0。</param>
 /// <param name="Version">每次权威变化后递增的版本。</param>
 public sealed record ConstructionSiteSnapshot(
     UnitId SiteId,
@@ -83,4 +98,6 @@ public sealed record ConstructionSiteSnapshot(
     int CompletedWork,
     IReadOnlyList<ResourceAmount> ConstructionCost,
     ConstructionSiteState State,
+    ConstructionProgressSource ProgressSource,
+    int AutomaticWorkPerTick,
     long Version);

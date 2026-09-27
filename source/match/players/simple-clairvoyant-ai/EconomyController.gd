@@ -11,12 +11,28 @@ const FIELD_CONSTRUCTION := 1 << 4
 const FIELD_PRODUCTION := 1 << 5
 const FIELD_ORDER := 1 << 6
 const REFRESH_INTERVAL_S := 0.5
-const MAX_PLACEMENT_PROBES := 8
 const PLACEMENT_BACKOFF_MS := 8000
 const COMMAND_CENTER_TYPE_ID := "command_center"
 const WORKER_TYPE_ID := "worker"
 ## 统一货币（2026-09-14）：B 已从玩法移除，AI 只认 resource_a。
 const RESOURCE_A_TYPE_ID := "resource_a"
+
+## ---- 扩张选址与落点搜索（2026-09-27 缩放适配）----
+## 地图 XZ ×2 之后 80m 圈在 512m 图上经常一个合格矿点都扫不到，扩到 120m。
+const EXPANSION_SCAN_RADIUS_M := 120.0
+## 新基地必须与现有基地保持的平安距离（20m 的平方）。
+const MIN_CC_SEPARATION_SQ := 400.0
+## 扩张点必须落在己方单位视野覆盖内：放置层要求整个 footprint 圆 `FullyVisible`，
+## 而单位 sight 只有 5~10m（见 balance 的 sightRangeMeters）⇒ 远处未揭示的矿点
+## 周边一个合法落点都搜不到，只会刷"放置被拒绝"。
+const EXPANSION_VISION_COVERAGE_M := 10.0
+## 远处扩张点只在工人视野内做螺旋搜索（外扩太多整环落到视野外 = NotVisible）。
+const SITE_SPOT_MAX_RADIUS_M := 14.0
+## 贴主基地搜索时给足半径：CC footprint 半径 6m（建筑 ×3 缩放后），
+## 基地周边还挤着厂/塔，环太短永远撞避让圈。
+const BASE_SPOT_MAX_RADIUS_M := 48.0
+## CommandCenter 走"resource"模式（与玩家侧自动落点口径一致：首环 = 半径 + 2m）。
+const CC_AUTO_SPOT_MODE := "resource"
 
 ## 决策节奏倍率：由 SimpleClairvoyantAI 按"本局电脑玩家人数"注入（唯一实现见 AiCadence）。
 ## 默认 1.0 = 原始节奏；3 个电脑时为 2.0（0.5s → 1.0s）。
@@ -24,6 +40,8 @@ var refresh_scale := 1.0
 
 var _world_query_runtime = null
 var _query_session_id := ""
+## 查询边界缺失只警告一次（开局首帧属正常竞态窗口，见 _resolve_query_runtime 注释）。
+var _query_boundary_warned := false
 var _command_gateway = null
 var _number_of_pending_cc_resource_requests := 0
 var _number_of_pending_worker_resource_requests := 0
@@ -122,7 +140,10 @@ func _enforce_number_of_ccs(own_entities: Array, idle_worker_count: int):
 ## 这个条件**永远不会成立、AI 永不扩张**。门槛语义不变：确认资源已稳定入账
 ## （不是"攒够建造费"——建造费另经 `resources_required` 请求）。
 func _economy_meets_expansion_threshold() -> bool:
-	var result: Dictionary = _world_query_runtime.GetOwnEconomy(_query_session_id)
+	var runtime: Variant = _resolve_query_runtime()
+	if runtime == null:
+		return false
+	var result: Dictionary = runtime.GetOwnEconomy(_resolve_query_session_id())
 	if result.get("status", "") != "Accepted":
 		return false
 	var balances: Dictionary = result.get("economy", {}).get("balances", {})
@@ -209,8 +230,11 @@ func _assign_idle_workers_to_resources(own_entities: Array):
 func _find_visible_resource(
 	worker_position: Vector3, preferred_type: String, assigned_counts_by_node: Dictionary = {}
 ) -> Dictionary:
-	var result: Dictionary = _world_query_runtime.ScanCircle(
-		_query_session_id,
+	var runtime: Variant = _resolve_query_runtime()
+	if runtime == null:
+		return {}
+	var result: Dictionary = runtime.ScanCircle(
+		_resolve_query_session_id(),
 		worker_position,
 		Constants.Match.Units.NEW_RESOURCE_SEARCH_RADIUS_M,
 		FIELD_POSITION | FIELD_TYPE
@@ -262,6 +286,13 @@ func _try_produce_worker(own_entities: Array):
 
 
 ## 围绕指定中心（扩张=选定的远处资源簇；重建=残余 Worker）尝试放置新 CommandCenter。
+##
+## 【2026-09-27 缩放适配】旧实现自己在 center 周围铺 3~17m 的环、再 `shuffle()` 后只探
+## 8 个点：建筑 ×3（CC footprint 半径 6m）+ 地图 ×2 之后，这些环全落在己方建筑避让圈里，
+## 放置必被拒（issues=NotVisible/OutOfBounds/SurfaceNotBuildable）。
+## 现在改用玩家侧同一套 footprint 感知的螺旋搜索（`FindAutoSpot`：首环 = 半径+2m、
+## 逐环外扩 2m、黄金角错开、每个候选都过权威放置校验），并按
+## "远处扩张点 → 主 CC → 残余 Worker" 的顺序回退重试。
 func _try_construct_cc(own_entities: Array, preferred_center: Vector3 = Vector3.INF):
 	if Time.get_ticks_msec() < _placement_backoff_until_ms:
 		return
@@ -273,40 +304,68 @@ func _try_construct_cc(own_entities: Array, preferred_center: Vector3 = Vector3.
 	var command_centers: Array = own_entities.filter(
 		func(entity): return entity.get("type_id", "") == COMMAND_CENTER_TYPE_ID
 	)
-	var center: Vector3
+	# 回退链：扩张点（有工人视野覆盖才给）→ 主 CC → 残余 Worker。
+	var anchors: Array = []
 	if preferred_center != Vector3.INF:
-		center = preferred_center
-	elif command_centers.is_empty():
-		center = workers[0]["position"]
-	else:
-		center = command_centers[0]["position"]
-	var candidates: Array[Vector3] = []
-	for radius in range(3, 18, 2):
-		for sector in range(16):
-			var angle := TAU * float(sector) / 16.0
-			candidates.append(center + Vector3(cos(angle) * radius, 0.0, sin(angle) * radius))
-	candidates.shuffle()
-	var last_result: Dictionary = {}
-	var probes := 0
-	for position in candidates:
-		if probes >= MAX_PLACEMENT_PROBES:
-			break
-		probes += 1
-		last_result = _command_gateway.PlaceStructure(
+		anchors.append({"position": preferred_center, "max_radius": SITE_SPOT_MAX_RADIUS_M})
+	var base_position: Vector3 = (
+		command_centers[0]["position"] if not command_centers.is_empty()
+		else workers[0]["position"]
+	)
+	anchors.append({"position": base_position, "max_radius": BASE_SPOT_MAX_RADIUS_M})
+	if command_centers.is_empty():
+		anchors.append({"position": workers[0]["position"], "max_radius": BASE_SPOT_MAX_RADIUS_M})
+	for anchor in anchors:
+		var spot := _find_legal_cc_spot(anchor["position"], anchor["max_radius"])
+		if spot == Vector3.INF:
+			continue
+		var result: Dictionary = _command_gateway.PlaceStructure(
 			COMMAND_CENTER_TYPE_ID,
-			Transform3D(Basis.IDENTITY, position)
+			Transform3D(Basis.IDENTITY, spot)
 		)
-		if last_result.get("accepted", false):
+		if result.get("accepted", false):
 			return
-		if last_result.get("primary_issue", "") == "InsufficientResources":
-			break
+		# 缺钱不是选址问题：落点合法，扣款失败等下一轮，别进选址退避。
+		if result.get("primary_issue", "") == "InsufficientResources":
+			return
+		_break_off_placement("落点 %s 放置被拒 %s" % [str(spot), str(result)])
+		return
+	_break_off_placement("无合法落点 anchors=%d" % anchors.size())
+
+
+## 进入选址退避并留一行诊断（原来只在失败时 print 一次被拒结果）。
+func _break_off_placement(reason: String) -> void:
 	_placement_backoff_until_ms = Time.get_ticks_msec() + PLACEMENT_BACKOFF_MS
-	print("规则 AI 放置 CommandCenter 被拒绝：%s" % last_result)
+	print("规则 AI 放置 CommandCenter 被拒绝：%s" % reason)
 
 
-## 扩张选址：以主 CC 为心做大半径扫描，取「距所有己方 CC 至少 20m」中**最近**的资源簇位置。
+## 用玩家侧的自动落点搜索找一个能放 CC 的合法坐标；找不到返回 Vector3.INF。
+func _find_legal_cc_spot(anchor: Vector3, max_radius_m: float) -> Vector3:
+	var placement := _structure_placement_runtime()
+	if placement == null:
+		return Vector3.INF
+	var reply: Variant = placement.FindAutoSpot(
+		_ai, CommandCenterScene, CC_AUTO_SPOT_MODE, anchor, max_radius_m
+	)
+	if not (reply is Dictionary) or not bool(reply.get("found", false)):
+		return Vector3.INF
+	return reply.get("pos", Vector3.INF)
+
+
+func _structure_placement_runtime() -> Node:
+	var match_node := find_parent("Match")
+	if match_node == null:
+		return null
+	var placement: Node = match_node.get_node_or_null("StructurePlacementRuntime")
+	if placement == null or not placement.has_method("FindAutoSpot"):
+		return null
+	return placement
+
+
+## 扩张选址：以主 CC 为心做大半径扫描，取「距所有己方 CC 至少 20m、且落在己方单位
+## 视野覆盖内（否则放置层整圈 NotVisible）」中**最近**的资源簇位置。
 ## 【2026-09-19】此前取的是**最远**的（见下方注释），与方案 3.F"不再默认最远矿点最优"冲突。
-## 找不到合适资源时返回 Vector3.INF（本轮放弃扩张）。
+## 找不到合适资源时返回 Vector3.INF（本轮放弃扩张，由 _try_construct_cc 回退到主 CC 附近）。
 func _find_expansion_site(own_entities: Array) -> Vector3:
 	var command_centers: Array = own_entities.filter(
 		func(entity): return entity.get("type_id", "") == COMMAND_CENTER_TYPE_ID
@@ -314,10 +373,13 @@ func _find_expansion_site(own_entities: Array) -> Vector3:
 	if command_centers.is_empty():
 		return Vector3.INF
 	var primary_position: Vector3 = command_centers[0]["position"]
-	var result: Dictionary = _world_query_runtime.ScanCircle(
-		_query_session_id,
+	var runtime: Variant = _resolve_query_runtime()
+	if runtime == null:
+		return Vector3.INF
+	var result: Dictionary = runtime.ScanCircle(
+		_resolve_query_session_id(),
 		primary_position,
-		80.0,
+		EXPANSION_SCAN_RADIUS_M,
 		FIELD_POSITION | FIELD_TYPE
 	)
 	if result.get("status", "") != "Accepted":
@@ -330,10 +392,12 @@ func _find_expansion_site(own_entities: Array) -> Vector3:
 		var position: Vector3 = entity["position"]
 		var too_close := false
 		for center in command_centers:
-			if position.distance_squared_to(center["position"]) < 400.0:
+			if position.distance_squared_to(center["position"]) < MIN_CC_SEPARATION_SQ:
 				too_close = true
 				break
 		if too_close:
+			continue
+		if not _covered_by_own_vision(position, own_entities):
 			continue
 		# 【2026-09-19 修确定缺陷】原实现用 `distance > best_distance` ⇒ **专挑最远**的
 		# 资源簇当分矿：跑得最久、最容易被截、工人往返最费的定位反而被优先选中
@@ -347,16 +411,62 @@ func _find_expansion_site(own_entities: Array) -> Vector3:
 	return best_position
 
 
+## 该坐标是否落在某个己方实体的视野覆盖内（放置层要求整个 footprint 圆可见）。
+func _covered_by_own_vision(target: Vector3, own_entities: Array) -> bool:
+	var limit_sq := EXPANSION_VISION_COVERAGE_M * EXPANSION_VISION_COVERAGE_M
+	for entity in own_entities:
+		var position = entity.get("position", null)
+		if position is Vector3 and target.distance_squared_to(position) <= limit_sq:
+			return true
+	return false
+
+
 ## 查询准确己方实体以及生产、施工和活动订单；失败时返回显式空集合。
 func _get_own_entities() -> Array:
-	var result: Dictionary = _world_query_runtime.GetOwnForces(
-		_query_session_id,
+	var runtime: Variant = _resolve_query_runtime()
+	if runtime == null:
+		_warn_once_query_boundary_missing()
+		return []
+	var result: Dictionary = runtime.GetOwnForces(
+		_resolve_query_session_id(),
 		FIELD_POSITION | FIELD_TYPE | FIELD_CONSTRUCTION | FIELD_PRODUCTION | FIELD_ORDER
 	)
 	if result.get("status", "") != "Accepted":
 		push_warning("rule AI force query was rejected: %s" % result.get("error", "Unknown"))
 		return []
 	return result["entities"]
+
+
+## 观察快照运行时/会话 ID 是 AI 在自身 `_ready` 之后才注入的，而
+## `SimpleClairvoyantAI.gd:142` 把**当时仍为 null** 的引用缓存进了本控制器 ⇒
+## 首个刷新周期 `GetOwnForces` 会在 Nil 上调用（套件日志里的
+## "Nonexistent function 'GetOwnForces' in base 'Nil'"），己方快照变空，
+## `_enforce_number_of_ccs` 误判"一座 CC 都没有"走无条件重建分支
+## —— rule-ai-expansion 两条门控随开局时序 flaky 的真因（第二轮任务 C）。
+## 这里惰性回源到 AI 的当前值并重新缓存，不吞错误（缺边界时警告一次）。
+func _resolve_query_runtime():
+	if _world_query_runtime != null:
+		return _world_query_runtime
+	var current: Variant = _ai.get("_world_query_runtime") if _ai != null else null
+	if current != null:
+		_world_query_runtime = current
+	return current
+
+
+func _resolve_query_session_id() -> String:
+	if _query_session_id != "":
+		return _query_session_id
+	var current: Variant = _ai.get("_query_session_id") if _ai != null else null
+	if current != null and String(current) != "":
+		_query_session_id = String(current)
+	return _query_session_id
+
+
+func _warn_once_query_boundary_missing() -> void:
+	if _query_boundary_warned:
+		return
+	_query_boundary_warned = true
+	push_warning("规则 AI 经济控制器：查询边界（world_query_runtime）尚未注入，本周期跳过规划")
 
 
 func _on_refresh_timer_timeout():

@@ -11,10 +11,11 @@
 [ext_resource type="PackedScene" path="res://assets/models/polygon-scifi/Sniper_native_v3.glb" id="8_model"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_inf"]
-height = 0.4
-radius = 0.16
+height = 0.800
+radius = 1.000
 
 [node name="Infantry" type="Area3D"]
+scale = Vector3(1.35, 1.35, 1.35)
 collision_layer = 2
 collision_mask = 0
 script = ExtResource("1_script")
@@ -52,7 +53,7 @@ path_desired_distance = 0.35
 target_desired_distance = 0.35
 path_height_offset = 0.6
 path_max_distance = 0.4
-radius = 0.21
+radius = 1.35
 neighbor_distance = 2.0
 max_neighbors = 24
 time_horizon_agents = 4.5

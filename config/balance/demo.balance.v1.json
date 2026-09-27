@@ -4,7 +4,12 @@
  "resources": [
   {
    "kind": "A",
-   "collectionDurationMilliseconds": 120
+   "collectionDurationMilliseconds": 120,
+   "regeneration": {
+    "enabled": true,
+    "delayMilliseconds": 90000,
+    "restoreAmount": 1500
+   }
   }
  ],
  "warheads": [
@@ -128,7 +133,7 @@
    "deliveryKind": "projectile",
    "baseDamage": 5.0,
    "cooldownMilliseconds": 2400,
-   "rangeMeters": 16.0,
+   "rangeMeters": 20.0,
    "targetDomains": [
     "terrain"
    ],
@@ -243,7 +248,12 @@
    "maxHp": 60.0,
    "sightRangeMeters": 10.0,
    "weaponIds": [],
-   "canForceFireGround": false
+   "canForceFireGround": false,
+   "oreRefinery": {
+    "serviceRadiusMeters": 30.0,
+    "workerCapacity": 4,
+    "claimIntervalSeconds": 2.0
+   }
   },
   {
    "id": "vehicle_factory",
@@ -330,7 +340,7 @@
   {
    "id": "heavy_tank",
    "maxHp": 8.0,
-   "sightRangeMeters": 18.0,
+   "sightRangeMeters": 10.0,
    "movement": {
     "domain": "terrain",
     "speedMetersPerSecond": 2.2,
@@ -545,7 +555,9 @@
     }
    ],
    "environmentId": "terrain.surface",
-   "footprintRadiusMeters": 2.0
+   "footprintRadiusMeters": 7.0,
+   "constructionProgressSource": "automatic",
+   "automaticWorkPerTick": 1
   },
   {
    "id": "ore_refinery",
@@ -558,7 +570,9 @@
     }
    ],
    "environmentId": "terrain.surface",
-   "footprintRadiusMeters": 2.0
+   "footprintRadiusMeters": 6.0,
+   "constructionProgressSource": "automatic",
+   "automaticWorkPerTick": 1
   },
   {
    "id": "vehicle_factory",
@@ -571,7 +585,9 @@
     }
    ],
    "environmentId": "terrain.surface",
-   "footprintRadiusMeters": 1.5
+   "footprintRadiusMeters": 6.65,
+   "constructionProgressSource": "automatic",
+   "automaticWorkPerTick": 1
   },
   {
    "id": "aircraft_factory",
@@ -584,7 +600,9 @@
     }
    ],
    "environmentId": "terrain.surface",
-   "footprintRadiusMeters": 1.5
+   "footprintRadiusMeters": 8.0,
+   "constructionProgressSource": "automatic",
+   "automaticWorkPerTick": 1
   },
   {
    "id": "anti_ground_turret",
@@ -597,7 +615,9 @@
     }
    ],
    "environmentId": "terrain.surface",
-   "footprintRadiusMeters": 0.6
+   "footprintRadiusMeters": 2.2,
+   "constructionProgressSource": "automatic",
+   "automaticWorkPerTick": 1
   },
   {
    "id": "anti_air_turret",
@@ -610,7 +630,9 @@
     }
    ],
    "environmentId": "terrain.surface",
-   "footprintRadiusMeters": 0.6
+   "footprintRadiusMeters": 2.0,
+   "constructionProgressSource": "automatic",
+   "automaticWorkPerTick": 1
   },
   {
    "id": "barracks",
@@ -623,7 +645,9 @@
     }
    ],
    "environmentId": "terrain.surface",
-   "footprintRadiusMeters": 1.5
+   "footprintRadiusMeters": 6.25,
+   "constructionProgressSource": "automatic",
+   "automaticWorkPerTick": 1
   },
   {
    "id": "machine_gun_turret",
@@ -636,7 +660,9 @@
     }
    ],
    "environmentId": "terrain.surface",
-   "footprintRadiusMeters": 0.6
+   "footprintRadiusMeters": 2.0,
+   "constructionProgressSource": "automatic",
+   "automaticWorkPerTick": 1
   }
  ],
  "skills": [

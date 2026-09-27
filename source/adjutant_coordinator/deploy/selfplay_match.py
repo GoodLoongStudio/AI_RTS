@@ -72,13 +72,105 @@ def _match_forces() -> dict:
 
 
 def _own_snapshot():
-    """副官视角的战术观测（己方单位 + 余额 + 可见敌人）。"""
+    """副官视角的战术观测（己方单位 + 余额 + 可见敌人 + 矿点存量）。
+
+    【为什么要显式 `limit`】游戏侧实体窗口默认 128 条。200×200 图上光矿点就可能
+    上百，默认窗口会让"全图矿量"只统计到前 128 个实体——把**截断当耗尽**是本次
+    最容易造出假证据的一条路（提示词第五节明令禁止）。所以取数一律要大窗口，
+    并把 `truncated` 原样记进样本，分析层据此判"这局的矿量账可不可信"。
+    """
     try:
-        snap = dcs(SERVER_PORT, {"op": "tactical", "as_player": "Player_0"},
-                   timeout=15)
+        snap = dcs(SERVER_PORT, {"op": "tactical", "as_player": "Player_0",
+                                 "limit": 4096}, timeout=15)
     except Exception as exc:  # noqa: BLE001
         return {"__error": str(exc)}
     return snap or {}
+
+
+def _economy(snap: dict) -> dict:
+
+    """施工/矿场/矿点三张经济账（提示词第六节逐局报告项的原始事实）。
+
+
+
+    只做透传与求和，不做推断；`truncated` 必须带上——窗口截断时矿量合计不可信。
+
+    """
+
+    entities = snap.get("entities") or []
+
+    constructing = 0
+
+    workers = 0
+
+    refineries = []
+
+    for entity in entities:
+
+        if str(entity.get("kind", "")) != "unit_self":
+
+            continue
+
+        if entity.get("constructing"):
+
+            constructing += 1
+
+        if str(entity.get("unit_type", "")) == "worker":
+
+            workers += 1
+
+        stats = entity.get("refinery")
+
+        if isinstance(stats, dict) and str(entity.get("unit_type", "")) == "ore_refinery":
+
+            refineries.append({"name": str(entity.get("name", "")),
+
+                               "constructed": bool(entity.get("constructed")),
+
+                               "assigned": int(stats.get("assigned") or 0),
+
+                               "takeovers": int(stats.get("takeovers") or 0),
+
+                               "delivered": int(stats.get("delivered_count") or 0),
+
+                               "delivered_amount": int(stats.get("delivered_amount") or 0)})
+
+    ore_nodes = [e for e in entities if str(e.get("kind", "")) == "resource"]
+
+    return {
+
+        "constructing": constructing,
+
+        "workers": workers,
+
+        "refineries": refineries,
+
+        "ore_nodes": len(ore_nodes),
+
+        "ore_depleted": sum(1 for e in ore_nodes if e.get("ore_depleted")),
+
+        "ore_remaining": sum(int(e.get("ore_remaining") or 0) for e in ore_nodes),
+
+        "ore_capacity": sum(int(e.get("ore_capacity") or 0) for e in ore_nodes),
+
+        "truncated": bool(snap.get("truncated")),
+
+        "cw_seconds": snap.get("construction_worker_seconds") or {},
+
+    }
+
+
+
+
+
+def _fixed_match_args(args) -> list:
+    """把 --map/--seed 翻成游戏侧命令行参数；未指定就不加（保持旧行为逐字一致）。"""
+    extra = []
+    if args.map:
+        extra += ["--map", args.map]
+    if args.seed:
+        extra += ["--seed", str(args.seed)]
+    return extra
 
 
 def _match_result_from_log() -> str:
@@ -162,6 +254,12 @@ def main() -> int:
                         help="电脑难度 0=EASY 1=NORMAL 2=HARD；-1=游戏默认")
     parser.add_argument("--dataset", default="",
                         help="Laya 训练数据集输出路径（JSONL，追加写）")
+    # 固定地图/固定种子（阶段 6 回归入口）。种子灌的是**权威进程**的全局 RNG，
+    # 所以下面会把它同时传给专用服那一条命令行——只给客户端传是无效凭据。
+    parser.add_argument("--map", default="",
+                        help="固定地图 res:// 路径（必须登记在 Constants.Match.ALL_MAPS）")
+    parser.add_argument("--seed", type=int, default=0,
+                        help="固定全局 RNG 种子，0 = 不干预（游戏默认）")
     args = parser.parse_args()
 
     os.makedirs(OUT, exist_ok=True)
@@ -184,8 +282,9 @@ def main() -> int:
 
     # 起专用服 + 客户端（与验收同口径，只按端口 PID 清理）。
     kill_our_game()
+    fixed_args = _fixed_match_args(args)
     spawn(["--headless", "--path", AI, "--",
-           "--server", "--port", str(GAME_PORT), "--debugport", str(SERVER_PORT)],
+           "--server", "--port", str(GAME_PORT), "--debugport", str(SERVER_PORT)] + fixed_args,
           "selfplay_server.out")
     ok = False
     for _ in range(45):
@@ -201,7 +300,7 @@ def main() -> int:
     # 注意**不能加 --headless**：客户端要走主菜单/大厅流程（harness 同款窗口运行）。
     spawn(["--path", AI, "--", "--debugport", str(CLIENT_PORT),
            "--autojoin", "--autojoin-lobby",
-           "--smokehost", "127.0.0.1", "--smokeport", str(GAME_PORT)],
+           "--smokehost", "127.0.0.1", "--smokeport", str(GAME_PORT)] + fixed_args,
           "selfplay_client.out")
     ok = False
     for _ in range(25):
@@ -275,7 +374,7 @@ def main() -> int:
                       **_forces(snap)}
             samples.append(sample)
             detail_log.append({"ts": sample["ts"], "tick": sample["tick"],
-                               **_detail(snap)})
+                               **_detail(snap), **_economy(snap)})
         else:
             consecutive_failures += 1
             sampling_log.append({"ts": time.time(),
@@ -363,6 +462,7 @@ def main() -> int:
         verdict = "timeout"
     result = {
         "tag": args.tag, "backend": args.backend, "seconds": args.seconds,
+        "map": args.map, "seed": args.seed,
         "difficulty": args.difficulty,
         "samples": len(samples),
         "first": samples[0] if samples else {},

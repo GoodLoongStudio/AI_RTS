@@ -1,0 +1,4 @@
+[sweep] 开始 fs_probe_424242 map=res://source/match/maps/PlainAndSimple.tscn seed=424242
+[selfplay] 验收端口 24589 在专用段 24589-24592 内
+[sweep] 结束 fs_probe_424242 -> {"verdict": "timeout", "worker_seconds_on_construction": 0.0, "refinery_delivered_amount": null, "error": null}
+[sweep] 1 局，表 -> G:/AIRTS/AI_RTS/build/selfplay\sweep_fs_probe.md

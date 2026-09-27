@@ -50,9 +50,14 @@ public partial class ProjectileRuntime : Node
         var sourceId = _units.Register(sourceNode);
         var targetId = _units.Register(targetNode);
         var launch = FindLaunchDefinition(sourceNode);
+        // 【2026-09-27 修"双管炮塔不交替"】炮口每发只解析一次。交替计数在
+        // GetLaunchTransform 内推进（MuzzleL/MuzzleR meta），原先 CreateSnapshot
+        // 与 Spawn 各调一次 → 一发推进两次，弹体永远从同一根炮管出来。
+        var muzzle = GetLaunchTransform(source);
         var snapshot = CreateSnapshot(
             source,
             sourceId,
+            muzzle,
             target.GlobalPosition,
             targetId,
             launch.Weapon,
@@ -62,9 +67,9 @@ public partial class ProjectileRuntime : Node
 
         if (launch.Weapon.DeliveryKind == WeaponDeliveryKind.Hitscan)
         {
-            return SpawnHitscan(snapshot, source, target);
+            return SpawnHitscan(snapshot, source, muzzle);
         }
-        return Spawn(snapshot, launch.ProjectileScene!, source, target);
+        return Spawn(snapshot, launch.ProjectileScene!, muzzle, source, target);
     }
 
     /// <summary>发射指向纯世界落点的投射物，并使用实际爆点执行范围查询。</summary>
@@ -75,9 +80,12 @@ public partial class ProjectileRuntime : Node
         var source = RequireSpatial(sourceNode, nameof(sourceNode));
         var sourceId = _units.Register(sourceNode);
         var launch = FindLaunchDefinition(sourceNode);
+        // 同 LaunchEntity：炮口每发只解析一次（保住 MuzzleL/MuzzleR 交替节奏）。
+        var muzzle = GetLaunchTransform(source);
         var snapshot = CreateSnapshot(
             source,
             sourceId,
+            muzzle,
             targetPosition,
             null,
             launch.Weapon,
@@ -86,9 +94,9 @@ public partial class ProjectileRuntime : Node
 
         if (launch.Weapon.DeliveryKind == WeaponDeliveryKind.Hitscan)
         {
-            return SpawnHitscan(snapshot, source, null);
+            return SpawnHitscan(snapshot, source, muzzle);
         }
-        return Spawn(snapshot, launch.ProjectileScene!, source, null);
+        return Spawn(snapshot, launch.ProjectileScene!, muzzle, source, null);
     }
 
     /// <summary>返回制导目标的最新有效位置；目标失效后保持最后已知位置。</summary>
@@ -211,6 +219,7 @@ public partial class ProjectileRuntime : Node
     private AttackLaunchSnapshot CreateSnapshot(
         Node3D source,
         UnitId sourceId,
+        Transform3D muzzleTransform,
         Vector3 aimPoint,
         UnitId? targetId,
         WeaponDefinition weapon,
@@ -224,7 +233,7 @@ public partial class ProjectileRuntime : Node
             sourceId,
             sourcePlayer,
             weapon.DeliveryKind,
-            ToWorld(GetLaunchTransform(source).Origin),
+            ToWorld(muzzleTransform.Origin),
             ToWorld(aimPoint),
             targetId,
             weapon.BaseDamage * GrowthDamageMultiplier(source),
@@ -255,16 +264,17 @@ public partial class ProjectileRuntime : Node
     /// 即时命中武器（hitscan）：立刻结算伤害，并把一条短寿命曳光线段
     /// （枪口 → 目标，参照 Defilade 风格的细白弹道）挂到 Projectiles 容器。
     /// </summary>
-    private string SpawnHitscan(AttackLaunchSnapshot snapshot, Node3D source, Node3D? target)
+    private string SpawnHitscan(
+        AttackLaunchSnapshot snapshot, Node3D source, Transform3D muzzleTransform)
     {
         var state = new ActiveProjectile(
             snapshot,
-            target is null ? null : new WeakReference<Node3D>(target),
+            null,
             ToVector(snapshot.InitialAimPoint),
             "bullet");
         _active.Add(snapshot.AttackId, state);
 
-        var muzzle = GetLaunchTransform(source).Origin;
+        var muzzle = muzzleTransform.Origin;
         var impact = ToVector(snapshot.InitialAimPoint);
         SpawnTracer(muzzle, impact);
         // 实体攻击、地面攻击与调试发射共用同一真实发射事件，避免各 Action 漏报或重复报。
@@ -312,11 +322,11 @@ public partial class ProjectileRuntime : Node
     private string Spawn(
         AttackLaunchSnapshot snapshot,
         PackedScene projectileScene,
+        Transform3D launchTransform,
         Node3D source,
         Node3D? target)
     {
         var projectile = projectileScene.Instantiate<Node3D>();
-        var launchTransform = GetLaunchTransform(source);
         var state = new ActiveProjectile(
             snapshot,
             target is null ? null : new WeakReference<Node3D>(target),

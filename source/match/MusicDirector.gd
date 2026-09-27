@@ -1,14 +1,17 @@
 extends Node
 class_name MusicDirector
 
-## 对局背景音乐导演：进入对局后按授权曲目列表轮播，不再按和平/战斗状态切歌。
-## 已授权曲目：原和平/战斗主题作为统一轮播列表。`r`n##
-## 和平曲=peace_theme（silo_protocol 裁掉前 18s，取后半段）；
-## 切曲间静音停顿 3 秒（淡出 → 停顿 → 淡入）。
+## 对局背景音乐导演：进入对局后按曲目列表轮播，不再按和平/战斗状态切歌。
+## 【2026-09-26 用户换曲】轮播曲目 = 用户提供的对局双曲（正常 ↔ 激情交替），
+## ASCII 副本在 assets/music/user/（原件在 <项目>/music/，已 .gdignore）。
+## 注意：轮播依赖 `finished` 信号推进，曲目**不能**循环（循环会导致永远停在一首）；
+## 单曲循环场景（菜单 BGM）由 MenuMusic 自行调 `_enable_loop`。
+## 此前对局音乐按产品要求整体关闭（_setup_music_director 无人调用）——
+## 用户交付对局双曲即恢复启用。
 
 const PLAYLIST := [
-	"res://assets/music/longplay/longplay_frontier.wav",
-	"res://assets/music/longplay/longplay_expedition.wav",
+	"res://assets/music/user/match_normal.mp3",
+	"res://assets/music/user/match_intense.mp3",
 ]
 const FADE_SECONDS := 1.5
 ## 曲目切换间的静音停顿（秒）：淡出 → 停顿 → 淡入
@@ -45,11 +48,13 @@ func _ensure_stream(key: String) -> void:
 	player.stream = stream
 
 
-## 按流类型打开无缝循环：OGG 用 loop 属性，WAV 用 FORWARD 循环段。
+## 按流类型打开无缝循环：MP3/OGG 用 loop 属性，WAV 用 FORWARD 循环段。
 static func _enable_loop(stream) -> void:
 	if stream == null:
 		return
-	if stream is AudioStreamOggVorbis:
+	if stream is AudioStreamMP3:
+		stream.loop = true
+	elif stream is AudioStreamOggVorbis:
 		stream.loop = true
 	elif stream is AudioStreamWAV:
 		stream.loop_mode = AudioStreamWAV.LOOP_FORWARD

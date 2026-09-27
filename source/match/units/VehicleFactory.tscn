@@ -11,10 +11,11 @@
 [ext_resource type="PackedScene" uid="uid://cd3v6508vjcu3" path="res://source/match/units/traits/ProductionQueue.tscn" id="9_3s532"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_2mws5"]
-height = 1.0
-radius = 1.5
+height = 2.000
+radius = 2.217
 
 [node name="VehicleFactory" type="Area3D"]
+scale = Vector3(3.00, 3.00, 3.00)
 collision_layer = 2
 collision_mask = 0
 script = ExtResource("1_1a20j")
@@ -34,7 +35,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
 radius = 1.5
 
 [node name="MovementObstacle" parent="." instance=ExtResource("3_cp6bx")]
-radius = 1.5
+radius = 6.65
 vertices = PackedVector3Array(0, 0, -1.1, 0.777, 0, -0.777, 1.1, 0, 0, 0.777, 0, 0.777, 0, 0, 1.1, -0.777, 0, 0.777, -1.1, 0, 0, -0.777, 0, -0.777)
 affect_navigation_mesh = true
 path_height_offset = 0.6

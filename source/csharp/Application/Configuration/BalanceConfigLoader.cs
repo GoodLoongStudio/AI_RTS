@@ -171,6 +171,10 @@ public sealed class BalanceConfigLoader
             {
                 AddUnknown(item.Producer.UnknownProperties, $"{path}.producer", errors);
             }
+            if (item.OreRefinery is not null)
+            {
+                AddUnknown(item.OreRefinery.UnknownProperties, $"{path}.oreRefinery", errors);
+            }
         });
         ForEach(dto.Productions, "productions", (item, path) =>
         {
@@ -215,6 +219,19 @@ public sealed class BalanceConfigLoader
             }
             RequirePositive(resources[index].CollectionDurationMilliseconds,
                 $"{path}.collectionDurationMilliseconds", errors);
+            // 再生是可选块：不写就等于"采空即消失"的旧语义。写了就必须自洽——
+            // 启用时延迟与恢复量都得是正数，否则驱动器会陷入"每 Tick 都恢复 0"的空转。
+            if (resources[index].Regeneration is { } regen)
+            {
+                AddUnknown(regen.UnknownProperties, $"{path}.regeneration", errors);
+                if (regen.Enabled ?? false)
+                {
+                    RequirePositive(regen.DelayMilliseconds,
+                        $"{path}.regeneration.delayMilliseconds", errors);
+                    RequirePositive(regen.RestoreAmount,
+                        $"{path}.regeneration.restoreAmount", errors);
+                }
+            }
         }
     }
 
@@ -334,6 +351,15 @@ public sealed class BalanceConfigLoader
             if (item.Producer is not null)
             {
                 RequirePositive(item.Producer.QueueLimit, $"{path}.producer.queueLimit", errors);
+            }
+            if (item.OreRefinery is not null)
+            {
+                RequireFinitePositive(item.OreRefinery.ServiceRadiusMeters,
+                    $"{path}.oreRefinery.serviceRadiusMeters", errors);
+                RequirePositive(item.OreRefinery.WorkerCapacity,
+                    $"{path}.oreRefinery.workerCapacity", errors);
+                RequireFinitePositive(item.OreRefinery.ClaimIntervalSeconds,
+                    $"{path}.oreRefinery.claimIntervalSeconds", errors);
             }
         }
         return definitions;
@@ -500,8 +526,52 @@ public sealed class BalanceConfigLoader
             }
             RequireFinitePositive(item.FootprintRadiusMeters,
                 $"{path}.footprintRadiusMeters", errors);
+            if (TryParseConstructionProgressSource(item.ConstructionProgressSource,
+                    $"{path}.constructionProgressSource", errors, out var source) &&
+                source != ConstructionProgressSource.Worker)
+            {
+                RequirePositive(item.AutomaticWorkPerTick,
+                    $"{path}.automaticWorkPerTick", errors);
+            }
         }
         return ids;
+    }
+
+    /// <summary>映射已通过校验的施工进度来源。</summary>
+    private static ConstructionProgressSource ParseConstructionProgressSource(string value) =>
+        value switch
+        {
+            "automatic" => ConstructionProgressSource.Automatic,
+            "worker" => ConstructionProgressSource.Worker,
+            _ => ConstructionProgressSource.Hybrid
+        };
+
+    /// <summary>
+    /// 解析施工进度来源。worker 是旧兼容口径（不需要自动速率），automatic/hybrid 必须声明
+    /// automaticWorkPerTick；缺失或未知取值一律报错，让 balance 配置成为唯一事实来源。
+    /// </summary>
+    /// <returns>取值合法时返回 true。</returns>
+    private static bool TryParseConstructionProgressSource(
+        string? value,
+        string path,
+        List<BalanceConfigError> errors,
+        out ConstructionProgressSource source)
+    {
+        if (value is "automatic" or "worker" or "hybrid")
+        {
+            source = value switch
+            {
+                "automatic" => ConstructionProgressSource.Automatic,
+                "worker" => ConstructionProgressSource.Worker,
+                _ => ConstructionProgressSource.Hybrid
+            };
+            return true;
+        }
+        source = default;
+        Add(errors, string.IsNullOrWhiteSpace(value) ? BalanceConfigErrorCode.MissingValue :
+            BalanceConfigErrorCode.InvalidEnum, path,
+            "constructionProgressSource 必须是 automatic、worker 或 hybrid。");
+        return false;
     }
 
     /// <summary>验证技能 ID、触发、目标、效果种类和冷却，并拒绝重复定义。</summary>
@@ -814,7 +884,10 @@ public sealed class BalanceConfigLoader
     {
         var resources = dto.Resources!.Select(item => new ResourceDefinition(
             ParseResourceKind(item.Kind!),
-            item.CollectionDurationMilliseconds!.Value));
+            item.CollectionDurationMilliseconds!.Value,
+            item.Regeneration?.Enabled ?? false,
+            item.Regeneration?.DelayMilliseconds ?? 0,
+            item.Regeneration?.RestoreAmount ?? 0));
         var warheads = dto.Warheads!.Select(item => new WarheadDefinition(
             new WarheadDefinitionId(item.Id!),
             ParseImpactSelection(item.ImpactSelectionMode!),
@@ -849,7 +922,9 @@ public sealed class BalanceConfigLoader
                 definitionId,
                 new UnitTypeId(item.UnitTypeId!),
                 item.RequiredWork!.Value,
-                placement);
+                placement,
+                ParseConstructionProgressSource(item.ConstructionProgressSource!),
+                item.AutomaticWorkPerTick ?? 0);
         });
         var skills = dto.Skills!.Select(item =>
         {
@@ -903,7 +978,11 @@ public sealed class BalanceConfigLoader
         item.CanForceFireGround!.Value,
         item.Gatherer is null ? null : new GathererDefinition(item.Gatherer.CarryCapacity!.Value),
         item.Constructor is null ? null : new ConstructorDefinition(item.Constructor.WorkPerTick!.Value),
-        item.Producer is null ? null : new ProducerDefinition(item.Producer.QueueLimit!.Value));
+        item.Producer is null ? null : new ProducerDefinition(item.Producer.QueueLimit!.Value),
+        item.OreRefinery is null ? null : new OreRefineryDefinition(
+            item.OreRefinery.ServiceRadiusMeters!.Value,
+            item.OreRefinery.WorkerCapacity!.Value,
+            item.OreRefinery.ClaimIntervalSeconds!.Value));
 
     private static IReadOnlyList<ResourceAmount> MapCost(IEnumerable<ResourceAmountDto> cost) =>
         Array.AsReadOnly(cost.Where(item => item.Amount > 0).Select(item => new ResourceAmount(

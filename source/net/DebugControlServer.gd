@@ -468,12 +468,39 @@ func _op_start(parsed) -> String:
 	var passive_ai_test := bool(parsed.get("passive_ai_test", false))
 	# peaceful：和平模式，AI 首波进攻延迟 600s —— 副官练发展与探索用。
 	var peaceful := bool(parsed.get("peaceful", false))
+	# 固定地图/种子：开局前钉图，走 NetSession 的同一套合法性守门；非法就明确报错，
+	# 绝不"悄悄换成默认图"跑完一整局再在报告里写成固定种子图（那等于伪造证据）。
+	# 【为什么只认服务器进程】种子灌的是**全局 RNG**，而全局 RNG 只在权威模拟那一侧
+	# 决定结果；客户端设了种子什么也不会改变（`_launch_match` 只在服务器跑）。
+	# 所以在这里静默接受客户端的 seed 就等于给报告发假凭据——直接拒绝，
+	# 固定种子回归请给服务器进程传 `--seed`（selfplay_match.py 已经这么做）。
+	var requested_map := str(parsed.get("map", ""))
+	var requested_seed = parsed.get("seed")
+	if not NetSession.is_server() and (not requested_map.is_empty() or requested_seed != null):
+		return JSON.stringify({
+			"ok": false, "status": "FixedMatchOnServerOnly",
+			"reason": "地图/种子必须在权威进程生效：请给服务器进程传 --map/--seed",
+			"error": "fixed map or seed accepted only on the server process",
+		})
+	var map_applied := NetSession.selected_map_path
+	if not requested_map.is_empty():
+		if not NetSession.set_selected_map_for_local_start(requested_map):
+			return JSON.stringify({
+				"ok": false, "status": "InvalidMap",
+				"reason": "地图未登记在 Constants.Match.ALL_MAPS 或资源不可加载：%s" % requested_map,
+				"error": "invalid map",
+			})
+		map_applied = NetSession.selected_map_path
+	if requested_seed != null:
+		NetSession.match_seed = int(requested_seed)
 	NetSession.start_solo(with_ai, passive_ai_test, peaceful)
 	return JSON.stringify({
 		"ok": true,
 		"with_ai": with_ai,
 		"passive_ai_test": passive_ai_test,
 		"peaceful": peaceful,
+		"map": map_applied,
+		"seed": NetSession.match_seed,
 	})
 
 func _op_move(match_node, parsed) -> String:
@@ -560,10 +587,27 @@ func _op_gather(match_node, parsed) -> String:
 	}))
 
 
+## 查询某场景对应建筑施工进度来源（automatic / worker / hybrid）。
+## 拿不到配置时返回 "worker"：宁可保守地继续要求建造者，也不悄悄放开一条未配置的建造路径。
+func _construction_progress_source(match_node, scene_path: String) -> String:
+	if match_node == null or scene_path.is_empty():
+		return "worker"
+	var balance: Node = match_node.get_node_or_null("BalanceConfigRuntime")
+	if balance == null or not balance.has_method("GetConstructionProgressSource"):
+		return "worker"
+	var scene := load(scene_path)
+	if scene == null:
+		return "worker"
+	return str(balance.GetConstructionProgressSource(scene))
+
+
 func _op_build(match_node, parsed) -> String:
 	var player = _resolve_player(match_node, parsed)
 	var builders := _resolve_own_units(player, parsed.get("units", []))
-	if builders.is_empty():
+	var progress_source := _construction_progress_source(match_node, str(parsed.get("scene", "")))
+	# automatic/hybrid 建筑由权威 Tick 自动施工，"先有一个工人"不再是开工前置；只有旧的
+	# worker 口径才把建造者当硬条件。查不到配置时按 worker 处理（保守，不悄悄放开）。
+	if builders.is_empty() and progress_source == "worker":
 		return JSON.stringify({
 			"ok": false,
 			"status": "UnitsNotFound",
@@ -623,6 +667,15 @@ func _op_build(match_node, parsed) -> String:
 	# 其它情况原样走新建路径（默认行为不变）。
 	var existing_site = _find_own_unfinished_structure(player, scene_path, position)
 	if existing_site != null:
+		# automatic 工地由权威 Tick 自己推进，既不需要"再派工人续建"，也不该再走一次
+		# Place（同位置新建必然被判 Occupied，实测同一意图被连续 Rejected ×32）。
+		if progress_source == "automatic":
+			return JSON.stringify({
+				"ok": true,
+				"status": "Accepted",
+				"reason": "AlreadyUnderConstruction",
+				"detail": "该类型已有工地在施工，权威 Tick 会自动推进，无需派工人。",
+			})
 		return _construct_on_existing_site(player, builders, existing_site, scene_path)
 	# The debug endpoint runs inside the authority process for local listen-server
 	# tests. Calling forward_command there sends an RPC to peer 1 but does not
@@ -1632,12 +1685,25 @@ func _op_tactical(match_node, parsed) -> Dictionary:
 			continue
 		covered["resource"] += 1
 		var kind := "a" if "resource_a" in resource else ("b" if "resource_b" in resource else "unknown")
-		entities.append({
+		var ore_entry := {
 			"kind": "resource",
 			"name": str(resource.name),
 			"resource_kind": kind,
 			"pos": [resource.global_position.x, resource.global_position.y, resource.global_position.z],
-		})
+		}
+		# 矿点存量与再生状态（阶段 0 断点 F：以前只发 kind/pos，副官与报告层只看得到
+		# "有没有矿"，看不到"还剩多少、什么时候长回来"）。
+		var remaining_a = resource.get("resource_a")
+		var remaining_b = resource.get("resource_b")
+		ore_entry["ore_remaining"] = (int(remaining_a) if remaining_a != null else 0) \
+			+ (int(remaining_b) if remaining_b != null else 0)
+		if "ore_capacity" in resource:
+			ore_entry["ore_capacity"] = int(resource.get("ore_capacity") or 0)
+		if "depleted" in resource:
+			ore_entry["ore_depleted"] = bool(resource.get("depleted"))
+		if "regen_remaining_ms" in resource:
+			ore_entry["regen_remaining_ms"] = int(resource.get("regen_remaining_ms") or 0)
+		entities.append(ore_entry)
 
 	# 截断与续取：显式报告，未返回的实体不等于阵亡（模型必须用 next_offset 续取）。
 	var truncated := offset + limit < entities.size()
@@ -1705,6 +1771,9 @@ func _tactical_self_entry(unit) -> Dictionary:
 		"attack_range": float(unit.attack_range) if "attack_range" in unit and unit.attack_range != null else 0.0,
 		"gather": "resource_a" in unit and "resource_b" in unit,
 		"construct": "construction_work_per_tick" in unit and int(unit.get("construction_work_per_tick")) > 0,
+		# 矿场运营结果账（阶段 3 里程碑 / 阶段 6 对局报告的唯一事实来源）：
+		# 只有真的存在矿场才带这几个字段，普通单位不多占观测体积。
+		"refinery": unit.delivery_stats() if unit.has_method("delivery_stats") else null,
 		# 移动域（air/terrain）：**能力事实**，副官据此分开规划与统计。
 		# 【为什么必须有】2026-09-14 U1：无人机（空域）的路径查询整体失败（查询高度错），
 		# 副官看不到"域"这个事实，只能把它和地面单位一起当"没路"处理 —— 于是侦察任务
@@ -1720,6 +1789,12 @@ func _tactical_self_entry(unit) -> Dictionary:
 	}
 	if "is_constructed" in unit:
 		entry["constructed"] = bool(unit.is_constructed())
+	# 是否正被施工占用：Worker 被拉去工地是本次要消灭的行为，必须可计量。
+	entry["constructing"] = (
+		"action" in unit and unit.action != null and is_instance_valid(unit.action)
+		and unit.action.get_script() != null
+		and str(unit.action.get_script().resource_path).ends_with("Constructing.gd")
+	)
 	# 施工进度（只读）：客户端傀儡上这个值只能来自 NetSync 快照的 `construction` 字段，
 	# 因此**在客户端查 op=tactical 就能判定"施工同步是否真的生效"**，
 	# 不必靠肉眼看画面（2026-09-11 用户指出交火/建造缺可视反馈）。
@@ -1846,6 +1921,8 @@ func _op_strategic(match_node, parsed) -> Dictionary:
 	header["available_actions"] = ["move", "attack_move", "attack", "gather", "stop", "produce", "build"]
 	header["production_relations"] = production_relations
 	header["buildable"] = buildable
+	# Worker 被施工占用的累计秒数（按玩家）：非 0 即回归。
+	header["construction_worker_seconds"] = _construction_worker_seconds.duplicate()
 	header["augments"] = _augment_snapshot(match_node, player)
 	return header
 
@@ -2395,6 +2472,8 @@ const FAST_QUEUE_LIMIT := 8
 ## 事件序号从 1 开始；0 表示"尚无事件"。
 var _fast_event_seq := 0
 var _fast_snapshot_seq := 0
+## 每个玩家被施工占用的 Worker 秒数（按 10Hz 采样累计）。阶段 1 之后应恒为 0。
+var _construction_worker_seconds := {}
 var _fast_last_sample_ms := -1
 ## 最近一次采样的场景级事实（与玩家无关的部分只采一次）。
 var _fast_state := {}
@@ -2801,15 +2880,53 @@ func _fast_diff_units(units: Array) -> void:
 		var unit_name := str(entry["name"])
 		var hp := float(entry["hp"])
 		var constructed = entry.get("constructed")
+		var refinery_stats = entry.get("refinery")
 		# 差分表要留下"复盘需要的最小事实集"：类型/归属/最后位置（阵亡事件要用）。
+		var constructing := bool(entry.get("constructing", false))
 		current[unit_name] = {"hp": hp, "constructed": constructed,
 			"unit_type": str(entry["unit_type"]), "owner": str(entry["owner"]),
-			"pos": entry.get("pos", [])}
+			"pos": entry.get("pos", []),
+			"constructing": constructing,
+			"delivered": int(refinery_stats.get("delivered_count", 0))
+				if refinery_stats is Dictionary else 0,
+			"assigned": int(refinery_stats.get("assigned", 0))
+				if refinery_stats is Dictionary else 0}
+		# 【Worker 被施工占用的累计秒数】提示词第六节要求逐局报告这项、目标为 0。
+		# 只有 10Hz 采样能计量：每次采到某单位正在施工就累加一个采样间隔。
+		if constructing:
+			var owner_key := str(entry.get("owner", ""))
+			_construction_worker_seconds[owner_key] = float(
+				_construction_worker_seconds.get(owner_key, 0.0)
+			) + FAST_SAMPLE_INTERVAL_MS / 1000.0
 		var previous = _fast_prev_units.get(unit_name)
 		if previous == null:
 			_fast_emit("unit_spawned", {"unit": unit_name, "unit_type": str(entry["unit_type"]),
-				"owner": str(entry["owner"]), "pos": entry.get("pos", [])})
+				"owner": str(entry["owner"]), "pos": entry.get("pos", []),
+				"constructed": constructed})
+			if constructed == false:
+				# 放置即开工：首座建筑的**放置时刻**只能从这里拿（阶段 0 记的零仪表之一）。
+				_fast_emit("construction_started", {"unit": unit_name,
+					"unit_type": str(entry["unit_type"]), "owner": str(entry["owner"]),
+					"pos": entry.get("pos", [])})
 			continue
+		if refinery_stats is Dictionary and int(refinery_stats.get("delivered_count", 0)) > \
+				int(previous.get("delivered", 0)):
+			# 矿场交付的**时刻**只有 10Hz 差分才看得到：里程碑判"完工 + 至少一次交付"、
+			# 对局报告要"首次交付时间与增量"，都靠这条事件（阶段 0 记的零仪表之一）。
+			_fast_emit("refinery_delivery", {
+				"unit": unit_name,
+				"delivered_count": int(refinery_stats.get("delivered_count", 0)),
+				"delivered_amount": int(refinery_stats.get("delivered_amount", 0)),
+				"assigned": int(refinery_stats.get("assigned", 0)),
+			})
+		if refinery_stats is Dictionary and int(refinery_stats.get("assigned", 0)) \
+				> int(previous.get("assigned", 0)):
+			# 首次接管时刻：报告要"首次矿场接管 Worker 时间"，只有差分给得出。
+			_fast_emit("refinery_takeover", {
+				"unit": unit_name,
+				"assigned": int(refinery_stats.get("assigned", 0)),
+				"takeovers": int(refinery_stats.get("takeovers", 0)),
+			})
 		if hp < float(previous["hp"]) - 0.01:
 			# 【位置/类型是复盘的最小事实集】"谁在哪被打掉多少"没有位置就只能猜战场在哪。
 			# 攻击者**不在**这里：游戏侧受伤信号只带受害者（`MatchSignals.unit_damaged(unit)`），

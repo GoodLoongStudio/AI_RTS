@@ -8,75 +8,75 @@
 [sub_resource type="PlaneMesh" id="PlaneMesh_frqq2"]
 resource_local_to_scene = true
 material = ExtResource("2_sguro")
-size = Vector2(104, 104)
+size = Vector2(208, 208)
 center_offset = Vector3(50, 0, 50)
 
 [node name="Map" instance=ExtResource("1_sqrvi")]
-size = Vector2(100, 100)
+size = Vector2(208, 208)
 
 [node name="Terrain" parent="Geometry" index="1"]
 mesh = SubResource("PlaneMesh_frqq2")
 
 [node name="Marker3D" type="Marker3D" parent="SpawnPoints" index="0"]
-transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 20, 0, 14)
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 40.0, 0, 28.0)
 
 [node name="Marker3D2" type="Marker3D" parent="SpawnPoints" index="1"]
-transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 80, 0, 14)
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 160.0, 0, 28.0)
 
 [node name="Marker3D3" type="Marker3D" parent="SpawnPoints" index="2"]
-transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 80, 0, 86)
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 160.0, 0, 172.0)
 
 [node name="Marker3D4" type="Marker3D" parent="SpawnPoints" index="3"]
-transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 20, 0, 86)
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 40.0, 0, 172.0)
 
 [node name="ResourceA" parent="Resources" index="0" instance=ExtResource("3_3gxbc")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16.7318, -7.15256e-06, 21.3020)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.4636, -7.15256e-06, 42.604)
 
 [node name="ResourceA2" parent="Resources" index="1" instance=ExtResource("3_3gxbc")]
-transform = Transform3D(0.157813, 0, -0.987469, 0, 1, 0, 0.987469, 0, 0.157813, 14.0017, -7.15256e-06, 14.1438)
+transform = Transform3D(0.157813, 0, -0.987469, 0, 1, 0, 0.987469, 0, 0.157813, 28.0034, -7.15256e-06, 28.2876)
 resource_a = 500
 
 [node name="ResourceA3" parent="Resources" index="2" instance=ExtResource("3_3gxbc")]
-transform = Transform3D(-0.984384, 0, 0.176037, 0, 1, 0, -0.176037, 0, -0.984384, 19.068, -7.62939e-06, 21.9455)
+transform = Transform3D(-0.984384, 0, 0.176037, 0, 1, 0, -0.176037, 0, -0.984384, 38.136, -7.62939e-06, 43.891)
 
 [node name="ResourceA4" parent="Resources" index="3" instance=ExtResource("3_3gxbc")]
-transform = Transform3D(-0.878559, 0, -0.477634, 0, 1, 0, 0.477634, 0, -0.878559, 80.7092, -5.72204e-06, 19.9579)
+transform = Transform3D(-0.878559, 0, -0.477634, 0, 1, 0, 0.477634, 0, -0.878559, 161.4184, -5.72204e-06, 39.9158)
 
 [node name="ResourceA5" parent="Resources" index="4" instance=ExtResource("3_3gxbc")]
-transform = Transform3D(-0.878559, 0, -0.477634, 0, 1, 0, 0.477634, 0, -0.878559, 84.054, -5.72204e-06, 18.423)
+transform = Transform3D(-0.878559, 0, -0.477634, 0, 1, 0, 0.477634, 0, -0.878559, 168.108, -5.72204e-06, 36.846)
 resource_a = 500
 
 [node name="ResourceA6" parent="Resources" index="5" instance=ExtResource("3_3gxbc")]
-transform = Transform3D(-0.878559, 0, -0.477634, 0, 1, 0, 0.477634, 0, -0.878559, 82.8092, -7.62939e-06, 21.491)
+transform = Transform3D(-0.878559, 0, -0.477634, 0, 1, 0, 0.477634, 0, -0.878559, 165.6184, -7.62939e-06, 42.982)
 
 [node name="ResourceA1" parent="Resources" index="6" instance=ExtResource("3_3gxbc")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.9172, -7.62939e-06, 20.3104)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 49.8344, -7.62939e-06, 40.6208)
 
 [node name="ResourceA13" parent="Resources" index="7" instance=ExtResource("3_3gxbc")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 76.3741, -5.72204e-06, 21.1311)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 152.7482, -5.72204e-06, 42.2622)
 
 [node name="ResourceA7" parent="Resources" index="8" instance=ExtResource("3_3gxbc")]
-transform = Transform3D(-0.878559, 0, -0.477634, 0, 1, 0, 0.477634, 0, -0.878559, 80.910, -5.72204e-06, 80.0694)
+transform = Transform3D(-0.878559, 0, -0.477634, 0, 1, 0, 0.477634, 0, -0.878559, 161.82, -5.72204e-06, 160.1388)
 
 [node name="ResourceA8" parent="Resources" index="9" instance=ExtResource("3_3gxbc")]
-transform = Transform3D(-0.878559, 0, -0.477634, 0, 1, 0, 0.477634, 0, -0.878559, 84.974, -5.72204e-06, 82.6440)
+transform = Transform3D(-0.878559, 0, -0.477634, 0, 1, 0, 0.477634, 0, -0.878559, 169.948, -5.72204e-06, 165.288)
 resource_a = 500
 
 [node name="ResourceA9" parent="Resources" index="10" instance=ExtResource("3_3gxbc")]
-transform = Transform3D(-0.878559, 0, -0.477634, 0, 1, 0, 0.477634, 0, -0.878559, 82.6236, -7.62939e-06, 78.4424)
+transform = Transform3D(-0.878559, 0, -0.477634, 0, 1, 0, 0.477634, 0, -0.878559, 165.2472, -7.62939e-06, 156.8848)
 
 [node name="ResourceA14" parent="Resources" index="11" instance=ExtResource("3_3gxbc")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 76.6175, -5.72204e-06, 78.750)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 153.235, -5.72204e-06, 157.5)
 
 [node name="ResourceA10" parent="Resources" index="12" instance=ExtResource("3_3gxbc")]
-transform = Transform3D(0.960455, 0, 0.278438, 0, 1, 0, -0.278438, 0, 0.960455, 19.2757, -5.72204e-06, 80.0439)
+transform = Transform3D(0.960455, 0, 0.278438, 0, 1, 0, -0.278438, 0, 0.960455, 38.5514, -5.72204e-06, 160.0878)
 
 [node name="ResourceA11" parent="Resources" index="13" instance=ExtResource("3_3gxbc")]
-transform = Transform3D(0.960455, 0, 0.278438, 0, 1, 0, -0.278438, 0, 0.960455, 14.4655, -5.72204e-06, 83.6828)
+transform = Transform3D(0.960455, 0, 0.278438, 0, 1, 0, -0.278438, 0, 0.960455, 28.931, -5.72204e-06, 167.3656)
 resource_a = 500
 
 [node name="ResourceA12" parent="Resources" index="14" instance=ExtResource("3_3gxbc")]
-transform = Transform3D(0.960455, 0, 0.278438, 0, 1, 0, -0.278438, 0, 0.960455, 17.8944, -7.62939e-06, 78.2821)
+transform = Transform3D(0.960455, 0, 0.278438, 0, 1, 0, -0.278438, 0, 0.960455, 35.7888, -7.62939e-06, 156.5642)
 
 [node name="ResourceA15" parent="Resources" index="15" instance=ExtResource("3_3gxbc")]
-transform = Transform3D(-0.976807, 0, 0.214122, 0, 1, 0, -0.214122, 0, -0.976807, 23.6396, -5.72204e-06, 78.876)
+transform = Transform3D(-0.976807, 0, 0.214122, 0, 1, 0, -0.214122, 0, -0.976807, 47.2792, -5.72204e-06, 157.752)

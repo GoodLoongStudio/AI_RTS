@@ -97,7 +97,12 @@ func _ground_resource_nodes() -> void:
 var _water_bits := PackedByteArray()
 var _water_w := 0
 var _water_h := 0
+## 语义跨度（height_data.bin 的坐标域，本地 XZ）。sample_height/_stamp_bridges 用它。
 var _water_span := SEMANTIC_SPAN
+## 世界 XZ 跨度（= map.size，2026-09-26 地图 XZ×2 后 semantic×xz_scale）。
+## 世界侧换算（_world_to_fine/_fine_to_world/_sample_water/_path_cell/遮罩）用它。
+## 二者相等当且仅当地图 1:1；地图根 scale=(2,1,2) 时 world = semantic×2（高度不缩放）。
+var _world_span := SEMANTIC_SPAN
 var _bridge_rects: Array[Rect2] = []
 ## 桥面可走板：未大外扩的 XZ + 板顶高度。过桥站立用这个，不用河床。
 var _bridge_slabs: Array[Dictionary] = []
@@ -214,7 +219,7 @@ func _build_water_occupancy() -> void:
 		return
 	var map_size: Variant = map_node.get("size")
 	if map_size is Vector2 and map_size.x > 1.0:
-		_water_span = maxf(map_size.x, map_size.y)
+		_world_span = maxf(map_size.x, map_size.y)
 	# 桥面收集**不依赖掩码**：先收，掩码缺失的回退路径也要能标"桥上可走"。
 	if _bridge_rects.is_empty():
 		_collect_bridge_rects()
@@ -672,8 +677,8 @@ func _on_bridge(x: float, z: float) -> bool:
 func _sample_water(x: float, z: float) -> bool:
 	if _water_w < 2 or _water_h < 2:
 		return false
-	var u := clampf(x / _water_span, 0.0, 1.0)
-	var v := clampf(z / _water_span, 0.0, 1.0)
+	var u := clampf(x / _world_span, 0.0, 1.0)
+	var v := clampf(z / _world_span, 0.0, 1.0)
 	var ix := clampi(int(round(u * float(_water_w - 1))), 0, _water_w - 1)
 	var iz := clampi(int(round(v * float(_water_h - 1))), 0, _water_h - 1)
 	return _water_bits[iz * _water_w + ix] != 0
@@ -877,12 +882,12 @@ func _stamp_steep_cliffs() -> int:
 
 func _sample_height_cell(ix: int, iz: int) -> float:
 	var world := _fine_to_world(ix, iz)
-	return sample_height(world.x, world.z)
+	return sample_world_height(world)
 
 
 func _world_to_fine(x: float, z: float) -> Vector2i:
-	var u := clampf(x / maxf(_water_span, 1.0), 0.0, 1.0)
-	var v := clampf(z / maxf(_water_span, 1.0), 0.0, 1.0)
+	var u := clampf(x / maxf(_world_span, 1.0), 0.0, 1.0)
+	var v := clampf(z / maxf(_world_span, 1.0), 0.0, 1.0)
 	return Vector2i(
 		clampi(int(round(u * float(maxi(_water_w - 1, 1)))), 0, maxi(_water_w - 1, 0)),
 		clampi(int(round(v * float(maxi(_water_h - 1, 1)))), 0, maxi(_water_h - 1, 0))
@@ -890,8 +895,8 @@ func _world_to_fine(x: float, z: float) -> Vector2i:
 
 
 func _fine_to_world(ix: int, iz: int) -> Vector3:
-	var x := float(ix) / float(maxi(_water_w - 1, 1)) * _water_span
-	var z := float(iz) / float(maxi(_water_h - 1, 1)) * _water_span
+	var x := float(ix) / float(maxi(_water_w - 1, 1)) * _world_span
+	var z := float(iz) / float(maxi(_water_h - 1, 1)) * _world_span
 	return project_ground(Vector3(x, 0.0, z))
 
 
@@ -903,7 +908,7 @@ func _build_path_grid() -> void:
 	_path_scale = 4 if maxi(_water_w, _water_h) >= 400 else 2
 	_path_w = int(ceil(float(_water_w) / float(_path_scale)))
 	_path_h = int(ceil(float(_water_h) / float(_path_scale)))
-	_path_cell = _water_span / float(maxi(_path_w, 1))
+	_path_cell = _world_span / float(maxi(_path_w, 1))
 	_path_grid = AStarGrid2D.new()
 	_path_grid.region = Rect2i(0, 0, _path_w, _path_h)
 	_path_grid.cell_size = Vector2(_path_cell, _path_cell)
@@ -1312,7 +1317,7 @@ func _apply_material() -> void:
 	if mask_img != null:
 		mat.set_shader_parameter("mask_tex", ImageTexture.create_from_image(mask_img))
 		mat.set_shader_parameter("mask_from_tex", 1.0)
-		mat.set_shader_parameter("mask_world_size", _terrain_span() * world_scale)
+		mat.set_shader_parameter("mask_world_size", _world_span)
 	# 256 图 world_scale=1：着色器里的 p 必须是世界米。以前除以 3.90625
 	# 会把 8m 高地当成 31m 台顶，镜头距离也被放大，近景直接走远景宏贴图。
 	mat.set_shader_parameter("showcase_world_scale", world_scale)
