@@ -177,6 +177,14 @@ def _economy_metrics(samples, elapsed) -> dict:
     metrics["ore_depleted_nodes"] = max(int(s.get("ore_depleted") or 0) for s in sampled)
     # 窗口截断 ⇒ 上面的"全图矿量"只是部分和，禁止当耗尽证据引用（提示词 §5 反假证据）。
     metrics["entities_truncated"] = any(bool(s.get("truncated")) for s in sampled)
+
+    # 账户余额增长（§7 要的是"钱真的到账"，不是"矿被采出"）。旧 `peak_balance` 读的是
+    # `forces_log` 里从来不存在的 `balance` 字段，所以恒为 0——这一列才是可用口径。
+    balances = [int(s.get("balance_a") or 0) for s in sampled if "balance_a" in s]
+    metrics["balance_first"] = balances[0] if balances else None
+    metrics["balance_last"] = balances[-1] if balances else None
+    metrics["balance_peak"] = max(balances) if balances else None
+    metrics["balance_grew"] = (balances[-1] > balances[0]) if len(balances) >= 2 else None
     return metrics
 
 

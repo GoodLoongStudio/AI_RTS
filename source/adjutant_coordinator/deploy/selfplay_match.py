@@ -263,6 +263,8 @@ def main() -> int:
                         help="固定地图 res:// 路径（必须登记在 Constants.Match.ALL_MAPS）")
     parser.add_argument("--seed", type=int, default=0,
                         help="固定全局 RNG 种子，0 = 不干预（游戏默认）")
+    parser.add_argument("--refinery-at", type=int, default=-1,
+                        help="开局 N 秒后脚本化建一座远端矿场（-1 = 不建，纯看副官主线）")
     args = parser.parse_args()
 
     os.makedirs(OUT, exist_ok=True)
@@ -369,7 +371,38 @@ def main() -> int:
     deadline = time.time() + args.seconds
     next_forces = 0.0
     consecutive_failures = 0
+    # 验收场景「远端专门矿场」的脚本化触发点：到点就发一条**不带坐标**的
+    # `op=build OreRefinery`，让权威端自己在远端矿堆附近搜合法落点（`auto=resource`
+    # 模式）。之所以要这个开关：纯规则副官在 150 秒窗口里走不到 M08，于是"矿场能建、
+    # 会接管工人、交货进账户"这三件事在一局真实对局里一次也没被观测到——只有冒烟夹具
+    # 里有。有了它，同一张图同一粒种子也能反复采到矿场闭环。
+    match_started_at = time.time()
+    refinery_sent = None
+    refinery_tries = 0
+    refinery_next_try = args.refinery_at
     while time.time() < deadline:
+        # 到点就重试，直到权威端接受（上限 6 次、每次间隔 20 秒）。
+        # 【为什么要重试而不是只发一次】40 秒实测拿到的是 `NoValidSite`
+        # （"没有已探明的新矿点"）——`auto=resource` 模式要把**已探明**的远端矿堆当锚点，
+        # 而开局头几十秒侦察还没铺出去。只发一次会把"时机未到"记成"矿场建不起来"，
+        # 那是个假阴性。回执原样留档，不接受就不算触发成功。
+        if args.refinery_at >= 0 and refinery_tries < 6 \
+                and time.time() - match_started_at >= refinery_next_try:
+            refinery_tries += 1
+            refinery_next_try = time.time() - match_started_at + 20.0
+            try:
+                attempt = dcs(CLIENT_PORT, {
+                    "op": "build",
+                    "scene": "res://source/match/units/OreRefinery.tscn",
+                }, timeout=20)
+            except Exception as exc:  # noqa: BLE001
+                attempt = {"ok": False, "status": "Exception", "error": str(exc)}
+            refinery_sent = {"tries": refinery_tries, "last": attempt,
+                             "accepted": bool(attempt.get("ok")),
+                             "history": (refinery_sent or {}).get("history", [])
+                                        + [attempt.get("status")]}
+            print("[selfplay] 矿场建造第 %d 次 -> %s" % (
+                refinery_tries, str(attempt)[:200]), flush=True)
         snap = _own_snapshot()
         if "__error" not in snap and snap.get("server_tick"):
             consecutive_failures = 0
@@ -466,6 +499,10 @@ def main() -> int:
     result = {
         "tag": args.tag, "backend": args.backend, "seconds": args.seconds,
         "map": args.map, "seed": args.seed,
+        # 脚本化矿场的**原始回执**（不解读）：拒了就照实写，报告层据此区分
+        # "没尝试建矿场"与"建了但被权威端拒绝"。
+        "refinery_receipt": refinery_sent,
+        "refinery_at_s": args.refinery_at,
         "difficulty": args.difficulty,
         "samples": len(samples),
         "first": samples[0] if samples else {},

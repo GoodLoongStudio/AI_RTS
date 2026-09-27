@@ -61,7 +61,9 @@ COLUMNS = (
     ("ore_remaining_last", "终局全图矿量"),
     ("ore_depleted_nodes", "耗尽矿点数"),
     ("entities_truncated", "实体窗口截断"),
-    ("peak_balance", "峰值余额"),
+    ("balance_first", "开局余额"),
+    ("balance_last", "终局余额"),
+    ("balance_grew", "余额有增长"),
     ("first_attack_move_t", "首次有效出击(s)"),
 )
 
@@ -139,8 +141,9 @@ def run_one(tag: str, map_path: str, seed: int, seconds: int,
     row["constructing_workers_peak"] = economy.get("constructing_workers_peak")
     row["entities_truncated"] = economy.get("entities_truncated")
     row["first_attack_move_t"] = metrics.get("first_attack_move_t")
-    row["peak_balance"] = metrics.get("peak_balance")
-    row["first_barracks_t"] = None  # 见 `_barracks_time`：只从实体明细里取
+    for key in ("balance_first", "balance_last", "balance_peak", "balance_grew"):
+        row[key] = economy.get(key)
+    # 兵营完工时刻只从实体明细取（见 `_barracks_time`），不用下单/回执替代。
     row["first_barracks_t"] = _barracks_time(result)
     row["economy_error"] = economy.get("error")
     return row
