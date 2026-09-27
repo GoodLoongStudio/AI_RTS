@@ -136,9 +136,12 @@ def _economy(snap: dict) -> dict:
                                "delivered_amount": int(stats.get("delivered_amount") or 0)})
 
     ore_nodes = [e for e in entities if str(e.get("kind", "")) == "resource"]
-
+    # 玩家账户余额：只有 `op=tactical` 的 header 有（`op=match_forces` 只给单位计数，
+    # 旧 `peak_balance` 因此一直读一个不存在的字段、恒为 0）。§7 要"资源增长"证据
+    # 必须从这里取，不能用矿点存量的减少代替——那只是"矿被采出"，不是"钱到账"。
+    balance = snap.get("resources") or {}
     return {
-
+        "balance_a": int(balance.get("a") or 0),
         "constructing": constructing,
 
         "workers": workers,

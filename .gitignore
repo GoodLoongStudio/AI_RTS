@@ -61,3 +61,6 @@ Godot/shader_cache/
 # 导出产物（体积大，绝不入库；保留 .gdignore 让 Godot 跳过该目录）
 build/*
 !build/.gdignore
+
+# perfgrid 回归测试的本地状态缓存（pass/fail 标记，仅本机有意义）
+tests/perfgrid/.regress_state/
