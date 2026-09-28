@@ -367,6 +367,13 @@
       "id": "rule-ai-offense-logistics"
     },
     {
+      "expected_marker": "Blueprint switch smoke test completed: 0 failure(s)",
+      "timeout_seconds": 120,
+      "category": "construction",
+      "scene": "res://tests/automated/BlueprintSwitchSmokeTest.tscn",
+      "id": "blueprint-switch"
+    },
+    {
       "expected_marker": "Runtime placement smoke test completed: 0 failure(s)",
       "timeout_seconds": 90,
       "category": "placement",
