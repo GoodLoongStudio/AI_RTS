@@ -60,6 +60,7 @@ func _ready():
 	)
 
 	await _check_handler_layer(handler)
+	await _check_end_to_end_layer(match_instance, human, handler)
 	await _check_sidebar_layer(match_instance, human, handler)
 
 	_finish(match_instance)
@@ -170,6 +171,86 @@ func _check_sidebar_layer(match_instance, human, handler) -> void:
 		handler._active_blueprint_node != null and not handler._active_blueprint_node.is_queued_for_deletion(),
 		"侧栏切换后应仍有活动幽灵节点"
 	)
+
+
+## 层 1.5：端到端 —— 切换后的蓝图**真的落地**的必须是新建筑。
+##
+## 只断言 `_pending_structure_prototype` 变了还不够：万一后续放置链路
+## （`_finish_structure_placement` 或 C# `StructurePlacementRuntime.Place`）仍按旧场景
+## 生成，玩家落下去的依然是机场、白高兴一场。这里把蓝图挪到合法点直接落下去，
+## 数场景里新增的对空炮 / 没新增的机场。
+func _check_end_to_end_layer(match_instance, human, handler) -> void:
+	# reason 必须走既有白名单："ScriptedAdjustment"（`StructurePlacementSmokeTest` 同款）。
+	# 自造 reason 会被**静默拒绝**，表现为后续 validity=NOT_ENOUGH_RESOURCES。
+	var injected: bool = human.add_resources(
+		{"resource_a": 100000, "resource_b": 100000}, "ScriptedAdjustment"
+	)
+	_check(injected, "端到端：测试资源注入应成功（reason 需在白名单内）")
+	await get_tree().process_frame
+
+	MatchSignals.place_structure.emit(load(AIRPORT))
+	await get_tree().process_frame
+	MatchSignals.place_structure.emit(load(ANTI_AIR))
+	await get_tree().process_frame
+
+	var blueprint = handler._active_blueprint_node
+	_check(blueprint != null, "端到端：切换后应有活动蓝图")
+	if blueprint == null:
+		return
+
+	var tank = match_instance.get_node_or_null("Players/Human/Tank")
+	var anchor: Vector3 = tank.global_position if tank != null else Vector3(13.0, 0.0, 13.0)
+	blueprint.global_transform.origin = anchor + Vector3(7.0, 0.0, 0.0)
+	await get_tree().process_frame
+	print(
+		"[probe] e2e validity=%s issues=%s" % [
+			str(handler._calculate_blueprint_position_validity()),
+			str(
+				handler._placement_runtime.Evaluate(
+					human, handler._pending_structure_prototype, blueprint.global_transform, {}
+				).get("issues")
+			),
+		]
+	)
+
+	var before := _count_scene_nodes(human, "AntiAirTurret.tscn")
+	var before_airport := _count_scene_nodes(human, "AircraftFactory.tscn")
+	handler._finish_structure_placement()
+	for _frame in range(4):
+		await get_tree().process_frame
+	var after := _count_scene_nodes(human, "AntiAirTurret.tscn")
+	var after_airport := _count_scene_nodes(human, "AircraftFactory.tscn")
+
+	_check(
+		after > before,
+		"端到端：切换后的蓝图落地应生成对空炮（对空炮 %d → %d）" % [before, after]
+	)
+	_check(
+		after_airport == before_airport,
+		"端到端：落地不得生成机场（机场 %d → %d）—— 说明仍在用旧原型" % [before_airport, after_airport]
+	)
+	if after > before:
+		_check(
+			handler._active_blueprint_node == null,
+			"端到端：成功落地后应退出放置模式"
+		)
+
+
+## 递归数一下某个玩家名下挂了几份指定场景（含运行时实例化的，故 owned=false）。
+##
+## ⚠️ 必须排除 `structure-geometries/`：蓝图（幽灵）用的是与真建筑**同名**的场景
+## （`structure-geometries/AntiAirTurret.tscn`），不排除就会把幽灵当成"已落地建筑"，
+## 于是"落地前后都是 1"看起来像放置失败，其实是计数口径错了。
+func _count_scene_nodes(root: Node, suffix: String) -> int:
+	var count := 0
+	for node in root.find_children("*", "", true, false):
+		var scene_path := str(node.scene_file_path)
+		if not scene_path.ends_with(suffix):
+			continue
+		if scene_path.contains("/structure-geometries/"):
+			continue
+		count += 1
+	return count
 
 
 func _find_cell(sidebar, caption: String):
