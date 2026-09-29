@@ -18,6 +18,9 @@ var _engagement_target = null
 var _engagement_anchor := Vector3.ZERO
 var _refresh_timer: Timer = null
 var _is_transitioning := false
+## Match 级空间网格索敌索引（第二轮 2026-09-27）。为 null 或 use_moving_grid 关闭时
+## 回退全场组扫描（对照测量用）。
+var _target_grid = null
 
 @onready var _unit = Utils.NodeEx.find_parent_with_group(self, "units")
 @onready var _movement_trait = _unit.find_child("Movement")
@@ -33,6 +36,9 @@ func _init(target):
 
 
 func _ready():
+	var match_node = _unit.find_parent("Match")
+	if match_node != null:
+		_target_grid = match_node.get_node_or_null("TargetAcquisitionGrid")
 	if _final_target != null:
 		_final_target.tree_exiting.connect(_on_final_target_lost, CONNECT_ONE_SHOT)
 	_movement_trait.movement_finished.connect(_on_movement_finished)
@@ -99,9 +105,22 @@ func _pick_target():
 		detection_range = min(
 			_unit.sight_range, _unit.attack_range * GUARD_DETECTION_RANGE_FACTOR
 		)
-	var targets = get_tree().get_nodes_in_group("units").filter(
+	# 候选筛选源（第二轮 2026-09-27）：attack-move 的索敌此前一直是全场组扫描
+	# （第一轮 g4move200 三版本索敌计数全为 0 就是证据）。现在接 Match 级空间网格，
+	# 精确过滤 `_is_legal_target` 与"取最近"的排序语义原样不动。
+	# AIRTS_TARGETING=nomovinggrid 时回退全场扫描（本轮 A 对照）。
+	var scan_t0 := Time.get_ticks_usec()
+	var candidates: Array = (
+		_target_grid.acquire_candidates(_unit.global_position_yless, detection_range)
+		if _target_grid != null and _target_grid.use_moving_grid
+		else get_tree().get_nodes_in_group("units")
+	)
+	var targets := candidates.filter(
 		func(target): return _is_legal_target(target, detection_range)
 	)
+	# 诊断：索敌总耗时 = 候选收集 + 精确过滤（两条口径对称计量）。
+	if _target_grid != null:
+		_target_grid.note_scan(candidates.size(), Time.get_ticks_usec() - scan_t0)
 	if targets.is_empty():
 		return null
 	targets.sort_custom(

@@ -17,6 +17,8 @@ const MatchScene = preload("res://tests/manual/TestOneUnit.tscn")
 const WorkerScene = preload("res://source/match/units/Worker.tscn")
 
 const SCALES := [50, 100, 200]
+## 2026-09-27：单位整体放大（半径 2.0/宽 4m）后编队间距 1.5→6.0m、起终点随
+## PlainAndSimple（已 208×208）平移；拥堵意图（对向交叉）不变。
 ## 200 单位在"对向交叉抢位"这种最恶劣拥堵下需要约 79~90s 才全部收敛（本机实测），
 ## 因此预算留到 90s；这是目前残留的规模瓶颈 —— 没有死锁，但收敛慢。
 const MAX_FRAMES_PER_SCALE := 5400
@@ -24,7 +26,7 @@ const MIN_ARRIVAL_RATE := 0.95
 ## 预算内允许仍未收敛的比例（最恶劣拥堵下的抖动余量；正常场景应为 0）。
 const MAX_STUCK_RATIO := 0.02
 const COLUMNS := 14
-const SPACING_M := 1.5
+const SPACING_M := 6.0
 
 
 func _ready():
@@ -53,9 +55,9 @@ func _run_scale(match_instance, human, gateway, scale: int) -> int:
 	var units: Array = []
 	for index in range(scale):
 		var slot := Vector3(
-			8.0 + float(index % COLUMNS) * SPACING_M,
+			24.0 + float(index % COLUMNS) * SPACING_M,
 			0.0,
-			6.0 + float(index / COLUMNS) * SPACING_M
+			24.0 + float(index / COLUMNS) * SPACING_M
 		)
 		units.append(_spawn_unit(match_instance, human, slot))
 	await _wait_frames(6)
@@ -66,9 +68,9 @@ func _run_scale(match_instance, human, gateway, scale: int) -> int:
 	var order_ids: Array = []
 	for index in range(scale):
 		var destination := Vector3(
-			38.0 - float(index % COLUMNS) * SPACING_M,
+			168.0 - float(index % COLUMNS) * SPACING_M,
 			0.0,
-			36.0 - float(index / COLUMNS) * SPACING_M
+			120.0 + float(index / COLUMNS) * SPACING_M
 		)
 		var result: Dictionary = gateway.MoveUnits([units[index]], destination, human)
 		order_ids.append(_order_id(result))

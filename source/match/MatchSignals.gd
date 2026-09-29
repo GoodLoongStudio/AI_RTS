@@ -28,6 +28,10 @@ signal unit_production_started(unit_prototype, producer_unit)
 signal unit_production_finished(unit, producer_unit)
 signal unit_production_queue_became_empty(producer_unit)
 signal unit_construction_finished(unit)
+## 矿点周期再生（阶段 4）：采空与到账两个事件，供 HUD / 联机镜像 / 对局报告订阅。
+## 只报"矿点存量变化"，不代表任何收入 —— 收入仍然必须经过采集与交付。
+signal resource_exhausted(resource_node)
+signal resource_replenished(resource_node, added_amount)
 signal not_enough_resources_for_production(player)
 signal not_enough_resources_for_construction(player)
 ## 命令可视化（纯表现层）：权威端把一次命令的动作/目标/下发者广播给表现层。

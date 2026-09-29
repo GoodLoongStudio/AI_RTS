@@ -97,6 +97,30 @@ public partial class BalanceConfigRuntime : Node
         return definition.CollectionDurationMilliseconds / 1000.0;
     }
 
+    /// <summary>
+    /// 把 Legacy resource_a/resource_b 名称映射为矿点周期再生规则。
+    /// 未配置再生时返回 {"enabled": false}，驱动器据此保持"采空即消失"的旧语义。
+    /// </summary>
+    public Godot.Collections.Dictionary GetResourceRegeneration(string legacyResourceName)
+    {
+        var kind = legacyResourceName switch
+        {
+            "resource_a" => ResourceKind.A,
+            "resource_b" => ResourceKind.B,
+            _ => (ResourceKind?)null
+        };
+        if (kind is null || Catalog.FindResource(kind.Value) is not { } definition)
+        {
+            return new Godot.Collections.Dictionary { ["enabled"] = false };
+        }
+        return new Godot.Collections.Dictionary
+        {
+            ["enabled"] = definition.RegenerationEnabled,
+            ["delay_milliseconds"] = definition.RegenerationDelayMilliseconds,
+            ["restore_amount"] = definition.RegenerationRestoreAmount,
+        };
+    }
+
     /// <summary>返回 HUD 可消费的单位只读显示快照；数值仍以 Catalog 为权威来源。</summary>
     public Godot.Collections.Dictionary GetUnitDisplaySnapshot(PackedScene scene)
     {
@@ -185,13 +209,35 @@ public partial class BalanceConfigRuntime : Node
             definition.Movement?.MovingWeaponArcDegrees ?? 0.0f);
         unit.Set("resources_max", definition.Gatherer?.CarryCapacity ?? 0);
         unit.Set("construction_work_per_tick", definition.Constructor?.WorkPerTick ?? 0);
+        // 矿场运营参数（原先是 OreRefinery.gd 里的常量）：只有声明了 oreRefinery 的单位才写入。
+        if (definition.OreRefinery is { } refinery)
+        {
+            unit.Set("service_radius_m", refinery.ServiceRadiusMeters);
+            unit.Set("worker_capacity", refinery.WorkerCapacity);
+            unit.Set("claim_interval_s", refinery.ClaimIntervalSeconds);
+        }
         ConfigureMovement(unit, definition);
         ConfigurePrimaryWeapon(unit, definition);
     }
 
-    /// <summary>按 PackedScene 查询已经验证的建筑施工定义。</summary>
-    internal StructureConstructionDefinition? FindConstruction(PackedScene scene)
+    /// <summary>
+    /// 返回该建筑的施工进度来源（automatic / worker / hybrid），供 UI 判定"要不要先选中一个
+    /// 工人才能开工"。automatic/hybrid 不再把 Worker 当开工前置；查不到定义时按旧的 worker
+    /// 口径返回，宁可保守也不让 UI 悄悄放开一个未配置的建筑。
+    /// </summary>
+    public string GetConstructionProgressSource(PackedScene scene)
     {
+        var definition = FindConstruction(scene);
+        return definition is null ? "worker" : definition.ProgressSource switch
+        {
+            ConstructionProgressSource.Automatic => "automatic",
+            ConstructionProgressSource.Hybrid => "hybrid",
+            _ => "worker"
+        };
+    }
+
+    /// <summary>按 PackedScene 查询已经验证的建筑施工定义。</summary>
+    internal StructureConstructionDefinition? FindConstruction(PackedScene scene)    {
         // 防御：配置降级或场景缺失时返回空，避免 NullReferenceException 级联（修复黑屏）。
         if (Catalog is null || Assets is null || scene is null)
         {

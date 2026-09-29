@@ -22,6 +22,7 @@ const SoldierUnit := "res://source/match/units/Infantry.tscn"
 const SniperUnit := "res://source/match/units/Sniper.tscn"
 const RocketeerUnit := "res://source/match/units/Rocketeer.tscn"
 const BarracksUnit := "res://source/match/units/Barracks.tscn"
+const OreRefineryUnit := "res://source/match/units/OreRefinery.tscn"
 
 ## RA3 式生产分类。place=true 走蓝图放置（工人建造）；否则 producer 建筑排队生产。
 ##
@@ -39,6 +40,7 @@ const TABS = [
 			{"scene": AntiGroundTurretUnit, "caption": "对地炮", "icon": "anti_ground_turret"},
 			{"scene": AntiAirTurretUnit, "caption": "对空炮", "icon": "anti_air_turret"},
 			{"scene": MachineGunTurretUnit, "caption": "机枪塔", "icon": "machine_gun_turret"},
+			{"scene": OreRefineryUnit, "caption": "矿场", "icon": "ore_refinery"},
 		],
 	},
 	{
@@ -791,10 +793,19 @@ func _cancel_head_of_any_queue(item: Dictionary) -> void:
 
 
 func _begin_structure_placement(structure_scene):
-	if not _select_builder_if_needed():
+	# automatic/hybrid 建筑由权威 Tick 自动施工，"先选中一个工人"不再是开工前置；
+	# 只有旧的 worker 口径才要求先派到工人。查不到配置时按 worker 处理（保守）。
+	if _requires_builder_selection(structure_scene) and not _select_builder_if_needed():
 		return
 	# 与 WorkerMenu 相同入口：进入蓝图放置流程（联机时由放置处理器转发服务器）。
 	MatchSignals.place_structure.emit(structure_scene)
+
+
+## 该建筑是否仍要求"先选中一个工人才能开工"。
+func _requires_builder_selection(structure_scene) -> bool:
+	if _balance == null or not _balance.has_method("GetConstructionProgressSource"):
+		return true
+	return _balance.GetConstructionProgressSource(_packed_scene(structure_scene)) == "worker"
 
 
 func _select_builder_if_needed() -> bool:

@@ -73,7 +73,8 @@ size = Vector2(0.30, 0.30)
 [node name="HeavyCannonShell" type="Node3D"]
 metadata/impact_reaction = "explosion"
 metadata/flight_speed_mps = 10.0
-metadata/arc_height = 0.05
+metadata/trajectory = "parabola"
+metadata/arc_height = 2.2
 script = ExtResource("1_hyk5q")
 
 [node name="Body" type="MeshInstance3D" parent="."]

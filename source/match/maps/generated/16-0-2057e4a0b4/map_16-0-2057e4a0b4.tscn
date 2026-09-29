@@ -1141,7 +1141,8 @@ size = Vector3(8.0, 0.1, 1)
 size = Vector3(4.0, 0.1, 1)
 
 [node name="Map" instance=ExtResource("1_map")]
-size = Vector2(256.0, 256.0)
+size = Vector2(512, 512)
+scale = Vector3(2, 1, 2)
 scale = Vector3(1.000000, 1.000000, 1.000000)
 
 [node name="Terrain" parent="Geometry" index="1"]

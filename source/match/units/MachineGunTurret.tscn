@@ -10,10 +10,11 @@
 [ext_resource type="PackedScene" uid="uid://cd66t0u7kf84j" path="res://source/match/units/traits/RotateRandomlyWhenLookingForTargetsIdle.tscn" id="8_l7mop"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_7usmv"]
-height = 0.8
-radius = 0.6
+height = 1.600
+radius = 1.000
 
 [node name="MachineGunTurret" type="Area3D"]
+scale = Vector3(2.00, 2.00, 2.00)
 collision_layer = 2
 collision_mask = 0
 script = ExtResource("1_6hw4x")
@@ -49,7 +50,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
 radius = 0.6
 
 [node name="MovementObstacle" parent="." instance=ExtResource("3_ds80w")]
-radius = 0.6
+radius = 2.00
 vertices = PackedVector3Array(0, 0, -0.2, 0.142, 0, -0.142, 0.2, 0, 0, 0.142, 0, 0.142, 0, 0, 0.2, -0.142, 0, 0.142, -0.2, 0, 0, -0.142, 0, -0.142)
 affect_navigation_mesh = true
 path_height_offset = 0.6

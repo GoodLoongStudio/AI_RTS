@@ -36,36 +36,34 @@ func _get_controlled_units_from_navigation_domain_within_topdown_polygon_2d(
 ):
 	if topdown_polygon_2d == null:
 		return Utils.Set.new()
+	var camera = get_viewport().get_camera_3d()
 	var units_within_polygon = Utils.Set.new()
 	for unit in get_tree().get_nodes_in_group("controlled_units"):
 		if not unit.visible or unit.movement_domain != navigation_domain:
 			continue
 		var unit_position_2d = Vector2(unit.transform.origin.x, unit.transform.origin.z)
+		if navigation_domain == Constants.Match.Navigation.Domain.AIR:
+			unit_position_2d = _air_unit_topdown_position_2d(unit, camera, unit_position_2d)
 		if Geometry2D.is_point_in_polygon(unit_position_2d, topdown_polygon_2d):
 			units_within_polygon.add(unit)
 	return units_within_polygon
 
 
-func _rebase_topdown_polygon_2d_to_different_plane(topdown_polygon_2d, plane):
-	if topdown_polygon_2d == null:
-		return null
-	var camera = get_viewport().get_camera_3d()
+## 空中单位贴地 HOVER_OFFSET 飞行，而 `topdown_polygon_2d` 是"屏幕像素 → 地表"的投影
+## （见 RectangularSelection3D._screen_rect_2d_to_topdown_polygon_2d）。直接拿飞机的 XZ
+## 去比会因俯角视差与地形高差错位（实测能差出十几米），框住了也选不中；沿同一条视线
+## 把它投到遮住的地面点，判定才和玩家所见一致。旧实现改投 Constants.Match.Air.PLANE
+## (y=40，只是空域导航的烘焙参考高度)，而相机离地 25~35 米俯视、射线打不到该平面
+## ⇒ 恒为 null ⇒ 空军整批不参与框选。
+func _air_unit_topdown_position_2d(unit, camera, fallback_position_2d: Vector2) -> Vector2:
 	if camera == null:
-		return null
-	var rebased_topdown_polygon_2d = []
-	for polygon_point_2d in topdown_polygon_2d:
-		var screen_point_2d = camera.unproject_position(
-			Vector3(polygon_point_2d.x, Constants.Match.Terrain.PLANE.d, polygon_point_2d.y)
-		)
-		var rebased_point_3d = camera.get_ray_intersection_with_plane(screen_point_2d, plane)
-		# 射线可能与目标平面不相交（相机近水平、点到视口顶边之外等）→ 返回 null。
-		# 此前直接取 `.x` 会抛 "Invalid access … on Nil"，而且它发生在 finished.emit()
-		# 的回调里 ⇒ 每次左键都刷一条 SCRIPT ERROR 并中止后续结算（2026-09-14 实测）。
-		# 返回 null 后由调用方整体放弃本次合并，语义与原来的"半途中止"一致。
-		if rebased_point_3d == null:
-			return null
-		rebased_topdown_polygon_2d.append(Vector2(rebased_point_3d.x, rebased_point_3d.z))
-	return rebased_topdown_polygon_2d
+		return fallback_position_2d
+	var ground_hit = camera.get_ray_intersection(
+		camera.unproject_position(unit.global_position)
+	)
+	if ground_hit == null:
+		return fallback_position_2d
+	return Vector2(ground_hit.x, ground_hit.z)
 
 
 func _on_selection_started():
@@ -76,19 +74,11 @@ func _on_selection_changed(topdown_polygon_2d):
 	var units_to_highlight = _get_controlled_units_from_navigation_domain_within_topdown_polygon_2d(
 		Constants.Match.Navigation.Domain.TERRAIN, topdown_polygon_2d
 	)
-	# 【2026-09-14 修：**框选彻底失效**的真因】空域平面的重投影失败时**只跳过空军那一半**，
-	# 绝不能像原来那样整次放弃：`Air.Y` 从 1.5 抬到 40 之后，相机在 y=20、视线朝下 45°，
-	# 射线**永远不可能**与 y=40 的平面相交 → 每个点都返回 null → 整个框选（连地面单位）
-	# 都被丢弃，玩家看到的就是"框选没反应 / 一直未选中单位"。
-	var air_topdown_polygon_2d = _rebase_topdown_polygon_2d_to_different_plane(
-		topdown_polygon_2d, Constants.Match.Air.PLANE
-	)
-	if air_topdown_polygon_2d != null:
-		units_to_highlight.merge(
-			_get_controlled_units_from_navigation_domain_within_topdown_polygon_2d(
-				Constants.Match.Navigation.Domain.AIR, air_topdown_polygon_2d
-			)
+	units_to_highlight.merge(
+		_get_controlled_units_from_navigation_domain_within_topdown_polygon_2d(
+			Constants.Match.Navigation.Domain.AIR, topdown_polygon_2d
 		)
+	)
 	var units_not_to_highlight_anymore = Utils.Set.subtracted(
 		_highlighted_units, units_to_highlight
 	)
@@ -110,14 +100,9 @@ func _on_selection_finished(topdown_polygon_2d):
 	var units_to_select = _get_controlled_units_from_navigation_domain_within_topdown_polygon_2d(
 		Constants.Match.Navigation.Domain.TERRAIN, topdown_polygon_2d
 	)
-	# 同上：空域重投影失败只跳过空军那一半，**地面单位必须照常结算**（否则框选全废）。
-	var air_topdown_polygon_2d = _rebase_topdown_polygon_2d_to_different_plane(
-		topdown_polygon_2d, Constants.Match.Air.PLANE
-	)
-	if air_topdown_polygon_2d != null:
-		units_to_select.merge(
-			_get_controlled_units_from_navigation_domain_within_topdown_polygon_2d(
-				Constants.Match.Navigation.Domain.AIR, air_topdown_polygon_2d
-			)
+	units_to_select.merge(
+		_get_controlled_units_from_navigation_domain_within_topdown_polygon_2d(
+			Constants.Match.Navigation.Domain.AIR, topdown_polygon_2d
 		)
+	)
 	Utils.Match.select_units(units_to_select)

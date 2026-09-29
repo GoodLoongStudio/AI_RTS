@@ -5,8 +5,10 @@ extends Node
 ## 等所有非对局界面都不间断；进入对局（Match.tscn 实例化）时淡出停止，
 ## 回到任一菜单界面自动续播。音量走 Music 总线（设置里可调）。
 
-## 外星入侵废土风格菜单主题：不再直接播放原 menu_theme.ogg。
-const MENU_MUSIC := "res://assets/music/reimagined/menu_signal.wav"
+## 【2026-09-26 用户换曲】主菜单背景音乐 = 用户提供《游戏背景音乐.mp3》
+## （ASCII 副本在 assets/music/user/menu_bgm.mp3；原件留在 <项目>/music/，
+## 已 .gdignore 不参与导入）。循环播放：AudioStreamMP3 走 loop 属性。
+const MENU_MUSIC := "res://assets/music/user/menu_bgm.mp3"
 const MENU_MUSIC_DB := -4.0
 const FADE_OUT_SECONDS := 1.0
 const MENU_SCENES := [

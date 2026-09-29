@@ -47,7 +47,27 @@ internal sealed class ResourceDefinitionDto
     /// <summary>采集一个离散资源所需的整数毫秒数。</summary>
     public int? CollectionDurationMilliseconds { get; set; }
 
+    /// <summary>周期再生规则；缺省即"不再生"（保持矿点采空即消失的旧语义）。</summary>
+    public ResourceRegenerationDto? Regeneration { get; set; }
+
     /// <summary>捕获当前 schema 未声明的资源字段。</summary>
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? UnknownProperties { get; set; }
+}
+
+/// <summary>保存尚未校验的矿点周期再生规则。</summary>
+internal sealed class ResourceRegenerationDto
+{
+    /// <summary>是否启用再生。</summary>
+    public bool? Enabled { get; set; }
+
+    /// <summary>采空后等待多久恢复一次（权威模拟毫秒，暂停不计时）。</summary>
+    public int? DelayMilliseconds { get; set; }
+
+    /// <summary>每次恢复的矿量；累加后不得超过矿点容量。</summary>
+    public int? RestoreAmount { get; set; }
+
+    /// <summary>捕获当前 schema 未声明的再生字段。</summary>
     [JsonExtensionData]
     public Dictionary<string, JsonElement>? UnknownProperties { get; set; }
 }
@@ -131,6 +151,9 @@ internal sealed class UnitTypeDefinitionDto
     /// <summary>可选生产队列能力。</summary>
     public ProducerDefinitionDto? Producer { get; set; }
 
+    /// <summary>可选矿场运营参数（只有 ore_refinery 这类经济建筑声明）。</summary>
+    public OreRefineryDefinitionDto? OreRefinery { get; set; }
+
     /// <summary>捕获当前 schema 未声明的实体字段。</summary>
     [JsonExtensionData]
     public Dictionary<string, JsonElement>? UnknownProperties { get; set; }
@@ -183,6 +206,23 @@ internal sealed class ConstructorDefinitionDto
     public int? WorkPerTick { get; set; }
 
     /// <summary>捕获当前 schema 未声明的施工能力字段。</summary>
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? UnknownProperties { get; set; }
+}
+
+/// <summary>保存尚未校验的矿场运营参数。</summary>
+internal sealed class OreRefineryDefinitionDto
+{
+    /// <summary>服务半径（米）：只接管距矿场这么近的矿点。</summary>
+    public float? ServiceRadiusMeters { get; set; }
+
+    /// <summary>同时指派的工人上限。</summary>
+    public int? WorkerCapacity { get; set; }
+
+    /// <summary>两轮圈矿之间的游戏时间（秒）。</summary>
+    public float? ClaimIntervalSeconds { get; set; }
+
+    /// <summary>捕获当前 schema 未声明的矿场字段。</summary>
     [JsonExtensionData]
     public Dictionary<string, JsonElement>? UnknownProperties { get; set; }
 }
@@ -255,6 +295,12 @@ internal sealed class ConstructionDefinitionDto
 
     /// <summary>当前 Demo 使用的圆形占地半径，单位为米。</summary>
     public float? FootprintRadiusMeters { get; set; }
+
+    /// <summary>施工进度来源：automatic、worker 或 hybrid。</summary>
+    public string? ConstructionProgressSource { get; set; }
+
+    /// <summary>Automatic/Hybrid 每个权威 Tick 自动推进的工作量。</summary>
+    public int? AutomaticWorkPerTick { get; set; }
 
     /// <summary>捕获当前 schema 未声明的建筑字段。</summary>
     [JsonExtensionData]

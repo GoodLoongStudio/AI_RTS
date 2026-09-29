@@ -35,6 +35,11 @@ var _cached_unit_nodes: Array = []
 var _unit_by_name: Dictionary = {}
 var _static_preview_applied := false
 var _hud_overlay: Control = null
+## 覆盖层（摄像机框 / 单位点 / 副官标记）。必须挂在 MinimapTextureRect 上而不是
+## MinimapViewport 里：大地图走静态预览时 `_texture_rect.texture` 被换成预览
+## ImageTexture，视口纹理根本不再显示 ⇒ 框和单位点全画给了没人看的纹理
+## （2026-09-27 用户报"小地图没有摄像机位置框"）。迷雾遮罩早就是挂 TextureRect 的。
+var _overlay: Control = null
 ## 小地图迷雾遮罩必须**直连** FogOfWar/CombinedViewport 的实时纹理。
 ## 旧实现每次同步都把 CombinedViewport 拷成一张 ImageTexture 快照，而同步只发生在
 ## 开局那几次（_ready / 0.35s / 1.2s / 进局 refresh_now / 侧栏收编）⇒ 开局约一秒后
@@ -48,9 +53,9 @@ const FOG_BIND_RETRY_INTERVAL := 0.35
 const FOG_BIND_RETRY_WINDOW_MSEC := 6000
 
 @onready var _match = find_parent("Match")
-@onready var _camera_indicator = find_child("CameraIndicator") as Line2D
-@onready var _viewport_background = find_child("Background")
-@onready var _texture_rect = find_child("MinimapTextureRect")
+@onready var _camera_indicator: Line2D = find_child("CameraIndicator") as Line2D
+@onready var _viewport_background: Control = find_child("Background") as Control
+@onready var _texture_rect: TextureRect = find_child("MinimapTextureRect") as TextureRect
 
 
 func _ready():
@@ -59,6 +64,7 @@ func _ready():
 		return
 	_remove_dummy_nodes()
 	_configure_fixed_minimap_layout()
+	_build_overlay()
 	_configure_camera_indicator()
 	# 大地图先铺 G2 预览底图；迷雾遮罩等 Match 就绪后再跟主画面同步。
 	if _is_large_map_now():
@@ -403,12 +409,50 @@ func _configure_camera_indicator():
 	_camera_indicator.width = 2.0
 	_camera_indicator.antialiased = true
 	_camera_indicator.z_index = 101
+	# 从 MinimapViewport 搬到覆盖层：留在视口里就跟着"没人看的纹理"一起消失。
+	_camera_indicator.get_parent().remove_child(_camera_indicator)
+	_overlay.add_child(_camera_indicator)
+	_camera_indicator.set_position(Vector2.ZERO)
 
 	_camera_footprint = Polygon2D.new()
 	_camera_footprint.name = "CameraFootprint"
 	_camera_footprint.color = CAMERA_FOOTPRINT_COLOR
 	_camera_footprint.z_index = 100
-	_camera_indicator.get_parent().add_child(_camera_footprint)
+	_overlay.add_child(_camera_footprint)
+
+
+func _build_overlay() -> void:
+	_overlay = Control.new()
+	_overlay.name = "MinimapOverlay"
+	_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_overlay.z_index = 95
+	_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_texture_rect.add_child(_overlay)
+
+
+## 贴图按 STRETCH_KEEP_ASPECT_CENTERED 落进 TextureRect 后的实际显示矩形
+## （非正方形地图会有黑边）。绘制与取点击世界坐标共用这一套换算。
+func _displayed_texture_rect() -> Rect2:
+	if _texture_rect == null or _texture_rect.texture == null:
+		return Rect2()
+	var rect_size := _texture_rect.size
+	var texture_size := _texture_rect.texture.get_size()
+	if texture_size.x <= 0.0 or texture_size.y <= 0.0:
+		return Rect2(Vector2.ZERO, rect_size)
+	var proportions := rect_size / texture_size
+	var factor := minf(proportions.x, proportions.y)
+	var scaled_size := texture_size * factor
+	return Rect2((rect_size - scaled_size) / 2.0, scaled_size)
+
+
+## 世界坐标（米）→ 小地图显示坐标（像素）。
+func _world_to_minimap_display(world_2d: Vector2) -> Vector2:
+	var displayed := _displayed_texture_rect()
+	if displayed.size.x <= 0.0:
+		return world_2d * _minimap_pixels_per_world_meter
+	var texture_size := _texture_rect.texture.get_size()
+	var display_scale := _minimap_pixels_per_world_meter * displayed.size.x / texture_size.x
+	return displayed.position + world_2d * display_scale
 
 
 func _process(_delta):
@@ -460,14 +504,14 @@ func _map_unit(unit):
 	node_representing_unit.size = Vector2(3, 3)
 	if not unit is Unit:
 		node_representing_unit.rotation_degrees = 45
-	_viewport_background.add_sibling(node_representing_unit)
+	_overlay.add_child(node_representing_unit)
 	node_representing_unit.pivot_offset = node_representing_unit.size / 2.0
 	_unit_to_corresponding_node_mapping[unit] = node_representing_unit
 
 
 func _sync_unit(unit):
 	var unit_pos_3d = unit.global_transform.origin
-	var unit_pos_2d = Vector2(unit_pos_3d.x, unit_pos_3d.z) * _minimap_pixels_per_world_meter
+	var unit_pos_2d = _world_to_minimap_display(Vector2(unit_pos_3d.x, unit_pos_3d.z))
 	_unit_to_corresponding_node_mapping[unit].position = unit_pos_2d
 	var mapped_color := Color.WHITE
 	if unit is Unit:
@@ -503,10 +547,7 @@ func _update_camera_indicator():
 	]
 	var minimap_points := PackedVector2Array()
 	for screen_corner in camera_corners:
-		var intersection = GROUND_LEVEL_PLANE.intersects_ray(
-			camera.project_ray_origin(screen_corner),
-			camera.project_ray_normal(screen_corner)
-		)
+		var intersection = _ground_point_for_screen_corner(camera, screen_corner)
 		if intersection == null:
 			_camera_indicator.hide()
 			_camera_footprint.hide()
@@ -516,9 +557,7 @@ func _update_camera_indicator():
 		# may project outside the playable world, but the minimap should show the visible in-map part.
 		var world_x := clampf(intersection.x, 0.0, _map_size.x)
 		var world_z := clampf(intersection.z, 0.0, _map_size.y)
-		minimap_points.append(
-			Vector2(world_x, world_z) * _minimap_pixels_per_world_meter
-		)
+		minimap_points.append(_world_to_minimap_display(Vector2(world_x, world_z)))
 
 	_camera_footprint.polygon = minimap_points
 	var outline_points := PackedVector2Array(minimap_points)
@@ -528,29 +567,33 @@ func _update_camera_indicator():
 	_camera_footprint.show()
 
 
+## 屏幕角对应的地面点。等距相机是正交投影，屏幕下边缘两角的射线起点会落到地面
+## 以下（实测 y≈-1.7），`Plane.intersects_ray` 剔除 t<0 的解 ⇒ 永远返回 null，
+## 旧实现因此把整个框 hide 掉（2026-09-27 用户报"小地图没有摄像机位置框"）。
+## 这里自己解 t 并允许反向延长：正交投影下该地面点仍然精确投影到这个屏幕角。
+func _ground_point_for_screen_corner(camera: Camera3D, screen_corner: Vector2) -> Variant:
+	var origin: Vector3 = camera.project_ray_origin(screen_corner)
+	var direction: Vector3 = camera.project_ray_normal(screen_corner)
+	var denominator := GROUND_LEVEL_PLANE.normal.dot(direction)
+	if absf(denominator) < 0.0001:
+		return null
+	var t := -GROUND_LEVEL_PLANE.distance_to(origin) / denominator
+	return origin + direction * t
+
+
 func _texture_rect_position_to_world_position(position_2d_within_texture_rect):
 	assert(
 		_texture_rect.stretch_mode == _texture_rect.STRETCH_KEEP_ASPECT_CENTERED,
 		"world 3d position retrieval algorithm assumes 'STRETCH_KEEP_ASPECT_CENTERED'"
 	)
-	var texture_rect_size = _texture_rect.size
-	var texture_size = _texture_rect.texture.get_size()
-	var proportions = texture_rect_size / texture_size
-	var scaling_factor = proportions.x if proportions.x < proportions.y else proportions.y
-	var scaled_texture_size = texture_size * scaling_factor
-	var scaled_texture_position_within_texture_rect = (
-		(texture_rect_size - scaled_texture_size) / 2.0
-	)
-	var rect_containing_scaled_texture = Rect2(
-		scaled_texture_position_within_texture_rect, scaled_texture_size
-	)
-	if rect_containing_scaled_texture.has_point(position_2d_within_texture_rect):
-		var position_2d_within_minimap = (
-			(position_2d_within_texture_rect - rect_containing_scaled_texture.position)
-			/ scaling_factor
-		)
-		return position_2d_within_minimap / _minimap_pixels_per_world_meter
-	return null
+	var displayed := _displayed_texture_rect()
+	if not displayed.has_point(position_2d_within_texture_rect):
+		return null
+	var scaling_factor := displayed.size.x / _texture_rect.texture.get_size().x
+	if scaling_factor <= 0.0:
+		return null
+	return (position_2d_within_texture_rect - displayed.position) \
+		/ scaling_factor / _minimap_pixels_per_world_meter
 
 
 func _try_teleporting_camera_based_on_local_texture_rect_position(position_2d_within_texture_rect):
@@ -604,8 +647,8 @@ func _on_order_visualized(payload) -> void:
 		return
 	var action := str(payload.get("action", "move"))
 	var color: Color = CommandVisualizerScript.ACTION_COLORS.get(action, Color.WHITE)
-	var target_2d := Vector2(float(raw[0]), float(raw[1])) * _minimap_pixels_per_world_meter
-	var parent := _viewport_background.get_parent()
+	var target_2d := _world_to_minimap_display(Vector2(float(raw[0]), float(raw[1])))
+	var parent := _overlay
 	if parent == null:
 		return
 	var marker := ColorRect.new()
@@ -653,8 +696,9 @@ func _process_order_marks() -> void:
 		for unit_name in entry["units"]:
 			var unit = _unit_by_name.get(str(unit_name))
 			if unit != null and is_instance_valid(unit):
-				from_2d = Vector2(unit.global_position.x, unit.global_position.z) \
-					* _minimap_pixels_per_world_meter
+				from_2d = _world_to_minimap_display(
+					Vector2(unit.global_position.x, unit.global_position.z)
+				)
 				found = true
 				break
 		var line := entry["line"] as Line2D

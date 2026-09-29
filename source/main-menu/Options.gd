@@ -10,6 +10,7 @@ const Options = preload("res://source/data-model/Options.gd")
 @onready var _resolution = find_child("Resolution")
 @onready var _mouse_movement_restricted = find_child("MouseMovementRestricted")
 @onready var _settings_box = $CenterContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer
+@onready var _save_button = find_child("SaveButton")
 @onready var _center = $CenterContainer
 @onready var _panel = $CenterContainer/PanelContainer
 
@@ -20,6 +21,7 @@ var _camera_controls := {}
 var _camera_value_labels := {}
 var _audio_sliders := {}
 var _audio_value_labels := {}
+var _resolution_choices: Array[Vector2i] = []
 
 
 func _ready():
@@ -95,25 +97,68 @@ func _sync_screen_from_actual():
 
 func _setup_resolution_options():
 	_resolution.clear()
+	_resolution_choices = _resolution_choices_for_mode()
+	var windowed: bool = Globals.options.screen == Options.Screen.WINDOW
 	var usable := DisplayServer.screen_get_usable_rect(DisplayServer.SCREEN_OF_MAIN_WINDOW).size
-	for size in Options.RESOLUTION_OPTIONS:
+	for size in _resolution_choices:
 		_resolution.add_item("%d x %d" % [size.x, size.y])
-		var tooltip := "窗口大小 %d x %d" % [size.x, size.y]
-		# 超过屏幕可用区的选项会被自动夹到最大可容纳尺寸（见 Options._apply_resolution），
-		# 不提示的话用户会以为"选了没用"。
-		if DisplayServer.get_name() != "headless" and usable.x > 0 and usable.y > 0:
-			if size.x > usable.x or size.y > usable.y:
-				tooltip += "；超过屏幕可用区 %d x %d，会缩到最大可容纳尺寸" % [usable.x, usable.y]
+		var tooltip := ""
+		if windowed:
+			tooltip = "窗口大小 %d x %d" % [size.x, size.y]
+			# 超过屏幕可用区的选项会被自动夹到最大可容纳尺寸（见 Options._apply_window_resolution），
+			# 不提示的话用户会以为"选了没用"。
+			if DisplayServer.get_name() != "headless" and usable.x > 0 and usable.y > 0:
+				if size.x > usable.x or size.y > usable.y:
+					tooltip += "；超过屏幕可用区 %d x %d，会缩到最大可容纳尺寸" % [usable.x, usable.y]
+		else:
+			tooltip = "全屏渲染 %d x %d，画面拉伸铺满显示器" % [size.x, size.y]
 		_resolution.set_item_tooltip(_resolution.item_count - 1, tooltip)
-	var selected_index := Options.RESOLUTION_OPTIONS.find(Globals.options.resolution)
-	_resolution.select(maxi(selected_index, 0))
+	# 存储值可能不在当前列表里（窗口尺寸被夹成 1848x1039、或切到全屏后非显示器
+	# 比例的档位被隐藏），夹到 index 0 会让下拉显示一个谁都没选过的 960x1080。
+	var selected_index := _resolution_choices.find(Globals.options.resolution)
+	_resolution.select(selected_index if selected_index >= 0 else _nearest_choice_index())
+
+
+## 全屏只列与显示器同比例的档位：竖比例（960x1080）铺满屏幕会拉变形。
+func _resolution_choices_for_mode() -> Array[Vector2i]:
+	var choices: Array[Vector2i] = []
+	if Globals.options.screen == Options.Screen.WINDOW:
+		choices.append_array(Options.RESOLUTION_OPTIONS)
+		return choices
+	var native := DisplayServer.screen_get_size(DisplayServer.SCREEN_OF_MAIN_WINDOW)
+	for size in Options.RESOLUTION_OPTIONS:
+		if Globals.options._matches_aspect(size, native):
+			choices.append(size)
+	if choices.is_empty():
+		# 显示器比例和所有档位都对不上（含 headless 拿到 0x0 的情况）。
+		choices.append_array(Options.RESOLUTION_OPTIONS)
+	return choices
+
+
+## 按像素总量就近取一档，让下拉显示的档位尽量贴近实际生效的尺寸。
+func _nearest_choice_index() -> int:
+	var target: Vector2i = Globals.options.resolution
+	var best := 0
+	var best_gap := INF
+	for i in _resolution_choices.size():
+		var candidate := _resolution_choices[i]
+		var gap := absf(float(candidate.x * candidate.y) - float(target.x * target.y))
+		if gap < best_gap:
+			best_gap = gap
+			best = i
+	return best
+
+
+## 动态加进来的分组面板插在「保存设置」之前，保证保存/返回两个按钮始终固定在面板末尾。
+func _append_settings_panel(panel: Control) -> void:
+	_settings_box.add_child(panel)
+	_settings_box.move_child(panel, _settings_box.get_children().find(_save_button))
 
 
 func _build_camera_settings():
 	var camera_panel := PanelContainer.new()
 	camera_panel.name = "CameraSettings"
-	_settings_box.add_child(camera_panel)
-	_settings_box.move_child(camera_panel, _settings_box.get_child_count() - 2)
+	_append_settings_panel(camera_panel)
 
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 12)
@@ -250,8 +295,7 @@ func _apply_camera_options_live():
 func _build_audio_settings():
 	var audio_panel := PanelContainer.new()
 	audio_panel.name = "AudioSettings"
-	_settings_box.add_child(audio_panel)
-	_settings_box.move_child(audio_panel, _settings_box.get_child_count() - 2)
+	_append_settings_panel(audio_panel)
 
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 12)
@@ -334,11 +378,14 @@ func _on_audio_slider_changed(value: float, key: String):
 
 
 ## 总开关回调：勾选 = 关闭所有声音（取反后写入 Globals 并实时静音 Master）。
+## 【2026-09-26 用户要求"设置里的保存一定要能生效"】总开关是低频操作，
+## **立即落盘**而不走 0.25s 防抖——防抖窗口内关游戏/关设置，这次改动就丢了，
+## 用户看到的就是"保存了但下次启动又有声"。与屏幕/分辨率下拉同一口径。
 func _on_sound_toggle_toggled(pressed: bool):
 	Globals.set_sound_enabled(not pressed)
 	_refresh_audio_controls_live()
 	_refresh_audio_controls_enabled()
-	_queue_save()
+	_save_options()
 
 
 ## 关闭声音时让分类滑条置灰（视觉上说明"当前被总开关管着"），不删交互。
@@ -383,20 +430,18 @@ func _on_screen_item_selected(index):
 		0: Globals.options.Screen.FULL,
 		1: Globals.options.Screen.WINDOW,
 	}[index]
+	# 两种模式可选的分辨率档位不同（全屏只列显示器比例），切完模式要重建列表。
+	_setup_resolution_options()
 	# 下拉是低频操作，直接落盘：走 0.25s 防抖的话，改完就关游戏会丢设置。
 	_save_options()
 
 
 func _on_resolution_item_selected(index):
-	if index < 0 or index >= Options.RESOLUTION_OPTIONS.size():
+	if index < 0 or index >= _resolution_choices.size():
 		return
-	# 全屏（含独占全屏）下窗口尺寸由屏幕决定，window_set_size() 会被引擎忽略。
-	# 用户在这里选分辨率 = 想要一个具体窗口尺寸，所以自动切到窗口模式再应用，
-	# 避免"选了没反应"（2026-09-14 用户报告的现象）。
-	if Globals.options.screen != Options.Screen.WINDOW:
-		Globals.options.screen = Options.Screen.WINDOW
-		_screen.selected = Options.Screen.WINDOW
-	Globals.options.resolution = Options.RESOLUTION_OPTIONS[index]
+	# 全屏下不再被踢回窗口模式：Options._apply_fullscreen 会按所选档位真切显示模式，
+	# 不支持独占全屏时降到该档位渲染再拉伸铺满，两种情况都看得见效果。
+	Globals.options.resolution = _resolution_choices[index]
 	_save_options()
 
 

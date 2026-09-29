@@ -10,10 +10,10 @@ const MAPS = {
 	{
 		"name": "Plain & Simple",
 		"players": 4,
-		# 【2026-09-15 用户要求】50×50 → 100×100（出生点也随之拉开到四角外圈）。
+		# 【2026-09-15 用户要求】50×50 → 100×100 → 200×200（2026-09-27 单位/建筑放大后地图同步 ×2；出生点四角外圈）。
 		# 该 size 只用于菜单文案与小地图等 UI；**运行时以 `Map.size`（场景根节点属性）为准**，
 		# 两者必须同步改，否则菜单显示与实际地图不一致。
-		"size": Vector2i(100, 100),
+		"size": Vector2i(208, 208),
 	},
 	# G4 四人图只挂 256×256。512 旧包已删，不要再登记。
 	# 8 人 BigArena 已从大厅拿掉（2026-09-15）；场景文件仍保留。
@@ -104,7 +104,10 @@ class Air:
 		# （Baking interrupted -> polygons=0；on_thread 时直接 0xC0000005）。
 		const CELL_SIZE = 0.8
 		const CELL_HEIGHT = 0.8
-		const MAX_AGENT_RADIUS = 0.8
+		# 【2026-09-27 单位整体放大】原 0.8 是按 0.8~0.9m 半径的单位定的，
+		# 现在最大空中单位（直升机）半径 2.3m：agent 半径必须 ≥ 单位半径，
+		# 否则烘焙出的走廊比单位窄（单位会卡墙/穿模）。cell_size 0.8 < 2.3 仍合法。
+		const MAX_AGENT_RADIUS = 2.3
 
 
 class Terrain:
@@ -114,7 +117,10 @@ class Terrain:
 		# 0.3 -> 0.6：2048m 世界栅格从 6800^2 降到 3400^2（崩溃防护阈值内）
 		const CELL_SIZE = 0.6
 		const CELL_HEIGHT = 0.6
-		const MAX_AGENT_RADIUS = 0.9  # max radius of movable units
+		# 【2026-09-27 单位整体放大】原 0.9 是按半径 ≤0.9 的单位定的；现在最大地面
+		# 载具（运输卡车）半径 2.8m——agent 半径必须 ≥ 单位半径，否则单位比走廊宽，
+		# 表现为"贴着墙走/绕墙到达误差巨大"。cell_size 0.6 < 2.8 仍合法。
+		const MAX_AGENT_RADIUS = 2.8  # max radius of movable units
 
 
 class Resources:

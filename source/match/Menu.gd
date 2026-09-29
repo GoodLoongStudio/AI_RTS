@@ -1,9 +1,11 @@
 extends CanvasLayer
 
 const OptionsScene = preload("res://source/main-menu/Options.tscn")
+const TutorialScene = preload("res://source/match/TutorialPage.tscn")
 const EscapeRouter = preload("res://source/ui/EscapeRouter.gd")
 
 var _options_panel: Control = null
+var _tutorial_panel: Control = null
 
 
 func _ready():
@@ -17,7 +19,7 @@ func _on_input_action_pressed(action_id: String):
 		return
 	if action_id == "global.cancel":
 		# 面板/菜单已打开：同步逐级返回（不依赖他人认领）。
-		if _options_panel != null or visible:
+		if _options_panel != null or _tutorial_panel != null or visible:
 			_cancel_or_return()
 			return
 		# 菜单未打开：本帧末尾再决定是否唤出。放置/目标选择/待发命令等
@@ -58,6 +60,8 @@ func _open():
 func _close():
 	if _options_panel != null:
 		_close_options_panel()
+	if _tutorial_panel != null:
+		_close_tutorial_panel()
 	if not visible:
 		return
 	visible = false
@@ -71,6 +75,9 @@ func _close():
 func _cancel_or_return():
 	if _options_panel != null:
 		_close_options_panel()
+		return
+	if _tutorial_panel != null:
+		_close_tutorial_panel()
 		return
 	if visible:
 		_close()
@@ -92,6 +99,26 @@ func _on_settings_button_pressed():
 	_options_panel.embedded_mode = true
 	_options_panel.close_requested.connect(_close_options_panel)
 	add_child(_options_panel)
+
+
+## 「教学」：打开快捷键/操作总览页（与设置同一套嵌入模式交互：
+## 隐藏暂停菜单主体 → 页面盖满 → 关闭后还原；对局保持暂停）。
+func _on_tutorial_button_pressed():
+	if _tutorial_panel != null:
+		return
+	$CenterContainer.hide()
+	_tutorial_panel = TutorialScene.instantiate()
+	_tutorial_panel.embedded_mode = true
+	_tutorial_panel.close_requested.connect(_close_tutorial_panel)
+	add_child(_tutorial_panel)
+
+
+func _close_tutorial_panel():
+	if _tutorial_panel == null:
+		return
+	_tutorial_panel.queue_free()
+	_tutorial_panel = null
+	$CenterContainer.show()
 
 
 func _close_options_panel():

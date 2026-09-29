@@ -17,12 +17,16 @@ public sealed record ConstructStructureCommand(
 public sealed record CancelConstructionCommand(UnitId SiteId);
 
 /// <summary>请求把 ECO-003 已创建并扣款的建筑注册为施工现场。</summary>
+/// <param name="ProgressSource">该建筑的进度来源（来自 balance 配置，逐类声明）。</param>
+/// <param name="AutomaticWorkPerTick">Automatic/Hybrid 每 Tick 自动推进的工作量。</param>
 public sealed record RegisterConstructionSite(
     UnitId SiteId,
     PlayerId OwnerId,
     StructureDefinitionId DefinitionId,
     int RequiredWork,
-    IReadOnlyList<ResourceAmount> ConstructionCost);
+    IReadOnlyList<ResourceAmount> ConstructionCost,
+    ConstructionProgressSource ProgressSource,
+    int AutomaticWorkPerTick);
 
 /// <summary>表示单现场命令的稳定处理状态。</summary>
 public enum ConstructionSiteCommandStatus
@@ -144,7 +148,7 @@ public interface IConstructionService : IConstructionTaskCoordinator
     /// <summary>推进指定模拟 Tick；同一 Tick 重复调用不重复增加工作量。</summary>
     void Advance(long simulationTick);
 
-    /// <summary>拥有者主动取消现场并执行一次全额退款。</summary>
+    /// <summary>拥有者主动取消现场并按剩余工作量折算退款。</summary>
     ConstructionSiteCommandResult Cancel(
         CommandContext context,
         CancelConstructionCommand command);

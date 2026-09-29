@@ -54,6 +54,116 @@ def busy_intent(unit_name):
     return {"intent_id": "i-busy", "unit_ids": [unit_name], "state": "active"}
 
 
+def _with_source(source):
+    """给 RULES 里每条施工定义贴上进度源（模拟阶段 1 贯通到规则视图的新字段）。"""
+    rules = {key: [dict(item) for item in value] if isinstance(value, list) else value
+             for key, value in RULES.items()}
+    for item in rules["constructions"]:
+        item["construction_progress_source"] = source
+    return rules
+
+
+class NoBuilderStillBuildsTest(unittest.TestCase):
+    """【阶段 3】automatic 施工下，"没有空闲工人"不得再让整条建造阶梯静默停摆。
+
+    阶段 0 断点 C-1：旧实现 `builders = list(idle_builders); if not builders: continue`
+    —— 一个工人都在忙时，本轮**不产任何建造意图、也不留任何痕**，玩家看到的就是
+    "副官有钱不发展"。修好后由施工进度源决定，且权威端保证忙碌工人不会被真拉上工地。
+    """
+
+    def _busy_fixture(self):
+        st = state(["Unit_2"], intents=[busy_intent("Unit_2")])
+        tact = {"entities": [unit("Unit_2", "worker", construct=True)]}
+        return st, tact
+
+    def test_automatic_source_still_emits_build_without_idle_builder(self):
+        st, tact = self._busy_fixture()
+        out = rf.development_intents(st, tactical=tact, rules=_with_source("automatic"),
+                                     server_tick=1000, snapshot_id=5)
+        actions = [i["action"] for i in out]
+        self.assertIn("build", actions,
+                      "automatic 施工不该再把'没有空闲工人'当成开工前置")
+        self.assertEqual(out[actions.index("build")]["target"]["scene"],
+                         "res://buildings/Barracks.tscn")
+
+    def test_worker_source_still_requires_idle_builder(self):
+        st, tact = self._busy_fixture()
+        out = rf.development_intents(st, tactical=tact, rules=_with_source("worker"),
+                                     server_tick=1000, snapshot_id=5)
+        self.assertEqual([i["action"] for i in out], [],
+                         "worker 兼容口径必须保留'先有建造者'的旧语义")
+
+    def test_hybrid_source_also_lifts_the_builder_precondition(self):
+        st, tact = self._busy_fixture()
+        out = rf.development_intents(st, tactical=tact, rules=_with_source("hybrid"),
+                                     server_tick=1000, snapshot_id=5)
+        self.assertIn("build", [i["action"] for i in out],
+                      "hybrid 只让 Worker 提供加速，同样不得构成开工前置")
+
+    def test_missing_source_defaults_to_worker_conservatively(self):
+        st, tact = self._busy_fixture()
+        out = rf.development_intents(st, tactical=tact, rules=RULES,
+                                     server_tick=1000, snapshot_id=5)
+        self.assertEqual([i["action"] for i in out], [],
+                         "规则视图没带进度源时必须退回 worker 口径，不得猜成 automatic")
+
+    def test_construction_progress_source_reader(self):
+        self.assertEqual(rf.construction_progress_source(_with_source("automatic"),
+                                                         "barracks"), "automatic")
+        self.assertEqual(rf.construction_progress_source(RULES, "barracks"), "worker")
+        self.assertEqual(rf.construction_progress_source(None, "barracks"), "worker")
+
+
+class RefineryLadderTest(unittest.TestCase):
+    """矿场必须真能排上阶梯，且没有合法远端矿时**留下具体原因**而不是静默跳过。"""
+
+    REF_RULES = {
+        "unit_types": [{"id": "ore_refinery",
+                        "scene_path": "res://buildings/OreRefinery.tscn"}],
+        "constructions": [{"id": "ore_refinery",
+                           "blueprint_scene_path": "res://buildings/OreRefinery.tscn",
+                           "construction_progress_source": "automatic"}],
+        "productions": [],
+    }
+
+    @staticmethod
+    def _maxed_out_entities():
+        """把 BUILD_LADDER 里矿场之前的每一级都顶到限额，逼阶梯走到 ore_refinery。"""
+        built = (["barracks"] * 2 + ["vehicle_factory"] * 2 + ["aircraft_factory"]
+                 + ["anti_air_turret"] * 2 + ["anti_ground_turret"] * 2)
+        entities = [unit("Unit_cc", "command_center", queue=True, pos=(10, 0, 10)),
+                    unit("Unit_w", "worker", construct=True, pos=(12, 0, 12))]
+        entities += [unit("Unit_b%d" % index, key, pos=(20.0 + index, 0.0, 20.0))
+                     for index, key in enumerate(built)]
+        return entities
+
+    def test_no_far_resource_records_blocking_reason(self):
+        st = state(["Unit_cc", "Unit_w"])
+        st["map_bounds"] = [200.0, 200.0]
+        rf.development_intents(st, tactical={"entities": self._maxed_out_entities()},
+                               rules=self.REF_RULES, server_tick=1000, snapshot_id=5)
+        kinds = [str(entry.get("kind")) for entry in st.get("decision_log") or []]
+        self.assertIn("expansion_spot_exhausted", kinds,
+                      "没有可见远端矿时必须留痕，否则'整局没矿场'无从归因：%s" % kinds)
+        note = next(entry for entry in st["decision_log"]
+                    if str(entry.get("kind")) == "expansion_spot_exhausted")
+        self.assertEqual(str(note.get("building")), "ore_refinery")
+
+    def test_far_visible_resource_orders_refinery_not_second_base(self):
+        entities = self._maxed_out_entities()
+        entities.append({"kind": "resource", "name": "R_far", "pos": [150.0, 0.0, 150.0]})
+        # 落点必须**在己方视野内**（`pick_expansion_spot` 的硬判据）：派个单位钉在矿点旁，
+        # 否则"看得见远端矿"这个前提本身不成立，测的就不是阶梯能不能排到矿场。
+        entities.append(unit("Unit_scout", "worker", construct=True, pos=(150.0, 0.0, 150.0)))
+        st = state(["Unit_cc", "Unit_w", "Unit_scout"])
+        st["map_bounds"] = [200.0, 200.0]
+        out = rf.development_intents(st, tactical={"entities": entities},
+                                     rules=self.REF_RULES, server_tick=1000, snapshot_id=5)
+        scenes = [str((i.get("target") or {}).get("scene", "")) for i in out]
+        self.assertIn("res://buildings/OreRefinery.tscn", scenes,
+                      "远端矿可见时阶梯必须能排到矿场：%s" % scenes)
+
+
 class BuildLadderTest(unittest.TestCase):
     def test_builds_barracks_when_missing(self):
         st = state(["Unit_0", "Unit_2"])

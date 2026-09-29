@@ -7,6 +7,11 @@ const DEFAULT_PORT := 24567
 const MAX_PLAYERS := 4
 const MAP_PATH := "res://source/match/maps/PlainAndSimple.tscn"
 var selected_map_path: String = MAP_PATH
+## 固定种子回归用的**标签**：地图本身由 `selected_map_path` 决定（生成图目录名里就带
+## 种子），这个值只用于把对局证据归因到某个种子，不参与任何玩法判定。
+var match_seed := 0
+## 命令行 `--map/--seed` 只在唯一收敛点读一次（见 `_consume_cmdline_fixed_match_args`）。
+var _fixed_match_args_consumed := false
 const NetCommandProxyScript := preload("res://source/net/NetCommandProxy.gd")
 
 const SLOT_EMPTY := 0
@@ -132,6 +137,9 @@ func try_start_from_cmdline() -> bool:
 	dedicated_server = true
 	if args.has("--e2e-peaceful"):
 		e2e_peaceful = true
+	# 固定种子/固定地图：--map <res://…tscn> --seed <int>。专用服也走同一个解析器，
+	# 这样"参数怎么写"只有一份实现；真正生效点在 `_launch_match`。
+	_consume_cmdline_fixed_match_args()
 	var port := DEFAULT_PORT
 	for i in range(args.size()):
 		if args[i] == "--port" and i + 1 < args.size():
@@ -721,11 +729,61 @@ func _launch_match() -> void:
 	for peer_id in _slots.keys():
 		peer_ids.append(int(peer_id))
 		slot_ids.append(int(_slots[peer_id]))
+	# 固定种子/固定地图（阶段 6 前置）：命令行入口必须在**唯一的开局收敛点**生效，
+	# 不能只挂在 `--server` 分支里——本机 listen server 跑自对局时不带 `--server`，
+	# 那样 `--seed` 会静默失效，报告里的"固定种子"就成了假证据。
+	_consume_cmdline_fixed_match_args()
+	_apply_match_seed()
 	# 地图守门：服务器发出的最终地图路径必须是合法登记地图，否则回退默认。
 	# 服务器与所有客户端加载同一路径（_rpc_start_match 携带），不再各自兜底不同结果。
 	var map_path := validated_map_path(selected_map_path)
-	print("联机: 开局，人类 %d，槽位 %s，配置 %s，地图 %s" % [humans, str(slot_ids), str(kinds), map_path])
+	print("联机: 开局，人类 %d，槽位 %s，配置 %s，地图 %s 种子 %d" % [
+		humans, str(slot_ids), str(kinds), map_path, match_seed])
 	_rpc_start_match.rpc(humans, peer_ids, slot_ids, kinds, passive_ai_test_server, map_path)
+
+
+## 把命令行 `--map/--seed` 读进会话（幂等，只读一次）。
+## 【为什么非法地图要直接退出】"固定地图回归"的全部价值在于报告里那张图是真的。
+## 沿用旧 `validated_map_path` 的"非法就悄悄回退默认图"，跑完 10 局会产出 10 行
+## 写着 A 图、实际是 B 图的证据——提示词第五节明令禁止这种伪造。普通玩家流程不传
+## `--map`，所以这里硬失败只影响回归 harness，且失败得越早越省时间。
+func _consume_cmdline_fixed_match_args() -> void:
+	if _fixed_match_args_consumed:
+		return
+	_fixed_match_args_consumed = true
+	var args := OS.get_cmdline_user_args()
+	for i in range(args.size()):
+		if args[i] == "--map" and i + 1 < args.size():
+			var wanted := str(args[i + 1])
+			if not set_selected_map_for_local_start(wanted):
+				push_error("--map 非法或未登记：%s" % wanted)
+				push_error("固定地图回归拒绝在替代地图上开局，进程退出（不产出假凭据）")
+				if get_tree() != null:
+					get_tree().quit(1)
+		elif args[i] == "--seed" and i + 1 < args.size():
+			match_seed = int(args[i + 1])
+
+
+## 让 `match_seed` 真的改变模拟：灌进 Godot 全局 RNG（`randf()/randi()` 都读它）。
+## 覆盖的是**游戏侧随机量**——单位出生散布、增强卡抽取、随机挑选目标。
+## 【不承诺什么】帧调度与网络时序带来的非确定不在这里消除；只有持有该种子的进程
+## 会重排 RNG，所以不宣称多客户端联机逐帧一致（权威模拟本来就在服务器）。
+## 0 = 不干预，行为与加这个字段之前完全一致。
+func _apply_match_seed() -> void:
+	if match_seed <= 0:
+		return
+	seed(match_seed)
+	print("[FIXEDSEED] 全局 RNG 种子已设为 %d" % match_seed)
+
+
+## 本地/无头开局前钉图（唯一入口）：走与服务器开局同一套 `validated_map_path` 守门，
+## 非法路径不静默用错图。房主改图的网络入口是 `set_lobby_map`，两者不共用判定以外的逻辑。
+func set_selected_map_for_local_start(path: String) -> bool:
+	var resolved := validated_map_path(path)
+	if resolved != path:
+		return false
+	selected_map_path = resolved
+	return true
 
 
 ## 地图路径守门（唯一实现）：必须同时登记在 `Constants.Match.ALL_MAPS` 且资源可加载，

@@ -27,6 +27,10 @@ var _impacted := false
 var _flight_seconds := FLIGHT_SECONDS
 var _arc_height := ARC_HEIGHT
 var _show_impact_explosion := true
+## 【2026-09-27 重坦榴弹抛物线】场景 meta `trajectory = "parabola"` 时走**真抛物线**：
+## `arc_height` 表示弹道峰高（米），弹体爬升过峰再落到目标——榴弹炮的观感。
+## 默认（直线模式）行为不变：`arc_height` 表示末端下坠幅度，直线飞行 + 平方递增下坠。
+var _trajectory_parabola := false
 
 @onready var _trail: GPUParticles3D = $Trail
 
@@ -48,6 +52,7 @@ func _ready():
 		# 取不到瞄准点时退回旧的固定时长口径（正常路径不会走到）。
 		_flight_seconds = float(get_meta("flight_seconds", FLIGHT_SECONDS))
 	_arc_height = float(get_meta("arc_height", ARC_HEIGHT))
+	_trajectory_parabola = str(get_meta("trajectory", "linear")) == "parabola"
 	# 步枪等轻武器命中不炸出火光，只有炮弹类落点爆炸。
 	_show_impact_explosion = bool(get_meta("impact_explosion", true))
 	if _trail != null:
@@ -69,6 +74,11 @@ func _lock_flight_orientation(launch_aim: Vector3) -> void:
 		# 拿不到有效瞄准点：沿用炮口朝向，绝不留给引擎一个随机 basis。
 		global_transform.basis = launch_transform.basis.orthonormalized()
 		return
+	# 抛物线模式沿**初始切线**定向：t'(0) = 直线方向 + 4×峰高 的竖直分量
+	# （p(t) 峰项 = 4h·t(1−t)，t=0 导数 = 4h）。弹体以榴弹炮的仰角出膛，
+	# 途中仍不转向（保持"朝向只在发射瞬间确定"的既有口径）。
+	if _trajectory_parabola:
+		travel += Vector3(0.0, 4.0 * _arc_height, 0.0)
 	# 近乎垂直的射击会让 look_at 的 UP 参考退化（cross ≈ 0 → basis 乱转），换一个参考轴。
 	var direction := travel.normalized()
 	var up := Vector3.UP if absf(direction.dot(Vector3.UP)) < 0.999 else Vector3.FORWARD
@@ -88,8 +98,12 @@ func _process(delta: float):
 	# 视觉终点抬到目标躯干高度，避免末端下坠的炮弹看起来砸进地里。
 	var visual_aim := aim_point + Vector3(0.0, 0.3, 0.0)
 	var position := origin.lerp(visual_aim, ratio)
-	# 直线弹道 + 平方递增的轻微下坠（arc_height 此时表示末端下坠幅度，非抛物线高度）
-	position.y -= _arc_height * ratio * ratio
+	if _trajectory_parabola:
+		# 真抛物线：峰项 4h·t(1−t)，t=0/1 时为 0（出膛与落点都在直线上），t=0.5 达峰。
+		position.y += _arc_height * 4.0 * ratio * (1.0 - ratio)
+	else:
+		# 直线弹道 + 平方递增的轻微下坠（arc_height 此时表示末端下坠幅度，非抛物线高度）
+		position.y -= _arc_height * ratio * ratio
 	global_position = position
 	# ⚠ 这里**不能**再 `look_at(当前瞄准点)`：朝向已在 `_ready` 锁定（见 `_lock_flight_orientation`）。
 	# 弹体飞行途中只平移、不旋转 —— 否则追移动目标时弹体会持续转向（用户实测报障）。

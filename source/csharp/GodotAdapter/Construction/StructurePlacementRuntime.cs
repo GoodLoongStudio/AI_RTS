@@ -95,12 +95,7 @@ public partial class StructurePlacementRuntime : Node
         try
         {
             GetParent().Call("_setup_and_spawn_unit", structure, transform, player, true);
-            if (!_commands.RegisterConstructionSite(
-                structure,
-                player,
-                definitionId,
-                construction.RequiredWork,
-                definition.ConstructionCost))
+            if (!_commands.RegisterConstructionSite(structure, player, construction))
             {
                 throw new InvalidOperationException("无法注册权威施工现场。");
             }

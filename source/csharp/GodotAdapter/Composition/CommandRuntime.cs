@@ -7,6 +7,7 @@ using AI_RTS.Application.Skills;
 using AI_RTS.Application.Units;
 using AI_RTS.Domain.Combat;
 using AI_RTS.Domain.Common;
+using AI_RTS.Domain.Configuration;
 using AI_RTS.Domain.Construction;
 using AI_RTS.Domain.Economy;
 using AI_RTS.Domain.Skills;
@@ -310,18 +311,18 @@ public partial class CommandRuntime : Node
     internal bool RegisterConstructionSite(
         Node site,
         Node owner,
-        StructureDefinitionId definitionId,
-        int requiredWork,
-        IReadOnlyList<ResourceAmount> costs)
+        StructureConstructionDefinition construction)
     {
         var siteId = _constructionSites.Register(site);
         _units.Register(site);
         var registered = _construction.Register(new RegisterConstructionSite(
             siteId,
             _units.RegisterPlayer(owner),
-            definitionId,
-            requiredWork,
-            costs));
+            construction.DefinitionId,
+            construction.RequiredWork,
+            construction.Placement.ConstructionCost,
+            construction.ProgressSource,
+            construction.AutomaticWorkPerTick));
         if (registered)
         {
             site.TreeExiting += () => _construction.Destroy(
@@ -396,8 +397,21 @@ public partial class CommandRuntime : Node
         Node issuerPlayer,
         IReadOnlySet<string> displacedUnitIds)
     {
+        // 进度来源决定要不要在放置时抓人：automatic 完全不需要 Worker（把采矿工人拉去
+        // 工地正是本次要消灭的行为），hybrid 只借用既没有订单也不在采集的工人提供加速，
+        // 只有旧的 worker 口径才把 Worker 当开工前置。
+        var progressSource = _construction.Find(GodotStableIdentity.Unit(site))?.ProgressSource
+            ?? ConstructionProgressSource.Worker;
+        if (progressSource == ConstructionProgressSource.Automatic)
+        {
+            return;
+        }
+        var eligible = progressSource == ConstructionProgressSource.Hybrid ?
+            workerNodes.Where(worker => !IsBusyOnOtherTask(_units.Register(worker))) :
+            workerNodes;
+
         var immediate = new List<Node>();
-        foreach (var worker in workerNodes.Distinct())
+        foreach (var worker in eligible.Distinct())
         {
             var workerId = _units.Register(worker);
             if (!displacedUnitIds.Contains(workerId.Value.ToString("D")))
@@ -424,6 +438,12 @@ public partial class CommandRuntime : Node
             ConstructUnits(immediate, site, issuerPlayer);
         }
     }
+
+    /// <summary>
+    /// hybrid 施工只借用真正空闲的工人：只要还挂着任何活动订单（采集、移动、战斗、施工），
+    /// 就不许把它从原任务上拽走。
+    /// </summary>
+    private bool IsBusyOnOtherTask(UnitId workerId) => _orders.FindActive(workerId) is not null;
 
     /// <summary>由拥有者主动取消未完成现场；成功时执行一次全额退款。</summary>
     public ConstructionSiteCommandResult CancelConstruction(Node site, Node issuerPlayer)

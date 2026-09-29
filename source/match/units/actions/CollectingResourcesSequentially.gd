@@ -181,6 +181,11 @@ func _transfer_collected_resources_to_player():
 	assert(accepted, "a valid Worker delivery must reach its authoritative resource account")
 	if not accepted:
 		return
+	# 矿场运营的结果证据：只有"记在矿场账上的实际交付"才能证明矿场真的在产出，
+	# 而不是"存在一座矿场"或"发过一条 build"。回指挥中心的交付不进这本账。
+	var drop_off = _find_drop_off_for(_unit)
+	if drop_off != null and drop_off.has_method("record_delivery"):
+		drop_off.record_delivery(_unit, int(delivery.get("resource_a", 0)))
 	_unit.resource_a = 0
 	_unit.resource_b = 0
 

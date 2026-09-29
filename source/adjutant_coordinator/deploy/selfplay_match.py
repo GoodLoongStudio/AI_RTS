@@ -72,13 +72,108 @@ def _match_forces() -> dict:
 
 
 def _own_snapshot():
-    """副官视角的战术观测（己方单位 + 余额 + 可见敌人）。"""
+    """副官视角的战术观测（己方单位 + 余额 + 可见敌人 + 矿点存量）。
+
+    【为什么要显式 `limit`】游戏侧实体窗口默认 128 条。200×200 图上光矿点就可能
+    上百，默认窗口会让"全图矿量"只统计到前 128 个实体——把**截断当耗尽**是本次
+    最容易造出假证据的一条路（提示词第五节明令禁止）。所以取数一律要大窗口，
+    并把 `truncated` 原样记进样本，分析层据此判"这局的矿量账可不可信"。
+    """
     try:
-        snap = dcs(SERVER_PORT, {"op": "tactical", "as_player": "Player_0"},
-                   timeout=15)
+        snap = dcs(SERVER_PORT, {"op": "tactical", "as_player": "Player_0",
+                                 "limit": 4096}, timeout=15)
     except Exception as exc:  # noqa: BLE001
         return {"__error": str(exc)}
     return snap or {}
+
+
+def _economy(snap: dict) -> dict:
+
+    """施工/矿场/矿点三张经济账（提示词第六节逐局报告项的原始事实）。
+
+
+
+    只做透传与求和，不做推断；`truncated` 必须带上——窗口截断时矿量合计不可信。
+
+    """
+
+    entities = snap.get("entities") or []
+
+    constructing = 0
+
+    workers = 0
+
+    refineries = []
+
+    for entity in entities:
+
+        if str(entity.get("kind", "")) != "unit_self":
+
+            continue
+
+        if entity.get("constructing"):
+
+            constructing += 1
+
+        if str(entity.get("unit_type", "")) == "worker":
+
+            workers += 1
+
+        stats = entity.get("refinery")
+
+        if isinstance(stats, dict) and str(entity.get("unit_type", "")) == "ore_refinery":
+
+            refineries.append({"name": str(entity.get("name", "")),
+
+                               "constructed": bool(entity.get("constructed")),
+
+                               "assigned": int(stats.get("assigned") or 0),
+
+                               "takeovers": int(stats.get("takeovers") or 0),
+
+                               "delivered": int(stats.get("delivered_count") or 0),
+
+                               "delivered_amount": int(stats.get("delivered_amount") or 0)})
+
+    ore_nodes = [e for e in entities if str(e.get("kind", "")) == "resource"]
+    # 玩家账户余额：只有 `op=tactical` 的 header 有（`op=match_forces` 只给单位计数，
+    # 旧 `peak_balance` 因此一直读一个不存在的字段、恒为 0）。§7 要"资源增长"证据
+    # 必须从这里取，不能用矿点存量的减少代替——那只是"矿被采出"，不是"钱到账"。
+    balance = snap.get("resources") or {}
+    return {
+        "balance_a": int(balance.get("a") or 0),
+        "constructing": constructing,
+
+        "workers": workers,
+
+        "refineries": refineries,
+
+        "ore_nodes": len(ore_nodes),
+
+        "ore_depleted": sum(1 for e in ore_nodes if e.get("ore_depleted")),
+
+        "ore_remaining": sum(int(e.get("ore_remaining") or 0) for e in ore_nodes),
+
+        "ore_capacity": sum(int(e.get("ore_capacity") or 0) for e in ore_nodes),
+
+        "truncated": bool(snap.get("truncated")),
+
+        "cw_seconds": snap.get("construction_worker_seconds") or {},
+
+    }
+
+
+
+
+
+def _fixed_match_args(args) -> list:
+    """把 --map/--seed 翻成游戏侧命令行参数；未指定就不加（保持旧行为逐字一致）。"""
+    extra = []
+    if args.map:
+        extra += ["--map", args.map]
+    if args.seed:
+        extra += ["--seed", str(args.seed)]
+    return extra
 
 
 def _match_result_from_log() -> str:
@@ -162,6 +257,14 @@ def main() -> int:
                         help="电脑难度 0=EASY 1=NORMAL 2=HARD；-1=游戏默认")
     parser.add_argument("--dataset", default="",
                         help="Laya 训练数据集输出路径（JSONL，追加写）")
+    # 固定地图/固定种子（阶段 6 回归入口）。种子灌的是**权威进程**的全局 RNG，
+    # 所以下面会把它同时传给专用服那一条命令行——只给客户端传是无效凭据。
+    parser.add_argument("--map", default="",
+                        help="固定地图 res:// 路径（必须登记在 Constants.Match.ALL_MAPS）")
+    parser.add_argument("--seed", type=int, default=0,
+                        help="固定全局 RNG 种子，0 = 不干预（游戏默认）")
+    parser.add_argument("--refinery-at", type=int, default=-1,
+                        help="开局 N 秒后脚本化建一座远端矿场（-1 = 不建，纯看副官主线）")
     args = parser.parse_args()
 
     os.makedirs(OUT, exist_ok=True)
@@ -184,8 +287,9 @@ def main() -> int:
 
     # 起专用服 + 客户端（与验收同口径，只按端口 PID 清理）。
     kill_our_game()
+    fixed_args = _fixed_match_args(args)
     spawn(["--headless", "--path", AI, "--",
-           "--server", "--port", str(GAME_PORT), "--debugport", str(SERVER_PORT)],
+           "--server", "--port", str(GAME_PORT), "--debugport", str(SERVER_PORT)] + fixed_args,
           "selfplay_server.out")
     ok = False
     for _ in range(45):
@@ -201,7 +305,7 @@ def main() -> int:
     # 注意**不能加 --headless**：客户端要走主菜单/大厅流程（harness 同款窗口运行）。
     spawn(["--path", AI, "--", "--debugport", str(CLIENT_PORT),
            "--autojoin", "--autojoin-lobby",
-           "--smokehost", "127.0.0.1", "--smokeport", str(GAME_PORT)],
+           "--smokehost", "127.0.0.1", "--smokeport", str(GAME_PORT)] + fixed_args,
           "selfplay_client.out")
     ok = False
     for _ in range(25):
@@ -267,7 +371,38 @@ def main() -> int:
     deadline = time.time() + args.seconds
     next_forces = 0.0
     consecutive_failures = 0
+    # 验收场景「远端专门矿场」的脚本化触发点：到点就发一条**不带坐标**的
+    # `op=build OreRefinery`，让权威端自己在远端矿堆附近搜合法落点（`auto=resource`
+    # 模式）。之所以要这个开关：纯规则副官在 150 秒窗口里走不到 M08，于是"矿场能建、
+    # 会接管工人、交货进账户"这三件事在一局真实对局里一次也没被观测到——只有冒烟夹具
+    # 里有。有了它，同一张图同一粒种子也能反复采到矿场闭环。
+    match_started_at = time.time()
+    refinery_sent = None
+    refinery_tries = 0
+    refinery_next_try = args.refinery_at
     while time.time() < deadline:
+        # 到点就重试，直到权威端接受（上限 6 次、每次间隔 20 秒）。
+        # 【为什么要重试而不是只发一次】40 秒实测拿到的是 `NoValidSite`
+        # （"没有已探明的新矿点"）——`auto=resource` 模式要把**已探明**的远端矿堆当锚点，
+        # 而开局头几十秒侦察还没铺出去。只发一次会把"时机未到"记成"矿场建不起来"，
+        # 那是个假阴性。回执原样留档，不接受就不算触发成功。
+        if args.refinery_at >= 0 and refinery_tries < 6 \
+                and time.time() - match_started_at >= refinery_next_try:
+            refinery_tries += 1
+            refinery_next_try = time.time() - match_started_at + 20.0
+            try:
+                attempt = dcs(CLIENT_PORT, {
+                    "op": "build",
+                    "scene": "res://source/match/units/OreRefinery.tscn",
+                }, timeout=20)
+            except Exception as exc:  # noqa: BLE001
+                attempt = {"ok": False, "status": "Exception", "error": str(exc)}
+            refinery_sent = {"tries": refinery_tries, "last": attempt,
+                             "accepted": bool(attempt.get("ok")),
+                             "history": (refinery_sent or {}).get("history", [])
+                                        + [attempt.get("status")]}
+            print("[selfplay] 矿场建造第 %d 次 -> %s" % (
+                refinery_tries, str(attempt)[:200]), flush=True)
         snap = _own_snapshot()
         if "__error" not in snap and snap.get("server_tick"):
             consecutive_failures = 0
@@ -275,7 +410,7 @@ def main() -> int:
                       **_forces(snap)}
             samples.append(sample)
             detail_log.append({"ts": sample["ts"], "tick": sample["tick"],
-                               **_detail(snap)})
+                               **_detail(snap), **_economy(snap)})
         else:
             consecutive_failures += 1
             sampling_log.append({"ts": time.time(),
@@ -363,6 +498,11 @@ def main() -> int:
         verdict = "timeout"
     result = {
         "tag": args.tag, "backend": args.backend, "seconds": args.seconds,
+        "map": args.map, "seed": args.seed,
+        # 脚本化矿场的**原始回执**（不解读）：拒了就照实写，报告层据此区分
+        # "没尝试建矿场"与"建了但被权威端拒绝"。
+        "refinery_receipt": refinery_sent,
+        "refinery_at_s": args.refinery_at,
         "difficulty": args.difficulty,
         "samples": len(samples),
         "first": samples[0] if samples else {},

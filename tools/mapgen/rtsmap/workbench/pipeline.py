@@ -293,7 +293,14 @@ def run_pipeline(job, project, folder, save, progress):
     progress(dict(stage="G4", phase="场景已导出"))
 
     # ---- 引擎验证：导入 + 加载 + 截图 + 定向导航 ----
-    if not stage_done("engine"):
+    if job.get("skip_engine_check"):
+        # 【2026-09-27】游戏内随机地图（RandomMapRuntime 带 skip_engine_check=true）
+        # 跳过本阶段：三张验收截图 + 定向导航要另起 Godot 进程、实测 60s+，
+        # 加载页干等毫无收益——地图在 G4 阶段已装进工程，"能不能玩"马上由玩家
+        # 实局检验（失败还有兜底图）。浏览器工作台不带此标志，照旧全量验收。
+        rec.skip("engine", "游戏内生成：跳过引擎验收（截图/导航检查由玩家实局代替）")
+        progress(dict(stage="ENGINE", phase="地图已装进工程，跳过引擎验收"))
+    elif not stage_done("engine"):
         rec.mark_t0("engine")
         rec.begin("engine", stage="ENGINE", version="godot")
         try:
@@ -519,11 +526,21 @@ def build_bundle(job, folder, save):
     missing_assets = []
     for res_path in sorted(asset_res):
         rel = res_path[len("res://"):]
-        install_to = rel.replace("assets/", "assets/models/scifi-worlds/", 1)
+        install_to = g4_export._res_to_dst(res_path)[len("res://"):]
         src = g4_export.SRC_ROOT / rel
+        # 【2026-09-27 修"导出包素材依赖缺失"】与 copy_assets / 桥素材同一口径：
+        # 原始素材包（初选素材包/…）被 .gitignore 排除、不在仓库里，而素材的
+        # **已安装副本**在 assets/models/scifi-worlds/…。只认源路径会让整条任务
+        # 在收尾打包时判 error——玩家侧表现为随机地图生成失败退兜底图。
+        # 源在 → 冻结源（历史口径）；源不在但已安装副本在 → 冻结副本，字节一致。
+        installed = Path(G4_AIRTS) / install_to
         if src.exists():
             asset_deps.append(dict(res_path=res_path, install_to=install_to,
                                    sha256=sha256_file(src), source_hint=str(src)))
+        elif installed.exists():
+            asset_deps.append(dict(res_path=res_path, install_to=install_to,
+                                   sha256=sha256_file(installed),
+                                   source_hint=f"{installed}（已安装副本）"))
         else:
             missing_assets.append(res_path)
     if missing_assets:

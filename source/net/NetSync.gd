@@ -214,7 +214,7 @@ func _reconcile_entry_for(unit):
 	var scene_path := String(unit.scene_file_path)
 	if scene_path.is_empty():
 		return null
-	return {
+	var entry := {
 		"path": str(_match.get_path_to(unit)),
 		"parent": str(_match.get_path_to(unit.get_parent())),
 		"scene": scene_path,
@@ -223,6 +223,17 @@ func _reconcile_entry_for(unit):
 		"stance": _authoritative_stance(unit),
 		"fire_policy": _authoritative_fire_policy(unit),
 	}
+	# 矿点存量与再生状态镜像（阶段 4）：客户端与重连者必须看到和权威端一致的矿量、
+	# "耗尽等待"标记与剩余再生毫秒，否则会出现"服务器矿长回来了、客户端还是空的"。
+	# 只有带矿量属性的节点才加这个键，不给每个单位条目平白加体积。
+	if "resource_a" in unit or "resource_b" in unit:
+		entry["ore"] = [
+			int(unit.get("resource_a") or 0),
+			int(unit.get("resource_b") or 0),
+			1 if bool(unit.get("depleted")) else 0,
+			int(unit.get("regen_remaining_ms") or 0),
+		]
+	return entry
 
 
 func _authoritative_stance(unit: Node, runtime: Node = null) -> String:
@@ -465,6 +476,9 @@ func apply_client_snapshot(
 			_apply_authoritative_hp(unit, float(item["hp"]))
 		if item.has("action") and unit.has_method("apply_presentation_action"):
 			unit.apply_presentation_action(str(item["action"]))
+		# 矿点存量/再生镜像：客户端只接受权威数值，自己**不推进**计时（避免两端各自刷矿）。
+		if item.has("ore") and unit.has_method("apply_presentation_ore"):
+			unit.apply_presentation_ore(item["ore"])
 		# 施工进度：只改外观与进度镜像，**不动 hp**（客户端 hp 由上面的快照结算）。
 		if item.has("construction") and unit.has_method("present_construction"):
 			var report: Array = item["construction"]

@@ -98,10 +98,13 @@ func reset_camera_options():
 ##   ① `sound_enabled` 总开关（Master 总线 mute）——一次操作关掉所有声音；
 ##   ② `sfx_volume`——SFX 总线（UI 音效/单位语音外的全部音效）此前**完全没接管**，
 ##      用户只能关音乐和人声，游戏音效关不掉。
+## 【2026-09-26 用户要求"启动默认是关闭声音的"】默认值改为 **false（静音）**：
+## 没有用户配置（audio.cfg 不存在）时按静音启动；用户在设置里开声并保存后，
+## audio.cfg 记住显式选择，之后按用户的选择启动。
 const AUDIO_CONFIG_PATH := "user://audio.cfg"
 const AUDIO_CONFIG_SECTION := "audio"
 const AUDIO_DEFAULTS := {
-	"sound_enabled": true,
+	"sound_enabled": false,
 	"music_volume": 0.9,
 	"voice_volume": 1.0,
 	"sfx_volume": 1.0,
@@ -203,9 +206,10 @@ func get_audio_volume(key: String) -> float:
 	return float(audio_options.get(key, AUDIO_DEFAULTS.get(key, 1.0)))
 
 
-## 总开关状态（true = 有声）。默认 true；关闭时 Master 总线静音。
+## 总开关状态（true = 有声）。默认 **false（静音，2026-09-26 用户指定）**；
+## 关闭时 Master 总线静音。
 func is_sound_enabled() -> bool:
-	return bool(audio_options.get("sound_enabled", true))
+	return bool(audio_options.get("sound_enabled", AUDIO_DEFAULTS["sound_enabled"]))
 
 
 func set_sound_enabled(enabled: bool) -> void:

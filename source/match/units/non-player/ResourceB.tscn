@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://bufgjfa3ne3uk"]
+[gd_scene load_steps=12 format=3 uid="uid://bufgjfa3ne3uk"]
 
 [ext_resource type="Script" path="res://source/match/units/non-player/ResourceB.gd" id="1_57n8v"]
 [ext_resource type="PackedScene" uid="uid://cgsi062w5fjia" path="res://source/match/units/traits/Highlight.tscn" id="2_c8mwe"]
@@ -6,6 +6,10 @@
 [ext_resource type="PackedScene" uid="uid://3c1h14nqdumt" path="res://source/match/units/traits/Selection.tscn" id="3_6dh54"]
 [ext_resource type="PackedScene" uid="uid://d4cwip5hpxlmo" path="res://source/match/units/traits/MovementObstacle.tscn" id="4_sxjck"]
 [ext_resource type="PackedScene" uid="uid://d4cm4yhtf11ur" path="res://source/match/units/traits/Targetability.tscn" id="5_y6273"]
+[ext_resource type="PackedScene" uid="uid://4jj1yjsdku8f" path="res://assets/models/kenney-spacekit/rock_crystalsLargeA.glb" id="6_scatter_b"]
+[ext_resource type="PackedScene" uid="uid://cvhlh3rxqt1c1" path="res://assets/models/kenney-spacekit/rock_crystals.glb" id="6_scatter_a"]
+[ext_resource type="PackedScene" uid="uid://bknv7x2bl4tqp" path="res://assets/models/kenney-spacekit/rocks_smallA.glb" id="7_rubble_a"]
+[ext_resource type="PackedScene" uid="uid://2heco8fhcrjf" path="res://assets/models/kenney-spacekit/rocks_smallB.glb" id="7_rubble_b"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_msmnm"]
 height = 0.8
@@ -15,8 +19,22 @@ script = ExtResource("1_57n8v")
 
 [node name="Geometry" type="Node3D" parent="."]
 
-[node name="rock_crystalsLargeB" parent="Geometry" instance=ExtResource("2_ox5xj")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.0503, 0, -1.5)
+[node name="CoreCluster" parent="Geometry" instance=ExtResource("2_ox5xj")]
+transform = Transform3D(0.52000, 0, -0.00000, 0, 0.52000, 0, 0.00000, 0, 0.52000, 0.00000, -0.05, 0.00000)
+[node name="ChunkEast" parent="Geometry" instance=ExtResource("6_scatter_a")]
+transform = Transform3D(0.49515, 0, -0.37313, 0, 0.62000, 0, 0.37313, 0, 0.49515, 1.05000, -0.05, 0.35000)
+[node name="ChunkSouth" parent="Geometry" instance=ExtResource("6_scatter_b")]
+transform = Transform3D(-0.43503, 0, -0.20286, 0, 0.48000, 0, 0.20286, 0, -0.43503, -0.72000, -0.05, 0.98000)
+[node name="ChunkWest" parent="Geometry" instance=ExtResource("6_scatter_a")]
+transform = Transform3D(-0.34641, 0, 0.20000, 0, 0.40000, 0, -0.20000, 0, -0.34641, -1.18000, -0.05, -0.55000)
+[node name="ChipNorth" parent="Geometry" instance=ExtResource("6_scatter_b")]
+transform = Transform3D(-0.01047, 0, -0.29982, 0, 0.30000, 0, 0.29982, 0, -0.01047, 0.30000, -0.05, -1.24000)
+[node name="ChipFar" parent="Geometry" instance=ExtResource("6_scatter_a")]
+transform = Transform3D(0.12000, 0, 0.20785, 0, 0.24000, 0, -0.20785, 0, 0.12000, 1.62000, -0.05, -0.90000)
+[node name="RubbleA" parent="Geometry" instance=ExtResource("7_rubble_a")]
+transform = Transform3D(0.52308, 0, -0.16996, 0, 0.55000, 0, 0.16996, 0, 0.52308, -0.35000, -0.05, 1.55000)
+[node name="RubbleB" parent="Geometry" instance=ExtResource("7_rubble_b")]
+transform = Transform3D(-0.19018, 0, 0.40784, 0, 0.45000, 0, -0.40784, 0, -0.19018, 0.85000, -0.05, -0.15000)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)

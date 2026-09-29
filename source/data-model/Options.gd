@@ -12,6 +12,8 @@ const RESOLUTION_OPTIONS := [
 	Vector2i(2560, 1440),
 	Vector2i(3840, 2160),
 ]
+## 判定「与显示器同比例」的容差。1366x768 与 16:9 差约 0.05%，2% 足够宽松又不会放过 4:3。
+const ASPECT_TOLERANCE := 0.02
 
 @export var screen: Screen = Screen.FULL:
 	set = _set_screen
@@ -46,14 +48,11 @@ func _apply_stored_options():
 
 
 func _apply_screen():
-	var mode := (
-		DisplayServer.WINDOW_MODE_FULLSCREEN
-		if screen == Screen.FULL
-		else DisplayServer.WINDOW_MODE_WINDOWED
-	)
-	_set_window_mode(mode)
-	if mode == DisplayServer.WINDOW_MODE_WINDOWED:
-		_apply_resolution()
+	if screen == Screen.WINDOW:
+		_set_window_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+		_apply_window_resolution()
+	else:
+		_apply_fullscreen()
 
 
 ## 窗口模式与无边框标记必须成对切换：
@@ -73,8 +72,94 @@ func _set_window_mode(mode: int):
 
 
 func _apply_resolution():
-	if screen != Screen.WINDOW:
+	if screen == Screen.WINDOW:
+		_apply_window_resolution()
+	else:
+		_apply_fullscreen()
+
+
+## 全屏改分辨率必须真的有效果，而 4.7 的 Windows 独占全屏在很多机器上是空操作
+## （模式确实切到 EXCLUSIVE_FULLSCREEN，桌面与窗口尺寸却纹丝不动，2026-09-26 实测），
+## 所以这里先试独占全屏，量到没落地就回退成「无边框全屏 + 压低根视口渲染尺寸」，
+## 两条路都以显示器的宽高比为前提，画面不会被拉变形。
+func _apply_fullscreen():
+	if DisplayServer.get_name() == "headless":
+		_set_window_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 		return
+
+	var target := _fullscreen_target()
+	if target != resolution:
+		# 写回夹出来的值，否则下拉显示的档位和实际生效的档位不一致。
+		resolution = target
+		return
+
+	if _enter_exclusive_fullscreen(target):
+		_set_content_scale_disabled()
+		return
+	_set_window_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+	_set_content_scale_viewport(target)
+
+
+## 全屏下真正送去渲染/切换的尺寸：与显示器同比例才用用户选的档位，
+## 否则（老存档里的 960x1080 之类）退到列表里同比例的最大档。
+func _fullscreen_target() -> Vector2i:
+	var native := DisplayServer.screen_get_size(DisplayServer.SCREEN_OF_MAIN_WINDOW)
+	if native.x <= 0 or native.y <= 0:
+		return DEFAULT_RESOLUTION
+	if _matches_aspect(resolution, native):
+		return resolution
+	var best := DEFAULT_RESOLUTION
+	for candidate in RESOLUTION_OPTIONS:
+		if _matches_aspect(candidate, native) and candidate.x > best.x:
+			best = candidate
+	return best
+
+
+func _matches_aspect(candidate: Vector2i, reference: Vector2i) -> bool:
+	if candidate.y <= 0 or reference.y <= 0:
+		return false
+	var ratio := float(reference.x) / float(reference.y)
+	return absf(float(candidate.x) / float(candidate.y) - ratio) <= ratio * ASPECT_TOLERANCE
+
+
+## 独占全屏靠「进模式时的窗口尺寸」挑显示模式，所以顺序必须是先窗口化定尺寸再切。
+## 返回是否真的落到了目标分辨率，调用方据此决定要不要回退。
+func _enter_exclusive_fullscreen(target: Vector2i) -> bool:
+	_set_window_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+	DisplayServer.window_set_size(target)
+	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN)
+	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, true)
+	if DisplayServer.window_get_mode() != DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN:
+		return false
+	return (
+		DisplayServer.window_get_size() == target
+		or DisplayServer.screen_get_size(DisplayServer.SCREEN_OF_MAIN_WINDOW) == target
+	)
+
+
+func _main_window() -> Window:
+	var loop := Engine.get_main_loop()
+	return loop.root if loop is SceneTree else null
+
+
+func _set_content_scale_viewport(target: Vector2i) -> void:
+	var window := _main_window()
+	if window == null:
+		return
+	window.content_scale_mode = Window.CONTENT_SCALE_MODE_VIEWPORT
+	window.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_KEEP
+	window.content_scale_size = Vector2(target)
+
+
+func _set_content_scale_disabled() -> void:
+	var window := _main_window()
+	if window == null:
+		return
+	window.content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
+
+
+func _apply_window_resolution():
+	_set_content_scale_disabled()
 
 	# 存储是「窗口」但实际仍停在独占全屏（启动早期的模式切换被引擎吞掉、
 	# 或窗口被外部改成全屏）时，window_set_size() 不生效 —— 先真正切回窗口模式。

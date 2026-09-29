@@ -12,10 +12,11 @@
 [ext_resource type="Script" path="res://source/match/units/SyntyMaterialBinder.gd" id="12_synty_binder"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_apc"]
-height = 0.6
-radius = 0.85
+height = 1.200
+radius = 1.350
 
 [node name="APC" type="Area3D"]
+scale = Vector3(2.00, 2.00, 2.00)
 collision_layer = 2
 collision_mask = 0
 script = ExtResource("1_apcgd")
@@ -60,7 +61,7 @@ path_desired_distance = 0.5
 target_desired_distance = 0.5
 path_height_offset = 0.6
 path_max_distance = 0.51
-radius = 0.85
+radius = 2.70
 neighbor_distance = 3.0
 max_neighbors = 16
 time_horizon_agents = 4.5

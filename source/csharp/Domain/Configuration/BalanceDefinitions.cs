@@ -39,6 +39,15 @@ public sealed record GathererDefinition(int CarryCapacity);
 /// <param name="WorkPerTick">每个施工 Tick 贡献的正整数工作量。</param>
 public sealed record ConstructorDefinition(int WorkPerTick);
 
+/// <summary>描述矿场完工后的运营参数（原先散落在 OreRefinery.gd 的常量里）。</summary>
+/// <param name="ServiceRadiusMeters">只服务距矿场这么近的矿点与工人。</param>
+/// <param name="WorkerCapacity">同时指派的工人上限。</param>
+/// <param name="ClaimIntervalSeconds">两轮圈矿之间的游戏时间，单位为秒。</param>
+public sealed record OreRefineryDefinition(
+    float ServiceRadiusMeters,
+    int WorkerCapacity,
+    float ClaimIntervalSeconds);
+
 /// <summary>描述单位拥有的独立生产队列容量。</summary>
 /// <param name="QueueLimit">该单位实例最多容纳的活动生产项目数。</param>
 public sealed record ProducerDefinition(int QueueLimit);
@@ -62,7 +71,8 @@ public sealed record UnitTypeDefinition(
     bool CanForceFireGround,
     GathererDefinition? Gatherer,
     ConstructorDefinition? Constructor,
-    ProducerDefinition? Producer);
+    ProducerDefinition? Producer,
+    OreRefineryDefinition? OreRefinery);
 
 /// <summary>描述一次命中如何选择受影响对象及计算友军伤害。</summary>
 /// <param name="Id">稳定弹头定义 ID。</param>
@@ -97,15 +107,22 @@ public sealed record WeaponDefinition(
 /// <param name="CollectionDurationMilliseconds">采集一个离散资源所需的整数毫秒数。</param>
 public sealed record ResourceDefinition(
     ResourceKind Kind,
-    int CollectionDurationMilliseconds);
+    int CollectionDurationMilliseconds,
+    bool RegenerationEnabled,
+    int RegenerationDelayMilliseconds,
+    int RegenerationRestoreAmount);
 
 /// <summary>组合建筑放置定义与施工所需的整数工作量。</summary>
 /// <param name="DefinitionId">稳定建筑定义 ID。</param>
 /// <param name="UnitTypeId">施工完成后对应的战场实体类型。</param>
 /// <param name="RequiredWork">完成施工所需的正整数工作量。</param>
 /// <param name="Placement">占地、环境与成本定义。</param>
+/// <param name="ProgressSource">施工进度来源；逐类在 balance 配置里声明，不按建筑名硬编码。</param>
+/// <param name="AutomaticWorkPerTick">Automatic/Hybrid 每个权威 Tick 自动推进的工作量。</param>
 public sealed record StructureConstructionDefinition(
     StructureDefinitionId DefinitionId,
     UnitTypeId UnitTypeId,
     int RequiredWork,
-    StructurePlacementDefinition Placement);
+    StructurePlacementDefinition Placement,
+    ConstructionProgressSource ProgressSource,
+    int AutomaticWorkPerTick);

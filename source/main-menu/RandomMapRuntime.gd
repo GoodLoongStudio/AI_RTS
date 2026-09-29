@@ -123,6 +123,10 @@ func _start_or_follow_job() -> Dictionary:
 		"target": "full",
 		"schema_version": 2,
 		"player_spacing": "any",
+		# 跳过工作台的 ENGINE 验收（三张截图 + 导航检查要另起 Godot 进程，
+		# 实测 60s+）：加载页干等没有收益，地图在 G4 阶段已装进工程，
+		# 能不能玩马上由玩家实局检验（失败还有兜底图）。浏览器工作台不带此标志。
+		"skip_engine_check": true,
 		"controls": CONTROL_DEFAULTS.duplicate(),
 	}
 	var job := await _http_json(HTTPClient.METHOD_POST, _url + "/api/generate", payload, 8.0)
