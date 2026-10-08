@@ -22,10 +22,12 @@ const ICON_BY_SCENE := {
 	"res://source/match/units/AntiAirTurret.tscn": "anti_air_turret",
 	"res://source/match/units/MachineGunTurret.tscn": "machine_gun_turret",
 	"res://source/match/units/Barracks.tscn": "barracks",
+	"res://source/match/units/OreRefinery.tscn": "ore_refinery",
+	"res://source/match/units/Scout.tscn": "scout",
 }
 
 const CAPTION_BY_ICON := {
-	"worker": "工人",
+	"worker": "矿车",
 	"tank": "坦克",
 	"heavy_tank": "重坦",
 	"helicopter": "直升机",
@@ -42,13 +44,19 @@ const CAPTION_BY_ICON := {
 	"anti_air_turret": "对空炮",
 	"machine_gun_turret": "机枪塔",
 	"barracks": "兵营",
+	"ore_refinery": "矿场",
+	"scout": "侦察机",
 }
 
-const CELL_W := 80.0
-const CELL_H := 92.0
-const CELL_SEPARATION := 6.0
-const FRAME_PADDING := 8.0
-const MAX_VISIBLE_CELLS := 8
+## 单元格尺寸（2026-09-28 用户"单位 UI 要小一点、不要重叠"）：
+## 原 80×92 × 最多 8 格 = 最高 788px，窄窗口里会顶进上方的"岚"副官面板、
+## 压到下方的指挥输入条。缩到 56×68 且可见格数 8→5 后，面板最高
+## 5×68+4×4+2×6 = 364px，垂直居中时上下都留得出空隙。
+const CELL_W := 56.0
+const CELL_H := 68.0
+const CELL_SEPARATION := 4.0
+const FRAME_PADDING := 6.0
+const MAX_VISIBLE_CELLS := 5
 const PANEL_WIDTH := CELL_W + FRAME_PADDING * 2.0
 const REFRESH_INTERVAL := 0.3
 
@@ -174,38 +182,38 @@ func _make_portrait(units: Array) -> Button:
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		icon.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		icon.offset_left = 8
-		icon.offset_top = 8
-		icon.offset_right = -8
-		icon.offset_bottom = -22
+		icon.offset_left = 6
+		icon.offset_top = 6
+		icon.offset_right = -6
+		icon.offset_bottom = -20
 		button.add_child(icon)
 	else:
 		var fallback := Label.new()
 		fallback.text = _unit_caption(unit)
 		fallback.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		fallback.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		fallback.add_theme_font_size_override("font_size", 16)
+		fallback.add_theme_font_size_override("font_size", 12)
 		fallback.add_theme_color_override("font_color", ThemeTokens.TEXT)
 		fallback.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		fallback.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		fallback.offset_bottom = -22
+		fallback.offset_bottom = -20
 		button.add_child(fallback)
 
 	var shade := ColorRect.new()
 	shade.color = Color(0.03, 0.07, 0.09, 0.72)
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	shade.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	shade.offset_top = -22
+	shade.offset_top = -20
 	button.add_child(shade)
 
 	var hp_track := ColorRect.new()
 	hp_track.color = Color(0.04, 0.08, 0.10, 0.95)
 	hp_track.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hp_track.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	hp_track.offset_left = 6
-	hp_track.offset_right = -6
-	hp_track.offset_top = -20
-	hp_track.offset_bottom = -16
+	hp_track.offset_left = 5
+	hp_track.offset_right = -5
+	hp_track.offset_top = -18
+	hp_track.offset_bottom = -14
 	button.add_child(hp_track)
 	var hp_fill := ColorRect.new()
 	hp_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -217,13 +225,13 @@ func _make_portrait(units: Array) -> Button:
 	name_label.text = _unit_caption(unit)
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	name_label.add_theme_font_size_override("font_size", 14)
+	name_label.add_theme_font_size_override("font_size", 10)
 	name_label.add_theme_color_override("font_color", ThemeTokens.TEXT)
 	name_label.clip_text = true
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	name_label.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	name_label.offset_top = -16
-	name_label.offset_bottom = -1
+	name_label.offset_top = -13
+	name_label.offset_bottom = -2
 	button.add_child(name_label)
 
 	var count := units.size()
@@ -245,22 +253,22 @@ func _add_count_badge(button: Button, count: int) -> void:
 		1,
 		4
 	)
-	style.content_margin_left = 6
-	style.content_margin_right = 6
-	style.content_margin_top = 2
-	style.content_margin_bottom = 2
+	style.content_margin_left = 4
+	style.content_margin_right = 4
+	style.content_margin_top = 1
+	style.content_margin_bottom = 1
 	chip.add_theme_stylebox_override("panel", style)
 	var badge := Label.new()
 	badge.text = "×%d" % count
-	badge.add_theme_font_size_override("font_size", 14)
+	badge.add_theme_font_size_override("font_size", 11)
 	badge.add_theme_color_override("font_color", ThemeTokens.CYAN)
 	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	chip.add_child(badge)
 	button.add_child(chip)
 	chip.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	chip.offset_top = 4
-	chip.offset_right = -4
-	chip.offset_bottom = 24
+	chip.offset_top = 3
+	chip.offset_right = -3
+	chip.offset_bottom = 21
 	chip.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	chip.grow_vertical = Control.GROW_DIRECTION_BEGIN
 

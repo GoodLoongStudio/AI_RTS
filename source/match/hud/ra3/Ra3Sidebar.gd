@@ -2,7 +2,7 @@ extends PanelContainer
 ## 红警3 风格右侧指挥侧栏。
 ## 布局（自上而下）：小地图 → 资金行 → 分类页签 + 3×3 生产网格 → 状态行 → 功能行。
 ## 生产为全局聚合：无需选中生产建筑，点击格子即向「队列最短」的同型建筑下达生产命令；
-## 建筑页签点击后自动挑选空闲工人进入蓝图放置流程。
+## 建筑页签点击后进入蓝图放置流程（automatic/hybrid 建筑无需工人，权威自动施工）。
 ## 图标约定：res://source/match/hud/ra3/icons/<icon>.png 存在则用图，否则退化为文字格子。
 
 const CommandCenterUnit := "res://source/match/units/CommandCenter.tscn"
@@ -24,15 +24,18 @@ const RocketeerUnit := "res://source/match/units/Rocketeer.tscn"
 const BarracksUnit := "res://source/match/units/Barracks.tscn"
 const OreRefineryUnit := "res://source/match/units/OreRefinery.tscn"
 
-## RA3 式生产分类。place=true 走蓝图放置（工人建造）；否则 producer 建筑排队生产。
+## RA3 式生产分类。place=true 走蓝图放置（automatic/hybrid 建筑由权威 Tick 自动施工）；
+## 否则 producer 建筑排队生产。
 ##
-## 【格子顺序 = 玩家找东西的顺序（2026-09-14 用户："建筑在上面，防御设施在下面"）】
-## 上半区放**生产/经济建筑**（基地/车厂/机场/兵营），下半区放**防御设施**（对地炮/对空炮/机枪塔）。
+## 【格子顺序 = 玩家找东西的顺序（2026-09-28 用户："矿场放第一个"，红警2 式经济中心）】
+## 建筑页第一格是**矿场**（经济核心），其后是生产建筑（基地/车厂/机场/兵营），
+## 下半区放**防御设施**（对地炮/对空炮/机枪塔）。
 ## 改动这里只会挪格子位置，不影响任何玩法（点击行为由 `_on_cell_pressed` 按 scene 决定）。
 const TABS = [
 	{
 		"id": "structures", "caption": "建筑", "place": true,
 		"items": [
+			{"scene": OreRefineryUnit, "caption": "矿场", "icon": "ore_refinery"},
 			{"scene": CommandCenterUnit, "caption": "基地", "icon": "command_center"},
 			{"scene": VehicleFactoryUnit, "caption": "车厂", "icon": "vehicle_factory"},
 			{"scene": AircraftFactoryUnit, "caption": "机场", "icon": "aircraft_factory"},
@@ -40,7 +43,6 @@ const TABS = [
 			{"scene": AntiGroundTurretUnit, "caption": "对地炮", "icon": "anti_ground_turret"},
 			{"scene": AntiAirTurretUnit, "caption": "对空炮", "icon": "anti_air_turret"},
 			{"scene": MachineGunTurretUnit, "caption": "机枪塔", "icon": "machine_gun_turret"},
-			{"scene": OreRefineryUnit, "caption": "矿场", "icon": "ore_refinery"},
 		],
 	},
 	{
@@ -57,11 +59,12 @@ const TABS = [
 		"id": "vehicles", "caption": "载具", "producer": VehicleFactoryUnit,
 		"producer_caption": "车辆工厂",
 		"items": [
-			# 工人按钮放在载具页签首位：主基地开局即可生产，无需兵营/车厂
-			{"scene": WorkerUnit, "caption": "工人", "icon": "worker",
-				"producer": CommandCenterUnit, "producer_caption": "主基地"},
+			# 【2026-09-28 红警2 口径】矿车（原"工人"）由**车厂**生产（balance:
+			# worker.allowedProducerUnitTypeIds=[vehicle_factory]），不再走主基地；
+			# 开局也不送，唯一经济入口 = 建车厂 → 造矿车 / 建矿场（完工赠一辆）。
+			{"scene": WorkerUnit, "caption": "矿车", "icon": "worker"},
 			# 【2026-09-15 用户要求】单位按价格从低到高排（改价时同步此处顺序）：
-			# 工人 200 → 坦克 700 → 运输车 800 → 装甲车 1200 → 重型坦克 1800。
+			# 矿车 200 → 坦克 700 → 运输车 800 → 装甲车 1200 → 重型坦克 1800。
 			{"scene": TankUnit, "caption": "坦克", "icon": "tank"},
 			{"scene": TransportTruckUnit, "caption": "运输车", "icon": "transport_truck"},
 			{"scene": APCUnit, "caption": "装甲车", "icon": "apc"},
@@ -691,7 +694,8 @@ func _cost_caption(item: Dictionary) -> String:
 func _item_tooltip(item: Dictionary) -> String:
 	var lines := [str(item.caption)]
 	if item.get("place", false):
-		lines.append("点击后由工人前往建造")
+		# automatic/hybrid 建筑自动施工；旧的 worker 口径建筑在点击时才会要求建造者。
+		lines.append("点击后放置蓝图，自动施工")
 	else:
 		lines.append("由%s生产（右键取消排队）" % str(item.get("producer_caption", "")))
 	var cost_text := _cost_caption(item)
@@ -830,7 +834,7 @@ func _select_builder_if_needed() -> bool:
 	if pick == null:
 		pick = any_pick
 	if pick == null:
-		_set_status("所有工人都在建造中：请等待任一建造完成，或生产新工人")
+		_set_status("所有矿车都在建造中：请等待任一建造完成，或生产新矿车")
 		return false
 	MatchSignals.deselect_all_units.emit()
 	for child in pick.get_children():
@@ -975,7 +979,10 @@ func _refresh_tabs():
 	for tab in TABS:
 		var available := false
 		if tab.get("place", false):
-			available = not _own_workers().is_empty()
+			# 【2026-09-28 开局零矿车】建筑页不再以"拥有工人/矿车"为显示条件：
+			# automatic/hybrid 建筑由权威 Tick 自动施工，蓝图放置不需要单位；
+			# 个别旧的 worker 口径建筑在点击时仍会要求选中建造者（_requires_builder_selection）。
+			available = true
 		else:
 			available = not _own_units_by_scene(tab.producer).is_empty()
 			if not available:
@@ -1011,7 +1018,8 @@ func _refresh_cells():
 
 		# 可产判定沿用原有逻辑，不改动任何玩法行为。
 		if item.get("place", false):
-			cell.button.disabled = _own_workers().is_empty()
+			# 【2026-09-28 开局零矿车】蓝图放置不因"没有矿车"禁用（建筑自动施工）。
+			cell.button.disabled = false
 		else:
 			cell.button.disabled = stats.producers == 0
 			# 【2026-09-15 用户要求】没有生产设施的项**不显示**：置灰只改底色，
@@ -1054,8 +1062,8 @@ func _refresh_cells():
 ## 生产卡片状态：能用 ProductionCatalog 就用它（单一事实来源）；查不到退回本页原有粗判。
 func _cell_state(item: Dictionary, stats: Dictionary) -> String:
 	if item.get("place", false):
-		return ProductionTheme.STATE_LOCKED if _own_workers().is_empty() \
-			else ProductionTheme.STATE_READY
+		# 【2026-09-28 开局零矿车】蓝图放置格子恒可用（建筑自动施工，无需单位）。
+		return ProductionTheme.STATE_READY
 	if int(stats.get("producers", 0)) == 0:
 		return ProductionTheme.STATE_LOCKED
 	if int(stats.get("count", 0)) > 0:

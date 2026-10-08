@@ -77,6 +77,11 @@ layout_mode = 2
 custom_minimum_size = Vector2(0, 52)
 text = "地图生成"
 
+[node name="TutorialButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 52)
+text = "教学"
+
 [node name="OptionsButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 52)
@@ -91,5 +96,6 @@ text = "退出游戏"
 [connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/OnlineButton" to="." method="_on_online_button_pressed"]
 [connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/GrowthButton" to="." method="_on_growth_button_pressed"]
 [connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/MapGenButton" to="." method="_on_map_gen_button_pressed"]
+[connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/TutorialButton" to="." method="_on_tutorial_button_pressed"]
 [connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/OptionsButton" to="." method="_on_options_button_pressed"]
 [connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/QuitButton" to="." method="_on_quit_button_pressed"]

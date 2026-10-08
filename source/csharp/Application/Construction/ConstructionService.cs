@@ -16,6 +16,7 @@ public sealed class ConstructionService : IConstructionService
     private readonly IConstructionWorkerPort _workers;
     private readonly IConstructionSitePort _sitePort;
     private readonly IResourceAccountService _accounts;
+    private readonly IConstructionRatePort _rate;
     private readonly Dictionary<UnitId, ConstructionSiteSnapshot> _sites = new();
     private readonly Dictionary<UnitId, Assignment> _assignments = new();
     /// <summary>每个工地未凑满 1 点工作量的小数余量（支持小数工效，如 1 × 1.3）。</summary>
@@ -28,13 +29,15 @@ public sealed class ConstructionService : IConstructionService
         IUnitOrderStore orders,
         IConstructionWorkerPort workers,
         IConstructionSitePort sitePort,
-        IResourceAccountService accounts)
+        IResourceAccountService accounts,
+        IConstructionRatePort? rate = null)
     {
         _units = units;
         _orders = orders;
         _workers = workers;
         _sitePort = sitePort;
         _accounts = accounts;
+        _rate = rate ?? new ConstantConstructionRatePort();
         _orders.StateChanged += OnOrderStateChanged;
     }
 
@@ -81,6 +84,10 @@ public sealed class ConstructionService : IConstructionService
     /// <inheritdoc />
     public ConstructionSiteSnapshot? Find(UnitId siteId) =>
         _sites.GetValueOrDefault(siteId);
+
+    /// <inheritdoc />
+    public bool HasActiveConstructionSite(PlayerId ownerId) => _sites.Values.Any(
+        site => site.OwnerId == ownerId && site.State == ConstructionSiteState.Active);
 
     /// <inheritdoc />
     public int GetActiveBuilderCount(UnitId siteId) => _assignments.Values.Count(assignment =>
@@ -188,13 +195,15 @@ public sealed class ConstructionService : IConstructionService
         var workBySite = new Dictionary<UnitId, double>();
         // 自动施工：进度不再以"有 Worker 在干活"为前提（阶段 1 的目标语义）。来源为
         // automatic/hybrid 的现场每 Tick 先记上权威自动工作量，Worker 分配只叠加在上面。
+        // 施工速率（"多主基地加速建造"）按工地所有者取，自动与工人贡献一并放大。
         foreach (var site in _sites.Values)
         {
             if (site.State == ConstructionSiteState.Active &&
                 site.ProgressSource != ConstructionProgressSource.Worker &&
                 site.AutomaticWorkPerTick > 0)
             {
-                workBySite[site.SiteId] = site.AutomaticWorkPerTick;
+                workBySite[site.SiteId] = site.AutomaticWorkPerTick *
+                    ConstructionRateFor(site.OwnerId);
             }
         }
         foreach (var item in _assignments.ToArray())
@@ -213,8 +222,11 @@ public sealed class ConstructionService : IConstructionService
             {
                 rate = 1.0f;
             }
+            var ownerRate = _sites.TryGetValue(item.Value.SiteId, out var assignedSite)
+                ? ConstructionRateFor(assignedSite.OwnerId)
+                : 1.0;
             workBySite[item.Value.SiteId] = workBySite.GetValueOrDefault(item.Value.SiteId) +
-                item.Value.BuildPowerPerTick * rate;
+                item.Value.BuildPowerPerTick * rate * ownerRate;
         }
 
         foreach (var work in workBySite.OrderBy(item => item.Key.Value))
@@ -365,6 +377,20 @@ public sealed class ConstructionService : IConstructionService
         foreach (var item in _assignments.Where(item => item.Value.SiteId == siteId).ToArray())
         {
             _orders.Transition(item.Value.OrderId, state, replacedBy);
+        }
+    }
+
+    /// <summary>取工地所有者的施工速率乘数；端口异常或非法值一律回落 1.0，别让加成卡死施工。</summary>
+    private double ConstructionRateFor(PlayerId ownerId)
+    {
+        try
+        {
+            var rate = _rate.ConstructionRateFor(ownerId);
+            return double.IsFinite(rate) && rate > 0.0 ? rate : 1.0;
+        }
+        catch
+        {
+            return 1.0;
         }
     }
 

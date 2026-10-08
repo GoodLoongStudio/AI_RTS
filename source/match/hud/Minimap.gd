@@ -33,6 +33,8 @@ const UNIT_SYNC_INTERVAL := 0.10
 var _unit_sync_elapsed := UNIT_SYNC_INTERVAL
 var _cached_unit_nodes: Array = []
 var _unit_by_name: Dictionary = {}
+## 本地玩家节点缓存：迷雾"已探明"网格以 Player 节点为键（见 _ore_dot_revealed）。
+var _cached_local_player: Node = null
 var _static_preview_applied := false
 var _hud_overlay: Control = null
 ## 覆盖层（摄像机框 / 单位点 / 副官标记）。必须挂在 MinimapTextureRect 上而不是
@@ -512,7 +514,8 @@ func _map_unit(unit):
 func _sync_unit(unit):
 	var unit_pos_3d = unit.global_transform.origin
 	var unit_pos_2d = _world_to_minimap_display(Vector2(unit_pos_3d.x, unit_pos_3d.z))
-	_unit_to_corresponding_node_mapping[unit].position = unit_pos_2d
+	var mapped_node: ColorRect = _unit_to_corresponding_node_mapping[unit]
+	mapped_node.position = unit_pos_2d
 	var mapped_color := Color.WHITE
 	if unit is Unit:
 		var owner_player = unit.player
@@ -520,7 +523,38 @@ func _sync_unit(unit):
 			mapped_color = owner_player.color
 	else:
 		mapped_color = unit.color
-	_unit_to_corresponding_node_mapping[unit].color = mapped_color
+	mapped_node.color = mapped_color
+	# 【2026-09-28 用户要求】没探测到的矿不许在小地图上出现。
+	# 单位点画在迷雾遮罩**之上**（overlay z=95 > 迷雾遮罩 z=90），迷雾本身盖不住它，
+	# 所以必须在这里按"本地玩家是否已探明该格"做显隐。
+	# 单位走 UnitVisibilityHandler 的显隐链路，不在这一步重复判。
+	mapped_node.visible = (unit is Unit) or _ore_dot_revealed(unit)
+
+
+## 矿点是否已被本地玩家探明。
+## 迷雾被关掉（观战/性能开关）、没有迷雾节点或拿不到本地玩家时一律视为已探明——
+## 宁可多显示，也不能把整张小地图的矿点都藏掉（那是更严重的可用性事故）。
+func _ore_dot_revealed(unit) -> bool:
+	if _match == null:
+		return true
+	var fog: Node = _match.get_node_or_null("FogOfWar")
+	if fog == null or not fog.has_method("is_explored"):
+		return true
+	var local_player: Node = _local_player()
+	if local_player == null:
+		return true
+	return bool(fog.is_explored(local_player, unit.global_transform.origin))
+
+
+## 本地玩家节点。FogOfWar 的已探明网格以 Player 节点为键（见 _mark_explored），
+## 这里必须拿同一个键，否则永远查不到已探明记录。
+func _local_player() -> Node:
+	if _cached_local_player != null and is_instance_valid(_cached_local_player):
+		return _cached_local_player
+	if _match == null or not _match.has_method("get_local_player"):
+		return null
+	_cached_local_player = _match.get_local_player()
+	return _cached_local_player
 
 
 func _cleanup_mapping(unit):

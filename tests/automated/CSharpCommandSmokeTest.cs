@@ -569,6 +569,8 @@ public partial class CSharpCommandSmokeTest : Node
     {
         public BalanceConfigVersion Version { get; } = new(1, "smoke-skills", "0");
 
+        public float SameTypeBonusPerExtraBuilding => 0f;
+
         public IReadOnlyCollection<UnitTypeDefinition> UnitTypes => [];
 
         public IReadOnlyCollection<WeaponDefinition> Weapons => [];

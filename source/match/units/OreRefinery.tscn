@@ -10,7 +10,7 @@
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_refn"]
 height = 1.600
-radius = 2.000
+radius = 3.267
 
 [node name="OreRefinery" type="Area3D"]
 scale = Vector3(3.00, 3.00, 3.00)
@@ -33,7 +33,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
 radius = 2.0
 
 [node name="MovementObstacle" parent="." instance=ExtResource("5_obst")]
-radius = 6.00
+radius = 9.80
 vertices = PackedVector3Array(0, 0, -1.4, 0.99, 0, -0.99, 1.4, 0, 0, 0.99, 0, 0.99, 0, 0, 1.4, -0.99, 0, 0.99, -1.4, 0, 0, -0.99, 0, -0.99)
 affect_navigation_mesh = true
 path_height_offset = 0.6

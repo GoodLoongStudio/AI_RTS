@@ -12,6 +12,12 @@ internal sealed class BalanceConfigDto
     /// <summary>由项目维护的可读内容版本。</summary>
     public string? ContentVersion { get; set; }
 
+    /// <summary>
+    /// 同类建筑生产/施工加速：每多一座已完工同类建筑，速率增加的比例（0.5 = +50%）。
+    /// 可选规则参数；缺省 0 = 关闭（旧配置档案不意外启用）。
+    /// </summary>
+    public float? SameTypeBonusPerExtraBuilding { get; set; }
+
     /// <summary>资源种类与采集周期。</summary>
     public List<ResourceDefinitionDto>? Resources { get; set; }
 
@@ -66,6 +72,17 @@ internal sealed class ResourceRegenerationDto
 
     /// <summary>每次恢复的矿量；累加后不得超过矿点容量。</summary>
     public int? RestoreAmount { get; set; }
+
+    /// <summary>
+    /// 每完成一轮再生，下一轮等待时长的放大系数（≥1）。缺省 1.0 = 每轮等长（旧行为）。
+    /// </summary>
+    public float? DelayGrowthFactor { get; set; }
+
+    /// <summary>
+    /// 单轮等待时长的封顶（毫秒）。某轮等待超过它 ⇒ 矿点永久消失、不再重生。
+    /// 缺省 0 = 不封顶（只要启用再生就一直重生）。
+    /// </summary>
+    public int? MaxDelayMilliseconds { get; set; }
 
     /// <summary>捕获当前 schema 未声明的再生字段。</summary>
     [JsonExtensionData]

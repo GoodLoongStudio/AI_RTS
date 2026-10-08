@@ -55,9 +55,9 @@ func _run_scale(match_instance, human, gateway, scale: int) -> int:
 	var units: Array = []
 	for index in range(scale):
 		var slot := Vector3(
-			24.0 + float(index % COLUMNS) * SPACING_M,
+			58.0 + float(index % COLUMNS) * SPACING_M,
 			0.0,
-			24.0 + float(index / COLUMNS) * SPACING_M
+			58.0 + float(index / COLUMNS) * SPACING_M
 		)
 		units.append(_spawn_unit(match_instance, human, slot))
 	await _wait_frames(6)

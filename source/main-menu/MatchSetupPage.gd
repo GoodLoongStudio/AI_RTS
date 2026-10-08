@@ -468,7 +468,9 @@ func _set_slot_controller_id(select: OptionButton, controller: int) -> void:
 			return
 
 
-## 单机槽位下拉：唯一 Human 顶掉其他 Human；不足 2 个玩家禁开局。
+## 单机槽位下拉：唯一 Human 顶掉其他 Human。允许只留指挥官一人开局
+## （【2026-09-28 用户要求】没有电脑玩家也要能开局，供单独测试）；
+## 单人局走 is_solo_practice 既有规则：不判胜负，主动退出才结束。
 func _on_offline_slot_selected(_selected_index: int, slot: int) -> void:
 	_start_button.disabled = false
 	var selected_option_id := _slot_controller_id(_slot_selects[slot])
@@ -477,13 +479,6 @@ func _on_offline_slot_selected(_selected_index: int, slot: int) -> void:
 			if i != slot and _slot_controller_id(_slot_selects[i]) == Constants.PlayerType.HUMAN:
 				_set_slot_controller_id(_slot_selects[i], Constants.PlayerType.AI_EASY)
 				_sync_offline_slot_label(i)
-	elif selected_option_id == Constants.PlayerType.NONE:
-		var active := 0
-		for select in _slot_selects:
-			if _slot_controller_id(select) != Constants.PlayerType.NONE:
-				active += 1
-		if active < 2:
-			_start_button.disabled = true
 	_sync_offline_slot_label(slot)
 
 

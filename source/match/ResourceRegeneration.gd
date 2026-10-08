@@ -10,6 +10,10 @@ extends Node
 ## - 同一再生周期只结算一次：到账即把矿点从 depleted 翻回 ready，计时归零，
 ##   再次进入本分支必须等到它重新被采空——重复调用本帧不会多刷。
 ## - 矿量不超过容量：`apply_regeneration` 内部按 room 夹紧。
+## - 【2026-09-28 用户要求"矿会采完的，重生时间越来越长，超过一定的值就不重生了"】
+##   再生等待**逐轮递增**（`delayGrowthFactor`，每完成一轮乘一次）；一旦某轮等待超过
+##   `maxDelayMilliseconds`，这片矿永久消失、不再重生（红警2 式枯竭）。
+##   两者都是可选字段：不写 = 系数 1.0、不封顶，与旧配置档案完全等价。
 ##
 ## 关闭再生（配置 regeneration.enabled=false 或整块缺失）时保持旧语义：采空即消失。
 
@@ -54,17 +58,31 @@ func _step(node, elapsed_ms: int):
 	if property_name.is_empty():
 		return
 	var rule := _rule_for(property_name)
-	if not bool(rule.get("enabled", false)):
+	if not rule.get("enabled", false):
 		# 旧语义：采空即消失。
 		if node.total_ore() <= 0 and not node.is_queued_for_deletion():
 			node.queue_free()
 		return
 	if node.total_ore() > 0:
-		node.regen_remaining_ms = int(rule.get("delay_milliseconds", 0))
+		node.regen_remaining_ms = _pending_delay_ms(node, rule)
 		_exhausted_notified.erase(node)
 		return
 	if not node.depleted:
 		node.mark_depleted()
+	# 进入耗尽等待前先算本轮要等多久：矿会越采越难长回来，
+	# 一旦本轮等待超过封顶，这片矿就永久消失（红警2 式枯竭），不再进计时。
+	var pending_delay_ms := _pending_delay_ms(node, rule)
+	var max_delay_ms := int(rule.get("max_delay_milliseconds", 0))
+	if max_delay_ms > 0 and pending_delay_ms > max_delay_ms:
+		# 先把"耗尽"广播出去再删实体：监听方（HUD/对局报告）拿到的还是有效节点。
+		if not _exhausted_notified.has(node):
+			_exhausted_notified[node] = true
+			ore_exhausted.emit(node)
+			MatchSignals.resource_exhausted.emit(node)
+		_exhausted_notified.erase(node)
+		if not node.is_queued_for_deletion():
+			node.queue_free()
+		return
 	if not _exhausted_notified.has(node):
 		_exhausted_notified[node] = true
 		ore_exhausted.emit(node)
@@ -75,10 +93,20 @@ func _step(node, elapsed_ms: int):
 	# 到点：结算一次，然后重新计时。`apply_regeneration` 会把矿点翻回 ready，
 	# 于是下一帧起走上面的"仍有矿"分支，本周期不会再进入这里 ⇒ 天然幂等。
 	var added = node.apply_regeneration(int(rule.get("restore_amount", 0)))
-	node.regen_remaining_ms = int(rule.get("delay_milliseconds", 0))
+	node.regen_remaining_ms = _pending_delay_ms(node, rule)
 	if added > 0:
 		ore_replenished.emit(node, added)
 		MatchSignals.resource_replenished.emit(node, added)
+
+
+## 本轮再生要等多久：第一轮用配置的基准时长，之后每完成一轮就乘一次放大系数。
+## 系数缺省 1.0 ⇒ 与旧行为（每轮等长）完全一致，旧配置档案不用动。
+func _pending_delay_ms(node, rule: Dictionary) -> int:
+	var base_delay_ms := int(rule.get("delay_milliseconds", 0))
+	var growth_factor := float(rule.get("delay_growth_factor", 1.0))
+	if growth_factor <= 1.0 or node.regen_cycles <= 0:
+		return base_delay_ms
+	return int(round(float(base_delay_ms) * pow(growth_factor, float(node.regen_cycles))))
 
 
 ## 该矿点属于哪种资源（决定套用哪条再生规则）：看它带的是哪个属性，不看场景名。

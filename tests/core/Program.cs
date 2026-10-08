@@ -2570,6 +2570,8 @@ internal sealed class UnitCommandServiceTests
 
         public BalanceConfigVersion Version { get; } = new(1, "test-skills", "0");
 
+        public float SameTypeBonusPerExtraBuilding => 0f;
+
         public IReadOnlyCollection<UnitTypeDefinition> UnitTypes => [];
 
         public IReadOnlyCollection<WeaponDefinition> Weapons => [];

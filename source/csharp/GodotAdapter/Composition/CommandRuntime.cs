@@ -96,6 +96,9 @@ public partial class CommandRuntime : Node
     /// <summary>当前 Match 的权威施工任务、整数进度与终态服务。</summary>
     private IConstructionService _construction = null!;
 
+    /// <summary>向放置评估端口等 Adapter 暴露权威施工状态（HasActiveConstructionSite 等）。</summary>
+    internal IConstructionService Construction => _construction;
+
     /// <summary>提供初始完成建筑的权威施工定义。</summary>
     private BalanceConfigRuntime _balance = null!;
 
@@ -110,13 +113,17 @@ public partial class CommandRuntime : Node
         _simulationClock = new GodotSimulationClock(GetParent().GetNode("SimulationClock"));
         _matchId = economy.MatchId;
         _orders.StateChanged += OnOrderStateChanged;
+        // CC 仓库必须先于 ConstructionService 创建：施工速率端口（"多主基地加速建造"）
+        // 要按工地所有者实时统计已完工主基地数量。
+        _commandCenters = new GodotCommandCenterRepository(GetParent(), _units);
         _construction = new ConstructionService(
             _units,
             _orders,
             new LegacyConstructionWorkerPort(_units, _constructionSites),
             _constructionSites,
-            economy.AccountService);
-        _commandCenters = new GodotCommandCenterRepository(GetParent(), _units);
+            economy.AccountService,
+            new GodotConstructionRatePort(
+                _commandCenters, _balance.Catalog.SameTypeBonusPerExtraBuilding));
         _matchSignals = GetNode("/root/MatchSignals");
         _onUnitSpawned = Callable.From<Node>(OnUnitSpawned);
         _onUnitDamaged = Callable.From<Node>(OnUnitDamaged);
@@ -322,13 +329,46 @@ public partial class CommandRuntime : Node
             construction.RequiredWork,
             construction.Placement.ConstructionCost,
             construction.ProgressSource,
-            construction.AutomaticWorkPerTick));
+            DistanceScaledWorkPerTick(site, owner, construction.AutomaticWorkPerTick)));
         if (registered)
         {
             site.TreeExiting += () => _construction.Destroy(
                 siteId, checked((long)Engine.GetPhysicsFrames()));
         }
         return registered;
+    }
+
+    // 【2026-09-29 用户口径】主基地可远距离部署（指挥中心是唯一远程锚点），
+    // 但远距离建造速度特别慢：自动施工速率按与最近己方指挥中心的平面距离线性衰减。
+    private const float FullSpeedMeters = 20.0f;
+    private const float SlowestMeters = 50.0f;
+    private const float SlowestSpeedFactor = 0.2f;
+
+    /// <summary>按与最近己方指挥中心的距离衰减自动施工速率（≤20m 全速，≥50m 慢至 1/5）。</summary>
+    private static int DistanceScaledWorkPerTick(Node site, Node owner, int automaticWorkPerTick)
+    {
+        if (automaticWorkPerTick <= 0 || site is not Node3D siteNode)
+        {
+            return automaticWorkPerTick;
+        }
+        var nearest = float.MaxValue;
+        foreach (var child in owner.GetChildren())
+        {
+            if (child is not Node3D node || node.GetScript().As<Script>() is not { } script ||
+                !script.ResourcePath.Contains("CommandCenter"))
+            {
+                continue;
+            }
+            var dx = node.GlobalPosition.X - siteNode.GlobalPosition.X;
+            var dz = node.GlobalPosition.Z - siteNode.GlobalPosition.Z;
+            nearest = MathF.Min(nearest, MathF.Sqrt(dx * dx + dz * dz));
+        }
+        if (nearest == float.MaxValue || nearest <= FullSpeedMeters)
+        {
+            return automaticWorkPerTick;
+        }
+        var t = Math.Min((nearest - FullSpeedMeters) / (SlowestMeters - FullSpeedMeters), 1.0f);
+        return Math.Max(1, (int)Math.Round(automaticWorkPerTick * (1.0f - t * (1.0f - SlowestSpeedFactor))));
     }
 
     /// <summary>代表控制器向一组 Worker 提交同一施工现场任务。</summary>

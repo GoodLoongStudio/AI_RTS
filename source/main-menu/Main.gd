@@ -119,5 +119,13 @@ func _on_map_gen_button_pressed():
 	get_tree().change_scene_to_file("res://source/main-menu/MapGeneration.tscn")
 
 
+## 「教学」：快捷键与操作总览页（2026-09-27 用户要求首页也放入口）。
+## 和对局暂停菜单里那个是**同一张教学页**（TutorialPage.tscn），
+## 非嵌入模式打开：ESC / 返回直接回首页。
+func _on_tutorial_button_pressed():
+	get_tree().change_scene_to_file("res://source/match/TutorialPage.tscn")
+	UISfx.play("ui_plate")
+
+
 func _on_quit_button_pressed():
 	get_tree().quit()

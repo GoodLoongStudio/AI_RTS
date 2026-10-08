@@ -72,6 +72,13 @@ public partial class BalanceConfigRuntime : Node
     public string GetUnitTypeId(PackedScene scene) =>
         Assets.FindUnitType(scene)?.Value ?? string.Empty;
 
+    /// <summary>
+    /// 同类建筑加速：每多一座已完工同类建筑，速率增加的比例（0 = 规则关闭）。
+    /// 供 GDScript 的同类生产加速读取；Catalog 加载失败降级时返回 0（规则关闭）。
+    /// </summary>
+    public float GetSameTypeBonusPerExtraBuilding() =>
+        Catalog?.SameTypeBonusPerExtraBuilding ?? 0f;
+
     /// <summary>按建筑原型查询蓝图场景路径；未知或非建筑类型返回空字符串。</summary>
     public string GetBlueprintScenePath(PackedScene scene)
     {
@@ -118,6 +125,10 @@ public partial class BalanceConfigRuntime : Node
             ["enabled"] = definition.RegenerationEnabled,
             ["delay_milliseconds"] = definition.RegenerationDelayMilliseconds,
             ["restore_amount"] = definition.RegenerationRestoreAmount,
+            // 递增/封顶：矿会越采越难长回来，超过封顶就永久消失（红警2 式枯竭）。
+            // 缺省值（1.0 / 0）= 不递增、不封顶，与旧配置档案完全等价。
+            ["delay_growth_factor"] = definition.RegenerationDelayGrowthFactor,
+            ["max_delay_milliseconds"] = definition.RegenerationMaxDelayMilliseconds,
         };
     }
 

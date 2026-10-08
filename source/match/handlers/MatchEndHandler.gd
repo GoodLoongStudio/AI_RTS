@@ -93,6 +93,20 @@ func _on_match_resolved(resolution: Dictionary):
 
 func _on_exit_button_pressed():
 	get_tree().paused = false
-	# 同"退出战斗"：回主菜单前断开会话，避免残留房间/本机 server 状态（2026-09-14）。
+	# 同"退出战斗"：跳转前断开会话，避免残留房间/本机 server 状态（2026-09-14）。
 	NetSession.disconnect_if_networked()
+	# 单机对局结束 → 直接进**本局**的对局统计页，而不是回首页（用户 2026-09-27）。
+	# 数据链：MatchHistoryHook 已把本局真实报告 upsert 进 MatchReportStore
+	# （成长点结算与记录是同一局的两个投影，不重复造数）；详情页从 store 按 id 读，
+	# 返回按钮按 MatchHistoryNav.return_scene 回到成长系统的玩家画像。
+	if not NetSession.is_networked():
+		var store := get_node_or_null("/root/MatchReportStore")
+		if store != null:
+			var report_id := str(store.get("last_report_id"))
+			if not report_id.is_empty() and not store.get_report(report_id).is_empty():
+				MatchHistoryNav.return_scene = "res://source/main-menu/PlayerProfile.tscn"
+				MatchHistoryNav.open_detail(report_id, 0)
+				get_tree().change_scene_to_file("res://source/main-menu/MatchDetail.tscn")
+				return
+			push_warning("[HUD] 本局未生成对局报告（record_match_history 关闭？），退回主菜单")
 	get_tree().change_scene_to_file("res://source/main-menu/Main.tscn")

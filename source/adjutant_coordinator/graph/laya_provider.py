@@ -432,6 +432,37 @@ def dataset_path() -> str:
     return (os.environ.get(ENV_LAYA_DATASET) or "").strip()
 
 
+def with_provenance(record: Dict[str, Any]) -> Dict[str, Any]:
+    """给样本盖上"这条是谁教的"与"这条现在算什么证据"两个显式字段。
+
+    提示词 §5 阶段 5 要求每条样本至少区分：模型建议的动作 / 规则中台自动产生的动作 /
+    权威接受的命令 / 实际完工-采集-交付结果。原先这些区别**只存在于文档**：
+    下游要把"第二基地建成"当成"矿场计划成功"、把 `Accepted` 当成"建筑已完成"，
+    唯一的防线就是这里显式写下来。
+
+    `teacher_source`
+        laya            —— 2B 自己的选择被实际下发（学生局）。
+        teacher_model_2b —— 独立教师模型的下发。
+        rules_fallback    —— 模型没被采纳，实际下发来自规则中台。
+    `label_quality` 在采集这一刻最多只能到**下发层**：
+        issued    —— 有真实下发行；
+        no_action —— 本轮无下发。
+    "有没有完工/交付/资源增长"必须等对局结果落盘才知道，由
+    `deploy/audit_dataset_samples.py` 升级为 `verified_result / accepted_only / no_result`。
+    这里不猜结果。
+    """
+    rows = ((record.get("label") or {}).get("rows")) or []
+    if record.get("laya_accepted"):
+        source = "laya"
+    elif str(record.get("fallback_reason") or "") == "teacher_model":
+        source = "teacher_model_2b"
+    else:
+        source = "rules_fallback"
+    record["teacher_source"] = source
+    record["label_quality"] = "issued" if rows else "no_action"
+    return record
+
+
 def record_dataset(record: Dict[str, Any]) -> bool:
     """追加一条训练样本（JSONL）。未配置路径 / 写失败都静默返回 False。"""
     path = dataset_path()
@@ -440,7 +471,7 @@ def record_dataset(record: Dict[str, Any]) -> bool:
     try:
         import json
 
-        line = json.dumps(record, ensure_ascii=False, sort_keys=True)
+        line = json.dumps(with_provenance(record), ensure_ascii=False, sort_keys=True)
         with _DATASET_LOCK:
             os.makedirs(os.path.dirname(os.path.abspath(path)) or ".", exist_ok=True)
             with open(path, "a", encoding="utf-8") as handle:

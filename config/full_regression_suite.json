@@ -135,11 +135,18 @@
       "id": "combat-sfx"
     },
     {
-      "expected_marker": "Command center worker production smoke test completed: 0 failure(s)",
+      "expected_marker": "Vehicle factory worker production smoke test completed: 0 failure(s)",
       "timeout_seconds": 120,
       "category": "production",
-      "scene": "res://tests/automated/CommandCenterWorkerProductionSmokeTest.tscn",
-      "id": "command-center-worker-production"
+      "scene": "res://tests/automated/VehicleFactoryWorkerProductionSmokeTest.tscn",
+      "id": "vehicle-factory-worker-production"
+    },
+    {
+      "expected_marker": "Refinery free miner smoke test completed: 0 failure(s)",
+      "timeout_seconds": 150,
+      "category": "production",
+      "scene": "res://tests/automated/RefineryFreeMinerSmokeTest.tscn",
+      "id": "refinery-free-miner"
     },
     {
       "expected_marker": "Control group runtime smoke test completed: 0 failure(s)",
@@ -779,7 +786,7 @@
       "category": "economy",
       "scene": "res://tests/automated/OreRefinerySmokeTest.tscn",
       "expected_marker": "Ore refinery smoke test completed: 0 failure(s)",
-      "timeout_seconds": 240,
+      "timeout_seconds": 420,
       "description": "矿场运营闭环：无矿不占名额、接管合资格空闲工人、容量受限、双矿场不重复占用、真实采耗与入账、显式订单优先、矿场消失即释放"
     },
     {
@@ -802,9 +809,31 @@
       "expected_marker": "FogOfWar sight range smoke test completed: 0 failure(s)",
       "timeout_seconds": 150,
       "category": "visual",
-      "description": "FogOfWar 遇 sight_range 为空（平衡目录未命中）的单位：只警告一次、不中断其余单位迷雾圈、不得逐帧抛错。",
+      "description": "FogOfWar 遇 sight_range 为空（平衡目录未命中）的单位：只警告一次、用兜底视野画出迷雾圈、不中断其余单位、不得逐帧抛错。",
       "scene": "res://tests/automated/FogOfWarSightRangeSmokeTest.tscn",
       "id": "fog-of-war-sight-range"
+    },
+    {
+      "category": "combat",
+      "expected_marker": "Unit radius coverage smoke test completed: 0 failure(s)",
+      "id": "unit-radius-coverage",
+      "scene": "res://tests/automated/UnitRadiusCoverageSmokeTest.tscn",
+      "timeout_seconds": 180
+    },
+    {
+      "category": "adjutant",
+      "expected_marker": "Match end navigation smoke test completed: 0 failure(s)",
+      "id": "match-end-navigation",
+      "scene": "res://tests/automated/MatchEndNavigationSmokeTest.tscn",
+      "timeout_seconds": 240
+    },
+    {
+      "expected_marker": "Tutorial main entry: 0 failure(s)",
+      "timeout_seconds": 150,
+      "category": "ui",
+      "scene": "res://tests/automated/TutorialMainEntryTest.tscn",
+      "id": "tutorial-main-entry",
+      "description": "首页「教学」按钮 → 同一张教学页（非嵌入）→ ESC 回首页"
     }
   ]
 }

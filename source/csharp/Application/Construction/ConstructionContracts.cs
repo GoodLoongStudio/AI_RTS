@@ -109,6 +109,20 @@ public interface IConstructionTaskCoordinator
     ConstructionWorkerPortResult RequestSuspend(UnitId workerId);
 }
 
+/// <summary>提供玩家施工速率修正（"多主基地加速建造"规则的数据来源）。</summary>
+public interface IConstructionRatePort
+{
+    /// <summary>返回指定玩家当前工地工作量的乘数；1.0 表示无修正。</summary>
+    double ConstructionRateFor(PlayerId ownerId);
+}
+
+/// <summary>恒为 1.0 的施工速率，供未注入速率端口的组合根与测试使用。</summary>
+public sealed class ConstantConstructionRatePort : IConstructionRatePort
+{
+    /// <inheritdoc />
+    public double ConstructionRateFor(PlayerId ownerId) => 1.0;
+}
+
 /// <summary>表示一个现场已经完成的权威异步事件。</summary>
 public sealed record ConstructionCompleted(
     UnitId SiteId,
@@ -138,6 +152,9 @@ public interface IConstructionService : IConstructionTaskCoordinator
 
     /// <summary>查询现场当前快照。</summary>
     ConstructionSiteSnapshot? Find(UnitId siteId);
+
+    /// <summary>查询玩家当前是否仍有 Active 状态的施工现场（"一次只能建造一个"规则）。</summary>
+    bool HasActiveConstructionSite(PlayerId ownerId);
 
     /// <summary>返回当前持有进行中 Construct 订单的 Worker 数量。</summary>
     int GetActiveBuilderCount(UnitId siteId);

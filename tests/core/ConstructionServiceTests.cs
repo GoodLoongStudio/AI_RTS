@@ -33,6 +33,10 @@ internal sealed class ConstructionServiceTests
         RunTest(nameof(HybridWorkersOnlyAccelerateAutomaticProgress),
             HybridWorkersOnlyAccelerateAutomaticProgress);
         RunTest(nameof(CancelRefundsOnlyTheRemainingWork), CancelRefundsOnlyTheRemainingWork);
+        RunTest(nameof(HasActiveConstructionSiteTracksLifecycle),
+            HasActiveConstructionSiteTracksLifecycle);
+        RunTest(nameof(RatePortScalesAutomaticWork),
+            RatePortScalesAutomaticWork);
         Console.WriteLine(
             $"Construction service tests completed: {_tests} test(s), {_failures} failure(s).");
         return _failures;
@@ -243,12 +247,62 @@ internal sealed class ConstructionServiceTests
             $"{fixture.Accounts.Find(fixture.OwnerId)!.GetBalance(ResourceKind.A)}）");
     }
 
+    /// <summary>
+    /// 验证 HasActiveConstructionSite 跟随现场生命周期：注册→true，取消/完成→false。
+    /// 它是「一次只能建造一个建筑」放置校验的数据源。
+    /// </summary>
+    private void HasActiveConstructionSiteTracksLifecycle()
+    {
+        var fixture = CreateFixture(
+            requiredWork: 8, progressSource: ConstructionProgressSource.Automatic, automaticWorkPerTick: 1);
+
+        Check(fixture.Service.HasActiveConstructionSite(fixture.OwnerId),
+            "注册活动现场后应报告该玩家已有在建工地");
+        Check(!fixture.Service.HasActiveConstructionSite(new PlayerId(Guid.NewGuid())),
+            "其他玩家不应被误报为有在建工地");
+
+        fixture.Service.Cancel(Context(fixture), new CancelConstructionCommand(fixture.SiteId));
+        Check(!fixture.Service.HasActiveConstructionSite(fixture.OwnerId),
+            "取消现场后应立即恢复可建状态");
+
+        var rebuilt = CreateFixture(
+            requiredWork: 2, progressSource: ConstructionProgressSource.Automatic, automaticWorkPerTick: 1);
+        rebuilt.Service.Advance(1);
+        rebuilt.Service.Advance(2);
+        Check(!rebuilt.Service.HasActiveConstructionSite(rebuilt.OwnerId),
+            "完工现场不应再占用并发建造额度");
+    }
+
+    /// <summary>
+    /// 验证施工速率端口（"多主基地加速建造"）：automatic 工作量按所有者速率放大，
+    /// 小数部分跨 Tick 累加不被取整吃掉。
+    /// </summary>
+    private void RatePortScalesAutomaticWork()
+    {
+        // 速率 1.5：每 Tick 记 1.5 点，小数余量跨 Tick 结转。
+        var fixture = CreateFixture(
+            requiredWork: 4,
+            progressSource: ConstructionProgressSource.Automatic,
+            automaticWorkPerTick: 1,
+            constructionRate: 1.5);
+        fixture.Service.Advance(1);
+        Check(fixture.Service.Find(fixture.SiteId)?.CompletedWork == 1,
+            "第一 Tick 记 1.5 点，向下取整后应完成 1 点（余 0.5 结转）");
+        fixture.Service.Advance(2);
+        Check(fixture.Service.Find(fixture.SiteId)?.CompletedWork == 3,
+            "第二 Tick 再记 1.5 点（累计 3.0）应完成 3 点");
+        fixture.Service.Advance(3);
+        Check(fixture.Service.Find(fixture.SiteId)?.State == ConstructionSiteState.Completed,
+            "第三 Tick 累计 4.5 应完成 RequiredWork=4 的现场");
+    }
+
     /// <summary>创建已经预扣建筑成本并注册现场的纯 C# 测试夹具。</summary>
     private static Fixture CreateFixture(
         int requiredWork,
         int constructionWorkPerTick = 1,
         ConstructionProgressSource progressSource = ConstructionProgressSource.Worker,
-        int automaticWorkPerTick = 0)
+        int automaticWorkPerTick = 0,
+        double constructionRate = 1.0)
     {
         var owner = new PlayerId(Guid.NewGuid());
         var match = new MatchId(Guid.NewGuid());
@@ -272,7 +326,8 @@ internal sealed class ConstructionServiceTests
             [new ResourceAmount(ResourceKind.A, 6)],
             0));
         var service = new ConstructionService(
-            repository, orders, workerPort, sitePort, accounts);
+            repository, orders, workerPort, sitePort, accounts,
+            new FixedConstructionRatePort(constructionRate));
         var registered = service.Register(new RegisterConstructionSite(
             site,
             owner,
@@ -343,6 +398,13 @@ internal sealed class ConstructionServiceTests
 
         /// <inheritdoc />
         public UnitCommandSnapshot? Find(UnitId unitId) => _units.GetValueOrDefault(unitId);
+    }
+
+    /// <summary>对所有玩家返回固定施工速率的测试端口。</summary>
+    private sealed class FixedConstructionRatePort(double rate) : IConstructionRatePort
+    {
+        /// <inheritdoc />
+        public double ConstructionRateFor(PlayerId ownerId) => rate;
     }
 
     /// <summary>记录 Worker 当前现场引用、暂停状态和终态清理次数。</summary>

@@ -22,6 +22,8 @@ signal reports_changed
 var reports: Array = []
 ## 可覆盖的存储路径：测试/探针必须能把数据写进临时文件，绝不污染玩家真实档案。
 var save_path := SAVE_PATH
+## 最近一次 upsert 的报告 id（对局结算页用它打开"本局统计"，见 MatchEndHandler）。
+var last_report_id := ""
 var legacy_path := LEGACY_PATH
 ## 最近一次加载的体检结果，UI 的"数据来源"行直接读它。
 var last_load: Dictionary = {
@@ -39,6 +41,10 @@ func configure_paths(next_save: String, next_legacy: String) -> void:
 
 func _ready() -> void:
 	load_all()
+	# 真实对局记录钩子：默认开启（FeatureFlags.record_match_history）。
+	# 之前只定义了 _install_match_hook() 却从未调用 → 开关是真的、钩子从没挂上、
+	# 报告永远是空的。2026-09-27 修复（用户要求对局结束能进本局统计）。
+	_install_match_hook()
 
 
 ## 挂上真实对局的记录钩子。**默认关闭**（`FeatureFlags.record_match_history`）：
@@ -76,24 +82,40 @@ func load_all() -> Dictionary:
 		elif parsed != null:
 			errors.append("报告文件结构异常（既不是数组也没有 reports 字段），已按空列表处理")
 		reports = _sanitize(raw, result)
+		reports = _drop_seeded_demo(reports, result)
 		result["source"] = "local"
 	else:
-		# 首次运行：先迁移旧版真实档案，再补足 Demo 数据。
+		# 首次运行：只迁移旧版真实档案。
+		# 【2026-09-27 用户"不要伪造了"】不再自动播种 Demo 报告：空列表就诚实显示
+		# "暂无历史对局记录"，等真实对局写入。需要演示数据时显式调 seed_demo()。
 		reports = _migrate_legacy(result)
 		result["source"] = "fresh" if reports.is_empty() else "legacy"
-		var demo := DemoMatchReports.build()
-		var existing := {}
-		for report in reports:
-			existing[str((report as Dictionary).get("report_id", ""))] = true
-		for report in demo:
-			if not existing.has(str((report as Dictionary).get("report_id", ""))):
-				reports.append(report)
-				result["seeded_demo"] = int(result["seeded_demo"]) + 1
-		save()
+		if not reports.is_empty():
+			save()
 	result["errors"] = errors
 	last_load = result
 	reports_changed.emit()
 	return result
+
+
+## 剔除存档里早期的 demo 播种报告（report_id 前缀 MR-DEMO-，用户 2026-09-27"不要伪造"）。
+## 只删这一命名空间的记录，真实对局报告一律保留；计数写进 last_load 便于复盘。
+func _drop_seeded_demo(entries: Array, result: Dictionary) -> Array:
+	var out: Array = []
+	var dropped := 0
+	for entry in entries:
+		if not entry is Dictionary:
+			out.append(entry)
+			continue
+		if str((entry as Dictionary).get("report_id", "")).begins_with("MR-DEMO"):
+			dropped += 1
+			continue
+		out.append(entry)
+	if dropped > 0:
+		result["dropped_seeded_demo"] = dropped
+		save()
+		print("[HISTORY] 已剔除早期 demo 播种报告 %d 条（用户 2026-09-27：不要伪造）" % dropped)
+	return out
 
 
 func save() -> bool:
@@ -122,6 +144,7 @@ func upsert(raw_report: Dictionary) -> Dictionary:
 	normalized["performance_score"] = MatchReportScoring.evaluate(normalized)
 	normalized["overview"]["score"] = normalized["performance_score"]["total"]
 	normalized = MatchReportSchema.normalize(normalized)["report"]
+	last_report_id = str(normalized.get("report_id", ""))
 	var duplicate_index := _find_duplicate(normalized)
 	if duplicate_index < 0:
 		reports.append(normalized)

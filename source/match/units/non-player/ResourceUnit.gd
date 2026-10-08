@@ -117,13 +117,22 @@ func apply_presentation_ore(report: Array):
 		set("resource_a", int(report[0]))
 	if "resource_b" in self:
 		set("resource_b", int(report[1]))
-	depleted = bool(int(report[2]))
+	depleted = int(report[2]) != 0
 	regen_remaining_ms = int(report[3])
 	_refresh_depletion_presentation()
 
 
-## 表现层：耗尽 / 稀疏 / 丰富 之间要有清楚区别（提示词 8.1「表现要反映余量」）。
-## 采空时保留地表痕迹（缩放压扁而不是隐藏），所以矿点位置仍然可辨识、可选中。
+## 表现层：余量 → **可见的矿块数**（2026-09-28 用户口径：红警2 式"采几次就消失"）。
+##
+## 矿点现在是 N 块**统一大小**的小矿石散点：余量越少，立着的块越少；采空一块不剩。
+## 从外圈往里收——先消失外围碎块、最后剩中心那块，符合"矿被一点点挖空"的直觉。
+##
+## 为什么不再用旧的"整体压扁"：那是为单簇晶体设计的。换成散点小块后压扁只会把每块
+## 都压成薄片，读不出"还剩几块"，而且一簇里所有块同时变形，观感很怪。
+##
+## 这里只管**外观**。采空后节点是直接消失（旧语义）还是进入耗尽等待再再生，
+## 由 Match/ResourceRegeneration 按 balance 的 `resources[].regeneration.enabled` 裁决
+## （当前 demo 配置 enabled=true：90s 后恢复 1500），本函数不改任何玩法判定。
 func _refresh_depletion_presentation():
 	var geometry := get_node_or_null("Geometry")
 	if geometry == null:
@@ -131,6 +140,14 @@ func _refresh_depletion_presentation():
 	var ratio := 1.0
 	if ore_capacity > 0:
 		ratio = clampf(float(total_ore()) / float(ore_capacity), 0.0, 1.0)
-	# 采空 → 压到 35% 高度（只剩矿脉痕迹）；随余量线性回到 100%。
-	var scale_y := 0.35 + 0.65 * ratio
-	geometry.scale = Vector3(0.85 + 0.15 * ratio, scale_y, 0.85 + 0.15 * ratio)
+	# Geometry 下除了矿块还有 SyntyMaterialBinder（纯 Node，不是 Node3D），只数矿块。
+	var pieces: Array = geometry.get_children().filter(func(child): return child is Node3D)
+	if pieces.is_empty():
+		return
+	# 距中心近的排前面 ⇒ 按可见数量截断时，先消失的是外圈。
+	pieces.sort_custom(
+		func(a, b): return a.position.length_squared() < b.position.length_squared()
+	)
+	var visible_count := int(round(float(pieces.size()) * ratio))
+	for index in range(pieces.size()):
+		(pieces[index] as Node3D).visible = index < visible_count

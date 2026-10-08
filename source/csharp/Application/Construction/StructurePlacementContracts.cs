@@ -15,8 +15,14 @@ public enum StructurePlacementIssue
     /// <summary>发出者当前没有放置该建筑的权限。</summary>
     NotAuthorized,
 
+    /// <summary>该玩家已有一个在建工地；规则限制同一玩家同时只能建造一个建筑。</summary>
+    ConstructionInProgress,
+
     /// <summary>完整 footprint 未处于当前玩家的有效视野内。</summary>
     NotVisible,
+
+    /// <summary>普通建筑必须连接己方建筑；指挥中心是可远程部署的例外。</summary>
+    NotAdjacent,
 
     /// <summary>完整 footprint 超出地图或规则允许的区域。</summary>
     OutOfBounds,
@@ -71,6 +77,13 @@ public interface IStructurePlacementAuthorizationPort
 {
     /// <summary>返回指定玩家在当前对局能否使用该建筑定义。</summary>
     bool CanPlace(MatchId matchId, PlayerId playerId, StructureDefinitionId definitionId);
+}
+
+/// <summary>查询玩家当前的施工占用状态（"一次只能建造一个建筑"规则的数据来源）。</summary>
+public interface IStructurePlacementConstructionStatePort
+{
+    /// <summary>返回指定玩家当前是否已有处于 Active 状态的施工现场。</summary>
+    bool HasActiveConstructionSite(MatchId matchId, PlayerId playerId);
 }
 
 /// <summary>查询当前 Godot 世界对候选 footprint 的权威空间判断。</summary>

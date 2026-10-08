@@ -34,6 +34,9 @@ signal resource_exhausted(resource_node)
 signal resource_replenished(resource_node, added_amount)
 signal not_enough_resources_for_production(player)
 signal not_enough_resources_for_construction(player)
+## 「一次只能建造一个建筑」（2026-09-29 用户规则）：已有在建工地时再放新建筑被拒。
+## 只做提示反馈，不放回执 —— 联机傀儡端的拒绝口径与"资源不足"一致（不额外回执）。
+signal construction_slot_busy(player)
 ## 命令可视化（纯表现层）：权威端把一次命令的动作/目标/下发者广播给表现层。
 ## payload 结构见 CommandVisualizer.gd：{action, units, target, source, tick}。
 ## 只影响画面，不参与任何玩法判定。

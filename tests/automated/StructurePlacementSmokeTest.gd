@@ -42,13 +42,18 @@ func _ready():
 
 	var hidden_transform = Transform3D(Basis.IDENTITY, Vector3(45.0, 0.0, 45.0))
 	var hidden = runtime.Evaluate(human, TurretScene, hidden_transform, cost)
-	_check(not hidden["accepted"], "视野外 footprint 不得允许放置")
-	_check("NotVisible" in hidden["issues"], "视野外候选应返回 NotVisible")
+	_check(not hidden["accepted"], "未接入己方建筑网络的候选不得放置")
+	_check("NotVisible" not in hidden["issues"], "建造不应再受战争迷雾视野门槛影响")
+	_check("NotAdjacent" in hidden["issues"], "远离己方建筑的普通建筑应返回 NotAdjacent")
 	_check(
 		not "Occupied" in hidden["issues"],
 		"视野不足时不得通过完整问题集合泄漏占用状态"
 	)
 
+	# 普通建筑只要求接入己方建筑网络；把坦克放到主基地边缘，
+	# 同时保留“建筑覆盖己方移动单位后安全驱逐”的断言。
+	var command_center = human.get_node("CommandCenter")
+	tank.global_position = command_center.global_position + Vector3(8.5, 0.0, 0.0)
 	var placement_transform = Transform3D(Basis.IDENTITY, tank.global_position)
 	var preview = runtime.Evaluate(human, TurretScene, placement_transform, cost)
 	_check(preview["accepted"], "己方移动单位重叠不应直接阻挡蓝图")
@@ -67,10 +72,12 @@ func _ready():
 	for _frame in range(180):
 		await get_tree().physics_frame
 	var required_distance: float = tank.radius + structure.radius
-	_check(
-		_planar_distance(tank.global_position, structure.global_position) > required_distance,
-		"被覆盖的友军应移动到建筑 footprint 外并待命"
-	)
+	# 失败信息带上实测距离与"坦克有没有在动"：只写"应移动到 footprint 外"的话，
+	# 下一轮还是只能猜是"没执行驱逐"还是"执行了但 3 秒走不够"。
+	var measured := _planar_distance(tank.global_position, structure.global_position)
+	var displacement_message := "被覆盖的友军应移动到建筑 footprint 外并待命（实测 %.2f m，" % measured
+	displacement_message += "需要 > %.2f m，action=%s）" % [required_distance, str(tank.action)]
+	_check(measured > required_distance, displacement_message)
 	_check(not structure in _damaged_units, "施工初始化与新增 HP 不应误发 unit_damaged")
 
 	var worker = WorkerScene.instantiate()

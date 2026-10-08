@@ -25,6 +25,14 @@ extends Node
 const LOCAL_MATCH_ID_PREFIX := "local-"
 
 var _recorder: MatchReportRecorder = null
+## 上一局是否已收尾且尚未看到新的 `match_started`（2026-09-27 修）。
+## 用途有两个：
+## ① 对局在 `Match._ready` 期间就判出胜负时，`match_finished_*` 会比 `match_started`
+##    先发 —— 此时 recorder 还没建，直接返回会把整局丢掉。标志为 false 说明这是
+##    "开局前就结束"的真局：就地建 recorder 再收尾，保证打过的局一定有报告。
+## ② 标志为 true 说明上一局已落盘，这时又来的结算只是重复上报（玩家连点/结算重放），
+##    直接忽略 —— 既不串味到下一局，也不会把统计翻倍。
+var _match_finished_awaiting_start := false
 var _match_id := ""
 var _connected := false
 ## 本进程内已发出的对局编号序号（见 `_make_match_id()` 的说明）。
@@ -115,11 +123,20 @@ func _begin_recording() -> void:
 	root.add_child(recorder)
 	recorder.begin(_context())
 	_recorder = recorder
+	_match_finished_awaiting_start = false
 
 
 func _finish(result: String, reason: String = "") -> void:
 	if not is_instance_valid(_recorder):
-		return
+		if _match_finished_awaiting_start:
+			# 上一局已收尾后的重复上报：忽略，避免统计翻倍/串味。
+			print("[MatchHistoryHook] 忽略重复结算上报：%s（上一局已落盘）" % result)
+			return
+		# 开局前就结束的真局：就地建 recorder 再收尾（报告时长会很短，但数据是真的）。
+		print("[MatchHistoryHook] 结算早于开局：就地建档并收尾（%s）" % result)
+		_begin_recording()
+		if not is_instance_valid(_recorder):
+			return
 	# 立刻"摘掉"引用：finish() 内部会 upsert 并触发 reports_changed，
 	# 重入时不应再看到这个 recorder。
 	var recorder := _recorder
@@ -131,7 +148,9 @@ func _finish(result: String, reason: String = "") -> void:
 	recorder.context["growth_after"] = after
 	var before: Variant = recorder.context.get("growth_before", null)
 	recorder.context["growth_spent_this_match"] = _spent_delta(before, after)
+	_contribute_authoritative(recorder)
 	recorder.finish(result, reason)
+	_match_finished_awaiting_start = true
 	# 收尾后立刻把 recorder 摘掉：它挂在**对局根**下，若一个 Match 实例里连打多局
 	# （重开），死掉的 recorder 会一局一个地堆在场景树里。
 	if is_instance_valid(recorder):
@@ -140,6 +159,33 @@ func _finish(result: String, reason: String = "") -> void:
 	var store := get_node_or_null("/root/MatchReportStore")
 	if store != null and store.has_method("sync_growth_store"):
 		store.call("sync_growth_store")
+
+
+## 收局时把对局层**真实可读**的权威数字推进报告（recorder.contribute 语义：
+## 只补读得到的，读不到就什么都不写，绝不用默认值充数）。
+func _contribute_authoritative(recorder: MatchReportRecorder) -> void:
+	var root := _match_root()
+	if root == null:
+		return
+	var economy := root.get_node_or_null("EconomyRuntime")
+	if economy == null or not economy.has_method("GetSnapshot"):
+		return
+	var player: Variant = root.call("get_local_player")
+	if player == null:
+		return
+	var snapshot: Variant = economy.call("GetSnapshot", player)
+	if not snapshot is Dictionary:
+		return
+	var snapshot_dict: Dictionary = snapshot
+	for pair in [["resource_a", "overview.final_resources.resource_a"],
+			["resource_b", "overview.final_resources.resource_b"],
+			["resource_a", "economy.totals.remaining.resource_a"],
+			["resource_b", "economy.totals.remaining.resource_b"]]:
+		var value: Variant = snapshot_dict.get(str(pair[0]), null)
+		if value == null or float(value) < 0.0:
+			continue
+		var section_path: PackedStringArray = str(pair[1]).split(".")
+		recorder.contribute(section_path[0], "%s.%s" % [section_path[1], section_path[2]], float(value))
 
 
 # ==================== 从对局层读真实字段 ====================
@@ -170,17 +216,58 @@ func _context() -> Dictionary:
 		"player_id": _local_player_id(),
 		"match_id": _match_id,
 		"mode": _mode(),
-		# 对局层没有权威难度来源 —— 留 null，不写 "normal" 之类的好看默认值。
-		"difficulty": null,
-		# 副官类型同样没有权威来源；HUD 上挂的是"岚"，但那是 UI 呈现，不是本局配置。
+		# 副官类型没有权威来源：HUD 上挂的是"岚"，但那是 UI 呈现，不是本局配置。
 		"adjutant": {"type": null, "level": null},
 		"victory_condition": null,
 		"growth_before": _growth_snapshot(),
-		"map": {
-			"name": map_name,
-			"path": map_path_value,
-		},
+		"map": _map_context(map_name, map_path_value),
+		# 难度：读对局设置里 AI 玩家真正配置的值（PlayerSettings.difficulty）。
+		# 多人/AI 难度不一致时取最难的，避免"只写第一个玩家"。
+		"difficulty": _difficulty(),
 	}
+
+
+## 地图上下文：名称/路径之外补上对局层真实可读的尺寸、玩家数与地图种子。
+## 读不到就 null —— 不拿"256"之类的常见值充数。
+func _map_context(map_name: Variant, map_path_value: Variant) -> Dictionary:
+	var out := {"name": map_name, "path": map_path_value}
+	var root := _match_root()
+	if root == null:
+		return out
+	var map_node := root.get_node_or_null("Map")
+	if map_node != null:
+		var size_value = map_node.get("size")
+		if size_value is Vector2:
+			out["size"] = [int((size_value as Vector2).x), int((size_value as Vector2).y)]
+		var seed_value = map_node.get("map_seed")
+		if seed_value != null and str(seed_value) != "":
+			out["seed"] = str(seed_value)
+	var players: Array = root.get_tree().get_nodes_in_group("players")
+	if not players.is_empty():
+		out["players"] = players.size()
+	return out
+
+
+## 难度口径：对局设置里各 AI 玩家 difficulty 的最大值（0/1/2 = 易/普通/难）。
+## 没有 AI 玩家时返回 null，不写"普通"。
+func _difficulty() -> Variant:
+	var root := _match_root()
+	if root == null:
+		return null
+	var settings = root.get("settings")
+	if settings == null or not (settings.get("players") is Array):
+		return null
+	var best: Variant = null
+	for entry in settings.players:
+		if not entry is Resource:
+			continue
+		var value = entry.get("difficulty")
+		if value == null:
+			continue
+		var level := int(value)
+		if best == null or level > int(best):
+			best = level
+	return best
 
 
 ## 本局用的地图：`NetSession.selected_map_path` 是玩家在大厅/开局时真正选定的那张。

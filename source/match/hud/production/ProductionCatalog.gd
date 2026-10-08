@@ -187,9 +187,9 @@ static func state_of(item_id: String, context: Dictionary) -> Dictionary:
 	#    判据与 Ra3Sidebar.gd:860-897 的页签/格子禁用逻辑同源。
 	if has_producer_key and not producer_valid:
 		if place:
-			# 结构物走蓝图放置，不需要生产建筑；改看工人。工人数据只有调用方知道。
+			# 结构物走蓝图放置（自动施工），不再以"有没有矿车"为门槛。
 			if context.has("has_worker") and not bool(context.get("has_worker")):
-				return _state_result("unlocked_off", "没有可用的工人：无法开工建造", [])
+				return _state_result("unlocked_off", "没有可用的矿车：该建筑需要施工者（worker 进度源）", [])
 		else:
 			var caption := str(source.get("producer_caption", "生产建筑"))
 			return _state_result(
@@ -570,7 +570,8 @@ static func _build_entry(tab_item: Dictionary, category_id: String, lookups: Dic
 	var producer_caption: String
 	var producer_scene: String
 	if place:
-		producer_caption = "工人"
+		# 【2026-09-28 红警2 口径】蓝图放置自动施工，不再绑定"工人"。
+		producer_caption = "自动施工"
 		producer_scene = ""
 	else:
 		# 完全复刻 Ra3Sidebar.gd:462-465：item 自带的 producer 优先于页签默认值。
@@ -589,10 +590,9 @@ static func _build_entry(tab_item: Dictionary, category_id: String, lookups: Dic
 		# 配置里的真实门槛：必须拥有这些生产建筑（productions[].allowedProducerUnitTypeIds）。
 		# place 模式下该字段为空——结构物没有生产建筑门槛。
 		"producer_unit_type_ids": producer_ids,
-		# 结构物的施工者是工人：这是从 UI 行为推出的绑定（Ra3Sidebar.gd:708-744
-		# _begin_structure_placement → _select_builder_if_needed 只认 Worker），
-		# 配置里没有这个字段，所以单独放，不混进上面那个真实字段。
-		"builder_unit_type_ids": PackedStringArray(["worker"]) if place else PackedStringArray(),
+		# 【2026-09-28】automatic/hybrid 建筑自动施工，不再绑定建造者单位；
+		# 仅当某建筑配为 worker 进度源时，UI 在点击时才要求选中矿车（Worker）。
+		"builder_unit_type_ids": PackedStringArray(),
 		"producer_caption": producer_caption,
 		"producer_scene_path": producer_scene,
 		"product_scene_path": scene_path,

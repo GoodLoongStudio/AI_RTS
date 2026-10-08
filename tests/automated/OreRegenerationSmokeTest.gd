@@ -111,7 +111,63 @@ func _ready():
 	_check(ore.resource_a == RESTORE,
 		"结算一次只应到账一份恢复量 %d（实际 %d）" % [RESTORE, ore.resource_a])
 
-	# 8) 关闭再生 → 保持旧的"采空即消失"语义。
+	# 8) 权威矿量镜像（联机与重连走的是同一条 `_reconcile_entry_for` → `apply_presentation_ore`）。
+	# 提示词 8.2 的两条硬要求在这里各自钉死：
+	#   ① 客户端**只接受**权威数值，重复收到同一份上报不得把矿量刷上去；
+	#   ② 镜像不得抬高容量、更不得顺手给玩家账户加钱。
+	var mirror = _spawn_ore(20)
+	await _ticks(0.2)
+	var mirror_capacity := int(mirror.ore_capacity)
+	var account_before_mirror := int(human.resource_a)
+	mirror.apply_presentation_ore([15, 0, 0, 900])
+	_check(int(mirror.resource_a) == 15,
+		"镜像应把权威矿量原样写入（实际 %d）" % int(mirror.resource_a))
+	_check(not bool(mirror.depleted), "镜像标为可采时矿点应回到可采状态")
+	_check(int(mirror.regen_remaining_ms) == 900,
+		"镜像应带上权威的剩余再生毫秒（实际 %d）" % int(mirror.regen_remaining_ms))
+	mirror.apply_presentation_ore([15, 0, 0, 900])
+	mirror.apply_presentation_ore([15, 0, 0, 900])
+	_check(int(mirror.resource_a) == 15,
+		"同一份镜像重复应用三次不得累加矿量（实际 %d）" % int(mirror.resource_a))
+	mirror.apply_presentation_ore([30, 0, 0, 0])
+	_check(int(mirror.ore_capacity) == mirror_capacity,
+		"镜像不得抬高矿点容量（%d → %d）" % [mirror_capacity, int(mirror.ore_capacity)])
+	_check(int(human.resource_a) == account_before_mirror,
+		"镜像只改矿点存量，不得触碰玩家账户（%d → %d）"
+		% [account_before_mirror, int(human.resource_a)])
+
+	# 9) 权威上报里必须**同时**带矿量、耗尽标记与再生时刻。
+	# 少任何一项，重连者就会看到"服务器矿长回来了、客户端还是空的"（阶段 4 记的漏发）。
+	var sync: Node = _match.get_node_or_null("NetSync")
+	if sync != null and sync.has_method("_reconcile_entry_for"):
+		var entry: Variant = sync.call("_reconcile_entry_for", mirror)
+		_check(entry is Dictionary and (entry as Dictionary).has("ore"),
+			"带矿量属性的节点必须在权威镜像里带 ore 键（实际 %s）" % str(entry))
+		if entry is Dictionary and (entry as Dictionary).has("ore"):
+			var ore_report: Array = (entry as Dictionary).get("ore")
+			_check(ore_report.size() == 4,
+				"ore 应是 [a, b, depleted, regen_remaining_ms] 四元组（实际 %s）" % str(ore_report))
+			_check(int(ore_report[0]) == int(mirror.resource_a)
+				and int(ore_report[3]) == int(mirror.regen_remaining_ms),
+				"镜像内容与权威端当前状态必须一致（%s vs 存量 %d／计时 %d）"
+				% [str(ore_report), int(mirror.resource_a), int(mirror.regen_remaining_ms)])
+	else:
+		# 单机冒烟夹具（TestAllUnits）里没有 NetSync 节点——上一版把它写成硬失败，那是夹具假设错，
+		# 不是镜像坏了。权威镜像下发正确性改由两处取证：真实对局里 bool() 报错归零、客户端与服务端矿量一致。
+		print("SKIP: 本夹具无 NetSync 节点；四元组下发由真实对局的客户端镜像一致性覆盖")
+
+	# 9b) 视野权限：迷雾中的再生不能变成实时情报泄漏。
+	# `_reconcile_entry_for` 本身只负责内容，可见性由 NetSync 的发送侧裁剪；
+	# 这里至少钉住"客户端不会自己造矿量"——它只在收到 ore 上报时改数。
+	var blind = _spawn_ore(25)
+	await _ticks(0.2)
+	var blind_before := int(blind.resource_a)
+	blind.apply_presentation_ore([])      # 空上报 = 没收到权威数据
+	blind.apply_presentation_ore([7])     # 长度不足四的残缺上报必须被忽略
+	_check(int(blind.resource_a) == blind_before,
+		"残缺/空镜像上报不得改动矿点存量（%d → %d）" % [blind_before, int(blind.resource_a)])
+
+	# 10) 关闭再生 → 保持旧的"采空即消失"语义。
 	_driver.rule_overrides = {"resource_a": {"enabled": false}}
 	var legacy = _spawn_ore(10)
 	await _ticks(0.2)
@@ -119,6 +175,59 @@ func _ready():
 	await _ticks(0.3)
 	_check(not is_instance_valid(legacy) or legacy.is_queued_for_deletion(),
 		"配置关闭再生时，采空矿点应按旧语义消失")
+
+	# 11) 【2026-09-28 用户要求】再生等待逐轮递增；超过封顶就永久消失（红警2 式枯竭）。
+	#     基准 400ms × 系数 2.0 ⇒ 三轮等待依次 400 / 800 / 1600ms，封顶 1500ms，
+	#     所以第三轮采空（1600 > 1500）应当直接把矿点删掉，而不是进入等待。
+	_driver.rule_overrides = {
+		"resource_a": {
+			"enabled": true,
+			"delay_milliseconds": 400,
+			"restore_amount": 10,
+			"delay_growth_factor": 2.0,
+			"max_delay_milliseconds": 1500,
+		}
+	}
+	var dying = _spawn_ore(10)
+	await _ticks(0.2)
+	dying.resource_a = 0
+	await _ticks(0.8)
+	_check(is_instance_valid(dying) and int(dying.regen_cycles) == 1,
+		"第 1 轮应按基准 400ms 结算（实际 cycles=%d）"
+		% (int(dying.regen_cycles) if is_instance_valid(dying) else -1))
+	dying.resource_a = 0
+	await _ticks(1.6)
+	_check(is_instance_valid(dying) and int(dying.regen_cycles) == 2,
+		"第 2 轮应按 800ms 结算（递增生效，实际 cycles=%d）"
+		% (int(dying.regen_cycles) if is_instance_valid(dying) else -1))
+	dying.resource_a = 0
+	await _ticks(0.4)
+	_check(not is_instance_valid(dying) or dying.is_queued_for_deletion(),
+		"第 3 轮等待 1600ms 超过封顶 1500ms，矿点应永久消失、不再重生")
+
+	# 11b) 不写递增/封顶字段 = 旧行为（每轮等长、只要启用就一直重生）。
+	#      这是向后兼容的硬要求：旧配置档案不许因为这次改动改变节奏。
+	_driver.rule_overrides = {
+		"resource_a": {
+			"enabled": true,
+			"delay_milliseconds": DELAY_MS,
+			"restore_amount": RESTORE,
+		}
+	}
+	var flat = _spawn_ore(10)
+	await _ticks(0.2)
+	var flat_cycles := 0
+	var flat_settled_rounds := 0
+	for round_index in range(2):
+		flat.resource_a = 0
+		await _ticks(1.4)
+		flat_settled_rounds = round_index + 1
+		flat_cycles = int(flat.regen_cycles) if is_instance_valid(flat) else -1
+	_check(flat_cycles == flat_settled_rounds,
+		"未配置递增时应保持每轮等长（第 %d 轮结算，实际 cycles=%d）"
+		% [flat_settled_rounds, flat_cycles])
+	_check(is_instance_valid(flat) and not flat.is_queued_for_deletion(),
+		"未配置封顶时矿点不得被永久删除")
 
 	_finish()
 

@@ -128,6 +128,8 @@ var _progress_phase: Label
 var _progress_detail: Label
 var _map_status: Label
 var _map_title: Label
+var _prev_job_button: Button
+var _next_job_button: Button
 var _meta: Label
 var _title: Label
 var _subtitle: Label
@@ -189,6 +191,15 @@ func _ready() -> void:
 	_progress_detail = $SafeMargin/Root/Body/CenterCol/ProgressBanner/ProgressBox/ProgressDetail
 	_map_status = $SafeMargin/Root/Body/CenterCol/Caption/MapStatus
 	_map_title = $SafeMargin/Root/Body/CenterCol/Caption/MapTitle
+	# 长报错串会让中心列的**最小宽度**暴涨（Label 默认最小宽度=整行文字宽度），
+	# 一行文字就能把整条 HBox 顶宽、把左右两列挤走。这里截断显示 + 悬停看全文。
+	_map_title.clip_text = true
+	_map_title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	# 左右切换生成记录（底部小条太挤，翻页走这里更直接）。
+	_prev_job_button = $SafeMargin/Root/Body/CenterCol/Caption/PrevJobButton
+	_next_job_button = $SafeMargin/Root/Body/CenterCol/Caption/NextJobButton
+	_prev_job_button.pressed.connect(_on_prev_job)
+	_next_job_button.pressed.connect(_on_next_job)
 	_meta = $SafeMargin/Root/TopBar/Meta
 	_title = $SafeMargin/Root/TopBar/TitleBox/Title
 	_subtitle = $SafeMargin/Root/TopBar/TitleBox/Subtitle
@@ -293,7 +304,14 @@ func _build_inspector() -> void:
 		state_label.custom_minimum_size = Vector2(52, 0)
 		var detail_label := SystemUIStyle.make_label("", 12, SystemUIStyle.MUTED)
 		detail_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		detail_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+		# 必须自动换行 + 裁剪：Label 默认（AUTOWRAP_OFF）的**最小宽度 = 整行文字宽度**，
+		# 于是像"游戏中生成：跳过引擎验收（截图/导航检查由玩家实际体验）"这种长文案
+		# （实测 439px）会把「地图检查」整张卡片从 300px 顶到 ~460px；卡片是最后一列，
+		# 它一变宽，中间地图就被挤小、整列位置跟着位移（用户 2026-09-29 用两张截图对比，
+		# 原话"不能和滑动变阻器一样"）。开了换行/裁剪后最小宽度降到 1px，卡片钉死在 300。
+		# clip_text 是兜底：错误信息里可能出现 res:// 长路径这种无法断行的整串。
+		detail_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		detail_label.clip_text = true
 		row.add_child(name_label)
 		row.add_child(state_label)
 		row.add_child(detail_label)
@@ -343,6 +361,9 @@ func _add_heading(parent: Control, text: String, color: Color) -> void:
 func _add_note(parent: Control, text: String) -> Label:
 	var label := SystemUIStyle.make_label(text, 12, SystemUIStyle.MUTED)
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	# 兜底裁剪：换行已经让最小宽度忽略文字，但错误信息里可能有无法断行的整串
+	# （res:// 长路径），clip_text 保证它们同样撑不动「地图检查」卡片的宽度。
+	label.clip_text = true
 	parent.add_child(label)
 	SystemUIStyle.skip_subtree(label)
 	return label
@@ -703,6 +724,26 @@ func _select_job(job_id: String) -> void:
 	_render_job(job)
 
 
+## 左右按钮：按生成记录列表顺序循环翻页（列表最新在前）。
+func _on_prev_job() -> void:
+	_step_job(-1)
+
+
+func _on_next_job() -> void:
+	_step_job(1)
+
+
+func _step_job(direction: int) -> void:
+	if _jobs.is_empty():
+		return
+	var index := 0
+	for i in _jobs.size():
+		if str(_jobs[i].get("id", "")) == _selected_id:
+			index = i
+			break
+	_select_job(str(_jobs[wrapi(index + direction, 0, _jobs.size())].get("id", "")))
+
+
 func _render_job(job: Dictionary) -> void:
 	if job.is_empty():
 		_progress_banner.visible = false
@@ -859,6 +900,10 @@ func _render_history() -> void:
 	for child in _history_row.get_children():
 		child.queue_free()
 	$SafeMargin/Root/Body/CenterCol/HistoryHead.text = "生成记录  %d" % _jobs.size()
+	# 没有任何记录时左右翻页没有意义，置灰。
+	if _prev_job_button != null and _next_job_button != null:
+		_prev_job_button.disabled = _jobs.is_empty()
+		_next_job_button.disabled = _jobs.is_empty()
 	for job in _jobs:
 		var button := SystemUIStyle.make_button(_history_label(job), 80)
 		button.custom_minimum_size = Vector2(220, 80)
@@ -959,7 +1004,8 @@ func _on_play_pressed() -> void:
 	var loading = LoadingScene.instantiate()
 	loading.match_settings = _make_local_settings(4)
 	loading.map_path = path
-	get_parent().add_child(loading)
+	# 【2026-10-01 同上】挂到 root。
+	get_tree().root.add_child(loading)
 	get_tree().current_scene = loading
 	queue_free()
 
@@ -1127,6 +1173,8 @@ func _set_form_disabled(disabled: bool) -> void:
 func _set_caption(status: String, title: String, color: Color) -> void:
 	_map_status.text = status
 	_map_title.text = title
+	# 完整文案挂悬停提示：这一行可能是很长的报错串，显示上截断，但不丢信息。
+	_map_title.tooltip_text = title
 	_map_status.add_theme_color_override("font_color", color)
 	_map_status.set_meta("ui_skip", true)
 
@@ -1142,7 +1190,14 @@ func _map_tool_root() -> String:
 
 func _ensure_workbench() -> void:
 	if _ensuring:
-		while _ensuring and is_instance_valid(self):
+		# 【2026-10-08 修复（实测卡死）】原写法在节点**离开场景树**后：
+		# get_tree() 返回 null -> `await null` 立即返回（不等待）-> while 变成
+		# 紧密死循环，每秒上万次 "Parameter data.tree is null" 刷屏并卡死游戏
+		# （复现：工作台内连点两次生成/重试 -> 返回主菜单 -> responding=False）。
+		# is_instance_valid(self) 挡不住：对象有效但不在树上。
+		# 两道保险：① is_inside_tree() 守卫（离树立即退出）；② 30s 硬超时防锁死。
+		var deadline := Time.get_ticks_msec() + 30000
+		while _ensuring and is_inside_tree() and Time.get_ticks_msec() < deadline:
 			await get_tree().process_frame
 		return
 	_ensuring = true

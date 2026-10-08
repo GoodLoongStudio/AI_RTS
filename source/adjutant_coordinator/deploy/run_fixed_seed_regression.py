@@ -60,7 +60,11 @@ COLUMNS = (
     ("ore_remaining_first", "开局全图矿量"),
     ("ore_remaining_last", "终局全图矿量"),
     ("ore_depleted_nodes", "耗尽矿点数"),
+    ("ore_depleted_ever_nodes", "曾耗尽矿点数"),
+    ("ore_regen_cycles", "再生结算轮数"),
+    ("ore_regen_waiting_nodes", "等待再生矿点数"),
     ("entities_truncated", "实体窗口截断"),
+    ("refinery_trigger", "矿场触发"),
     ("balance_first", "开局余额"),
     ("balance_last", "终局余额"),
     ("balance_grew", "余额有增长"),
@@ -108,23 +112,32 @@ def _cell(value) -> str:
 
 
 def run_one(tag: str, map_path: str, seed: int, seconds: int,
-            backend: str) -> dict:
+            backend: str, refinery_at: int, boot_budget: float = 240.0) -> dict:
     """跑一局并把 `result_*.json` 过一遍 `match_metrics`，返回 §6 表的一行。"""
     driver = os.path.join(DEPLOY_DIR, "selfplay_match.py")
     analyser = os.path.join(DEPLOY_DIR, "match_metrics.py")
     cmd = [sys.executable, driver, "--tag", tag, "--seconds", str(seconds),
-           "--backend", backend, "--map", map_path, "--seed", str(seed)]
+           "--backend", backend, "--map", map_path, "--seed", str(seed),
+           "--refinery-at", str(refinery_at), "--boot-budget", str(boot_budget)]
     started = time.time()
     proc = _run(cmd)
     row = {"tag": tag, "map": map_path, "seed": seed,
            "driver_returncode": proc.returncode}
     result_path = os.path.join(_selfplay_result_dir(), "result_%s.json" % tag)
     if not os.path.exists(result_path):
+        # 【为什么必须带驱动输出尾部】§6 要求逐局给出"失败/拒绝/中断原因"。
+        # 原先这里只写 `no result json (driver rc=2)`，而驱动的子进程输出被 PIPE 吞掉了，
+        # 于是"引擎冷启动被同机会话挤爆"和"对局真的崩了"在表里长得一模一样。
+        tail = (proc.stdout or b"")[-1200:].decode("utf-8", "replace").strip().splitlines()
         row["error"] = "no result json at %s (driver rc=%s)" % (result_path, proc.returncode)
+        row["driver_tail"] = tail[-6:]
         return row
     with open(result_path, encoding="utf-8") as handle:
         result = json.load(handle)
     row["verdict"] = result.get("verdict")
+    # 触发回执原样进表（`未触发` / `accepted` / 被拒状态列表）。没有这一列，
+    # "矿场三列全是 None"就分不清是"没试"还是"试了一直被拒"。
+    row["refinery_trigger"] = _trigger_label(result.get("refinery_receipt"))
     row["duration_s"] = round(max(0.0, time.time() - started), 1)
     analyse = _run([sys.executable, analyser, result_path])
     try:
@@ -136,7 +149,9 @@ def run_one(tag: str, map_path: str, seed: int, seconds: int,
     for key in ("worker_seconds_on_construction", "first_refinery_placed_t",
                 "first_refinery_takeover_t", "first_refinery_delivery_t",
                 "refinery_delivered_amount", "ore_nodes", "ore_remaining_first",
-                "ore_remaining_last", "ore_depleted_nodes"):
+                "ore_remaining_last", "ore_depleted_nodes",
+                "ore_depleted_ever_nodes", "ore_regen_cycles",
+                "ore_regen_waiting_nodes"):
         row[key] = economy.get(key)
     row["constructing_workers_peak"] = economy.get("constructing_workers_peak")
     row["entities_truncated"] = economy.get("entities_truncated")
@@ -147,6 +162,14 @@ def run_one(tag: str, map_path: str, seed: int, seconds: int,
     row["first_barracks_t"] = _barracks_time(result)
     row["economy_error"] = economy.get("error")
     return row
+
+
+def _trigger_label(receipt) -> str:
+    if not receipt:
+        return "未触发"
+    if receipt.get("accepted"):
+        return "accepted(%d 次)" % int(receipt.get("tries") or 0)
+    return "被拒 %s" % (receipt.get("history") or [receipt.get("last")])
 
 
 def _barracks_time(result: dict):
@@ -176,6 +199,32 @@ def render_markdown(rows: list, notes: list) -> str:
     return "\n".join(lines) + "\n"
 
 
+def run_one_with_retry(tag: str, map_path: str, seed: int, seconds: int,
+                       backend: str, refinery_at: int, boot_budget: float,
+                       retries: int) -> dict:
+    """跑一局，失败就原地重试。
+
+    【为什么必须有】这台机器上同时有另一路会话在跑它自己的回归，
+    而两边的收尾都**按进程树清理**——实测我的一局在 t+75s 被整棵带走
+    （驱动没崩、没有 traceback，只是进程没了，`result_<tag>.json` 自然也没写出来）。
+    端口段（24589/24609 两段）本身不冲突，冲突的是进程树清理。
+    一次外部干扰不该让 §6 的表少一行，所以允许同种子重跑；
+    但只重试 `retries` 次，避免真的坏了时无限打转。
+    """
+    row = run_one(tag, map_path, seed, seconds, backend, refinery_at, boot_budget)
+    for attempt in range(1, retries + 1):
+        if not row.get("error"):
+            return row
+        print("[sweep] %s 第 %d 次重试（上次：%s）"
+              % (tag, attempt, str(row.get("error"))[:120]), flush=True)
+        row = run_one("%s_r%d" % (tag, attempt), map_path, seed, seconds,
+                      backend, refinery_at, boot_budget)
+        if not row.get("error"):
+            row["tag"] = tag          # 表里仍按种子记账，重试后缀只用于文件命名
+            row["retried"] = attempt
+    return row
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="固定地图/固定种子对局扫描与回归")
     parser.add_argument("--map", required=True,
@@ -184,6 +233,13 @@ def main() -> int:
     parser.add_argument("--seconds", type=int, default=180)
     parser.add_argument("--backend", default="off", choices=("laya", "model", "off"))
     parser.add_argument("--tag", default="fs")
+    parser.add_argument("--refinery-at", type=int, default=-1,
+                        help="开局 N 秒后脚本化触发远端矿场（-1 = 只看副官主线自己走不走）")
+    parser.add_argument("--boot-budget", type=float, default=240.0,
+                        help="透传给驱动的启动预算（同机并发跑回归时必需放宽）")
+    parser.add_argument("--retries", type=int, default=1,
+                        help="同一粒种子失败后的原地重试次数（默认 1 次）。"
+                             "并行会话按进程树清理会偶发带走本局，一次干扰不该让表少一行")
     parser.add_argument("--out", default=os.path.join(AI_ROOT, "build", "selfplay"))
     args = parser.parse_args()
 
@@ -202,12 +258,17 @@ def main() -> int:
     for seed in seeds:
         tag = "%s_%d" % (args.tag, seed)
         print("[sweep] 开始 %s map=%s seed=%d" % (tag, args.map, seed), flush=True)
-        row = run_one(tag, args.map, seed, args.seconds, args.backend)
+        row = run_one_with_retry(tag, args.map, seed, args.seconds, args.backend,
+                                 args.refinery_at, args.boot_budget, args.retries)
         rows.append(row)
         print("[sweep] 结束 %s -> %s" % (tag, json.dumps(
             {k: row.get(k) for k in ("verdict", "worker_seconds_on_construction",
                                      "refinery_delivered_amount", "error")},
             ensure_ascii=False)), flush=True)
+        # 失败原因必须跟着行进日志，否则表里只有一行"error"，归因又要靠猜。
+        if row.get("driver_tail"):
+            for line in row["driver_tail"]:
+                print("[sweep]   驱动输出 | %s" % line, flush=True)
 
     notes = [
         '`None` = 该项没测到，**不是** 0，也不是"没发生"。',

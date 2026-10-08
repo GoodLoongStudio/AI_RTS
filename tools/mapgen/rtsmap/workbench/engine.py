@@ -109,7 +109,11 @@ def capture_ortho(airts, scene_res, out_png, log_dir, oblique=False, size=256,
     return rec
 
 
-def nav_check(airts, scene_res, targets_json, out_json, log_dir, timeout_s=900):
+def nav_check(airts, scene_res, targets_json, out_json, log_dir, timeout_s=2400):
+    # 2400s：nav_check.gd 内部给首次烘焙留了 900s（15 min）预算，路径检查还要再跑
+    # 一段。外层超时曾与内层同为 900s —— 本机内存吃紧时烘焙就要 ~17 min，外层恰好
+    # 在烘焙完成前杀进程（2026-09-29 实测：任务 82b7b6ce 导航验收 1019s 时仍在上报
+    # 帧计数，却被 900s 超时判死）。验收预算必须**大于**内层等待预算。
     script = TOOLS_DIR / "nav_check.gd"
     rec = run_godot(["--rendering-driver", "opengl3", "--path", str(airts),
                      "--script", str(script), "--",

@@ -14,6 +14,9 @@ public interface IGameBalanceCatalog
     /// <summary>读取配置格式、内容版本和内容指纹。</summary>
     BalanceConfigVersion Version { get; }
 
+    /// <summary>同类建筑加速：每多一座已完工同类建筑，速率增加的比例（0 = 规则关闭）。</summary>
+    float SameTypeBonusPerExtraBuilding { get; }
+
     /// <summary>枚举当前配置中的全部单位和建筑定义。</summary>
     IReadOnlyCollection<UnitTypeDefinition> UnitTypes { get; }
 

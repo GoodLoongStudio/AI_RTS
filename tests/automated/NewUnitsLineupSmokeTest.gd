@@ -17,6 +17,18 @@ const SniperScene = preload("res://source/match/units/Sniper.tscn")
 const RocketeerScene = preload("res://source/match/units/Rocketeer.tscn")
 const HeavyTankScene = preload("res://source/match/units/HeavyTank.tscn")
 const TransportTruckScene = preload("res://source/match/units/TransportTruck.tscn")
+# 2026-09-29 用户"UI图标记得都更新一下"：矿场换模型后图标缺失（侧栏 18 个 key 里只它没有），
+# 侦察机是 09-28 新单位、选中卡也缺图标 —— 一并纳入生成清单。
+const OreRefineryScene = preload("res://source/match/units/OreRefinery.tscn")
+const ScoutScene = preload("res://source/match/units/Scout.tscn")
+# 2026-09-29 复核旧图标：09-04 那批（基地/车厂/机场/坦克/直升机/无人机）画的还是换模型前的
+# 旧外观（"基地"是个黄色货箱、"坦克"是亮黄旧车），一并纳入清单刷新。
+const CommandCenterScene = preload("res://source/match/units/CommandCenter.tscn")
+const VehicleFactoryScene = preload("res://source/match/units/VehicleFactory.tscn")
+const AircraftFactoryScene = preload("res://source/match/units/AircraftFactory.tscn")
+const TankScene = preload("res://source/match/units/Tank.tscn")
+const HelicopterSceneUnit = preload("res://source/match/units/Helicopter.tscn")
+const DroneScene = preload("res://source/match/units/Drone.tscn")
 
 var _failures := 0
 var _produced_drop_ships: Array = []
@@ -64,6 +76,17 @@ func _ready():
 		["rocketeer", RocketeerScene, 0.9],
 		["heavy_tank", HeavyTankScene, 4.2],
 		["transport_truck", TransportTruckScene, 3.0],
+		# entry[3] = 可选取景中心高度（默认 0.45）：矿场缩到 11.6m/高 7.9m 后取景同步收紧
+		["ore_refinery", OreRefineryScene, 13.0, 3.6],
+		# 侦察机（悬浮摩托）实测偏小：同一套取景下按 0.6 的 size 才填满格子（与其余条目同法手调）
+		["scout", ScoutScene, 0.6],
+		# 09-04 旧图标刷新（尺寸按同类条目惯例初调，跑完逐个核对）
+		["command_center", CommandCenterScene, 16.0, 3.0],
+		["vehicle_factory", VehicleFactoryScene, 7.0, 2.0],
+		["aircraft_factory", AircraftFactoryScene, 8.0, 2.0],
+		["tank", TankScene, 2.4],
+		["helicopter", HelicopterSceneUnit, 5.0, 1.2],
+		["drone", DroneScene, 0.9, 0.5],
 	]
 	# 用独立 SubViewport 渲染图标：共享 3D 世界但不带 HUD/侧栏
 	var sub = SubViewport.new()
@@ -101,10 +124,14 @@ func _ready():
 		# 接管，运行时 global 已被拉到单位世界坐标 (12,0,12)，直接拷会飞出取景框（图标全透明）。
 		# 换算成「相对单位原点」的变换，两种结构都能还原作者意图的局部变换。
 		copy.transform = unit.global_transform.affine_inverse() * geometry.global_transform
-		# 每个单位单独取景：模型大小差异大（步兵 ~0.5m、兵营 ~5m）
+		# 每个单位单独取景：模型大小差异大（步兵 ~0.5m、兵营 ~5m、矿场 ~14.5m）
 		camera.size = float(entry[2]) if entry.size() > 2 else 3.2
+		# 取景中心高度可调（entry[3]，默认 0.45）：高个子建筑不抬高会被上下裁掉。
+		# 正交相机下"整体上下平移"= 改变取景窗中心，不改变透视/朝向。
+		var aim_y := float(entry[3]) if entry.size() > 3 else 0.45
+		var shift_y := aim_y - 0.45
 		camera.look_at_from_position(
-			Vector3(2.2, 3.0, 3.2), Vector3(0.0, 0.45, 0.0), Vector3.UP
+			Vector3(2.2, 3.0 + shift_y, 3.2), Vector3(0.0, aim_y, 0.0), Vector3.UP
 		)
 		await RenderingServer.frame_post_draw
 		var image = sub.get_texture().get_image()

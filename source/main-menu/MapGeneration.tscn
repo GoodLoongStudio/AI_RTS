@@ -186,6 +186,12 @@ theme_override_constants/v_separation = 6
 layout_mode = 2
 theme_override_constants/separation = 10
 
+[node name="PrevJobButton" type="Button" parent="SafeMargin/Root/Body/CenterCol/Caption"]
+custom_minimum_size = Vector2(44, 0)
+layout_mode = 2
+tooltip_text = "上一张地图"
+text = "◀"
+
 [node name="MapStatus" type="Label" parent="SafeMargin/Root/Body/CenterCol/Caption"]
 layout_mode = 2
 text = "准备就绪"
@@ -194,6 +200,12 @@ text = "准备就绪"
 layout_mode = 2
 size_flags_horizontal = 3
 text = "选择参数后生成"
+
+[node name="NextJobButton" type="Button" parent="SafeMargin/Root/Body/CenterCol/Caption"]
+custom_minimum_size = Vector2(44, 0)
+layout_mode = 2
+tooltip_text = "下一张地图"
+text = "▶"
 
 [node name="HistoryHead" type="Label" parent="SafeMargin/Root/Body/CenterCol"]
 layout_mode = 2
