@@ -41,6 +41,15 @@ func _ready() -> void:
 	if online_btn != null:
 		online_btn.visible = false
 		online_btn.disabled = true
+	# 【2026-10-08 交付裁撤：地图生成】工作台依赖开发工具链（tools/mapgen + .venv-g2），
+	# 发布包不含该工具链——入口点进去只会显示「无法启动/服务未连接」，故在**非编辑器构建**里隐藏。
+	# 只藏 UI，不删场景/信号（与上面联机入口同一模式）：开发时在编辑器里运行仍可用。
+	if not OS.has_feature("editor"):
+		var mapgen_btn := get_node_or_null(
+			"CenterContainer/PanelContainer/MarginContainer/VBoxContainer/MapGenButton") as Button
+		if mapgen_btn != null:
+			mapgen_btn.visible = false
+			mapgen_btn.disabled = true
 	# 调试钩子：--autojoin（或 res://autojoin.txt）→ 直接进联机界面，
 	# Online._ready 的 autojoin 钩子接管加入+立即开局（供 Godot MCP 一键开局）。
 	# 复核 2026-09-02：只在本进程第一次加载 Main 时生效——自动化会话遗留/重建
