@@ -466,7 +466,10 @@ func _on_back_button_pressed():
 		UISfx.play("ui_menu_close")  # 游戏内关闭设置：菜单关音
 		close_requested.emit()
 		return
-	get_tree().change_scene_to_file("res://source/main-menu/Main.tscn")
+	# 【2026-10-11 修复】ESC 闪退（c0000005 稳定复现）：_unhandled_input 调用栈里
+	# 同步切场景会在 Godot 4.7 上 use-after-free。与 MatchSetupPage._on_back_button_pressed
+	# 同一写法：排到帧末再切。
+	get_tree().change_scene_to_file.call_deferred("res://source/main-menu/Main.tscn")
 
 
 ## ESC 回退（MenuPage 基类）：嵌入模式关闭面板（通知打开者收尾）；独立模式返回主菜单。

@@ -1104,7 +1104,8 @@ func _hermes_color(status: String) -> Color:
 # ==================== 导航 ====================
 
 func _on_back_to_list() -> void:
-	get_tree().change_scene_to_file(LIST_SCENE)
+	# 【2026-10-11 修复】ESC 闪退：同步切场景改为帧末（同 Options 页修复）。
+	get_tree().change_scene_to_file.call_deferred(LIST_SCENE)
 
 
 func _on_back_to_profile() -> void:

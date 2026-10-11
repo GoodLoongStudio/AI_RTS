@@ -432,7 +432,8 @@ func _open_detail(report_id: String) -> void:
 
 
 func _on_back() -> void:
-	get_tree().change_scene_to_file(MatchHistoryNav.return_scene)
+	# 【2026-10-11 修复】ESC 闪退：同步切场景改为帧末（同 Options 页修复）。
+	get_tree().change_scene_to_file.call_deferred(MatchHistoryNav.return_scene)
 
 
 func _on_escape() -> bool:

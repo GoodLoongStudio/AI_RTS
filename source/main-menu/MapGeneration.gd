@@ -5,14 +5,14 @@ extends "res://source/ui/MenuPage.gd"
 const MatchSettings = preload("res://source/data-model/MatchSettings.gd")
 const PlayerSettings = preload("res://source/data-model/PlayerSettings.gd")
 const LoadingScene = preload("res://source/main-menu/Loading.tscn")
+const RandomRuntime = preload("res://source/main-menu/RandomMapRuntime.gd")
 
 const GENERATED_DIR := "res://source/match/maps/generated"
 ## 【2026-09-20】原指向 "G4 大湖 seed16"（16-0-1ca6e21aa1），该图已按用户要求从
 ## 大厅移除（随机地图改走 G1-G4 生成路线）。置空后原有的"默认图不可删"保护自然失效。
 const HALL_DEFAULT_MAP_ID := ""
 const DELETE_CONFIRM_MS := 3000
-const WORKBENCH_PORTS := [8766, 8765]
-const WORKBENCH_PORT := 8766
+const WORKBENCH_PORTS := RandomRuntime.WORKBENCH_PORTS
 
 const STAGE_ORDER := ["g1_input", "g2_terrain", "g3_content", "g4_scene", "engine"]
 const STAGE_TEXT := {
@@ -22,11 +22,52 @@ const STAGE_TEXT := {
 	"g4_scene": "游戏场景导出",
 	"engine": "引擎加载与导航验收",
 }
+## 后端 progress.stage 的取值 → STAGE_ORDER 的 id。中心 UI 只在与当前阶段一致时
+## 才显示 progress 文字，避免旧文案与新阶段混显。
+const PROGRESS_STAGE_ID := {
+	"G1": "g1_input",
+	"G2": "g2_terrain",
+	"G3": "g3_content",
+	"G4": "g4_scene",
+	"ENGINE": "engine",
+	"引擎": "engine",
+}
+## 阶段状态的**唯一**文案表：中心流程图和右侧「地图检查」都从这里取（提示词 §二：
+## 两侧必须共用 STAGE_ORDER / STAGE_TEXT / stage 数据，不得各维护一套状态字符串）。
+## 每种状态都有**文字**，颜色只是冗余信号 —— 完成/等待/跳过不能只靠颜色区分。
 const STAGE_STATUS_TEXT := {
 	"done": "完成",
 	"running": "进行中",
+	"waiting": "等待",
 	"error": "失败",
-	"skipped": "未运行",
+	"skipped": "跳过",
+	"check_failed": "检查未通过",
+	"preview_skipped": "快速预览未运行",
+	"upstream_failed": "未运行：上游阶段失败",
+	"skip_in_game": "跳过：游戏内生成路径",
+}
+const STAGE_MARK := {
+	"done": "✓",
+	"running": "▶",
+	"waiting": "·",
+	"error": "✕",
+	"skipped": "»",
+	"check_failed": "!",
+	"preview_skipped": "—",
+	"upstream_failed": "—",
+	"skip_in_game": "»",
+}
+## 状态 → 配色（暗色科幻口径：完成绿、当前青、等待/提示琥珀、失败红、跳过灰）。
+const STAGE_TONE := {
+	"done": SystemUIStyle.GREEN,
+	"running": SystemUIStyle.CYAN,
+	"waiting": SystemUIStyle.AMBER,
+	"error": SystemUIStyle.RED,
+	"check_failed": SystemUIStyle.AMBER,
+	"skipped": SystemUIStyle.DIM,
+	"preview_skipped": SystemUIStyle.DIM,
+	"upstream_failed": SystemUIStyle.DIM,
+	"skip_in_game": SystemUIStyle.DIM,
 }
 const LAYERS := [
 	{"id": "g4_ortho", "label": "最终顶视"},
@@ -126,6 +167,14 @@ var _legend_bar: HFlowContainer
 var _progress_banner: PanelContainer
 var _progress_phase: Label
 var _progress_detail: Label
+## 中心总进度流程图：控件只在 `_ready` 建一次，渲染只改文字/配色（不得每帧重建控件）。
+var _flow_box: HFlowContainer
+var _flow_nodes: Dictionary = {}
+var _flow_links: Dictionary = {}
+var _flow_styles: Dictionary = {}
+## 预览图归属：只有"当前显示的图不是所选任务产出的图"时才打"上一张"标记。
+var _preview_job_id := ""
+var _preview_stale: Label
 var _map_status: Label
 var _map_title: Label
 var _prev_job_button: Button
@@ -225,6 +274,7 @@ func _ready() -> void:
 	_build_params()
 	_build_layers()
 	_build_inspector()
+	_build_flow()
 	_tone()
 	SystemUIStyle.apply(self)
 	_tone()
@@ -279,6 +329,204 @@ func _build_params() -> void:
 	reset.pressed.connect(_on_reset_defaults)
 	_params_box.add_child(reset)
 	_add_note(_params_box, "完整地图：出生布局 → 地形 → 资源 → 游戏场景与导航验收。")
+
+
+func _flow_style(background: Color, border: Color, width: int) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = background
+	style.border_color = border
+	style.set_border_width_all(width)
+	style.set_content_margin_all(5.0)
+	style.set_corner_radius_all(3)
+	return style
+
+
+## 中心总进度流程图：节点 + 方向连接线，控件只在这里建一次。
+func _build_flow() -> void:
+	var box := _progress_banner.get_node("ProgressBox") as VBoxContainer
+	if box == null:
+		return
+	_flow_box = HFlowContainer.new()
+	_flow_box.name = "StageFlow"
+	_flow_box.add_theme_constant_override("h_separation", 4)
+	_flow_box.add_theme_constant_override("v_separation", 6)
+	box.add_child(_flow_box)
+	# 流程图在最上，下面两行分别是"总状态"和"当前阶段细节"。
+	box.move_child(_flow_box, 0)
+	_flow_styles = {
+		"idle": _flow_style(SystemUIStyle.PANEL, SystemUIStyle.DIM, 1),
+		"done": _flow_style(SystemUIStyle.PANEL, SystemUIStyle.GREEN, 1),
+		"current": _flow_style(SystemUIStyle.CYAN_DEEP, SystemUIStyle.CYAN, 2),
+		"error": _flow_style(SystemUIStyle.PANEL, SystemUIStyle.RED, 2),
+		"check": _flow_style(SystemUIStyle.AMBER_DEEP, SystemUIStyle.AMBER, 2),
+	}
+	for index in STAGE_ORDER.size():
+		var stage_id := str(STAGE_ORDER[index])
+		if index > 0:
+			var link := SystemUIStyle.make_label("→", 13, SystemUIStyle.DIM)
+			_flow_box.add_child(link)
+			_flow_links[stage_id] = link
+		var panel := PanelContainer.new()
+		panel.custom_minimum_size = Vector2(96, 0)
+		panel.add_theme_stylebox_override("panel", _flow_styles["idle"])
+		var col := VBoxContainer.new()
+		col.add_theme_constant_override("separation", 1)
+		var head := HBoxContainer.new()
+		head.add_theme_constant_override("separation", 4)
+		# 编号是**文字**信号之一：状态不能只靠颜色区分（色觉/截图都要能读）。
+		var number := SystemUIStyle.make_label(str(index + 1), 11, SystemUIStyle.MUTED)
+		number.custom_minimum_size = Vector2(10, 0)
+		var name_label := SystemUIStyle.make_label(str(STAGE_TEXT[stage_id]), 12, SystemUIStyle.TEXT)
+		name_label.clip_text = true
+		name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		head.add_child(number)
+		head.add_child(name_label)
+		var state := SystemUIStyle.make_label("· 等待", 12, SystemUIStyle.AMBER)
+		var detail := SystemUIStyle.make_label("", 11, SystemUIStyle.MUTED)
+		detail.custom_minimum_size = Vector2(96, 0)
+		detail.clip_text = true
+		detail.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		col.add_child(head)
+		col.add_child(state)
+		col.add_child(detail)
+		panel.add_child(col)
+		_flow_box.add_child(panel)
+		_flow_nodes[stage_id] = {
+			"panel": panel, "number": number, "name": name_label,
+			"state": state, "detail": detail,
+		}
+	_flow_box.visible = false
+	# 旧预览可以在生成期间留着，但必须**明说**它不是当前任务的产物。
+	_preview_stale = SystemUIStyle.make_label("", 12, SystemUIStyle.AMBER_HI)
+	_preview_stale.name = "PreviewStale"
+	_preview_stale.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_preview_stale.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	_preview_stale.offset_left = 8.0
+	_preview_stale.offset_top = -22.0
+	(_preview.get_parent() as Control).add_child(_preview_stale)
+	_preview_stale.visible = false
+
+
+## 阶段状态的**唯一**解释口径：中心流程图和右侧检查列表都调这个函数。
+func _stage_display(job: Dictionary, stage_id: String) -> Dictionary:
+	var status := ""
+	if not job.is_empty():
+		status = str(_job_stages(job).get(stage_id, {}).get("status", ""))
+	var stage: Dictionary = _job_stages(job).get(stage_id, {}) if not job.is_empty() else {}
+	var full := str(job.get("target", "g2")) == "full"
+	var state := "waiting"
+	if job.is_empty():
+		state = "waiting"
+	elif not full and STAGE_ORDER.find(stage_id) >= 2:
+		# 快速预览根本没跑到这些阶段：显示"未运行/跳过"，**不能**显示完成。
+		state = "preview_skipped"
+	elif _stage_upstream_failed(job, stage_id):
+		# 失败阶段的后续阶段不许伪装完成；引擎"因上游失败没运行"与
+		# "快速预览主动跳过"是两个不同原因，文案分开。
+		state = "upstream_failed"
+	elif status == "done":
+		state = "check_failed" if stage.get("pass", true) == false else "done"
+	elif status == "running":
+		state = "running"
+	elif status == "error":
+		state = "error"
+	elif status == "skipped":
+		state = "skip_in_game" if (stage_id == "engine" and bool(job.get("skip_engine_check", false))) else "skipped"
+	var detail := ""
+	if status == "done":
+		detail = ("%ss" % str(stage.get("duration_s"))) if stage.has("duration_s") else ""
+		if state == "check_failed":
+			detail = str(stage.get("error", stage.get("reason", "有检查项未通过")))
+	elif status == "error":
+		detail = str(stage.get("error", "阶段失败"))
+	elif status == "skipped":
+		detail = str(stage.get("reason", ""))
+	elif state == "preview_skipped":
+		detail = "快速预览只跑到地形"
+	elif state == "upstream_failed":
+		detail = "上游阶段未完成"
+	return {
+		"state": state,
+		"text": str(STAGE_STATUS_TEXT[state]),
+		"mark": str(STAGE_MARK[state]),
+		"color": STAGE_TONE[state],
+		"detail": detail,
+	}
+
+
+## 该阶段之前是否已有阶段失败（或上游没过检）——决定它能不能被当成"完成/等待"。
+func _stage_upstream_failed(job: Dictionary, stage_id: String) -> bool:
+	if job.is_empty():
+		return false
+	var stages := _job_stages(job)
+	for earlier in STAGE_ORDER.slice(0, STAGE_ORDER.find(stage_id)):
+		var state: Dictionary = stages.get(earlier, {})
+		var status := str(state.get("status", ""))
+		if status == "error":
+			return true
+		if status == "done" and state.get("pass", true) == false:
+			return true
+	return false
+
+
+## 当前节点由 **stage 状态**决定（不是 progress 文字）：截图里"G1 已就绪 + 右侧 G2 在跑"
+## 就是旧实现只读 progress 造成的漂移。
+func _flow_current_stage(job: Dictionary) -> String:
+	if job.is_empty():
+		return ""
+	var stages := _job_stages(job)
+	for stage_id in STAGE_ORDER:
+		if str(stages.get(stage_id, {}).get("status", "")) == "running":
+			return stage_id
+	for stage_id in STAGE_ORDER:
+		if str(stages.get(stage_id, {}).get("status", "")) == "error":
+			return stage_id
+	if str(job.get("status", "")) == "running":
+		for stage_id in STAGE_ORDER:
+			if str(stages.get(stage_id, {}).get("status", "")).is_empty():
+				return stage_id
+	return ""
+
+
+func _render_flow(job: Dictionary) -> void:
+	if _flow_box == null:
+		return
+	_flow_box.visible = not job.is_empty()
+	if job.is_empty():
+		return
+	var current := _flow_current_stage(job)
+	var stages := _job_stages(job)
+	for index in STAGE_ORDER.size():
+		var stage_id := str(STAGE_ORDER[index])
+		var row: Dictionary = _flow_nodes[stage_id]
+		var view := _stage_display(job, stage_id)
+		var is_current := stage_id == current
+		(row["state"] as Label).text = "%s %s" % [view["mark"], view["text"]]
+		(row["state"] as Label).add_theme_color_override("font_color", view["color"])
+		(row["detail"] as Label).text = str(view["detail"])
+		(row["detail"] as Label).tooltip_text = str(view["detail"])
+		var panel: PanelContainer = row["panel"]
+		var style := "idle"
+		if view["state"] == "done":
+			style = "done"
+		elif view["state"] == "error":
+			style = "error"
+		elif view["state"] == "check_failed":
+			style = "check"
+		if is_current:
+			style = "current" if view["state"] == "running" else style
+		panel.add_theme_stylebox_override("panel", _flow_styles[style])
+		panel.tooltip_text = "G%d %s：%s%s" % [
+			index + 1, str(STAGE_TEXT[stage_id]), str(view["text"]),
+			(" · " + str(view["detail"])) if not str(view["detail"]).is_empty() else "",
+		]
+		(row["name"] as Label).add_theme_color_override(
+			"font_color", SystemUIStyle.CYAN if is_current else SystemUIStyle.TEXT)
+		if _flow_links.has(stage_id):
+			var prev_done := str(
+				stages.get(str(STAGE_ORDER[index - 1]), {}).get("status", "")) == "done"
+			(_flow_links[stage_id] as Label).add_theme_color_override(
+				"font_color", SystemUIStyle.GREEN if prev_done else SystemUIStyle.DIM)
 
 
 func _build_layers() -> void:
@@ -744,9 +992,29 @@ func _step_job(direction: int) -> void:
 	_select_job(str(_jobs[wrapi(index + direction, 0, _jobs.size())].get("id", "")))
 
 
+func _render_preview_stale(job: Dictionary) -> void:
+	if _preview_stale == null:
+		return
+	var stale := _preview.texture != null and str(job.get("id", "")) != _preview_job_id
+	_preview_stale.visible = stale
+	if stale:
+		_preview_stale.text = ("上一张地图预览 · 当前新地图尚未完成"
+			if str(job.get("status", "")) == "running"
+			else "上一张地图预览 · 这张图不是当前任务产出的")
+
+
+## 查看历史记录时，活动生成任务只用一条**简短**标记提示，不与所选任务的数据混用。
+func _mark_active_generation(job: Dictionary) -> void:
+	if _active_id.is_empty() or str(job.get("id", "")) == _active_id:
+		return
+	if _has_running_job():
+		_map_title.text = "%s · 另有任务生成中" % _map_title.text
+
+
 func _render_job(job: Dictionary) -> void:
 	if job.is_empty():
 		_progress_banner.visible = false
+		_render_preview_stale({})
 		_refresh_layers(null)
 		_render_stages({})
 		_set_metrics({})
@@ -784,6 +1052,8 @@ func _render_job(job: Dictionary) -> void:
 		_result_summary.text = str(job.get("error", "生成未完成。"))
 		_empty.visible = true
 		_preview.texture = null
+	_render_preview_stale(job)
+	_mark_active_generation(job)
 
 
 func _result_text(job: Dictionary, full: bool, passed: bool) -> String:
@@ -798,20 +1068,67 @@ func _result_text(job: Dictionary, full: bool, passed: bool) -> String:
 
 
 func _render_progress(job: Dictionary) -> void:
-	var running := str(job.get("status", "")) == "running"
-	_progress_banner.visible = running
-	if not running:
+	# 完成/失败**保留**全流程结果，不再"非 running 就整块隐藏"（提示词 §二 UI 第 3 条）。
+	_progress_banner.visible = not job.is_empty()
+	_render_flow(job)
+	if job.is_empty():
 		return
+	var status := str(job.get("status", ""))
+	var full := str(job.get("target", "g2")) == "full"
+	var stages := _job_stages(job)
+	var current := _flow_current_stage(job)
+	var done_count := 0
+	var check_failed := 0
+	var failed_stage := ""
+	for stage_id in STAGE_ORDER:
+		var view := _stage_display(job, stage_id)
+		if view["state"] == "done":
+			done_count += 1
+		elif view["state"] == "check_failed":
+			check_failed += 1
+		elif view["state"] == "error" and failed_stage.is_empty():
+			failed_stage = str(STAGE_TEXT[stage_id])
+	var scope := STAGE_ORDER.size() if full else 2
+	var summary: Array[String] = ["完整流水线" if full else "G2 快速预览"]
+	summary.append("%d/%d 阶段完成" % [done_count, scope])
+	if not current.is_empty():
+		summary.append("%s %s" % [
+			str(STAGE_TEXT[current]),
+			"进行中" if str(stages.get(current, {}).get("status", "")) == "running" else "失败",
+		])
+	elif status == "done":
+		summary.append("全部阶段已结束")
+	elif status == "error":
+		summary.append("生成未完成")
+	if check_failed > 0:
+		# done 但 pass=false ≠ 通过：总状态里也要说出来，不能只靠配色。
+		summary.append("%d 个阶段检查未通过" % check_failed)
+	if not failed_stage.is_empty():
+		summary.append("失败阶段：%s" % failed_stage)
+	_progress_phase.text = " · ".join(summary)
+
+	# 细节只允许来自**当前阶段**：progress 的旧文字若指向别的阶段就丢弃，
+	# 这正是截图里"中心 G1 已就绪 / 右侧 G2 在生成"漂移的根因。
 	var progress: Dictionary = job.get("progress", {})
-	var stage := str(progress.get("stage", ""))
+	var progress_stage := str(PROGRESS_STAGE_ID.get(
+		str(progress.get("stage", "")).to_upper(), ""))
+	var parts: Array[String] = []
+	if not current.is_empty():
+		parts.append("第 %d/%d 阶段" % [STAGE_ORDER.find(current) + 1, STAGE_ORDER.size()])
+	if progress.has("attempt") and (progress_stage == current or current.is_empty()):
+		parts.append("第 %s/%s 次尝试" % [
+			str(progress.get("attempt", 0)), str(progress.get("limit", "—"))])
 	var phase := str(progress.get("phase", ""))
-	_progress_phase.text = "%s · %s" % [stage, phase] if not stage.is_empty() else (phase if not phase.is_empty() else "正在生成地图")
-	if progress.has("attempt"):
-		_progress_detail.text = "候选 %s / %s · %s" % [
-			str(progress.get("attempt", 0)), str(progress.get("limit", "—")), _seconds(job.get("duration", 0)),
-		]
-	else:
-		_progress_detail.text = "保持当前预览，完成后自动更新。 · %s" % _seconds(job.get("duration", 0))
+	if not phase.is_empty() and (progress_stage == current or progress_stage.is_empty()):
+		parts.append(phase)
+	var view := {}
+	if not current.is_empty():
+		view = _stage_display(job, current)
+	if not view.is_empty() and not str(view.get("detail", "")).is_empty():
+		parts.append(str(view["detail"]))
+	parts.append("耗时 %s" % _seconds(job.get("duration", 0)))
+	_progress_detail.text = " · ".join(parts)
+	_progress_detail.tooltip_text = _progress_detail.text
 
 
 func _job_stages(job: Dictionary) -> Dictionary:
@@ -820,32 +1137,15 @@ func _job_stages(job: Dictionary) -> Dictionary:
 
 
 func _render_stages(job: Dictionary) -> void:
-	var stages := _job_stages(job)
-	var full := str(job.get("target", "g2")) == "full"
+	# 右侧检查列表与中心流程图**同源**：都走 `_stage_display`，不再各写一套状态字符串。
 	for stage_id in STAGE_ORDER:
 		var row: Dictionary = _stage_rows[stage_id]
+		var view := _stage_display(job, stage_id)
 		var state_label: Label = row["state"]
-		var detail_label: Label = row["detail"]
-		if not full and not job.is_empty() and stage_id != "g1_input" and stage_id != "g2_terrain":
-			state_label.text = "未运行"
-			state_label.add_theme_color_override("font_color", SystemUIStyle.DIM)
-			detail_label.text = "快速预览只跑到地形"
-			continue
-		var stage: Dictionary = stages.get(stage_id, {})
-		var status := str(stage.get("status", "等待"))
-		state_label.text = str(STAGE_STATUS_TEXT.get(status, status))
-		var color := SystemUIStyle.DIM
-		if status == "done":
-			color = SystemUIStyle.RED if stage.get("pass", true) == false else SystemUIStyle.GREEN
-		elif status == "running":
-			color = SystemUIStyle.CYAN
-		elif status == "error":
-			color = SystemUIStyle.RED
-		state_label.add_theme_color_override("font_color", color)
-		if status == "done" and stage.has("duration_s"):
-			detail_label.text = "%ss" % str(stage.get("duration_s"))
-		else:
-			detail_label.text = str(stage.get("error", stage.get("reason", "")))
+		state_label.text = str(view["text"])
+		state_label.add_theme_color_override("font_color", view["color"])
+		(row["detail"] as Label).text = str(view["detail"])
+		(row["detail"] as Label).tooltip_text = str(view["detail"])
 		state_label.set_meta("ui_skip", true)
 
 
@@ -936,9 +1236,11 @@ func _load_layer_image(job: Dictionary) -> void:
 	if token != _image_token:
 		return
 	if bytes.is_empty():
+		_preview_job_id = ""
 		_preview.texture = null
 		_empty.visible = true
 		_empty.text = "这张预览图还没有生成，或当前图层不可用。"
+		_render_preview_stale(job)
 		return
 	var image := Image.new()
 	if image.load_png_from_buffer(bytes) != OK:
@@ -946,6 +1248,8 @@ func _load_layer_image(job: Dictionary) -> void:
 		return
 	_preview.texture = ImageTexture.create_from_image(_crop_g2_frame(image))
 	_empty.visible = false
+	_preview_job_id = str(job.get("id", ""))
+	_render_preview_stale(job)
 	_refresh_legend()
 
 
@@ -987,11 +1291,7 @@ func _refresh_legend() -> void:
 
 
 func _installed_map_path(job: Dictionary) -> String:
-	var map_id := str(job.get("map_id", ""))
-	if map_id.is_empty():
-		return ""
-	var path := "%s/%s/map_%s.tscn" % [GENERATED_DIR, map_id, map_id]
-	return path if ResourceLoader.exists(path) else ""
+	return RandomRuntime.installed_map_path(job)
 
 
 func _on_play_pressed() -> void:
@@ -1238,21 +1538,8 @@ func _maybe_autostart_random() -> void:
 func _launch_backend_silent() -> bool:
 	if _backend_launched:
 		return true
-	var root := _map_tool_root()
-	var script := root.path_join("serve_g2.py")
-	if not FileAccess.file_exists(script):
-		return false
-	var scripts := root.path_join(".venv-g2").path_join("Scripts")
-	var pyw := scripts.path_join("pythonw.exe")
-	var py := scripts.path_join("python.exe")
-	var exe := pyw if FileAccess.file_exists(pyw) else py
-	if not FileAccess.file_exists(exe):
-		return false
-	var args := PackedStringArray([script, "--port", str(WORKBENCH_PORT)])
-	if OS.create_process(exe, args, false) < 0:
-		return false
-	_backend_launched = true
-	return true
+	_backend_launched = RandomRuntime.launch_compatible_backend()
+	return _backend_launched
 
 
 func _probe_workbench() -> bool:
@@ -1261,6 +1548,8 @@ func _probe_workbench() -> bool:
 		var data := await _http_json(_api, HTTPClient.METHOD_GET, url + "/api/bootstrap")
 		if data.is_empty() or not data.has("version"):
 			continue
+		if not RandomRuntime.compatible_bootstrap(data):
+			continue
 		_workbench_url = url
 		_boot = data
 		_jobs = data.get("jobs", [])
@@ -1268,7 +1557,8 @@ func _probe_workbench() -> bool:
 			_jobs = _jobs.duplicate()
 		else:
 			_jobs = []
-		_meta.text = "256 × 256 m    4 人对战    本地服务 · G2 %s" % str(data.get("version", ""))
+		var world_size: Array = data.get("fixed", {}).get("world_size_m", [256, 256])
+		_meta.text = "%d × %d m    4 人对战    本地服务 · G2 %s" % [int(world_size[0]), int(world_size[1]), str(data.get("version", ""))]
 		_set_caption("服务已连接", "可以在本页生成完整地图或快速预览地形", SystemUIStyle.GREEN)
 		_refresh_chips()
 		var active := str(data.get("active", ""))
@@ -1368,7 +1658,8 @@ func _on_back_pressed() -> void:
 	var dest := "res://source/main-menu/Play.tscn" if return_to_setup \
 		else "res://source/main-menu/Main.tscn"
 	return_to_setup = false
-	get_tree().change_scene_to_file(dest)
+	# 【2026-10-11 修复】ESC 闪退：同步切场景改为帧末（同 Options 页修复）。
+	get_tree().change_scene_to_file.call_deferred(dest)
 
 
 func _on_escape() -> bool:

@@ -21,6 +21,8 @@ const MatchSettings = preload("res://source/data-model/MatchSettings.gd")
 const PlayerSettings = preload("res://source/data-model/PlayerSettings.gd")
 const LoadingScene = preload("res://source/main-menu/Loading.tscn")
 const OptionsScene = preload("res://source/main-menu/Options.tscn")
+## 战略模式（测试）：封闭战略讨论房间（不创建对局，2026-10-05）。
+const StrategicSandboxScenePath := "res://source/main-menu/StrategicSandboxPage.tscn"
 
 const MODE_OFFLINE := "offline"
 const MODE_ONLINE := "online"
@@ -175,11 +177,16 @@ func _apply_mode() -> void:
 	_local_host_button.visible = false
 	_start_button.text = "立即开局（房主开局）" if online else "开始游戏"
 	_map_hint.text = "仅房主可修改地图" if online else "地图可自由切换"
-	_random_map_button.visible = not online
+	# 【2026-10-11 用户要求】下线「随机地图」入口：成品包/评委机没有 mapgen 环境，
+	# 点了必然生成失败（或长时间等待后兜底旧图），体验极差。节点与状态逻辑保留
+	# （tscn 连接、_set_random_map_mode 不动），仅按钮永不可见 → 没有任何入口能
+	# 把 _random_map_mode 置真。要恢复入口：把下面这行改回 `visible = not online`。
+	_random_map_button.visible = false
+	_setup_sandbox_button(not online and not _random_map_mode)
 	if online:
 		_hint.text = "对局一律走腾讯云权威服。房主可改地图、增删 AI，并点「立即开局」开始对局。"
 	else:
-		_hint.text = "选择地图与槽位后点「开始游戏」。点「随机地图」只是选中随机模式，开局时才会生成。"
+		_hint.text = "选择地图与槽位后点「开始游戏」。"
 		_map_select.disabled = false
 
 
@@ -241,6 +248,9 @@ func _on_random_map_toggled(pressed: bool) -> void:
 
 func _set_random_map_mode(enabled: bool) -> void:
 	_random_map_mode = enabled
+	if _sandbox_button != null and is_instance_valid(_sandbox_button):
+		_sandbox_button.disabled = enabled
+		_sandbox_button.tooltip_text = "战略模式需要先选择具体地图；随机地图要在开局时才生成" if enabled else "进入封闭战略讨论，不创建对局"
 	if _random_map_button.button_pressed != enabled:
 		_random_map_button.set_pressed_no_signal(enabled)
 	_map_select.disabled = enabled and mode != MODE_ONLINE
@@ -248,7 +258,7 @@ func _set_random_map_mode(enabled: bool) -> void:
 		_hint.text = "已进入随机地图模式。点「开始游戏」后才会生成并进入对局。"
 		_map_hint.text = "开局时现生成，现在还没有这张图"
 	elif mode != MODE_ONLINE:
-		_hint.text = "选择地图与槽位后点「开始游戏」。点「随机地图」只是选中随机模式，开局时才会生成。"
+		_hint.text = "选择地图与槽位后点「开始游戏」。"
 		_map_hint.text = "地图可自由切换"
 	_refresh_map_view()
 
@@ -542,6 +552,61 @@ func _on_slot_toggle_pressed(slot: int) -> void:
 
 
 # ---------------- 返回 / ESC / 设置面板（主菜单统一契约） ----------------
+
+## 战略模式（测试）按钮（2026-10-05）：offline 模式专属，插在 BackButton 之前。
+var _sandbox_button: Button = null
+
+
+## 【2026-10-06】实验开关：默认关闭 ⇒ 战略模式入口整体封禁 ✓（代码保留 ✓ 可一键恢复 ✓）
+func _strategic_sandbox_enabled() -> bool:
+	var flags := get_node_or_null("/root/FeatureFlags")
+	return flags != null and bool(flags.get("strategic_sandbox_enabled"))
+
+
+func _setup_sandbox_button(show: bool) -> void:
+	# 【2026-10-05 改为 .tscn 硬编码节点】按钮在 .tscn 里静态存在，
+	# 这里只控制可见性（offline 显示、online 隐藏），探针可通过节点路径直接找到。
+	var btn: Button = get_node_or_null("CenterContainer/PanelContainer/MarginContainer/VBoxContainer/SandboxButton")
+	if btn == null:
+		return
+	_sandbox_button = btn
+	# 【2026-10-06 封禁实验功能】开关关闭 ⇒ 隐藏 + 禁用（场景里那条 pressed 连接也一并断开 ✓）
+	var experimental_on := _strategic_sandbox_enabled()
+	btn.visible = show and experimental_on
+	btn.disabled = not experimental_on
+	if experimental_on:
+		if not btn.pressed.is_connected(_on_sandbox_pressed):
+			btn.pressed.connect(_on_sandbox_pressed)
+	elif btn.pressed.is_connected(_on_sandbox_pressed):
+		btn.pressed.disconnect(_on_sandbox_pressed)
+
+
+func _on_sandbox_pressed() -> void:
+	# 【2026-10-06 封禁实验功能·第二道闸】即使被程序化触发也拒绝 ✓
+	if not _strategic_sandbox_enabled():
+		push_warning("[StrategicSandbox] 实验功能已关闭（FeatureFlags.strategic_sandbox_enabled=false）")
+		return
+	# 【2026-10-06 阶段 2A 第 1 条】必须把**当前选择的具体地图**带进战略模式：
+	# 旧写法 change_scene_to_file 不传任何上下文 ⇒ 页面永远退回默认地图（实测确认 ✗）。
+	# 这里改为「实例化 → 赋 map_path → 挂 root → 设 current_scene」，
+	# 与 Play.gd 的开局链路同一套写法（current_scene 必须是 root 的子节点，否则 Godot 拒绝赋值）。
+	if NetSession.is_networked() and not NetSession.is_dedicated_server():
+		NetSession.disconnect_session()
+	if _random_map_mode:
+		# 随机地图没有确定场景可供战前分析：按钮本就禁用，这里再兜一层，杜绝"临时生成一张图冒充已选地图"。
+		push_warning("[StrategicSandbox] 随机地图模式不可进入战前讨论（需要先选择具体地图）")
+		return
+	var chosen := selected_map_path()
+	if chosen.is_empty():
+		push_warning("[StrategicSandbox] 未选择具体地图，拒绝进入战前讨论")
+		return
+	print("[StrategicSandbox] 进入战前战术讨论室 map_path=%s" % chosen)
+	var page: Node = load(StrategicSandboxScenePath).instantiate()
+	page.set("map_path", chosen)
+	get_tree().root.add_child(page)
+	get_tree().current_scene = page
+	queue_free()
+
 
 func _on_back_button_pressed() -> void:
 	# 返回在任何连接状态下都必须生效；先断会话（幂等安全），切场景排到帧末。
