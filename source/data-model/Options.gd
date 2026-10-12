@@ -230,7 +230,8 @@ func _sanitize_resolution(value) -> Vector2i:
 
 
 func _apply_mouse_restricted():
-	if mouse_restricted:
-		Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
-	else:
-		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+	# 【2026-10-12】不再使用 MOUSE_MODE_CONFINED：它依赖系统 ClipCursor，而导出版进程是
+	# SystemAware——在显示缩放（125%/150%）机器上 clip 矩形与窗口物理区域错位，光标会
+	# "漏出"窗口，且漏出后的点击被游戏吞掉（朋友在笔记本上实测）。改由 MouseClamp
+	# autoload 在 Godot 虚拟坐标系内逐帧钳制，对任何 DPI 缩放都正确。
+	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
