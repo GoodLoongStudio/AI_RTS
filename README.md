@@ -27,9 +27,11 @@ Godot .NET 正交俯视 RTS。地图生成管线在本仓库 `tools/mapgen`，�
 
 1. 安装 Python 3.11+
 2. 在 `tools/mapgen` 跑 `.\setup.ps1`
-3. 游戏内「地图生成」，或 `python serve_g2.py --port 8766`
+3. **开发态**在 Godot 编辑器运行游戏后使用「地图生成」，或直接运行 `python serve_g2.py --port 8766`。**非编辑器发布包隐藏地图生成入口**，单机大厅的「随机地图」按钮也暂时隐藏；玩家可使用已安装地图。
 
 本机 Godot 路径可写环境变量 `RTSMAP_GODOT`，或放 `tools/mapgen/rtsmap/workbench/engine.local.json`（已 gitignore）。
+
+完整的文档与代码一致性差异见 [2026-10-13 审计](docs/程序文档/文档与实现差异审计_2026-10-13.md)。
 
 ## GitHub
 
