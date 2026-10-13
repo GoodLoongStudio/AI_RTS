@@ -1,5 +1,23 @@
 # Changelog
 
+## [2026-10-13 - Post-merge implementation/documentation synchronization]
+
+### Added / changed
+
+- Merged `yyp_test` into `main` via [PR #11](https://github.com/GoodLoongStudio/AI_RTS/pull/11), preserving the main branch history and the six previously unmerged commits; three C# construction integration fixes were added before merging.
+- Added zero-worker capable `Automatic`/`Hybrid` construction progress paths, authoritative one-active-construction-site placement checks, completed-command-center rate adapter and data-driven resource regeneration. **These are distinct from activation:** the current demo enables automatic construction and basic mineral regeneration, but does not configure the extra-command-center speed bonus or regeneration delay growth.
+- Fixed in-progress blueprint replacement when switching construction choices; added `BlueprintSwitchSmokeTest` to the regression suite.
+- Fixed several menu ESC return transitions, mouse-window clamping and map workbench exit loop handling; kept the map generator available in editor workflows but hid its entry from non-editor builds, and hid the single-player random-map button. The main-menu online matching button remains hidden despite preserving multiplayer code and test entry points.
+- Continued map-generation workbench, UI/HUD, match history, AI self-play metrics and fixed-seed regression infrastructure in the merged changes; their presence does not independently prove full end-to-end gameplay acceptance.
+- Added [2026-10-13 documentation-to-implementation audit](docs/程序文档/文档与实现差异审计_2026-10-13.md) and updated current documentation navigation and planning rule notes.
+
+### Validation and known issues
+
+- PR #11: Godot C# Debug and Release builds passed after adapter integration fixes. This is **not** an all-green release.
+- PR #11 C# test run still failed 21 cases (structure placement 1, production 3, balance configuration 17); the Legacy GDScript authority audit reported 24 unregistered writes. These failures remain open and were not suppressed or waived.
+- No new Godot real-play/manual acceptance was performed for this documentation-only synchronization. See the audit for source paths, release visibility and code-vs-configuration distinctions.
+
+
 ## [2026-09-25 - Canonical planning sync]
 
 ### Added
@@ -28,7 +46,7 @@
 - Growth progression already awards persistent points from match outcomes and applies data-driven upgrades; further growth breadth is deprioritized until the campaign objective loop is complete.
 - Voice narration/output exists, while microphone/STT command input remains a planned capability rather than an implemented feature.
 
-## [Unreleased - C# refactor]
+## [Unreleased - C# refactor; historical summary]
 
 ### Added
 
