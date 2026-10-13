@@ -33,6 +33,8 @@ public partial class StructurePlacementRuntime : Node
         _service = new StructurePlacementService(
             _definitions,
             new AllowRegisteredStructurePlacementAuthorization(),
+            new GodotStructurePlacementConstructionStatePort(
+                _commands.Construction, _economy.MatchId),
             _world,
             _economy.AccountService);
     }
