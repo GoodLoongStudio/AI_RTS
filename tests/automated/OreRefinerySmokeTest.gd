@@ -21,7 +21,7 @@ var _match: Node = null
 
 
 func _ready():
-	get_tree().create_timer(240.0).timeout.connect(_on_failsafe)
+	get_tree().create_timer(400.0).timeout.connect(_on_failsafe)  # 见第 4 节：首车要等乒乓重接，240s 会撞看门狗
 	_match = MatchScene.instantiate()
 	add_child(_match)
 	await get_tree().process_frame
@@ -88,10 +88,17 @@ func _ready():
 	# 一车 400 矿 × 120ms/单位 = 48 秒才装满，再算上路程，所以轮询等待而不是定长。
 	var ore_before: int = _world_ore_total()
 	var balance_before: int = human.resource_a
+	# 预算 260 秒而不是 150 秒：矿场指派与规则中台的采集令会互相顶
+	# （`_supervise_assigned` 在工人拿到权威订单时让位 → 冷却 20 秒 → 再接管），
+	# 首车因此比"单指派人"模型慢。上一版 150 秒的窗口里交付**确实发生了、只是落在断言之后**
+	# （日志第 2381 行 `[GATHER] 交付 resource_a=400`，FAIL 打印在第 2237 行），
+	# 那是把"慢"误判成"坏"。这里等够并把乒乓代价打印出来，让成本可见而不是被超时掩盖。
 	var income_waited := 0.0
-	while human.resource_a <= balance_before and income_waited < 150.0:
+	while human.resource_a <= balance_before and income_waited < 260.0:
 		await _ticks(5.0)
 		income_waited += 5.0
+	print("[REFINERY-TIMING] 首车等待 %.0fs；接管计数=%d（含被规则令顶掉后的重接，乒乓代价可见）"
+		% [income_waited, refinery.takeover_count])
 	var ore_after: int = _world_ore_total()
 	_check(ore_after < ore_before, "矿点存量必须被真实采掉（%d → %d）" % [ore_before, ore_after])
 	_check(
@@ -116,10 +123,94 @@ func _ready():
 			"释放名额时必须清掉指派标记（否则他后续仍把货交给这坐矿场）"
 		)
 
-	# 6) 矿场被摧毁 → 全部指派解除，工人回退默认行为。
+	# 6) 矿点耗尽 → 换点，不许在空矿旁罚站（提示词 8.3）。
+	# 判据是"工人转去采另一颗矿点、并且继续交付"，不是"矿场口头宣布换点了"。
+	# 先清场：把上一节释放掉的两座矿场之外的矿点关系理顺，只留脚下这一组。
+	var swap_refinery = _spawn_refinery(Vector3(60.0, 0.0, 60.0), human)
+	swap_refinery.service_radius_m = 18.0
+	swap_refinery.worker_capacity = 1
+	swap_refinery.claim_interval_s = 0.2
+	# 小存量矿点：按 120ms/单位的采集速度，约十几秒就被采空——等自然采空比造假数据可信。
+	var near_ore = _spawn_ore(Vector3(66.0, 0.0, 60.0), 120)
+	var far_ore = _spawn_ore(Vector3(54.0, 0.0, 60.0), 4000)
+	var swap_worker = _spawn_worker(Vector3(60.0, 0.0, 66.0), human)
+	await _ticks(3.0)
+	_check(
+		swap_refinery.assigned_workers().size() == 1,
+		"换点测试：矿场应接管 1 名工人（实际 %d）" % swap_refinery.assigned_workers().size()
+	)
+	var depleted_waited := 0.0
+	while int(near_ore.get("resource_a")) > 0 and depleted_waited < 90.0:
+		await _ticks(3.0)
+		depleted_waited += 3.0
+	_check(
+		int(near_ore.get("resource_a")) <= 0,
+		"近处矿点应在 90 秒内被真实采空（剩余 %d）" % int(near_ore.get("resource_a"))
+	)
+	_check(not near_ore.is_queued_for_deletion(), "再生启用时采空不得删除矿点实体")
+	_check(bool(near_ore.get("depleted")), "采空后矿点应进入 depleted（耗尽等待）状态")
+	# 采空以后：矿场必须把**另一颗有矿的矿点**当目标，而不是继续指空矿。
+	await _ticks(2.0)
+	_check(
+		swap_refinery.has_serviceable_ore(),
+		"近点采空后矿场仍应有可采矿点（远处矿点在服务半径内）"
+	)
+	_check(
+		swap_refinery._nearest_ore(swap_refinery.global_position) == far_ore,
+		"矿场换点目标必须是仍有资源的那颗矿点（实际 %s）"
+		% str(swap_refinery._nearest_ore(swap_refinery.global_position))
+	)
+
+	# 7) 再生 → 重新发现可采点 → 重新派工 → 交付继续增长（提示词 8.3 + §6「再生后恢复采集」）。
+	# 这里直接调 `apply_regeneration` 把矿点恢复，是为了把"矿场侧对资源状态变化的反应"
+	# 单独钉住；再生驱动器本身的两个周期/暂停/幂等由 OreRegenerationSmokeTest 负责。
+	# 关键回归点：如果矿场把"空矿"永久缓存下来，矿长回来了它也不会再派人去采。
+	var deliveries_before: int = int(swap_refinery.delivery_stats().get("delivered_count", 0))
+	var balance_before_regen: int = human.resource_a
+	near_ore.apply_regeneration(600)
+	_check(int(near_ore.get("resource_a")) > 0, "再生应把矿量写回矿点存量")
+	_check(not bool(near_ore.get("depleted")), "再生后矿点应回到可采状态")
+	await _ticks(4.0)
+	_check(
+		swap_refinery.assigned_workers().size() >= 1,
+		"再生后矿场应重新有合资格工人在册（实际 %d）" % swap_refinery.assigned_workers().size()
+	)
+	var regen_waited := 0.0
+	while (
+		int(swap_refinery.delivery_stats().get("delivered_count", 0)) <= deliveries_before
+		and human.resource_a <= balance_before_regen
+		and regen_waited < 150.0
+	):
+		await _ticks(5.0)
+		regen_waited += 5.0
+	_check(
+		int(swap_refinery.delivery_stats().get("delivered_count", 0)) > deliveries_before
+		or human.resource_a > balance_before_regen,
+		"再生后必须再次发生真实交付（交付 %d→%d，账户 %d→%d）" % [
+			deliveries_before,
+			int(swap_refinery.delivery_stats().get("delivered_count", 0)),
+			balance_before_regen,
+			human.resource_a,
+		]
+	)
+	# 玩家/显式订单优先：给在册工人下一条显式采集令，矿场必须让路而不是抢人。
+	var busy_worker = (
+		swap_refinery.assigned_workers()[0]
+		if not swap_refinery.assigned_workers().is_empty() else swap_worker
+	)
+	var busy_gateway = human.get_node("UnitCommandGateway")
+	busy_gateway.MoveUnits([busy_worker], Vector3(80.0, 0.0, 80.0), human)
+	await _ticks(2.0)
+	_check(
+		not swap_refinery.assigned_workers().has(busy_worker),
+		"显式订单必须立刻让矿场放手（玩家接管优先）"
+	)
+
+	# 8) 矿场被摧毁 → 全部指派解除，工人回退默认行为。
 	refinery.queue_free()
 	second.queue_free()
 	barren.queue_free()
+	swap_refinery.queue_free()
 	await _ticks(2.0)
 	for worker in workers:
 		_check(not worker.has_meta(ASSIGNMENT_META), "矿场消失后工人不得残留指派标记")

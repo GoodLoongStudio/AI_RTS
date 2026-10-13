@@ -152,9 +152,32 @@ func _update_feedback_label(blueprint_position_validity):
 			_feedback_label.text = tr("BLUEPRINT_NOT_VISIBLE")
 
 
+## 待放置原型与新请求是否为同一个建筑（同资源路径即视为同一个）。
+##
+## 用资源路径而不是 `==`：`load()` 与 `preload()` 虽然共用资源缓存，但一旦缓存被释放、
+## 或调用方分别用路径字符串/PackedScene 传入，引用比较就会误判成"换了建筑"，
+## 于是重复点同一个图标也会重建蓝图 —— 把玩家已经摆好的位置与朝向抖掉。
+func _is_same_pending_prototype(candidate) -> bool:
+	if _pending_structure_prototype == null or candidate == null:
+		return false
+	if _pending_structure_prototype == candidate:
+		return true
+	if not (_pending_structure_prototype is Resource) or not (candidate is Resource):
+		return false
+	var pending_path: String = _pending_structure_prototype.resource_path
+	return pending_path != "" and pending_path == candidate.resource_path
+
+
 func _start_structure_placement(structure_prototype):
 	if _structure_placement_started():
-		return
+		# 【2026-09-28 用户报障修复·勿回退】放置模式已激活时再点另一个建筑图标，
+		# 必须把待放置蓝图**换成新建筑**（红警式：点哪个就摆哪个）。
+		# 此前这里无条件 `return`，请求被静默丢弃：玩家先点机场、改主意点对空炮，
+		# 蓝图仍是机场、界面也没有任何提示 —— 表现就是"点了没反应 / 没有切换"。
+		# 同一建筑重复点保持现状：不重建节点，免得把已摆好的位置与朝向抖掉。
+		if _is_same_pending_prototype(structure_prototype):
+			return
+		_cancel_structure_placement()
 	_pending_structure_prototype = structure_prototype
 	_pending_construction_workers = get_tree().get_nodes_in_group("selected_units").filter(
 		func(unit):

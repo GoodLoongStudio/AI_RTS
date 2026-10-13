@@ -152,7 +152,7 @@ func _on_lobby_updated(slots: Array) -> void:
 
 
 func _on_start_button_pressed() -> void:
-	# 立即开局 = 正式单人对局：不隐式添加 AI，开局仅主基地+1无人机+2工人。
+	# 立即开局 = 正式单人对局：不隐式添加 AI；开局仅主基地+1无人机（2026-09-28 红警2 口径：不再送工人，矿车由车厂生产/矿场赠送）。
 	# 需要电脑时由房主先在大厅槽位显式添加 AI，再点击此按钮。
 	NetSession.start_solo(false, false)
 

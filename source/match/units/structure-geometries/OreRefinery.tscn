@@ -1,14 +1,40 @@
-[gd_scene load_steps=4 format=3 uid="uid://c0r3r3f1n3rya1"]
+[gd_scene load_steps=7 format=3 uid="uid://c0r3r3f1n3rya1"]
 
-[ext_resource type="PackedScene" path="res://assets/models/polygon-scifi/SM_Bld_Pod_Hab_Large_01.fbx" id="1_model"]
-[ext_resource type="Texture2D" uid="uid://n5jvo5mqogyr" path="res://assets/models/polygon-scifi/PolygonScifiWorlds_Texture_01_A.png" id="2_atlas"]
+[ext_resource type="PackedScene" uid="uid://dunq6ov5k2mh6" path="res://assets/models/scifi-worlds/4006_科幻世界/PolygonSciFiWorlds/Models/SM_Bld_Scav_Refinery_01.fbx" id="1_main"]
+[ext_resource type="Texture2D" uid="uid://b4ua7v1si1ujq" path="res://assets/models/scifi-worlds/4006_科幻世界/PolygonSciFiWorlds/Models/PolygonScifiWorlds_Texture_01_A.png" id="2_atlas"]
 [ext_resource type="Script" path="res://source/match/units/SyntyMaterialBinder.gd" id="3_binder"]
+[ext_resource type="PackedScene" uid="uid://bl13l4yus6i2a" path="res://assets/models/scifi-worlds/4041_西部土著/PolygonWesternFrontier/Models/SM_Prop_Gold_Nugget_01.fbx" id="4_nugget"]
+[ext_resource type="Texture2D" uid="uid://buspyc7hkmbpj" path="res://assets/models/scifi-worlds/4041_西部土著/PolygonWesternFrontier/Models/PolygonWesternFrontier_Texture_01_A.png" id="5_atlas_wf"]
+[ext_resource type="Script" path="res://source/match/units/SyntyMaterialBinder.gd" id="6_binder_wf"]
 
 [node name="Geometry" type="Node3D"]
 
-[node name="SM_Bld_Pod_Hab_Large_01" parent="." instance=ExtResource("1_model")]
-transform = Transform3D(0.13, 0, 0, 0, 0.13, 0, 0, 0, 0.13, 0, 0.12, 0)
+[node name="SyntyParts" type="Node3D" parent="."]
 
-[node name="SyntyMaterialBinder" type="Node" parent="."]
+[node name="MainRefinery" parent="SyntyParts" instance=ExtResource("1_main")]
+; 2026-09-29 用户口径"不能有建筑比主基地大"：主基地视觉 13.9m 宽 / 8.26m 高
+; （Pod_Research_05 原生 38.65×22.95 × 0.36），矿场取 0.16 → 11.6m 宽 / 7.86m 高，
+; 宽高均严格小于主基地，也仍小于 9.8m 的放置占地半径。
+transform = Transform3D(0.16, 0, 0, 0, 0.16, 0, 0, 0, 0.16, 0, 0.01, 0)
+
+[node name="SyntyMaterialBinder" type="Node" parent="SyntyParts"]
 script = ExtResource("3_binder")
 albedo_texture = ExtResource("2_atlas")
+
+[node name="OreCluster" type="Node3D" parent="."]
+
+[node name="SyntyMaterialBinder" type="Node" parent="OreCluster"]
+script = ExtResource("6_binder_wf")
+albedo_texture = ExtResource("5_atlas_wf")
+
+[node name="ChunkIntake" parent="OreCluster" instance=ExtResource("4_nugget")]
+transform = Transform3D(2.9002, 0, -1.3523, 0, 3.2, 0, 1.3523, 0, 2.9002, 2.7, 0.11, 2.3)
+
+[node name="ChunkBack" parent="OreCluster" instance=ExtResource("4_nugget")]
+transform = Transform3D(-2.6312, 0, 0.9576, 0, 2.8, 0, -0.9576, 0, -2.6312, -2.3, 0.1, 2.7)
+
+[node name="ChipSide" parent="OreCluster" instance=ExtResource("4_nugget")]
+transform = Transform3D(1.2856, 0, 1.5321, 0, 2, 0, -1.5321, 0, 1.2856, 2.8, 0.08, -0.9)
+
+[node name="RubbleSpill" parent="OreCluster" instance=ExtResource("4_nugget")]
+transform = Transform3D(0.9317, 0, -3.4773, 0, 3.6, 0, 3.4773, 0, 0.9317, -2.5, 0.12, -2.3)

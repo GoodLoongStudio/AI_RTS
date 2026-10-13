@@ -1,7 +1,10 @@
 extends "res://source/match/units/non-player/ResourceUnit.gd"
 
-const MATERIAL_ALBEDO_TO_REPLACE = Color(0.4687, 0.944, 0.7938)
-const MATERIAL_ALBEDO_TO_REPLACE_EPSILON = 0.05
+## 矿点 B：与 A 同一套金矿块外观（2026-09-28 与 ResourceA.tscn 一起换型）。
+##
+## 材质说明同 ResourceA.gd：外观来自 4041 图集（SyntyMaterialBinder 绑定），
+## 不再走"薄荷绿 → 资源色"替换。B 目前不在任何地图/导出入口里出现
+## （g4_export 只导 A），保留场景只为与 A 保持一致，避免"改了一边忘了另一边"。
 
 @export var resource_b = 30000:
 	set(value):
@@ -17,16 +20,3 @@ const MATERIAL_ALBEDO_TO_REPLACE_EPSILON = 0.05
 var color = Constants.Match.Resources.B.COLOR:
 	set(_value):
 		pass
-
-
-func _ready():
-	super()
-	_setup_mesh_colors()
-
-
-func _setup_mesh_colors():
-	# gdlint: ignore = function-preload-variable-name
-	var material = preload(Constants.Match.Resources.B.MATERIAL_PATH)
-	Utils.Match.traverse_node_tree_and_replace_materials_matching_albedo(
-		self, MATERIAL_ALBEDO_TO_REPLACE, MATERIAL_ALBEDO_TO_REPLACE_EPSILON, material
-	)

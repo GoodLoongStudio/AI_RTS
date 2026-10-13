@@ -23,6 +23,11 @@ const MENU_SCENES := [
 
 var _player: AudioStreamPlayer
 var _fade_tween: Tween = null
+## 还在场景树里的 Match.tscn 根节点数（>0 = 对局进行中，含胜负结算画面）。
+## 用 node_added/node_removed 计数而不是收局信号置标志：对局可能挂在 Loading
+## 之下或测试夹具里（深度不定），换场景时"旧场景销毁 vs 新场景入树"的顺序
+## 也不值得赌；而"对局场景还在树上时出现的菜单场景必是内嵌面板"与两者都无关。
+var _match_scenes := 0
 
 
 func _ready():
@@ -32,6 +37,7 @@ func _ready():
 	_player.bus = "Music"
 	add_child(_player)
 	get_tree().node_added.connect(_on_node_added)
+	get_tree().node_removed.connect(_on_node_removed)
 	# 进入对局以 match_started 为准（测试夹具嵌套实例的 scene_file_path 不可靠）
 	MatchSignals.match_started.connect(_fade_out_and_stop)
 	# headless（回归 / 专用服 / CI）不加载也不播放主菜单 BGM（2026-09-14）：
@@ -57,8 +63,19 @@ func _on_node_added(node: Node):
 	var scene_path := str(node.scene_file_path)
 	if scene_path.is_empty():
 		return
-	if scene_path in MENU_SCENES and not _player.playing:
+	if scene_path.ends_with("/Match.tscn"):
+		_match_scenes += 1
+	# 【2026-09-28 修双 BGM 冲突】对局场景还在树上时出现的"菜单场景"不是回到菜单：
+	# ESC 暂停菜单的「设置」面板就是原封的 Options.tscn（也在下面白名单里），
+	# 一 add_child 就会把主题 BGM 拉起来叠在对局 BGM（MusicDirector）上，
+	# 且 match_started 是一次性信号、主题 BGM 一旦误起就再没人叫停。
+	if scene_path in MENU_SCENES and _match_scenes == 0 and not _player.playing:
 		_fade_in_and_play()
+
+
+func _on_node_removed(node: Node):
+	if str(node.scene_file_path).ends_with("/Match.tscn"):
+		_match_scenes = maxi(0, _match_scenes - 1)
 
 
 func _fade_out_and_stop():

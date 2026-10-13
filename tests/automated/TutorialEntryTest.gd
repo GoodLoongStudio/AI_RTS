@@ -5,6 +5,8 @@ extends Node
 ## ESC（global.cancel）关闭教学页回到暂停菜单 → 再 ESC 回到游戏。
 
 const MatchSettings = preload("res://source/data-model/MatchSettings.gd")
+## TutorialPage 无 class_name（避免全局命名空间污染），按脚本对象比较。
+const TutorialScript = preload("res://source/match/TutorialPage.gd")
 
 var _failures := 0
 
@@ -108,6 +110,12 @@ func _ready():
 	menu._close()
 	await get_tree().process_frame
 	_check(not menu.visible, "收尾：暂停菜单应关闭")
+
+	# ---- 首页入口由 TutorialMainEntryTest 在干净进程里验证 ----
+	# 不在这里把 Main.tscn 塞进还挂着 Match 的树：主菜单会自动触发随机地图
+	# 生成任务（AUTOSPOT 搜索），把本测试进程拖住。分工见
+	# tests/automated/TutorialMainEntryTest.gd（同一张教学页的非嵌入模式）。
+
 
 	_finish()
 

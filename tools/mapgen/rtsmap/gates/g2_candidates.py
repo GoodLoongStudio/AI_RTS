@@ -2,10 +2,18 @@
 import atexit
 import os
 from concurrent.futures import ProcessPoolExecutor
+try:  # 3.8+ 在包命名空间导出；更早版本只存在于子模块
+    from concurrent.futures import BrokenProcessPool
+except ImportError:  # pragma: no cover - 取决于本机 Python 版本
+    from concurrent.futures.process import BrokenProcessPool
 
 from ..rng import gate_rng
 
 _pool = None
+# worker 进程被操作系统杀掉（本机内存紧张时实测发生）后 ProcessPoolExecutor 会
+# 永久判死 —— 任其抛出会让整张图变成"未生成"。置此标志后改走串行：慢几分钟，
+# 但至少出图。见 candidates() 的降级分支。
+_pool_broken = False
 
 
 def evaluate(seed, stream, attempt, starts, params):
@@ -69,7 +77,7 @@ def ensure_pool(limit=4):
 
 
 def candidates(seed, stream, starts, params):
-    global _pool
+    global _pool, _pool_broken
     limit = int(params['layout_attempts'])
     # 各轮候选**一次性全并行**，按 index 顺序取结果（确定性不变）：
     # 改前是「第 0 轮串行跑 + 其余按 3 个一批」，4 轮要 3 个批次；
@@ -79,13 +87,37 @@ def candidates(seed, stream, starts, params):
         for attempt in range(limit):
             yield evaluate(seed, stream, attempt, starts, params)
         return
+    if _pool_broken:
+        # 本进程内曾有过 worker 被杀：不再并行，直接串行跑完（结果顺序与结果本身不变）。
+        for attempt in range(limit):
+            yield evaluate(seed, stream, attempt, starts, params)
+        return
     if _pool is None:
         _pool = ProcessPoolExecutor(max_workers=workers, initializer=_initialize)
     step = max(1, int(getattr(_pool, "_max_workers", workers) or workers))
     for start in range(0, limit, step):
-        futures = [_pool.submit(evaluate, seed, stream, k, starts, params)
-                   for k in range(start, min(limit, start+workers))]
+        window = list(range(start, min(limit, start + workers)))
         # Always select by candidate index, never completion order.
-        results = [f.result() for f in futures]
+        # submit 本身也可能抛 BrokenProcessPool（池在更早的时刻就已经坏了），
+        # 所以提交与取结果要一起包住，只包 result() 等于没包。
+        try:
+            futures = [_pool.submit(evaluate, seed, stream, k, starts, params)
+                       for k in window]
+            results = [f.result() for f in futures]
+        except BrokenProcessPool:
+            # worker 进程被系统杀掉（本机内存不足时实测：几分钟前还能并行的
+            # 任务，之后报 "A child process terminated abruptly"）。此时池已
+            # 永久不可用，若照旧抛出，整张图会被判成"未生成"——用户看到的
+            # 就是一片无用记录。改为就地串行补算本批候选，并置标志让后续批次
+            # 不再并行：慢，但确定出图。
+            _pool_broken = True
+            try:
+                shutdown()
+            except Exception:
+                # 坏死的池拖垮时也可能在 shutdown 里报错：无论如何把引用清掉，
+                # 后续候选都走上面的串行分支。
+                _pool = None
+            results = [evaluate(seed, stream, k, starts, params)
+                       for k in range(start, min(limit, start + workers))]
         for result in results:
             yield result

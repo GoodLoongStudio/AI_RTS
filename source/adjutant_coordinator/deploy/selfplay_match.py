@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import collections
 import json
+import math
 import os
 import shutil
 import sys
@@ -30,10 +31,14 @@ RECON = r"G:\AIRTS\tmp_logs\langgraph_recon"
 sys.path.insert(0, RECON)
 
 import dev_ports as PORTS  # noqa: E402
-import restart_local as _rl  # noqa: E402
-from restart_local import AI, LOGS, dcs, kill_our_game, spawn, tcp_listening  # noqa: E402
-from runner_ctl import start as start_runner, stop as stop_runner  # noqa: E402
 
+# 【端口必须在 import restart_local 之前定死】2026-09-27 实测事故：
+# 原顺序是先 `import restart_local`（它按 `AIRTS_TEST_BASE` 的默认值 24569 固化
+# GAME/CLIENT/SERVER 三个常量），之后才把 BASE 设成验收段 24589。
+# 后果是"检查的是 24589 专用段、实际起游戏用的是 24569 面板默认段"，
+# 而 `kill_our_game()` 又按端口匹配进程 ⇒ 两路并行会话会互相杀对方的局
+# （dev_ports 顶部 2026-09-13 血案注释写的正是这件事）。
+# 今天 3 个筛查种子报 rc=2「对局未开始」也是这个根因：客户端连上的是别人的服务器。
 BASE = int(os.environ.get("AIRTS_TEST_BASE") or PORTS.acceptance_base())
 os.environ["AIRTS_TEST_BASE"] = str(BASE)
 _ok, _why = PORTS.check_acceptance_base(BASE)
@@ -41,10 +46,19 @@ if not _ok:
     raise SystemExit("[selfplay] " + _why)
 print("[selfplay] %s" % _why, flush=True)
 
+import restart_local as _rl  # noqa: E402
+from restart_local import AI, LOGS, dcs, kill_our_game, spawn, tcp_listening  # noqa: E402
+from runner_ctl import start as start_runner, stop as stop_runner  # noqa: E402
+
 # 端口口径与 restart_local 完全一致（GAME/CLIENT/SERVER = base/+1/+3）。
 GAME_PORT = _rl.GAME_PORT
 CLIENT_PORT = _rl.CLIENT_PORT
 SERVER_PORT = _rl.SERVER_PORT
+# 自检：这三个常量必须真的是验收段的端口。若哪天 import 顺序又被改回去，
+# 这里直接响，而不是安静地去连别人那一局的服务器。
+if (GAME_PORT, CLIENT_PORT, SERVER_PORT) != (BASE, BASE + 1, BASE + 3):
+    raise SystemExit("[selfplay] 端口段与 BASE 不一致：base=%d，实际 %d/%d/%d"
+                     % (BASE, GAME_PORT, CLIENT_PORT, SERVER_PORT))
 OUT = os.path.join(RECON, "selfplay")
 HUD = os.environ.get("AIRTS_RUNNER_HUD") or os.path.join(OUT, "hud")
 os.environ["AIRTS_RUNNER_HUD"] = HUD
@@ -85,6 +99,195 @@ def _own_snapshot():
     except Exception as exc:  # noqa: BLE001
         return {"__error": str(exc)}
     return snap or {}
+
+
+def _pick_scout(snap: dict):
+    """挑一个己方可移动单位去探（无人机优先）。
+
+    【为什么不是工人】实测 fs_ref9：改派工人当侦察后，它连续三次采样都钉在
+    (24.7, 29.0) 一动不动——规则副官每一拍都在给它下采集令，把玩家的移动令顶掉了。
+    无人机没有经济任务，实测 100 秒内从基地走了 ~170 米到达远端矿点（fs_ref5/6/8）。
+    """
+    candidates = [e for e in (snap.get("entities") or [])
+                  if str(e.get("kind", "")) == "unit_self"
+                  and e.get("movement") or str(e.get("unit_type", "")) in ("drone", "worker")]
+    for want in ("drone", "worker"):
+        for entity in candidates:
+            if str(entity.get("unit_type", "")) == want:
+                return str(entity.get("name", ""))
+    return None
+
+
+def _send_move(port: int, unit_name: str, site, as_player: str = "") -> dict:
+    """把单位派到给定平面坐标；回执原样返回，不解读。
+
+    键名是 **`dest`**（`_op_move` 读 `parsed.get("dest", …)`）。这里写成 `pos`
+    不会报错——服务端会拿默认值把单位派到 (0,0)，于是"侦察已就位"变成假事实，
+    后面矿场被拒的原因也就全错了。调试端口的接口是弱类型字典，这类键名必须核对。
+
+    `port` 决定走哪条命令链：客户端 = 真人玩家的转发链（回执 PendingAuthority），
+    专用服 = 权威端直执行链（带 as_player 才认得出人类槽位）。
+    """
+    payload = {"op": "move", "units": [unit_name], "dest": [site[0], site[1]]}
+    if as_player:
+        payload["as_player"] = as_player
+    try:
+        return dict(dcs(port, payload, timeout=20) or {})
+    except Exception as exc:  # noqa: BLE001
+        return {"ok": False, "error": str(exc)}
+
+
+def _remote_ore_site(snap: dict, footprint: float = 7.0):
+    """从当前观测里挑"离自家指挥中心最远、还有矿"的矿点，给出它外侧的落点。
+
+    只在脚本化触发**自动放置被 fog 拒掉之后**当兜底用（见调用处的注释）。
+    没有可见矿点返回 None——不臆造坐标。
+    """
+    entities = snap.get("entities") or []
+    home = None
+    for entity in entities:
+        if str(entity.get("kind", "")) == "unit_self" \
+                and str(entity.get("unit_type", "")) == "command_center":
+            pos = entity.get("pos") or []
+            if len(pos) >= 2:
+                home = (float(pos[0]), float(pos[1]))
+                break
+    best = None
+    best_distance = -1.0
+    for entity in entities:
+        if str(entity.get("kind", "")) != "resource":
+            continue
+        if int(entity.get("ore_remaining") or 0) <= 0:
+            continue
+        pos = entity.get("pos") or []
+        if len(pos) < 3:
+            continue
+        x, z = float(pos[0]), float(pos[2])
+        distance = math.dist((x, z), home) if home else math.hypot(x, z)
+        if distance > best_distance:
+            best_distance = distance
+            best = (x, z)
+    if best is None:
+        return None
+    # 落在矿点**背向基地**的一侧：既贴近可采区，又避开矿场自己的避让圈。
+    if home and best_distance > 1.0:
+        dx = (best[0] - home[0]) / best_distance
+        dz = (best[1] - home[1]) / best_distance
+    else:
+        dx, dz = 1.0, 0.0
+    return [round(best[0] + dx * footprint, 2), round(best[1] + dz * footprint, 2)]
+
+
+#: 侦察"到位"的容差（米）。落点判据是 `NotVisible`，单位站在矿点 14 米环带内即生效。
+SCOUT_TOLERANCE_M = 14.0
+
+
+def _entity_pos(snap: dict, unit_name: str):
+    """从权威战术观测里取**己方**实体的平面坐标 (x, z)；取不到返回 None（不臆造）。
+
+    【两个必须对准的口径】
+    1. 战术观测里的 `pos` 是 `[x, y, z]`（见 `DebugControlServer._fast_diff_units`），
+       而 `_remote_ore_site` 给的落点是平面的 `[x, z]`。取错下标会把高度 y 当成 z，
+       于是"距离"算出 178 米这种地图对角色都没有的数字——阶段 6 第一次实测就踩到了。
+    2. 只匹配 `kind == "unit_self"`：单位名会回收复用，不按阵营过滤会撞上同名敌人，
+       把"侦察未到位"记成"侦察跑到 1046 米外"。
+    """
+    for entity in snap.get("entities") or []:
+        if str(entity.get("kind", "")) != "unit_self":
+            continue
+        if str(entity.get("name", "")) == unit_name:
+            pos = entity.get("pos") or []
+            if len(pos) >= 3:
+                return (float(pos[0]), float(pos[2]))
+            return None
+    return None
+
+
+def _scout_arrival(snap: dict, unit_name: str, site) -> dict:
+    """侦察是否真的到位——用**坐标**判定，不用回执。
+
+    【为什么不能用回执】`op=move` 走客户端转发时状态恒为 `PendingAuthority`，
+    把它当"已就位"会让后面每一次矿场被拒都归错因（阶段 6 实测踩过两次）。
+    """
+    if not unit_name or not site:
+        return {"arrived": False, "reason": "no_scout"}
+    pos = _entity_pos(snap, unit_name)
+    if pos is None:
+        return {"arrived": False, "reason": "unit_not_observed"}
+    dist = math.dist(pos, (float(site[0]), float(site[1])))
+    return {"arrived": dist <= SCOUT_TOLERANCE_M, "distance_m": round(dist, 1),
+            "unit_xz": [round(pos[0], 1), round(pos[1], 1)]}
+
+
+def _await_authority_terminal(command_id: str, timeout_s: float = 15.0,
+                              scene_hint: str = "") -> dict:
+    """到**专用服**复核命令终态。客户端只说 PendingAuthority，那不算权威结论。
+
+    专用服的 `op=commands` 查的是权威端 `_command_log`（NetSync 落账），
+    因此这里拿到的是 Accepted/Rejected，不是转发话术。
+
+    【为什么要按场景回扫】客户端转发链会自己生成 `command_id`，
+    服务器落账时用的键不一定还是它（实测：按 id 查 15 秒 `still_pending`，
+    而矿场实体随后就出现在观测里）。查不到 id 时退一步按
+    `op + scene` 找最近的终态记录，并把扫到的条数一起留痕——
+    "查不到"与"根本没落账"必须是两回事。
+    """
+    stop = time.time() + timeout_s
+    last_scan = -1
+    while time.time() < stop:
+        try:
+            reply = dcs(SERVER_PORT, {"op": "commands",
+                                      "command_id": command_id}, timeout=8) or {}
+        except Exception as exc:  # noqa: BLE001
+            return {"found": False, "reason": "query_failed", "error": str(exc)}
+        entries = reply.get("commands") or []
+        for entry in entries:
+            if str(entry.get("command_id", "")) != command_id:
+                continue
+            status = str(entry.get("status", ""))
+            if status and status != "PendingAuthority":
+                return {"found": True, "status": status, "match": "command_id",
+                        "reason": str(entry.get("reason", "")),
+                        "subject": str(entry.get("subject", ""))}
+        if scene_hint:
+            # 【为什么整段包 try】这是**诊断**，不是判据。它出任何错都不许把整局取证带崩：
+            # 实测 `op=commands` 不带 command_id 时返回体很大，按行读 JSON 会截断，
+            # `json.loads` 直接抛 JSONDecodeError ⇒ 这一局的 result 根本没写出来。
+            try:
+                all_reply = dcs(SERVER_PORT, {"op": "commands"}, timeout=8) or {}
+            except Exception as exc:  # noqa: BLE001
+                return {"found": False, "reason": "scan_failed",
+                        "error": str(exc)[:160], "scanned": last_scan}
+            all_entries = all_reply.get("commands") if isinstance(all_reply, dict) else None
+            if not isinstance(all_entries, list):
+                return {"found": False, "reason": "scan_not_a_list", "scanned": last_scan}
+            last_scan = len(all_entries)
+            for entry in reversed(all_entries):
+                if not isinstance(entry, dict):
+                    continue
+                if str(entry.get("op", "")) != "build":
+                    continue
+                if scene_hint not in str(entry.get("scene", "")):
+                    continue
+                status = str(entry.get("status", ""))
+                if status and status != "PendingAuthority":
+                    return {"found": True, "status": status, "match": "scene_scan",
+                            "reason": str(entry.get("reason", "")),
+                            "command_id": str(entry.get("command_id", "")),
+                            "scanned": last_scan}
+        time.sleep(1.5)
+    return {"found": False, "reason": "still_pending", "scanned": last_scan}
+
+
+def _refinery_entities(snap: dict) -> list:
+    """权威观测里已存在的矿场实体（建成与否看 `constructed`，不看下单回执）。"""
+    out = []
+    for entity in snap.get("entities") or []:
+        if str(entity.get("unit_type", "")) == "ore_refinery":
+            out.append({"name": str(entity.get("name", "")),
+                        "constructed": bool(entity.get("constructed")),
+                        "refinery": entity.get("refinery") or {}})
+    return out
 
 
 def _economy(snap: dict) -> dict:
@@ -133,13 +336,24 @@ def _economy(snap: dict) -> dict:
 
                                "delivered": int(stats.get("delivered_count") or 0),
 
-                               "delivered_amount": int(stats.get("delivered_amount") or 0)})
+                               "delivered_amount": int(stats.get("delivered_amount") or 0),
+                               # §6：每座矿场实际服务的矿点数（不只是"有没有矿"）。
+                               "served_nodes": int(stats.get("served_nodes") or 0)})
 
     ore_nodes = [e for e in entities if str(e.get("kind", "")) == "resource"]
-    # 玩家账户余额：只有 `op=tactical` 的 header 有（`op=match_forces` 只给单位计数，
-    # 旧 `peak_balance` 因此一直读一个不存在的字段、恒为 0）。§7 要"资源增长"证据
-    # 必须从这里取，不能用矿点存量的减少代替——那只是"矿被采出"，不是"钱到账"。
-    balance = snap.get("resources") or {}
+    # 再生证据（§6）：出现过耗尽的矿点数 + 全图已结算的再生轮数 + 正在等待再生的毫秒。
+    ore_depleted_seen = sum(1 for e in ore_nodes if e.get("ore_depleted"))
+    ore_regen_cycles = sum(int(e.get("ore_regen_cycles") or 0) for e in ore_nodes)
+    ore_regen_waiting = sum(1 for e in ore_nodes
+                            if int(e.get("regen_remaining_ms") or 0) > 0)
+    # 玩家账户余额。`op=tactical` header 里 **`resources` 与 `balance` 两个键都在**
+    # （`resources` 是副官资源白名单视图，`balance` 是完整视图；实测同一局两处读数
+    # 一致：resources 路径拿到 34400、balance 路径拿到 37600，是不同时刻不是不同口径）。
+    # 这里取 `balance`，与 `_forces()` 终局打印同口径，避免两处报告用两种数。
+    # 【原先真正的错】旧 `peak_balance` 读的是 `forces_log` 条目里的 `balance`，
+    # 而 `forces_log` 只存 `{"ts","forces"}`——余额在采样时就被丢掉了，所以恒为 0。
+    # 这不是"矿被采出"的同义词：§7 要的是钱到账。
+    balance = snap.get("balance") or {}
     return {
         "balance_a": int(balance.get("a") or 0),
         "constructing": constructing,
@@ -151,6 +365,12 @@ def _economy(snap: dict) -> dict:
         "ore_nodes": len(ore_nodes),
 
         "ore_depleted": sum(1 for e in ore_nodes if e.get("ore_depleted")),
+
+        "ore_depleted_seen": ore_depleted_seen,
+
+        "ore_regen_cycles": ore_regen_cycles,
+
+        "ore_regen_waiting": ore_regen_waiting,
 
         "ore_remaining": sum(int(e.get("ore_remaining") or 0) for e in ore_nodes),
 
@@ -265,6 +485,9 @@ def main() -> int:
                         help="固定全局 RNG 种子，0 = 不干预（游戏默认）")
     parser.add_argument("--refinery-at", type=int, default=-1,
                         help="开局 N 秒后脚本化建一座远端矿场（-1 = 不建，纯看副官主线）")
+    parser.add_argument("--boot-budget", type=float, default=240.0,
+                        help="引擎冷启动/大厅/开局的等待预算（秒）。同机并发跑回归时 50 秒不够，"
+                             "会把「机器忙」报成「这局没结果」（假阴性）")
     args = parser.parse_args()
 
     os.makedirs(OUT, exist_ok=True)
@@ -307,31 +530,43 @@ def main() -> int:
            "--autojoin", "--autojoin-lobby",
            "--smokehost", "127.0.0.1", "--smokeport", str(GAME_PORT)] + fixed_args,
           "selfplay_client.out")
+    # 【就绪预算为什么要按并发环境定】2026-09-27 的 5 筛查种子里有 3 局 rc=2，
+    # 原因不是产品坏了，而是同一台机器上另一路会话在跑 perfgrid/冒烟回归，
+    # 引擎冷启动（含导航异步烘焙）超过了原来 25×2s=50 秒的窗口。
+    # 采集入口把"机器忙"报成"这一局没结果"，就是在制造假阴性，所以预算放宽到可配、
+    # 并且失败时把**等了多久、卡在哪一步**写进日志。
+    boot_budget = float(args.boot_budget)
     ok = False
-    for _ in range(25):
+    waited = 0.0
+    while waited < boot_budget:
         time.sleep(2)
+        waited += 2
         if tcp_listening(CLIENT_PORT):
             ok = True
             break
     if not ok:
-        print("[selfplay] 客户端未就绪", flush=True)
+        print("[selfplay] 客户端未就绪：等 %.0fs 后端口 %d 仍未监听"
+              % (waited, CLIENT_PORT), flush=True)
         kill_our_game()
         return 2
 
     # 等大厅就绪（客户端连上网、拿到槽位）后再开局——否则 op=start 报 not networked。
     lobby_ready = False
-    for _ in range(20):
+    waited = 0.0
+    while waited < boot_budget:
         time.sleep(2)
+        waited += 2
         try:
             lobby = dcs(CLIENT_PORT, {"op": "lobby"}, timeout=8) or {}
         except Exception:  # noqa: BLE001
             continue
         if lobby.get("slots"):
             lobby_ready = True
-            print("[selfplay] 大厅就绪: %s" % str(lobby.get("local_name")), flush=True)
+            print("[selfplay] 大厅就绪: %s（等 %.0fs）" % (str(lobby.get("local_name")), waited),
+                  flush=True)
             break
     if not lobby_ready:
-        print("[selfplay] 大厅未就绪", flush=True)
+        print("[selfplay] 大厅未就绪：等 %.0fs 仍拿不到 slots" % waited, flush=True)
         kill_our_game()
         return 2
 
@@ -339,8 +574,8 @@ def main() -> int:
     started = dcs(CLIENT_PORT, {"op": "start", "with_ai": True,
                                 "passive_ai_test": False}, timeout=30)
     print("[selfplay] op=start -> %s" % str(started)[:160], flush=True)
-    if not _wait_match():
-        print("[selfplay] 对局未开始", flush=True)
+    if not _wait_match(timeout_s=boot_budget):
+        print("[selfplay] 对局未开始：等 %.0fs 客户端 status 里没有 match" % boot_budget, flush=True)
         kill_our_game()
         return 2
 
@@ -371,38 +606,137 @@ def main() -> int:
     deadline = time.time() + args.seconds
     next_forces = 0.0
     consecutive_failures = 0
-    # 验收场景「远端专门矿场」的脚本化触发点：到点就发一条**不带坐标**的
-    # `op=build OreRefinery`，让权威端自己在远端矿堆附近搜合法落点（`auto=resource`
-    # 模式）。之所以要这个开关：纯规则副官在 150 秒窗口里走不到 M08，于是"矿场能建、
-    # 会接管工人、交货进账户"这三件事在一局真实对局里一次也没被观测到——只有冒烟夹具
-    # 里有。有了它，同一张图同一粒种子也能反复采到矿场闭环。
+    # 验收场景「远端专门矿场」的脚本化触发（提示词 §6「远端矿场」）。
+    # 之所以要这个开关：纯规则副官在 150 秒窗口里走不到 M08，于是"矿场能建、会接管
+    # 工人、交货进账户"这三件事在一局真实对局里一次也没被观测到——只有冒烟夹具里有。
+    #
+    # 【为什么重写成状态机、并且每一步换一种判据】
+    # 上一版把**客户端回执**当事实：`op=move` 与 `op=build` 经客户端转发时状态恒为
+    # `PendingAuthority`，于是"侦察已就位""权威已接受"都是没有依据的推断，
+    # 断点定位连着两次归错因（阶段 6 报告第四节）。现在：
+    #   就位 → 权威观测里的**坐标**
+    #   接受 → 专用服 `op=commands` 里的**命令终态**
+    #   建成 → 权威观测里真的出现 `ore_refinery` 实体
+    #   收入 → 矿场交付计数与账户余额（由 match_metrics 结算，不在这里判）
     match_started_at = time.time()
     refinery_sent = None
+    refinery_scout = None
     refinery_tries = 0
-    refinery_next_try = args.refinery_at
+    refinery_stage = "scout"
+    refinery_rearm = 0
+    refinery_builds: list = []
+    refinery_observed = None
+    refinery_next_try = float(args.refinery_at)
     while time.time() < deadline:
-        # 到点就重试，直到权威端接受（上限 6 次、每次间隔 20 秒）。
-        # 【为什么要重试而不是只发一次】40 秒实测拿到的是 `NoValidSite`
-        # （"没有已探明的新矿点"）——`auto=resource` 模式要把**已探明**的远端矿堆当锚点，
-        # 而开局头几十秒侦察还没铺出去。只发一次会把"时机未到"记成"矿场建不起来"，
-        # 那是个假阴性。回执原样留档，不接受就不算触发成功。
-        if args.refinery_at >= 0 and refinery_tries < 6 \
-                and time.time() - match_started_at >= refinery_next_try:
-            refinery_tries += 1
-            refinery_next_try = time.time() - match_started_at + 20.0
-            try:
-                attempt = dcs(CLIENT_PORT, {
-                    "op": "build",
-                    "scene": "res://source/match/units/OreRefinery.tscn",
-                }, timeout=20)
-            except Exception as exc:  # noqa: BLE001
-                attempt = {"ok": False, "status": "Exception", "error": str(exc)}
-            refinery_sent = {"tries": refinery_tries, "last": attempt,
-                             "accepted": bool(attempt.get("ok")),
-                             "history": (refinery_sent or {}).get("history", [])
-                                        + [attempt.get("status")]}
-            print("[selfplay] 矿场建造第 %d 次 -> %s" % (
-                refinery_tries, str(attempt)[:200]), flush=True)
+        elapsed = round(time.time() - match_started_at, 1)
+        if args.refinery_at >= 0 and refinery_stage != "done" \
+                and elapsed >= refinery_next_try:
+            snap0 = _own_snapshot()
+            site = _remote_ore_site(snap0)
+            if refinery_stage == "scout":
+                # `auto=resource` 的锚点必须是**已探明**矿点，开局头几十秒侦察还没铺出去，
+                # 那时有矿点候选才有意义。只发一次会把"时机未到"记成"矿场建不起来"，
+                # 那是个假阴性，所以要重试并留痕。
+                scout = _pick_scout(snap0)
+                if site and scout:
+                    refinery_scout = {
+                        "site": site, "unit": scout, "sent_at_s": elapsed,
+                        "via_player_link": _send_move(CLIENT_PORT, scout, site)}
+                    print("[selfplay] 矿场前置：派 %s 到 %s -> %s"
+                          % (scout, site, str(refinery_scout["via_player_link"])[:120]),
+                          flush=True)
+                    refinery_stage = "arrive"
+                else:
+                    print("[selfplay] 矿场前置：可见远端矿点=%s 可动单位=%s，10s 后重试"
+                          % (bool(site), scout), flush=True)
+                refinery_next_try = elapsed + 10.0
+            elif refinery_stage == "arrive":
+                arrival = _scout_arrival(snap0, str((refinery_scout or {}).get("unit") or ""),
+                                         (refinery_scout or {}).get("site"))
+                refinery_scout["arrival"] = arrival
+                print("[selfplay] 矿场前置：侦察 %s -> %s"
+                      % (refinery_scout.get("unit"), arrival), flush=True)
+                waited = elapsed - float(refinery_scout.get("sent_at_s") or 0.0)
+                if arrival.get("arrived"):
+                    refinery_scout["arrived_at_s"] = elapsed
+                    refinery_stage = "build"
+                elif arrival.get("reason") == "unit_not_observed" and refinery_rearm < 2:
+                    # 侦察单位半路阵亡（实测 fs_ref7：无人机在远端矿区被击落）。
+                    # 视野随单位一起没了，此时发建造只会拿到 NotVisible/SurfaceNotBuildable，
+                    # 把"脚本触发脆弱"误记成"产品建不出矿场"。换人换点重来。
+                    refinery_rearm += 1
+                    refinery_stage = "scout"
+                    print("[selfplay] 矿场前置：侦察单位丢失，重新选人重探（第 %d 次）"
+                          % refinery_rearm, flush=True)
+                elif waited > 60.0 and "via_authority" not in refinery_scout:
+                    # 真人链路 60 秒没把单位挪到位：再问权威端直执行一次，仍然用坐标验收。
+                    # 两条链都留回执，归因时才分得清是命令链断了还是产品规则如此。
+                    refinery_scout["via_authority"] = _send_move(
+                        SERVER_PORT, str(refinery_scout.get("unit")),
+                        refinery_scout.get("site"), as_player="Player_0")
+                    print("[selfplay] 矿场前置：改走权威端直执行 -> %s"
+                          % str(refinery_scout["via_authority"])[:160], flush=True)
+                elif waited > 150.0:
+                    refinery_scout["blocked"] = "scout_never_arrived"
+                    refinery_stage = "done"
+                refinery_next_try = elapsed + 10.0
+            elif refinery_stage == "build":
+                if refinery_tries >= 8:
+                    refinery_scout.setdefault("blocked", "build_never_accepted")
+                    refinery_stage = "done"
+                else:
+                    refinery_tries += 1
+                    site = _remote_ore_site(snap0) or (refinery_scout or {}).get("site")
+                    payload = {"op": "build",
+                               "scene": "res://source/match/units/OreRefinery.tscn",
+                               # 与同局已成功的分基地同口径（14 米是调试入口写死的默认值）。
+                               "max_radius_meters": 48.0}
+                    # 【落点策略按实测排，不再靠推测】
+                    #   fs_ref6：不带 hint 的 auto → 权威端 Accepted，真的建出 Unit_75；
+                    #   fs_ref7：脚本按矿点外侧 7 米算的显式落点 → 连着 `SurfaceNotBuildable`；
+                    #   fs_ref8：`auto=resource` + 最远矿点 hint → 反复 `NoValidSite`。
+                    # 结论：落点交给权威端自己搜（人类玩家也是"把单位开到那儿就地右键"，
+                    # 由游戏找那块合法地面），脚本只负责"先探开、再下单、逐次留原因"。
+                    payload["auto"] = "resource"
+                    mode = "auto"
+                    try:
+                        attempt = dict(dcs(CLIENT_PORT, payload, timeout=20) or {})
+                    except Exception as exc:  # noqa: BLE001
+                        attempt = {"ok": False, "status": "Exception", "error": str(exc)}
+                    attempt["mode"] = mode
+                    attempt["authority"] = _await_authority_terminal(
+                        str(attempt.get("command_id") or ""), scene_hint="OreRefinery")
+                    # 命令账查不到不等于没建成：矿场实体出现在权威观测里就是直接证据，
+                    # 而且它比任何回执都硬（提示词禁止用 Accepted 回执替代完工事实）。
+                    attempt["observed"] = _refinery_entities(snap0)
+                    refinery_builds.append({
+                        "try": refinery_tries, "at_s": elapsed, "mode": mode,
+                        "site": site, "payload_pos": payload.get("pos"),
+                        "client_status": attempt.get("status"),
+                        "client_detail": str(attempt.get("detail") or attempt.get("reason") or "")[:80],
+                        "authority": attempt["authority"],
+                        "observed": attempt["observed"]})
+                    print("[selfplay] 矿场建造第 %d 次（%s）客户端=%s 权威=%s 观测=%s"
+                          % (refinery_tries, mode,
+                             str(attempt)[:90],
+                             json.dumps(attempt["authority"], ensure_ascii=False),
+                             str(attempt["observed"])[:120]), flush=True)
+                    if (attempt["authority"].get("status") == "Accepted"
+                            or attempt["observed"]):
+                        refinery_stage = "verify"
+                    elif attempt["authority"].get("status") == "Rejected" and refinery_tries >= 6:
+                        # 同一位置反复被拒就不再多试；原因已经逐条落在 refinery_builds 里。
+                        refinery_stage = "done"
+                    refinery_next_try = elapsed + 10.0
+            elif refinery_stage == "verify":
+                found = _refinery_entities(snap0)
+                if found:
+                    refinery_observed = {"first_seen_s": elapsed, "entities": found}
+                    print("[selfplay] 矿场已出现在权威观测：%s" % str(found)[:200], flush=True)
+                    refinery_stage = "done"
+                elif refinery_tries >= 8:
+                    refinery_stage = "done"
+                refinery_next_try = elapsed + 10.0
         snap = _own_snapshot()
         if "__error" not in snap and snap.get("server_tick"):
             consecutive_failures = 0
@@ -438,6 +772,27 @@ def main() -> int:
                                      "error": "match_forces: %s"
                                      % str(fm.get("__error") or "empty")})
         time.sleep(10)
+
+    # 矿场触发小结：判据是**权威命令终态 + 权威观测里的矿场实体**，不是客户端回执。
+    # `accepted` 只有在服务器把这条命令落成 Accepted 时才为真；
+    # 全部被拒时 `builds` 里留着的是一手原因，供 §6 的失败归因列使用。
+    refinery_sent = {
+        "tries": refinery_tries,
+        "stage": refinery_stage,
+        "builds": refinery_builds,
+        "accepted": any((item.get("authority") or {}).get("status") == "Accepted"
+                        for item in refinery_builds),
+        "history": [str(item.get("client_status")) for item in refinery_builds],
+    }
+    last_snap = _own_snapshot()
+    if "__error" not in last_snap:
+        refinery_observed = {"final_entities": _refinery_entities(last_snap),
+                             **(refinery_observed or {})}
+    # `accepted` 有两条独立依据：权威命令终态 Accepted，或观测里真的出现了矿场实体。
+    # 后者更强（提示词明令不得用回执替代完工事实），前者查不到时仍要留 `still_pending` 痕。
+    refinery_sent["observed_entities"] = (refinery_observed or {}).get("final_entities")
+    refinery_sent["accepted"] = bool(
+        refinery_sent["accepted"] or (refinery_observed or {}).get("final_entities"))
 
     # 收尾前取最后一帧战力（失败就用最后一次成功采样，不阻断收尾）。
     final = _own_snapshot()
@@ -503,6 +858,9 @@ def main() -> int:
         # "没尝试建矿场"与"建了但被权威端拒绝"。
         "refinery_receipt": refinery_sent,
         "refinery_at_s": args.refinery_at,
+        "refinery_scout": refinery_scout,
+        # 权威观测里矿场实体的出现时刻与计数——"建成"的唯一直接证据。
+        "refinery_observed": refinery_observed,
         "difficulty": args.difficulty,
         "samples": len(samples),
         "first": samples[0] if samples else {},

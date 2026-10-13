@@ -106,6 +106,23 @@ func _ready():
 		if player != null:
 			_check(not player.playing, "进对局后菜单 BGM 应已淡出停止")
 
+	# ---- ⑤ 对局进行中出现的菜单场景 ≠ 回到菜单（2026-09-28 双 BGM 冲突回归）----
+	# 对局 ESC 暂停菜单的「设置」面板 = 原封 Options.tscn（在 MenuMusic 的
+	# 菜单场景白名单里）；修复合入前它一入树就把主题 BGM 叠到对局 BGM 上。
+	if menu_music != null:
+		var menu_player: AudioStreamPlayer = menu_music.get_node_or_null("Player") \
+			as AudioStreamPlayer
+		if menu_player != null:
+			var options = load("res://source/main-menu/Options.tscn").instantiate()
+			options.embedded_mode = true
+			get_tree().root.add_child(options)
+			await get_tree().process_frame
+			await get_tree().process_frame
+			_check(not menu_player.playing,
+				"对局中内嵌设置面板（Options.tscn）不得续播菜单 BGM")
+			options.queue_free()
+			await get_tree().process_frame
+
 	_finish()
 
 

@@ -9,10 +9,12 @@ BLUEPRINT_NOT_NAVIGABLE,Irregular terrain,Nierówny teren
 BLUEPRINT_NOT_ENOUGH_RESOURCES,Not enough resources,Brakuje zasobów
 BLUEPRINT_OUT_OF_MAP,Out of map limits,Poza granicami mapy
 BLUEPRINT_NOT_VISIBLE,Insufficient vision,Niewystarczające pole widzenia
+BLUEPRINT_NOT_ADJACENT,Must connect to your buildings,Połącz z własnymi budynkami
+BLUEPRINT_CONSTRUCTION_IN_PROGRESS,Only one building can be under construction at a time,Tylko jeden budynek może być w budowie jednocześnie
 RESOURCE_A,Blue Crystal,Niebieski Kryształ
 RESOURCE_B,Red Crystal,Czerwony Kryształ
 CANCEL_CURRENT_ACTION,Cancel current action,Anuluj aktualną akcję
-WORKER,Worker,Robotnik
+WORKER,Ore Truck,Wywrotka
 WORKER_DESCRIPTION,collects resources,zbiera zasoby
 HELICOPTER,Helicopter,Helikopter
 HELICOPTER_DESCRIPTION,fights ground and air targets,zwlacza cele naziemne i powietrzne

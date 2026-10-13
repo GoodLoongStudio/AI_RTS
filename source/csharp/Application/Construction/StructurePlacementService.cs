@@ -13,7 +13,9 @@ public sealed class StructurePlacementService : IStructurePlacementService
         StructurePlacementIssue.UnknownDefinition,
         StructurePlacementIssue.InvalidTransform,
         StructurePlacementIssue.NotAuthorized,
+        StructurePlacementIssue.ConstructionInProgress,
         StructurePlacementIssue.ValidationUnavailable,
+        StructurePlacementIssue.NotAdjacent,
         StructurePlacementIssue.NotVisible,
         StructurePlacementIssue.OutOfBounds,
         StructurePlacementIssue.SurfaceNotBuildable,
@@ -24,6 +26,7 @@ public sealed class StructurePlacementService : IStructurePlacementService
 
     private readonly IStructurePlacementDefinitionRepository _definitions;
     private readonly IStructurePlacementAuthorizationPort _authorization;
+    private readonly IStructurePlacementConstructionStatePort _constructionState;
     private readonly IStructurePlacementWorldPort _world;
     private readonly IResourceAccountService _accounts;
 
@@ -31,11 +34,13 @@ public sealed class StructurePlacementService : IStructurePlacementService
     public StructurePlacementService(
         IStructurePlacementDefinitionRepository definitions,
         IStructurePlacementAuthorizationPort authorization,
+        IStructurePlacementConstructionStatePort constructionState,
         IStructurePlacementWorldPort world,
         IResourceAccountService accounts)
     {
         _definitions = definitions;
         _authorization = authorization;
+        _constructionState = constructionState;
         _world = world;
         _accounts = accounts;
     }
@@ -89,6 +94,20 @@ public sealed class StructurePlacementService : IStructurePlacementService
             if (!_authorization.CanPlace(query.MatchId, query.PlayerId, candidate.DefinitionId))
             {
                 issues.Add(StructurePlacementIssue.NotAuthorized);
+            }
+        }
+        catch
+        {
+            issues.Add(StructurePlacementIssue.ValidationUnavailable);
+        }
+
+        // 「一次只能建造一个建筑」：同一玩家同时只允许一个 Active 工地（2026-09-29 用户规则）。
+        // 放在授权之后、空间评估之前：无并发额度时不必做更贵的逐圈可见/占位扫描。
+        try
+        {
+            if (_constructionState.HasActiveConstructionSite(query.MatchId, query.PlayerId))
+            {
+                issues.Add(StructurePlacementIssue.ConstructionInProgress);
             }
         }
         catch
@@ -188,7 +207,8 @@ public sealed class StructurePlacementService : IStructurePlacementService
 
     /// <summary>限制世界端口只能返回其职责范围内的问题。</summary>
     private static bool IsWorldIssue(StructurePlacementIssue issue) => issue is
-        StructurePlacementIssue.NotVisible or StructurePlacementIssue.OutOfBounds or
+        StructurePlacementIssue.NotVisible or StructurePlacementIssue.NotAdjacent or
+        StructurePlacementIssue.OutOfBounds or
         StructurePlacementIssue.SurfaceNotBuildable or StructurePlacementIssue.Occupied or
         StructurePlacementIssue.FriendlyDisplacementUnavailable or
         StructurePlacementIssue.ValidationUnavailable;

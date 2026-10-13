@@ -4,13 +4,14 @@ extends Node
 ## （= 没拿到平衡目录定义的单位）必须
 ##   ① 不逐帧抛 "Invalid operands 'Nil' and 'int'"（旧行为：一次测试 2 万+ 条），
 ##   ② 按单位种类只警告一次，
-##   ③ 不能因此中断本轮同步——其余单位的迷雾圈仍要正常建立/更新。
+##   ③ 用未配置兜底视野把迷雾圈画出来，且不能中断其余单位。
 ## 做法：起真对局夹具，塞一个假单位进 revealed_units 组（sight_range 保持 null），
 ## 连跑两次 _sync_revealed_circles，断言上述三点。
 ## 错误日志是否刷屏由套件的 forbidden_output_patterns 在进程输出侧把关（SCRIPT ERROR 即判失败）。
 
 const MatchScene = preload("res://tests/manual/TestPlayerVsAI.tscn")
 const FakeUnitScene = preload("res://tests/automated/FogOfWarNullSightFakeUnit.gd")
+const UnitScript = preload("res://source/match/units/Unit.gd")
 
 var _failures := 0
 
@@ -57,10 +58,18 @@ func _ready():
 	fog.call("_sync_revealed_circles")
 	var warned: Dictionary = fog.get("_missing_sight_range_warned")
 	_check(not warned.is_empty(), "缺 sight_range 的单位应触发一次警告（不得静默吞掉）")
-	_check(not fog.get("_unit_to_circles_mapping").has(fake),
-		"缺 sight_range 的单位不得进入迷雾圈映射")
-	_check(fog.get("_unit_to_circles_mapping").has(real_unit),
-		"跳过坏单位后，其余单位的迷雾圈映射必须保留（旧行为会中断整个循环）")
+	mapping = fog.get("_unit_to_circles_mapping")
+	_check(mapping.has(fake), "缺 sight_range 的单位仍应画出迷雾圈（兜底视野）")
+	if mapping.has(fake):
+		var fallback_px: float = (
+			UnitScript.UNCONFIGURED_SIGHT_RANGE_M * fog.texture_units_per_world_unit
+		)
+		_check(
+			is_equal_approx(mapping[fake][0].radius, fallback_px),
+			"兜底迷雾圈半径应为 %.1f px（实际 %.1f）" % [fallback_px, mapping[fake][0].radius]
+		)
+	_check(mapping.has(real_unit),
+		"缺视野单位不得中断其余单位的迷雾圈（旧行为会中断整个循环）")
 
 	# 第二次同步：警告必须按种类去重，映射不得被反复建立/清理。
 	fog.call("_sync_revealed_circles")

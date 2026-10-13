@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3 uid="uid://tcq8nbsari5i"]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="PackedScene" uid="uid://camns8fqod8d4" path="res://source/match/Match.tscn" id="1_f87ft"]
 [ext_resource type="Script" path="res://source/match/players/Player.gd" id="pg_enemy"]

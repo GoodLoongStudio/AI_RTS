@@ -208,6 +208,26 @@ func _collect_reconcile_entries() -> Array:
 
 
 ## 单个单位的 reconcile 条目（生成节点所需的全部信息）；不可序列化/无场景的单位返回 null。
+## 查某个建筑场景的施工进度源（automatic / hybrid / worker）。
+## 与 `DebugControlServer._construction_progress_source` 同一口径：查不到配置就按
+## `worker` 处理——**保守回退**，不在配置缺失时悄悄放开"零工人施工"。
+func _construction_progress_source_for(scene_path: String) -> String:
+	if scene_path.is_empty():
+		return "worker"
+	var balance: Node = _match.get_node_or_null("BalanceConfigRuntime") if _match != null else null
+	if balance == null or not balance.has_method("GetConstructionProgressSource"):
+		return "worker"
+	var scene := load(scene_path)
+	if scene == null:
+		return "worker"
+	return str(balance.GetConstructionProgressSource(scene))
+
+
+static func _int_of(value) -> int:
+	"""null 安全的取整数：`int(x or 0)` 在 GDScript 里会把任何非零值变成 1。"""
+	return int(value) if value != null else 0
+
+
 func _reconcile_entry_for(unit):
 	if unit == null or not is_instance_valid(unit):
 		return null
@@ -227,11 +247,20 @@ func _reconcile_entry_for(unit):
 	# "耗尽等待"标记与剩余再生毫秒，否则会出现"服务器矿长回来了、客户端还是空的"。
 	# 只有带矿量属性的节点才加这个键，不给每个单位条目平白加体积。
 	if "resource_a" in unit or "resource_b" in unit:
+		# 【为什么不用 bool() 转换】阶段 4 这行原本写 `1 if bool(unit.get("depleted")) else 0`，
+		# 在 4.7.1 上每次调用都抛 `Invalid call. Nonexistent 'bool' constructor.`
+		# （fs_screen_44 一局里 8361 次，栈顶全在这条语句），于是 `entry["ore"]` 根本没生成，
+		# 客户端与重连者**收不到任何矿量/再生状态**——阶段 4 报告"矿量已下发"的结论不成立。
+		# 冒烟测试当时判绿，是因为判绿只看 marker + 返回码，不校验 SCRIPT ERROR。
+		var depleted_flag = unit.get("depleted")
+		# 【为什么不能用 `int(x or 0)`】GDScript 的 `or` 返回 **bool**（不是 Python 的短路值）：
+		# 引擎实测 `int(30000 or 0)` == 1。上一版这行既踩了 `bool()` 非法构造，
+		# 又踩了这个写法——就算语句不报错，客户端看到的矿量也永远是 1。
 		entry["ore"] = [
-			int(unit.get("resource_a") or 0),
-			int(unit.get("resource_b") or 0),
-			1 if bool(unit.get("depleted")) else 0,
-			int(unit.get("regen_remaining_ms") or 0),
+			_int_of(unit.get("resource_a")),
+			_int_of(unit.get("resource_b")),
+			1 if depleted_flag else 0,
+			_int_of(unit.get("regen_remaining_ms")),
 		]
 	return entry
 
@@ -749,11 +778,21 @@ func _rpc_command(
 	if op == "place_structure":
 		# 人类玩家放置建筑（复核 2026-08-31：此前傀儡端 Place 只在本地生成, 服务器毫不知情）。
 		var placement_runtime = _match.get_node_or_null("StructurePlacementRuntime")
-		if placement_runtime == null or units.is_empty() or extra_clean.is_empty():
-			print("[CMD][服务器] place_structure 拒绝: runtime/参数缺失")
-			return
 		# extra 协议：scene_path|yaw[|command_id]；command_id 由客户端生成用于复核关联。
 		var parts: PackedStringArray = extra_clean.split("|")
+		# 【为什么 `units` 不能再当硬前置】2026-09-27 阶段 6 实测：零工人自动施工改造之后，
+		# 客户端 `_op_build` 对 automatic/hybrid 建筑**不再要求带建造者**，而这条转发入口还在
+		# 按旧口径查 `units.is_empty()`。结果副官/脚本下的每一座自动建筑都在服务器被一句
+		# "runtime/参数缺失"吞掉（客户端只看到 PendingAuthority，矿场三列在真实对局里永远是 None）。
+		# 权威端直执行路径、规则 AI、玩家 UI 三条入口都没有这个限制——四条入口必须同一语义：
+		# 只有旧的 worker 进度源才把建造者当硬条件。
+		var progress_source := _construction_progress_source_for(
+			str(parts[0]) if parts.size() > 0 else "")
+		if placement_runtime == null or extra_clean.is_empty() \
+				or (progress_source == "worker" and units.is_empty()):
+			print("[CMD][服务器] place_structure 拒绝: runtime/参数缺失（进度源=%s，units=%d）"
+				% [progress_source, units.size()])
+			return
 		var yaw: float = float(parts[1]) if parts.size() > 1 else 0.0
 		var build_command_id := str(parts[2]) if parts.size() > 2 else ""
 		var structure_transform := Transform3D(

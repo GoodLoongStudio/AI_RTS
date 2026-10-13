@@ -170,7 +170,8 @@ func _on_profile_pressed() -> void:
 
 
 func _on_back_pressed() -> void:
-	get_tree().change_scene_to_file("res://source/main-menu/Main.tscn")
+	# 【2026-10-11 修复】ESC 闪退：同步切场景改为帧末（同 Options 页修复）。
+	get_tree().change_scene_to_file.call_deferred("res://source/main-menu/Main.tscn")
 
 
 func _on_escape() -> bool:

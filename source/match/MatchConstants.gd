@@ -102,8 +102,8 @@ class Air:
 	class Navmesh:
 		# 2048m 大地图：cell 过小会让 Recast 栅格超限，触发引擎崩溃防护
 		# （Baking interrupted -> polygons=0；on_thread 时直接 0xC0000005）。
-		const CELL_SIZE = 0.8
-		const CELL_HEIGHT = 0.8
+		const CELL_SIZE = 0.3
+		const CELL_HEIGHT = 0.4
 		# 【2026-09-27 单位整体放大】原 0.8 是按 0.8~0.9m 半径的单位定的，
 		# 现在最大空中单位（直升机）半径 2.3m：agent 半径必须 ≥ 单位半径，
 		# 否则烘焙出的走廊比单位窄（单位会卡墙/穿模）。cell_size 0.8 < 2.3 仍合法。
@@ -115,8 +115,8 @@ class Terrain:
 
 	class Navmesh:
 		# 0.3 -> 0.6：2048m 世界栅格从 6800^2 降到 3400^2（崩溃防护阈值内）
-		const CELL_SIZE = 0.6
-		const CELL_HEIGHT = 0.6
+		const CELL_SIZE = 0.3
+		const CELL_HEIGHT = 0.4
 		# 【2026-09-27 单位整体放大】原 0.9 是按半径 ≤0.9 的单位定的；现在最大地面
 		# 载具（运输卡车）半径 2.8m——agent 半径必须 ≥ 单位半径，否则单位比走廊宽，
 		# 表现为"贴着墙走/绕墙到达误差巨大"。cell_size 0.6 < 2.8 仍合法。
@@ -125,7 +125,9 @@ class Terrain:
 
 class Resources:
 	class A:
-		const COLOR = Color.BLUE
+		# 金矿块（2026-09-28 换型）：矿点模型换成 4041 的 SM_Prop_Gold_Nugget_01，
+		# HUD 资源条色块跟着改金，别再让 UI 上的"矿"是蓝色、地上的矿是金色。
+		const COLOR = Color(0.96, 0.78, 0.25, 1)
 		const MATERIAL_PATH = "res://source/match/resources/materials/resource_a.material.tres"
 		const COLLECTING_TIME_S = 1.0
 

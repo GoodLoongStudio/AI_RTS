@@ -7,10 +7,15 @@ extends Node
 const UNITS := {
 	"Tank": "res://source/match/units/Tank.tscn",
 	"HeavyTank": "res://source/match/units/HeavyTank.tscn",
-	"Infantry": "res://source/match/units/Infantry.tscn",
-	"Worker": "res://source/match/units/Worker.tscn",
 	"APC": "res://source/match/units/APC.tscn",
 	"Helicopter": "res://source/match/units/Helicopter.tscn",
+	"Drone": "res://source/match/units/Drone.tscn",
+	"Worker": "res://source/match/units/Worker.tscn",
+	"TransportTruck": "res://source/match/units/TransportTruck.tscn",
+	"Scout": "res://source/match/units/Scout.tscn",
+	"Infantry": "res://source/match/units/Infantry.tscn",
+	"Sniper": "res://source/match/units/Sniper.tscn",
+	"Rocketeer": "res://source/match/units/Rocketeer.tscn",
 	"CommandCenter": "res://source/match/units/CommandCenter.tscn",
 	"Barracks": "res://source/match/units/Barracks.tscn",
 	"VehicleFactory": "res://source/match/units/VehicleFactory.tscn",
@@ -22,11 +27,15 @@ const UNITS := {
 }
 
 
+var _probe_seq := 0
+
+
 func _ready():
 	await get_tree().process_frame
 	for unit_name in UNITS:
 		var unit: Node3D = (load(UNITS[unit_name]) as PackedScene).instantiate()
-		unit.position = Vector3(200.0, 0.0, 200.0)
+		_probe_seq += 1
+		unit.position = Vector3(200.0 + float(_probe_seq) * 60.0, 0.0, 200.0 + float(_probe_seq) * 40.0)
 		add_child(unit)
 		await get_tree().process_frame
 		var root_radius = unit.get("radius")
@@ -50,21 +59,20 @@ func _ready():
 		# 不能从中心往外打：intersect_ray 默认 hit_from_inside=false，起点在形状内会直接无命中。
 		var space := unit.get_world_3d().direct_space_state
 		var hit_x := 0.0
-		var from := unit.global_position + Vector3(15.0, 0.3, 0.0)
-		var to := unit.global_position + Vector3(0.0, 0.3, 0.0)
-		var q := PhysicsRayQueryParameters3D.create(from, to)
-		q.collision_mask = 2
-		q.collide_with_areas = true
-		var hit := space.intersect_ray(q)
-		if hit.is_empty():
-			hit_x = -1.0
-		else:
-			var position: Vector3 = hit["position"]
-			hit_x = absf(position.x - unit.global_position.x)
-		print("[COLL] %-16s root_r=%s move_r=%s obst_r=%s | 视觉=%.2fx%.2f | 射线~%.1fm" % [
-			unit_name,
-			str(root_radius), str(mv_radius), str(ob_radius),
-			aabb.size.x, aabb.size.z, hit_x])
+		# 空中单位悬空且圆柱很薄，射线在测试场景里命中不可靠——
+		# 直接读 CollisionShape3D.shape.radius × 累计缩放（数学量，与射线同源）。
+		var shape_node := unit.find_child("CollisionShape3D", true, false)
+		if shape_node != null and shape_node.shape != null:
+			var world_scale: Vector3 = shape_node.global_transform.basis.get_scale()
+			var shape_radius := 0.0
+			if "radius" in shape_node.shape:
+				shape_radius = float(shape_node.shape.get("radius"))
+			hit_x = shape_radius * maxf(absf(world_scale.x), absf(world_scale.z))
+		var visual_half := maxf(aabb.size.x, aabb.size.z) / 2.0
+		var verdict := "OK" if absf(hit_x - visual_half) <= 0.05 or hit_x >= visual_half else "视觉外露 %.2fm" % (visual_half - hit_x)
+		print("[COLL] %-16s 碰撞r=%.2f 视觉半宽=%.2f root_r=%s move_r=%s obst_r=%s | %s" % [
+			unit_name, hit_x, visual_half,
+			str(root_radius), str(mv_radius), str(ob_radius), verdict])
 		unit.queue_free()
 		await get_tree().process_frame
 	get_tree().quit(0)

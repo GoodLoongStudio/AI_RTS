@@ -70,7 +70,11 @@ def summary(spec):
                 neighbor_ratio=(spec.get('path_fairness') or {}).get('flank_ratio'),
                 min_route_width=min((spec.get('lane_widths') or {}).values(), default=None),
                 chosen_attempt=(spec.get('generation') or {}).get('chosen_attempt'),
-                checks=spec['checks'], attempts=(spec.get('generation') or {}).get('attempts'))
+                # 保底烘焙（g2_bake）出来的 spec 同样不带 `checks`：若这里硬取，
+                # 布局轮换到烘焙图的任务会在**汇总**处抛 KeyError('checks')，把本该是
+                # "G3 检查未通过"的结论覆盖成一条只有 'checks' 的未生成记录
+                # （2026-09-28 实测：任务 e744aae4 的 G2 spec 有 baked=True 无 checks）。
+                checks=spec.get('checks', {}), attempts=(spec.get('generation') or {}).get('attempts'))
 
 
 class Workbench:

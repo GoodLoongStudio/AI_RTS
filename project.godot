@@ -17,7 +17,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 config/name="Open RTS"
 run/main_scene="res://source/Main.tscn"
 config/features=PackedStringArray("4.7", "C#", "Forward Plus")
-run/max_fps=30
+run/max_fps=0
 boot_splash/bg_color=Color(0, 0, 0, 1)
 boot_splash/stretch_mode=0
 boot_splash/image="res://assets/logos/godot_logo_vertical_monochrome_dark_312x357.png"
@@ -27,6 +27,7 @@ config/icon="res://icon.svg"
 
 NetSession="*res://source/net/NetSession.gd"
 DebugControlServer="*res://source/net/DebugControlServer.gd"
+MatchInstanceRegistry="*res://source/net/MatchInstanceRegistry.gd"
 AdjutantButton="*res://source/ui/AdjutantButton.gd"
 FeatureFlags="*res://source/FeatureFlags.tscn"
 Constants="*res://source/Constants.gd"
@@ -41,7 +42,8 @@ MatchReportStore="*res://source/history/MatchReportStore.gd"
 UISfx="*res://source/ui/UISfx.gd"
 MCPRuntimeProbe="*res://addons/godot_mcp/runtime/mcp_runtime_probe.gd"
 _mcp_game_helper="*res://addons/godot_ai/runtime/game_helper.gd"
-
+McpInteractionServer="*res://autoload/mcp_interaction_server.gd"
+MouseClamp="*res://source/ui/MouseClamp.gd"
 [debug]
 
 gdscript/warnings/unused_signal=0
@@ -250,10 +252,9 @@ locale/translations=PackedStringArray("res://assets/translations/match.en.transl
 [physics]
 
 common/physics_interpolation=true
-# 不要开 physics/3d/run_on_separate_thread。
-# 大图活局 physics_objects 已是 0，卡的是主线程脚本，不是 Bullet。
-# 打开后 _physics_process（Movement 写坐标）会和主线程 _process（相机/HUD/副官）抢节点。
-
+; 不要开physics/3d/run_on_separate_thread。
+; 大图活局physics_objects已是0，卡的是主线程脚本，不是Bullet。
+; 打开后_physics_process（Movement写坐标）会和主线程_process（相机/HUD/副官）抢节点。
 [rendering]
 
 renderer/rendering_method.mobile="gl_compatibility"

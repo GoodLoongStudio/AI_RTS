@@ -102,6 +102,14 @@ public sealed class BalanceConfigLoader
             Add(errors, BalanceConfigErrorCode.MissingValue, "$.contentVersion",
                 "必须声明非空 contentVersion。");
         }
+        // 可选规则参数（2026-09-29 同类建筑加速）：不写=关闭；写了必须是有界的非负比例，
+        // 防止手滑写成 50（那是 +5000%/座）或负数（加成倒变成减速）。
+        if (dto.SameTypeBonusPerExtraBuilding is { } bonus)
+        {
+            RequireFiniteInRange(
+                bonus, 0.0f, 4.0f, true,
+                "$.sameTypeBonusPerExtraBuilding", errors);
+        }
 
         ValidateRequiredCollection(dto.Resources, "$.resources", errors);
         ValidateRequiredCollection(dto.Warheads, "$.warheads", errors);
@@ -230,6 +238,19 @@ public sealed class BalanceConfigLoader
                         $"{path}.regeneration.delayMilliseconds", errors);
                     RequirePositive(regen.RestoreAmount,
                         $"{path}.regeneration.restoreAmount", errors);
+                    // 递增/封顶是可选块：不写就保持"每轮等长时间、只要启用就一直重生"的旧行为。
+                    // 系数必须 ≥1：小于 1 会让越采越快，与"矿会枯竭"的口径相反。
+                    if (regen.DelayGrowthFactor is { } growth)
+                    {
+                        RequireFiniteInRange(
+                            growth, 1.0f, 64.0f, true,
+                            $"{path}.regeneration.delayGrowthFactor", errors);
+                    }
+                    if (regen.MaxDelayMilliseconds is { } maxDelay)
+                    {
+                        RequirePositive(maxDelay,
+                            $"{path}.regeneration.maxDelayMilliseconds", errors);
+                    }
                 }
             }
         }
@@ -887,7 +908,9 @@ public sealed class BalanceConfigLoader
             item.CollectionDurationMilliseconds!.Value,
             item.Regeneration?.Enabled ?? false,
             item.Regeneration?.DelayMilliseconds ?? 0,
-            item.Regeneration?.RestoreAmount ?? 0));
+            item.Regeneration?.RestoreAmount ?? 0,
+            item.Regeneration?.DelayGrowthFactor ?? 1.0f,
+            item.Regeneration?.MaxDelayMilliseconds ?? 0));
         var warheads = dto.Warheads!.Select(item => new WarheadDefinition(
             new WarheadDefinitionId(item.Id!),
             ParseImpactSelection(item.ImpactSelectionMode!),
@@ -953,6 +976,7 @@ public sealed class BalanceConfigLoader
         });
         return new InMemoryGameBalanceCatalog(
             new BalanceConfigVersion(dto.SchemaVersion!.Value, dto.ContentVersion!, hash),
+            dto.SameTypeBonusPerExtraBuilding ?? 0f,
             units,
             weapons,
             warheads,
@@ -1866,9 +1890,13 @@ internal sealed class InMemoryGameBalanceCatalog : IGameBalanceCatalog
     /// <inheritdoc />
     public IReadOnlyCollection<SkillDefinition> Skills => _skills.Values;
 
+    /// <inheritdoc />
+    public float SameTypeBonusPerExtraBuilding { get; }
+
     /// <summary>冻结全部定义索引，之后不再接受注册或覆盖。</summary>
     public InMemoryGameBalanceCatalog(
         BalanceConfigVersion version,
+        float sameTypeBonusPerExtraBuilding,
         IEnumerable<UnitTypeDefinition> unitTypes,
         IEnumerable<WeaponDefinition> weapons,
         IEnumerable<WarheadDefinition> warheads,
@@ -1878,6 +1906,7 @@ internal sealed class InMemoryGameBalanceCatalog : IGameBalanceCatalog
         IEnumerable<SkillDefinition> skills)
     {
         Version = version;
+        SameTypeBonusPerExtraBuilding = sameTypeBonusPerExtraBuilding;
         _unitTypes = unitTypes.ToFrozenDictionary(item => item.Id);
         _weapons = weapons.ToFrozenDictionary(item => item.Id);
         _warheads = warheads.ToFrozenDictionary(item => item.Id);

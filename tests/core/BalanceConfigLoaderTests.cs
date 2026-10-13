@@ -91,8 +91,8 @@ internal sealed class BalanceConfigLoaderTests
             "Tank 生产成本应匹配单币种基线（A×500，2026-09-03 同步）");
 
         var commandCenter = catalog.FindConstruction(new StructureDefinitionId("command_center"));
-        Check(commandCenter?.RequiredWork == 200,
-            "CommandCenter 施工应保持迁移期 200 工作量");
+        Check(commandCenter?.RequiredWork == 1000,
+            "CommandCenter 施工应远程部署主基地保持 1000 工作量（明显慢于普通建筑）");
         Check(catalog.FindResource(ResourceKind.B)?.CollectionDurationMilliseconds == 200,
             "Resource B 采集时间应映射为 200 整数毫秒（2026-09-03 采集节奏调整为 20 秒/趟）");
 

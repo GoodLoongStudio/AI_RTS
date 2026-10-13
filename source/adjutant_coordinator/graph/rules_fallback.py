@@ -3500,6 +3500,12 @@ def _development_intents_raw(state: Dict[str, Any], *, tactical=None, rules=None
             carriers = [name for name in ai_units
                         if name not in suspended
                         and bool((by_name.get(name) or {}).get("construct"))]
+            # 【2026-09-28 开局零矿车】矿车（原"工人"）开局不送、改由车厂生产；
+            # 在车厂/矿场落成前全队可能**一个施工能力单位都没有**。automatic 建筑的
+            # 施工反正由权威 Tick 推进（服务端 `_op_build` 对 automatic 允许空 units），
+            # 这里退而求其次：用任意我方单位当**名义载体**把建造命令送进权威端。
+            if not carriers:
+                carriers = [name for name in ai_units if name not in suspended]
             # 仍优先真正空闲者，其次才用忙碌单位，且**不**调用 release_unit_for_expansion_cc。
             builders = [name for name in carriers if name in set(idle_builders)][:1] or carriers[:1]
         if not builders:

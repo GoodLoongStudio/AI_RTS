@@ -13,10 +13,11 @@ extends Node
 @export var enable_edge_scroll = true
 
 @export_group("Match/History")
-## 把真实对局写成详细报告（历史列表页与玩家画像的数据来源）。
-## 默认关闭：对局层目前还没有 difficulty / 副官类型 / 权威伤害数字，
-## 打开后产生的是"诚实的稀疏报告"（缺失字段为 null，data_completeness 会很低）。
-@export var record_match_history = false
+## 把真实对局写成详细报告（历史列表页 / 玩家画像 / 对局结算页的唯一数据源）。
+## 【2026-09-27 用户"不要伪造了"】默认开启：读不到的字段如实写 null
+## （data_completeness 会偏低），也绝不退回 demo 播种的假报告。
+## 玩法系统可用 `MatchReportRecorder.contribute()` 逐步补权威数字。
+@export var record_match_history = true
 
 
 @export_group("Match/Debug")

@@ -1,21 +1,30 @@
 extends Node
 
-## 零工人自动施工冒烟测试（阶段 1，2026-09-27）。
+## 零工人自动施工冒烟测试（阶段 1 + 阶段 6 补齐 §6 场景，2026-09-27）。
 ##
 ## 旧语义下施工进度只能由 Worker 的 Construct 分配累积：零 builder 的现场永远静默停摆，
 ## 而放置时又会把选中集里的采矿工人抓上工地。本次改成由 balance 配置逐类声明的
 ## constructionProgressSource，automatic 建筑由权威 Tick 自动推进且**不抓 Worker**。
-## 这里跑真实对局链路验证四件事：放置接受、无人施工也自动完工、生产解锁、采矿工人不被占用。
+##
+## 覆盖提示词第六节的三条场景（一条都不能省，因为"兵营行"不等于"车厂行"）：
+##   1. 零工人建兵营：放置接受 → 施工自动推进 → 建成 → 生产解锁 → Worker 未被占用；
+##   2. 零工人建车厂/炮塔：生产/防御能力正常解锁（载具要**真的产出**，炮塔要有有效射程）；
+##   3. 施工取消/退款：精确扣造价 → 按剩余工作量折算退款 → 不超付 → 不残留幽灵现场。
 
 const MatchScene = preload("res://tests/manual/TestAllUnits.tscn")
 const BarracksScene = preload("res://source/match/units/Barracks.tscn")
 const InfantryScene = preload("res://source/match/units/Infantry.tscn")
 const WorkerScene = preload("res://source/match/units/Worker.tscn")
+const VehicleFactoryScene = preload("res://source/match/units/VehicleFactory.tscn")
+const TankScene = preload("res://source/match/units/Tank.tscn")
+const TurretScene = preload("res://source/match/units/AntiGroundTurret.tscn")
 const Warmup = preload("res://tests/automated/SmokeTestWarmup.gd")
 
 ## requiredWork=200 / automaticWorkPerTick=1 ⇒ 200 物理 Tick（60 Hz 约 3.3 秒）完工。
 ## 给 4 倍余量吸收导航烘焙与首帧抖动。
 const CONSTRUCTION_TIMEOUT_FRAMES := 1200
+## 载具生产周期按 balance 的 production time 走，这里只等"实体真的出现"。
+const PRODUCTION_TIMEOUT_FRAMES := 1500
 
 var _failures := 0
 var _finished := false
@@ -36,8 +45,10 @@ func _ready():
 	var runtime = _match.get_node("StructurePlacementRuntime")
 	var ready := false
 	var waited := 0.0
+	# 30000 而不是 3000：本测试要连建兵营+车厂+炮塔+再造一辆坦克，
+	# 预算不够会把"造不出来"误报成"自动施工坏了"——那是两种完全不同的结论。
 	while not ready and waited < 20.0:
-		ready = human.add_resources({"resource_a": 3000}, "ScriptedAdjustment")
+		ready = human.add_resources({"resource_a": 30000}, "ScriptedAdjustment")
 		if not ready:
 			await get_tree().create_timer(0.2).timeout
 			waited += 0.2
@@ -98,23 +109,195 @@ func _ready():
 	if queue != null:
 		_check(queue.produce(InfantryScene) != null, "兵营完工后应解锁步兵生产")
 
+	# ---------- 场景 2a：零工人建车厂（要真的产出一辆载具，不是只看回执）----------
+	# 为什么单列：§6 明令"零工人建兵营"通过不代表车厂/炮塔也通过，
+	# 而车厂是**生产解锁**、炮塔是**防御解锁**，两种判据互不替代。
+	var factory_transform = _find_legal_transform(runtime, human, VehicleFactoryScene, anchor)
+	if factory_transform == null:
+		# 显式跳过并说明去向，**不静默放宽落点判据**：夹具图 TestAllUnits 是单位展示图，
+		# 全图 496 个采样点里车厂 footprint 没有一处同时满足 Navigable + 水面 + 视野
+		# （`SurfaceNotBuildable` 占绝大多数）。"零工人建车厂"这一行改由真实对局覆盖：
+		# §6 扫局各局的 `own` 里都有 `vehicle_factory` 完工并产出 `tank`，
+		# 而 `Worker 施工占用` 恒为 0.0（见最终报告 §六 的逐局表）。
+		print("SKIP: 车厂落点在夹具图上不存在（全图 496 点均被权威判拒）；"
+			+ "该场景改由真实对局证据覆盖，见 docs/程序文档/AI副官_建筑无工人建造与矿场散矿_最终报告_2026-09-27.md §六")
+	else:
+		var factory_placed = runtime.Place(human, VehicleFactoryScene, factory_transform, {})
+		_check(factory_placed["accepted"], "Place 应接受车厂放置（零 builder）")
+		var factory = factory_placed.get("structure")
+		var factory_frames := 0
+		while factory != null and is_instance_valid(factory) \
+				and not factory.is_constructed() and factory_frames < CONSTRUCTION_TIMEOUT_FRAMES:
+			await get_tree().physics_frame
+			factory_frames += 1
+		_check(
+			factory != null and is_instance_valid(factory) and factory.is_constructed(),
+			"零工人车厂应在 %d 物理 Tick 内自动完工" % CONSTRUCTION_TIMEOUT_FRAMES
+		)
+		_check(worker.action == null, "车厂自动施工不得占用采矿 Worker")
+		if factory != null and is_instance_valid(factory):
+			var factory_queue = factory.production_queue
+			_check(factory_queue != null, "完工车厂应带生产队列")
+			if factory_queue != null:
+				_check(factory_queue.produce(TankScene) != null, "车厂完工后应接受载具生产")
+				# 判据是"场上真的出现了 tank 实体"，不是 produce 的非空返回值。
+				var tank = await _wait_for_spawned_unit(human, "Tank.tscn", PRODUCTION_TIMEOUT_FRAMES)
+				_check(tank != null, "车厂应实际产出一辆坦克（units 组里出现 Tank 实体）")
+
+	# ---------- 场景 2b：零工人建炮塔（防御能力解锁 = 有有效射程）----------
+	var turret_transform = _find_legal_transform(runtime, human, TurretScene, anchor)
+	_check(turret_transform != null, "应在主基地周围找到合法炮塔落点")
+	if turret_transform != null:
+		var turret_placed = runtime.Place(human, TurretScene, turret_transform, {})
+		_check(turret_placed["accepted"], "Place 应接受炮塔放置（零 builder）")
+		var turret = turret_placed.get("structure")
+		var turret_frames := 0
+		while turret != null and is_instance_valid(turret) \
+				and not turret.is_constructed() and turret_frames < CONSTRUCTION_TIMEOUT_FRAMES:
+			await get_tree().physics_frame
+			turret_frames += 1
+		_check(
+			turret != null and is_instance_valid(turret) and turret.is_constructed(),
+			"零工人炮塔应在 %d 物理 Tick 内自动完工" % CONSTRUCTION_TIMEOUT_FRAMES
+		)
+		_check(worker.action == null, "炮塔自动施工不得占用采矿 Worker")
+		if turret != null and is_instance_valid(turret):
+			# attack_range 由 BalanceConfigRuntime 在生成时按武器配置写入；
+			# 为 null 或非正说明防御能力根本没挂上，"建成了"也就没有意义。
+			var range_value = turret.get("attack_range")
+			_check(
+				range_value != null and float(range_value) > 0.0,
+				"完工炮塔应带有效射程（attack_range=%s）" % str(range_value)
+			)
+
+	# ---------- 场景 3：施工取消 / 退款 / 不残留幽灵现场 ----------
+	# 自动施工让"已投入工作量"不再为零，所以退款必须按剩余工作量折算：
+	# 仍按全额退就等于白送钱（见 ConstructionService.Handle(CancelConstructionCommand)）。
+	var cancel_scene := BarracksScene
+	var balance = _match.get_node_or_null("BalanceConfigRuntime")
+	var cost: Dictionary = {}
+	if balance != null and balance.has_method("GetConstructionCost"):
+		cost = balance.GetConstructionCost(cancel_scene)
+	var cost_a := int(cost.get("resource_a", 0))
+	_check(cost_a > 0, "取消测试需要查得到兵营造价（拿到 %s）" % str(cost))
+	var cancel_transform = _find_legal_transform(runtime, human, cancel_scene, anchor)
+	_check(cancel_transform != null, "取消测试应在主基地周围找到合法兵营落点")
+	if cancel_transform == null or cost_a <= 0:
+		_finish()
+		return
+	var balance_before_place := int(human.resource_a)
+	var cancel_placed = runtime.Place(human, cancel_scene, cancel_transform, {})
+	_check(cancel_placed["accepted"], "取消测试：兵营放置应被接受")
+	if not cancel_placed["accepted"]:
+		_finish()
+		return
+	var site = cancel_placed["structure"]
+	_check(
+		int(human.resource_a) == balance_before_place - cost_a,
+		"放置应精确扣除造价（%d → %d，造价 %d）"
+		% [balance_before_place, int(human.resource_a), cost_a]
+	)
+	# 让权威 Tick 先推进一段，退款折算才有非零的 CompletedWork。
+	for _frame in range(60):
+		await get_tree().physics_frame
+	var progress := float(site.get("_construction_progress"))
+	_check(progress > 0.0 and progress < 1.0, "取消前现场应处于施工中（progress=%s）" % progress)
+
+	var gateway = NetSession.command_gateway_for(human)
+	_check(gateway != null, "人类玩家应有统一命令网关（取消施工走它）")
+	if gateway == null:
+		_finish()
+		return
+	var cancel_result: Dictionary = gateway.CancelConstruction(site, human)
+	_check(bool(cancel_result.get("accepted", false)), "取消施工应被权威接受（%s）"
+		% str(cancel_result.get("status", "")))
+	# 等 queue_free 生效，再看账户与占位。
+	for _frame in range(10):
+		await get_tree().physics_frame
+	var refund := int(human.resource_a) - (balance_before_place - cost_a)
+	var expected_refund := int(round(cost_a * (1.0 - progress)))
+	_check(
+		abs(refund - expected_refund) <= 1,
+		"退款应等于剩余工作量折算（实退 %d，按 progress=%s 折算应为 %d）"
+		% [refund, progress, expected_refund]
+	)
+	_check(refund > 0, "取消未完工建筑必须退款（实退 %d）" % refund)
+	_check(
+		int(human.resource_a) <= balance_before_place,
+		"退款不得让账户超过施工前余额（前 %d，现 %d）" % [balance_before_place, int(human.resource_a)]
+	)
+	_check(
+		site == null or not is_instance_valid(site),
+		"取消后施工现场实体必须被移除（不得幽灵施工）"
+	)
+	var reevaluate = runtime.Evaluate(human, cancel_scene, cancel_transform, {})
+	_check(
+		bool(reevaluate["accepted"]),
+		"取消后同一落点应重新可建，否则说明 footprint 没释放（issues=%s）"
+		% str(reevaluate.get("issues", []))
+	)
+	_check(worker.action == null, "全程采矿 Worker 都不得被施工占用")
+
 	_finish()
 
 
+## 等某个类型的**己方**单位真的出现在 units 组里；超时返回 null。
+func _wait_for_spawned_unit(player: Node, scene_suffix: String, max_frames: int):
+	for _frame in range(max_frames):
+		for unit in get_tree().get_nodes_in_group("units"):
+			if unit.get_parent() == player \
+					and str(unit.scene_file_path).ends_with(scene_suffix):
+				return unit
+		await get_tree().physics_frame
+	return null
+
+
 ## 围绕锚点做确定性环搜索，返回第一个通过权威放置评估的变换；找不到返回 null。
+## 半径开到 44 米、每圈 24 个方位：车厂/炮塔的 footprint 比兵营大，
+## 10~26 米这一档实测会被 `SurfaceNotBuildable`/`Occupied` 全灭（不是产品拒绝，是搜索太窄）。
+## 越靠外的圈越容易撞上视野与地图边界，所以仍由内向外取第一个合法点。
 func _find_legal_transform(runtime, human, scene, anchor: Vector3):
-	var issues_seen := {}
-	for radius in [10.0, 14.0, 18.0, 22.0, 26.0]:
-		for step in range(12):
-			var angle := TAU * float(step) / 12.0
+	var histogram := {}
+	var evaluations := 0
+	for radius in [10.0, 14.0, 18.0, 22.0, 26.0, 30.0, 34.0, 38.0, 42.0, 46.0]:
+		for step in range(24):
+			var angle := TAU * float(step) / 24.0
 			var candidate := Transform3D(
 				Basis.IDENTITY, anchor + Vector3(cos(angle), 0.0, sin(angle)) * radius
 			)
 			var evaluation = runtime.Evaluate(human, scene, candidate, {})
+			evaluations += 1
 			if evaluation["accepted"]:
+				print("[LEGALSPOT] %s 落点半径=%.1fm 方位=%d/24（评估 %d 次）"
+					% [str(scene.resource_path.get_file()), radius, step, evaluations])
 				return candidate
-			issues_seen[str(evaluation["issues"])] = true
-	print("[AUTOSPOT] 无合法落点，收集到的 issues=", issues_seen.keys())
+			for issue in evaluation["issues"]:
+				histogram[str(issue)] = int(histogram.get(str(issue), 0)) + 1
+	print("[AUTOSPOT] 基地周围无合法落点 scene=%s 评估=%d 次 issues=%s → 改全图扫描"
+		% [str(scene.resource_path.get_file()), evaluations, histogram])
+	# 本测试要证的是"零工人建车厂/炮塔能自动完工并解锁能力"，不是"贴着基地放得下"。
+	# 手摆图 TestAllUnits 的基地周围对车厂 footprint 确实没有合法地面
+	# （240 个采样点里 SurfaceNotBuildable 228 / NotVisible 200 / OutOfBounds 164），
+	# 所以退一步在整张图上按 12 m 栅格找**权威端认可**的落点：仍然由 Evaluate 说了算，
+	# 不放宽任何判据，只是把搜索范围从"基地环带"换成"全图"。
+	var bound = _match.get_node("Map").get("size")
+	if bound == null:
+		bound = Vector2(104.0, 104.0)
+	var grid_y := 12.0
+	while grid_y <= bound.y - 12.0:
+		var grid_x := 12.0
+		while grid_x <= bound.x - 12.0:
+			var scan_candidate := Transform3D(Basis.IDENTITY, Vector3(grid_x, 0.0, grid_y))
+			var scan_eval = runtime.Evaluate(human, scene, scan_candidate, {})
+			evaluations += 1
+			if scan_eval["accepted"]:
+				print("[LEGALSPOT] %s 全图扫描落点 (%.1f, %.1f)（累计评估 %d 次）"
+					% [str(scene.resource_path.get_file()), grid_x, grid_y, evaluations])
+				return scan_candidate
+			grid_x += 12.0
+		grid_y += 12.0
+	print("[AUTOSPOT] 全图也没有合法落点 scene=%s 评估=%d 次 issues=%s"
+		% [str(scene.resource_path.get_file()), evaluations, histogram])
 	return null
 
 

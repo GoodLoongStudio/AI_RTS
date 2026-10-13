@@ -172,11 +172,15 @@ static func _apply_build_work(unit: Node, mult: float) -> void:
 	unit.set("construction_work_rate", maxf(0.1, mult))
 
 
-## 生产工效：C# `ProductionService` 每 tick 推进量（浮点，默认 1.0）。
+## 生产工效基数：C# `ProductionService` 每 tick 推进量的成长来源（浮点）。
+## 只写基数再由 `Unit.refresh_production_work_rate` 合成最终值 —— 直接写
+## `production_work_per_tick` 会覆盖掉同类建筑加成那一段（2026-09-29 改造）。
 static func _apply_production_rate(unit: Node, mult: float) -> void:
-	if not "production_work_per_tick" in unit:
+	if not "growth_production_rate" in unit:
 		return
-	unit.set("production_work_per_tick", maxf(0.1, mult))
+	unit.growth_production_rate = maxf(0.1, mult)
+	if unit.has_method("refresh_production_work_rate"):
+		unit.refresh_production_work_rate()
 
 
 # ------------------------------------------------------------------ 内部工具

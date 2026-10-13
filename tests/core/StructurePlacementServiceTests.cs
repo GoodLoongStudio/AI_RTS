@@ -25,6 +25,10 @@ internal sealed class StructurePlacementServiceTests
         RunTest(nameof(PreviewDoesNotMutateResourceAccount), PreviewDoesNotMutateResourceAccount);
         RunTest(nameof(AdapterFailureBecomesValidationUnavailable),
             AdapterFailureBecomesValidationUnavailable);
+        RunTest(nameof(ConstructionInProgressBlocksSecondSite),
+            ConstructionInProgressBlocksSecondSite);
+        RunTest(nameof(ConstructionInProgressSitsBetweenAuthorizationAndWorld),
+            ConstructionInProgressSitsBetweenAuthorizationAndWorld);
 
         Console.WriteLine(
             $"Structure placement tests completed: {_tests} test(s), {_failures} failure(s).");
@@ -136,6 +140,37 @@ internal sealed class StructurePlacementServiceTests
             "适配器失败应映射为 ValidationUnavailable");
     }
 
+    /// <summary>验证「一次只能建造一个建筑」：已有活动工地时拒绝放置。</summary>
+    private void ConstructionInProgressBlocksSecondSite()
+    {
+        var fixture = CreateFixture();
+        fixture.ConstructionState.HasActiveSite = true;
+
+        var result = fixture.Service.Evaluate(Query(fixture, 0.0f));
+
+        Check(!result.IsValid, "已有在建工地时不得接受第二个候选");
+        Check(result.PrimaryIssue == StructurePlacementIssue.ConstructionInProgress,
+            "主问题应为 ConstructionInProgress");
+        Check(fixture.World.Calls == 0, "无并发额度时不应再执行更贵的空间评估");
+    }
+
+    /// <summary>验证新问题插在 NotAuthorized 之后、空间/资源问题之前（稳定优先级）。</summary>
+    private void ConstructionInProgressSitsBetweenAuthorizationAndWorld()
+    {
+        var fixture = CreateFixture(resourceA: 1);
+        fixture.ConstructionState.HasActiveSite = true;
+        fixture.World.Issues = [StructurePlacementIssue.Occupied];
+
+        var result = fixture.Service.Evaluate(Query(fixture, 0.0f));
+
+        Check(result.Issues.SequenceEqual(new[]
+        {
+            StructurePlacementIssue.ConstructionInProgress,
+            StructurePlacementIssue.Occupied,
+            StructurePlacementIssue.InsufficientResources
+        }), "ConstructionInProgress 应排在授权之后、空间与资源问题之前");
+    }
+
     /// <summary>建立带默认合法定义和资源账户的测试夹具。</summary>
     private static Fixture CreateFixture(int resourceA = 10)
     {
@@ -149,6 +184,7 @@ internal sealed class StructurePlacementServiceTests
             [new ResourceAmount(ResourceKind.A, 4), new ResourceAmount(ResourceKind.B, 2)]);
         var definitions = new FakeDefinitions(definition);
         var authorization = new FakeAuthorization();
+        var constructionState = new FakeConstructionState();
         var world = new FakeWorld();
         var accounts = new InMemoryResourceAccountService();
         accounts.Open(new OpenResourceAccount(
@@ -158,9 +194,10 @@ internal sealed class StructurePlacementServiceTests
             [new ResourceAmount(ResourceKind.A, resourceA), new ResourceAmount(ResourceKind.B, 10)],
             1));
         var service = new StructurePlacementService(
-            definitions, authorization, world, accounts);
+            definitions, authorization, constructionState, world, accounts);
         return new Fixture(
-            player, match, definitionId, definitions, authorization, world, accounts, service);
+            player, match, definitionId, definitions, authorization, constructionState,
+            world, accounts, service);
     }
 
     /// <summary>建立使用测试夹具身份的评估请求。</summary>
@@ -211,9 +248,21 @@ internal sealed class StructurePlacementServiceTests
         StructureDefinitionId DefinitionId,
         FakeDefinitions Definitions,
         FakeAuthorization Authorization,
+        FakeConstructionState ConstructionState,
         FakeWorld World,
         InMemoryResourceAccountService Accounts,
         StructurePlacementService Service);
+
+    /// <summary>提供可切换"已有在建工地"状态的测试端口。</summary>
+    private sealed class FakeConstructionState : IStructurePlacementConstructionStatePort
+    {
+        /// <summary>后续查询是否报告已有 Active 工地。</summary>
+        public bool HasActiveSite { get; set; }
+
+        /// <inheritdoc />
+        public bool HasActiveConstructionSite(MatchId matchId, PlayerId playerId) =>
+            HasActiveSite;
+    }
 
     /// <summary>提供可观察调用次数的内存建筑定义仓库。</summary>
     private sealed class FakeDefinitions(StructurePlacementDefinition? definition) :

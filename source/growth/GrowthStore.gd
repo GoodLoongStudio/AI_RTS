@@ -25,8 +25,9 @@ func _ready() -> void:
 	_load_json(SAVE_PATH, "state")
 	_load_json(PROFILE_PATH, "profile")
 	_load_json(REPORTS_PATH, "reports")
-	if match_reports.is_empty() and profile.is_empty():
-		_seed_demo_profile()
+	# 【2026-09-27 用户"不要伪造了"】不再自动播种 demo 对局记录：空就空着，
+	# 由 MatchReportStore.sync_growth_store() 用真实报告填充。
+	# 需要演示画像时显式调用 _seed_demo_profile()。
 
 func _load_definitions() -> void:
 	var file := FileAccess.open("res://config/growth_definitions.json", FileAccess.READ)

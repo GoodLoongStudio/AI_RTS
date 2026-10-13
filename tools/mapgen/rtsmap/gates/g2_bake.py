@@ -178,10 +178,37 @@ def bake_playable(starts, runs_root, seed, params) -> dict:
     write_json(g2_dir / "mapspec.json", g2_spec)
     write_json(g2_dir / "lanes.json", {})
     write_json(g3_dir / "mapspec.json", {"gate": "G3", "master_seed": seed, "all_pass": True})
+    # 出生点是 G1 随机给的，横河 z∈[98,108] 与中央大湖都可能落到 +8/+6 这类固定
+    # 偏移上 → 矿直接压在水面/桥面上（2026-09-28 用户："矿不能生成在水上和桥上
+    # 还有山上"）。所以保底图也按同一口径：先用「干地」掩码排除 water_footprint
+    # （含桥面）与其相邻格，再在意图位置附近挑最近的合法格。
+    from .g3_content import dry_ground
+
+    dry_g = dry_ground(grid)
+    ok_mask = dry_g & ~blocking.astype(bool) & (grid.get("passable").astype(bool))
+
+    def place_near(sx: float, sz: float, want_dx: float, want_dz: float):
+        intend_x, intend_z = sx + want_dx, sz + want_dz
+        best = None
+        for di in range(-16, 17):
+            for dj in range(-16, 17):
+                x, z = intend_x + di, intend_z + dj
+                if not (0 <= x < gw and 0 <= z < gh):
+                    continue
+                if not ok_mask[int(z), int(x)]:
+                    continue
+                d = di * di + dj * dj
+                if best is None or d < best[0]:
+                    best = (d, x, z)
+        # 16m 搜索圈内仍无合法格：退回意图位置（保底图优先保证"每家都有矿"）
+        return (intend_x, intend_z) if best is None else (best[1], best[2])
+
     resources = []
     for i, (sx, sz) in enumerate(starts):
-        resources.append({"type": "A", "x": sx + 8.0, "z": sz + 6.0, "player": i})
-        resources.append({"type": "A", "x": sx - 7.0, "z": sz - 5.0, "player": i})
+        rx, rz = place_near(sx, sz, 8.0, 6.0)
+        resources.append({"type": "A", "x": rx, "z": rz, "player": i})
+        rx, rz = place_near(sx, sz, -7.0, -5.0)
+        resources.append({"type": "A", "x": rx, "z": rz, "player": i})
     write_json(g3_dir / "resources.json", {"resources": resources})
     write_json(g3_dir / "objects.json", {"instances": []})
 

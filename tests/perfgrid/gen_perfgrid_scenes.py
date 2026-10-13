@@ -174,6 +174,12 @@ def main():
 
 
 def write_scene(path, content):
+    # 首行的场景 uid 是从模板（tests/manual/TestUnitsFightingEachOther.tscn）抄来的，
+    # 留着会让多个场景共用同一 uid；Godot 按 uid 优先解析，会把引用该 uid 的
+    # 生产/手工场景静默换成这里生成的临时场景（2026-09-27 实测踩坑）。
+    # 本目录场景一律按路径加载，去掉 uid 让导入器自己分配唯一值。
+    head, sep, rest = content.partition("\n")
+    content = re.sub(r' uid="uid://[a-z0-9]+"', "", head, count=1) + sep + rest
     with open(path, "w", encoding="utf-8", newline="\n") as fh:
         fh.write(content)
 

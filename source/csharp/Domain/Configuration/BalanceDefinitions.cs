@@ -105,12 +105,23 @@ public sealed record WeaponDefinition(
 /// <summary>描述一种资源的采集周期配置。</summary>
 /// <param name="Kind">稳定资源枚举。</param>
 /// <param name="CollectionDurationMilliseconds">采集一个离散资源所需的整数毫秒数。</param>
+/// <param name="RegenerationEnabled">是否启用周期再生；false = 采空即消失（旧语义）。</param>
+/// <param name="RegenerationDelayMilliseconds">采空后第一轮再生的等待毫秒数。</param>
+/// <param name="RegenerationRestoreAmount">每轮恢复的矿量。</param>
+/// <param name="RegenerationDelayGrowthFactor">
+/// 每完成一轮再生，下一轮等待时长的放大系数（≥1）；1.0 = 每轮等长。
+/// </param>
+/// <param name="RegenerationMaxDelayMilliseconds">
+/// 单轮等待封顶毫秒数；某轮等待超过它 ⇒ 矿点永久消失、不再重生。0 = 不封顶。
+/// </param>
 public sealed record ResourceDefinition(
     ResourceKind Kind,
     int CollectionDurationMilliseconds,
     bool RegenerationEnabled,
     int RegenerationDelayMilliseconds,
-    int RegenerationRestoreAmount);
+    int RegenerationRestoreAmount,
+    float RegenerationDelayGrowthFactor = 1.0f,
+    int RegenerationMaxDelayMilliseconds = 0);
 
 /// <summary>组合建筑放置定义与施工所需的整数工作量。</summary>
 /// <param name="DefinitionId">稳定建筑定义 ID。</param>

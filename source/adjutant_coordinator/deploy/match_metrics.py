@@ -175,6 +175,12 @@ def _economy_metrics(samples, elapsed) -> dict:
     metrics["ore_remaining_first"] = int(sampled[0].get("ore_remaining") or 0)
     metrics["ore_remaining_last"] = int(sampled[-1].get("ore_remaining") or 0)
     metrics["ore_depleted_nodes"] = max(int(s.get("ore_depleted") or 0) for s in sampled)
+    # 再生证据（§6 要求逐局报"矿点耗尽与再生时刻、再生数量、重新采集和交付的证据"）。
+    # `ore_depleted` 是瞬时值，一局里"曾经耗尽"会被后面的采样抹掉，所以取历史最大；
+    # `ore_regen_cycles` 是权威端各矿点已结算的再生轮数之和（幂等自增，不会重复计）。
+    metrics["ore_depleted_ever_nodes"] = max(int(s.get("ore_depleted_seen") or 0) for s in sampled)
+    metrics["ore_regen_cycles"] = max(int(s.get("ore_regen_cycles") or 0) for s in sampled)
+    metrics["ore_regen_waiting_nodes"] = max(int(s.get("ore_regen_waiting") or 0) for s in sampled)
     # 窗口截断 ⇒ 上面的"全图矿量"只是部分和，禁止当耗尽证据引用（提示词 §5 反假证据）。
     metrics["entities_truncated"] = any(bool(s.get("truncated")) for s in sampled)
 

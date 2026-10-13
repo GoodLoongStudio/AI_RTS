@@ -2,6 +2,7 @@ using AI_RTS.Application.Units;
 using AI_RTS.Domain.Common;
 using AI_RTS.GodotAdapter.Common;
 using Godot;
+using System.Linq;
 
 namespace AI_RTS.GodotAdapter.Units;
 
@@ -69,6 +70,10 @@ public sealed class GodotCommandCenterRepository(
         }
         return nearestNode;
     }
+
+    /// <summary>统计玩家名下已完工且存活的主基地数量（"多主基地加速建造"规则的数据源）。</summary>
+    public int CountCompletedCommandCenters(PlayerId owner) =>
+        EnumerateCompletedCommandCenterNodes(owner).Count();
 
     private IEnumerable<UnitCommandSnapshot> EnumerateCompletedCommandCenters(PlayerId owner)
     {

@@ -60,6 +60,32 @@ def clear_of_blocking(blocking, min_m=2.0):
 
 # ---------------- 资源放置 ----------------
 
+def _dilate(mask, iters):
+    """4 邻膨胀（纯 numpy，避免为一次单位骨的排除引入 scipy 依赖）。"""
+    out = np.asarray(mask, dtype=bool).copy()
+    for _ in range(iters):
+        p = np.pad(out, 1, constant_values=False)
+        out |= p[:-2, 1:-1] | p[2:, 1:-1] | p[1:-1, :-2] | p[1:-1, 2:]
+    return out
+
+
+def dry_ground(grid, pad=1):
+    """可放矿的干地：非水体格 + 距水体/桥面 ≥ pad 格。
+
+    为什么不能只看 `passable`：2026-09-28 用户明确要求「矿不能生成在水上和桥上
+    还有山上」。而工作台里**桥面**的定义就是 `water_footprint=1 且 passable=1`
+    （见 g4_terrain.classify：bridge = water & open_），即桥是"可通行的水面格"——
+    只看 passable 会把桥当成普通陆地放行（实测 map 5-790704679 的 23 号矿就压在
+    桥面上）。所以这里一律按 water_footprint 整体排除，水面与桥面一起挡掉。
+    再膨胀 pad 格：矿点本体约 1m（散矿最远 ~0.5m + 选中圈 0.7m），格距也是 1m，
+    本体必然压到相邻格——只判中心格会让矿"有一半悬在水/桥上方"。
+    """
+    water = grid.get("water_footprint")
+    if water is None:
+        return np.ones((GRID_H, GRID_W), dtype=bool)
+    return ~_dilate(np.asarray(water, dtype=bool), pad)
+
+
 def _pick_candidate(cand_mask, rng):
     idx = np.argwhere(cand_mask)
     if len(idx) == 0:
@@ -88,6 +114,7 @@ def place_resources(grid, spec, lanes, params, rng, exp_anchor_masks=None, flank
 
     df = dist_fields(passable, starts)
     clear2 = clear_of_blocking(blocking, params["res_clear_blocking"])
+    dry = dry_ground(grid)          # 水面 + 桥面（含本体压边的相邻格）
     overlay = np.zeros((GRID_H, GRID_W), dtype=np.uint8)
     placed = []          # dict: kind, type, i, j, owner
     failures = []
@@ -96,6 +123,8 @@ def place_resources(grid, spec, lanes, params, rng, exp_anchor_masks=None, flank
         if blocking[i, j] or overlay[i, j]:
             return False
         if not passable[i, j] or not clear2[i, j]:
+            return False
+        if not dry[i, j]:
             return False
         if lane_core[i, j]:
             return False
@@ -117,7 +146,7 @@ def place_resources(grid, spec, lanes, params, rng, exp_anchor_masks=None, flank
         reg_mask = region_mask if region_mask is not None else (region == region_code)
         for relax in (0.0, params["res_relax_step"] if path_range else 0.0):
             cand = reg_mask.copy()
-            cand &= ~blocking.astype(bool) & (overlay == 0)
+            cand &= ~blocking.astype(bool) & (overlay == 0) & dry
             cand &= clear2 & (lane_core == 0)
             dm = None
             if path_range is not None:
@@ -187,7 +216,8 @@ def place_resources(grid, spec, lanes, params, rng, exp_anchor_masks=None, flank
         else:
             d0 = 0.0
         lo_i = max(params["expansion_band_min"], rel_lo * d0)
-        cand = mask_i & ~blocking.astype(bool) & (overlay == 0) & clear2 & (lane_core == 0)
+        cand = (mask_i & ~blocking.astype(bool) & (overlay == 0) & dry
+                & clear2 & (lane_core == 0))
         dm = df[i]
         with np.errstate(invalid="ignore"):
             cand &= (dm >= lo_i) & np.isfinite(dm)
@@ -275,7 +305,7 @@ def place_resources(grid, spec, lanes, params, rng, exp_anchor_masks=None, flank
             reg_mask = (flank_masks[k] if flank_masks is not None and k < len(flank_masks)
                         else (region == (30 + k)))
         cand = reg_mask.copy()
-        cand &= ~blocking.astype(bool) & (overlay == 0) & clear2 & (lane_core == 0)
+        cand &= ~blocking.astype(bool) & (overlay == 0) & dry & clear2 & (lane_core == 0)
         d_i, d_j = df[pair[0]], df[pair[1]]
         both = np.isfinite(d_i) & np.isfinite(d_j)
         denom = np.minimum(d_i, d_j)
@@ -451,6 +481,48 @@ def place_resources(grid, spec, lanes, params, rng, exp_anchor_masks=None, flank
         if rem is None:
             placed.append(old)
             overlay[old["i"], old["j"]] = OVERLAY_A
+
+    # 【2026-09-28 用户要求】散矿：配额矿（near/expansion/shared，带公平约束）之外，
+    # 再在全图**随机**撒若干小矿点，让"贴地散矿"在布局面上成立（提示词 §8.1）。
+    # 一定条件 = 可通行、不在车道核、离障碍 ≥ res_clear_blocking、
+    #            离出生点 ≥ scatter_spawn_dist_min、与已有资源间距 ≥ scatter_gap。
+    # 刻意放在公平修正**之后**：散矿格不参与公平三项（kind="scatter" 不进任何
+    # 路径和统计），若放在修正之前，散矿占掉候选格会让 shared 修正找不到落点、
+    # G3 挂 → G4 跳过 → 整张图交不出来。
+    # 随机性来自 rng（与整条管线的种子同源），同种子可复现。
+    scatter_target = int(params.get("scatter_count", 0))
+    if scatter_target > 0:
+        scatter_gap = float(params.get("scatter_gap", params["res_gap"]))
+        scatter_spawn_min = float(params.get("scatter_spawn_dist_min",
+                                            params["res_spawn_dist"]))
+        ys_s, xs_s = np.meshgrid(np.arange(GRID_H), np.arange(GRID_W), indexing="ij")
+        # 与配额矿同一口径：水面/桥面（含压边相邻格）不放散矿。
+        scatter_base = (~blocking.astype(bool) & clear2 & (lane_core == 0)
+                        & passable.astype(bool) & dry)
+        for s in starts:
+            scatter_base &= np.hypot(xs_s - s[0], ys_s - s[1]) >= scatter_spawn_min
+        free = scatter_base & (overlay == 0)
+        placed_scatter = 0
+        attempts = 0
+        max_attempts = scatter_target * 60
+        while placed_scatter < scatter_target and attempts < max_attempts:
+            attempts += 1
+            idx = np.argwhere(free)
+            if len(idx) == 0:
+                break
+            pick = int(rng.integers(0, len(idx)))
+            i, j = int(idx[pick, 0]), int(idx[pick, 1])
+            overlay[i, j] = OVERLAY_A
+            placed.append({"kind": "scatter", "type": "A", "i": i, "j": j,
+                           "owner": "scatter"})
+            placed_scatter += 1
+            # 增量维护剩余候选：落子周围 scatter_gap 内与该格本身不再可选。
+            free &= ~(np.hypot(xs_s - j, ys_s - i) < scatter_gap)
+            free &= (overlay == 0)
+        if placed_scatter < scatter_target:
+            failures.append(
+                f"scatter: 条件内只撒了 {placed_scatter}/{scatter_target}"
+                "（候选不足，不放宽——散矿宁缺勿堵路）")
 
     # 公平三项（路径距离，A 资源）+ B 资源报告项 + 配额计数
     def pdist(i_res, player):

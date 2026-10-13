@@ -806,7 +806,7 @@ static func role_label(raw) -> String:
 	return key
 
 
-## 生产来源：place 模式是工人建造，否则是生产建筑。
+## 生产来源：place 模式是蓝图放置（自动施工），否则是生产建筑。
 static func source_caption(item: Dictionary) -> Variant:
 	var source = item.get("production_source", null)
 	if not (source is Dictionary):

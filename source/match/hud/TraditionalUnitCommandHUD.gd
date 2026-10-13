@@ -29,7 +29,7 @@ const _SKILL_CAPTIONS := {
 
 ## 选中摘要的单位类型显示名（RA3 情境窗口的单位名栏等价物）。
 const _UNIT_DISPLAY_NAMES := {
-	"worker": "工人",
+	"worker": "矿车",
 	"tank": "坦克",
 	"command_center": "指挥中心",
 	"vehicle_factory": "车辆工厂",
@@ -388,9 +388,12 @@ func _refresh_selected_info():
 		var type_key := ""
 		var scene_path = unit.get("scene_file_path")
 		if scene_path != null and str(scene_path) != "":
-			type_key = str(scene_path).get_file().trim_suffix(".tscn")
+			# 显示名映射的键是**单位类型 id**（worker/command_center…，snake_case），
+			# 直接用场景文件名（Worker/CommandCenter）查永远 miss，会漏出英文原名
+			#（实测选中栏显示"Worker ×1"，2026-09-28 修正）。
+			type_key = str(scene_path).get_file().trim_suffix(".tscn").to_snake_case()
 		else:
-			type_key = unit.name
+			type_key = str(unit.name).to_snake_case()
 		count_by_type[type_key] = int(count_by_type.get(type_key, 0)) + 1
 	var parts := []
 	for type_key in count_by_type:
