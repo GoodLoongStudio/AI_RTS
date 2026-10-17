@@ -567,7 +567,7 @@ def render_markdown(run: Dict[str, Any], rounds: List[Dict[str, Any]],
             delivery.get("attempt_id"), delivery.get("refinery_constructed"),
             delivery.get("refinery_delivered"), rel(delivery.get("context", ""), run["run_dir"]))))
     lines.append("")
-    lines.append("最长轮次间隔（正常等待形态）：%s" % json.dumps(
+    lines.append("最长已记录轮次间隔（不表示连续采样或正常等待）：%s" % json.dumps(
         metrics.get("longest_wait", {}), ensure_ascii=False))
     lines.append("")
     lines.append("### 里程碑时间线")
@@ -795,7 +795,6 @@ function roundTags(b){
   // 失败/超时只认**真失败**：任务 failed/timeout/blocked、命令 Rejected/error/expired、
   // 等待超时。仲裁丢弃（dropped：预留不足/去重/同单位冲突…）是正常门禁结果，
   // 不算失败——把 dropped 计进去会让"失败/超时"过滤器失去意义
-  // （600s 局 1559 条 dropped 全是正常拦截）。
   const hasFail=b.events.some(e=>e.kind==="task"&&["failed","timeout","blocked"].includes(e.event))
     ||b.events.some(e=>e.kind==="command"&&e.event==="timeout")
     ||b.events.some(e=>e.kind==="command"&&["Rejected","error","expired"].includes(e.status));
@@ -804,9 +803,10 @@ function roundTags(b){
   const hasModel=b.models.length>0;
   const hasCommand=b.commands.length>0;
   const hasSuccess=b.events.some(e=>e.kind==="task"&&e.event==="succeeded");
+  const hasBlocked=b.events.some(e=>e.kind==="task"&&(e.event==="blocked"||e.state==="blocked"));
   const isWait=(b.edges[0]&&b.edges[0].route==="wait");
   const cls=hasFail?"fail":(hasUnknown?"unknown":(hasSuccess?"success":(isWait?"wait":"all")));
-  return {cls:cls,hasFail:hasFail,hasUnknown:hasUnknown,hasModel:hasModel,hasCommand:hasCommand,hasSuccess:hasSuccess};
+  return {cls:cls,hasFail:hasFail,hasUnknown:hasUnknown,hasModel:hasModel,hasCommand:hasCommand,hasSuccess:hasSuccess,hasBlocked:hasBlocked};
 }
 function pass(b){
   const t=roundTags(b);
@@ -816,6 +816,7 @@ function pass(b){
   if(filter==="model")return t.hasModel;
   if(filter==="command")return t.hasCommand;
   if(filter==="success")return t.hasSuccess;
+  if(filter==="blocked")return t.hasBlocked;
   if(filter==="wait")return !t.hasFail&&!t.hasUnknown&&(b.edges[0]&&b.edges[0].route==="wait");
   return true;
 }

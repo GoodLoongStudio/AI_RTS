@@ -25,6 +25,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -3450,6 +3451,26 @@ def node_arbitrate_intent(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, 
         _decide(state, "lane_starved", tick=tick, starved=lane_view["starved"])
     if not candidates:
         return state
+    # 权威端按 intent_id 幂等：新的恢复授权必须有新的意图身份，
+    # 同一授权内仍用稳定身份，保留 Pending/Unknown 的防重复提交门禁。
+    bound_candidates = []
+    recovery_origins = {}
+    for candidate in candidates:
+        candidate = dict(candidate)
+        task_record = (state.get("task_ledger") or {}).get(str(candidate.get("task_id", "")))
+        attempt_id = str((task_record or {}).get("attempt_id", "") or "")
+        if isinstance(task_record, dict) and attempt_id and str(task_record.get("state", "")) in (
+                task_loop_mod.TASK_DIAGNOSING, task_loop_mod.TASK_RECOVERING):
+            original = str(candidate.get("intent_id", ""))
+            suffix = ":recovery-" + hashlib.sha256(attempt_id.encode("utf-8")).hexdigest()[:16]
+            if original and not original.endswith(suffix):
+                candidate["intent_id"] = original + suffix
+                recovery_origins[candidate["intent_id"]] = original
+                origin = (state.get(ORIGIN_KEY) or {}).get(original)
+                if origin is not None:
+                    state.setdefault(ORIGIN_KEY, {})[candidate["intent_id"]] = origin
+        bound_candidates.append(candidate)
+    candidates = bound_candidates
     # 【安全移动硬闸门】任何野外移动意图都必须在这里过审：通过 → 目标改写成安全中继点；
     # 不通过 → 直接摘掉（`movement_gated:<reason>`）。这是"没有有效路径的主力移动数 = 0"
     # 的实现位置：仲裁是通往下发的唯一咽喉，绕过它就没有别的路能发出移动命令。
@@ -3549,6 +3570,8 @@ def node_arbitrate_intent(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, 
         result.accepted = accepted_now
         result.dropped.extend(same_unit_dropped)
     for intent in result.accepted:
+        if str(intent["intent_id"]) in recovery_origins:
+            intent["origin_intent_id"] = recovery_origins[str(intent["intent_id"])]
         intent["state"] = "active"
         intent["drop_reason"] = ""
         # 同编号终态可重新授权，但权威命令身份不能回到第一次提交。
@@ -3639,6 +3662,35 @@ def _dispatch_target_pos(record: Any) -> Any:
         return None
 
 
+def _receipt_for_submission(state: Dict[str, Any], receipt: Dict[str, Any], *,
+                            intent_id: str, command_id: str,
+                            task_attempt_id: str = "") -> Dict[str, Any]:
+    """只给匹配实际提交身份的回执绑定本地尝试；异属原件留证，当前提交继续复核。"""
+    expected = {"intent_id": intent_id, "command_id": command_id,
+                "match_id": str(state.get("match_id", "")),
+                "player_id": str(state.get("player_id", ""))}
+    mismatches = [key for key, value in expected.items()
+                  if receipt.get(key) not in (None, "") and str(receipt[key]) != value]
+    if mismatches:
+        foreign = dict(receipt)
+        foreign.pop("task_attempt_id", None)
+        foreign["identity_mismatch"] = mismatches
+        state.setdefault("command_receipts", []).append(foreign)
+        _decide(state, "receipt_identity_mismatch", intent_id=intent_id,
+                command_id=command_id, returned_intent_id=receipt.get("intent_id"),
+                returned_command_id=receipt.get("command_id"), fields=mismatches)
+        receipt = {"status": "Unknown", "accepted": False,
+                   "reason": "receipt_identity_mismatch:" + ",".join(mismatches)}
+    else:
+        receipt = dict(receipt)
+    receipt.setdefault("intent_id", intent_id)
+    receipt.setdefault("command_id", command_id)
+    receipt.pop("task_attempt_id", None)
+    if task_attempt_id:
+        receipt["task_attempt_id"] = task_attempt_id
+    return receipt
+
+
 def node_dispatch_to_godot(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, Any]:
     """下发节点：把本轮采纳的意图转成命令包，经权威通道逐条提交。
 
@@ -3713,28 +3765,13 @@ def node_dispatch_to_godot(state: Dict[str, Any], ctx: NodeContext) -> Dict[str,
                 isinstance(receipts[index], dict) else
                 {"status": "Unknown", "accepted": False, "reason": "transport_result_missing"}
                 for index in range(len(envelopes))]
-    for envelope, receipt in zip(envelopes, receipts):
+    for receipt_index, (envelope, receipt) in enumerate(zip(envelopes, receipts)):
         intent_id = str(envelope["intent_id"])
         record = intents_by_id.get(intent_id)
-        receipt = dict(receipt)
-        receipt.setdefault("intent_id", intent_id)
-        receipt.setdefault("command_id", str(envelope.get("command_id", "")))
-        # 本地追踪字段随回执保留，但不改变发往权威端的命令合同。
-        if record is not None and submitted_attempts.get(intent_id):
-            receipt["task_attempt_id"] = submitted_attempts[intent_id]
-            task_record = (state.get("task_ledger") or {}).get(
-                str(record.get("task_id", "")))
-            if isinstance(task_record, dict) and \
-                    str(task_record.get("attempt_id", "")) == receipt["task_attempt_id"]:
-                attempts = list(task_record.get("attempt_intents") or [])
-                if intent_id not in attempts:
-                    attempts.append(intent_id)
-                task_record["attempt_intents"] = attempts[-16:]
-                commands = list(task_record.get("attempt_commands") or [])
-                command_id = str(receipt.get("command_id", "") or "")
-                if command_id and command_id not in commands:
-                    commands.append(command_id)
-                task_record["attempt_commands"] = commands[-16:]
+        receipt = _receipt_for_submission(
+            state, receipt, intent_id=intent_id, command_id=str(envelope["command_id"]),
+            task_attempt_id=submitted_attempts.get(intent_id, ""))
+        receipts[receipt_index] = receipt
         state.setdefault("command_receipts", []).append(receipt)
         if record is not None:
             # 记下"已下发指纹"：微操层下一轮再想发同一条会被窗口挡住（治重复命令）。
@@ -4110,12 +4147,10 @@ def node_observe_receipt(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, A
                 _decide(state, "receipt_recheck_failed", intent_id=intent_id, reason=str(exc))
                 receipt = None
             if receipt:
-                receipt = dict(receipt)
-                receipt.setdefault("intent_id", str(item.get("intent_id", intent_id)))
-                receipt.setdefault("command_id", str(item.get("command_id", "")))
-                if item.get("task_attempt_id"):
-                    # 权威复核按原 command_id 查询；关联使用提交时捕获的 identity。
-                    receipt["task_attempt_id"] = str(item["task_attempt_id"])
+                receipt = _receipt_for_submission(
+                    state, dict(receipt), intent_id=str(item.get("intent_id", intent_id)),
+                    command_id=str(item.get("command_id", "")),
+                    task_attempt_id=str(item.get("task_attempt_id", "") or ""))
                 state.setdefault("command_receipts", []).append(receipt)
                 _apply_receipt_to_state(state, intent_id, receipt, ctx)
                 unresolved = str(receipt.get("status", "") or "") in ("PendingAuthority", "Unknown", "")

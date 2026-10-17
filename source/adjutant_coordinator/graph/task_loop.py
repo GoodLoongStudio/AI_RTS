@@ -1204,12 +1204,19 @@ def _sync_attempt_results(state: Dict[str, Any], ledger: Dict[str, Any]) -> None
         settled_by_key = {str(item.get("key", "")): item
                           for item in settled if item.get("key")}
         for receipt in receipts[-160:]:
+            if receipt.get("identity_mismatch"):
+                continue  # 异属回执只作原件留证，不能走无标签旧格式兼容路径。
+            if any(receipt.get(key) not in (None, "") and
+                   str(receipt[key]) != str(state.get(key, ""))
+                   for key in ("match_id", "player_id")):
+                continue
             intent_id = str(receipt.get("intent_id", ""))
             command_id = str(receipt.get("command_id", ""))
             receipt_attempt_id = str(receipt.get("task_attempt_id", "") or "")
             if attempt_id and identity_version >= 1:
                 if receipt_attempt_id:
-                    belongs = receipt_attempt_id == attempt_id and intent_id in known
+                    belongs = (receipt_attempt_id == attempt_id and intent_id in known
+                               and bool(command_id) and command_id in known_commands)
                 else:
                     # 旧 transport 没有扩展字段时，只接受本次 dispatch 登记的 command_id。
                     belongs = bool(command_id and command_id in known_commands

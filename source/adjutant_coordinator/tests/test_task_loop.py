@@ -1359,6 +1359,54 @@ class RuntimeLoopIntegrationTest(unittest.TestCase):
 
 
 class ReceiptRuntimeBoundaryTest(unittest.TestCase):
+    def test_foreign_authority_receipt_remains_unknown_until_original_command_recheck(self):
+        from adjutant_coordinator.graph import nodes as nd
+        for status in ("Rejected", "Accepted"):
+            with self.subTest(status=status):
+                record = StableAttemptIdentityTest()._record()
+                intent = make_intent("cached", action="build", task_id="t",
+                                     target={"scene": "res://Refinery.tscn", "producer": "Unit_w"})
+                intent.update(state="active", task_attempt_id=record["attempt_id"])
+                state = make_state(server_tick=100, active_intents=[intent],
+                                   task_ledger={"t": record}, dispatch_pending=["cached"])
+                queries = []
+                def recheck(command):
+                    queries.append(command)
+                    # First query also returns a foreign result; the second resolves this command.
+                    return {"command_id": "prior-command" if len(queries) == 1 else command,
+                            "status": "Accepted", "accepted": True}
+                services = nd.GraphServices(dispatch=lambda envelopes: [{
+                    "intent_id": "cached", "command_id": "prior-command",
+                    "intent_replay": True, "status": status, "accepted": status == "Accepted"}],
+                    recheck=recheck)
+                nd.node_dispatch_to_godot(state, nd.NodeContext(services, {}, 100))
+                command = intent["command_id"]
+                self.assertEqual(record["attempt_commands"], [command])
+                self.assertEqual(state["command_receipts"][0]["command_id"], "prior-command")
+                self.assertNotIn("task_attempt_id", state["command_receipts"][0])
+                tl._sync_attempt_results(state, state["task_ledger"])
+                self.assertEqual([x["command_id"] for x in record["attempt_receipts"]], [command])
+                self.assertEqual(record["attempt_receipts"][0]["status"], "Unknown")
+                tl.diagnose(record, facts=make_facts(), state=state, tick=131, mono=4.0)
+                self.assertEqual(record["retries_used"], 1)
+                for tick in (132, 133):
+                    state["server_tick"] = tick
+                    nd.node_observe_receipt(state, nd.NodeContext(services, {}, tick))
+                    if tick == 132:
+                        self.assertEqual(state["pending_requests"]["cached"]["command_id"], command)
+                self.assertEqual(queries, [command, command])
+                self.assertEqual(intent["state"], "active")
+                self.assertFalse(state["pending_requests"])
+
+    def test_matching_attempt_label_cannot_adopt_unsubmitted_command(self):
+        record = StableAttemptIdentityTest()._record()
+        record.update(attempt_intents=["current"], attempt_commands=["actual-submit"])
+        state = make_state(task_ledger={"t": record}, command_receipts=[{
+            "intent_id": "current", "command_id": "never-submitted",
+            "task_attempt_id": record["attempt_id"], "status": "Rejected", "accepted": False}])
+        tl._sync_attempt_results(state, state["task_ledger"])
+        self.assertEqual(record["attempt_receipts"], [])
+
     def test_tick_zero_stable_attempt_can_receive_its_own_receipt(self):
         record = StableAttemptIdentityTest()._record()
         record["attempt_started_tick"] = 0

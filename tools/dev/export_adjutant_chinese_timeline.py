@@ -113,10 +113,9 @@ def input_facts(context: dict) -> str:
 def explain_strategy(context: dict, plan: dict | None, raw_text: str):
     notes = []
     if plan is None:
-        # Raw response may be a truncated JSON string. Do not repair it to invent a plan.
-        return ('服务端返回了半段文本，但程序未能解析成完整战略计划。本次不把其中的半截字段当作已接受的决定。',
-                '没有完整解析出的理由字段；请看同条原文，截断处原样保留。',
-                ['回复被截断，未形成合法完整 JSON。'])
+        return ('本次未取得已保存的完整战略计划，未形成可核对的结构化决定。',
+                '没有完整解析出的理由字段；可见响应及失败原因按同条原始记录保留。',
+                ['未保存完整战略计划；超时、传输失败或格式问题以调用结束记录为准，不能仅凭结果缺失推断截断。'])
     parts = [f"阶段目标：{plan.get('phase_goal', '未记录')}。",
              '计划动作：' + ('维持现有计划。' if plan.get('maintain_current') else '提交计划内容，是否采纳须看图内记录。'),
              f"计划版本 {plan.get('plan_version')}；依据快照 {plan.get('based_on_snapshot')}；截止逻辑帧 {plan.get('valid_until_tick')}。"]
@@ -224,7 +223,7 @@ def analysis_text(run: Path, summary: dict, rows: list[dict]) -> str:
         '结构化输出可以用于语言模型控制游戏：它让程序知道计划和动作是什么，并可校验目标是否合法。但结构合法只是接口要求，不能证明模型理解局势、目标合理或执行成功。', '',
         '战略模型的已记录可见解释来自 rationale 字段，下表单独原样展示该字段；没有记录的理由不补写。模型及运行设置以本次 summary 和实际 HTTP 请求为准。', '',
         '上一版主要问题是缺少人读层。模型接口可继续使用机器能校验的字段，中文意思应由日志程序根据本次上下文翻译。不能把我补写的说明冒充模型当时说过的话。', '',
-        '当前设计有证据支持的负担：战略要生成计划/对局/玩家/规则编号、快照和有效帧，以及任务集合。对局编号、规则哈希等已有上下文，要求模型重复这些字段会增加输出长度与复制约束；可考虑由程序补齐。注意原文里才是模型亲自生成的字段，解析结果还会增加默认字段；战术的完整 result/selection/laya/decode 也不是 2B 逐字生成的长 JSON。', '',
+        '当前设计有证据支持的负担：战略要生成计划/对局/玩家/规则编号、快照和有效帧，以及任务集合。对局编号、规则哈希等已有上下文，要求模型重复这些字段会增加输出长度与复制约束；可考虑由程序补齐。注意原文里才是模型亲自生成的字段，解析结果还会增加默认字段；战术的完整 result/selection/laya/decode 是应用层保存的记录，不能全部当作模型逐字生成的内容。', '',
         f"本样本 finish_reason=length 的响应共 {len(lengths)} 条：{join_items(lengths)}。截断与否按实际响应标记记录；不能套用其他对局的案例。", '',
         f'逐条对照中 {len(plan_issues)} 次战略返回触发了至少一项明确检查，具体条目见各行；这是检查计数，不是已经确诊的独立缺陷数量。', '',
         f"未与调用精确关联的 HTTP 请求：{join_items(summary.get('_unmatched_http', []))}。以下完整性附录保留其输入与输出，不猜测调用归属。", '',

@@ -180,7 +180,7 @@ def introduction(summary: dict, rows: list[dict], html_path: Path) -> list[str]:
         '战术使用 Laya，正文显示已保存结果文件的全部 `result / selection / laya / decode` 字段；其中 result 是转换后的意图，laya 是选择记录，decode 是解码结果。这里没有战术聊天正文或隐藏推理记录，不能据此声称已取得内部思维链。', '',
         '返回成功仅代表封装收到结果。图内实际采纳/拒绝另见文末独立事件表；这些事件按同 tick 世界记录近似标时，没有冒充某次输出的精确执行结果。最后的返回可能尚未来得及被图消费。', '',
         f'也可打开{link("可筛选阅读版（相同完整内容）", html_path)}，按角色、ID、关键词或时间筛选；本 Markdown 正文已包含全部原文，无需逐条打开 JSON。', '',
-        '采集口径：既有单人无头真实 Match、command-level 菜单流程。此页只导出现有证据，未重跑对局；原独立审计仍为 18/20、rc=2。', '',
+        f"采集口径：既有单人{'无头' if summary.get('headless', True) else '后台独立窗口'}真实 Match、command-level 菜单流程。此页只导出现有证据；独立审计、录像覆盖和清理结论请按本次运行目录中的原件核对。", '',
         '## 按完成时间排列的完整表', '',
     ]
 

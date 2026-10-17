@@ -30,3 +30,13 @@
 - 修改目标逐项检查 rc=0；证据输出目录按 runs 既有约定仅作运行产物。
 - 初始源码身份、mtime、相关 dirty 状态、既有 Godot / Ollama 进程见本轮 [baseline.json](../runs/2026-10-17-adjutant-phase1-repair/baseline.json)。
 - 当前 champion 仍为 `4851de361b4c924cde0eacbe2d113b14fc6c9798+dirty`；旧候选 `cand-phase1-d-rework` 因第四轮复核状态为 needs-review。本轮使用独立候选记录，不覆写 champion。
+
+## 实施与当前结果
+
+E1–E4实现和正式反例已补齐。最终专项241项及独立29项rc=0，冻结四产品文件hash见 runs 下 final-source-parse.json。新鲜实机发现权威服务按intent缓存旧回执，已追加同一恢复授权稳定/跨授权不同的intent身份，并在dispatch/recheck验证intent/command/match/player四类关联；新授权不能用旧结果结算预算。
+
+最终30秒新进程S1退出干净，恢复命令intent_replay=false。最终600秒后台Match位于round-replay/final-600，使用真实模型/plan/LangGraph，结束后量化及独立运行时结论写闭环报告。视频早期捕获超时，只有9.4秒，后补录窗口隐藏/最小化拒绝；没有恢复窗口或抢前台。
+
+全量回归仍红：Python1148四项既有红；native128严格可确认78项通过，部分超时/forbidden/证据缺失；core与authority检查也有失败，详见报告。原计划逐补丁S1顺序曾在E2–E4偏离，已保留记录，不能补写成通过。候选E被新实机反例拒绝，F专项逻辑通过但不晋级，连续未提升2。champion保持不变。
+
+共享HEAD在运行中由外部提交变成8552bca，收尾时又出现构造模块C#冲突。本任务没有提交、reset、切分支、覆盖冲突或更新打包版；仅定向清理拥有完整身份链的本轮进程，原11434模型服务保持运行。
