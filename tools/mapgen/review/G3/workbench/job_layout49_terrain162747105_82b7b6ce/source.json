@@ -1,0 +1,67 @@
+{
+  "job_id": "82b7b6ceea4343699488de9595614380",
+  "seed": 49,
+  "terrain": 162747105,
+  "target": "full",
+  "status": "error",
+  "title": "布局 49 · 地貌 162747105",
+  "label": null,
+  "map_pass": null,
+  "created_at": "2026-09-29T00:32:26",
+  "reverified_with_current_code": false,
+  "visual_version": 1,
+  "visual_profile": "default",
+  "map_id": "49-162747105-767a002977",
+  "checks_summary": {},
+  "failed_paths": [],
+  "failed_forbidden": [],
+  "nav_all": null,
+  "smoke_assertions": {},
+  "stages": {
+    "G1": {
+      "state": "通过",
+      "images": [
+        "contact.png"
+      ],
+      "preview": "contact.png",
+      "version": "2.0.0",
+      "history_versions": []
+    },
+    "G2": {
+      "state": "通过",
+      "images": [
+        "contact.png",
+        "seed_16_minimap.png",
+        "seed_16_overview.png",
+        "seed_16_strategy.png",
+        "seed_36_minimap.png",
+        "seed_36_overview.png",
+        "seed_36_strategy.png",
+        "seed_49_minimap.png",
+        "seed_49_overview.png",
+        "seed_49_strategy.png",
+        "seed_5_minimap.png",
+        "seed_5_overview.png",
+        "seed_5_strategy.png"
+      ],
+      "preview": "seed_16_overview.png",
+      "version": "7.11.0",
+      "history_versions": []
+    },
+    "G3": {
+      "state": "通过",
+      "images": [
+        "contact.png",
+        "seed_49_overview.png"
+      ],
+      "preview": "seed_49_overview.png",
+      "version": "2.2.0",
+      "history_versions": []
+    }
+  },
+  "folder": "job_layout49_terrain162747105_82b7b6ce",
+  "gate": "G3",
+  "source_job": "G:\\AIRTS\\AI_RTS\\tools\\mapgen\\workbench_output\\82b7b6ceea4343699488de9595614380\\job.json",
+  "synced_at": "2026-09-29T00:50:19",
+  "note": "图像来自本任务权威数据/真实引擎输出；生成或导航通过不等于实战通过。"
+}

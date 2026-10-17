@@ -21,7 +21,7 @@ func _ready():
 	# HUD fixture so the command can be verified without changing the shared manual scene.
 	var command_center = CommandCenterScene.instantiate()
 	var command_center_transform := Transform3D(
-		Basis.IDENTITY, tank.global_position + Vector3(-4.0, 0.0, 0.0)
+		Basis.IDENTITY, tank.global_position + Vector3(0.0, 0.0, 14.0)
 	)
 	match_instance._setup_and_spawn_unit(command_center, command_center_transform, human, false)
 	await get_tree().process_frame
@@ -136,6 +136,7 @@ func _ready():
 	input_runtime.emit_signal("ActionPressed", "unit.force_move")
 	_check("右键地面" in feedback_label.text, "C 快捷键应进入一次性目标确认状态")
 	MatchSignals.terrain_targeted.emit(tank.global_position + Vector3(3.0, 0.0, 0.0))
+	await get_tree().physics_frame
 	await get_tree().process_frame
 	_check(tank.action != null and tank.action.get_script() == Moving, "HUD 强制移动应驱动 Tank")
 	_check("接受 1" in feedback_label.text, "HUD 应显示强制移动即时接受数量")

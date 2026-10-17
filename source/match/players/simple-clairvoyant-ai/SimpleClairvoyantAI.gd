@@ -1,6 +1,7 @@
 extends "res://source/match/players/Player.gd"
 
 const AiCadence = preload("res://source/match/players/simple-clairvoyant-ai/AiCadence.gd")
+const AiPerfStats = preload("res://source/match/players/simple-clairvoyant-ai/AiPerfStats.gd")
 
 ## 战场扫描的字段位与半径（与 `AutoAttackingBattlegroup` 的观察需求一致）。
 const FIELD_POSITION := 1 << 0
@@ -182,10 +183,15 @@ func _process(_delta):
 		call_to_perform.call()
 
 
-func _provision(controller, resources, metadata):
+func _provision(controller, resources, metadata) -> String:
 	_provisioning_ongoing = true
-	controller.provision(resources, metadata)
+	var perf_on := AiPerfStats.enabled()
+	var started := Time.get_ticks_usec() if perf_on else 0
+	var outcome: String = controller.provision(resources, metadata)
 	_provisioning_ongoing = false
+	if perf_on:
+		AiPerfStats.add("provision_%s" % str(metadata), Time.get_ticks_usec() - started)
+	return outcome if outcome != "" else "done"
 
 
 func _try_fulfilling_resource_requests_according_to_priorities_next_frame():
@@ -196,11 +202,21 @@ func _try_fulfilling_resource_requests_according_to_priorities_next_frame():
 
 
 func _try_fulfilling_resource_requests_according_to_priorities():
+	var perf_on := AiPerfStats.enabled()
+	var _perf_start := Time.get_ticks_usec() if perf_on else 0
+	# arbitration 是包含桶；economy / provision 是其子项，不能与父桶相加。
+	var economy_us := 0
+	var provision_us := 0
 	if _provisioning_ongoing:
+		if perf_on:
+			AiPerfStats.add("arbitration", Time.get_ticks_usec() - _perf_start)
 		return
+	var halt := false
 	for priority in [
 		ResourceRequestPriority.HIGH, ResourceRequestPriority.MEDIUM, ResourceRequestPriority.LOW
 	]:
+		if halt:
+			break
 		# 【2026-09-17 方案 3.B.5】同档内**扫描第一个付得起的请求**，不再只看队首。
 		# 历史演进：最初是 `break`（队首付不起 ⇒ 低优先级整轮拿不到钱，表现为
 		# "一直攒钱，什么都不造"）→ 改成 `continue`（档与档之间不再互相阻塞）→
@@ -213,17 +229,47 @@ func _try_fulfilling_resource_requests_according_to_priorities():
 			progressed = false
 			for index in range(_resource_requests[priority].size()):
 				var candidate = _resource_requests[priority][index]
-				if not _has_resources(candidate["resources"]):
+				if perf_on:
+					var economy_started := Time.get_ticks_usec()
+					var affordable := _has_resources(candidate["resources"])
+					economy_us += Time.get_ticks_usec() - economy_started
+					if not affordable:
+						continue
+				elif not _has_resources(candidate["resources"]):
 					continue
+				var outcome := "done"
+				if perf_on:
+					var provision_started := Time.get_ticks_usec()
+					outcome = _provision(
+						candidate["controller"],
+						candidate["resources"],
+						candidate["metadata"]
+					)
+					provision_us += Time.get_ticks_usec() - provision_started
+				else:
+					outcome = _provision(
+						candidate["controller"],
+						candidate["resources"],
+						candidate["metadata"]
+					)
+				# 预算用完不是失败：请求留在队列里，下一帧从原候选继续。
+				# 本帧不再启动别的选址，避免换 key 把进行中的搜索顶掉。
+				if outcome == "pending":
+					halt = true
+					break
 				_resource_requests[priority].remove_at(index)
-				_provision(
-					candidate["controller"],
-					candidate["resources"],
-					candidate["metadata"]
-				)
 				# `_provision` 可能新增请求或改变余额，重新从头扫描。
 				progressed = true
 				break
+	# pending 不会再发新的资源请求，必须自己预约下一帧，否则搜索停在半截。
+	if halt:
+		_try_fulfilling_resource_requests_according_to_priorities_next_frame()
+	if perf_on:
+		var total_us := Time.get_ticks_usec() - _perf_start
+		AiPerfStats.add("arbitration", total_us)
+		AiPerfStats.add("arbitration_economy_query", economy_us)
+		AiPerfStats.add("arbitration_provision", provision_us)
+		AiPerfStats.add("arbitration_scan_exclusive", total_us - economy_us - provision_us)
 
 
 ## 通过己方标准查询会话检查资源请求能否进入执行阶段。
@@ -240,6 +286,9 @@ func _has_resources(resources: Dictionary) -> bool:
 
 
 func _on_player_data_changed():
+	# round-02 诊断桶：区分仲裁的两类触发源（余额变化信号 vs 控制器资源请求）。
+	if AiPerfStats.enabled():
+		AiPerfStats.add("trigger_changed", 0)
 	_try_fulfilling_resource_requests_according_to_priorities_next_frame()
 
 
@@ -248,6 +297,8 @@ func _on_resource_request(resources, metadata, controller, priority):
 	_resource_requests[priority].append(
 		{"controller": controller, "resources": resources, "metadata": metadata}
 	)
+	if AiPerfStats.enabled():
+		AiPerfStats.add("trigger_request", 0)
 	_try_fulfilling_resource_requests_according_to_priorities_next_frame()
 
 
@@ -351,6 +402,42 @@ func battlefield_scan() -> Array:
 		return _battlefield_scan_result
 	_battlefield_scan_result = result.get("entities", [])
 	return _battlefield_scan_result
+
+
+## —— 己方力量扫描的按物理帧缓存（round-01 性能候选，与 battlefield_scan 同合同）——
+## 5 个 Controller 的 `_get_own_entities()` 在同一物理帧内对同一份 CaptureShared 快照
+## 重复做 C# 过滤/排序/转换（round-01 实测：1AI 175 模拟秒 2275 次，3AI 4320 次）。
+## CaptureShared 按物理帧钉住快照，同帧内直查与缓存返回逐字节等价；
+## 字段取各控制器掩码的并集（Economy/Offense 超集），`returned_fields` 无消费方。
+## 消费约定与 battlefield_scan 一致：返回共享数组，消费方 filter 后再排序/修改
+## （round-01 已审计全部消费点：sort_custom 均作用在 filter 副本上）。
+const FIELD_CONSTRUCTION := 1 << 4
+const FIELD_PRODUCTION := 1 << 5
+const FIELD_ORDER := 1 << 6
+const OWN_FORCES_SCAN_FIELDS := (
+	FIELD_POSITION | FIELD_TYPE | FIELD_CONSTRUCTION | FIELD_PRODUCTION | FIELD_ORDER
+)
+
+var _own_forces_scan_frame := -1
+var _own_forces_scan_result: Array = []
+
+
+func own_forces_scan() -> Array:
+	var frame := Engine.get_physics_frames()
+	if frame == _own_forces_scan_frame:
+		return _own_forces_scan_result
+	_own_forces_scan_frame = frame
+	_own_forces_scan_result = []
+	if _world_query_runtime == null or _query_session_id.is_empty():
+		return _own_forces_scan_result
+	var result: Dictionary = _world_query_runtime.GetOwnForces(
+		_query_session_id, OWN_FORCES_SCAN_FIELDS
+	)
+	if result.get("status", "") != "Accepted":
+		push_warning("rule AI own forces scan was rejected: %s" % result.get("error", "Unknown"))
+		return _own_forces_scan_result
+	_own_forces_scan_result = result.get("entities", [])
+	return _own_forces_scan_result
 
 
 ## DefenseController 上报基地威胁；30s 内视为持续有效（防抖动）。

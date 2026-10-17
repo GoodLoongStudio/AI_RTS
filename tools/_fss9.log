@@ -1,0 +1,26 @@
+[selfplay] 验收端口 24589 在专用段 24589-24592 内
+清理本局进程树 roots=[19552, 57664] (全部=[19552, 33088, 48560, 57664])
+[selfplay] 大厅就绪: 指挥官-309
+[selfplay] op=start -> {'map': 'res://source/match/maps/PlainAndSimple.tscn', 'ok': True, 'passive_ai_test': False, 'peaceful': False, 'seed': 0, 'with_ai': True}
+runner 启动 pid=47692 state_dir=G:\AIRTS\tmp_logs\langgraph_recon\selfplay\state_fs_ref9
+pidfile=57388
+[selfplay] 对局开始，采样 330s（backend=off difficulty=-1）
+[selfplay] 矿场前置：派 Unit_2 到 [174.27, 170.79] -> {'accepted': False, 'error': 'no units', 'ok': False, 'reason': '找不到属于该玩家的移动单位，请先从 status 的 units 里选择我方单位。', 'status': '
+[selfplay] 矿场前置：侦察 Unit_2 -> {'arrived': False, 'distance_m': 205.7, 'unit_xz': [24.3, 30.0]}
+[selfplay] 矿场前置：侦察 Unit_2 -> {'arrived': False, 'distance_m': 205.7, 'unit_xz': [24.3, 30.0]}
+[selfplay] 矿场前置：侦察 Unit_2 -> {'arrived': False, 'distance_m': 206.1, 'unit_xz': [24.7, 29.0]}
+[selfplay] 矿场前置：侦察 Unit_2 -> {'arrived': False, 'distance_m': 206.1, 'unit_xz': [24.7, 29.0]}
+[selfplay] 矿场前置：侦察 Unit_2 -> {'arrived': False, 'distance_m': 206.1, 'unit_xz': [24.7, 29.0]}
+[selfplay] 矿场前置：侦察 Unit_2 -> {'arrived': False, 'distance_m': 206.1, 'unit_xz': [24.7, 29.0]}
+[selfplay] 矿场前置：改走权威端直执行 -> {'accepted': True, 'command_id': 'e8382c78-95fb-4f6f-809d-dd09df429f67', 'moved': ['Unit_2'], 'ok': True, 'reason': '', 'result': {'command_id': 'e8382c78-95fb-
+[selfplay] 矿场前置：侦察 Unit_2 -> {'arrived': False, 'distance_m': 188.5, 'unit_xz': [37.0, 41.5]}
+[selfplay] 矿场前置：侦察 Unit_2 -> {'arrived': False, 'distance_m': 167.9, 'unit_xz': [56.3, 51.3]}
+[selfplay] 矿场前置：侦察 Unit_2 -> {'arrived': False, 'reason': 'unit_not_observed'}
+[selfplay] 矿场前置：侦察单位丢失，重新选人重探（第 1 次）
+[selfplay] 矿场前置：可见远端矿点=False 可动单位=None，10s 后重试
+[selfplay] 矿场前置：可见远端矿点=False 可动单位=None，10s 后重试
+[selfplay] 游戏进程异常退出（连续 3 次采样失败，约第 155.3s），提前收尾
+停止 runner roots=[47692]（全部=[47692, 57388]，authority-port=24572）
+清理本局进程树 roots=[41680, 53704] (全部=[9252, 41680, 53704, 58672])
+[selfplay] 终局: verdict=aborted own=61 enemy=23 units={} balance={'a': 25700}
+[selfplay] written: G:\AIRTS\tmp_logs\langgraph_recon\selfplay\result_fs_ref9.json

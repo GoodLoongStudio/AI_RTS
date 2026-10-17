@@ -5,6 +5,7 @@
 """
 import json
 import os
+from pathlib import Path
 import sys
 import urllib.error
 import urllib.request
@@ -13,14 +14,19 @@ OWNER, REPO, TAG = "GoodLoongStudio", "AI_RTS", "v0.1-demo"
 
 
 def main():
+    args = [a for a in sys.argv[1:] if a != "--dry-run"]
+    manifest = Path(__file__).resolve().parents[2] / "agent/manifest.json"
+    stage = json.loads(manifest.read_text(encoding="utf-8-sig"))["workspace_layout"]["packaged_delivery_root"]
+    notes = args[0] if args else str(Path(stage) / "RELEASE_NOTES_v4.md")
+    if "--dry-run" in sys.argv[1:]:
+        exists = Path(notes).is_file()
+        print(json.dumps({"notes": notes, "exists": exists, "dry_run": True}, ensure_ascii=False))
+        return 0 if exists else 1
     token = os.environ.get("GH_TOKEN", "").strip()
     if not token:
         print("ERROR: GH_TOKEN missing")
         return 1
 
-    notes = r"G:\AIRTS\临时文件夹\release_assets\RELEASE_NOTES.md"
-    if len(sys.argv) > 1:
-        notes = sys.argv[1]
     try:
         with open(notes, encoding="utf-8") as fh:
             body = fh.read()

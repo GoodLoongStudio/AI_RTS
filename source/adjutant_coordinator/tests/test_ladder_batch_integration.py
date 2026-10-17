@@ -153,10 +153,14 @@ class LadderBatchIntegrationTest(unittest.TestCase):
         observation = {
             "tactical": {"server_tick": 1000, "snapshot_id": 5, "entities": [
                 unit("Unit_0", "command_center", queue=True, pos=(10, 0, 7)),
-                unit("Unit_4", "soldier", pos=(20, 0, 7)),
-                enemy("Enemy_1", (30, 0, 20)),
-                enemy("Enemy_2", (31, 0, 20)),
-                enemy("Enemy_3", (32, 0, 20)),
+                # 敌人必须**离开基地防守半径**（`campaign.DEFENSE_RADIUS_M = 40m`），
+                # 否则行为树先走"基地受袭回防"（`test_raid_recall_beats_outnumbered_retreat`
+                # 钉住的优先级），这条用例量的就不是"求生 > 交战"而是防守序。
+                # 同文件 `test_outnumbered_combat_unit_retreats` 正是为此把敌人放在建筑之外。
+                unit("Unit_4", "soldier", pos=(70, 0, 7)),
+                enemy("Enemy_1", (76, 0, 7)),
+                enemy("Enemy_2", (77, 0, 7)),
+                enemy("Enemy_3", (78, 0, 7)),
             ]},
             "rules": LADDER_RULES,
         }

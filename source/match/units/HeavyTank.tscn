@@ -12,17 +12,16 @@
 [ext_resource type="Script" path="res://source/match/units/SyntyMaterialBinder.gd" id="12_synty_binder"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_sjc11"]
-height = 1.200
-radius = 1.125
+height = 2.3092
+radius = 1.7756
 
 [node name="HeavyTank" type="Area3D"]
-scale = Vector3(2.00, 2.00, 2.00)
 collision_layer = 2
 collision_mask = 0
 script = ExtResource("1_npbka")
 
 [node name="Geometry" type="Node3D" parent="."]
-transform = Transform3D(0.8, 0, 0, 0, 0.8, 0, 0, 0, 0.8, 0, 0, 0)
+transform = Transform3D(1.288, 0, 0, 0, 1.288, 0, 0, 0, 1.288, 0, 0, 0)
 
 [node name="SM_Veh_HoverTank_02" parent="Geometry" instance=ExtResource("10_hovertank")]
 transform = Transform3D(-0.35, 0, 0, 0, 0.35, 0, 0, 0, -0.35, 0, 0.25, 0)
@@ -32,46 +31,53 @@ script = ExtResource("12_synty_binder")
 albedo_texture = ExtResource("11_scifi_atlas")
 
 [node name="ProjectileOrigin" type="Marker3D" parent="Geometry"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.85, -1.4)
+; Barrel-end rings, including the authored 25 degree elevation.
+position = Vector3(-0.345102, 1.9473135, -1.2727867)
+
+[node name="MuzzleL" type="Marker3D" parent="Geometry"]
+position = Vector3(-0.345102, 1.9473135, -1.2727867)
+
+[node name="MuzzleR" type="Marker3D" parent="Geometry"]
+position = Vector3(0.345102, 1.9473135, -1.2727867)
 
 [node name="SelectionAnchor" type="Marker3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
+transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0.1, 0)
 
 [node name="HealthBarAnchor" type="Marker3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 0)
+transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 2.024, 0)
 
 [node name="GroundFootprint" type="Marker3D" parent="."]
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1546, 0)
 shape = SubResource("CylinderShape3D_sjc11")
 
 [node name="Highlight" parent="." instance=ExtResource("1_n4t54")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
-radius = 0.9
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0875, 0)
+radius = 2.024
 
 [node name="Selection" parent="." instance=ExtResource("2_mbcqe")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
-radius = 0.9
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0875, 0)
+radius = 2.024
 
 [node name="Movement" parent="." instance=ExtResource("3_4m8ma")]
-path_desired_distance = 0.5
-target_desired_distance = 0.5
+path_desired_distance = 0.3
+target_desired_distance = 0.15
 path_height_offset = 0.6
 path_max_distance = 0.51
-radius = 2.25
+radius = 1.8768
 neighbor_distance = 3.0
 max_neighbors = 16
 time_horizon_agents = 4.5
-speed = 2.75
+speed = 5.5
 
 [node name="HealthBar" parent="." instance=ExtResource("4_7l0rt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 0)
-size = Vector2(160, 10)
+transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 1.771, 0)
+size = Vector2(140, 8.75)
 
 [node name="Targetability" parent="." instance=ExtResource("8_ca2nt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
-radius = 0.9
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0875, 0)
+radius = 2.024
 
 [node name="UnitVisualBindings" type="Node" parent="."]
 script = ExtResource("9_visual_bindings")

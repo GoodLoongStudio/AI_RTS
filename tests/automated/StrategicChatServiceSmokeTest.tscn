@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tests/automated/StrategicChatServiceSmokeTest.gd" id="1_chat"]
+
+[node name="StrategicChatServiceSmokeTest" type="Node"]
+script = ExtResource("1_chat")

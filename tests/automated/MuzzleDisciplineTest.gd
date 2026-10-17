@@ -4,7 +4,7 @@ extends Node
 ##   ① 所有炮弹必须从**炮管挂点**（ProjectileOrigin / MuzzleL/MuzzleR）出膛，
 ##      不允许从车体/塔身中心冒出来；
 ##   ② 双管炮塔（AntiGroundTurret / MachineGunTurret）必须**左右交替**出膛；
-##   ③ 重坦视野 = 10m（多兵种配合），射程 20m（比防御塔远）。
+##   ③ 重坦视野 = 20m（多兵种配合），射程 40m（比防御塔远）——2026-10-01 尺度 ×2。
 ## 直接走 ProjectileRuntime.LaunchEntity（与各攻击 Action 同一权威入口），
 ## 弹体 _ready 把自己放在 launch_transform.origin 上 → 出膛点可精确断言。
 
@@ -86,15 +86,15 @@ func _ready():
 	a_match.add_child(dummy_target)
 	dummy_target.global_position = base_pos + Vector3(6.0, 0.6, 0.0)
 
-	# ---- ① 重坦视野 10 / 射程 20 ----
+	# ---- ① 重坦视野 20 / 射程 40（尺度 ×2）----
 	var heavy = (load(ARMED_UNITS["heavy_tank"]) as PackedScene).instantiate()
 	catalog.ConfigureUnit(heavy)
 	var heavy_sight := float(heavy.get("sight_range"))
 	var heavy_range := float(heavy.get("attack_range"))
 	heavy.free()
 	print("[INFO] heavy sight=", heavy_sight, " range=", heavy_range)
-	_check(heavy_sight == 10.0, "重坦视野应为 10m（多兵种配合；实际 %s）" % heavy_sight)
-	_check(heavy_range == 20.0, "重坦射程应保持 20m（实际 %s）" % heavy_range)
+	_check(heavy_sight == 20.0, "重坦视野应为 20m（多兵种配合；实际 %s）" % heavy_sight)
+	_check(heavy_range == 40.0, "重坦射程应为 40m（实际 %s）" % heavy_range)
 
 	# ---- ② 全兵种：出膛点必须落在炮管挂点上 ----
 	for type_id in ARMED_UNITS:
@@ -118,8 +118,8 @@ func _ready():
 			var rocket_path := shell.find_child("Path3D", true, false) as Path3D
 			var exit_pos: Vector3
 			if rocket_path != null:
-				# 火箭根节点钉在原点、弹体沿世界坐标 Path3D 走——轨迹起点即出膛点
-				exit_pos = rocket_path.curve.get_point_position(0)
+				# Curve3D 点是 Path3D 局部坐标，断言时转回世界坐标。
+				exit_pos = rocket_path.to_global(rocket_path.curve.get_point_position(0))
 			else:
 				exit_pos = shell.global_position
 			var best := 1.0e9
@@ -138,7 +138,7 @@ func _ready():
 		await get_tree().process_frame
 
 	# ---- ③ 双管交替：AntiGroundTurret 连开三发，L→R→L ----
-	for turret_type in ["anti_ground_turret", "machine_gun_turret"]:
+	for turret_type in ["anti_ground_turret", "machine_gun_turret", "heavy_tank", "helicopter", "anti_air_turret"]:
 		var turret: Node3D = (load(ARMED_UNITS[turret_type]) as PackedScene).instantiate()
 		catalog.ConfigureUnit(turret)
 		a_match._setup_and_spawn_unit(

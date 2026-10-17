@@ -116,8 +116,20 @@ func _ready():
 	await get_tree().physics_frame
 	print("Loading[%.1fs] 添加 Match 到场景树" % (Time.get_ticks_msec() / 1000.0))
 	a_match.set_meta("hold_hud_until_loading", true)
-	get_parent().add_child(a_match)
+	# 【2026-10-01 修复「单人开不了房」】current_scene 必须是 root 的子节点；
+	# 旧写法挂到 get_parent()（页面嵌在容器里时不是 root）⇒ Godot 拒绝赋值：
+	# ERROR: Condition "p_scene && p_scene->get_parent() != root" is true.
+	get_tree().root.add_child(a_match)
 	_cover_match(a_match)
+	# Match._ready 已在 add_child 期间运行；配置不健康时保留加载页并明确失败，
+	# 不设置 current_scene、不等待副官，也不把半初始化节点暴露给玩家。
+	await get_tree().process_frame
+	if bool(a_match.get_meta("match_initialization_failed", false)):
+		var reason := str(a_match.get_meta(
+			"match_initialization_error", "Match 初始化失败"))
+		_show_load_error("对局初始化失败，已阻止进入僵尸房：\n%s" % reason)
+		a_match.queue_free()
+		return
 	get_tree().current_scene = a_match
 	print("Loading[%.1fs] Match 就绪" % (Time.get_ticks_msec() / 1000.0))
 
@@ -159,10 +171,11 @@ func _uncover_match(a_match: Node) -> void:
 ## 2026-09-24 换图：原兜底 49-1376088014 是 09-06 的旧方案产物（台地/坡道/山体
 ## 都是老公式），用户看到"随机地图其实是旧方案"正是这条兜底路径的末端——生成链路
 ## 修好后，兜底图也必须是**当前代码**生成的，否则偶发失败仍会把旧方案塞给玩家。
-## 新兜底 51-2077115490：2026-09-24 由修好的流水线生成（8 座台地、双河六桥、
-## 40.5% 阻碍、150 件零散摆件），G2/G3/G4 全过检。使用前仍做存在性双检。
+## 2026-09-29 再换：原兜底 5-1444805660 也是旧矿点规则产物（矿会压水面/桥面），
+## 随"坏地图清理"删除。新兜底 47-903520021 由最新流水线生成（矿点全部落在干地、
+## 含 12 个随机散矿，场景已 headless 验证可加载）。使用前仍做存在性双检。
 const RANDOM_MAP_FALLBACK_PATH := (
-	"res://source/match/maps/generated/5-1444805660-767a002977/map_5-1444805660-767a002977.tscn"
+	"res://source/match/maps/generated/47-903520021-767a002977/map_47-903520021-767a002977.tscn"
 )
 
 
@@ -338,6 +351,9 @@ func _unimported_ext_resources(abs_scene_path: String) -> PackedStringArray:
 
 func _show_load_error(message: String):
 	push_error(message)
+	# Loading 失败时关闭本机 listen server；否则玩家虽然没进 Match，
+	# NetSession 仍会占着房间端口，下一次开局就会继承一个僵尸房状态。
+	NetSession.disconnect_if_networked()
 	_load_failed = true
 	_label.text = "加载失败\n%s\n按 ESC 返回对局设置" % message
 	_progress_bar.value = 0.0

@@ -1,0 +1,21 @@
+[
+  {
+    "id": "movement-recovery",
+    "category": "navigation",
+    "scene": "res://tests/automated/MovementRecoverySmokeTest.tscn",
+    "returncode": 1,
+    "seconds": 27.2,
+    "marker_ok": false,
+    "marker": "Movement recovery smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "3"
+    ],
+    "fail_lines": [
+      "绕墙到达误差应合理（13.71m）",
+      "绕墙场景确实发生了长距离移动（3.71m）",
+      "新命令到达误差应合理（8.48m）"
+    ],
+    "errors": [],
+    "log_lines": 380
+  }
+]

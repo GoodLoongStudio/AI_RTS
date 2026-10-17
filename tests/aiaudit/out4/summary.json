@@ -1,0 +1,19 @@
+[
+  {
+    "id": "economy-account",
+    "category": "economy",
+    "scene": "res://tests/automated/EconomyAccountSmokeTest.tscn",
+    "returncode": 0,
+    "seconds": 4.3,
+    "marker_ok": true,
+    "marker": "Economy account smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [
+      "System.InvalidOperationException: 场景 res://tests/perfgrid/TmpTurretHead.tscn 没有受信任的单位类型定义。"
+    ],
+    "log_lines": 157
+  }
+]

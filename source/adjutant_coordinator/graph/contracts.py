@@ -120,6 +120,9 @@ class StrategicPlan(BaseModel):
     reserves: Dict[str, int] = Field(default_factory=dict)
     rationale: str = ""
     abort_when: List[str] = Field(default_factory=list)
+    #: 复核结论是「维持现计划」：tasks 可为空，plan_version 不必比当前更大。
+    #: 采纳器遇到它只更新复核时刻，不替换 active_plan、不递增版本。
+    maintain_current: bool = False
 
     @model_validator(mode="after")
     def _check(self) -> "StrategicPlan":
@@ -133,7 +136,7 @@ class StrategicPlan(BaseModel):
             raise ValueError("valid_until_tick 必须是非负整数")
         if not self.phase_goal:
             raise ValueError("phase_goal 必须是非空字符串")
-        if not self.tasks:
+        if not self.tasks and not self.maintain_current:
             raise ValueError("tasks 至少包含一个任务")
         seen = set()
         for task in self.tasks:

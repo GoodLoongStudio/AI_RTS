@@ -1,82 +1,87 @@
-[gd_scene load_steps=6 format=3 uid="uid://cbe63rdjw7y4p"]
+[gd_scene load_steps=7 format=3 uid="uid://cbe63rdjw7y4p"]
 
 [ext_resource type="PackedScene" uid="uid://b7c1crf36x1li" path="res://source/match/Map.tscn" id="1_sqrvi"]
 [ext_resource type="Material" uid="uid://co8vfcoqqs5i8" path="res://source/match/resources/materials/terrain.material.tres" id="2_sguro"]
+[ext_resource type="Script" path="res://source/match/maps/generated/GeneratedTerrain.gd" id="4_terrain"]
 [ext_resource type="PackedScene" uid="uid://bf3jjdafqvh0w" path="res://source/match/units/non-player/ResourceA.tscn" id="3_3gxbc"]
 
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_frqq2"]
 resource_local_to_scene = true
 material = ExtResource("2_sguro")
-size = Vector2(212, 212)
-center_offset = Vector3(104, 0, 104)
+size = Vector2(512, 512)
+center_offset = Vector3(256, 0, 256)
 
 [node name="Map" instance=ExtResource("1_sqrvi")]
-size = Vector2(208, 208)
+size = Vector2(512, 512)
 
 [node name="Terrain" parent="Geometry" index="1"]
+script = ExtResource("4_terrain")
+height_data_path = "res://source/match/maps/plain512/height_data.bin"
+semantic_span = 512.0
+world_scale = 1.0
 mesh = SubResource("PlaneMesh_frqq2")
 
 [node name="Marker3D" type="Marker3D" parent="SpawnPoints" index="0"]
-transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 40.0, 0, 28.0)
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 98.46154, 0, 68.92308)
 
 [node name="Marker3D2" type="Marker3D" parent="SpawnPoints" index="1"]
-transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 160.0, 0, 28.0)
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 393.84616, 0, 68.92308)
 
 [node name="Marker3D3" type="Marker3D" parent="SpawnPoints" index="2"]
-transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 160.0, 0, 172.0)
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 393.84616, 0, 423.38464)
 
 [node name="Marker3D4" type="Marker3D" parent="SpawnPoints" index="3"]
-transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 40.0, 0, 172.0)
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 98.46154, 0, 423.38464)
 
 [node name="ResourceA" parent="Resources" index="0" instance=ExtResource("3_3gxbc")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.4636, -7.15256e-06, 42.604)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 66.28234, 0.6, 140.81946)
 
 [node name="ResourceA2" parent="Resources" index="1" instance=ExtResource("3_3gxbc")]
-transform = Transform3D(0.157813, 0, -0.987469, 0, 1, 0, 0.987469, 0, 0.157813, 28.0034, -7.15256e-06, 28.2876)
+transform = Transform3D(0.157813, 0, -0.987469, 0, 1, 0, 0.987469, 0, 0.157813, 12.332431, 0.6, 70.987816)
 resource_a = 500
 
 [node name="ResourceA3" parent="Resources" index="2" instance=ExtResource("3_3gxbc")]
-transform = Transform3D(-0.984384, 0, 0.176037, 0, 1, 0, -0.176037, 0, -0.984384, 38.136, -7.62939e-06, 43.891)
+transform = Transform3D(-0.984384, 0, 0.176037, 0, 1, 0, -0.176037, 0, -0.984384, 87.564316, 0.6, 161.82451)
 
 [node name="ResourceA4" parent="Resources" index="3" instance=ExtResource("3_3gxbc")]
-transform = Transform3D(-0.878559, 0, -0.477634, 0, 1, 0, 0.477634, 0, -0.878559, 161.4184, -5.72204e-06, 39.9158)
+transform = Transform3D(-0.878559, 0, -0.477634, 0, 1, 0, 0.477634, 0, -0.878559, 403.59387, 0.6, 150.80666)
 
 [node name="ResourceA5" parent="Resources" index="4" instance=ExtResource("3_3gxbc")]
-transform = Transform3D(-0.878559, 0, -0.477634, 0, 1, 0, 0.477634, 0, -0.878559, 168.108, -5.72204e-06, 36.846)
+transform = Transform3D(-0.878559, 0, -0.477634, 0, 1, 0, 0.477634, 0, -0.878559, 454.55508, 0.6, 135.15668)
 resource_a = 500
 
 [node name="ResourceA6" parent="Resources" index="5" instance=ExtResource("3_3gxbc")]
-transform = Transform3D(-0.878559, 0, -0.477634, 0, 1, 0, 0.477634, 0, -0.878559, 165.6184, -7.62939e-06, 42.982)
+transform = Transform3D(-0.878559, 0, -0.477634, 0, 1, 0, 0.477634, 0, -0.878559, 421.504, 0.6, 142.67668)
 
 [node name="ResourceA1" parent="Resources" index="6" instance=ExtResource("3_3gxbc")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 49.8344, -7.62939e-06, 40.6208)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 151.41588, 0.6, 136.88124)
 
 [node name="ResourceA13" parent="Resources" index="7" instance=ExtResource("3_3gxbc")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 152.7482, -5.72204e-06, 42.2622)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 351.45108, 0.6, 152.30228)
 
 [node name="ResourceA7" parent="Resources" index="8" instance=ExtResource("3_3gxbc")]
-transform = Transform3D(-0.878559, 0, -0.477634, 0, 1, 0, 0.477634, 0, -0.878559, 161.82, -5.72204e-06, 160.1388)
+transform = Transform3D(-0.878559, 0, -0.477634, 0, 1, 0, 0.477634, 0, -0.878559, 406.35324, 0.6, 341.87817)
 
 [node name="ResourceA8" parent="Resources" index="9" instance=ExtResource("3_3gxbc")]
-transform = Transform3D(-0.878559, 0, -0.477634, 0, 1, 0, 0.477634, 0, -0.878559, 169.948, -5.72204e-06, 165.288)
+transform = Transform3D(-0.878559, 0, -0.477634, 0, 1, 0, 0.477634, 0, -0.878559, 468.32495, 0.6, 373.13232)
 resource_a = 500
 
 [node name="ResourceA9" parent="Resources" index="10" instance=ExtResource("3_3gxbc")]
-transform = Transform3D(-0.878559, 0, -0.477634, 0, 1, 0, 0.477634, 0, -0.878559, 165.2472, -7.62939e-06, 156.8848)
+transform = Transform3D(-0.878559, 0, -0.477634, 0, 1, 0, 0.477634, 0, -0.878559, 419.67755, 0.6, 348.97232)
 
 [node name="ResourceA14" parent="Resources" index="11" instance=ExtResource("3_3gxbc")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 153.235, -5.72204e-06, 157.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 357.42032, 0.6, 345.30954)
 
 [node name="ResourceA10" parent="Resources" index="12" instance=ExtResource("3_3gxbc")]
-transform = Transform3D(0.960455, 0, 0.278438, 0, 1, 0, -0.278438, 0, 0.960455, 38.5514, -5.72204e-06, 160.0878)
+transform = Transform3D(0.960455, 0, 0.278438, 0, 1, 0, -0.278438, 0, 0.960455, 87.16973, 0.6, 330.5305)
 
 [node name="ResourceA11" parent="Resources" index="13" instance=ExtResource("3_3gxbc")]
-transform = Transform3D(0.960455, 0, 0.278438, 0, 1, 0, -0.278438, 0, 0.960455, 28.931, -5.72204e-06, 167.3656)
+transform = Transform3D(0.960455, 0, 0.278438, 0, 1, 0, -0.278438, 0, 0.960455, 22.39776, 0.6, 391.53723)
 resource_a = 500
 
 [node name="ResourceA12" parent="Resources" index="14" instance=ExtResource("3_3gxbc")]
-transform = Transform3D(0.960455, 0, 0.278438, 0, 1, 0, -0.278438, 0, 0.960455, 35.7888, -7.62939e-06, 156.5642)
+transform = Transform3D(0.960455, 0, 0.278438, 0, 1, 0, -0.278438, 0, 0.960455, 74.81403, 0.6, 336.70648)
 
 [node name="ResourceA15" parent="Resources" index="15" instance=ExtResource("3_3gxbc")]
-transform = Transform3D(-0.976807, 0, 0.214122, 0, 1, 0, -0.214122, 0, -0.976807, 47.2792, -5.72204e-06, 157.752)
+transform = Transform3D(-0.976807, 0, 0.214122, 0, 1, 0, -0.214122, 0, -0.976807, 134.2981, 0.6, 353.24063)

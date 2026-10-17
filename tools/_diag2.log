@@ -1,0 +1,23 @@
+[selfplay] 验收端口 24609 在专用段 24609-24612 内
+清理：没有属于本局端口的 Godot 进程
+[selfplay] 大厅就绪: 指挥官-309（等 4s）
+[selfplay] op=start -> {'map': 'res://source/match/maps/PlainAndSimple.tscn', 'ok': True, 'passive_ai_test': False, 'peaceful': False, 'seed': 0, 'with_ai': True}
+runner 启动 pid=30652 state_dir=G:\AIRTS\tmp_logs\langgraph_recon\selfplay\state_fs_diag2
+pidfile=39744
+[selfplay] 对局开始，采样 240s（backend=off difficulty=-1）
+[selfplay] 矿场前置：派 Unit_1 到 [174.27, 170.79] -> {'accepted': False, 'command_id': '', 'moved': ['Unit_1'], 'ok': False, 'reason': '命令未被接受（PendingAuthority），请根据 status 复
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 141.5, 'unit_xz': [84.4, 61.5]}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 101.4, 'unit_xz': [109.8, 92.5]}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 61.5, 'unit_xz': [135.2, 123.3]}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 21.5, 'unit_xz': [160.6, 154.2]}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': True, 'distance_m': 10.8, 'unit_xz': [167.4, 162.4]}
+[selfplay] 矿场建造第 1 次（auto）客户端={'accepted': False, 'builders': [], 'command_id': '441ad941-d760-4611-9e35-00001f994fea',  权威={"found": true, "status": "Rejected", "match": "command_id", "reason": "Occupied", "subject": ""} 观测=[]
+[selfplay] 矿场建造第 2 次（auto）客户端={'accepted': False, 'builders': [], 'command_id': '42743639-98a2-4bee-40b7-00002225f79f',  权威={"found": true, "status": "Rejected", "match": "command_id", "reason": "Occupied", "subject": ""} 观测=[]
+[selfplay] 矿场建造第 3 次（auto）客户端={'accepted': False, 'builders': [], 'command_id': 'fc621b52-b4cc-4c29-cd05-000024f92e31',  权威={"found": true, "status": "Rejected", "match": "command_id", "reason": "Occupied", "subject": ""} 观测=[]
+[selfplay] 矿场建造第 4 次（auto）客户端={'accepted': False, 'builders': [], 'command_id': '16611af6-6d6f-4c35-83df-0000285c6727',  权威={"found": true, "status": "Rejected", "match": "command_id", "reason": "Occupied", "subject": ""} 观测=[]
+[selfplay] 矿场建造第 5 次（auto）客户端={'accepted': False, 'builders': [], 'command_id': '731ac365-1e8c-45ac-4c17-00002b396fe9',  权威={"found": true, "status": "Accepted", "match": "command_id", "reason": "", "subject": ""} 观测=[]
+[selfplay] 矿场已出现在权威观测：[{'name': 'Unit_104', 'constructed': True, 'refinery': {'assigned': 0, 'constructed': True, 'delivered_amount': 0, 'delivered_count': 0, 'has_ore': True, 'service_radius_m': 30.0, 'takeovers': 0, 'wor
+停止 runner roots=[30652]（全部=[30652, 39744]，authority-port=24612）
+清理本局进程树 roots=[51744, 31576] (全部=[31576, 42256, 44264, 51744])
+[selfplay] 终局: verdict=timeout own=73 enemy=3 units={'command_center': 1, 'drone': 1, 'worker': 6, 'barracks': 2, 'soldier': 53, 'vehicle_factory': 2, 'tank': 10, 'ore_refinery': 1} balance={'a': 19200}
+[selfplay] written: G:\AIRTS\tmp_logs\langgraph_recon\selfplay\result_fs_diag2.json

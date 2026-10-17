@@ -28,14 +28,39 @@ const AdjutantModelService := preload("res://source/ui/AdjutantModelService.gd")
 ##: runner 心跳新鲜度窗口（秒）。与 `AdjutantButton.LIVENESS_FRESH_SECONDS` 同值：
 ##: 单轮最坏含一次慢模型调用（实测 ~45s），取 90s 留一倍余量。
 const LIVENESS_FRESH_SECONDS := 90.0
+## 默认自动接管（2026-10-12 用户要求「对局启动就开 1 个副官」）：缺省开。
+## 玩家点「停止」会写 false，之后不再自动起；验收可用 AIRTS_ADJ_AUTO_TAKEOVER 覆盖。
+const DEFAULT_AUTO_TAKEOVER := true
 
 
 ## runner 的日志/握手目录（绝对路径）。
+##
+## 【2026-10-12 多开隔离】按**本进程 DCS 实际端口**分目录：多开对局时各自的
+## pidfile / 端口锁 / 日志 / hud_status 互不可见——否则任一实例点"停止副官"或退出时
+## 会按**共享**的 `agent_runner.pid` 杀掉另一个实例的副官（2026-09-13 血案同款：
+## "面板认领了别人的 runner"）。pidfile/锁/日志/bootstrap 全部由本函数派生，
+## 改这一处即全链隔离。DCS 没绑上（port=0）时回落到默认目录，单开行为不变。
 static func log_dir() -> String:
 	var override := OS.get_environment("AIRTS_RUNNER_HUD")
 	if not override.is_empty():
 		return override
-	return ProjectSettings.globalize_path(LOG_DIR_DEFAULT)
+	var base := ProjectSettings.globalize_path(LOG_DIR_DEFAULT)
+	var port := local_dcs_port()
+	if port > 0:
+		return base.path_join("p%d" % port)
+	return base
+
+
+## 本进程 DCS 的实际监听端口（0 = 没绑上/不存在）。只查 autoload，不读配置文件：
+## `log_dir()` 会被面板轮询每帧调用，不能走 `authority_port()`（它会 load ConfigFile）。
+static func local_dcs_port() -> int:
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree == null:
+		return 0
+	var dcs: Node = tree.root.get_node_or_null("DebugControlServer")
+	if dcs != null and dcs.has_method("port"):
+		return int(dcs.call("port"))
+	return 0
 
 
 ## 读本机 runner 配置（文件覆盖 + 仓库约定补齐）。返回空字典 = 没找到 python。
@@ -196,11 +221,24 @@ static func recent_activity(window_seconds: float = ACTIVITY_WINDOW_SECONDS) -> 
 ## `parent`：本地模型服务保障的宿主节点（见 `AdjutantModelService.ensure_started`）；
 ## 传 null 时模型服务仍会尝试用场景树根节点，但早期初始化阶段可能拿不到。
 static func start(authority_port_value: int = 0, parent: Node = null) -> int:
+	# 【2026-10-12 修"一局两个 runner"】本目录已有活着的副官就不重复起，返回现有 pid。
+	# 加载页预热与面板/自动接管是两条独立调用路径（都会走到这里），没有这道闸就会
+	# 同一局起两个 runner（实测 2026-10-12：两个 python 同时跑同一个
+	# adjutant_logs/p<端口>/runner_bootstrap.py，互相抢同一局的指挥权）。
+	if is_attached():
+		return pidfile_pid()
 	var cfg := config()
 	if cfg.is_empty():
 		push_warning("[ADJ] 未找到本机 runner 配置（user://adjutant_local.cfg 或仓库约定布局）")
 		return 0
+	# 【2026-10-12 多开修复】本机副官的权威口 = **本进程 DCS 实际监听端口**。
+	# 旧口径（传入值优先、否则读配置的 24579）在多开时是错的：另一个实例占住 24579
+	# 后本进程 DCS 会回退到 dynamic 段端口，而副官仍去连 24579 —— 连的是**别的局**，
+	# 表现为"链路正常（runner 活着）但副官尚未接管本局"（2026-10-12 用户实机复现）。
+	var local_port := local_dcs_port()
 	var port := authority_port_value if authority_port_value > 0 else authority_port()
+	if local_port > 0:
+		port = local_port
 	var dir := log_dir()
 	DirAccess.make_dir_recursive_absolute(dir)
 	var args: PackedStringArray = [
@@ -285,8 +323,8 @@ static func auto_takeover() -> bool:
 		return override == "1" or override.to_lower() == "true"
 	var cfg := ConfigFile.new()
 	if cfg.load(CFG_PATH) != OK:
-		return false
-	return bool(cfg.get_value("runner", "auto_takeover", false))
+		return DEFAULT_AUTO_TAKEOVER
+	return bool(cfg.get_value("runner", "auto_takeover", DEFAULT_AUTO_TAKEOVER))
 
 
 static func set_auto_takeover(enabled: bool) -> void:

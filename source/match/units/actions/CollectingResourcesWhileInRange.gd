@@ -99,6 +99,14 @@ func _transfer_single_resource_unit_from_resource_to_worker():
 		if _unit_movement_trait != null:
 			_unit_movement_trait.face_towards(_resource_unit.global_position)
 		return
+	# 【2026-10-07 幻影采矿修复】矿点已耗尽（存量 ≤0，转入 depleted 等待再生）：
+	# 结束本次采集，不再从空矿里搬矿。旧实现 `maxi(1, …)` 是为"采空即删实体"的旧语义
+	# 服务的（把存量压到 ≤0 触发移除）；现在采空只进 depleted 等待再生、实体与"空外观"
+	# 长期保留，继续每 tick 取 1 会让矿车对着视觉上已采空的矿点持续采矿，还把幻影矿
+	# 一路送进玩家账户（用户实测"矿都没了怎么还在采集"）。
+	if _resource_remaining() <= 0:
+		queue_free()
+		return
 	# 【2026-09-15 一次搬运量按容量等比放大】先按"工人剩余容量"夹紧，避免超出
 	# `Worker.is_full()` 的容量断言（旧实现每 tick 只加 1 所以不需要这层保护）。
 	var room: int = maxi(0, int(_unit.resources_max) - int(_unit.resource_a) - int(_unit.resource_b))
@@ -106,17 +114,28 @@ func _transfer_single_resource_unit_from_resource_to_worker():
 		queue_free()
 		return
 	var batch: int = mini(_resource_batch_per_tick(), room)
+	# 存量降到 0 时 setter 会 mark_depleted（外观收空、等再生），下一 tick 由上面的
+	# 耗尽判定收尾，因此这里按真实剩余量取，不需要"至少取 1"。
 	if "resource_a" in _resource_unit:
-		# 矿不够时最多采到 0；矿已耗尽仍取 1，保持「减到 ≤0 ⇒ is_resource_depleted() 判定移除」的原语义。
-		var take_a: int = mini(batch, maxi(1, int(_resource_unit.resource_a)))
+		var take_a: int = mini(batch, int(_resource_unit.resource_a))
 		_resource_unit.resource_a -= take_a
 		_unit.resource_a += take_a
 	if "resource_b" in _resource_unit:
-		var take_b: int = mini(batch, maxi(1, int(_resource_unit.resource_b)))
+		var take_b: int = mini(batch, int(_resource_unit.resource_b))
 		_resource_unit.resource_b -= take_b
 		_unit.resource_b += take_b
 	if _unit.is_full():
 		queue_free()
+
+
+## 目标矿点当前剩余可采总量（A+B；统一货币后通常只有一种非零）。
+func _resource_remaining() -> int:
+	var total := 0
+	if "resource_a" in _resource_unit:
+		total += int(_resource_unit.resource_a)
+	if "resource_b" in _resource_unit:
+		total += int(_resource_unit.resource_b)
+	return total
 
 
 ## 车体/身体正前方（-Z）与矿点方向的水平夹角是否在采集门槛内。

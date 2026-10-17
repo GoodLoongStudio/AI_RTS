@@ -1,0 +1,192 @@
+Godot Engine v4.7.1.stable.mono.official.a13da4feb - https://godotengine.org
+
+[DBGCTL] 端口 24579 被占用, 调试控制端点未启动
+[DBGCTL] 本实例不可被调试控制；自动化模式下 MatchInstanceRegistry 会按严格模式退场（避免留下'看着在对局里、其实命令下不进去'的僵尸局）
+[godot_ai game_helper] registered mcp capture (debugger active=false, logger=true)
+规则 AI 难度=NORMAL 首波=32s 再派=17s 情报复查=60s
+G4PERF fog_resize 416x416 px_per_m=2
+    ... [last line repeated 1 more times]
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=2 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=1 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=1 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=3 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=4 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=4 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=8 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=11 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+[G4PERF] minimap viewport=416x416 scale=2.000
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+       [2] _ready (res://source/match/hud/Minimap.gd:107)
+       [3] _ready (res://tests/automated/RuleAiExpansionSmokeTest.gd:19)
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+       [2] _follow_minimap_fog_mask (res://source/match/hud/Minimap.gd:118)
+       [3] _ready (res://source/match/hud/Minimap.gd:111)
+       [4] _ready (res://tests/automated/RuleAiExpansionSmokeTest.gd:19)
+G4PERF command_runtime_us=4853 frames=1
+G4PERF production_runtime_us=1247 frames=1
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+[INPUT] UnitActionsController waiting for local player player=Human
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+G4PERF command_runtime_us=120 frames=2
+G4PERF production_runtime_us=69 frames=2
+NAVDBG air polygons=2 vertices=4 rid_valid=true region_on_our_map=true map_active=true
+NAVDBG bake map=/root/RuleAiExpansionSmokeTest/Match/Map StaticBody3D in subtree=0
+WARNING: Property agent_height is ceiled to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:367)
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+       [2] _follow_minimap_fog_mask (res://source/match/hud/Minimap.gd:118)
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+NAVDBG polygons=223 vertices=201
+[ECO] PublishSnapshot player=bf4cc6f0 a=0
+[ECO] PublishSnapshot player=00c58f60 a=0
+[TINT] apply_team_tint (1.0, 0.3608, 0.451, 1.0) on Geometry
+[TINT] override meshes=16 tint=(1.0, 0.3608, 0.451, 1.0)
+[TINT] apply_team_tint (1.0, 0.3608, 0.451, 1.0) on Geometry
+[TINT] override meshes=4 tint=(1.0, 0.3608, 0.451, 1.0)
+WARNING: [MatchHistoryHook] 未找到对局根节点，本局不写入历史。
+   at: push_warning (core/variant/variant_utility.cpp:1033)
+   GDScript backtrace (most recent call first):
+       [0] _begin_recording (res://source/history/MatchHistoryHook.gd:116)
+[INPUT] UnitActionsController enabled player=Human
+[ECO] PublishSnapshot player=00c58f60 a=4800
+[ECO] ApplyLegacy reason=ScriptedAdjustment player=00c58f60 status=Applied a=4800
+[AUTOSPOT] mode=resource anchor=(160.0,28.0) radius=9.8
+[AUTOSPOT] FOUND (142.3,0.0,30.2)
+[ECO] PublishSnapshot player=00c58f60 a=3900
+[ECO] ApplyLegacy reason=ConstructionCost player=00c58f60 status=Applied a=3900
+[TINT] apply_team_tint (1.0, 0.3608, 0.451, 1.0) on SyntyParts
+[TINT] override meshes=1 tint=(1.0, 0.3608, 0.451, 1.0)
+[TINT] apply_team_tint (1.0, 0.3608, 0.451, 1.0) on OreCluster
+[TINT] override meshes=4 tint=(1.0, 0.3608, 0.451, 1.0)
+规则 AI 矿场已放置 (142.3367, 0.0, 30.20148)
+规则 AI 放置生产建筑被拒绝：{ "accepted": false, "status": "Rejected", "primary_issue": "ConstructionInProgress", "issues": ["ConstructionInProgress"], "construction_site_id": "" }
+G4PERF command_runtime_us=277 frames=40
+G4PERF production_runtime_us=2 frames=40
+G4PERF movement_us=23 unit=Drone
+G4PERF movement_us=19 unit=Helicopter
+G4PERF movement_us=32 unit=Tank
+G4PERF movement_us=28 unit=Worker
+G4PERF movement_us=36 unit=Unit_1
+WARNING: Property agent_height is ceiled to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:367)
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+NAVDBG polygons=223 vertices=201
+G4PERF command_runtime_us=128 frames=80
+G4PERF production_runtime_us=2 frames=80
+G4PERF movement_us=24 unit=Drone
+G4PERF movement_us=18 unit=Helicopter
+G4PERF movement_us=58 unit=Tank
+G4PERF movement_us=37 unit=Worker
+G4PERF movement_us=44 unit=Unit_1
+G4PERF command_runtime_us=211 frames=120
+G4PERF production_runtime_us=3 frames=120
+G4PERF movement_us=45 unit=Drone
+G4PERF movement_us=24 unit=Helicopter
+G4PERF movement_us=47 unit=Tank
+G4PERF movement_us=37 unit=Worker
+G4PERF movement_us=44 unit=Unit_1
+G4PERF command_runtime_us=195 frames=160
+G4PERF production_runtime_us=2 frames=160
+G4PERF movement_us=60 unit=Drone
+G4PERF movement_us=29 unit=Helicopter
+G4PERF movement_us=54 unit=Tank
+G4PERF movement_us=42 unit=Worker
+G4PERF movement_us=49 unit=Unit_1
+G4PERF command_runtime_us=111 frames=200
+G4PERF production_runtime_us=2 frames=200
+G4PERF movement_us=28 unit=Drone
+G4PERF movement_us=25 unit=Helicopter
+G4PERF movement_us=51 unit=Tank
+G4PERF movement_us=50 unit=Worker
+G4PERF movement_us=54 unit=Unit_1
+[TINT] apply_team_tint (1.0, 0.3608, 0.451, 1.0) on Geometry
+[TINT] override meshes=15 tint=(1.0, 0.3608, 0.451, 1.0)
+[REFINERY] Unit_2 完工赠送矿车 Unit_3
+[REFINERY] Unit_2 完工，接管计时器已启动（间隔 2.0s，容量 4，服务半径 30.0m）
+G4PERF command_runtime_us=26 frames=240
+G4PERF production_runtime_us=2 frames=240
+G4PERF movement_us=30 unit=Drone
+G4PERF movement_us=20 unit=Helicopter
+G4PERF movement_us=44 unit=Tank
+G4PERF movement_us=31 unit=Worker
+G4PERF movement_us=39 unit=Unit_1
+G4PERF movement_us=34 unit=Unit_3
+[ACT] Unit_3 puppet=false in_tree=true locked=false script=res://source/match/units/actions/CollectingResourcesSequentially.gd
+[ACT] Unit_3 attached child=false
+[GATHER] action _ready unit=Unit_3 resource=true
+[GATHER] 进入 MOVING_TO_RESOURCE, resource=ResourceA4:<Area3D#238874004461>
+[ACT] Unit_3 已 add_child: in_tree=true
+WARNING: Property agent_height is ceiled to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:367)
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+[AUTOSPOT] mode=resource anchor=(160.0,28.0) radius=7
+[AUTOSPOT] FOUND (156.9,0.0,13.3)
+[ECO] PublishSnapshot player=00c58f60 a=1500
+[ECO] ApplyLegacy reason=ConstructionCost player=00c58f60 status=Applied a=1500
+[TINT] apply_team_tint (1.0, 0.3608, 0.451, 1.0) on Geometry
+[TINT] override meshes=16 tint=(1.0, 0.3608, 0.451, 1.0)
+NAVDBG polygons=239 vertices=215
+G4PERF command_runtime_us=144 frames=280
+G4PERF production_runtime_us=1 frames=280
+G4PERF movement_us=31 unit=Drone
+G4PERF movement_us=21 unit=Helicopter
+G4PERF movement_us=50 unit=Tank
+G4PERF movement_us=37 unit=Worker
+G4PERF movement_us=43 unit=Unit_1
+G4PERF movement_us=26 unit=Unit_3
+Rule AI expansion smoke test completed: 0 failure(s)
+[EXIT-TRACE] EXIT_TREE：场景树收尾（tick=-1，场景=unknown，对局结果=无该节点）
+[EXIT-TRACE] PREDELETE：引擎收尾（Globals 释放，tick=unknown(已脱离场景树)）
+Fatal error. System.AccessViolationException: Attempted to read or write protected memory. This is often an indication that other memory is corrupt.
+   at Godot.NativeInterop.NativeFuncs.godotsharp_variant_destroy(Godot.NativeInterop.godot_variant ByRef)
+   at Godot.NativeInterop.godot_variant.Dispose()
+   at Godot.Variant+Disposer.Dispose(Boolean)
+   at Godot.Variant+Disposer.Finalize()

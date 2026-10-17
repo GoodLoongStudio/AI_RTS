@@ -10,7 +10,8 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 
-from adjutant_coordinator.graph.progress import track_task_progress
+from adjutant_coordinator.graph.progress import (capture_build_site,
+                                                supervise_continuity, track_task_progress)
 from adjutant_coordinator.graph.state import (
     INTENT_ACTIVE, INTENT_ACTIVE_UNKNOWN, INTENT_COMPLETED, INTENT_FAILED,
     INTENT_LIVE_STATES, TASK_COMPLETED, TASK_FAILED, TASK_RUNNING, TASK_UNKNOWN,
@@ -414,7 +415,11 @@ class BuildProgressTest(unittest.TestCase):
         state = make_state([item])
         report = track_task_progress(state, observation=observation(
             [own("Unit_2")]), tick=10)
-        self.assertEqual(report["intents"]["i-1"]["status"], "in_progress")
+        self.assertEqual(report["intents"]["i-1"]["status"], "unknown")
+        # Completion now requires this command's authority identity. A same-type
+        # instance difference cannot establish command ownership.
+        capture_build_site(item, {"accepted": True, "status": "Accepted",
+                                 "result": {"result": {"structure": "Unit_8:<Area3D#104>"}}})
         report = track_task_progress(state, observation=observation(
             [own("Unit_2"),
              own("Unit_8", unit_type="barracks", constructed=False)]), tick=20)
@@ -469,6 +474,252 @@ class TaskAggregationTest(unittest.TestCase):
         report = track_task_progress(state, observation=observation([]), tick=20)
         self.assertEqual(report["intents"], {})
         self.assertEqual(item["state"], INTENT_COMPLETED)
+
+
+class ContinuitySupervisionTest(unittest.TestCase):
+    """连续行动监督（2026-10-07，prompt §3-C）：停滞/闲置必须有有界的诊断与恢复。
+
+    背景（本轮真实局实测）：`_movement_progress` 连续无进展会返回 `unknown` 并把意图留在
+    `active_unknown`（这是对的，未知不许判失败），但**没有任何人处理它** —— 日志里
+    `stall_count` 涨到 22/27/28，单位继续被占用，命令不再重发。`interrupts.EVT_TASK_STALLED`
+    这个词表常量此前从未在生产路径出现过。
+
+    这里钉住四件事：
+    ① 2s 无理由不动 → 有诊断记录；5s → 有对账/恢复记录（作废旧路，让下一轮正常重规划）；
+      10s → 记 `unexplained_fail`；
+    ② **有依据的等待**（玩家接管 / 非移动任务 / 已到达）不追责；
+    ③ 未知仍未知：只记录，**不**改任务状态、**不**释放单位、**不**发新意图；
+    ④ 重复恢复请求有界去重（同一单位同一目标在窗口内只发一次）。
+    """
+
+    def _state(self, units, **extra):
+        state = {"server_tick": 0, "active_intents": [], "active_tasks": {},
+                 "ai_controlled_units": list(units), "match_id": "m-1",
+                 "player_id": "Player_0", "pending_events": [], "routes": {}}
+        state.update(extra)
+        return state
+
+    def _advance(self, unit, pos, tick, *, target=(30.0, 7.0), hp=100.0):
+        """把单位放在 `pos` 观察一轮（不改任务状态）。"""
+        return observation([own(unit, pos=[pos[0], 0.0, pos[1]], hp=hp,
+                                unit_type="soldier", movement=True)])
+
+    def _tick(self, state, unit, pos, tick, *, target=(30.0, 7.0), config=None):
+        state["server_tick"] = tick
+        return supervise_continuity(state, observation=self._advance(unit, pos, tick,
+                                                                    target=target),
+                                    tick=tick, config=config or {})
+
+    def test_still_unit_gets_diagnose_then_recovery_then_fail(self):
+        state = self._state(["Unit_4"])
+        stalled = intent("i-stall", "attack_move", ["Unit_4"], {"pos": [30.0, 7.0]})
+        state["active_intents"] = [stalled]
+        # 60 tick = 1 秒；逐轮采样但位置不动（模拟"被地形卡住/绕圈但没位移"）。
+        first = self._tick(state, "Unit_4", (10.0, 7.0), 0)
+        self.assertEqual(first["levels"], {}, "第 0 轮不该追责：%s" % first["levels"])
+        # 2 秒（120 tick）→ diagnose
+        diagnose = self._tick(state, "Unit_4", (10.0, 7.0), 120)
+        self.assertEqual(diagnose["levels"].get("diagnose"), 1, diagnose["units"])
+        self.assertEqual(diagnose["units"]["Unit_4"]["action"], "",
+                         "诊断级只留痕，不做恢复动作")
+        # 5 秒（300 tick）→ recover（作废旧路）
+        recover = self._tick(state, "Unit_4", (10.0, 7.0), 300)
+        self.assertEqual(recover["levels"].get("recover"), 1, recover["units"])
+        self.assertEqual(recover["units"]["Unit_4"]["action"], "invalidate_route")
+        kinds = [item["kind"] for item in state["pending_events"]]
+        self.assertIn("task_stalled", kinds, "必须推 `task_stalled` 事件（此前从未出现）")
+        # 10 秒（600 tick）→ unexplained_fail（仍然只是记录）
+        failed = self._tick(state, "Unit_4", (10.0, 7.0), 620)
+        self.assertEqual(failed["levels"].get("unexplained_fail"), 1, failed["units"])
+        # 未知仍未知、单位仍被占用
+        self.assertIn(stalled["state"], INTENT_LIVE_STATES)
+        self.assertNotIn("Unit_4", str(state.get("released_units", "")))
+
+    def test_recovery_request_is_deduplicated_inside_the_window(self):
+        state = self._state(["Unit_4"])
+        state["active_intents"] = [intent("i-stall", "attack_move", ["Unit_4"],
+                                         {"pos": [30.0, 7.0]})]
+        config = {"continuity_recovery_repeat_ticks": 120}
+        self._tick(state, "Unit_4", (10.0, 7.0), 0, config=config)
+        first = self._tick(state, "Unit_4", (10.0, 7.0), 300, config=config)
+        second = self._tick(state, "Unit_4", (10.0, 7.0), 360, config=config)
+        self.assertEqual(first["recoveries"], 1)
+        self.assertEqual(second["recoveries"], 0,
+                         "窗口内不许重复发恢复请求（否则就是每轮一条）")
+        self.assertEqual(len(state["pending_events"]), 1)
+
+    def test_recovery_is_reissued_after_the_dedup_window(self):
+        """过了去重窗口要能再请求一次（去重是"别每轮刷"，不是"只发一次"）。"""
+        state = self._state(["Unit_4"])
+        state["active_intents"] = [intent("i-stall", "attack_move", ["Unit_4"],
+                                         {"pos": [30.0, 7.0]})]
+        config = {"continuity_recovery_repeat_ticks": 120}
+        self._tick(state, "Unit_4", (10.0, 7.0), 0, config=config)
+        self._tick(state, "Unit_4", (10.0, 7.0), 300, config=config)
+        again = self._tick(state, "Unit_4", (10.0, 7.0), 420, config=config)
+        self.assertEqual(again["recoveries"], 1, "过了窗口要能再请求一次")
+        self.assertEqual(state["continuity_units"]["Unit_4"]["recovery_count"], 2)
+        # 两次恢复之间的轮次不允许静默：停在原地每轮都要有 level 记录。
+        between = self._tick(state, "Unit_4", (10.0, 7.0), 360, config=config)
+        self.assertTrue(between["levels"], "停在原地就必须每轮留下 level 记录")
+
+    def test_movement_resets_the_clock(self):
+        state = self._state(["Unit_4"])
+        state["active_intents"] = [intent("i-move", "attack_move", ["Unit_4"],
+                                         {"pos": [30.0, 7.0]})]
+        self._tick(state, "Unit_4", (10.0, 7.0), 0)
+        self._tick(state, "Unit_4", (10.0, 7.0), 120)
+        moved = self._tick(state, "Unit_4", (12.0, 7.0), 180)
+        self.assertEqual(moved["levels"], {}, "真的动了就不该追责：%s" % moved["units"])
+        self.assertLess(moved["units"]["Unit_4"]["stop_seconds"], 2.0)
+
+    def test_player_controlled_unit_is_never_pursued(self):
+        state = self._state(["Unit_4"], player_units=["Unit_4"])
+        state["active_intents"] = [intent("i-p", "attack_move", ["Unit_4"],
+                                         {"pos": [30.0, 7.0]})]
+        self._tick(state, "Unit_4", (10.0, 7.0), 0)
+        report = self._tick(state, "Unit_4", (10.0, 7.0), 700)
+        self.assertEqual(report["levels"], {}, "玩家接管的单位不许被追责")
+        self.assertEqual(report["units"]["Unit_4"]["waiting_reason"], "player_control")
+
+    def test_non_movement_task_is_a_valid_waiting_reason(self):
+        state = self._state(["Unit_4"])
+        state["active_intents"] = [intent("i-g", "gather", ["Unit_4"],
+                                         {"pos": [30.0, 7.0]})]
+        self._tick(state, "Unit_4", (10.0, 7.0), 0)
+        report = self._tick(state, "Unit_4", (10.0, 7.0), 700)
+        self.assertEqual(report["levels"], {}, "采集/建造是本职工作，不算无理由闲置")
+        self.assertTrue(report["units"]["Unit_4"]["waiting_reason"].startswith("task_"))
+
+    def test_idle_unit_without_any_task_is_supervised(self):
+        """没任务的 AI 单位也要进监督（这是"无任务闲置不在 progress 范围"的修复）。"""
+        state = self._state(["Unit_4", "Unit_5"])
+        state["active_intents"] = []
+        self._tick(state, "Unit_4", (10.0, 7.0), 0)
+        report = self._tick(state, "Unit_4", (10.0, 7.0), 300)
+        self.assertIn("Unit_4", report["idle_units"])
+        self.assertEqual(report["levels"].get("recover"), 1, report["units"])
+        self.assertNotIn("Unit_5", report["units"], "不在观测里的单位不凭空记一笔")
+
+    def test_unknown_progress_keeps_intent_alive(self):
+        """与进度层同一纪律：监督不改任务状态、不释放单位；停滞一定有记录。"""
+        state = self._state(["Unit_4"])
+        intent_record = intent("i-stall", "attack_move", ["Unit_4"], {"pos": [30.0, 7.0]})
+        state["active_intents"] = [intent_record]
+        track_task_progress(state, observation=self._advance("Unit_4", (10.0, 7.0), 0),
+                            tick=0)
+        levels_seen = []
+        # 阈值在这个用例里调紧（1s/3s/重复窗口 180 tick），是为了在 **10 秒以内**验完
+        # "诊断 → 恢复"两档；默认的 2s/5s/10s 由 `test_still_unit_gets_diagnose_...` 验。
+        config = {"continuity_diagnose_seconds": 1.0,
+                  "continuity_recover_seconds": 3.0,
+                  "continuity_recovery_repeat_ticks": 180}
+        for tick in (120, 240, 360, 480, 540):
+            track_task_progress(state,
+                                observation=self._advance("Unit_4", (10.0, 7.0), tick),
+                                tick=tick)
+            report = self._tick(state, "Unit_4", (10.0, 7.0), tick, config=config)
+            levels_seen.extend(report["levels"])
+        self.assertEqual(intent_record["state"], INTENT_ACTIVE_UNKNOWN)
+        self.assertEqual(state["active_tasks"]["t-1"], TASK_RUNNING)
+        self.assertTrue(levels_seen, "停滞必须留下诊断/恢复记录，不能静默")
+        self.assertTrue(state["continuity_supervision"]["recoveries"] >= 1,
+                        "5 秒以上必须有对账/恢复记录：%s"
+                        % state["continuity_supervision"])
+        # 只记录：不产生任何"释放/失败"动作
+        self.assertNotIn("release", str(state.get("continuity_units", {})))
+        self.assertEqual(intent_record.get("drop_reason"), "progress_unknown")
+
+
+class ContinuityResolveSwitchTest(unittest.TestCase):
+    """`AIRTS_CONTINUITY_RESOLVE` 解析（2026-10-07）：A/B 对照必须能**运行期**开关。
+
+    prompt §4 要求"未达到门禁则继续定位，**不延长阈值**"；而"监督到底有没有用"
+    只能靠关/开对照回答。这个开关就是对照组入口，所以它自己必须有守门测试：
+    拼错的值不许静默当成默认（否则"关了"和"没接线"在日志里长得一样）。
+    """
+
+    def test_presets_and_manual_values(self):
+        from adjutant_coordinator.graph import nodes
+        self.assertEqual(nodes._continuity_resolve_config(""), {})
+        self.assertEqual(nodes._continuity_resolve_config("off"),
+                         {"continuity_disabled": True})
+        self.assertEqual(nodes._continuity_resolve_config("OFF"),
+                         {"continuity_disabled": True})
+        coarse = nodes._continuity_resolve_config("coarse")
+        self.assertEqual(coarse["continuity_recover_seconds"], 5.0)
+        fine = nodes._continuity_resolve_config("fine")
+        self.assertEqual(fine["continuity_recover_seconds"], 2.0)
+        manual = nodes._continuity_resolve_config("1/2/3")
+        self.assertEqual(manual, {"continuity_diagnose_seconds": 1.0,
+                                  "continuity_recover_seconds": 2.0,
+                                  "continuity_fail_seconds": 3.0})
+
+    def test_unrecognized_value_is_not_silently_ignored(self):
+        from adjutant_coordinator.graph import nodes
+        parsed = nodes._continuity_resolve_config("bogus")
+        self.assertIn("continuity_config_error", parsed)
+        self.assertNotIn("continuity_disabled", parsed)
+
+    def test_disabled_report_is_queryable(self):
+        """关掉监督时报告必须写 `disabled=True` —— 复盘要能区分"关掉了"与"没接线"。
+
+        走**真正的节点路径**（`node_ingest`）而不是只测解析：否则"开关解析对了、
+        但节点里忘了分支"这种半接线错误测不出来。
+        """
+        import os
+        from unittest import mock
+
+        from adjutant_coordinator.graph import nodes
+
+        state = {"server_tick": 120, "pending_events": [], "ai_controlled_units": []}
+        ctx = _FakeCtx()
+        with mock.patch.dict(os.environ, {"AIRTS_CONTINUITY_RESOLVE": "off"}, clear=False):
+            nodes.node_ingest(state, ctx)
+        report = state.get("continuity_supervision") or {}
+        self.assertTrue(report.get("disabled"),
+                        "对照组必须能被查询到：%s" % report)
+        self.assertEqual(report.get("recoveries"), 0)
+        # 关掉监督时**不许**留下任何台账写入的痕迹（否则"关"就不是真关）。
+        self.assertFalse(state.get("continuity_units"))
+
+    def test_enabled_path_still_runs_when_switch_unset(self):
+        """开关没设时必须照常跑监督（别把对照组开关做成默认关闭）。
+
+        只验"解析结果里没有 disabled"这一层：`node_ingest` 需要完整 ctx，
+        那条路径由 `ContinuitySupervisionTest` 直接驱动 `supervise_continuity` 覆盖。
+        """
+        import os
+        from unittest import mock
+
+        from adjutant_coordinator.graph import nodes
+
+        with mock.patch.dict(os.environ, {"AIRTS_CONTINUITY_RESOLVE": ""}, clear=False):
+            config = nodes._continuity_config(_FakeCtx().config)
+        self.assertFalse(config.get("continuity_disabled"))
+        self.assertNotIn("continuity_config_error", config)
+
+
+class _FakeCtx:
+    """真实 `GraphConfig`/`GraphServices` + 空观测的 ctx（够 `node_ingest` 跑到监督分支）。
+
+    用真 config 而不是手搓假的：`node_ingest` 会读 `strategy_interval_ticks` 等字段，
+    假对象会把"接线错了"和"测试桩不全"混在一起。
+    """
+
+    def __init__(self):
+        from adjutant_coordinator.graph.nodes import (GraphConfig, GraphServices,
+                                                     NodeContext)
+        services = GraphServices(config=GraphConfig())
+        self._ctx = NodeContext(services=services,
+                                observation={"tactical": {"entities": [],
+                                                          "production": [],
+                                                          "truncated": False},
+                                             "strategic": {"enemy_intel": []}},
+                                tick=120)
+
+    def __getattr__(self, name):
+        return getattr(self._ctx, name)
 
 
 class IndexObservationTest(unittest.TestCase):

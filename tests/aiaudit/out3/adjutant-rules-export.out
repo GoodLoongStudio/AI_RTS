@@ -1,0 +1,122 @@
+Godot Engine v4.7.1.stable.mono.official.a13da4feb - https://godotengine.org
+
+[DBGCTL] 调试控制端点已启动 127.0.0.1:64954
+[godot_ai game_helper] registered mcp capture (debugger active=false, logger=true)
+WARNING: Parent path './DetachTransform/Geometry/SM_Veh_Turret_Large_01' for node 'ProjectileOrigin' has vanished when instantiating: 'res://tests/perfgrid/TmpTurretHead.tscn'.
+   at: instantiate (scene/resources/packed_scene.cpp:213)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://tests/automated/AdjutantRulesExportSmokeTest.gd:16)
+WARNING: Parent path './DetachTransform/Geometry/SM_Veh_Turret_Large_01' for node 'MuzzleL' has vanished when instantiating: 'res://tests/perfgrid/TmpTurretHead.tscn'.
+   at: instantiate (scene/resources/packed_scene.cpp:213)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://tests/automated/AdjutantRulesExportSmokeTest.gd:16)
+WARNING: Parent path './DetachTransform/Geometry/SM_Veh_Turret_Large_01' for node 'MuzzleR' has vanished when instantiating: 'res://tests/perfgrid/TmpTurretHead.tscn'.
+   at: instantiate (scene/resources/packed_scene.cpp:213)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://tests/automated/AdjutantRulesExportSmokeTest.gd:16)
+G4PERF fog_resize 416x416 px_per_m=2
+    ... [last line repeated 1 more times]
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=2 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=1 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=3 tint=(0.4, 0.6941, 1.0, 1.0)
+ERROR: System.InvalidOperationException: 场景 res://tests/perfgrid/TmpTurretHead.tscn 没有受信任的单位类型定义。
+   at AI_RTS.GodotAdapter.Configuration.BalanceConfigRuntime.ConfigureUnit(Node unit) in G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Configuration\BalanceConfigRuntime.cs:line 209
+   at AI_RTS.GodotAdapter.Configuration.BalanceConfigRuntime.InvokeGodotClassMethod(godot_string_name& method, NativeVariantPtrArgs args, godot_variant& ret) in G:\AIRTS\AI_RTS\.godot\mono\temp\obj\Debug\Godot.SourceGenerators\Godot.SourceGenerators.ScriptMethodsGenerator\AI_RTS.GodotAdapter.Configuration.BalanceConfigRuntime_ScriptMethods.generated.cs:line 151
+   at Godot.Bridge.CSharpInstanceBridge.Call(IntPtr godotObjectGCHandle, godot_string_name* method, godot_variant** args, Int32 argCount, godot_variant_call_error* refCallError, godot_variant* ret) in /root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:line 24
+   at: void Godot.NativeInterop.ExceptionUtils.LogException(System.Exception) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/NativeInterop/ExceptionUtils.cs:113)
+   GDScript backtrace (most recent call first):
+       [0] _setup_properties_from_balance_catalog (res://source/match/units/Unit.gd:848)
+       [1] _ready (res://source/match/units/Unit.gd:135)
+       [2] _ready (res://tests/automated/AdjutantRulesExportSmokeTest.gd:17)
+   C# backtrace (most recent call first):
+       [0] void Godot.GD.PushError(string) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/GD.cs:366)
+       [1] void Godot.NativeInterop.ExceptionUtils.LogException(System.Exception) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/NativeInterop/ExceptionUtils.cs:113)
+       [2] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=4 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=4 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=8 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=11 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+[G4PERF] minimap viewport=416x416 scale=2.000
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+       [2] _ready (res://source/match/hud/Minimap.gd:107)
+       [3] _ready (res://tests/automated/AdjutantRulesExportSmokeTest.gd:17)
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+       [2] _follow_minimap_fog_mask (res://source/match/hud/Minimap.gd:118)
+       [3] _ready (res://source/match/hud/Minimap.gd:111)
+       [4] _ready (res://tests/automated/AdjutantRulesExportSmokeTest.gd:17)
+G4PERF command_runtime_us=5303 frames=1
+G4PERF production_runtime_us=1226 frames=1
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+[INPUT] UnitActionsController waiting for local player player=Human
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+G4PERF command_runtime_us=200 frames=2
+G4PERF production_runtime_us=18 frames=2
+[rules-smoke] 实体类型 19/19，生产定义 10/10（期望来自配置）
+[rules-smoke] 能打的类型=["anti_air_turret", "anti_ground_turret", "apc", "heavy_tank", "helicopter", "machine_gun_turret", "rocketeer", "sniper", "soldier", "tank"]
+[rules-smoke] 其中可机动（占兵力上限）=["apc", "heavy_tank", "helicopter", "rocketeer", "sniper", "soldier", "tank"]；不可机动（固定防御，不算兵力）=["anti_air_turret", "anti_ground_turret", "machine_gun_turret"]
+Adjutant rules export smoke test completed: 0 failure(s)
+[EXIT-TRACE] EXIT_TREE：场景树收尾（tick=18，场景=unknown，对局结果=无该节点）
+[EXIT-TRACE] PREDELETE：引擎收尾（Globals 释放，tick=unknown(已脱离场景树)）
+ERROR: 3 RID allocations of type '13NavObstacle3D' were leaked at exit.
+ERROR: 3 RID allocations of type '10NavAgent3D' were leaked at exit.
+ERROR: 3 RID allocations of type 'P11GodotArea3D' were leaked at exit.
+ERROR: 1 RID allocations of type 'P12GodotShape3D' were leaked at exit.
+ERROR: 1 RID allocations of type 'N13RendererDummy15MaterialStorage13DummyMaterialE' were leaked at exit.
+ERROR: 1 RID allocations of type 'N13RendererDummy15MaterialStorage11DummyShaderE' were leaked at exit.
+ERROR: 8 RID allocations of type 'N13RendererDummy9DummyMeshE' were leaked at exit.
+ERROR: 1 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit.
+ERROR: 24 RID allocations of type 'N17RendererSceneCull8InstanceE' were leaked at exit.
+ERROR: Pages in use exist at exit in PagedAllocator: N20RasterizerSceneDummy21GeometryInstanceDummyE
+   at: ~PagedAllocator (./core/templates/paged_allocator.h:170)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: 115 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2536)
+ERROR: 17 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

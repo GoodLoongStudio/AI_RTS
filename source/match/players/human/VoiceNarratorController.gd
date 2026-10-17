@@ -54,6 +54,8 @@ func _exit_tree():
 
 ## 按稳定优先级播放旁白；高优先级完成提示可打断 training，反向覆盖则被拒绝。
 func _handle_event(event, priority: int = PRIORITY_NORMAL):
+	if NetSession.dedicated_server:
+		return
 	if (
 		_audio_player.playing
 		and (

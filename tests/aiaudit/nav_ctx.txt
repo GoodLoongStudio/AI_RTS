@@ -1,0 +1,11 @@
+## tests/aiaudit/final\reach-geometry.out count 29
+/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:95)
+       [3] _ready (res://tests/automated/ReachGeometryProbe.gd:46)
+SCRIPT ERROR: Invalid access to property or key 'navigation' on a base object of type 'null instance'.
+   at: _ready (res://source/match/units/traits/Movement.gd:240)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/Movement.gd:240)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:

@@ -4,6 +4,12 @@ signal started
 signal changed(topdown_polygon_2d)
 signal interrupted
 signal finished(topdown_polygon_2d)
+## 屏幕矩形口径的框选结果（2026-09-29 用户要求"框选支持任何单位"）：
+## 空中单位悬停高度 + 等距俯角下，"地面投影多边形"与玩家所见错位可达数米
+## （把飞行单位沿视线投回地面只是近似），因此额外广播**屏幕矩形**，
+## 让空中单位按"看到即选中"判定。地面单位仍用多边形口径（精确）。
+signal changed_rect(screen_rect_2d)
+signal finished_rect(screen_rect_2d)
 
 @export var polygon_plane = Plane(Vector3.UP, 0)
 @export var interrupt_on_hitting_screen_margin = true
@@ -65,6 +71,7 @@ func _finish():
 		return
 	_rect_on_screen.end = get_viewport().get_mouse_position()
 	finished.emit(_screen_rect_2d_to_topdown_polygon_2d(_rect_on_screen.abs()))
+	finished_rect.emit(_rect_on_screen.abs())
 	_rect_on_screen = null
 
 
@@ -83,6 +90,7 @@ func _update():
 		return
 	_rect_on_screen.end = get_viewport().get_mouse_position()
 	changed.emit(_screen_rect_2d_to_topdown_polygon_2d(_rect_on_screen.abs()))
+	changed_rect.emit(_rect_on_screen.abs())
 
 
 func _screen_rect_2d_to_topdown_polygon_2d(rect_2d):

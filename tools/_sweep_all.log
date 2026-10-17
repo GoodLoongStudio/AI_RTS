@@ -1,0 +1,70 @@
+=== PRECHECK 矿场留人闭环 @ Sun Sep 27 23:31:29     2026 ===
+[selfplay] 验收端口 24609 在专用段 24609-24612 内
+清理：没有属于本局端口的 Godot 进程
+[selfplay] 大厅就绪: 指挥官-309（等 4s）
+[selfplay] op=start -> {'map': 'res://source/match/maps/PlainAndSimple.tscn', 'ok': True, 'passive_ai_test': False, 'peaceful': False, 'seed': 0, 'with_ai': True}
+runner 启动 pid=23964 state_dir=G:\AIRTS\tmp_logs\langgraph_recon\selfplay\state_fs_precheck
+pidfile=26556
+[selfplay] 对局开始，采样 220s（backend=off difficulty=-1）
+[selfplay] 矿场前置：派 Unit_1 到 [174.27, 170.79] -> {'accepted': False, 'command_id': '', 'moved': ['Unit_1'], 'ok': False, 'reason': '命令未被接受（PendingAuthority），请根据 status 复
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 135.6, 'unit_xz': [91.3, 63.5]}
+=== PRECHECK 矿场留人闭环 @ Sun Sep 27 23:42:29     2026 ===
+[selfplay] 验收端口 24609 在专用段 24609-24612 内
+清理：没有属于本局端口的 Godot 进程
+[selfplay] 大厅就绪: 指挥官-309（等 4s）
+[selfplay] op=start -> {'map': 'res://source/match/maps/PlainAndSimple.tscn', 'ok': True, 'passive_ai_test': False, 'peaceful': False, 'seed': 0, 'with_ai': True}
+runner 启动 pid=33548 state_dir=G:\AIRTS\tmp_logs\langgraph_recon\selfplay\state_fs_precheck
+pidfile=57892
+[selfplay] 对局开始，采样 220s（backend=off difficulty=-1）
+[selfplay] 矿场前置：派 Unit_1 到 [174.27, 170.79] -> {'accepted': False, 'command_id': '', 'moved': ['Unit_1'], 'ok': False, 'reason': '命令未被接受（PendingAuthority），请根据 status 复
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 144.4, 'unit_xz': [84.4, 57.8]}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 104.3, 'unit_xz': [109.4, 89.1]}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 64.1, 'unit_xz': [134.4, 120.6]}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 23.8, 'unit_xz': [159.4, 152.1]}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 15.4, 'unit_xz': [164.7, 158.7]}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': True, 'distance_m': 2.0, 'unit_xz': [173.0, 169.2]}
+[selfplay] 矿场建造第 1 次（auto）客户端={'detail': '自动放置找不到合法落点（基地周围无可建地面/没有已探明的新矿点）。', 'error': 'no valid auto site', 'ok': False 权威={"found": false, "reason": "still_pending", "scanned": 64} 观测=[]
+[selfplay] 矿场建造第 2 次（auto）客户端={'accepted': False, 'builders': [], 'command_id': 'a5bfeee5-1518-4fc6-020a-000028627222',  权威={"found": true, "status": "Accepted", "match": "command_id", "reason": "", "subject": ""} 观测=[]
+[selfplay] 矿场已出现在权威观测：[{'name': 'Unit_92', 'constructed': True, 'refinery': {'assigned': 0, 'constructed': True, 'delivered_amount': 0, 'delivered_count': 0, 'has_ore': True, 'served_nodes': 4, 'service_radius_m': 30.0, 't
+停止 runner roots=[33548]（全部=[33548, 57892]，authority-port=24612）
+清理本局进程树 roots=[39940] (全部=[31816, 39940])
+[selfplay] 终局: verdict=win own=70 enemy=5 units={} balance={'a': 13950}
+[selfplay] written: G:\AIRTS\tmp_logs\langgraph_recon\selfplay\result_fs_precheck.json
+=== SCREEN 5 seeds @ Sun Sep 27 23:46:52     2026 ===
+[sweep] 开始 fs_screen_11 map=res://source/match/maps/PlainAndSimple.tscn seed=11
+[selfplay] 验收端口 24609 在专用段 24609-24612 内
+[sweep] 结束 fs_screen_11 -> {"verdict": "timeout", "worker_seconds_on_construction": 0.0, "refinery_delivered_amount": null, "error": null}
+[sweep] 开始 fs_screen_22 map=res://source/match/maps/PlainAndSimple.tscn seed=22
+[sweep] 结束 fs_screen_22 -> {"verdict": "timeout", "worker_seconds_on_construction": 0.0, "refinery_delivered_amount": null, "error": null}
+[sweep] 开始 fs_screen_33 map=res://source/match/maps/PlainAndSimple.tscn seed=33
+[sweep] 结束 fs_screen_33 -> {"verdict": "timeout", "worker_seconds_on_construction": 0.0, "refinery_delivered_amount": null, "error": null}
+[sweep] 开始 fs_screen_44 map=res://source/match/maps/PlainAndSimple.tscn seed=44
+[sweep] 结束 fs_screen_44 -> {"verdict": "timeout", "worker_seconds_on_construction": 0.0, "refinery_delivered_amount": 3600, "error": null}
+[sweep] 开始 fs_screen_55 map=res://source/match/maps/PlainAndSimple.tscn seed=55
+[sweep] 结束 fs_screen_55 -> {"verdict": "timeout", "worker_seconds_on_construction": 0.0, "refinery_delivered_amount": null, "error": null}
+[sweep] 5 局，表 -> G:/AIRTS/AI_RTS/build/selfplay\sweep_fs_screen.md
+=== REGRESSION 10 seeds @ Mon Sep 28 00:09:58     2026 ===
+[sweep] 开始 fs_reg_424242 map=res://source/match/maps/PlainAndSimple.tscn seed=424242
+[selfplay] 验收端口 24609 在专用段 24609-24612 内
+[sweep] fs_reg_424242 第 1 次重试（上次：no result json at G:/AIRTS/tmp_logs/langgraph_recon/selfplay\result_fs_reg_424242.json (driver rc=2)）
+[sweep] 结束 fs_reg_424242 -> {"verdict": "aborted", "worker_seconds_on_construction": 0.0, "refinery_delivered_amount": null, "error": null}
+[sweep] 开始 fs_reg_467 map=res://source/match/maps/PlainAndSimple.tscn seed=467
+[sweep] 结束 fs_reg_467 -> {"verdict": "timeout", "worker_seconds_on_construction": 0.0, "refinery_delivered_amount": null, "error": null}
+[sweep] 开始 fs_reg_1024 map=res://source/match/maps/PlainAndSimple.tscn seed=1024
+[sweep] 结束 fs_reg_1024 -> {"verdict": "loss", "worker_seconds_on_construction": 0.0, "refinery_delivered_amount": null, "error": null}
+[sweep] 开始 fs_reg_7777 map=res://source/match/maps/PlainAndSimple.tscn seed=7777
+[sweep] 结束 fs_reg_7777 -> {"verdict": "timeout", "worker_seconds_on_construction": 0.0, "refinery_delivered_amount": 800, "error": null}
+[sweep] 开始 fs_reg_31323 map=res://source/match/maps/PlainAndSimple.tscn seed=31323
+[sweep] 结束 fs_reg_31323 -> {"verdict": "timeout", "worker_seconds_on_construction": 0.0, "refinery_delivered_amount": 4000, "error": null}
+[sweep] 开始 fs_reg_90210 map=res://source/match/maps/PlainAndSimple.tscn seed=90210
+[sweep] 结束 fs_reg_90210 -> {"verdict": "win", "worker_seconds_on_construction": 0.0, "refinery_delivered_amount": 1200, "error": null}
+[sweep] 开始 fs_reg_55501 map=res://source/match/maps/PlainAndSimple.tscn seed=55501
+[sweep] 结束 fs_reg_55501 -> {"verdict": "timeout", "worker_seconds_on_construction": 0.0, "refinery_delivered_amount": 2000, "error": null}
+[sweep] 开始 fs_reg_1234 map=res://source/match/maps/PlainAndSimple.tscn seed=1234
+[sweep] 结束 fs_reg_1234 -> {"verdict": "win", "worker_seconds_on_construction": 0.0, "refinery_delivered_amount": null, "error": null}
+[sweep] 开始 fs_reg_8080 map=res://source/match/maps/PlainAndSimple.tscn seed=8080
+[sweep] 结束 fs_reg_8080 -> {"verdict": "win", "worker_seconds_on_construction": 0.0, "refinery_delivered_amount": null, "error": null}
+[sweep] 开始 fs_reg_6006 map=res://source/match/maps/PlainAndSimple.tscn seed=6006
+[sweep] 结束 fs_reg_6006 -> {"verdict": "timeout", "worker_seconds_on_construction": 0.0, "refinery_delivered_amount": null, "error": null}
+[sweep] 10 局，表 -> G:/AIRTS/AI_RTS/build/selfplay\sweep_fs_reg.md
+=== ALL DONE @ Mon Sep 28 01:06:25     2026 ===

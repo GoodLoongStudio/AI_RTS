@@ -24,9 +24,12 @@
 
 from __future__ import annotations
 
+import copy
 import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Tuple
+
+import os
 
 from . import interrupts as itr
 from .arbitration import arbitrate_intents
@@ -45,7 +48,11 @@ from . import placement
 from . import rules_fallback
 from . import squads as squads_mod
 from . import task_patch_bridge
-from .async_scheduler import KIND_EMERGENCY, KIND_NORMAL, STATUS_ERROR, STATUS_OK
+from . import task_loop as task_loop_mod
+from . import trace
+from .async_scheduler import (
+    KIND_EMERGENCY, KIND_NORMAL, STATUS_ERROR, STATUS_OK, StrategyRequestFrame,
+)
 from .task_patch import MODE_FAST
 from .model_context import (
     build_strategy_context, build_tactics_context, known_entity_ids,
@@ -53,7 +60,7 @@ from .model_context import (
 )
 from .pydantic_agents import ModelInvalidOutput, ModelTimeout, ModelUnavailable
 from . import reserves as reserves_mod
-from .progress import track_task_progress
+from .progress import supervise_continuity, track_task_progress
 from .state import (
     INTENT_COMPLETED, INTENT_DROPPED, INTENT_LIVE_STATES, MAX_DECISION_LOG,
     TASK_RUNNING, TASK_UNKNOWN,
@@ -80,7 +87,10 @@ NODE_WAIT = "wait"
 class GraphConfig:
     """图配置：全部间隔/预算配置化（数值是起点，以实测为准）。"""
 
-    strategy_interval_ticks: int = 3600       # 60s @60Hz
+    strategy_interval_ticks: int = 3600       # 尚未测到 tick 率时的回退间隔
+    #: 普通战略复核的目标模拟秒数。0 = 不用秒数换算，沿用 strategy_interval_ticks。
+    #: 库默认保持 0，避免单测里写死的 tick 间隔被悄悄改掉。runner 再把它设成 10。
+    strategy_review_seconds: float = 0.0
     tactics_interval_ticks: int = 30          # 0.5s @60Hz
     emergency_min_interval_ticks: int = 6     # 紧急战术最小间隔（防事件风暴）
     intent_ttl_ticks: int = 600               # 普通意图 TTL 上限
@@ -97,6 +107,25 @@ class GraphConfig:
     pending_timeout_ticks: int = 240          # PendingAuthority 复核超时（不重下单）
     recheck_pending: bool = True              # 每轮按 command_id 复核在途命令
     pause_on_player_interrupt: bool = True    # 玩家打断时暂停图（LangGraph interrupt）
+    # ---- 任务反馈闭环（第一阶段 · 修改 2；单位：秒，按实测 tick 率换算）----
+    #: 无进展期限（秒）：低于它一律判"正常等待"——不能把正在施工/往返判成卡死。
+    loop_no_progress_seconds: float = 0.0     # 0 = 用 task_loop 的按类型默认表
+    #: 总期限（秒）：单任务上界，到点走 timeout 边进诊断（不等无进展）。
+    loop_deadline_seconds: float = 0.0        # 0 = 用按类型默认表
+    #: 重试预算（同一目标的**已结论**恢复尝试次数）与失败方案冷却（秒）。
+    loop_retry_budget: int = 0                # 0 = task_loop.DEFAULT_RETRY_BUDGET
+    loop_cooldown_seconds: float = 0.0        # 0 = task_loop.DEFAULT_COOLDOWN_SECONDS
+    #: C2 返修：单次恢复尝试的结果等待窗（秒）。授权后在这段时间内没有收到
+    #: 任何命令回执不算失败（未调度/被门禁挡住/在途都不计）；窗口过后本次尝试
+    #: 才结论并计入预算——最后一次已授权尝试总能等到自己的窗口。
+    loop_attempt_window_seconds: float = 0.0  # 0 = DEFAULT_ATTEMPT_WINDOW_SECONDS
+    # ---- 经济异常窗口（第一阶段 · 修改 3；单位：秒）----
+    #: 矿场完工后零交付停滞窗口（默认 90s：一次正常往返 + 余量）。
+    econ_delivery_stall_seconds: float = 90.0
+    #: 曾交货后经济中断窗口（默认 120s：比首交窗口宽，健康状态允许更长平稳期）。
+    econ_post_delivery_stall_seconds: float = 120.0
+    #: 开局宽限（默认 60s）：首次建造/首次交货的正常等待不得因"交货为 0"判失败。
+    econ_grace_seconds: float = 60.0
 
 
 @dataclass
@@ -107,6 +136,8 @@ class GraphServices:
     tactics_model: Any = None                 # propose_intents(context) -> IntentBatch|None
     #: 有界异步调度器（`async_scheduler.DecisionScheduler`）；None = 同步调用（legacy 回退）。
     tactics_scheduler: Any = None
+    #: 战略用同一个调度器实现。None = 本轮仍同步 `propose_plan`（既有单测走这条）。
+    strategy_scheduler: Any = None
     dispatch: Optional[Callable[[List[Dict[str, Any]]], List[Dict[str, Any]]]] = None
     recheck: Optional[Callable[[str], Optional[Dict[str, Any]]]] = None
     #: **权威路径查询**（计划 §7）：`nav_query(unit, target) -> {ok, reachable, nav_revision,
@@ -119,6 +150,10 @@ class GraphServices:
     checkpoint_store: CheckpointStore = field(default_factory=NullCheckpointStore)
     config: GraphConfig = field(default_factory=GraphConfig)
     logger: Any = None
+    #: 决策追踪记录器（第一阶段 · 修改 1；`trace.TraceRecorder`）。
+    #: None = 不追踪（测试/回放默认）。所有追踪调用都必须容忍它缺失：
+    #: 追踪是旁路证据链，失败只计数、绝不改变决策路径。
+    trace: Any = None
 
     def log(self, event: str, **fields: Any) -> None:
         if self.logger is None:
@@ -252,6 +287,106 @@ def _log(ctx: NodeContext, state: Dict[str, Any], event: str, **fields: Any) -> 
                      server_tick=state.get("server_tick", 0), **fields)
 
 
+def _trace(ctx: NodeContext):
+    """取追踪记录器（缺失/禁用时 None）。所有调用点都必须容忍 None。"""
+    return getattr(ctx.services, "trace", None)
+
+
+def _trace_safe(ctx: NodeContext, method: str, *args: Any, **kwargs: Any) -> None:
+    """旁路追踪调用：任何异常只吞掉（追踪失败绝不改变决策路径）。
+
+    为什么不像 `_log` 那样直接调：`GraphServices.log` 内部已有 try；追踪方法
+    是我们自己写的，调用点分散在十几个节点里，逐个包 try 会淹没主逻辑。
+    """
+    recorder = getattr(ctx.services, "trace", None)
+    if recorder is None:
+        return
+    try:
+        getattr(recorder, method)(*args, **kwargs)
+    except Exception:  # noqa: BLE001 —— 旁路永不拖垮指挥链
+        pass
+
+
+#: 任务状态 → 追踪事件名（回放按这组区分成功/等待/失败/受阻/未知）。
+_TASK_EVENT_NAMES: Dict[str, str] = {
+    "pending": "created",
+    "running": "progress",
+    "completed": "succeeded",
+    "failed": "failed",
+    "unknown": "unknown",
+    "interrupted": "interrupted",
+    "partially_overridden": "reassigned",
+    "waiting_for_player": "waiting",
+    "reassigned": "reassigned",
+    "expired": "expired",
+}
+
+
+def _goal_of_task(task_id: str) -> str:
+    """任务 → 目标（里程碑 id）：规则意图前缀是唯一映射来源，猜不到就空。
+
+    为什么需要：闭环合同要求"底层失败要让上层目标知道"；没有这层映射，
+    "矿场任务失败"就关联不到 M08（分矿）这个目标。
+    """
+    text = str(task_id or "")
+    if not text:
+        return ""
+    for milestone_id, spec in campaign_mod.MILESTONES.items():
+        for prefix in spec.get("intent_prefixes") or ():
+            if text.startswith(str(prefix)):
+                return str(milestone_id)
+    return ""
+
+
+def _trace_task_transitions(ctx: NodeContext, state: Dict[str, Any],
+                            progress: Dict[str, Any], tick: int) -> None:
+    """任务级状态变迁 → 追踪事件（只记实际变化；重复同值不记）。"""
+    if getattr(ctx.services, "trace", None) is None:
+        return
+    tasks = (progress or {}).get("tasks") or {}
+    for task_id, entry in tasks.items():
+        if not isinstance(entry, dict):
+            continue
+        previous = str(entry.get("previous_state", "") or "")
+        current = str(entry.get("state", "") or "")
+        if previous and previous == current:
+            continue
+        _trace_safe(ctx, "task", str(task_id),
+                    _TASK_EVENT_NAMES.get(current, "changed"),
+                    goal_id=_goal_of_task(str(task_id)),
+                    plan_version=str(state.get("plan_version", "")),
+                    state=current, previous_state=previous,
+                    reason_cn=str(entry.get("detail", "")),
+                    reason_code="task_progress:%s->%s" % (previous or "new", current),
+                    server_tick=tick)
+
+
+#: 路由 → 图节点（与 graph.py 的条件边一致；追踪与图拓扑共用一份口径）。
+_ROUTE_NODE: Dict[str, str] = {
+    itr.ROUTE_PLAYER_INTERRUPT: NODE_RECONCILE,
+    itr.ROUTE_EMERGENCY_TACTICAL: NODE_TACTICAL,
+    itr.ROUTE_STRATEGIC: NODE_STRATEGIC,
+    itr.ROUTE_TACTICAL: NODE_TACTICAL,
+    itr.ROUTE_WAIT: NODE_WAIT,
+}
+
+#: 路由 → 短中文解释（回放面板直接显示；结构化理由另见 detail）。
+_ROUTE_REASON_CN: Dict[str, str] = {
+    itr.ROUTE_PLAYER_INTERRUPT: "本轮有玩家控制事件：先协调玩家优先权",
+    itr.ROUTE_EMERGENCY_TACTICAL: "紧急事件触发战术分支",
+    itr.ROUTE_STRATEGIC: "战略复核到期：提交或采纳战略计划",
+    itr.ROUTE_TACTICAL: "战术节拍到期或决策结果已返回：落地任务修改",
+    itr.ROUTE_WAIT: "无需新决策：等待既有任务进展",
+}
+
+
+def _route_reason_code(route: str, patch_ready: bool) -> str:
+    """选边的**可测试判据码**（回放/单测都读它，不读自然语言）。"""
+    if patch_ready and route in (itr.ROUTE_WAIT, itr.ROUTE_STRATEGIC):
+        return "patch_ready_override"
+    return "classify_route:%s" % str(route or "")
+
+
 # ---------------- 观测与分类 ----------------
 
 def _sync_lease_generations(state: Dict[str, Any], ctx: NodeContext) -> None:
@@ -288,6 +423,47 @@ def _sync_lease_generations(state: Dict[str, Any], ctx: NodeContext) -> None:
     _decide(state, "lease_generation_synced", corrected=corrected)
 
 
+#: 到达去重窗口（tick）：只用来挡**同一条事件的重复投递**（60 tick = 1 秒）。
+#: 【为什么不是永久去重】2026-10-07 实测：永久键 `unit|target` 会把"单位再次回到
+#: 同一个目标点"的真实到达整段吃掉（522 条里 48 条，9.2%），后果是路线缓存不作废、
+#: `_en_route` 恒真 → 规则地板每轮跳过该单位 → 直到 `HOP_HOLD_MAX_TICKS`(≈30s) 才放行。
+#: 那 30 秒正是 C2 门禁量到的 p95 尾巴。
+ARRIVAL_DEDUP_TICKS = 60
+
+#: 「这个单位最近一次到达」的记账上限（有界；按单位名键控）。
+ARRIVAL_PRIORITY_LIMIT = 256
+
+
+def _bump_movement_stat(state: Dict[str, Any], key: str, amount: int = 1) -> None:
+    """把计数写进 `movement_stats`（**不受决策日志上限影响**，每个出口都能留痕）。
+
+    为什么不用 `_decide`：决策日志有 `MAX_DECISION_LOG` 上限，早期条目会被挤掉。
+    round-28 就是因此把"到达没被处理"误读成"没有漏处理"（详见到达分支的注释）。
+    """
+    if not isinstance(state, dict):
+        return
+    stats = state.setdefault("movement_stats", {})
+    stats[key] = int(stats.get(key, 0)) + int(amount)
+
+
+def _remember_arrival(state: Dict[str, Any], unit: str, tick: int) -> None:
+    """记下单位最近一次到达的 tick（供军事轨"到达优先服务"排序用）。
+
+    只读/只写 `state["unit_arrival_tick"]`（有界，随检查点持久化）。
+    为什么需要它：round-26 量出接续延迟是"等待下一决策轮"的 **3.2 倍** ⇒
+    单位平均多等 2~3 轮；把刚到达的排在前面可以把这个倍数压到 ~1。
+    """
+    if not unit:
+        return
+    ledger = state.setdefault("unit_arrival_tick", {})
+    if not isinstance(ledger, dict):
+        return
+    ledger[str(unit)] = int(tick)
+    if len(ledger) > ARRIVAL_PRIORITY_LIMIT:
+        oldest = sorted(ledger, key=lambda name: int(ledger[name] or 0))
+        for stale in oldest[:len(ledger) - ARRIVAL_PRIORITY_LIMIT]:
+            ledger.pop(stale, None)
+
 #: 快速事件 → 能证明"命令已生效"的映射（**故意保守**）。
 #:
 #: 【2026-09-13 补 `arrival`】以前移动没有到达证据（权威端不产该事件），只能标"未证明"；
@@ -295,8 +471,7 @@ def _sync_lease_generations(state: Dict[str, Any], ctx: NodeContext) -> None:
 #: 移动**终于有到达证据**。但纪律不变：到达只表示**移动段**完成，
 #: 不自动表示侦察/防守/攻击任务完成（计划 §7 末句）。
 #: 采集仍不在表里：工人采集不产生事件，宁可标"未证明"，也不把"发了命令"当"已生效"。
-FAST_EFFECT_EVENTS: Dict[str, Tuple[str, ...]] = {
-    "produce": ("production_started",),
+FAST_EFFECT_EVENTS: Dict[str, Tuple[str, ...]] = {    "produce": ("production_started",),
     "build": ("construction_done",),
     "attack": ("damage",),
     "move": ("arrival",),
@@ -389,31 +564,151 @@ def _consume_fast_events(state: Dict[str, Any], ctx: NodeContext) -> None:
                 record["state"] = INTENT_DROPPED
                 record["drop_reason"] = kind
         elif unit and kind == "path_failed":
+            current_route = movement_mod.previous_route(state, unit)
+            route_tick = int(current_route.get("last_replan_tick", 0) or 0)
+            route_target = current_route.get("relay_point") or current_route.get("target")
+            # Delayed failures belong to the failed segment, like delayed arrivals.
+            if current_route.get("ok") and (
+                    (happened > 0 and route_tick > happened)
+                    or not _arrival_target_matches(route_target, event.get("target"))):
+                _bump_movement_stat(state, "path_failed_stale")
+                _decide(state, "path_failed_seen", tick=now_tick, unit=unit, verdict="stale_route")
+                continue
             movement_mod.invalidate_route(state, unit, reason="path_failed")
             _raise_movement_urgent(state, ctx, "path_failed", unit,
                                    int(state.get("server_tick", 0) or 0))
-        elif unit and kind == "arrival":
-            arrival_key = "%s|%s" % (unit, event.get("target") or [])
-            seen_arrivals = state.setdefault("seen_arrivals", [])
-            if arrival_key in seen_arrivals:
+        elif kind == "arrival":
+            # 【到达账 · 2026-10-09（round-29）】先记"进入过到达处理"。
+            #
+            # 为什么必须用**计数**而不是 `arrival_seen` 决策：`arrival_seen` 是 `_decide`
+            # 写的，**受 `MAX_DECISION_LOG` 上限约束**，会被后续条目挤掉。
+            # round-28 实测踩到：该局 `arrival_events == arrival_note`（764 = 764）、
+            # `arrival_deduped = 0`，**按计数看"每条到达都记了账"**，
+            # 但逐例追踪时 `Unit_18` 在 t=2458 的到达**根本没有 `arrival_seen` 记录**。
+            # ⇒ 拿"会被挤掉的决策日志"或"对不上口径的计数"去证"没有漏处理"都是无效的。
+            # 下面这些计数在 `movement_stats` 里、**不受日志上限影响**，且覆盖**每个出口**。
+            _bump_movement_stat(state, "arrival_events")
+            if not unit:
+                # `unit` 为空时，旧条件 `unit and kind == "arrival"` 会让**整条到达被跳过**：
+                # 既不作废路线、也不释放意图 —— 静默丢一条到达。这里显式记出来并跳过
+                # （没有单位名，无法作废路线或释放意图）。
+                _bump_movement_stat(state, "arrival_no_unit")
                 continue
-            seen_arrivals.append(arrival_key)
-            if len(seen_arrivals) > 64:
-                del seen_arrivals[:-64]
-            movement_mod.note_arrival(state, unit, int(state.get("server_tick", 0) or 0))
-            # 侦察段到达必须释放占用：否则意图活到 TTL，专职无人机发不出下一跳
-            # （`u1t01d`：`rule-fill-scout-Unit_1-948` 一直占到 expires=4548）。
-            for record in intents:
-                if not isinstance(record, dict):
-                    continue
-                if record.get("state") not in INTENT_LIVE_STATES:
-                    continue
-                if str(record.get("action", "")) != ACTION_SCOUT:
-                    continue
-                if unit not in {str(item) for item in (record.get("unit_ids") or [])}:
-                    continue
-                record["state"] = INTENT_COMPLETED
-                record["drop_reason"] = "arrival"
+            # 【2026-10-07 修复：到达去重把真实到达吃掉了】
+            #
+            # 旧实现用 **永久键** `"%s|%s" % (unit, event.get("target") or [])` 去重：
+            # 同一单位**回到同一个目标点**的第二次到达会命中同一个 key → 整段 `continue`
+            # （既不 `note_arrival`，也不做侦察段的 COMPLETED）。
+            # 后果是**链条式**的，比"少记一笔"严重得多：
+            #   到达不被记账 → 路线缓存不作废 → `unit_en_route` 仍为真 →
+            #   `rules_fallback._parallel_intents` 里 `if _en_route(name): continue`
+            #   **每轮都跳过这个单位** → 它直到 `HOP_HOLD_MAX_TICKS`(1800 tick ≈ 30 秒)
+            #   才被放行。这正是 C2 量到的 **p95 = 31–33 秒**那个尾巴。
+            # 实测（对照档案 `archive_edf8bd9a`）：522 条 arrival 里 **48 条（9.2%）**
+            # 被这个键吃掉；工人 `Unit_19` 的 37 次到点有 **14 次**被吃掉
+            # （它在基地↔矿区之间往返，目标点反复相同）。
+            #
+            # 新口径：去重只用来挡**同一条事件的重复投递**（同 key 在 `ARRIVAL_DEDUP_TICKS`
+            # 内），不再永久屏蔽"再次到达同一个点"。
+            # `note_arrival` 本身是幂等的（只作废路线 + 计一次数），重复调用无害。
+            arrival_key = "%s|%s" % (unit, event.get("target") or [])
+            seen_arrivals = state.setdefault("seen_arrivals", {})
+            if not isinstance(seen_arrivals, dict):
+                # 旧 checkpoint 里存的是 list（旧格式）→ 原地升级，别丢历史。
+                seen_arrivals = {str(item): 0 for item in (seen_arrivals or [])}
+                state["seen_arrivals"] = seen_arrivals
+            previous_tick = int(seen_arrivals.get(arrival_key, 0) or 0)
+            now_tick = int(state.get("server_tick", 0) or 0)
+            arrival_tick = happened or now_tick
+            current_route = movement_mod.previous_route(state, str(unit))
+            route_tick = int(current_route.get("last_replan_tick", 0) or 0)
+            route_target = current_route.get("relay_point") or current_route.get("target")
+            event_target = event.get("target")
+            # An old goal must not invalidate the next approved hop.
+            if current_route.get("ok") and (
+                    (happened > 0 and route_tick > happened)
+                    or not _arrival_target_matches(route_target, event_target)):
+                _bump_movement_stat(state, "arrival_deduped")
+                _bump_movement_stat(state, "arrival_stale")
+                _decide(state, "arrival_seen", tick=now_tick, unit=str(unit), verdict="stale_route")
+                continue
+            renewed_route = bool(current_route.get("ok") and route_tick > previous_tick
+                                 and _arrival_target_matches(route_target, event_target))
+            # 【只读到达账 · 2026-10-09】C3d 已证明"这些单位被当成还在路上"，但还分不清
+            # 是"到达根本没被记账"还是"记了又被随后的重规划覆盖"。这一笔把两者分开：
+            #   `seen`   = 这条到达**被处理了**（会调 `note_arrival` → 路线作废）
+            #   `dedup`  = 被 1 秒去重窗口挡掉
+            #   `no_route` = 处理了，但当时**没有路线可作废**（`note_arrival` 直接返回）
+            # 配合 `record_route` 的计数，就能判定"记了又被盖掉"这条假设。
+            stats = state.setdefault("movement_stats", {})
+            # 注意：`arrival_events` 已在进入本分支时计过（见上），这里**不再重复计**。
+            # 每个出口**各自**留一个不受日志上限影响的计数：
+            #   `arrival_deduped`  被 1 秒去重窗口挡掉
+            #   `arrival_note`     走到正常路径
+            #   `arrival_no_route` 当时没有路线可作废
+            # 口径校验：`arrival_events` 应等于 `arrival_deduped + arrival_note`。
+            if previous_tick and arrival_tick - previous_tick < ARRIVAL_DEDUP_TICKS and not renewed_route:
+                _bump_movement_stat(state, "arrival_deduped")
+                _decide(state, "arrival_seen", tick=now_tick, unit=str(unit),
+                        verdict="deduped")
+                # Retry release of an older segment only. A later hop needs its own fact.
+                _close_movement_intents(state, intents, str(unit),
+                                        arrival_tick=previous_tick, arrival_target=event_target,
+                                        require_issue_tick=True)
+                continue
+            seen_arrivals[arrival_key] = arrival_tick
+            for stale in [key for key, value in seen_arrivals.items()
+                          if arrival_tick - int(value or 0) > ARRIVAL_DEDUP_TICKS]:
+                seen_arrivals.pop(stale, None)
+            if len(seen_arrivals) > ARRIVAL_PRIORITY_LIMIT:
+                oldest = sorted(seen_arrivals, key=lambda key: int(seen_arrivals[key]))
+                for stale in oldest[:len(seen_arrivals) - ARRIVAL_PRIORITY_LIMIT]:
+                    seen_arrivals.pop(stale, None)
+            had_route = bool(movement_mod.previous_route(state, str(unit)))
+            _bump_movement_stat(state, "arrival_note")
+            if not had_route:
+                _bump_movement_stat(state, "arrival_no_route")
+            _decide(state, "arrival_seen", tick=now_tick, unit=str(unit),
+                    verdict=("note_arrival" if had_route else "no_route"),
+                    target=[round(float(item), 1) for item in (event.get("target") or [])][:2],
+                    distance=event.get("distance"))
+            movement_mod.note_arrival(state, unit, now_tick)
+            # 【到达优先服务 · 2026-10-09】记下"这个单位刚到达"的时刻，供军事轨排序用。
+            # 依据（round-26 实测）：接续 p95 是"等待下一决策轮" p95 的 **3.2 倍**
+            # （4.68s vs 1.45s）⇒ 单位平均**多等 2~3 轮**才被服务到。
+            # 让"刚到达的单位"在下一轮**排到前面**，就能把"多等 2~3 轮"压到"等 1 轮"
+            # —— 这正是 prompt §3-C 原文的"**arrival 触发下一段优先服务**"。
+            _remember_arrival(state, str(unit), now_tick)
+            # 【到达即释放 · 2026-10-09】**无论有没有路线**都要结束移动段意图。
+            # 见 `_close_movement_intents` 的说明：释放是"到达"这个事实的后果，
+            # 不能挂在某一条出口上（去重 / 无路线 / 正常尾部，三条都要走）。
+            _close_movement_intents(state, intents, str(unit),
+                                    arrival_tick=arrival_tick, arrival_target=event_target)
+            # 【无路线也要释放 · 2026-10-09】`note_arrival` 在 `previous_route` 为空时
+            # **直接 early-return**（`movement.py`：`if not entry: return`），
+            # 于是"路线早就被别的原因作废了"的到达**什么都不做** ——
+            # 但**意图仍然是活的**，单位照样留在 `busy` 里被每轮跳过。
+            # 到达是**事实**，释放不该依赖"恰好还有一条路线可作废"。
+            # 实测（`archive_353bf7a3`）：`Unit_16` 到达 t=2129 后被
+            # `rule-fill-advance-Unit_16-2121` 连续挡 **26 轮**（30.75 秒），
+            # 而该局 `arrival_note == arrival_events`（798=798）证明到达都记了账。
+            # 【到达即释放占用 · 2026-10-09】到达只作废**路线缓存**是不够的，
+            # 还必须**结束那条移动意图** —— 否则单位一直留在 `busy_units` 里，
+            # 而规则地板军事轨的第一道出口就是 `_free(name)`（不在 busy/used/suspended），
+            # 于是它**每轮被跳过**，直到意图 `expires_tick` 到期。
+            #
+            # 实测（round-15，`archive_72501fe6`）：军事轨挡掉的单位里 **73.8% 是 `busy`**
+            # （1232 次；`not_combat` 13.9%、`used` 12.3%）。这与 round-14 观测到的
+            # "到达之后 20~30 秒生成侧一条推进意图都不产出"完全对上：
+            # 那条 `rule-fill-advance`（TTL 3600 tick）在到达后仍然活着，
+            # 单位就一直被 `busy` 挡着 —— 不是没意图可发，是**发不出去**。
+            #
+            # 原先只有**侦察段**这么做（注释见下），但同样的死锁对
+            # `move` / `attack_move` 一样成立。现在按**动作**统一处理。
+            #
+            # 口径边界：只结束**移动段**（`ACTION_MOVE` / `ACTION_ATTACK_MOVE` / `ACTION_SCOUT`）。
+            # `ACTION_ATTACK`（点攻击驻留）**不在此列** —— 它的语义是"停在射程内持续输出"，
+            # 到达不表示任务完成，不能在这里结掉（那会让单位打一下就走）。
         # 【生产台账】开始/完成都按 **item_id** 记事实：队列项一消失就没别的证据了，
         # 而"到底完成了没有"只能由 `production_finished` 回答（归档复盘的证据链就是这么连的）。
         if kind in ("production_started", "production_finished") and event.get("item_id"):
@@ -434,6 +729,14 @@ def _consume_fast_events(state: Dict[str, Any], ctx: NodeContext) -> None:
             action = str(record.get("action", ""))
             if kind not in FAST_EFFECT_EVENTS.get(action, ()):
                 continue
+            if kind == "arrival":
+                issued = record.get("issued_tick")
+                if issued is not None and happened > 0 and int(issued) > happened:
+                    continue
+                intent_target = record.get("target") or {}
+                if isinstance(intent_target, dict) and not _arrival_target_matches(
+                        intent_target.get("pos"), event.get("target")):
+                    continue
             # 事件里的单位可能**不是**受令单位：`construction_done` 报的是**建筑**名，
             # 而建造意图的 `unit_ids` 是**工人**。所以候选名要包含意图的全部角色
             # （受令单位 + 目标里的实体/生产者/工地）——否则一类事件永远匹配不上，
@@ -477,9 +780,16 @@ def node_ingest(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, Any]:
     if drift:
         # 身份漂移：保持断开/降级，不发任何命令（绝不把命令发进别的对局）。
         state["degraded_reason"] = "identity_drift"
+        # 单独记一个**不被模型分支清空**的旗标：`degraded_reason` 会在"模型本轮成功"
+        # 时被复位（那是它应有的语义 —— 区分模型降级与链路降级），于是下发节点只看
+        # `degraded_reason` 的话，漂移轮的命令照样发出去（实测 2026-09-29：
+        # `test_identity_drift_blocks_dispatch` 里 transport 收到一条 `adjutant_intent`
+        # —— 命令被送进了**另一个对局**的观测所算出的目标）。
+        state["identity_drift"] = drift
         _decide(state, "identity_drift", drift=drift)
         _log(ctx, state, "graph_identity_drift", drift=str(drift))
         return state
+    state["identity_drift"] = {}
 
     # 10Hz 扫描层的增量事件：先消费，后续节点（含回执结算与进度）都看到最新证据。
     _consume_fast_events(state, ctx)
@@ -570,8 +880,58 @@ def node_ingest(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, Any]:
                                        config=_config_dict(ctx.config))
         if progress.get("intents"):
             _decide(state, "task_progress", updated=len(progress["intents"]))
+        # 【决策追踪 · 修改 1】任务状态变迁：只记**实际变化**（previous→new），
+        # 带目标关联（goal_id）与尝试序号；回放据此回答"这个任务卡在哪一步"。
+        _trace_task_transitions(ctx, state, progress, int(state.get("server_tick", 0)))
     except Exception as exc:  # noqa: BLE001
         _log(ctx, state, "graph_progress_error", error=str(exc)[:200])
+    # 【任务反馈闭环 · 修改 2】判定每个活动任务：成功/等待/无进展/失败/超时/受阻。
+    # 放在 ingest 末尾（进度监督之后、路由之前）：本轮新事实先判完，分支选择
+    # 才能看到"哪个任务已失败/已恢复/已受阻"。异常只记录，不拖垮指挥链。
+    loop_config = _config_dict(ctx.config)
+    state["loop_config"] = loop_config
+    try:
+        loop_facts = campaign_mod.build_facts(state, ctx.observation,
+                                              int(state.get("server_tick", 0)))
+        report = task_loop_mod.evaluate(
+            state, ctx.observation, int(state.get("server_tick", 0)),
+            config=loop_config, trace=_trace(ctx), facts=loop_facts)
+        if report.get("changes"):
+            _decide(state, "task_loop", changes=report["changes"][:8],
+                    feedback=report.get("feedback") or {})
+    except Exception as exc:  # noqa: BLE001 —— 闭环判定失效绝不阻塞指挥链
+        _log(ctx, state, "graph_task_loop_error", error=repr(exc)[:200])
+    # 【连续行动监督 · 2026-10-07】进度层判出 `unknown` 之后必须有人处理：
+    # 停滞/无任务闲置要有**有界的诊断与对账/恢复**记录，而不是让 `stall_count`
+    # 一个人默默涨（真实局读到 22/27/28）。与进度层同一纪律：只记录、不判死、
+    # 不释放单位、不发新意图 —— 详见 `progress.supervise_continuity` 的文档。
+    try:
+        continuity_config = _continuity_config(ctx.config)
+        if continuity_config.get("continuity_config_error"):
+            _log(ctx, state, "graph_continuity_config_error",
+                 error=str(continuity_config["continuity_config_error"]))
+        if continuity_config.get("continuity_disabled"):
+            # 对照组：显式关掉监督（prompt §3-C 允许"可禁用"），并留下**可查询的证据**，
+            # 否则复盘时分不清"关掉了"和"没接线"。
+            state["continuity_supervision"] = {
+                "updated_tick": int(state.get("server_tick", 0)),
+                "disabled": True,
+                "reason": str(continuity_config.get("disable_reason", "config")),
+                "units": {}, "idle_units": [], "levels": {}, "events": 0,
+                "recoveries": 0, "truncated": False,
+            }
+        else:
+            supervision = supervise_continuity(state, observation=ctx.observation,
+                                               tick=int(state.get("server_tick", 0)),
+                                               config=continuity_config)
+            if supervision.get("levels"):
+                _decide(state, "continuity_supervision",
+                        tick=int(state.get("server_tick", 0)),
+                        levels=supervision["levels"],
+                        idle_units=supervision.get("idle_units", [])[:6],
+                        recoveries=supervision.get("recoveries", 0))
+    except Exception as exc:  # noqa: BLE001 —— 监督失效绝不允许拖垮指挥链
+        _log(ctx, state, "graph_continuity_error", error=repr(exc)[:200])
     if accepted or expired:
         _decide(state, "observation_ingested", new_events=accepted, expired_intents=expired)
     _log(ctx, state, "graph_observation", snapshot_id=state.get("latest_snapshot_id", 0),
@@ -616,6 +976,44 @@ def _run_campaign_stage(state: Dict[str, Any], ctx: NodeContext, stage: str) -> 
          interrupts=summary.get("interrupts"),
          expansion=",".join(str(item) for item in
                             (summary.get("expansion_candidates") or [])[:1]))
+    # 【决策追踪 · 修改 1】候选入口条件逐项值/结果/缺项。
+    # 只在 `update` 阶段发（`advance` 是同一 tick 的二次判定，避免同 tick 重复事件）；
+    # 每轮全量 13 个节点，回放据此区分"可选 / 被排除 / 实际选择"。
+    if stage == "update":
+        _trace_candidate_evals(ctx, state, campaign, tick)
+        # 经济异常评估留痕（修改 3）：入口条件逐项值 + 异常激活/解除 + 恢复计划。
+        try:
+            from . import economy_recovery as economy_mod
+            economy_mod.record_anomaly_trace(ctx, state, campaign, tick)
+        except Exception:  # noqa: BLE001 —— 评估失败绝不拖垮主线
+            pass
+
+
+def _trace_candidate_evals(ctx: NodeContext, state: Dict[str, Any],
+                           campaign: Dict[str, Any], tick: int) -> None:
+    """把本轮决策地图检索结果写进追踪（可用 + 锁定，各带逐项条件值）。"""
+    if getattr(ctx.services, "trace", None) is None:
+        return
+    retrieved = campaign.get("decision_nodes")
+    if not isinstance(retrieved, dict):
+        return
+    for bucket in ("available", "locked"):
+        for entry in retrieved.get(bucket) or []:
+            if not isinstance(entry, dict):
+                continue
+            conditions = entry.get("conditions") or []
+            unmet = [str(item.get("text", "")) for item in conditions
+                     if isinstance(item, dict) and item.get("missing")]
+            _trace_safe(ctx, "candidate_eval", str(entry.get("id", "")),
+                        str(entry.get("name", "")), conditions=conditions,
+                        available=bool(bucket == "available"),
+                        reason_code=("available" if bucket == "available"
+                                     else "locked:%s" % ",".join(
+                                         str(item.get("name", "")) for item in conditions
+                                         if isinstance(item, dict) and item.get("missing"))),
+                        reason_cn=("当前可选" if bucket == "available"
+                                   else "暂不可选（缺：%s）" % "/".join(unmet)),
+                        server_tick=tick)
 
 
 def node_update_campaign(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, Any]:
@@ -676,6 +1074,13 @@ def _intake_patch_outcome(state: Dict[str, Any], ctx: NodeContext) -> bool:
                              current_tick=int(state.get("server_tick", 0) or 0))
     if outcome is None:
         return False
+    # 【决策追踪 · 修改 1】战术异步结果的收取轮次（跨轮返回的原关联在这里闭合）。
+    _trace_safe(ctx, "model_call", "tactics", trace.PHASE_RESULT,
+                request_id=int(outcome.request_id or 0), frame=outcome.frame,
+                status=str(outcome.status), reason=str(outcome.reason),
+                latency_ms=int(outcome.latency_ms or 0),
+                waited_ms=int(outcome.waited_ms or 0), merged=int(outcome.merged or 0),
+                server_tick=int(state.get("server_tick", 0) or 0))
     if outcome.status == STATUS_OK:
         state["patch_ready"] = {
             # `value` 是 pydantic `TaskPatchBatch`（LangGraph 可序列化）；
@@ -702,10 +1107,104 @@ def _intake_patch_outcome(state: Dict[str, Any], ctx: NodeContext) -> bool:
     return False
 
 
+#: 战略请求的本地接收期限（秒）。按模型耗时留余量，不用战术那档 1.5 秒。
+STRATEGY_DEADLINE_SECONDS = 45.0
+
+
+def _sample_tick_rate(state: Dict[str, Any]) -> None:
+    """用 server tick 相对单调时钟取样。暂停时 tick 不涨，只滑动锚点，不补发请求。"""
+    tick = int(state.get("server_tick", 0) or 0)
+    now = time.monotonic()
+    anchor_tick = state.get("tick_rate_anchor_tick", -1)
+    anchor_mono = float(state.get("tick_rate_anchor_mono", 0) or 0)
+    try:
+        anchor_tick = int(anchor_tick)
+    except (TypeError, ValueError):
+        anchor_tick = -1
+    if anchor_tick < 0 or anchor_mono <= 0:
+        state["tick_rate_anchor_tick"] = tick
+        state["tick_rate_anchor_mono"] = now
+        return
+    delta_tick = tick - anchor_tick
+    delta_time = now - anchor_mono
+    if delta_tick <= 0:
+        state["tick_rate_anchor_tick"] = tick
+        state["tick_rate_anchor_mono"] = now
+        return
+    if delta_time < 1.0:
+        return
+    hz = float(delta_tick) / float(delta_time)
+    if 5.0 <= hz <= 120.0:
+        state["measured_tick_hz"] = round(hz, 3)
+    state["tick_rate_anchor_tick"] = tick
+    state["tick_rate_anchor_mono"] = now
+
+
+def _note_strategy_epoch(state: Dict[str, Any]) -> None:
+    """每个新的战略事件 id 把纪元加一。在途结果回来时对不上就丢弃。"""
+    seen = [str(item) for item in (state.get("strategy_epoch_events") or [])]
+    known = set(seen)
+    fresh = 0
+    for event in state.get("pending_events") or []:
+        if str(event.get("kind", "")) not in itr.STRATEGIC_EVENT_KINDS:
+            continue
+        event_id = str(event.get("event_id") or "")
+        if not event_id or event_id in known:
+            continue
+        seen.append(event_id)
+        known.add(event_id)
+        fresh += 1
+    if fresh:
+        state["strategy_epoch"] = int(state.get("strategy_epoch", 0) or 0) + fresh
+        state["strategy_epoch_events"] = seen[-64:]
+
+
+def _strategy_metrics(state: Dict[str, Any]) -> Dict[str, Any]:
+    metrics = state.get("strategy_metrics")
+    if not isinstance(metrics, dict):
+        metrics = {}
+        state["strategy_metrics"] = metrics
+    return metrics
+
+
+def _note_strategy_start(state: Dict[str, Any], tick: int) -> None:
+    metrics = _strategy_metrics(state)
+    starts = [int(item) for item in (metrics.get("start_ticks") or [])]
+    if starts:
+        metrics["last_interval_ticks"] = int(tick) - int(starts[-1])
+    starts.append(int(tick))
+    metrics["start_ticks"] = starts[-32:]
+    metrics["calls"] = int(metrics.get("calls") or 0) + 1
+
+
+def _note_strategy_latency(state: Dict[str, Any], latency_ms: int) -> None:
+    metrics = _strategy_metrics(state)
+    latencies = [int(item) for item in (metrics.get("latencies_ms") or [])]
+    latencies.append(int(latency_ms))
+    metrics["latencies_ms"] = latencies[-32:]
+
+
+def _refresh_strategy_inflight(state: Dict[str, Any], ctx: NodeContext) -> None:
+    scheduler = getattr(ctx.services, "strategy_scheduler", None)
+    if scheduler is None:
+        state["strategy_inflight"] = False
+        return
+    stats = scheduler.stats()
+    busy = bool(stats.get("in_flight")) or int(stats.get("pending_normal") or 0) > 0 \
+        or int(stats.get("pending_emergency") or 0) > 0
+    state["strategy_inflight"] = busy
+    if not busy:
+        state["strategy_request"] = {}
+
+
 def node_classify(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, Any]:
     """事件分类与路由（player_override_gate 分支决策）。"""
     events = list(state.get("pending_events", []))
+    _sample_tick_rate(state)
+    _note_strategy_epoch(state)
     patch_ready = _intake_patch_outcome(state, ctx)
+    _intake_strategy_outcome(state, ctx)
+    _refresh_strategy_inflight(state, ctx)
     route = itr.classify_route(_StateView(state), events, int(state.get("server_tick", 0)),
                                _config_dict(ctx.config))
     if patch_ready and route in (itr.ROUTE_WAIT, itr.ROUTE_STRATEGIC):
@@ -715,6 +1214,22 @@ def node_classify(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, Any]:
     _decide(state, "event_classified", route=route, event_kinds=[
         str(e.get("kind", "")) for e in events])
     _log(ctx, state, "graph_route", route=route, event_count=len(events))
+    # 【决策追踪 · 修改 1】记录**实际选择的边**与原因（可测试的判据 + 短中文解释）。
+    # 为什么在这里记：分类节点是路由的唯一决策点；`route` 的取值理由必须能和
+    # 当时的事件/在途状态对上（回放要能回答"为何选边"），且不能只靠事后猜。
+    _trace_safe(ctx, "edge", NODE_CLASSIFY, _ROUTE_NODE.get(route, NODE_WAIT),
+                route=route,
+                reason_code=_route_reason_code(route, patch_ready),
+                reason_cn=_ROUTE_REASON_CN.get(route, ""),
+                detail={
+                    "event_kinds": [str(e.get("kind", "")) for e in events][:12],
+                    "event_count": len(events),
+                    "patch_ready": bool(patch_ready),
+                    "strategy_inflight": bool(state.get("strategy_inflight")),
+                    "strategy_disabled": bool(state.get("strategy_disabled")),
+                    "pending_requests": sorted((state.get("pending_requests") or {}).keys())[:8],
+                },
+                server_tick=int(state.get("server_tick", 0)))
     # 【规则中台常驻】**无条件**跑一轮 baseline（纠偏 §三-3：route 是模型调度节拍，
     # 不能成为规则/行为树的运行门控）。此前它被 `if route not in (tactical, ...)`
     # 与 `node_tactical_agent` 内的模型分支切成两半 → 两条路径的语义还不一致，
@@ -749,10 +1264,7 @@ class _StateView:
         return str(unit_id) in self._data.get("player_controlled_units", [])
 
     def find_intent(self, intent_id: str) -> Optional[Dict[str, Any]]:
-        for intent in self._data.get("active_intents", []):
-            if str(intent.get("intent_id", "")) == str(intent_id):
-                return intent
-        return None
+        return _find_intent(self._data, intent_id)
 
     def live_intents(self, current_tick: int) -> List[Dict[str, Any]]:
         """与 `AdjutantGraphState.live_intents` 同口径（微操守卫/仲裁复用）。"""
@@ -767,9 +1279,80 @@ class _StateView:
 def _config_dict(config: GraphConfig) -> Dict[str, Any]:
     return {
         "strategy_interval_ticks": config.strategy_interval_ticks,
+        "strategy_review_seconds": config.strategy_review_seconds,
         "tactics_interval_ticks": config.tactics_interval_ticks,
         "emergency_min_interval_ticks": config.emergency_min_interval_ticks,
+        # 任务闭环配置（修改 2）：0 = 用 task_loop 按类型默认表（单位：秒）。
+        "loop_no_progress_seconds": config.loop_no_progress_seconds,
+        "loop_deadline_seconds": config.loop_deadline_seconds,
+        "loop_retry_budget": config.loop_retry_budget,
+        "loop_cooldown_seconds": config.loop_cooldown_seconds,
+        "loop_attempt_window_seconds": config.loop_attempt_window_seconds,
+        # 经济异常窗口（修改 3；单位：秒）。
+        "econ_delivery_stall_seconds": config.econ_delivery_stall_seconds,
+        "econ_post_delivery_stall_seconds": config.econ_post_delivery_stall_seconds,
+        "econ_grace_seconds": config.econ_grace_seconds,
     }
+
+
+#: 连续行动监督（prompt §3-C）可被宿主覆盖的阈值键。
+CONTINUITY_CONFIG_KEYS = ("continuity_diagnose_seconds", "continuity_recover_seconds",
+                          "continuity_fail_seconds", "continuity_recovery_repeat_ticks")
+#: `AIRTS_CONTINUITY_RESOLVE` → 阈值覆盖表。
+#:
+#: 【为什么要有这个开关】prompt §4 要求"未达到门禁则继续定位，不延长阈值"，
+#: 而"监督到底有没有用"只能靠**关/开对照**才能回答（单看"开了监督的那一局"，
+#: 40 秒的中位停顿既可能是监督没起作用，也可能是这局本来就难）。
+#: 这是个**运维/验收开关**，不是每次开发默认打开的省事开关：
+#:   `AIRTS_CONTINUITY_RESOLVE=off`         → 完全关掉监督（对照组）
+#:   `AIRTS_CONTINUITY_RESOLVE=coarse`      → 诊断 2s / 恢复 5s（= 默认，prompt §4 口径）
+#:   `AIRTS_CONTINUITY_RESOLVE=fine`        → 诊断 1s / 恢复 2s（更早介入）
+#:   `AIRTS_CONTINUITY_RESOLVE=1/2/3`       → 手工指定 诊断/恢复/判失败 秒数
+CONTINUITY_RESOLVE_PRESETS = {
+    "coarse": {"continuity_diagnose_seconds": 2.0, "continuity_recover_seconds": 5.0,
+               "continuity_fail_seconds": 10.0},
+    "fine": {"continuity_diagnose_seconds": 1.0, "continuity_recover_seconds": 2.0,
+             "continuity_fail_seconds": 10.0},
+}
+CONTINUITY_DISABLE_VALUES = ("off", "0", "false", "no", "none", "disable", "disabled")
+
+
+def _continuity_resolve_config(value: str) -> Dict[str, Any]:
+    """把 `AIRTS_CONTINUITY_RESOLVE` 解析成阈值覆盖表；无法识别的值**不静默忽略**。"""
+    raw = str(value or "").strip().lower()
+    if not raw:
+        return {}
+    if raw in CONTINUITY_DISABLE_VALUES:
+        return {"continuity_disabled": True}
+    if raw in CONTINUITY_RESOLVE_PRESETS:
+        return dict(CONTINUITY_RESOLVE_PRESETS[raw])
+    parts = [item for item in raw.split("/") if item.strip()]
+    try:
+        numbers = [float(item) for item in parts]
+    except ValueError:
+        numbers = []
+    if len(numbers) >= 2 and all(item > 0.0 for item in numbers):
+        out = {"continuity_diagnose_seconds": numbers[0],
+               "continuity_recover_seconds": numbers[1]}
+        if len(numbers) >= 3:
+            out["continuity_fail_seconds"] = numbers[2]
+        return out
+    # 认不出来就**照默认跑**，但把这件事记下来（别让一个拼错的开关假装生效）。
+    return {"continuity_config_error": "无法识别的 AIRTS_CONTINUITY_RESOLVE=%r" % value}
+
+
+def _continuity_config(config: Any) -> Dict[str, Any]:
+    """连续行动监督阈值：宿主属性 > `AIRTS_CONTINUITY_RESOLVE` 环境变量 > 模块默认。
+
+    为什么不写进 `GraphConfig` 定义：2s/5s/10s 是**公开工程目标**，改它们等于改验收口径，
+    必须是一次显式决定；而 A/B 对照需要的是**运行期可切换**，所以走环境变量。
+    """
+    out = _continuity_resolve_config(os.environ.get("AIRTS_CONTINUITY_RESOLVE", ""))
+    for key in CONTINUITY_CONFIG_KEYS + ("continuity_disabled", "continuity_config_error"):
+        value = getattr(config, key, None)
+        if value is not None:
+            out[key] = value
+    return out
 
 
 # ---------------- 玩家打断 / 计划调整 ----------------
@@ -931,16 +1514,301 @@ def _mark_tasks_for_units(state: Dict[str, Any], units: List[str], new_state: st
 
 # ---------------- 战略 ----------------
 
+def _task_signature(task: Dict[str, Any]) -> Tuple[Any, ...]:
+    return (
+        str(task.get("task_id") or ""),
+        int(task.get("priority") or 0),
+        str(task.get("completion") or ""),
+        tuple(sorted(str(unit) for unit in (task.get("units") or []))),
+        str(task.get("unit_constraint") or ""),
+        str(task.get("target_type") or ""),
+        tuple(sorted(str(action) for action in (task.get("allowed_actions") or []))),
+    )
+
+
+def _active_plan_version(state: Dict[str, Any]) -> int:
+    plan = state.get("active_plan") or {}
+    if isinstance(plan, dict):
+        try:
+            value = int(plan.get("plan_version") or 0)
+            if value > 0:
+                return value
+        except (TypeError, ValueError):
+            pass
+    text = str(state.get("plan_version") or "")
+    if ":v" in text:
+        try:
+            return int(text.rsplit(":v", 1)[-1])
+        except ValueError:
+            return 0
+    return 0
+
+
+def _strategy_result_stale(state: Dict[str, Any], meta: Optional[Dict[str, Any]]) -> str:
+    if not meta:
+        return ""
+    if str(meta.get("match_id") or "") != str(state.get("match_id") or ""):
+        return "match_mismatch"
+    if str(meta.get("player_id") or "") != str(state.get("player_id") or ""):
+        return "player_mismatch"
+    if int(meta.get("plan_adopt_generation") or 0) != int(state.get("plan_adopt_generation") or 0):
+        return "plan_generation"
+    if int(meta.get("control_generation") or 0) != int(state.get("control_generation") or 0):
+        return "control_generation"
+    if int(meta.get("strategy_epoch") or 0) != int(state.get("strategy_epoch") or 0):
+        return "strategy_epoch"
+    return ""
+
+
+def _review_is_hold(state: Dict[str, Any], parsed: StrategicPlan) -> bool:
+    if parsed.maintain_current:
+        return True
+    active = state.get("active_plan") or {}
+    old_tasks = [task for task in ((active.get("tasks") if isinstance(active, dict) else None) or [])
+                 if isinstance(task, dict)]
+    if not old_tasks:
+        return False
+    old = {str(task.get("task_id")): _task_signature(task) for task in old_tasks}
+    incoming = parsed.to_plan_dict().get("tasks") or []
+    if not incoming:
+        return False
+    for task in incoming:
+        signature = _task_signature(task)
+        previous = old.get(signature[0])
+        if previous is None or previous != signature:
+            return False
+    return True
+
+
+def _merged_plan(state: Dict[str, Any], parsed: StrategicPlan) -> Tuple[Dict[str, Any], set]:
+    incoming = parsed.to_plan_dict()
+    active = state.get("active_plan")
+    if not isinstance(active, dict) or not active.get("plan_id"):
+        changed = {str(task.get("task_id") or "") for task in incoming.get("tasks") or []}
+        return incoming, {item for item in changed if item}
+    old_tasks = [dict(task) for task in (active.get("tasks") or []) if isinstance(task, dict)]
+    by_id = {str(task.get("task_id")): task for task in old_tasks}
+    changed = set()
+    for task in incoming.get("tasks") or []:
+        copy_task = dict(task)
+        task_id = str(copy_task.get("task_id") or "")
+        if not task_id:
+            continue
+        previous = by_id.get(task_id)
+        if previous is None or _task_signature(previous) != _task_signature(copy_task):
+            changed.add(task_id)
+            by_id[task_id] = copy_task
+    ordered: List[Dict[str, Any]] = []
+    seen = set()
+    for task in old_tasks:
+        task_id = str(task.get("task_id"))
+        ordered.append(by_id.get(task_id, task))
+        seen.add(task_id)
+    for task_id, task in by_id.items():
+        if task_id not in seen:
+            ordered.append(task)
+            changed.add(task_id)
+    merged = dict(active)
+    merged["tasks"] = ordered
+    merged["plan_id"] = str(active.get("plan_id"))
+    merged["plan_version"] = max(_active_plan_version(state) + 1, int(parsed.plan_version))
+    for key in ("phase_goal", "valid_until_tick", "based_on_snapshot", "reserves",
+                "rationale", "abort_when", "rules_version"):
+        if key in incoming and incoming[key] not in (None, "", []):
+            merged[key] = incoming[key]
+    return merged, changed
+
+
+def _mark_strategy_reviewed(state: Dict[str, Any], tick: int) -> None:
+    state["last_strategy_tick"] = int(tick)
+    state["last_strategy_review_tick"] = int(tick)
+    state["model_errors"] = 0
+    state["degraded_reason"] = ""
+    _consume_events(state, itr.STRATEGIC_EVENT_KINDS)
+
+
+def _hold_current_plan(state: Dict[str, Any], ctx: NodeContext, tick: int, reason: str) -> None:
+    state["plan_hold_count"] = int(state.get("plan_hold_count") or 0) + 1
+    _mark_strategy_reviewed(state, tick)
+    _decide(state, "plan_hold", reason=reason, tick=tick,
+            plan_version=str(state.get("plan_version") or ""))
+    _log(ctx, state, "plan_adoption", status="hold", reason=reason,
+         plan_version=str(state.get("plan_version") or ""))
+
+
+def _commit_strategy_plan(state: Dict[str, Any], ctx: NodeContext, parsed: StrategicPlan,
+                          tick: int) -> None:
+    plan_dict, changed = _merged_plan(state, parsed)
+    accepted, reason = True, "adopted"
+    if ctx.services.adoption is not None:
+        accepted, reason = ctx.services.adoption(plan_dict, tick)
+    if not accepted:
+        state["model_errors"] = int(state.get("model_errors", 0)) + 1
+        state["degraded_reason"] = "plan_rejected:%s" % reason
+        _decide(state, "plan_rejected", reason=reason, tick=tick)
+        _log(ctx, state, "plan_adoption", status="rejected", reason=reason)
+        return
+    previous_version = str(state.get("plan_version", "") or "")
+    new_version = "%s:v%d" % (plan_dict.get("plan_id"), int(plan_dict.get("plan_version") or 0))
+    if previous_version and previous_version != new_version:
+        history = list(state.get("plan_version_history", []) or [])
+        if previous_version not in history:
+            history.append(previous_version)
+        state["plan_version_history"] = history[-16:]
+    state["active_plan"] = plan_dict
+    state["plan_version"] = new_version
+    state["plan_adopt_generation"] = int(state.get("plan_adopt_generation", 0)) + 1
+    state["plan_commit_count"] = int(state.get("plan_commit_count") or 0) + 1
+    tasks = state.setdefault("active_tasks", {})
+    for task in plan_dict.get("tasks") or []:
+        task_id = str(task.get("task_id", ""))
+        if not task_id:
+            continue
+        if task_id in changed or task_id not in tasks:
+            tasks[task_id] = "pending"
+            # 【决策追踪 · 修改 1】新任务入账（created）：目标/父任务/计划版本
+            # 从一开始就可追溯，失败时能反向查到"来自哪个目标的哪次尝试"。
+            _trace_safe(ctx, "task", task_id, "created",
+                        goal_id=_goal_of_task(task_id),
+                        parent_task_id=str(task.get("parent_task_id", "") or ""),
+                        plan_version=new_version, state="pending",
+                        reason_cn=str(task.get("completion", ""))[:120],
+                        server_tick=tick)
+        units = [str(unit) for unit in (task.get("units") or [])]
+        _ensure_units(state, units)
+    _mark_strategy_reviewed(state, tick)
+    for unit in list(state.get("player_controlled_units", [])):
+        if unit in state.get("ai_controlled_units", []):
+            state["ai_controlled_units"].remove(unit)
+    _decide(state, "plan_adopted", plan_id=str(plan_dict.get("plan_id") or ""),
+            plan_version=new_version, reason=reason, tick=tick,
+            changed=sorted(changed),
+            rationale=str(plan_dict.get("rationale") or ""))
+    _log(ctx, state, "plan_adoption", status="adopted", plan_version=new_version)
+
+
+def _finalize_strategy_result(state: Dict[str, Any], ctx: NodeContext, raw: Any, tick: int,
+                              frame_meta: Optional[Dict[str, Any]] = None) -> None:
+    stale = _strategy_result_stale(state, frame_meta)
+    if stale:
+        _decide(state, "strategy_result_rejected", reason=stale, tick=tick)
+        _log(ctx, state, "plan_adoption", status="rejected", reason=stale)
+        return
+    if raw is None:
+        _mark_strategy_reviewed(state, tick)
+        _decide(state, "strategy_empty", tick=tick)
+        return
+    try:
+        parsed = parse_strategic_plan(raw)
+    except ContractError as exc:
+        _on_model_failure(state, ctx, "strategy", ModelInvalidOutput("; ".join(exc.errors)))
+        return
+    if str(parsed.match_id) != str(state.get("match_id", "")) or \
+            str(parsed.player_id) != str(state.get("player_id", "")):
+        _on_model_failure(state, ctx, "strategy",
+                          ModelInvalidOutput("计划身份与当前对局不一致"))
+        return
+    if _review_is_hold(state, parsed):
+        reason = "unchanged"
+        if str(getattr(parsed, "rationale", "") or "").startswith("rules_degraded"):
+            reason = "rules_degraded_hold"
+        if not state.get("active_plan"):
+            _hold_current_plan(state, ctx, tick, "no_active_plan")
+        else:
+            _hold_current_plan(state, ctx, tick, reason)
+        return
+    _commit_strategy_plan(state, ctx, parsed, tick)
+
+
+def _strategy_context(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, Any]:
+    provider = getattr(ctx.services.strategy_model, "inner", ctx.services.strategy_model)
+    context = build_strategy_context(
+        _StateView(state), strategic=ctx.observation.get("strategic"),
+        rules=ctx.observation.get("rules"),
+        tactical=(ctx.observation.get("tactical")
+                  if getattr(provider, "requires_unit_facts", False) else None),
+        events=list(state.get("pending_events", [])),
+        budget=ctx.observation.get("budget"),
+    )
+    try:
+        return copy.deepcopy(context)
+    except Exception:  # noqa: BLE001 —— 快照失败时仍用当轮字典，不把图线程停住。
+        return dict(context) if isinstance(context, dict) else {}
+
+
+def _intake_strategy_outcome(state: Dict[str, Any], ctx: NodeContext) -> None:
+    """非阻塞取回战略结果。过期目标不恢复；思考本身不占这一轮的执行。"""
+    scheduler = getattr(ctx.services, "strategy_scheduler", None)
+    if scheduler is None:
+        return
+    outcome = scheduler.poll(current_generations=None, current_tick=None)
+    if outcome is None:
+        return
+    _note_strategy_latency(state, int(outcome.latency_ms or 0))
+    frame = outcome.frame
+    meta = frame.to_checkpoint() if hasattr(frame, "to_checkpoint") else {}
+    # 【决策追踪 · 修改 1】异步请求的**结果**事件：request_id + 帧身份（提交时冻结）
+    # + 状态；采纳/拒绝的明细由后续 plan_adopted/strategy_result_rejected 承接。
+    _trace_safe(ctx, "model_call", "strategy", trace.PHASE_RESULT,
+                request_id=int(outcome.request_id or 0), frame=frame,
+                status=str(outcome.status), reason=str(outcome.reason),
+                latency_ms=int(outcome.latency_ms or 0),
+                waited_ms=int(outcome.waited_ms or 0), merged=int(outcome.merged or 0),
+                server_tick=int(state.get("server_tick", 0) or 0))
+    if outcome.status != STATUS_OK:
+        _on_model_failure(state, ctx, "strategy", ModelTimeout(outcome.reason or outcome.status))
+        _decide(state, "strategy_result_rejected", status=outcome.status,
+                reason=outcome.reason, request_id=outcome.request_id)
+        _log(ctx, state, "strategy_result", **outcome.to_dict())
+        return
+    _finalize_strategy_result(state, ctx, outcome.value,
+                              int(state.get("server_tick", 0) or 0), meta)
+    _log(ctx, state, "strategy_result", **outcome.to_dict())
+
+
+def _submit_strategy(state: Dict[str, Any], ctx: NodeContext, tick: int) -> None:
+    scheduler = ctx.services.strategy_scheduler
+    context = _strategy_context(state, ctx)
+    frame = StrategyRequestFrame(
+        context=context,
+        match_id=str(state.get("match_id") or ""),
+        player_id=str(state.get("player_id") or ""),
+        server_tick=int(tick),
+        snapshot_id=int(state.get("latest_snapshot_id") or 0),
+        plan_version=str(state.get("plan_version") or ""),
+        plan_adopt_generation=int(state.get("plan_adopt_generation") or 0),
+        control_generation=int(state.get("control_generation") or 0),
+        strategy_epoch=int(state.get("strategy_epoch") or 0),
+        generations={str(key): int(value or 0)
+                     for key, value in (state.get("unit_generations") or {}).items()},
+        deadline_seconds=STRATEGY_DEADLINE_SECONDS,
+    )
+    accepted, reason = scheduler.submit(
+        frame, kind=KIND_NORMAL, deadline_seconds=STRATEGY_DEADLINE_SECONDS)
+    ctx.services.log("strategy_request", status="queued" if accepted else "refused",
+                     match_id=state.get("match_id", ""), server_tick=tick, reason=reason)
+    # 【决策追踪 · 修改 1】异步请求的**提交**事件：带请求帧身份（提交时冻结），
+    # 结果到达时按同一身份关联，不按"最近一次提交"猜因果。
+    _trace_safe(ctx, "model_call", "strategy", trace.PHASE_SUBMIT, frame=frame,
+                status="queued" if accepted else "refused", reason=str(reason),
+                server_tick=tick)
+    if not accepted:
+        _decide(state, "strategy_submit_refused", reason=reason, tick=tick)
+        return
+    state["strategy_inflight"] = True
+    state["strategy_request"] = frame.to_checkpoint()
+    state["last_strategy_tick"] = int(tick)
+    if itr.has_major_event(state.get("pending_events") or []):
+        state["last_strategy_event_tick"] = int(tick)
+    _note_strategy_start(state, tick)
+    _decide(state, "strategy_submitted", tick=tick, reason=reason)
+
+
 def node_strategic_agent(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, Any]:
-    """战略节点：低频生成 StrategicPlan；不直接产生单位命令。"""
-    events = list(state.get("pending_events", []))
+    """战略节点：提交或同步生成计划。有调度器时本函数立即返回，不在图线程里等模型。"""
     if _model_missing(ctx.services.strategy_model):
         _decide(state, "strategy_skipped", reason="no_strategy_model")
-        # 立标志让 classify_route 跳过战略分支：active_plan 恒 None 时 is_strategy_due
-        # 恒真，路由会卡死在 strategic，战术节点永远轮不到（实测 0 下发）。覆盖两类
-        # 场景：--strategy-mode off，以及配置为 plan 但模型装配失败/从旧 checkpoint 恢复。
         state["strategy_disabled"] = True
-        # 保留本轮 baseline（纠偏 §三-2/3）：战略模型缺席不是"这轮谁都不动"的理由。
         _keep_baseline(state)
         return state
     if not model_calls_allowed(state, ctx, "strategy"):
@@ -949,17 +1817,19 @@ def node_strategic_agent(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, A
         return state
     tick = int(state.get("server_tick", 0))
     if tick < int(state.get("strategy_backoff_until_tick", 0) or 0):
-        # 失败退避期内不调战略模型（同步调用一次堵 15s；退避口径见 _on_model_failure）。
         _decide(state, "strategy_skipped", reason="strategy_backoff")
         _keep_baseline(state)
         return state
-    context = build_strategy_context(
-        _StateView(state), strategic=ctx.observation.get("strategic"),
-        rules=ctx.observation.get("rules"), events=events,
-        budget=ctx.observation.get("budget"),
-    )
+    scheduler = getattr(ctx.services, "strategy_scheduler", None)
+    if scheduler is not None:
+        if not state.get("strategy_inflight"):
+            _submit_strategy(state, ctx, tick)
+        _keep_baseline(state)
+        return state
+    context = _strategy_context(state, ctx)
     ctx.services.log("strategy_request", status="issued",
                      match_id=state.get("match_id", ""), server_tick=tick)
+    started = time.monotonic()
     try:
         plan = ctx.services.strategy_model.propose_plan(context)
     except (ModelTimeout, ModelUnavailable, ModelInvalidOutput) as exc:
@@ -970,67 +1840,9 @@ def node_strategic_agent(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, A
         _on_model_failure(state, ctx, "strategy", exc)
         _keep_baseline(state)
         return state
-
-    if plan is None:
-        state["last_strategy_tick"] = tick
-        state["model_errors"] = 0
-        _consume_events(state, itr.STRATEGIC_EVENT_KINDS)
-        _decide(state, "strategy_empty", tick=tick)
-        _keep_baseline(state)
-        return state
-    try:
-        parsed: StrategicPlan = parse_strategic_plan(plan)
-    except ContractError as exc:
-        _on_model_failure(state, ctx, "strategy", ModelInvalidOutput("; ".join(exc.errors)))
-        _keep_baseline(state)
-        return state
-    if str(parsed.match_id) != str(state.get("match_id", "")) or \
-            str(parsed.player_id) != str(state.get("player_id", "")):
-        _on_model_failure(state, ctx, "strategy",
-                          ModelInvalidOutput("计划身份与当前对局不一致"))
-        _keep_baseline(state)
-        return state
-
-    plan_dict = parsed.to_plan_dict()
-    accepted, reason = True, "adopted"
-    if ctx.services.adoption is not None:
-        accepted, reason = ctx.services.adoption(plan_dict, tick)
-    if not accepted:
-        # 旧计划输出不能覆盖已采纳计划：保留当前计划，记录拒绝原因。
-        state["model_errors"] = int(state.get("model_errors", 0)) + 1
-        state["degraded_reason"] = "plan_rejected:%s" % reason
-        _decide(state, "plan_rejected", reason=reason, tick=tick)
-        _log(ctx, state, "plan_adoption", status="rejected", reason=reason)
-        _keep_baseline(state)
-        return state
-
-    previous_version = str(state.get("plan_version", "") or "")
-    if previous_version and previous_version != "%s:v%d" % (parsed.plan_id, parsed.plan_version):
-        # 记录被替换的历史版本：模型若回显历史版本号 = 真·旧计划意图，仲裁会丢弃。
-        history = list(state.get("plan_version_history", []) or [])
-        if previous_version not in history:
-            history.append(previous_version)
-        state["plan_version_history"] = history[-16:]
-    state["active_plan"] = plan_dict
-    state["plan_version"] = "%s:v%d" % (parsed.plan_id, parsed.plan_version)
-    state["plan_adopt_generation"] = int(state.get("plan_adopt_generation", 0)) + 1
-    for task in plan_dict["tasks"]:
-        task_id = str(task.get("task_id", ""))
-        if task_id and task_id not in state.get("active_tasks", {}):
-            state.setdefault("active_tasks", {})[task_id] = "pending"
-        units = [str(u) for u in (task.get("units") or [])]
-        _ensure_units(state, units)
-    state["last_strategy_tick"] = tick
-    state["model_errors"] = 0
-    state["degraded_reason"] = ""
-    _consume_events(state, itr.STRATEGIC_EVENT_KINDS)
-    # 计划调整后，玩家仍控制的单位保持玩家控制（新计划不能抢回）。
-    for unit in list(state.get("player_controlled_units", [])):
-        if unit in state.get("ai_controlled_units", []):
-            state["ai_controlled_units"].remove(unit)
-    _decide(state, "plan_adopted", plan_id=parsed.plan_id,
-            plan_version=state["plan_version"], reason=reason, tick=tick)
-    _log(ctx, state, "plan_adoption", status="adopted", plan_version=state["plan_version"])
+    _note_strategy_start(state, tick)
+    _note_strategy_latency(state, int((time.monotonic() - started) * 1000))
+    _finalize_strategy_result(state, ctx, plan, tick, None)
     _keep_baseline(state)
     return state
 
@@ -1059,6 +1871,103 @@ ORDER_REPEAT_WINDOW_TICKS = 900
 #: 这些动作在「正在走当前跳」时不得因新 tick / 新航点再发一条。
 #: 求生（retreat）不在此列：半路也必须能撤。
 STICKY_MOVE_ACTIONS = (ACTION_ATTACK_MOVE, ACTION_MOVE, ACTION_SCOUT)
+#: **移动段**动作：到达即表示这一段走完了 ⇒ 可以结束意图、释放单位。
+#:
+#: 与 `STICKY_MOVE_ACTIONS` / `GATED_MOVE_ACTIONS` 是同一组动作（项目口径：
+#: 同一概念只允许一处定义）。**故意引用**而不是再抄一份 —— 三处各写一份必然分叉。
+#: 语义对照：
+#:   - `STICKY_MOVE_ACTIONS`：在途时不许因新 tick / 新航点重发（防半路改令）；
+#:   - `GATED_MOVE_ACTIONS`：这些动作要过安全闸门；
+#:   - 本常量：到达时**该结束**的意图。不结束的话单位会留在 `busy_units` 里，
+#:     而军事轨第一道出口就是 `_free(name)` ⇒ **每轮被跳过**直到意图 TTL 到期
+#:     （实测 `archive_72501fe6`：军事轨挡掉的单位里 73.8% 是 `busy`）。
+#: 不含 `ACTION_ATTACK`：点攻击驻留是"停在射程内持续输出"，到达不代表任务完成，
+#: 在这里结掉会让单位打一下就走。
+MOVEMENT_SEGMENT_ACTIONS = frozenset(STICKY_MOVE_ACTIONS)
+
+
+def _arrival_target_matches(goal: Any, arrived: Any) -> bool:
+    # Legacy events without goals cannot be compared. Current DCS reports goals
+    # rounded to centimetres; use the existing route identity tolerance (0.5m).
+    if not isinstance(goal, (list, tuple)) or len(goal) < 2:
+        return True
+    if not isinstance(arrived, (list, tuple)) or len(arrived) < 2:
+        return True
+    try:
+        return movement_mod.point_distance(goal, arrived) <= 0.5
+    except (TypeError, ValueError):
+        return False
+
+
+def _close_movement_intents(state: Dict[str, Any], intents: List[Any],
+                            unit: str, *, arrival_tick: Optional[int] = None,
+                            arrival_target: Any = None, require_issue_tick: bool = False) -> int:
+    """到达这个**事实**发生时，结束该单位的移动段意图（返回结束了几条）。
+
+    ## 为什么必须单独成一个函数（2026-10-09，round-23 实测）
+
+    这个动作原先**内联在到达分支的尾部**，于是只对"走到尾部的那些到达"生效，
+    而到达分支里有**两条 `continue` 出口**会绕过它：
+
+    1. **去重出口**（1 秒窗口内的同 key 到达）—— 什么都不会发生；
+    2. **无路线出口** —— `movement.note_arrival` 在 `previous_route` 为空时
+       **直接 early-return**（源码里 `if not entry: return`），
+       于是路线没被作废、意图也没被结束。
+
+    第 2 条正是 `Unit_16` 那 30.75 秒空档的成因（实测 `archive_353bf7a3`）：
+    到达 t=2129（dist=0.22）之后，`rule-fill-advance-Unit_16-2121` **连续 26 轮**
+    把它算成 `busy` 占住，直到 t=3974 才有下一条命令 —— 而该局的
+    `arrival_note == arrival_events`（798 = 798）说明**到达确实都记了账**，
+    所以问题不在投递、在**释放动作没有覆盖到这条路径**。
+    （该局 `arrival_seen` 的 `no_route` 有 98 条，即约 12% 的到达走的是这条。）
+
+    **口径不变**：只结束移动段（`MOVEMENT_SEGMENT_ACTIONS`），
+    `ACTION_ATTACK`（点攻击驻留）不在此列 —— 到达不代表驻留任务完成。
+    """
+    closed = 0
+    #: 真正"合格"的候选：活跃 + 移动段动作 + 含该单位。
+    #: ⚠ round-33 第一次埋点把 `candidates` 记成了 `len(intents)` —— 那是**整份活跃意图表**
+    #: （实测累计 127 万），完全淹没信号。计数必须落在**通过前三个 `continue` 之后**。
+    matched = 0
+    for record in intents or []:
+        if not isinstance(record, dict):
+            continue
+        if record.get("state") not in INTENT_LIVE_STATES:
+            continue
+        if str(record.get("action", "")) not in MOVEMENT_SEGMENT_ACTIONS:
+            continue
+        if unit not in {str(item) for item in (record.get("unit_ids") or [])}:
+            continue
+        issued = record.get("issued_tick")
+        if require_issue_tick and issued is None:
+            continue
+        if arrival_tick is not None and issued is not None and int(issued) > arrival_tick:
+            continue
+        target = record.get("target") or {}
+        if isinstance(target, dict) and not _arrival_target_matches(target.get("pos"), arrival_target):
+            continue
+        matched += 1
+        record["state"] = INTENT_COMPLETED
+        record["drop_reason"] = "arrival"
+        closed += 1
+    # 【到达释放账 · 2026-10-09（round-33）】**每次调用都要留痕**，而不只是成功时。
+    # 为什么要区分：30 秒拖尾（= `HOP_HOLD_MAX_TICKS` 兜底）只可能来自两种情形 ——
+    #   ① 到达分支**根本没被走到**（那 `_close` 一次都不会被调用）；
+    #   ② 走到了，但**当时没有可结束的意图**（`_close` 被调用、`closed == 0`）。
+    # 这两种的修法完全不同，而此前只有一个 `arrival_released_intents` 累计值
+    # （只在成功时 +），**分不出**①和②。round-23/29 因此反复在猜。
+    # 加上 candidate 数（遍历到几条候选意图），就能进一步区分
+    # "没有候选"（意图已不在活跃集）与"有候选但不合格"（状态/动作不符）。
+    stats = state.setdefault("movement_stats", {})
+    stats["arrival_close_calls"] = int(stats.get("arrival_close_calls", 0)) + 1
+    stats["arrival_close_matched"] = int(
+        stats.get("arrival_close_matched", 0)) + matched
+    if closed:
+        stats["arrival_released_intents"] = int(
+            stats.get("arrival_released_intents", 0)) + closed
+    else:
+        stats["arrival_close_empty"] = int(stats.get("arrival_close_empty", 0)) + 1
+    return closed
 #: 项目完成后必须立刻允许下一单；窗口只挡住「同一条还在途」的重复。
 CONTINUATION_ACTIONS = ("produce", "build")
 
@@ -1068,8 +1977,17 @@ CONGESTION_STATUSES = ("LedgerFull", "Busy", "Throttled", "TransportError",
                        "Timeout", "QueueFull")
 
 
+#: 移动类指纹的坐标档（米）。1 米取整仍会把同一条路线上的小抖动当成新命令。
+_POS_BUCKET_M = 4.0
+_COARSE_POS_ACTIONS = (ACTION_ATTACK_MOVE, ACTION_MOVE, ACTION_SCOUT, ACTION_REGROUP)
+
+
 def _order_signature(item: Dict[str, Any]) -> str:
-    """「单位集合 + 动作 + 目标」指纹（坐标取整到米：同一目标点的抖动不算变化）。"""
+    """「单位集合 + 动作 + 目标 + 任务」指纹。
+
+    移动/前压/侦察/集结的坐标按 4 米一档；撤退和点攻击仍按原目标，
+    避免求生和换打击目标被收成同一条命令。
+    """
     units = ",".join(sorted(str(u) for u in (item.get("unit_ids") or [])))
     action = str(item.get("action", ""))
     target = dict(item.get("target") or {})
@@ -1079,10 +1997,15 @@ def _order_signature(item: Dict[str, Any]) -> str:
         pos = target.get("pos")
         if isinstance(pos, (list, tuple)) and len(pos) >= 2:
             try:
-                key = "%.0f,%.0f" % (float(pos[0]), float(pos[1]))
+                if action in _COARSE_POS_ACTIONS:
+                    key = "%d,%d" % (int(float(pos[0]) // _POS_BUCKET_M),
+                                     int(float(pos[1]) // _POS_BUCKET_M))
+                else:
+                    key = "%.0f,%.0f" % (float(pos[0]), float(pos[1]))
             except (TypeError, ValueError):
                 key = ""
-    return "%s|%s|%s" % (units, action, key)
+    task_id = str(item.get("task_id") or "")
+    return "%s|%s|%s|%s" % (units, action, key, task_id)
 
 
 def _stamp_tick(stamp: Any) -> int:
@@ -1514,6 +2437,10 @@ def _tactical_via_task_patch(state: Dict[str, Any], ctx: NodeContext,
                 frame,
                 kind=KIND_EMERGENCY if emergency else KIND_NORMAL,
                 live_generations=frame.generations)
+            # 【决策追踪 · 修改 1】战术异步请求的提交事件（帧身份提交时冻结）。
+            _trace_safe(ctx, "model_call", "tactics", trace.PHASE_SUBMIT, frame=frame,
+                        status="queued" if accepted else "refused", reason=str(why),
+                        emergency=bool(emergency), server_tick=tick)
             _log(ctx, state, "task_patch_submitted", accepted=accepted, reason=why,
                  mode=mode, actors=len(frame.actors), emergency=emergency,
                  **scheduler.stats())
@@ -2227,10 +3154,118 @@ def _gate_movement(state: Dict[str, Any], ctx: NodeContext,
             squad_stats["squad_multi"] = int(squad_stats.get("squad_multi", 0)) + 1
         kept.append(intent)
     if blocked or queries:
-        _decide(state, "movement_gate", tick=tick, planned=queries,
-                kept=len(kept), blocked=blocked[:6],
-                stats=movement_mod.movement_stats(state))
+        snapshot = _route_ok_snapshot(
+            state,
+            focus=([str(item) for intent in candidates
+                    for item in (intent.get("unit_ids") or [])]
+                   # 【补上"卡住的单位"】只收候选单位会漏掉**最该看的那些**：
+                   # 被 `_en_route` 跳过的单位根本不进候选 → 恰恰在卡住的轮次里没有快照
+                   # （2026-10-09 实测：想查的单位在整个 52 秒空档里只出现过 1 次）。
+                   # 监督台账（阶段 C）本来就是"停了多久"的账，用它把焦点补齐。
+                   + _stopped_units(state)))
+        # 【触发条件也要放宽】原来只有 `blocked or queries` 才写账；而"被跳过的单位"
+        # 那一轮可能既没拦下也没查询 → 恰好是盲区。只要**还有单位在路上**就写一笔。
+        if blocked or queries or snapshot.get("en_route_units"):
+            _decide(state, "movement_gate", tick=tick, planned=queries,
+                    kept=len(kept), blocked=blocked[:6], routes=snapshot,
+                    stats=movement_mod.movement_stats(state))
     return kept, blocked
+
+
+#: 决策账里最多列几个单位的路线状态（有界；复盘只需要看被跳过的那些）。
+ROUTE_SNAPSHOT_LIMIT = 8
+#: 路线快照要额外收进来的"卡住单位"的最长停止时长下限（秒）。
+#: 与 `progress.CONTINUITY_DIAGNOSE_SECONDS` 同量级：到了"该有诊断记录"的程度，
+#: 就该出现在路线快照里 —— 否则观测器只在被观测对象正常工作时才工作。
+ROUTE_SNAPSHOT_STOPPED_SECONDS = 2.0
+
+
+def _stopped_units(state: Dict[str, Any]) -> List[str]:
+    """从连续行动监督台账里取"停住超过阈值"的单位（有界，按停止时长降序）。
+
+    只读 `state["continuity_units"]`（阶段 C 的台账），不重算任何东西。
+    """
+    ledger = state.get("continuity_units") or {}
+    if not isinstance(ledger, dict):
+        return []
+    rows = []
+    for name, record in ledger.items():
+        if not isinstance(record, dict):
+            continue
+        seconds = float(record.get("stop_seconds", 0.0) or 0.0)
+        if seconds >= ROUTE_SNAPSHOT_STOPPED_SECONDS:
+            rows.append((seconds, str(name)))
+    rows.sort(reverse=True)
+    return [name for _seconds, name in rows[:ROUTE_SNAPSHOT_LIMIT]]
+
+
+def _route_ok_snapshot(state: Dict[str, Any],
+                       focus: Optional[List[str]] = None) -> Dict[str, Any]:
+    """**只读**：`routes[unit].ok` 的分布 + **本轮相关单位**的样本 + "仍在路上"的数量。
+
+    回答的问题只有一个：**到达事实发生之后，那个单位的 `ok` 有没有变成 false？**
+    如果它一直是 true，那么 `unit_en_route` 就恒真，规则地板会每轮跳过它 ——
+    这正是 C2 门禁 32 秒尾巴的机制假设，这一笔用来证实/证伪它。
+
+    `focus` 是**本轮候选里出现的单位**：必须先收它们。第一版只取 routes 字典的前 8 个键，
+    而那本字典装着几十个历史单位（含早已失效的）→ 真正卡住的那个单位**根本没被采样到**
+    （2026-10-09 实测：想查的那个单位不在前 8 个里，等于没埋点）。
+    """
+    routes = state.get("routes") or {}
+    ok_units: List[str] = []
+    not_ok: List[str] = []
+    if isinstance(routes, dict):
+        for name, entry in routes.items():
+            key = str(name)
+            if key.startswith("squad|") or key.startswith("survival|"):
+                continue
+            if not isinstance(entry, dict):
+                continue
+            (ok_units if bool(entry.get("ok")) else not_ok).append(key)
+
+    def _entry_of(unit: str) -> Dict[str, Any]:
+        entry = routes.get(unit) if isinstance(routes, dict) else None
+        if not isinstance(entry, dict):
+            return {}
+        return {
+            "ok": bool(entry.get("ok")),
+            "last_replan_tick": int(entry.get("last_replan_tick", 0) or 0),
+            "arrived_tick": int(entry.get("arrived_tick", 0) or 0),
+            "invalidated_reason": str(entry.get("invalidated_reason", "")),
+            "invalidated_tick": int(entry.get("invalidated_tick", 0) or 0),
+        }
+
+    # 先收 focus（本轮真正在决策的单位），再补其它，整体有界。
+    ordered: List[str] = []
+    for unit in (focus or []):
+        key = str(unit)
+        if key and key not in ordered and key in routes:
+            ordered.append(key)
+    for key in sorted(ok_units) + sorted(not_ok):
+        if len(ordered) >= ROUTE_SNAPSHOT_LIMIT:
+            break
+        if key not in ordered and key in routes:
+            ordered.append(key)
+    sample = {unit: _entry_of(unit) for unit in ordered[:ROUTE_SNAPSHOT_LIMIT]}
+
+    tick = int(state.get("server_tick", 0) or 0)
+    en_route = 0
+    for name in (state.get("ai_controlled_units") or []):
+        unit = str(name)
+        entry = routes.get(unit) if isinstance(routes, dict) else None
+        if not isinstance(entry, dict) or not bool(entry.get("ok")):
+            continue
+        last = int(entry.get("last_replan_tick", 0) or 0)
+        if 0 <= tick - last < int(movement_mod.HOP_HOLD_MAX_TICKS):
+            en_route += 1
+    return {
+        "ok_count": len(ok_units),
+        "not_ok_count": len(not_ok),
+        "en_route_units": en_route,
+        "ok_sample": sorted(ok_units)[:ROUTE_SNAPSHOT_LIMIT],
+        "focus": sorted({str(item) for item in (focus or [])})[:ROUTE_SNAPSHOT_LIMIT],
+        "routes": sample,
+    }
 
 
 #: 敌人类型表容量（有界；键是实体 id，值是**上次看到时的类型**）。
@@ -2421,6 +3456,43 @@ def node_arbitrate_intent(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, 
     candidates, _gated = _gate_movement(state, ctx, candidates)
     if not candidates:
         return state
+    # 【任务闭环执行门禁 · R1 返修】受阻任务的**失败方案**在此抑制重发。
+    # 台账判 blocked（预算耗尽/前置丢失）后，同 task+action+目标 的意图每轮都会被
+    # 规则层重新生成；不拦的话它会继续走"下发→被拒"循环（独立复核：600s 局预算
+    # 耗尽后仍有 19 处同任务回执）。拦的是**这一个方案键**，不是整个任务——
+    # 换目标/换动作的新意图不受影响（避免冻结正常动作）。任务因条件变化重新
+    # 进入诊断时键自动失效（blocked_order_keys 只收 BLOCKED 记录）。
+    blocked_keys = task_loop_mod.blocked_order_keys(state, tick)
+    if blocked_keys:
+        kept: List[Dict[str, Any]] = []
+        blocked_drops: List[Dict[str, Any]] = []
+        for candidate in candidates:
+            key = task_loop_mod.order_key_of_intent(candidate)
+            reason = blocked_keys.get(key)
+            if reason is None:
+                kept.append(candidate)
+                continue
+            _decide(state, "intent_dropped",
+                    intent_id=str(candidate.get("intent_id", "")),
+                    reason="task_loop_blocked_plan",
+                    errors=[reason])
+            _trace_safe(ctx, "command", str(candidate.get("intent_id", "")), "dropped",
+                        action=str(candidate.get("action", "")),
+                        unit_ids=[str(u) for u in (candidate.get("unit_ids") or [])],
+                        task_id=str(candidate.get("task_id", "")),
+                        status="dropped",
+                        reason="task_loop_blocked_plan: %s" % reason,
+                        server_tick=tick)
+            blocked_drops.append({"intent_id": str(candidate.get("intent_id", "")),
+                                  "reason": "task_loop_blocked_plan: %s" % reason})
+        candidates = kept
+        if not candidates:
+            # 全被拦也要留仲裁摘要：runner 的 dropped_intents/HUD 要能看到
+            # "这轮为什么一条都没下发"（不能只写在决策日志里）。
+            state["intent_arbitration"] = {"accepted": [], "dropped": blocked_drops,
+                                           "clamped": []}
+            state["dispatch_pending"] = []
+            return state
     tactical = ctx.observation.get("tactical")
     rules = ctx.observation.get("rules")
     entities = known_entity_ids(tactical)
@@ -2479,8 +3551,20 @@ def node_arbitrate_intent(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, 
     for intent in result.accepted:
         intent["state"] = "active"
         intent["drop_reason"] = ""
-        intent["attempts"] = 0
+        # 同编号终态可重新授权，但权威命令身份不能回到第一次提交。
+        intent["attempts"] = max((int(old.get("attempts", 0) or 0)
+                                  for old in state.get("active_intents", [])
+                                  if str(old.get("intent_id", "")) == str(intent["intent_id"])),
+                                 default=0)
         intent["command_id"] = ""
+        # 闭环任务的恢复身份由本地任务账本绑定，不信任候选模型携带的标签。
+        task_record = (state.get("task_ledger") or {}).get(str(intent.get("task_id", "")))
+        if isinstance(task_record, dict) and \
+                str(task_record.get("state", "")) in (
+                    task_loop_mod.TASK_DIAGNOSING, task_loop_mod.TASK_RECOVERING):
+            intent["task_attempt_id"] = str(task_record.get("attempt_id", "") or "")
+        else:
+            intent.pop("task_attempt_id", None)
         state.setdefault("active_intents", []).append(intent)
         _ensure_units(state, [str(u) for u in intent.get("unit_ids", [])])
         if intent.get("reacquire"):
@@ -2490,10 +3574,24 @@ def node_arbitrate_intent(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, 
                 if key in state.get("released_units", []):
                     state["released_units"].remove(key)
     dispatched: List[Dict[str, Any]] = []
+    # 【P2-2 返修】丢弃结果常常只带 intent_id/reason（没有 task_id/unit_ids）——
+    # 直接从候选表补关联，保证"未下发的任务也有明确终态"可回溯到任务。
+    candidate_index = {str(c.get("intent_id", "")): c for c in candidates
+                       if isinstance(c, dict)}
     for item in result.dropped:
+        origin = candidate_index.get(str(item.get("intent_id", ""))) or {}
+        task_id = str(item.get("task_id", "") or origin.get("task_id", "") or "")
+        unit_ids = [str(u) for u in (item.get("unit_ids") or origin.get("unit_ids") or [])]
+        action = str(item.get("action", "") or origin.get("action", "") or "")
         _decide(state, "intent_dropped", intent_id=item.get("intent_id"),
                 reason=item.get("reason"), errors=item.get("errors"))
         dispatched.append({"intent_id": item.get("intent_id"), "reason": item.get("reason")})
+        # 【决策追踪 · 修改 1】仲裁丢弃也是命令链的终态之一（未下发 ≠ 无痕迹）。
+        _trace_safe(ctx, "command", str(item.get("intent_id", "")), "dropped",
+                    action=action, unit_ids=unit_ids, task_id=task_id,
+                    status="dropped", reason=str(item.get("reason", "")),
+                    errors=[str(e) for e in (item.get("errors") or [])][:6],
+                    server_tick=tick)
     # 来源可区分（纠偏 §二）：被采纳的命令要能追到"规则跑的 / 行为树跑的 / 模型改的"，
     # 否则"模型增量"与"地板保底"在指标里分不开。
     origin_table = state.get(ORIGIN_KEY) or {}
@@ -2509,7 +3607,36 @@ def node_arbitrate_intent(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, 
     }
     state["dispatch_pending"] = [intent["intent_id"] for intent in result.accepted]
     _log(ctx, state, "intent_arbitration", **state["intent_arbitration"])
+    # 【每轮增量账 · 2026-10-09】在这里记"上一轮 → 这一轮"安全移动计数的增量。
+    # 放在仲裁之后：本轮的生成/规划都已经发生，增量才完整。
+    # 快照随检查点持久化（见 `movement.note_round_delta` 的说明 ——
+    # 第一版放在 runner 的进程内字典里，结果一条都没落盘）。
+    movement_mod.note_round_delta(state)
     return state
+
+
+def _dispatch_target_pos(record: Any) -> Any:
+    """从图内意图记录里取出**下发时的目标位置**（只取前两个分量，取整到 0.1m）。
+
+    为什么单独成一个函数：`dispatch_done` 的列表推导里要**逐条**取，
+    写成内联表达式会让那段已经够长的推导更难读；而且这里要处理
+    "没有记录 / 形状不对"两种情形（**返回 None，不编造 0**）。
+
+    只取 `pos`：`target` 里还可能有 `scene` / `entity_id`，
+    而这一路观测的目的只是回答"**这条命令要去哪**"，位置足够。
+    """
+    if not isinstance(record, dict):
+        return None
+    target = record.get("target")
+    if not isinstance(target, dict):
+        return None
+    pos = target.get("pos")
+    if not isinstance(pos, (list, tuple)) or len(pos) < 2:
+        return None
+    try:
+        return [round(float(pos[0]), 1), round(float(pos[1]), 1)]
+    except (TypeError, ValueError):
+        return None
 
 
 def node_dispatch_to_godot(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, Any]:
@@ -2522,7 +3649,7 @@ def node_dispatch_to_godot(state: Dict[str, Any], ctx: NodeContext) -> Dict[str,
     state["dispatch_pending"] = []
     if not pending_ids:
         return state
-    if state.get("degraded_reason") == "identity_drift":
+    if state.get("identity_drift") or state.get("degraded_reason") == "identity_drift":
         _decide(state, "dispatch_skipped", reason="identity_drift", intent_ids=pending_ids)
         return state
     if ctx.services.dispatch is None:
@@ -2541,12 +3668,14 @@ def node_dispatch_to_godot(state: Dict[str, Any], ctx: NodeContext) -> Dict[str,
 
     envelopes: List[Dict[str, Any]] = []
     intents_by_id: Dict[str, Dict[str, Any]] = {}
+    submitted_attempts: Dict[str, str] = {}
     for intent_id in pending_ids:
         record = _find_intent(state, intent_id)
         if record is None:
             continue
         attempt = int(record.get("attempts", 0)) + 1
         intents_by_id[intent_id] = record
+        submitted_attempts[intent_id] = str(record.get("task_attempt_id", "") or "")
         envelopes.append(intent_to_command_envelope(
             _IntentProxy(record), match_id=str(state.get("match_id", "")),
             player_id=str(state.get("player_id", "")),
@@ -2557,26 +3686,92 @@ def node_dispatch_to_godot(state: Dict[str, Any], ctx: NodeContext) -> Dict[str,
         ))
     if not envelopes:
         return state
+    # 提交前登记：传输超时不能被误认成从未下发，下一轮只按原 command_id 对账。
+    for envelope in envelopes:
+        intent_id = str(envelope["intent_id"])
+        record = intents_by_id[intent_id]
+        record["attempts"] = int(record.get("attempts", 0)) + 1
+        record["command_id"] = str(envelope["command_id"])
+        record["receipt_status"] = ""
+        task_record = (state.get("task_ledger") or {}).get(str(record.get("task_id", "")))
+        if isinstance(task_record, dict) and submitted_attempts[intent_id] and \
+                str(task_record.get("attempt_id", "")) == submitted_attempts[intent_id]:
+            for key, value in (("attempt_intents", intent_id),
+                               ("attempt_commands", str(envelope["command_id"]))):
+                items = list(task_record.get(key) or [])
+                if value not in items:
+                    items.append(value)
+                task_record[key] = items[-16:]
     try:
-        receipts = ctx.services.dispatch(envelopes)
+        receipts = list(ctx.services.dispatch(envelopes) or [])
     except Exception as exc:  # noqa: BLE001 —— 通道异常：写降级，不阻塞图。
         state["degraded_reason"] = "transport_error:%s" % exc
         _decide(state, "dispatch_failed", reason=str(exc), intent_ids=pending_ids)
         _log(ctx, state, "dispatch_failed", reason=str(exc))
-        return state
+        receipts = []
+    receipts = [dict(receipts[index]) if index < len(receipts) and
+                isinstance(receipts[index], dict) else
+                {"status": "Unknown", "accepted": False, "reason": "transport_result_missing"}
+                for index in range(len(envelopes))]
     for envelope, receipt in zip(envelopes, receipts):
         intent_id = str(envelope["intent_id"])
         record = intents_by_id.get(intent_id)
-        if record is not None:
-            record["attempts"] = int(record.get("attempts", 0)) + 1
-            record["command_id"] = str(receipt.get("command_id", envelope["command_id"]))
-        state.setdefault("command_receipts", []).append(dict(receipt))
+        receipt = dict(receipt)
+        receipt.setdefault("intent_id", intent_id)
+        receipt.setdefault("command_id", str(envelope.get("command_id", "")))
+        # 本地追踪字段随回执保留，但不改变发往权威端的命令合同。
+        if record is not None and submitted_attempts.get(intent_id):
+            receipt["task_attempt_id"] = submitted_attempts[intent_id]
+            task_record = (state.get("task_ledger") or {}).get(
+                str(record.get("task_id", "")))
+            if isinstance(task_record, dict) and \
+                    str(task_record.get("attempt_id", "")) == receipt["task_attempt_id"]:
+                attempts = list(task_record.get("attempt_intents") or [])
+                if intent_id not in attempts:
+                    attempts.append(intent_id)
+                task_record["attempt_intents"] = attempts[-16:]
+                commands = list(task_record.get("attempt_commands") or [])
+                command_id = str(receipt.get("command_id", "") or "")
+                if command_id and command_id not in commands:
+                    commands.append(command_id)
+                task_record["attempt_commands"] = commands[-16:]
+        state.setdefault("command_receipts", []).append(receipt)
         if record is not None:
             # 记下"已下发指纹"：微操层下一轮再想发同一条会被窗口挡住（治重复命令）。
             _remember_order(state, record, int(state.get("server_tick", 0)))
         _apply_receipt_to_state(state, intent_id, receipt, ctx)
+        # 【决策追踪 · 修改 1】命令事件：提交 + 首份回执（attempt 递增保留原关联）。
+        _trace_safe(ctx, "command", intent_id, "receipt",
+                    command_id=str(receipt.get("command_id", envelope.get("command_id", ""))),
+                    attempt=int(record.get("attempts", 0)) if record else 0,
+                    action=str(record.get("action", "")) if record else "",
+                    unit_ids=[str(u) for u in (record.get("unit_ids") or [])] if record else [],
+                    task_id=str(record.get("task_id", "")) if record else "",
+                    status=str(receipt.get("status", "")),
+                    accepted=bool(receipt.get("accepted", False)),
+                    reason=str(receipt.get("reason", "")),
+                    plan_version=str(state.get("plan_version", "")),
+                    server_tick=int(state.get("server_tick", 0)))
+    # 【把目标点写进命令账 · 2026-10-09（round-52）】
+    #
+    # 为什么必须在这里补（round-50/51 追出的两处缺口）：
+    #   ① **游戏回执本来就不带目标** —— 读 `DebugControlServer.gd` 里 `receipt[...] =`
+    #      的全部赋值，只有 `intent_id`/`intent_action`/`generation`/`command_id`/
+    #      `item_id`/`producer`/`scene`/`queue_size`/`ok`/`accepted`/`reason`/`source`；
+    #   ② **每轮归档时活跃意图已清空** ⇒ `rounds.jsonl` 的 `intents` 条数为 0。
+    # 结果：档案里**从头到尾没有"这条命令要去哪"**，挡住一整类分析
+    # （改写令是否换了目的地 / 同一目标被反复下令几次 = 幂等回放是否发生 /
+    #  到位点与命令目标点的偏差 / round-49 那个"目标是否每轮都变"的推断）。
+    #
+    # 为什么**选在这个时机**：`node_dispatch_to_godot` 是"意图仍在手上、且命令刚下发"
+    # 的唯一时刻 —— `envelopes` 与图内意图表都还在。这比"归档时反查"（那时意图已清、
+    # 不可靠）和"改游戏侧回执"（动协议）都更小、更准。
+    #
+    # 纯观测：只往决策流里多写一个字段，**不改任何调度判断**。
+    # 用 `pos` 这个名字与 `_compact_intents` 保持一致（round-51 我在这里查错过键名）。
     _decide(state, "dispatch_done", receipts=[
-        {"intent_id": str(e["intent_id"]), "status": str(r.get("status", ""))}
+        {"intent_id": str(e["intent_id"]), "status": str(r.get("status", "")),
+         "pos": _dispatch_target_pos(intents_by_id.get(str(e["intent_id"])))}
         for e, r in zip(envelopes, receipts)])
     return state
 
@@ -2602,7 +3797,7 @@ class _IntentProxy:
 
 
 def _find_intent(state: Dict[str, Any], intent_id: str) -> Optional[Dict[str, Any]]:
-    for intent in state.get("active_intents", []):
+    for intent in reversed(state.get("active_intents", [])):
         if str(intent.get("intent_id", "")) == str(intent_id):
             return intent
     return None
@@ -2669,17 +3864,34 @@ def _apply_receipt_to_state(state: Dict[str, Any], intent_id: str,
         _decide(state, "receipt_ignored_stale_match", intent_id=intent_id,
                 bound=bound_match, observed=receipt_match)
         return
-    status = str(receipt.get("status", ""))
+    receipt_attempt = str(receipt.get("task_attempt_id", "") or "")
+    receipt_command = str(receipt.get("command_id", "") or "")
+    if (receipt_attempt and receipt_attempt != str(record.get("task_attempt_id", "") or "")) or (
+            receipt_command and record.get("command_id") and
+            receipt_command != str(record["command_id"])):
+        _decide(state, "receipt_ignored_stale_submission", intent_id=intent_id,
+                command_id=receipt_command, task_attempt_id=receipt_attempt)
+        return
+    status = str(receipt.get("status", "") or "")
     accepted = bool(receipt.get("accepted", False))
+    previous_status = str(record.get("receipt_status", "") or "")
+    if previous_status and previous_status not in ("PendingAuthority", "Unknown"):
+        # 已确认结果不可被乱序的未知/拒绝覆盖；Accepted 可以进一步确认 Completed。
+        if not (previous_status == "Accepted" and status == "Completed" and accepted):
+            return
+    record["receipt_status"] = status
     state.setdefault("command_receipts", [])
-    if status == "PendingAuthority":
+    if status in ("PendingAuthority", "Unknown", ""):
         record["state"] = "pending_authority"
         record["drop_reason"] = ""
+        previous_pending = (state.get("pending_requests") or {}).get(intent_id) or {}
         state.setdefault("pending_requests", {})[intent_id] = {
             "intent_id": intent_id,
             "command_id": str(receipt.get("command_id", "")),
+            "task_attempt_id": str(receipt.get("task_attempt_id", "") or
+                                    record.get("task_attempt_id", "") or ""),
             "state": "pending_authority",
-            "since_tick": int(state.get("server_tick", 0)),
+            "since_tick": int(previous_pending.get("since_tick", state.get("server_tick", 0))),
             "task_id": str(record.get("task_id", "")),
             "action": str(record.get("action", "")),
             "unit_ids": [str(u) for u in record.get("unit_ids", [])],
@@ -2795,6 +4007,25 @@ def _apply_receipt_to_state(state: Dict[str, Any], intent_id: str,
             _decide(state, "spot_rejected", pos=point, kind=reject_kind,
                     status=str(status), count=count,
                     reason=str(receipt.get("reason", ""))[:40])
+    elif reject_kind in placement.RESOURCE_KINDS:
+        # 【资源点采不了 → 换矿】（见 `placement.REJECT_RESOURCE`）：按 **单位 × 矿点**
+        # 记一笔**限时**账，规则地板的采集轨下一轮就不再挑这个矿（`resource_usable_by`）。
+        # 为什么必须限时而不是像工地那样"几乎永久"：矿点是**会再生**的
+        # （`ResourceUnit` ready→depleted→ready），永久拉黑会把一个本会恢复的矿废掉。
+        # 依据：gather 154 条只接受 14 条，修掉字段名后仍 105 条被拒且接受/拒绝交错
+        # ⇒ 剩下的成因是"发出去之后矿被采空了"，只能靠**换矿**解决。
+        target = record.get("target") if isinstance(record.get("target"), dict) else {}
+        entity = str(target.get("entity_id", ""))
+        rules_fallback.ban_depleted_resource(
+            state, [str(u) for u in record.get("unit_ids", [])], entity, tick_now)
+        ledger.add(reject_kind, entity or "unknown", tick_now, ban_now=True,
+                   ban_ticks=placement.RESOURCE_BAN_TICKS)
+        _decide(state, "resource_depleted", resource=entity,
+                units=[str(u) for u in record.get("unit_ids", [])][:4],
+                status=str(status), count=int(state.get("depleted_resources")
+                                              and len(state["depleted_resources"]) or 0),
+                note="该矿对这个单位在 %d tick 内不再作候选（矿点再生后自动恢复）"
+                     % placement.RESOURCE_BAN_TICKS)
     elif reject_kind in placement.SITE_KINDS:
         # 【工地不存在 → 清账】（见 `placement.REJECT_SITE`）：**一次被拒就立刻拉黑**这个工地的
         # 续建前缀（`rule-finish-site-<工地>`），阶梯侧据此把它移出 `unfinished_buildings`。
@@ -2879,17 +4110,42 @@ def node_observe_receipt(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, A
                 _decide(state, "receipt_recheck_failed", intent_id=intent_id, reason=str(exc))
                 receipt = None
             if receipt:
-                state.setdefault("command_receipts", []).append(dict(receipt))
+                receipt = dict(receipt)
+                receipt.setdefault("intent_id", str(item.get("intent_id", intent_id)))
+                receipt.setdefault("command_id", str(item.get("command_id", "")))
+                if item.get("task_attempt_id"):
+                    # 权威复核按原 command_id 查询；关联使用提交时捕获的 identity。
+                    receipt["task_attempt_id"] = str(item["task_attempt_id"])
+                state.setdefault("command_receipts", []).append(receipt)
                 _apply_receipt_to_state(state, intent_id, receipt, ctx)
-                _decide(state, "pending_resolved", intent_id=intent_id,
+                unresolved = str(receipt.get("status", "") or "") in ("PendingAuthority", "Unknown", "")
+                # 旧提交的终态也须结束它自己的查询；不可误删同编号的新提交。
+                current_pending = (state.get("pending_requests") or {}).get(intent_id) or {}
+                if not unresolved and str(current_pending.get("command_id", "")) == str(item.get("command_id", "")):
+                    state.get("pending_requests", {}).pop(intent_id, None)
+                _decide(state, "pending_unresolved" if unresolved else "pending_resolved", intent_id=intent_id,
                         status=str(receipt.get("status", "")))
+                # 【决策追踪 · 修改 1】跨轮异步回执：按 command_id 关联到原提交
+                # （不按"最近一次提交"猜因果；request→receipt 的原关联在这里闭合）。
+                record = _find_intent(state, intent_id) or {}
+                _trace_safe(ctx, "command", intent_id, "recheck",
+                            command_id=str(item.get("command_id", "")),
+                            attempt=int(record.get("attempts", 0) or 0),
+                            action=str(record.get("action", "")),
+                            task_id=str(record.get("task_id", "")),
+                            unit_ids=[str(u) for u in (record.get("unit_ids") or [])],
+                            status=str(receipt.get("status", "")),
+                            accepted=bool(receipt.get("accepted", False)),
+                            reason=str(receipt.get("reason", "")),
+                            since_tick=int(item.get("since_tick", 0) or 0),
+                            waited_ticks=int(tick) - int(item.get("since_tick", tick) or tick),
+                            server_tick=tick)
                 continue
         if tick - int(item.get("since_tick", tick)) > ctx.config.pending_timeout_ticks:
             # 超时不重下单，**也不当作失败**：保留占用（`active_unknown`），等复核/对账。
             # 【2026-09-12 实测】旧写法把超时标成 dropped → 单位"变空闲" → 微操层下一轮
             # 重发同一条命令（`pending_timeout` 33 次、`Unit_2|gather` 下发 76 次），
             # 而计划明确禁止"用推理/等待超时推断单位或任务状态"。
-            state["pending_requests"].pop(intent_id, None)
             record = _find_intent(state, intent_id)
             if record is not None and record.get("state") == "pending_authority":
                 record["state"] = "active_unknown"
@@ -2897,6 +4153,17 @@ def node_observe_receipt(state: Dict[str, Any], ctx: NodeContext) -> Dict[str, A
                 record["unknown_since_tick"] = tick
             _decide(state, "pending_timeout", intent_id=intent_id,
                     command_id=item.get("command_id"), action="keep_occupied_no_resubmit")
+            # 【决策追踪 · 修改 1】超时是"未知"不是"失败"：事件里写明等待时长与
+            # 后续去向（保持占用、不重下单），回放不得把它渲染成失败边。
+            _trace_safe(ctx, "command", intent_id, "timeout",
+                        command_id=str(item.get("command_id", "")),
+                        action=str(item.get("action", "")),
+                        task_id=str(item.get("task_id", "")),
+                        status="PendingAuthority",
+                        reason="pending_timeout_keep_occupied",
+                        since_tick=int(item.get("since_tick", 0) or 0),
+                        waited_ticks=int(tick) - int(item.get("since_tick", tick) or tick),
+                        server_tick=tick)
     return state
 
 

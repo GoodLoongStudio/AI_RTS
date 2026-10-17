@@ -1,0 +1,646 @@
+Godot Engine v4.7.1.stable.mono.official.a13da4feb - https://godotengine.org
+
+[DBGCTL] 调试控制端点已启动 127.0.0.1:24579
+[godot_ai game_helper] registered mcp capture (debugger active=false, logger=true)
+G4PERF fog_resize 416x416 px_per_m=2
+G4PERF fog_resize 416x416 px_per_m=2
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=2 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=1 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=3 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=4 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=4 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=8 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=11 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+[G4PERF] minimap viewport=416x416 scale=2.000
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:196)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:179)
+       [2] _ready (res://source/match/hud/Minimap.gd:105)
+       [3] _run (res://tools/capture_ore_scatter.gd:44)
+       [4] _ready (res://tools/capture_ore_scatter.gd:36)
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:196)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:179)
+       [2] _follow_minimap_fog_mask (res://source/match/hud/Minimap.gd:116)
+       [3] _ready (res://source/match/hud/Minimap.gd:109)
+       [4] _run (res://tools/capture_ore_scatter.gd:44)
+       [5] _ready (res://tools/capture_ore_scatter.gd:36)
+G4PERF command_runtime_us=5304 frames=1
+G4PERF production_runtime_us=1799 frames=1
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:196)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:179)
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:196)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:179)
+[INPUT] UnitActionsController waiting for local player player=Human
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:196)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:179)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+G4PERF command_runtime_us=465 frames=2
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+G4PERF production_runtime_us=79 frames=2
+NAVDBG air polygons=2 vertices=4 rid_valid=true region_on_our_map=true map_active=true
+NAVDBG bake map=/root/CaptureOreScatter/Match/Map StaticBody3D in subtree=0
+WARNING: Property agent_height is ceiled to cell_height voxel units and loses precision.
+ERROR: Parameter "t" is null.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:367)
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:196)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:179)
+       [2] _follow_minimap_fog_mask (res://source/match/hud/Minimap.gd:116)
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+NAVDBG polygons=83 vertices=83
+[ECO] PublishSnapshot player=b472222e a=0
+WARNING: [MatchHistoryHook] 未找到对局根节点，本局不写入历史。
+   at: push_warning (core/variant/variant_utility.cpp:1033)
+   GDScript backtrace (most recent call first):
+       [0] _begin_recording (res://source/history/MatchHistoryHook.gd:113)
+[INPUT] UnitActionsController enabled player=Human
+G4PERF command_runtime_us=120 frames=40
+G4PERF production_runtime_us=7 frames=40
+G4PERF movement_us=74 unit=Drone
+G4PERF movement_us=37 unit=Helicopter
+G4PERF movement_us=65 unit=Tank
+G4PERF movement_us=50 unit=Worker
+G4PERF command_runtime_us=26 frames=80
+G4PERF production_runtime_us=9 frames=80
+G4PERF movement_us=64 unit=Drone
+G4PERF movement_us=34 unit=Helicopter
+G4PERF movement_us=72 unit=Tank
+G4PERF movement_us=42 unit=Worker
+G4PERF command_runtime_us=143 frames=120
+G4PERF production_runtime_us=9 frames=120
+G4PERF movement_us=112 unit=Drone
+G4PERF movement_us=79 unit=Helicopter
+G4PERF movement_us=80 unit=Tank
+G4PERF movement_us=75 unit=Worker
+G4PERF command_runtime_us=51 frames=160
+G4PERF production_runtime_us=13 frames=160
+G4PERF movement_us=70 unit=Drone
+G4PERF movement_us=31 unit=Helicopter
+G4PERF movement_us=63 unit=Tank
+G4PERF movement_us=38 unit=Worker
+[CAPTURE] 手摆图矿群焦点 (28.0034, 0.0, 28.2876)
+G4PERF command_runtime_us=36 frames=200
+G4PERF production_runtime_us=8 frames=200
+G4PERF movement_us=49 unit=Drone
+G4PERF movement_us=39 unit=Helicopter
+G4PERF movement_us=58 unit=Tank
+G4PERF movement_us=44 unit=Worker
+G4PERF command_runtime_us=43 frames=240
+G4PERF production_runtime_us=4 frames=240
+G4PERF movement_us=33 unit=Drone
+G4PERF movement_us=32 unit=Helicopter
+G4PERF movement_us=63 unit=Tank
+G4PERF movement_us=69 unit=Worker
+G4PERF command_runtime_us=72 frames=280
+G4PERF production_runtime_us=8 frames=280
+G4PERF movement_us=66 unit=Drone
+G4PERF movement_us=84 unit=Helicopter
+G4PERF movement_us=98 unit=Tank
+G4PERF movement_us=53 unit=Worker
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _save_with (res://tools/capture_ore_scatter.gd:246)
+       [1] _settle (res://tools/capture_ore_scatter.gd:260)
+FAIL: 拿不到视口纹理（窗口未就绪？）：handmap_ore_abundant.png
+G4PERF command_runtime_us=49 frames=320
+G4PERF production_runtime_us=7 frames=320
+G4PERF movement_us=47 unit=Drone
+G4PERF movement_us=36 unit=Helicopter
+G4PERF movement_us=66 unit=Tank
+G4PERF movement_us=58 unit=Worker
+G4PERF command_runtime_us=152 frames=360
+G4PERF production_runtime_us=5 frames=360
+G4PERF movement_us=112 unit=Drone
+G4PERF movement_us=41 unit=Helicopter
+G4PERF movement_us=107 unit=Tank
+G4PERF movement_us=150 unit=Worker
+G4PERF command_runtime_us=20 frames=400
+G4PERF production_runtime_us=9 frames=400
+G4PERF movement_us=58 unit=Drone
+G4PERF movement_us=88 unit=Helicopter
+G4PERF movement_us=127 unit=Tank
+G4PERF movement_us=223 unit=Worker
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _save_with (res://tools/capture_ore_scatter.gd:246)
+       [1] _settle (res://tools/capture_ore_scatter.gd:260)
+FAIL: 拿不到视口纹理（窗口未就绪？）：handmap_ore_sparse.png
+G4PERF command_runtime_us=153 frames=440
+G4PERF production_runtime_us=5 frames=440
+G4PERF movement_us=169 unit=Drone
+G4PERF movement_us=64 unit=Helicopter
+G4PERF movement_us=76 unit=Tank
+G4PERF movement_us=44 unit=Worker
+WARNING: Property agent_height is ceiled to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:367)
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+NAVDBG polygons=83 vertices=83
+G4PERF command_runtime_us=41 frames=480
+G4PERF production_runtime_us=6 frames=480
+G4PERF movement_us=88 unit=Drone
+G4PERF movement_us=85 unit=Helicopter
+G4PERF movement_us=79 unit=Tank
+G4PERF movement_us=44 unit=Worker
+G4PERF command_runtime_us=15 frames=520
+G4PERF production_runtime_us=5 frames=520
+G4PERF movement_us=82 unit=Drone
+G4PERF movement_us=78 unit=Helicopter
+G4PERF movement_us=137 unit=Tank
+G4PERF movement_us=195 unit=Worker
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _save_with (res://tools/capture_ore_scatter.gd:246)
+       [1] _settle (res://tools/capture_ore_scatter.gd:260)
+FAIL: 拿不到视口纹理（窗口未就绪？）：handmap_ore_depleted.png
+G4PERF command_runtime_us=144 frames=560
+G4PERF production_runtime_us=4 frames=560
+G4PERF movement_us=71 unit=Drone
+G4PERF movement_us=30 unit=Helicopter
+G4PERF movement_us=77 unit=Tank
+G4PERF movement_us=110 unit=Worker
+G4PERF command_runtime_us=25 frames=600
+G4PERF production_runtime_us=4 frames=600
+G4PERF movement_us=39 unit=Drone
+G4PERF movement_us=102 unit=Helicopter
+G4PERF movement_us=55 unit=Tank
+G4PERF movement_us=49 unit=Worker
+G4PERF command_runtime_us=37 frames=640
+G4PERF production_runtime_us=6 frames=640
+G4PERF movement_us=38 unit=Drone
+G4PERF movement_us=26 unit=Helicopter
+G4PERF movement_us=106 unit=Tank
+G4PERF movement_us=54 unit=Worker
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _save_with (res://tools/capture_ore_scatter.gd:246)
+       [1] _settle (res://tools/capture_ore_scatter.gd:260)
+FAIL: 拿不到视口纹理（窗口未就绪？）：handmap_ore_regenerated.png
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+G4PERF command_runtime_us=43 frames=680
+G4PERF production_runtime_us=7 frames=680
+G4PERF movement_us=66 unit=Drone
+G4PERF movement_us=56 unit=Helicopter
+G4PERF movement_us=60 unit=Tank
+G4PERF movement_us=81 unit=Worker
+G4PERF movement_us=61 unit=Unit_0
+[GATHER] action _ready unit=Unit_0 resource=true
+[GATHER] 进入 MOVING_TO_RESOURCE, resource=ResourceA:<Area3D#245719108922>
+[GATHER] 到达资源点, 开始采集 unit=Unit_0
+G4PERF command_runtime_us=32 frames=720
+G4PERF production_runtime_us=5 frames=720
+G4PERF movement_us=54 unit=Drone
+G4PERF movement_us=45 unit=Helicopter
+G4PERF movement_us=49 unit=Tank
+G4PERF movement_us=71 unit=Worker
+G4PERF movement_us=44 unit=Unit_0
+G4PERF command_runtime_us=60 frames=760
+G4PERF production_runtime_us=3 frames=760
+G4PERF movement_us=64 unit=Drone
+G4PERF movement_us=75 unit=Helicopter
+G4PERF movement_us=102 unit=Tank
+G4PERF movement_us=66 unit=Worker
+G4PERF movement_us=116 unit=Unit_0
+G4PERF command_runtime_us=36 frames=800
+G4PERF production_runtime_us=7 frames=800
+G4PERF movement_us=60 unit=Drone
+G4PERF movement_us=49 unit=Helicopter
+G4PERF movement_us=75 unit=Tank
+G4PERF movement_us=40 unit=Worker
+G4PERF movement_us=60 unit=Unit_0
+[GATHER] Unit_0 满载回城
+G4PERF command_runtime_us=67 frames=840
+G4PERF production_runtime_us=9 frames=840
+G4PERF movement_us=69 unit=Drone
+G4PERF movement_us=74 unit=Helicopter
+G4PERF movement_us=81 unit=Tank
+G4PERF movement_us=80 unit=Worker
+G4PERF movement_us=39 unit=Unit_0
+G4PERF command_runtime_us=50 frames=880
+G4PERF production_runtime_us=6 frames=880
+G4PERF movement_us=79 unit=Drone
+G4PERF movement_us=73 unit=Helicopter
+G4PERF movement_us=114 unit=Tank
+G4PERF movement_us=74 unit=Worker
+G4PERF movement_us=52 unit=Unit_0
+G4PERF command_runtime_us=63 frames=920
+G4PERF production_runtime_us=5 frames=920
+G4PERF movement_us=61 unit=Drone
+G4PERF movement_us=66 unit=Helicopter
+G4PERF movement_us=135 unit=Tank
+G4PERF movement_us=68 unit=Worker
+G4PERF movement_us=39 unit=Unit_0
+G4PERF command_runtime_us=21 frames=960
+G4PERF production_runtime_us=8 frames=960
+G4PERF movement_us=47 unit=Drone
+G4PERF movement_us=72 unit=Helicopter
+G4PERF movement_us=93 unit=Tank
+G4PERF movement_us=98 unit=Worker
+G4PERF movement_us=67 unit=Unit_0
+G4PERF command_runtime_us=66 frames=1000
+G4PERF production_runtime_us=7 frames=1000
+G4PERF movement_us=118 unit=Drone
+G4PERF movement_us=65 unit=Helicopter
+G4PERF movement_us=131 unit=Tank
+G4PERF movement_us=63 unit=Worker
+G4PERF movement_us=42 unit=Unit_0
+G4PERF command_runtime_us=228 frames=1040
+G4PERF production_runtime_us=12 frames=1040
+G4PERF movement_us=72 unit=Drone
+G4PERF movement_us=36 unit=Helicopter
+G4PERF movement_us=79 unit=Tank
+G4PERF movement_us=82 unit=Worker
+G4PERF movement_us=118 unit=Unit_0
+G4PERF command_runtime_us=32 frames=1080
+G4PERF production_runtime_us=2 frames=1080
+G4PERF movement_us=47 unit=Drone
+G4PERF movement_us=92 unit=Helicopter
+G4PERF movement_us=86 unit=Tank
+G4PERF movement_us=43 unit=Worker
+G4PERF movement_us=37 unit=Unit_0
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _save_with (res://tools/capture_ore_scatter.gd:246)
+       [1] _settle (res://tools/capture_ore_scatter.gd:260)
+FAIL: 拿不到视口纹理（窗口未就绪？）：handmap_worker_gathering.png
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on SyntyParts
+[TINT] override meshes=12 tint=(0.4, 0.6941, 1.0, 1.0)
+G4PERF command_runtime_us=62 frames=1120
+G4PERF production_runtime_us=5 frames=1120
+G4PERF movement_us=72 unit=Drone
+G4PERF movement_us=50 unit=Helicopter
+G4PERF movement_us=97 unit=Tank
+G4PERF movement_us=123 unit=Worker
+G4PERF movement_us=48 unit=Unit_0
+WARNING: Property agent_height is ceiled to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:367)
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+NAVDBG polygons=83 vertices=83
+G4PERF command_runtime_us=41 frames=1160
+G4PERF production_runtime_us=5 frames=1160
+G4PERF movement_us=64 unit=Drone
+G4PERF movement_us=70 unit=Helicopter
+G4PERF movement_us=95 unit=Tank
+G4PERF movement_us=98 unit=Worker
+G4PERF movement_us=66 unit=Unit_0
+G4PERF command_runtime_us=63 frames=1200
+G4PERF production_runtime_us=6 frames=1200
+G4PERF movement_us=105 unit=Drone
+G4PERF movement_us=99 unit=Helicopter
+G4PERF movement_us=292 unit=Tank
+G4PERF movement_us=49 unit=Worker
+G4PERF movement_us=40 unit=Unit_0
+[REFINERY-CLAIM] Unit_1 在册=0/4 候选人=2 但报到点为空：stand=(24.6034, 0.0, 28.2876) 服务半径内矿=true
+[REFINERY] Unit_1 指派工人 Unit_0 到矿场采矿（1/4） ore=(24.6034, 0.0, 28.2876)
+[REFINERY] Unit_1 指派工人 Worker 到矿场采矿（2/4） ore=(24.6034, 0.0, 28.2876)
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _save_with (res://tools/capture_ore_scatter.gd:246)
+       [1] _settle (res://tools/capture_ore_scatter.gd:260)
+FAIL: 拿不到视口纹理（窗口未就绪？）：handmap_refinery_constructed.png
+G4PERF command_runtime_us=36 frames=1240
+G4PERF production_runtime_us=4 frames=1240
+G4PERF movement_us=65 unit=Drone
+G4PERF movement_us=76 unit=Helicopter
+G4PERF movement_us=71 unit=Tank
+G4PERF movement_us=48 unit=Worker
+G4PERF movement_us=36 unit=Unit_0
+G4PERF command_runtime_us=68 frames=1280
+G4PERF production_runtime_us=4 frames=1280
+G4PERF movement_us=66 unit=Drone
+G4PERF movement_us=35 unit=Helicopter
+G4PERF movement_us=84 unit=Tank
+G4PERF movement_us=38 unit=Worker
+G4PERF movement_us=118 unit=Unit_0
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _save_with (res://tools/capture_ore_scatter.gd:246)
+       [1] _settle (res://tools/capture_ore_scatter.gd:260)
+FAIL: 拿不到视口纹理（窗口未就绪？）：handmap_refinery_under_construction.png
+G4PERF terrain_built path=G:/AIRTS/AI_RTS/source/match/maps/generated/16-0-2057e4a0b4/height_data.bin source=513x513 render=513x513 height=[-2.4,52.53]
+G4PERF terrain_block bridges=0 slabs=0 walk_physics=on
+G4PERF authoring_removed water=78 collision=292
+G4PERF terrain_block bridges=0 slabs=0 walk_physics=on
+G4PERF budget water_removed=purged shadows_disabled=0 decor_culled=1 decor_shadow_off=0 collision_left=0 physics_stripped=16
+G4PERF terrain_block bridges=0 slabs=0 walk_physics=on
+G4PERF ground_path grid=129x129 cell=3.97 solid=6894
+G4PERF terrain_block cells=77984/264196 cliffs=7557 submerged=2698 span=256.0 bridges=0
+G4PERF resources_grounded=16
+G4PERF diag map=Map backend= world_scale=1.0 terrain_vertices=263169 terrain_triangles=524288 nodes=590 meshes=130 lights=0 static_bodies=0 collision_shapes=16 nav_regions=0 terrain_collision=false nav_bake_expected=false
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _capture_generated_map (res://tools/capture_ore_scatter.gd:149)
+       [2] _run (res://tools/capture_ore_scatter.gd:109)
+       [3] _save (res://tools/capture_ore_scatter.gd:240)
+       [4] _save_with (res://tools/capture_ore_scatter.gd:249)
+       [5] _settle (res://tools/capture_ore_scatter.gd:260)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _capture_generated_map (res://tools/capture_ore_scatter.gd:149)
+       [2] _run (res://tools/capture_ore_scatter.gd:109)
+       [3] _save (res://tools/capture_ore_scatter.gd:240)
+       [4] _save_with (res://tools/capture_ore_scatter.gd:249)
+       [5] _settle (res://tools/capture_ore_scatter.gd:260)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _capture_generated_map (res://tools/capture_ore_scatter.gd:149)
+       [2] _run (res://tools/capture_ore_scatter.gd:109)
+       [3] _save (res://tools/capture_ore_scatter.gd:240)
+       [4] _save_with (res://tools/capture_ore_scatter.gd:249)
+       [5] _settle (res://tools/capture_ore_scatter.gd:260)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _capture_generated_map (res://tools/capture_ore_scatter.gd:149)
+       [2] _run (res://tools/capture_ore_scatter.gd:109)
+       [3] _save (res://tools/capture_ore_scatter.gd:240)
+       [4] _save_with (res://tools/capture_ore_scatter.gd:249)
+       [5] _settle (res://tools/capture_ore_scatter.gd:260)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _capture_generated_map (res://tools/capture_ore_scatter.gd:149)
+       [2] _run (res://tools/capture_ore_scatter.gd:109)
+       [3] _save (res://tools/capture_ore_scatter.gd:240)
+       [4] _save_with (res://tools/capture_ore_scatter.gd:249)
+       [5] _settle (res://tools/capture_ore_scatter.gd:260)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _capture_generated_map (res://tools/capture_ore_scatter.gd:149)
+       [2] _run (res://tools/capture_ore_scatter.gd:109)
+       [3] _save (res://tools/capture_ore_scatter.gd:240)
+       [4] _save_with (res://tools/capture_ore_scatter.gd:249)
+       [5] _settle (res://tools/capture_ore_scatter.gd:260)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _capture_generated_map (res://tools/capture_ore_scatter.gd:149)
+       [2] _run (res://tools/capture_ore_scatter.gd:109)
+       [3] _save (res://tools/capture_ore_scatter.gd:240)
+       [4] _save_with (res://tools/capture_ore_scatter.gd:249)
+       [5] _settle (res://tools/capture_ore_scatter.gd:260)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _capture_generated_map (res://tools/capture_ore_scatter.gd:149)
+       [2] _run (res://tools/capture_ore_scatter.gd:109)
+       [3] _save (res://tools/capture_ore_scatter.gd:240)
+       [4] _save_with (res://tools/capture_ore_scatter.gd:249)
+       [5] _settle (res://tools/capture_ore_scatter.gd:260)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _capture_generated_map (res://tools/capture_ore_scatter.gd:149)
+       [2] _run (res://tools/capture_ore_scatter.gd:109)
+       [3] _save (res://tools/capture_ore_scatter.gd:240)
+       [4] _save_with (res://tools/capture_ore_scatter.gd:249)
+       [5] _settle (res://tools/capture_ore_scatter.gd:260)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _capture_generated_map (res://tools/capture_ore_scatter.gd:149)
+       [2] _run (res://tools/capture_ore_scatter.gd:109)
+       [3] _save (res://tools/capture_ore_scatter.gd:240)
+       [4] _save_with (res://tools/capture_ore_scatter.gd:249)
+       [5] _settle (res://tools/capture_ore_scatter.gd:260)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _capture_generated_map (res://tools/capture_ore_scatter.gd:149)
+       [2] _run (res://tools/capture_ore_scatter.gd:109)
+       [3] _save (res://tools/capture_ore_scatter.gd:240)
+       [4] _save_with (res://tools/capture_ore_scatter.gd:249)
+       [5] _settle (res://tools/capture_ore_scatter.gd:260)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _capture_generated_map (res://tools/capture_ore_scatter.gd:149)
+       [2] _run (res://tools/capture_ore_scatter.gd:109)
+       [3] _save (res://tools/capture_ore_scatter.gd:240)
+       [4] _save_with (res://tools/capture_ore_scatter.gd:249)
+       [5] _settle (res://tools/capture_ore_scatter.gd:260)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _capture_generated_map (res://tools/capture_ore_scatter.gd:149)
+       [2] _run (res://tools/capture_ore_scatter.gd:109)
+       [3] _save (res://tools/capture_ore_scatter.gd:240)
+       [4] _save_with (res://tools/capture_ore_scatter.gd:249)
+       [5] _settle (res://tools/capture_ore_scatter.gd:260)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _capture_generated_map (res://tools/capture_ore_scatter.gd:149)
+       [2] _run (res://tools/capture_ore_scatter.gd:109)
+       [3] _save (res://tools/capture_ore_scatter.gd:240)
+       [4] _save_with (res://tools/capture_ore_scatter.gd:249)
+       [5] _settle (res://tools/capture_ore_scatter.gd:260)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _capture_generated_map (res://tools/capture_ore_scatter.gd:149)
+       [2] _run (res://tools/capture_ore_scatter.gd:109)
+       [3] _save (res://tools/capture_ore_scatter.gd:240)
+       [4] _save_with (res://tools/capture_ore_scatter.gd:249)
+       [5] _settle (res://tools/capture_ore_scatter.gd:260)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _capture_generated_map (res://tools/capture_ore_scatter.gd:149)
+       [2] _run (res://tools/capture_ore_scatter.gd:109)
+       [3] _save (res://tools/capture_ore_scatter.gd:240)
+       [4] _save_with (res://tools/capture_ore_scatter.gd:249)
+       [5] _settle (res://tools/capture_ore_scatter.gd:260)
+G4PERF command_runtime_us=18 frames=1320
+G4PERF production_runtime_us=3 frames=1320
+G4PERF movement_us=41 unit=Drone
+G4PERF movement_us=43 unit=Helicopter
+G4PERF movement_us=79 unit=Tank
+G4PERF movement_us=75 unit=Worker
+G4PERF movement_us=106 unit=Unit_0
+G4PERF command_runtime_us=37 frames=1360
+G4PERF production_runtime_us=3 frames=1360
+G4PERF movement_us=59 unit=Drone
+G4PERF movement_us=31 unit=Helicopter
+G4PERF movement_us=139 unit=Tank
+G4PERF movement_us=50 unit=Worker
+G4PERF movement_us=61 unit=Unit_0
+G4PERF command_runtime_us=52 frames=1400
+G4PERF production_runtime_us=8 frames=1400
+G4PERF movement_us=94 unit=Drone
+G4PERF movement_us=56 unit=Helicopter
+G4PERF movement_us=101 unit=Tank
+G4PERF movement_us=109 unit=Worker
+G4PERF movement_us=116 unit=Unit_0
+G4PERF command_runtime_us=91 frames=1440
+G4PERF production_runtime_us=5 frames=1440
+G4PERF movement_us=71 unit=Drone
+G4PERF movement_us=40 unit=Helicopter
+G4PERF movement_us=72 unit=Tank
+G4PERF movement_us=37 unit=Worker
+G4PERF movement_us=41 unit=Unit_0
+G4PERF command_runtime_us=33 frames=1480
+G4PERF production_runtime_us=3 frames=1480
+G4PERF movement_us=41 unit=Drone
+G4PERF movement_us=29 unit=Helicopter
+G4PERF movement_us=134 unit=Tank
+G4PERF movement_us=45 unit=Worker
+G4PERF movement_us=42 unit=Unit_0
+G4PERF command_runtime_us=67 frames=1520
+G4PERF production_runtime_us=6 frames=1520
+G4PERF movement_us=79 unit=Drone
+G4PERF movement_us=69 unit=Helicopter
+G4PERF movement_us=98 unit=Tank
+G4PERF movement_us=68 unit=Worker
+G4PERF movement_us=72 unit=Unit_0
+G4PERF command_runtime_us=39 frames=1560
+G4PERF production_runtime_us=5 frames=1560
+G4PERF movement_us=36 unit=Drone
+G4PERF movement_us=65 unit=Helicopter
+G4PERF movement_us=149 unit=Tank
+G4PERF movement_us=54 unit=Worker
+G4PERF movement_us=52 unit=Unit_0
+G4PERF command_runtime_us=32 frames=1600
+G4PERF production_runtime_us=2 frames=1600
+G4PERF movement_us=28 unit=Drone
+G4PERF movement_us=33 unit=Helicopter
+G4PERF movement_us=55 unit=Tank
+G4PERF movement_us=51 unit=Worker
+G4PERF movement_us=53 unit=Unit_0
+[CAPTURE] 生成图矿群焦点 (28.0034, 0.0, 28.2876)
+G4PERF command_runtime_us=69 frames=1640
+G4PERF production_runtime_us=6 frames=1640
+G4PERF movement_us=60 unit=Drone
+G4PERF movement_us=30 unit=Helicopter
+G4PERF movement_us=69 unit=Tank
+G4PERF movement_us=110 unit=Worker
+G4PERF movement_us=89 unit=Unit_0
+G4PERF command_runtime_us=25 frames=1680
+G4PERF production_runtime_us=7 frames=1680
+G4PERF movement_us=66 unit=Drone
+G4PERF movement_us=42 unit=Helicopter
+G4PERF movement_us=69 unit=Tank
+G4PERF movement_us=60 unit=Worker
+G4PERF movement_us=52 unit=Unit_0
+G4PERF command_runtime_us=45 frames=1720
+G4PERF production_runtime_us=8 frames=1720
+G4PERF movement_us=92 unit=Drone
+G4PERF movement_us=218 unit=Helicopter
+G4PERF movement_us=122 unit=Tank
+G4PERF movement_us=111 unit=Worker
+G4PERF movement_us=92 unit=Unit_0
+G4PERF command_runtime_us=92 frames=1760
+G4PERF production_runtime_us=5 frames=1760
+G4PERF movement_us=107 unit=Drone
+G4PERF movement_us=72 unit=Helicopter
+G4PERF movement_us=62 unit=Tank
+G4PERF movement_us=68 unit=Worker
+G4PERF movement_us=57 unit=Unit_0
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _save_with (res://tools/capture_ore_scatter.gd:246)
+       [1] _settle (res://tools/capture_ore_scatter.gd:260)
+FAIL: 拿不到视口纹理（窗口未就绪？）：generatedmap_ore_scatter.png
+Ore scatter capture completed: 8 failure(s)
+[EXIT-TRACE] EXIT_TREE：场景树收尾（tick=1765，场景=unknown，对局结果=无该节点）
+[EXIT-TRACE] PREDELETE：引擎收尾（Globals 释放，tick=unknown(已脱离场景树)）
+ERROR: 3 RID allocations of type '13NavObstacle3D' were leaked at exit.
+ERROR: 3 RID allocations of type '10NavAgent3D' were leaked at exit.
+ERROR: 3 RID allocations of type 'P11GodotArea3D' were leaked at exit.
+ERROR: 1 RID allocations of type 'P12GodotShape3D' were leaked at exit.
+ERROR: 13 RID allocations of type 'N13RendererDummy15MaterialStorage13DummyMaterialE' were leaked at exit.
+ERROR: 3 RID allocations of type 'N13RendererDummy15MaterialStorage11DummyShaderE' were leaked at exit.
+ERROR: 18 RID allocations of type 'N13RendererDummy9DummyMeshE' were leaked at exit.
+ERROR: 2 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit.
+ERROR: 46 RID allocations of type 'N17RendererSceneCull8InstanceE' were leaked at exit.
+ERROR: Pages in use exist at exit in PagedAllocator: N20RasterizerSceneDummy21GeometryInstanceDummyE
+   at: ~PagedAllocator (./core/templates/paged_allocator.h:170)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: 186 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2536)
+ERROR: 41 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

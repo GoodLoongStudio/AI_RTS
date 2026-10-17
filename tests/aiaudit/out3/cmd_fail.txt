@@ -1,0 +1,3 @@
+ERROR: Adjutant command assertion failed: 鍓�瀹� build锛堟湇鍔″櫒鐩存墽琛岋級搴旇��鎺ュ彈锛堝疄闄� status=Rejected reason=SurfaceNotBuildable锛�
+Adjutant command protocol smoke test completed: 1 failure(s)
+Fatal error. System.AccessViolationException: Attempted to read or write protected memory. This is often an indication that other memory is corrupt.

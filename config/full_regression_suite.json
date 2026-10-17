@@ -135,6 +135,13 @@
       "id": "combat-sfx"
     },
     {
+      "expected_marker": "Damaged producer speed smoke test completed: 0 failure(s)",
+      "timeout_seconds": 120,
+      "category": "production",
+      "scene": "res://tests/automated/DamagedProducerSpeedSmokeTest.tscn",
+      "id": "damaged-producer-speed"
+    },
+    {
       "expected_marker": "Vehicle factory worker production smoke test completed: 0 failure(s)",
       "timeout_seconds": 120,
       "category": "production",
@@ -177,6 +184,20 @@
       "id": "economy-account"
     },
     {
+      "expected_marker": "Icon size standard smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "visual",
+      "scene": "res://tests/automated/IconSizeStandardSmokeTest.tscn",
+      "id": "icon-size-standard"
+    },
+    {
+      "expected_marker": "Damaged health bar persistent smoke test completed: 0 failure(s)",
+      "timeout_seconds": 120,
+      "category": "visual",
+      "scene": "res://tests/automated/DamagedHealthBarPersistentSmokeTest.tscn",
+      "id": "damaged-health-bar-persistent"
+    },
+    {
       "expected_marker": "Enemy health bar smoke test completed: 0 failure(s)",
       "timeout_seconds": 90,
       "category": "visual",
@@ -196,6 +217,13 @@
       "category": "input-ui",
       "scene": "res://tests/automated/EscReturnSmokeTest.tscn",
       "id": "esc-return"
+    },
+    {
+      "expected_marker": "Map progress flow smoke test completed: 0 failure(s)",
+      "timeout_seconds": 120,
+      "category": "input-ui",
+      "scene": "res://tests/automated/MapProgressFlowSmokeTest.tscn",
+      "id": "map-progress-flow"
     },
     {
       "expected_marker": "Force attack friendly smoke test completed: 0 failure(s)",
@@ -261,6 +289,13 @@
       "id": "local-avoidance"
     },
     {
+      "expected_marker": "Narrow passage smoke test completed: 0 failure(s)",
+      "timeout_seconds": 150,
+      "category": "navigation",
+      "scene": "res://tests/automated/NarrowPassageSmokeTest.tscn",
+      "id": "narrow-passage"
+    },
+    {
       "expected_marker": "Match outcome runtime smoke test completed: 0 failure(s)",
       "timeout_seconds": 150,
       "category": "match",
@@ -296,6 +331,13 @@
       "id": "navigation-stability"
     },
     {
+      "expected_marker": "Logic terrain footprint regression: 0 failure(s)",
+      "timeout_seconds": 300,
+      "category": "navigation",
+      "scene": "res://tests/automated/LogicTerrainFootprintTest.tscn",
+      "id": "logic-terrain-footprint"
+    },
+    {
       "expected_marker": "Net infantry smoke test completed: 0 failure(s)",
       "timeout_seconds": 300,
       "category": "network",
@@ -318,6 +360,13 @@
       "id": "projectile-lifecycle"
     },
     {
+      "expected_marker": "Projectile guidance smoke test completed: 0 failure(s)",
+      "timeout_seconds": 120,
+      "category": "combat",
+      "scene": "res://tests/automated/ProjectileGuidanceSmokeTest.tscn",
+      "id": "projectile-guidance"
+    },
+    {
       "expected_marker": "Rally point smoke test completed: 0 failure(s)",
       "timeout_seconds": 120,
       "category": "production",
@@ -330,6 +379,13 @@
       "category": "traditional-ai",
       "scene": "res://tests/automated/RuleAiAggressionSmokeTest.tscn",
       "id": "rule-ai-aggression"
+    },
+    {
+      "expected_marker": "Reach geometry probe completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "traditional-ai",
+      "scene": "res://tests/automated/ReachGeometryProbe.tscn",
+      "id": "reach-geometry"
     },
     {
       "expected_marker": "Rule AI battlegroup smoke test completed: 0 failure(s)",
@@ -507,6 +563,13 @@
       "id": "world-query-runtime"
     },
     {
+      "expected_marker": "Structures tab order smoke test completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "hud",
+      "scene": "res://tests/automated/StructuresTabOrderSmokeTest.tscn",
+      "id": "structures-tab-order"
+    },
+    {
       "expected_marker": "Attack range indicator smoke test completed: 0 failure(s)",
       "timeout_seconds": 120,
       "category": "hud",
@@ -561,6 +624,14 @@
       "category": "input",
       "scene": "res://tests/automated/StructureRepairSellSmokeTest.tscn",
       "id": "structure-repair-sell"
+    },
+    {
+      "expected_marker": "Structure repair rate: 0 failure(s)",
+      "timeout_seconds": 180,
+      "category": "input",
+      "scene": "res://tests/automated/StructureRepairRateTest.tscn",
+      "id": "structure-repair-rate",
+      "description": "维修速率=6HP/s 且单价=0.25金/HP：攒账必须按已付资金回血，不得丢帧、不得随帧率变化"
     },
     {
       "expected_marker": "Transport truck smoke test completed: 0 failure(s)",
@@ -687,6 +758,25 @@
       "id": "adjutant-ui-state-consistency"
     },
     {
+      "expected_marker": "Adjutant tcp framing test completed: 0 failure(s)",
+      "timeout_seconds": 120,
+      "category": "adjutant",
+      "scene": "res://tests/automated/AdjutantTcpFramingTest.tscn",
+      "id": "adjutant-tcp-framing"
+    },
+    {
+      "expected_marker": "Adjutant real client DCS test completed: 0 failure(s)",
+      "timeout_seconds": 150,
+      "category": "adjutant",
+      "scene": "res://tests/automated/AdjutantClientRealDcsTest.tscn",
+      "id": "adjutant-client-real-dcs",
+      "extra_args": [
+        "--",
+        "--debugport",
+        "{free_port}"
+      ]
+    },
+    {
       "expected_marker": "Client HP first-sync smoke test completed: 0 failure(s)",
       "timeout_seconds": 120,
       "category": "network",
@@ -756,6 +846,14 @@
       "scene": "res://tests/automated/HeavyTankHowitzerTest.tscn",
       "id": "heavy-tank-howitzer",
       "description": "重坦炮射程 20m 压过全部防御塔；HeavyCannonShell 真抛物线爬升过峰"
+    },
+    {
+      "expected_marker": "Heavy tank shell speed: 0 failure(s)",
+      "timeout_seconds": 150,
+      "category": "combat",
+      "scene": "res://tests/automated/HeavyTankShellSpeedTest.tscn",
+      "id": "heavy-tank-shell-speed",
+      "description": "重坦炮弹速度 ×1.5：场景 meta flight_speed_mps=15，且真实 Match 反推弹速一致；坦克炮弹仍 12"
     },
     {
       "expected_marker": "Muzzle discipline: 0 failure(s)",
@@ -834,6 +932,49 @@
       "scene": "res://tests/automated/TutorialMainEntryTest.tscn",
       "id": "tutorial-main-entry",
       "description": "首页「教学」按钮 → 同一张教学页（非嵌入）→ ESC 回首页"
+    },
+    {
+      "expected_marker": "Size unification regression: 0 failure(s)",
+      "timeout_seconds": 400,
+      "category": "placement",
+      "scene": "res://tests/automated/SizeUnificationRegression.tscn",
+      "id": "size-unification-regression",
+      "description": "尺寸口径统一回归：相邻 4 条（窗内 Accepted/重叠 Occupied/超距 NotAdjacent/同点两次拒）+ 驱逐最终距离 + 五类建筑本地碰撞×scale=世界footprint + carve 不双重放大"
+    },
+    {
+      "expected_marker": "Spawn point + displacement regression: 0 failure(s)",
+      "timeout_seconds": 400,
+      "category": "production",
+      "scene": "res://tests/automated/SpawnPointRegression.tscn",
+      "id": "spawn-point-regression",
+      "description": "出生点回归：车厂/兵营生产的单位不落在建筑内、连续生产不互相重叠、旋转 90° 后从正脸出生、矿场赠车同口径、root scale=2/3 时世界外缘与落点距离同比"
+    },
+    {
+      "expected_marker": "Shape pipeline fixture completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "collision",
+      "scene": "res://tests/automated/ShapePipelineFixture.tscn",
+      "id": "shape-pipeline",
+      "extra_args": [
+        "--",
+        "--debugport",
+        "0"
+      ]
+    },
+    {
+      "expected_marker": "Strategic chat service smoke test completed: 0 failure(s)",
+      "timeout_seconds": 120,
+      "category": "adjutant",
+      "scene": "res://tests/automated/StrategicChatServiceSmokeTest.tscn",
+      "id": "strategic-chat-service"
+    },
+    {
+      "expected_marker": "Movement push equivalence completed: 0 failure(s)",
+      "timeout_seconds": 90,
+      "category": "collision",
+      "scene": "res://tests/performance/MovementPushEquivalence.tscn",
+      "id": "movement-push-equivalence",
+      "extra_args": ["--", "--debugport", "0"]
     }
   ]
 }

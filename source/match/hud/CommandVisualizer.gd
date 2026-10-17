@@ -24,11 +24,11 @@ const BEACON_RAISE_TIME := 0.3
 #: 信标尺寸。2026-09-11 用户实测反馈"信标太大了"：原先光柱 9m 高、外环直径 6.8m，
 #: 一次命令就把基地和半个屏幕盖住 → 整体缩到约 40%（3.2m 高 / 外环直径 3m），
 #: 保留"看得见"但不再遮挡战场。2026-09-14 再缩一轮：2.0m 高 / 外环直径 2m。
-const BEACON_HEIGHT := 2.0
+const BEACON_HEIGHT := 4.2
 const BEACON_PILLAR_ALPHA := 0.10
 const RING_Y := 0.06
 const PATH_Y := 0.12
-const PATH_WIDTH := 0.20
+const PATH_WIDTH := 0.34
 const PATH_ALPHA := 0.32
 
 const FADED_CIRCLE_SHADER := preload("res://source/shaders/3d/faded_circle.gdshader")

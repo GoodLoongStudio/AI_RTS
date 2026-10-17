@@ -1,7 +1,9 @@
 extends Node
 
 ## 验证原厂骨架步兵动画驱动：GLB 模型挂载、七段剪辑就绪、
-## 待命/移动/受击状态映射正确播放，并确认 Fire 只由真实投射物发射触发。
+## 待命/移动状态映射正确播放，并确认 Fire 只由真实投射物发射触发。
+## 【2026-09-29 用户要求】存活受击不再播 Hit 动画，改为出血雾粒子反馈——
+## 受击相关断言全部按新口径改写（不播 Hit、生成 blood_mist_effects、不打断 Fire）。
 
 const MatchScene = preload("res://tests/manual/TestAllUnits.tscn")
 const InfantryScene = preload("res://source/match/units/Infantry.tscn")
@@ -101,18 +103,21 @@ func _ready():
 	if DisplayServer.get_name() != "headless":
 		await _screenshot("G:/AIRTS/tmp_logs/anim_verify_r2/driver_moving.png", infantry.global_position)
 
+	var mists_before := _blood_mist_count()
 	infantry.hp = infantry.hp - 1
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_check(player.current_animation == "Hit",
-		"受击应短暂覆盖为 Hit（实际 %s）" % player.current_animation)
+	_check(player.current_animation != "Hit",
+		"受击不得再播放 Hit 动画（实际 %s）" % player.current_animation)
 	_check(infantry.hp > 0, "受击测试不应把步兵打死")
-	_check(absf(player.get_animation("Hit").length - 0.3) < 0.001, "轻受击长度应为 0.3s")
+	_check(_blood_mist_count() == mists_before + 1,
+		"中弹应生成一团出血雾（实际 %d → %d）" % [mists_before, _blood_mist_count()])
 	await get_tree().create_timer(0.1).timeout
+	mists_before = _blood_mist_count()
 	infantry.hp = infantry.hp - 1
-	_check(player.current_animation_position < 0.02, "连续子弹应立即重启冲击，不能被同名动作吞掉")
-	await get_tree().create_timer(0.12).timeout
-	_check(player.current_animation == "Hit", "连续中弹后的短促受击应仍在播放")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_check(_blood_mist_count() == mists_before + 1, "连续中弹各自生成出血雾，互不吞并")
 
 	gateway.StopUnits([infantry], human)
 	elapsed = 0.0
@@ -129,12 +134,15 @@ func _ready():
 	infantry.hp = 100
 	await get_tree().process_frame
 	await get_tree().process_frame
+	mists_before = _blood_mist_count()
 	infantry.hp = 69
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_check(player.current_animation == "Hit", "未致死高伤害应使用短促受击，不能炸飞后复活")
+	_check(player.current_animation != "Hit" and player.current_animation != "Death",
+		"未致死高伤害不得播受击/死亡动画（实际 %s）" % player.current_animation)
+	_check(_blood_mist_count() == mists_before + 1, "未致死高伤害同样以出血雾反馈")
 	await get_tree().create_timer(0.4).timeout
-	_check(player.current_animation == "Idle", "存活受击结束后恢复 Idle")
+	_check(player.current_animation == "Idle", "受击后回到 Idle")
 
 	# 走真实投射物落点结算，验证炮弹/步枪资源上的命中标签确实传到动画。
 	gateway.SetFirePolicy(get_tree().get_nodes_in_group("units").filter(func(unit): return unit.get_parent() == human), "HoldFire", human)
@@ -326,18 +334,18 @@ func _test_fire_events(match_instance, human, gateway):
 	get_tree().paused = false
 	await get_tree().create_timer(player.get_animation("Fire").length + 0.2).timeout
 	_check(player.current_animation == "Idle", "恢复后 Fire 应正常收尾回 Idle，不卡死")
-	# 受击必须抢占 Fire，受击期间的新发射也不得覆盖 Hit 或事后补播。
+	# 【2026-09-29】受击动画已移除：中弹只出血雾，不得再抢占 Fire。
+	var mists_before_fire := _blood_mist_count()
 	attacker.hp -= 0.1
 	runtime.LaunchEntity(attacker, target, false)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_check(player.current_animation == "Hit", "同帧中弹与开火应保留 Hit 优先级")
-	await get_tree().create_timer(player.get_animation("Hit").length + 0.1).timeout
-	_check(player.current_animation == "Idle", "受击结束不得补播已丢弃的开火事件")
+	_check(player.current_animation == "Fire", "同帧中弹与开火应继续播放 Fire")
+	_check(_blood_mist_count() > mists_before_fire, "中弹仍应生成出血雾")
 
 	runtime.LaunchEntity(attacker, target, false)
 	_check(await _wait_until(func(): return player.current_animation == "Fire", 0.5),
-		"受击后新的真实发射应再次播放 Fire")
+		"中弹后新的真实发射应继续播放 Fire")
 	var move_origin: Vector3 = attacker.global_position
 	gateway.ForceMoveUnits([attacker], move_origin + Vector3(-6, 0, 0), human)
 	# 注意：GDScript 解析器不接受 lambda 体跨行且后续还有实参的写法，
@@ -415,6 +423,11 @@ func _test_fire_events(match_instance, human, gateway):
 	attacker.queue_free()
 	enemy.queue_free()
 	await get_tree().process_frame
+
+
+## 当前存活的出血雾数量（BloodMist 自毁后自动出组）。
+func _blood_mist_count() -> int:
+	return get_tree().get_nodes_in_group("blood_mist_effects").size()
 
 
 func _wait_for_shot(events: Dictionary, count: int):

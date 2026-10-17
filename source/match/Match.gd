@@ -14,9 +14,10 @@ const CommandCursor = preload("res://source/match/hud/CommandCursor.gd")
 const MusicDirector = preload("res://source/match/MusicDirector.gd")
 const MatchPauseGateScript = preload("res://source/match/augments/MatchPauseGate.gd")
 const AugmentRuntimeScript = preload("res://source/match/augments/AugmentRuntime.gd")
+const AiPerfStats = preload("res://source/match/players/simple-clairvoyant-ai/AiPerfStats.gd")
 
 const CommandCenter = preload("res://source/match/units/CommandCenter.tscn")
-const Worker = preload("res://source/match/units/Worker.tscn")
+# 矿车（原"工人"）不再由开局链路生成（车厂生产/矿场赠送），无需在此预载。
 const VehicleFactory = preload("res://source/match/units/VehicleFactory.tscn")
 const Barracks = preload("res://source/match/units/Barracks.tscn")
 const Drone = preload("res://source/match/units/Drone.tscn")
@@ -27,6 +28,10 @@ var _ra3_sidebar = null  # 红警3 风格右侧指挥侧栏（非 headless 对�
 ## 传统命令面板实例（RA3 布局下被侧栏 absorb_command_panel 收编，不再是 HUD 直接子节点）。
 var _traditional_unit_command_hud: Control = null
 var _unit_spawn_counter := 0  # P0-1 init unit deterministic naming
+var _mov_diag_script = null
+## 整张地形碰撞同一高度时，贴地不再每单位每步打射线。只在和一次真射线一致后启用。
+var _flat_ground_state := -1
+var _flat_ground_y := 0.0
 var map:
 	set = _set_map,
 	get = _get_map
@@ -105,6 +110,20 @@ func _lock_large_map_before_first_frame() -> void:
 
 
 func _ready():
+	# 配置是 Match 的硬前置条件。配置加载失败时必须停在加载页，绝不能让
+	# 空成本/空单位字典继续创建一个看似可玩的僵尸房。
+	var balance_runtime := get_node_or_null("BalanceConfigRuntime")
+	if balance_runtime == null:
+		_fail_match_initialization("缺少 BalanceConfigRuntime，无法验证平衡配置")
+		return
+	if not balance_runtime.has_method("IsHealthy") or not balance_runtime.IsHealthy():
+		var config_error := str(balance_runtime.get_meta(
+			"initialization_error", "平衡配置初始化失败"))
+		if balance_runtime.has_method("GetInitializationError"):
+			config_error = str(balance_runtime.GetInitializationError())
+		_fail_match_initialization(config_error)
+		return
+	add_to_group("match_root")
 	_ensure_match_augments()
 	_ensure_target_acquisition_grid()
 	if NetSession.is_networked():
@@ -120,6 +139,9 @@ func _ready():
 		else:
 			push_warning("联机对局 NetSync 脚本加载失败，联机同步链路不可用")
 	MatchSignals.setup_and_spawn_unit.connect(_setup_and_spawn_unit)
+	# 同类建筑加速出兵（2026-09-29 用户规则）：事件驱动重算各玩家各类型的
+	# production_work_per_tick 合成值；比例取自 balance，0 = 规则关闭。
+	SameTypeProductionRate.install(self)
 	await _setup_subsystems_dependent_on_map()
 	_setup_players()
 	_setup_player_units()
@@ -140,6 +162,9 @@ func _ready():
 	_register_spawn_points_with_query_runtime()
 	_battlefield_event_runtime.Initialize(get_local_player())
 	_camera.force_opening_isometric()
+	var visual_cull := preload("res://source/match/OffscreenVisualCull.gd").new()
+	visual_cull.name = "OffscreenVisualCull"
+	add_child(visual_cull)
 	if fog_of_war != null and fog_of_war.has_method("refresh_now"):
 		fog_of_war.refresh_now()
 	_move_camera_to_initial_position()
@@ -173,6 +198,13 @@ func _ready():
 	else:
 		$HUD.visible = false
 	MatchSignals.match_started.emit()
+
+
+func _fail_match_initialization(message: String) -> void:
+	set_meta("match_initialization_failed", true)
+	set_meta("match_initialization_error", message)
+	process_mode = Node.PROCESS_MODE_DISABLED
+	push_error("Match 初始化失败，拒绝进入对局：%s" % message)
 
 
 ## 对局背景音乐导演：和平曲 ↔ 战斗曲（受击刷新战斗状态，2s 交叉淡化）。
@@ -442,10 +474,16 @@ func _apply_large_map_playable_presentation() -> void:
 		# 只把阴影距离收到镜头附近；bias/pancake 过大时建筑脚下没有接触影。
 		sun.shadow_enabled = true
 		sun.directional_shadow_max_distance = 80.0
-		sun.shadow_bias = 0.04
+		# 0.04 is too small for the large terrain depth range and produces
+		# regular self-shadow acne bands across the sand in the orthographic view.
+		# Keep the scene's 0.3 bias so terrain still receives unit/building shadows
+		# without comparing the ground against its own shadow map quantization.
 		sun.shadow_normal_bias = 1.0
 		sun.directional_shadow_pancake_size = 8.0
-		sun.light_energy = 1.35
+		# 【2026-10-12 用户口径 A："不升高才好看"】光强/饱和度/曝光回到场景 tscn 口径：
+		# 旧值 1.35/0.96/1.0 是 512 表现锁刻意抬高的"浓艳档"，实测进局与三选一浮层
+		# 关闭瞬间反差过强（真机 A/B：adjustment_saturation 0.96→0.75 画面明显变柔）。
+		sun.light_energy = 1.0
 	_strip_height_fog_mesh()
 	var env_node := get_node_or_null("WorldEnvironment") as WorldEnvironment
 	if env_node != null and env_node.environment != null:
@@ -457,11 +495,13 @@ func _apply_large_map_playable_presentation() -> void:
 		environment.sdfgi_enabled = false
 		environment.ambient_light_energy = 0.38
 		environment.background_energy_multiplier = 0.9
-		environment.adjustment_saturation = 0.96
+		# 【2026-10-12 用户口径 A】饱和度/曝光回 tscn 口径（0.75/0.9）：旧 0.96/1.0 是
+		# "浓艳档"，用户实测三选一浮层关闭瞬间的弹回感过强，"不升高才好看"。
+		environment.adjustment_saturation = 0.75
 		# 正交俯视 + 沙地颗粒上开 SSAO，会打出斜向条纹（活局截图已证实）。
 		environment.ssao_enabled = false
-		environment.glow_enabled = true
-		environment.tonemap_exposure = 1.0
+		environment.glow_enabled = false  # 【2026-10-07 用户口径】glow 关闭：oversight 之前被这里重新打开 ⇒ 太亮（白亮光圈）
+		environment.tonemap_exposure = 0.9
 	var diagnostic := find_child("DiagnosticHUD", true, false)
 	if diagnostic == null:
 		diagnostic = find_child("DiagnosticHud", true, false)
@@ -500,6 +540,11 @@ func _disable_war_fog() -> void:
 func _physics_process(_delta) -> void:
 	_physics_script_t0_us = Time.get_ticks_usec()
 	_physics_script_armed = true
+	if OS.get_environment("AIRTS_MOV_DIAG") != "":
+		if _mov_diag_script == null:
+			_mov_diag_script = load("res://source/match/units/traits/Movement.gd")
+		_mov_diag_script.diag_mark("match")
+		_mov_diag_script.diag_bookend("phys_first")
 
 
 func _on_large_map_physics_frame() -> void:
@@ -653,9 +698,19 @@ func _sample_generated_height(at: Vector3) -> float:
 
 
 ## 世界坐标处的地表高度。生成图走高度场（含缩放）；手摆图走地形碰撞射线。
+## 碰撞顶点全部同高、且和一次真射线一致时，直接返回该高度。斜坡/高台仍走射线。
 func ground_height_at(at: Vector3) -> float:
 	if _uses_logic_terrain():
 		return Utils.Match.sample_world_ground_y(map, at)
+	if _flat_ground_state == 1:
+		return _flat_ground_y
+	var y := _ray_ground_height(at)
+	if _flat_ground_state < 0:
+		_try_enable_flat_ground(y)
+	return y
+
+
+func _ray_ground_height(at: Vector3) -> float:
 	var terrain_body: Node3D = (
 		(_terrain if _terrain != null else find_child("Terrain", true, false)) as Node3D
 	)
@@ -675,12 +730,45 @@ func ground_height_at(at: Vector3) -> float:
 	return (hit["position"] as Vector3).y
 
 
+func _try_enable_flat_ground(ray_y: float) -> void:
+	if _terrain == null:
+		return
+	var col := _terrain.find_child("CollisionShape3D") as CollisionShape3D
+	if col == null or col.shape == null:
+		return
+	if not (col.shape is ConcavePolygonShape3D):
+		_flat_ground_state = 0
+		return
+	var faces: PackedVector3Array = (col.shape as ConcavePolygonShape3D).get_faces()
+	if faces.is_empty():
+		return
+	var y0: float = faces[0].y
+	for i in faces.size():
+		if absf(faces[i].y - y0) > 0.0004:
+			_flat_ground_state = 0
+			return
+	var basis: Basis = _terrain.global_transform.basis
+	if absf(basis.x.y) > 0.0001 or absf(basis.z.y) > 0.0001:
+		_flat_ground_state = 0
+		return
+	var analytic: float = (_terrain.global_transform * Vector3(faces[0].x, y0, faces[0].z)).y
+	if absf(analytic - ray_y) > 0.0005:
+		_flat_ground_state = 0
+		print("G4PERF flat_ground rejected analytic=", analytic, " ray=", ray_y)
+		return
+	_flat_ground_y = analytic
+	_flat_ground_state = 1
+	print("G4PERF flat_ground_y=", analytic)
+
+
 func _grounded_spawn_transform(spawn_transform: Transform3D) -> Transform3D:
 	var origin := spawn_transform.origin
-	return Transform3D(
-		spawn_transform.basis,
-		Vector3(origin.x, ground_height_at(origin), origin.z)
-	)
+	# 【2026-09-29 尺寸口径统一】必须整支传下去（含 scale）：旧代码只取 basis，
+	# 把场景里写的 root scale 抹成 1 —— 视觉尺寸与 Movement/MovementObstacle 的世界
+	# 占地（如基地 7m）从此不一致，玩家看到"小房子占大地盘"。
+	var grounded := Transform3D(spawn_transform)
+	grounded.origin = Vector3(origin.x, ground_height_at(origin), origin.z)
+	return grounded
 
 
 func _is_air_unit(unit: Node) -> bool:
@@ -691,19 +779,15 @@ func _is_air_unit(unit: Node) -> bool:
 
 
 func _spawn_player_units(player, spawn_transform):
-	# 开局：主基地 + 1 无人机 + 2 工人（2026-09-05 用户设定：
-	# 无人机恢复 1 架，其余建筑/单位一律由工人建造/生产）。
+	# 开局：主基地 + 1 无人机（2026-09-28 红警2 口径：**开局不再送工人**；
+	# 经济单位改为"矿车"（内部 id 仍是 worker），由车厂生产、矿场完工赠送一辆）。
 	# 出生点投到真实地形高度；无人机在 _setup_and_spawn_unit 里再加离地。
 	spawn_transform = _grounded_spawn_transform(spawn_transform)
 	_setup_and_spawn_unit(CommandCenter.instantiate(), spawn_transform, player, false)
+	# 主基地视觉约 14m 宽。旧偏移 (-2, 0, -2) 只有 2.8m，无人机生在圆顶模型里面，
+	# 场上看不到。放到基地外侧 12m，网格和选择圈都露在建筑外面。
 	_setup_and_spawn_unit(
-		Drone.instantiate(), spawn_transform.translated(Vector3(-2, 0, -2)), player
-	)
-	_setup_and_spawn_unit(
-		Worker.instantiate(), spawn_transform.translated(Vector3(-3, 0, 3)), player
-	)
-	_setup_and_spawn_unit(
-		Worker.instantiate(), spawn_transform.translated(Vector3(3, 0, 3)), player
+		Drone.instantiate(), spawn_transform.translated(Vector3(-12, 0, 0)), player
 	)
 	if NetSession.passive_ai_test_server or NetSession.passive_ai_test:
 		# 测试局预置已完成车辆工厂，确保生产流程可以直接通过 UI 验证。
@@ -719,31 +803,63 @@ func _spawn_player_units(player, spawn_transform):
 func _setup_and_spawn_unit(unit, a_transform, player, mark_structure_under_construction = true):
 	# 所有单位/建筑的唯一出场入口。地面始终贴地；飞机贴地后再抬离地高度。
 	# 不再用 3m 护栏：高差 >3m 时跳过校正，正是"埋进地里 / 悬在盒顶"的来源。
+	# 【2026-09-30 护栏（验证席建议）】出生只接受"世界位置 + 旋转"：调用方若递进带缩放的基
+	# （例如蓝图 ghost 带着 Visual 缩放 3），旧实现会整支套用 ⇒ 落地 root scale=3、视觉 9 倍、
+	# 车厂碰撞半径 19.95m（应 6.65）。放置链已在 C# 侧正交化；这里再兜一道，防止将来重现。
+	if not a_transform.basis.get_scale().is_equal_approx(Vector3.ONE):
+		print("[SPAWN] 剔除调用方带来的缩放 ", str(a_transform.basis.get_scale()), " → 1（出生只接受位置+旋转）")
+		a_transform = Transform3D(a_transform.basis.orthonormalized(), a_transform.origin)
+	var perf_on := AiPerfStats.enabled()
+	var ground_started := Time.get_ticks_usec() if perf_on else 0
 	var grounded := _grounded_spawn_transform(a_transform)
+	if perf_on:
+		AiPerfStats.add("spawn_ground", Time.get_ticks_usec() - ground_started)
+	# 【2026-09-30 世界米制归一化】所有单位场景的 UnitRoot scale 已归一到 1，
+	# 原先"把场景 root scale 合入 spawn transform"的补偿不再需要 —— 那正是
+	# "根×3、子×1/3"结构的一半。调用方只给世界位置与旋转；美术缩放留在各自的
+	# Visual 分支（Geometry）里，玩法节点（碰撞/移动/障碍/出生点）直接是世界米。
 	if _is_air_unit(unit):
-		a_transform = Transform3D(
-			grounded.basis,
-			Vector3(
-				grounded.origin.x,
-				grounded.origin.y + Constants.Match.Air.HOVER_OFFSET,
-				grounded.origin.z
-			)
+		# 【2026-09-29 尺寸口径统一】整支传下去（含 scale），只抬 origin.y：
+		# 旧代码重新构造 Transform3D 又丢掉 scale，root scale 对空中单位同样失效。
+		var lifted := Transform3D(grounded)
+		lifted.origin = Vector3(
+			grounded.origin.x,
+			grounded.origin.y + Constants.Match.Air.HOVER_OFFSET,
+			grounded.origin.z
 		)
+		a_transform = lifted
 	else:
 		a_transform = grounded
 	if unit is Structure and mark_structure_under_construction:
+		var mark_started := Time.get_ticks_usec() if perf_on else 0
 		unit.mark_as_under_construction()
+		if perf_on:
+			AiPerfStats.add("spawn_mark", Time.get_ticks_usec() - mark_started)
+	var groups_started := Time.get_ticks_usec() if perf_on else 0
 	_setup_unit_groups(unit, player)
+	if perf_on:
+		AiPerfStats.add("spawn_groups", Time.get_ticks_usec() - groups_started)
 	# 联机 P0-1：显式命名（同玩家节点，自动命名跨进程不稳定）。
 	unit.name = "Unit_%d" % _unit_spawn_counter
 	_unit_spawn_counter += 1
 	# Players/Player 在原点：入树前写本地变换，_ready 才不会在 (0,0) 闪一帧/盖障碍。
-	unit.transform = Transform3D(a_transform.basis, a_transform.origin)
+	# 【2026-09-30 归一化后】场景 root scale 恒为 1，整支赋值与只取 basis+origin 等价；
+	# 美术缩放已搬到各场景的 Visual 分支，玩法节点直接是世界米。
+	unit.transform = a_transform
+	var enter_started := Time.get_ticks_usec() if perf_on else 0
 	player.add_child(unit)
+	if perf_on:
+		AiPerfStats.add("spawn_enter_tree", Time.get_ticks_usec() - enter_started)
+	var xform_started := Time.get_ticks_usec() if perf_on else 0
 	unit.global_transform = a_transform
+	if perf_on:
+		AiPerfStats.add("spawn_xform", Time.get_ticks_usec() - xform_started)
 	if unit.has_method("reset_physics_interpolation"):
 		unit.reset_physics_interpolation()
+	var signal_started := Time.get_ticks_usec() if perf_on else 0
 	MatchSignals.unit_spawned.emit(unit)
+	if perf_on:
+		AiPerfStats.add("spawn_signal", Time.get_ticks_usec() - signal_started)
 
 
 func _setup_unit_groups(unit, player):

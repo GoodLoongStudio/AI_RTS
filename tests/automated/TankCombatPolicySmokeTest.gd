@@ -54,7 +54,8 @@ func _ready():
 	await get_tree().create_timer(0.8).timeout
 	_check(enemy_tank.hp == hp_after_in_flight_attack, "战斗中切换停火后不应继续产生新的伤害")
 	# 留出比射程边界更大的余量，避免 NavigationAgent 初始对齐/RVO 位移让目标偶然进入射程。
-	enemy_tank.global_position = tank.global_position + Vector3(7.5, 0.0, 0.0)
+	# 【2026-10-01 尺度 ×2】tank_cannon 射程 7.5 → 15m ⇒ "射程外"的布置距离同步到 16.5m（明确在界外）。
+	enemy_tank.global_position = tank.global_position + Vector3(16.5, 0.0, 0.0)
 	var tank_position_before: Vector3 = tank.global_position
 	enemy_hp_before = enemy_tank.hp
 	gateway.SetEngagementStance([tank], "HoldGround", human)

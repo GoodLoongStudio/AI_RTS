@@ -37,6 +37,9 @@ var _recovery_start := {}
 var _recovery_end := {}
 var _render_time_supported := false
 var _mid_shots := {}
+var _hitch_over_100 := 0
+var _hitch_over_500 := 0
+var _frame_ms_max := 0.0
 
 
 func _save_shot(index: int) -> void:
@@ -294,9 +297,15 @@ func _process(_delta) -> void:
 	var now := Time.get_ticks_usec()
 	var dt_ms := float(now - _last_frame_us) / 1000.0
 	_last_frame_us = now
-	if dt_ms <= 0.0 or dt_ms > 500.0:
+	# 保留全部正长帧。旧逻辑丢弃 >500ms，会把最严重卡顿从分位数里抹掉。
+	if dt_ms <= 0.0:
 		return
 	_frame_ms.append(dt_ms)
+	_frame_ms_max = maxf(_frame_ms_max, dt_ms)
+	if dt_ms > 100.0:
+		_hitch_over_100 += 1
+	if dt_ms > 500.0:
+		_hitch_over_500 += 1
 
 
 func _sample_loop() -> void:
@@ -331,8 +340,9 @@ func _sample_loop() -> void:
 			next_rt += 0.5
 			await RenderingServer.frame_post_draw
 			var rid := get_viewport().get_viewport_rid()
-			var cpu_ms := RenderingServer.viewport_get_measured_render_time_cpu(rid) / 1000.0
-			var gpu_ms := RenderingServer.viewport_get_measured_render_time_gpu(rid) / 1000.0
+			# RenderingServer 已返回毫秒。再除 1000 会把 GPU 时间缩小一千倍。
+			var cpu_ms := RenderingServer.viewport_get_measured_render_time_cpu(rid)
+			var gpu_ms := RenderingServer.viewport_get_measured_render_time_gpu(rid)
 			if cpu_ms > 0.0:
 				_render_cpu_ms.append(cpu_ms)
 			if gpu_ms > 0.0:
@@ -450,11 +460,16 @@ func _write_results() -> void:
 		"frame_ms_p50": snappedf(_percentile(sorted_ft, 50), 0.01),
 		"frame_ms_p95": snappedf(_percentile(sorted_ft, 95), 0.01),
 		"frame_ms_p99": snappedf(_percentile(sorted_ft, 99), 0.01),
+		"frame_ms_max": snappedf(_frame_ms_max, 0.01),
+		"frame_hitch_over_100ms": _hitch_over_100,
+		"frame_hitch_over_500ms": _hitch_over_500,
 		"frame_ms_all": Array(_frame_ms),
-		"render_cpu_ms_avg": snappedf(_avg(_render_cpu_ms), 0.01),
-		"render_cpu_ms_p95": snappedf(_percentile(sorted_cpu, 95), 0.01),
-		"render_gpu_ms_avg": snappedf(_avg(_render_gpu_ms), 0.01),
-		"render_gpu_ms_p95": snappedf(_percentile(sorted_gpu, 95), 0.01),
+		"render_cpu_status": "unavailable" if _render_cpu_ms.is_empty() else "ok",
+		"render_gpu_status": "unavailable" if _render_gpu_ms.is_empty() else "ok",
+		"render_cpu_ms_avg": "unavailable" if _render_cpu_ms.is_empty() else snappedf(_avg(_render_cpu_ms), 0.01),
+		"render_cpu_ms_p95": "unavailable" if sorted_cpu.is_empty() else snappedf(_percentile(sorted_cpu, 95), 0.01),
+		"render_gpu_ms_avg": "unavailable" if _render_gpu_ms.is_empty() else snappedf(_avg(_render_gpu_ms), 0.01),
+		"render_gpu_ms_p95": "unavailable" if sorted_gpu.is_empty() else snappedf(_percentile(sorted_gpu, 95), 0.01),
 		"units_start": 0 if _unit_snaps.is_empty() else int(_unit_snaps[0][1]),
 		"units_end": 0 if _unit_snaps.is_empty() else int(_unit_snaps[-1][1]),
 		"unit_snaps": _unit_snaps,
@@ -471,9 +486,12 @@ func _write_results() -> void:
 	var file := FileAccess.open(_result_path(), FileAccess.WRITE)
 	file.store_string(JSON.stringify(result, "  "))
 	file.close()
-	print("[PERFGRID] fps=%.1f 1low=%.1f p50=%.2f p95=%.2f p99=%.2f render_cpu=%.2f render_gpu=%.2f queries=%d cands=%d scan_us=%d maintain_us=%d" % [
+	var cpu_text := str(result["render_cpu_ms_avg"])
+	var gpu_text := str(result["render_gpu_ms_avg"])
+	print("[PERFGRID] fps=%.1f 1low=%.1f p50=%.2f p95=%.2f p99=%.2f max=%.2f hitch100=%d hitch500=%d render_cpu=%s render_gpu=%s queries=%d cands=%d scan_us=%d maintain_us=%d" % [
 		float(result["fps_avg"]), float(result["fps_1pct_low"]),
 		float(result["frame_ms_p50"]), float(result["frame_ms_p95"]), float(result["frame_ms_p99"]),
-		float(result["render_cpu_ms_avg"]), float(result["render_gpu_ms_avg"]),
+		float(result["frame_ms_max"]), _hitch_over_100, _hitch_over_500,
+		cpu_text, gpu_text,
 		int(grid_stats.get("query_calls", 0)), int(grid_stats.get("candidates_returned", 0)),
 		int(grid_stats.get("scan_time_us", 0)), int(grid_stats.get("index_maintain_us", 0))])

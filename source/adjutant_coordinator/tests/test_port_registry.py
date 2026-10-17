@@ -172,6 +172,83 @@ class GameSideMatchesRegistryTest(unittest.TestCase):
                         "面板把「猜端口」排在了「问本进程」前面")
 
 
+class DynamicDevBlockTest(unittest.TestCase):
+    """2026-09-29：多开对局的动态端口段必须与一切既有段/口隔离。
+
+    背景：预留段是有限的，两路会话就要互抢（见口径表 `_parallel_note`）。"同时开多个
+    单人对局"改为**动态分配 + 实例登记**（`tools/dev/match_instance.py`）；动态段一旦
+    与玩家/面板/验收段或既有角色口发生重叠，就等于把血案换个形式重演。
+    """
+
+    def test_dynamic_block_exists_and_is_wide_enough(self):
+        blocks = registry()["reserved_blocks"]
+        self.assertIn("dynamic_dev", blocks, "口径表缺少动态分配段 dynamic_dev")
+        low, high = blocks["dynamic_dev"]
+        self.assertGreaterEqual(high - low, 200, "动态段太窄：几路并发就抢光了")
+
+    def test_dynamic_block_avoids_every_known_port(self):
+        low, high = registry()["reserved_blocks"]["dynamic_dev"]
+        used = set(int(value) for value in registry()["roles"].values())
+        used |= set(int(value) for value in registry()["forbidden_for_acceptance"])
+        used |= set(int(value) for value in registry()["panel"]["authority_candidates"])
+        for name, block in registry()["reserved_blocks"].items():
+            if str(name).startswith("_") or name == "dynamic_dev":
+                continue
+            start, end = block
+            used |= set(range(int(start), int(end) + 1))
+        clash = sorted(port for port in used if low <= port <= high)
+        self.assertFalse(clash, "动态段 %d-%d 与既有端口重叠：%s" % (low, high, clash))
+
+
+class MatchInstanceContractTest(unittest.TestCase):
+    """实例登记契约（2026-09-29）：多开不打架、清理按 pid、不留僵尸局。"""
+
+    NODE = os.path.join(PROJECT, "source", "net", "MatchInstanceRegistry.gd")
+    TOOL = os.path.join(PROJECT, "tools", "dev", "match_instance.py")
+    PROJECT_GODOT = os.path.join(PROJECT, "project.godot")
+
+    def test_node_exists_and_is_registered_after_dcs(self):
+        self.assertTrue(os.path.exists(self.NODE), "缺少实例登记节点 MatchInstanceRegistry.gd")
+        text = read(self.PROJECT_GODOT)
+        self.assertIn("MatchInstanceRegistry=", text, "实例登记节点没有注册为 autoload")
+        self.assertLess(text.index("DebugControlServer="), text.index("MatchInstanceRegistry="),
+                        "登记节点必须排在 DebugControlServer 之后（启动时要读到实际调试口）")
+
+    def test_node_is_inert_for_normal_play(self):
+        """普通玩家进程必须自毁：判据（环境变量）要出现在任何写盘/轮询之前。"""
+        text = read(self.NODE)
+        self.assertIn("AIRTS_INSTANCE_DIR", text)
+        self.assertIn("queue_free()", text, "普通进程不能自毁 = 给所有玩家加了开销")
+        ready = text[text.index("func _ready()"):]
+        ready = ready[:ready.index("\nfunc ", 1)]
+        self.assertIn("OS.get_environment(ENV_DIR)", ready, "开关没在 _ready 里读")
+        self.assertLess(ready.index("queue_free()"), ready.index("make_dir_recursive_absolute"),
+                        "自毁判定必须在建目录/写登记之前")
+
+    def test_node_has_watchdog_and_never_kills(self):
+        """看门狗在（启动器死了要自退），且**游戏侧永不杀别人的进程**（只报告）。"""
+        text = read(self.NODE)
+        # 只查**非注释行**：文件里用注释解释了"为什么不能用某个 API"，不该被自己误伤
+        # （同口径见本文件 test_panel_reads_reply_as_bytes_not_per_chunk）。
+        code = "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("#"))
+        self.assertIn("AIRTS_PARENT_PID", text, "缺少启动器 pid 契约")
+        self.assertIn("heartbeat_at", text, "看门狗没有走租约心跳（见下条）")
+        self.assertNotIn("OS.is_process_running", code,
+                         "不许用 OS.is_process_running 判外部启动器存活：它只认自己 spawn 的子进程，"
+                         "对外部 pid 永远 false —— 2026-09-29 实测把多开验证整轮打挂")
+        self.assertNotIn("OS.kill", code, "游戏侧不许杀进程：杀谁的进程必须由人/工具决定")
+        self.assertNotIn("kill_tree", code)
+
+    def test_tool_reads_registry_json_and_cleans_by_pid(self):
+        self.assertTrue(os.path.exists(self.TOOL), "缺少实例工具 tools/dev/match_instance.py")
+        text = read(self.TOOL)
+        self.assertIn("dev_ports.json", text, "工具没读端口口径表（又回到各写一份）")
+        self.assertIn("dynamic_dev", text, "工具没用动态段")
+        self.assertIn("ParentLease", text, "工具没写启动器租约（游戏侧看门狗会误判/失效）")
+        self.assertIn("taskkill", text, "工具没有按进程树清理")
+        self.assertIn("/T", text, "taskkill 必须带 /T（整棵进程树），否则子进程会留下")
+
+
 class AcceptanceGuardTest(unittest.TestCase):
     """验收侧的两条硬闸门（脚本里必须真的调用它们）。"""
 

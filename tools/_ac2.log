@@ -1,0 +1,334 @@
+Godot Engine v4.7.1.stable.mono.official.a13da4feb - https://godotengine.org
+
+[DBGCTL] 端口 24579 被占用, 调试控制端点未启动
+[godot_ai game_helper] registered mcp capture (debugger active=false, logger=true)
+G4PERF fog_resize 416x416 px_per_m=2
+SCRIPT ERROR: Assertion failed: Navmesh 'agent_radius' must match established constant
+   at: _safety_checks (res://source/match/AirNavigation.gd:107)
+   GDScript backtrace (most recent call first):
+       [0] _safety_checks (res://source/match/AirNavigation.gd:107)
+       [1] _ready (res://source/match/AirNavigation.gd:19)
+       [2] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:37)
+SCRIPT ERROR: Assertion failed.
+   at: _ready (res://source/match/AirNavigation.gd:19)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/AirNavigation.gd:19)
+       [1] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:37)
+G4PERF fog_resize 416x416 px_per_m=2
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=2 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=1 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=3 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=4 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=4 tint=(0.4, 0.6941, 1.0, 1.0)
+SCRIPT ERROR: Assertion failed: Unit radius exceeds the established limit
+   at: _safety_checks (res://source/match/units/Unit.gd:744)
+   GDScript backtrace (most recent call first):
+       [0] _safety_checks (res://source/match/units/Unit.gd:744)
+       [1] _ready (res://source/match/units/Unit.gd:128)
+       [2] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:37)
+SCRIPT ERROR: Assertion failed.
+   at: _ready (res://source/match/units/Unit.gd:128)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:128)
+       [1] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:37)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=8 tint=(0.4, 0.6941, 1.0, 1.0)
+SCRIPT ERROR: Assertion failed: Unit radius exceeds the established limit
+   at: _safety_checks (res://source/match/units/Unit.gd:744)
+   GDScript backtrace (most recent call first):
+       [0] _safety_checks (res://source/match/units/Unit.gd:744)
+       [1] _ready (res://source/match/units/Unit.gd:128)
+       [2] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:37)
+SCRIPT ERROR: Assertion failed.
+   at: _ready (res://source/match/units/Unit.gd:128)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:128)
+       [1] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:37)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=11 tint=(0.4, 0.6941, 1.0, 1.0)
+SCRIPT ERROR: Assertion failed: Unit radius exceeds the established limit
+   at: _safety_checks (res://source/match/units/Unit.gd:752)
+   GDScript backtrace (most recent call first):
+       [0] _safety_checks (res://source/match/units/Unit.gd:752)
+       [1] _ready (res://source/match/units/Unit.gd:128)
+       [2] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:37)
+SCRIPT ERROR: Assertion failed.
+   at: _ready (res://source/match/units/Unit.gd:128)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:128)
+       [1] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:37)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+SCRIPT ERROR: Assertion failed: Unit radius exceeds the established limit
+   at: _safety_checks (res://source/match/units/Unit.gd:752)
+   GDScript backtrace (most recent call first):
+       [0] _safety_checks (res://source/match/units/Unit.gd:752)
+       [1] _ready (res://source/match/units/Unit.gd:128)
+       [2] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:37)
+SCRIPT ERROR: Assertion failed.
+   at: _ready (res://source/match/units/Unit.gd:128)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:128)
+       [1] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:37)
+[G4PERF] minimap viewport=416x416 scale=2.000
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:196)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:179)
+       [2] _ready (res://source/match/hud/Minimap.gd:105)
+       [3] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:37)
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:196)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:179)
+       [2] _follow_minimap_fog_mask (res://source/match/hud/Minimap.gd:116)
+       [3] _ready (res://source/match/hud/Minimap.gd:109)
+       [4] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:37)
+G4PERF command_runtime_us=5490 frames=1
+G4PERF production_runtime_us=1203 frames=1
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:196)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:179)
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:196)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:179)
+[INPUT] UnitActionsController waiting for local player player=Human
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:196)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:179)
+WARNING: Property agent_height is ceiled to cell_height voxel units and loses precision.
+G4PERF command_runtime_us=120 frames=2
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:367)
+G4PERF production_runtime_us=79 frames=2
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+NAVDBG air polygons=2 vertices=4 rid_valid=true region_on_our_map=true map_active=true
+NAVDBG bake map=/root/AutomaticConstructionSmokeTest/Match/Map StaticBody3D in subtree=0
+WARNING: Property agent_height is ceiled to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:367)
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+NAVDBG polygons=116 vertices=98
+[ECO] PublishSnapshot player=d02498ff a=0
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:196)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:179)
+[INPUT] UnitActionsController enabled player=Human
+[ECO] PublishSnapshot player=d02498ff a=30000
+[ECO] ApplyLegacy reason=ScriptedAdjustment player=d02498ff status=Applied a=30000
+[ECO] PublishSnapshot player=d02498ff a=29400
+[ECO] ApplyLegacy reason=ConstructionCost player=d02498ff status=Applied a=29400
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=1 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+SCRIPT ERROR: Assertion failed: Unit radius exceeds the established limit
+   at: _safety_checks (res://source/match/units/Unit.gd:752)
+   GDScript backtrace (most recent call first):
+       [0] _safety_checks (res://source/match/units/Unit.gd:752)
+       [1] _ready (res://source/match/units/Unit.gd:128)
+       [2] _setup_and_spawn_unit (res://source/match/Match.gd:742)
+       [3] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:75)
+       [4] wait_for_units (res://tests/automated/SmokeTestWarmup.gd:33)
+       [5] _wait_for_usable_navigation (res://tests/automated/SmokeTestWarmup.gd:60)
+SCRIPT ERROR: Assertion failed.
+   at: _ready (res://source/match/units/Unit.gd:128)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:128)
+       [1] _setup_and_spawn_unit (res://source/match/Match.gd:742)
+       [2] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:75)
+       [3] wait_for_units (res://tests/automated/SmokeTestWarmup.gd:33)
+       [4] _wait_for_usable_navigation (res://tests/automated/SmokeTestWarmup.gd:60)
+G4PERF command_runtime_us=56 frames=40
+G4PERF production_runtime_us=3 frames=40
+G4PERF movement_us=24 unit=Drone
+G4PERF movement_us=24 unit=Helicopter
+G4PERF movement_us=37 unit=Tank
+G4PERF movement_us=32 unit=Worker
+G4PERF movement_us=43 unit=Unit_1
+G4PERF command_runtime_us=65 frames=80
+G4PERF production_runtime_us=10 frames=80
+G4PERF movement_us=73 unit=Drone
+G4PERF movement_us=32 unit=Helicopter
+G4PERF movement_us=83 unit=Tank
+G4PERF movement_us=48 unit=Worker
+G4PERF movement_us=48 unit=Unit_1
+G4PERF command_runtime_us=65 frames=120
+G4PERF production_runtime_us=8 frames=120
+G4PERF movement_us=34 unit=Drone
+G4PERF movement_us=63 unit=Helicopter
+G4PERF movement_us=58 unit=Tank
+G4PERF movement_us=38 unit=Worker
+G4PERF movement_us=40 unit=Unit_1
+G4PERF command_runtime_us=50 frames=160
+G4PERF production_runtime_us=6 frames=160
+G4PERF movement_us=26 unit=Drone
+G4PERF movement_us=25 unit=Helicopter
+G4PERF movement_us=43 unit=Tank
+G4PERF movement_us=36 unit=Worker
+G4PERF movement_us=41 unit=Unit_1
+G4PERF command_runtime_us=35 frames=200
+G4PERF production_runtime_us=3 frames=200
+G4PERF movement_us=27 unit=Drone
+G4PERF movement_us=24 unit=Helicopter
+G4PERF movement_us=48 unit=Tank
+G4PERF movement_us=41 unit=Worker
+G4PERF movement_us=40 unit=Unit_1
+[ECO] PublishSnapshot player=d02498ff a=29300
+[AUTOSPOT] 无合法落点，收集到的 issues=["[\"SurfaceNotBuildable\", \"Occupied\"]", "[\"Occupied\"]", "[\"NotVisible\", \"SurfaceNotBuildable\"]", "[\"NotVisible\", \"OutOfBounds\", \"SurfaceNotBuildable\"]", "[\"OutOfBounds\", \"SurfaceNotBuildable\", \"Occupied\"]", "[\"NotVisible\"]", "[\"OutOfBounds\", \"SurfaceNotBuildable\"]"]
+FAIL: 应在主基地周围找到合法车厂落点
+ERROR: Automatic construction smoke test assertion failed: 应在主基地周围找到合法车厂落点
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check (res://tests/automated/AutomaticConstructionSmokeTest.gd:291)
+       [1] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:116)
+[ECO] PublishSnapshot player=d02498ff a=28700
+[ECO] ApplyLegacy reason=ConstructionCost player=d02498ff status=Applied a=28700
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=3 tint=(0.4, 0.6941, 1.0, 1.0)
+G4PERF command_runtime_us=50 frames=240
+G4PERF production_runtime_us=75 frames=240
+G4PERF movement_us=32 unit=Drone
+G4PERF movement_us=25 unit=Helicopter
+G4PERF movement_us=45 unit=Tank
+G4PERF movement_us=78 unit=Worker
+G4PERF movement_us=58 unit=Unit_1
+WARNING: Property agent_height is ceiled to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:367)
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+NAVDBG polygons=116 vertices=98
+G4PERF command_runtime_us=60 frames=280
+G4PERF production_runtime_us=73 frames=280
+G4PERF movement_us=64 unit=Drone
+G4PERF movement_us=46 unit=Helicopter
+G4PERF movement_us=71 unit=Tank
+G4PERF movement_us=39 unit=Worker
+G4PERF movement_us=55 unit=Unit_1
+G4PERF command_runtime_us=43 frames=320
+G4PERF production_runtime_us=85 frames=320
+G4PERF movement_us=56 unit=Drone
+G4PERF movement_us=37 unit=Helicopter
+G4PERF movement_us=51 unit=Tank
+G4PERF movement_us=55 unit=Worker
+G4PERF movement_us=106 unit=Unit_1
+SCRIPT ERROR: Assertion failed: Unit radius exceeds the established limit
+   at: _safety_checks (res://source/match/units/Unit.gd:752)
+   GDScript backtrace (most recent call first):
+       [0] _safety_checks (res://source/match/units/Unit.gd:752)
+       [1] _ready (res://source/match/units/Unit.gd:128)
+       [2] _ready (res://source/match/units/Infantry.gd:7)
+       [3] _setup_and_spawn_unit (res://source/match/Match.gd:742)
+       [4] try_deploy_authoritative (res://source/match/units/traits/ProductionQueue.gd:268)
+   C# backtrace (most recent call first):
+       [0] Godot.Variant Godot.NativeCalls.godot_icall_2_923(nint, nint, Godot.NativeInterop.godot_string_name, System.ReadOnlySpan`1[Godot.Variant], Godot.NativeInterop.godot_string_name) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/NativeCalls.cs:8222)
+       [1] Godot.Variant Godot.GodotObject.Call(Godot.StringName, Godot.Variant[]) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/GodotObject.cs:749)
+       [2] AI_RTS.Application.Production.ProductionDeploymentResult AI_RTS.GodotAdapter.Production.GodotProductionDeploymentPort.TryDeploy(AI_RTS.Domain.Production.ProductionItemSnapshot) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Production\GodotProductionDeploymentPort.cs:25)
+       [3] void AI_RTS.Application.Production.ProductionService.TryComplete(AI_RTS.Domain.Production.ProductionItemSnapshot, long) (G:\AIRTS\AI_RTS\source\csharp\Application\Production\ProductionService.cs:288)
+       [4] void AI_RTS.Application.Production.ProductionService.Advance(long) (G:\AIRTS\AI_RTS\source\csharp\Application\Production\ProductionService.cs:248)
+       [5] void AI_RTS.GodotAdapter.Production.ProductionRuntime._PhysicsProcess(double) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Production\ProductionRuntime.cs:59)
+       [6] bool Godot.Node.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/Node.cs:2648)
+       [7] bool AI_RTS.GodotAdapter.Production.ProductionRuntime.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (G:\AIRTS\AI_RTS\.godot\mono\temp\obj\Debug\Godot.SourceGenerators\Godot.SourceGenerators.ScriptMethodsGenerator\AI_RTS.GodotAdapter.Production.ProductionRuntime_ScriptMethods.generated.cs:120)
+       [8] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+SCRIPT ERROR: Assertion failed.
+   at: _ready (res://source/match/units/Unit.gd:128)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:128)
+       [1] _ready (res://source/match/units/Infantry.gd:7)
+       [2] _setup_and_spawn_unit (res://source/match/Match.gd:742)
+       [3] try_deploy_authoritative (res://source/match/units/traits/ProductionQueue.gd:268)
+   C# backtrace (most recent call first):
+       [0] Godot.Variant Godot.NativeCalls.godot_icall_2_923(nint, nint, Godot.NativeInterop.godot_string_name, System.ReadOnlySpan`1[Godot.Variant], Godot.NativeInterop.godot_string_name) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/NativeCalls.cs:8222)
+       [1] Godot.Variant Godot.GodotObject.Call(Godot.StringName, Godot.Variant[]) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/GodotObject.cs:749)
+       [2] AI_RTS.Application.Production.ProductionDeploymentResult AI_RTS.GodotAdapter.Production.GodotProductionDeploymentPort.TryDeploy(AI_RTS.Domain.Production.ProductionItemSnapshot) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Production\GodotProductionDeploymentPort.cs:25)
+       [3] void AI_RTS.Application.Production.ProductionService.TryComplete(AI_RTS.Domain.Production.ProductionItemSnapshot, long) (G:\AIRTS\AI_RTS\source\csharp\Application\Production\ProductionService.cs:288)
+       [4] void AI_RTS.Application.Production.ProductionService.Advance(long) (G:\AIRTS\AI_RTS\source\csharp\Application\Production\ProductionService.cs:248)
+       [5] void AI_RTS.GodotAdapter.Production.ProductionRuntime._PhysicsProcess(double) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Production\ProductionRuntime.cs:59)
+       [6] bool Godot.Node.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/Node.cs:2648)
+       [7] bool AI_RTS.GodotAdapter.Production.ProductionRuntime.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (G:\AIRTS\AI_RTS\.godot\mono\temp\obj\Debug\Godot.SourceGenerators\Godot.SourceGenerators.ScriptMethodsGenerator\AI_RTS.GodotAdapter.Production.ProductionRuntime_ScriptMethods.generated.cs:120)
+       [8] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+[ACT] Unit_3 puppet=false in_tree=true locked=false script=res://source/match/units/actions/WaitingForTargets.gd
+[ACT] Unit_3 attached child=false
+[ACT] Unit_3 已 add_child: in_tree=true
+G4PERF command_runtime_us=32 frames=360
+G4PERF production_runtime_us=2 frames=360
+G4PERF movement_us=25 unit=Drone
+G4PERF movement_us=27 unit=Helicopter
+G4PERF movement_us=46 unit=Tank
+G4PERF movement_us=47 unit=Worker
+G4PERF movement_us=41 unit=Unit_1
+G4PERF movement_us=43 unit=Unit_3
+G4PERF command_runtime_us=54 frames=400
+G4PERF production_runtime_us=3 frames=400
+G4PERF movement_us=33 unit=Drone
+G4PERF movement_us=28 unit=Helicopter
+G4PERF movement_us=41 unit=Tank
+G4PERF movement_us=45 unit=Worker
+G4PERF movement_us=43 unit=Unit_1
+G4PERF movement_us=43 unit=Unit_3
+[ACT] Unit_2 puppet=false in_tree=true locked=false script=res://source/match/units/actions/WaitingForTargets.gd
+[ACT] Unit_2 attached child=false
+[ACT] Unit_2 已 add_child: in_tree=true
+[AUTOSPOT] 无合法落点，收集到的 issues=["[\"SurfaceNotBuildable\", \"Occupied\"]", "[\"Occupied\"]", "[\"NotVisible\", \"SurfaceNotBuildable\"]", "[\"NotVisible\", \"OutOfBounds\", \"SurfaceNotBuildable\"]", "[\"OutOfBounds\", \"SurfaceNotBuildable\", \"Occupied\"]", "[\"NotVisible\"]", "[\"OutOfBounds\", \"SurfaceNotBuildable\"]"]
+FAIL: 取消测试应在主基地周围找到合法兵营落点
+ERROR: Automatic construction smoke test assertion failed: 取消测试应在主基地周围找到合法兵营落点
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check (res://tests/automated/AutomaticConstructionSmokeTest.gd:291)
+       [1] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:177)
+Automatic construction smoke test completed: 2 failure(s)
+[EXIT-TRACE] EXIT_TREE：场景树收尾（tick=-1，场景=unknown，对局结果=无该节点）
+[EXIT-TRACE] PREDELETE：引擎收尾（Globals 释放，tick=unknown(已脱离场景树)）
+ERROR: 3 RID allocations of type '13NavObstacle3D' were leaked at exit.
+ERROR: 3 RID allocations of type '10NavAgent3D' were leaked at exit.
+ERROR: 3 RID allocations of type 'P11GodotArea3D' were leaked at exit.
+ERROR: 1 RID allocations of type 'P12GodotShape3D' were leaked at exit.
+ERROR: 11 RID allocations of type 'N13RendererDummy15MaterialStorage13DummyMaterialE' were leaked at exit.
+ERROR: 1 RID allocations of type 'N13RendererDummy15MaterialStorage11DummyShaderE' were leaked at exit.
+ERROR: 16 RID allocations of type 'N13RendererDummy9DummyMeshE' were leaked at exit.
+ERROR: 30 RID allocations of type 'N17RendererSceneCull8InstanceE' were leaked at exit.
+ERROR: Pages in use exist at exit in PagedAllocator: N20RasterizerSceneDummy21GeometryInstanceDummyE
+   at: ~PagedAllocator (./core/templates/paged_allocator.h:170)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: 142 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2536)
+ERROR: 31 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

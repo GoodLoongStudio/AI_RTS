@@ -1,0 +1,12 @@
+{
+ "height_data": "res://source/match/maps/generated/16-0-7544ea830a/height_data.bin",
+ "height_data_sha256": "f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b",
+ "map_id": "16-0-7544ea830a",
+ "name": "Generated 16-0-7544ea830a",
+ "path": "res://source/match/maps/generated/16-0-7544ea830a/map_16-0-7544ea830a.tscn",
+ "players": 4,
+ "size": [
+  256,
+  256
+ ]
+}

@@ -1,0 +1,32 @@
+[
+  {
+    "id": "rule-ai-economy-query",
+    "category": "traditional-ai",
+    "scene": "res://tests/automated/RuleAiEconomyQuerySmokeTest.tscn",
+    "returncode": 1,
+    "seconds": 8.4,
+    "marker_ok": false,
+    "marker": "Rule AI economy query smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "2"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 214
+  },
+  {
+    "id": "rule-ai-offense-logistics",
+    "category": "traditional-ai",
+    "scene": "res://tests/automated/RuleAiOffenseLogisticsSmokeTest.tscn",
+    "returncode": 1,
+    "seconds": 28.7,
+    "marker_ok": false,
+    "marker": "Rule AI offense logistics smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "2"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 538
+  }
+]

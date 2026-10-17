@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tests/automated/_CallbackCostAtLoad.gd" id="1_cc"]
+
+[node name="CallbackCostAtLoad" type="Node"]
+script = ExtResource("1_cc")

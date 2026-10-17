@@ -34,13 +34,17 @@ func _ready():
 	var factory = human.get_node("VehicleFactory")
 	var queue = factory.production_queue
 	var runtime = match_instance.get_node("ProductionRuntime")
+	var tank_cost = match_instance.get_node("BalanceConfigRuntime").GetProductionCost(TankScene)
+	# 注入量按**当前 Tank 造价**推导（写死 3000 只够旧造价 500 的 5 台；2026-09-29
+	# 目录把 tank 调到 A×1050 后只能入队 2 台，于是"容量 5 / 扣款 / 队列一致性"
+	# 整串断言一起变红 —— 那是夹具的钱包过期，不是队列坏了）。
+	var grant_a: int = int(tank_cost["resource_a"]) * 5 + 1000
 	_check(
-		human.add_resources({"resource_a": 3000}, "ScriptedAdjustment"),
+		human.add_resources({"resource_a": grant_a}, "ScriptedAdjustment"),
 		"测试资源注入应成功"
 	)
 	var full_balance_a: int = human.resource_a
 	var full_balance_b: int = human.resource_b
-	var tank_cost = match_instance.get_node("BalanceConfigRuntime").GetProductionCost(TankScene)
 
 	for _index in range(5):
 		_check(queue.produce(TankScene) != null, "容量内的生产项目应入队")

@@ -1,0 +1,57 @@
+{
+  "job_id": "e64da9b6280b470f804d2a8b64ecfe0c",
+  "seed": 36,
+  "terrain": 806394024,
+  "target": "full",
+  "status": "error",
+  "title": "布局 36 · 地貌 806394024",
+  "label": null,
+  "map_pass": null,
+  "created_at": "2026-09-29T00:02:38",
+  "reverified_with_current_code": false,
+  "visual_version": 1,
+  "visual_profile": "default",
+  "map_id": null,
+  "checks_summary": {},
+  "failed_paths": [],
+  "failed_forbidden": [],
+  "nav_all": null,
+  "smoke_assertions": {},
+  "stages": {
+    "G1": {
+      "state": "通过",
+      "images": [
+        "contact.png"
+      ],
+      "preview": "contact.png",
+      "version": "2.0.0",
+      "history_versions": []
+    },
+    "G2": {
+      "state": "未生成",
+      "images": [],
+      "preview": null,
+      "version": "7.11.0",
+      "history_versions": []
+    },
+    "G3": {
+      "state": "未生成",
+      "images": [],
+      "preview": null,
+      "version": null,
+      "history_versions": []
+    },
+    "G4": {
+      "state": "未生成",
+      "images": [],
+      "preview": null,
+      "version": null,
+      "history_versions": []
+    }
+  },
+  "folder": "job_layout36_terrain806394024_e64da9b6",
+  "gate": "G4",
+  "source_job": "G:\\AIRTS\\AI_RTS\\tools\\mapgen\\workbench_output\\e64da9b6280b470f804d2a8b64ecfe0c\\job.json",
+  "synced_at": "2026-09-29T00:02:39",
+  "note": "图像来自本任务权威数据/真实引擎输出；生成或导航通过不等于实战通过。"
+}

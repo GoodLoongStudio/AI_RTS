@@ -3,6 +3,7 @@ extends "res://source/match/units/actions/Action.gd"
 const OpportunisticMovingFire = preload(
 	"res://source/match/units/actions/OpportunisticMovingFire.gd"
 )
+const AiPerfStats = preload("res://source/match/players/simple-clairvoyant-ai/AiPerfStats.gd")
 
 var _target_position = null
 var _enable_opportunistic_fire := false
@@ -14,8 +15,8 @@ var _applied := false
 ## 调试开关：逐命令打印移动目标。默认关闭，避免数百单位刷屏（诊断时置 true）。
 static var debug_log_moves := false
 
-@onready var _unit = Utils.NodeEx.find_parent_with_group(self, "units")
-@onready var _movement_trait = _unit.find_child("Movement") if _unit != null else null
+var _unit = null
+var _movement_trait = null
 
 
 static func is_applicable(unit):
@@ -28,10 +29,22 @@ func _init(target_position, enable_opportunistic_fire := false):
 
 
 func _ready():
+	var perf_on := AiPerfStats.enabled()
+	var resolve_started := Time.get_ticks_usec() if perf_on else 0
+	_unit = Utils.NodeEx.find_parent_with_group(self, "units")
+	_movement_trait = _unit.find_child("Movement") if _unit != null else null
+	if perf_on:
+		AiPerfStats.add("move_resolve", Time.get_ticks_usec() - resolve_started)
 	_try_apply_move()
 
 
 func _exit_tree():
+	# 【2026-09-30 修复：玩家点地面却原地不动（验证席三条用例确证有效）】
+	# 换动作时旧动作是 queue_free，其 _exit_tree 会调用 stop()，把**新动作刚下发**的移动目标
+	# 清掉 —— 新动作随即收到"结束（Arrived）"并自杀，单位回落 WaitingForTargets。
+	# 判据：只有"自己仍是该单位当前动作"时才停移动；已被替换就不要再碰移动特质。
+	if _unit != null and is_instance_valid(_unit) and _unit.get("action") != self:
+		return
 	if _movement_trait != null and is_instance_valid(_movement_trait) and is_inside_tree():
 		_movement_trait.stop()
 
@@ -66,11 +79,19 @@ func _try_apply_move():
 	_applied = true
 	if debug_log_moves:
 		print("[MOVE] ", _unit.name, " move-> ", _target_position)
-	_movement_trait.move(_target_position)
+	var perf_on := AiPerfStats.enabled()
+	var apply_started := Time.get_ticks_usec() if perf_on else 0
 	_movement_trait.movement_finished.connect(_on_movement_finished)
+	# An immediate terminal result must reach the action before dispatch returns.
+	_movement_trait.move(_target_position)
+	if perf_on:
+		AiPerfStats.add("move_apply", Time.get_ticks_usec() - apply_started)
 	if _enable_opportunistic_fire:
+		var fire_started := Time.get_ticks_usec() if perf_on else 0
 		_moving_fire = OpportunisticMovingFire.new()
 		add_child(_moving_fire)
+		if perf_on:
+			AiPerfStats.add("move_fire", Time.get_ticks_usec() - fire_started)
 
 
 func _on_movement_finished():

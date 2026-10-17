@@ -135,6 +135,7 @@ def pipeline_server(tmp_path, monkeypatch):
                                  profile=params.get('visual_profile')))
         (out_dir / f'map_{map_id}.tscn').write_text('[gd_scene]\n; fake', encoding='utf-8')
         (out_dir / 'height_data.bin').write_bytes(b'\x00' * 64)
+        (out_dir / 'geometry_contract.json').write_text(json.dumps(g4_export.world_contract()), encoding='utf-8')
         rd = Path(runs) / str(seed) / 'G4'
         rd.mkdir(parents=True, exist_ok=True)
         (rd / 'export.json').write_text(json.dumps(dict(
@@ -260,6 +261,9 @@ def test_map_id_isolates_same_seed_different_params(tmp_path):
         out.mkdir()
         (out / f'map_{mid}.tscn').write_text(f'[gd_scene]\n; {marker}', encoding='utf-8')
         (out / 'height_data.bin').write_bytes(marker.encode())
+        (out / 'geometry_contract.json').write_text(json.dumps(g4_export.world_contract()), encoding='utf-8')
+        for name in ('terrain_masks.png', 'minimap_preview.png'):
+            (out / name).write_bytes(marker.encode())
         outs[tag] = out
     g4_export.install_map(outs['a'], mid_a, airts)
     g4_export.install_map(outs['b'], mid_b, airts)
@@ -384,6 +388,7 @@ def _bundle_fixture(tmp_path, monkeypatch, with_assets=True):
     g4.mkdir(parents=True)
     (g4 / f'map_{map_id}.tscn').write_text('[gd_scene]', encoding='utf-8')
     (g4 / 'height_data.bin').write_bytes(b'\x00' * 8)
+    (g4 / 'geometry_contract.json').write_text(json.dumps(g4_export.world_contract()), encoding='utf-8')
     runs = folder / 'runs' / str(seed)
     for gate in ('G1', 'G2', 'G3', 'G4'):
         (runs / gate).mkdir(parents=True)

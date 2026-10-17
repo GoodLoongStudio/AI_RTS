@@ -27,6 +27,7 @@ var _match: Node = null
 var _frame := 0
 var _live := false
 var _local_match_started := false
+var _client_manifest_submitted := false
 # 当前转发的命令是否副官下发（DCS `_adjutant_execute` 期间置位）：
 # 客户端傀儡端的副官命令同样走 `forward_command`，必须带来源标记，
 # 否则局服会把它们当成玩家手动命令并收回托管（见 ADJUTANT_SOURCE_MARKER）。
@@ -74,6 +75,8 @@ func _ready() -> void:
 	if not NetSession.is_networked():
 		return
 	MatchSignals.match_started.connect(_on_any_match_started)
+	NetSession.server_match_ready.connect(_try_submit_manifest)
+	_try_submit_manifest()
 	# 对局结束广播(2026-08-31): 服务器结算后通知所有客户端回主菜单,
 	# 否则客户端滞留死亡对局——视野归零全黑+HUD(黑屏假象), 且专用服不回收。
 	MatchSignals.match_finished_with_defeat.connect(_on_match_finished.bind("失败"))
@@ -140,14 +143,28 @@ func _hud_tick(delta: float) -> void:
 
 
 func _on_any_match_started() -> void:
-	NetSession.notify_match_ready()
-	# match_started 在初始单位装配完成后发射（Match.gd:88），此时清单已稳定。
+	# A renamed old Match may still receive this global signal until queue_free.
+	if get_tree().root.get_node_or_null("Match/NetSync") != self or _local_match_started:
+		return
+	# Initial entities are stable when the current Match emits match_started.
 	_own_manifest = _collect_unit_paths()
-	if not NetSession.is_server():
-		_rpc_submit_manifest.rpc_id(1, _own_manifest)
+	_local_match_started = true
+	NetSession.notify_match_ready()
 	if NetSession.is_server():
-		_local_match_started = true
 		_try_go_live()
+	else:
+		_try_submit_manifest()
+
+
+func _try_submit_manifest() -> void:
+	if not _local_match_started or _client_manifest_submitted:
+		return
+	if not NetSession.is_networked() or NetSession.is_server() or not NetSession.is_server_match_ready():
+		return
+	if get_tree().root.get_node_or_null("Match/NetSync") != self:
+		return
+	_client_manifest_submitted = true
+	_rpc_submit_manifest.rpc_id(1, _own_manifest)
 
 
 func _try_go_live() -> void:
@@ -320,7 +337,9 @@ func _on_unit_spawned(unit: Node) -> void:
 
 
 func _on_unit_tree_exited(path: String) -> void:
-	if not NetSession.is_server() or not _live:
+	# Match queue_free 后，单位的 tree_exited 可能晚于 NetSync 自身离树；
+	# 此时再发 RPC 只会触发 Godot `!is_inside_tree()`，也没有客户端需要同步。
+	if not is_inside_tree() or not is_instance_valid(_match) or not NetSession.is_server() or not _live:
 		return
 	_rpc_despawn.rpc(path)
 
@@ -501,8 +520,12 @@ func apply_client_snapshot(
 			# 视觉表现为单位原地高频抖动/瞬转（2026-09-02 移动故障视频定位）。
 			_interp_prev_yaw[path] = _interp_target_yaw.get(path, float(item["yaw"]))
 			_interp_target_yaw[path] = float(item["yaw"])
+		if item.has("hp_max") and item["hp_max"] != null and "hp_max" in unit:
+			unit.hp_max = float(item["hp_max"])
 		if item.has("hp") and item["hp"] != null and "hp" in unit:
 			_apply_authoritative_hp(unit, float(item["hp"]))
+		if item.has("repairing") and unit.has_method("present_repairing"):
+			unit.present_repairing(bool(item["repairing"]))
 		if item.has("action") and unit.has_method("apply_presentation_action"):
 			unit.apply_presentation_action(str(item["action"]))
 		# 矿点存量/再生镜像：客户端只接受权威数值，自己**不推进**计时（避免两端各自刷矿）。
@@ -539,6 +562,10 @@ func apply_client_snapshot(
 			)
 
 
+func has_authoritative_snapshot() -> bool:
+	return _last_snap_msec > 0
+
+
 func _broadcast_snapshot() -> void:
 	var command_runtime = _match.get_node_or_null("CommandRuntime")
 	var entries_all: Array = []  # [{unit, entry}]：快照条目（供逐客户端迷雾过滤）
@@ -550,9 +577,12 @@ func _broadcast_snapshot() -> void:
 			"pos": unit.global_position,
 			"yaw": unit.rotation.y,
 			"hp": unit.hp if ("hp" in unit and unit.hp != null) else 0,
+			"hp_max": unit.hp_max if ("hp_max" in unit and unit.hp_max != null) else null,
 			"stance": _authoritative_stance(unit, command_runtime),
 			"fire_policy": _authoritative_fire_policy(unit, command_runtime),
 		}
+		if unit.has_method("is_repairing"):
+			entry["repairing"] = unit.is_repairing()
 		# 当前动作路径：傀儡本地拿不到 `action`（Unit._set_action 主动丢弃），
 		# 表现层与 UI 需要它来判断"在建造/采集/攻击"（例如建造预览要避开建造中的工人）。
 		if "action" in unit and unit.action != null and unit.action.get_script() != null:
@@ -1168,6 +1198,12 @@ func _rpc_order_visual(payload: Dictionary) -> void:
 ## 只发给客户端：房主/单机本地已有 Action 驱动表现，再补一次会变成"双份音效/动画"。
 ## ---------------------------------------------------------------------------
 func broadcast_presentation(kind: String, path: String, payload: Dictionary = {}) -> void:
+	# 采集 Action 离树时会补发停止表现；NetSync 可能已经先于单位离树。
+	# 表现事件只属于仍在场景树中的对局，退局期间不能再发送 RPC。
+	if not is_inside_tree() or is_queued_for_deletion():
+		return
+	if not is_instance_valid(_match) or not _match.is_inside_tree() or _match.is_queued_for_deletion():
+		return
 	if not NetSession.is_networked() or not NetSession.is_server():
 		return
 	var event := payload.duplicate()
@@ -1178,6 +1214,10 @@ func broadcast_presentation(kind: String, path: String, payload: Dictionary = {}
 
 @rpc("authority", "reliable")
 func _rpc_presentation(event: Dictionary) -> void:
+	if not is_inside_tree() or is_queued_for_deletion():
+		return
+	if not is_instance_valid(_match) or not _match.is_inside_tree() or _match.is_queued_for_deletion():
+		return
 	if NetSession.is_server():
 		return
 	var unit := _match.get_node_or_null(NodePath(str(event.get("path", ""))))

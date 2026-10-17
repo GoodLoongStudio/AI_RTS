@@ -26,7 +26,7 @@ from . import compat, engine
 from .catalog import layout_catalog
 from .settings import generator_params
 
-PIPELINE_VERSION = "1.0.0"
+PIPELINE_VERSION = "1.1.0"
 STAGE_ORDER = ["g1_input", "g2_terrain", "g3_content", "g4_scene", "engine"]
 
 
@@ -79,6 +79,8 @@ class StageRecorder:
 def run_pipeline(job, project, folder, save, progress):
     """执行（或续跑）一个完整地图任务。job/folder/save 由 Workbench 提供。"""
     config = job["config"]
+    if job.get("pipeline_version") != PIPELINE_VERSION:
+        raise ValueError("Old map pipeline contract; start a new 512m generation job")
     seed = config["layout_seed"]
     runs = Path(folder) / "runs"
     review = Path(folder) / "review"
@@ -412,15 +414,16 @@ def _run_engine(job, folder, rec, save, progress):
 
     progress(dict(stage="引擎", phase="正交俯视截图"))
     ortho = shots / f"{map_id}_ortho.png"
-    records.append(dict(step="ortho", **engine.capture_ortho(airts, scene_res, ortho, log_dir)))
+    world_size = g4x.world_contract()["size"][0]
+    records.append(dict(step="ortho", **engine.capture_ortho(airts, scene_res, ortho, log_dir, size=world_size)))
     progress(dict(stage="引擎", phase="45°轴测截图"))
     iso45 = shots / f"{map_id}_iso45.png"
     records.append(dict(step="iso45", **engine.capture_ortho(airts, scene_res, iso45,
-                                                             log_dir, iso45=True)))
+                                                             log_dir, iso45=True, size=world_size)))
     progress(dict(stage="引擎", phase="游戏斜视截图"))
     oblique = shots / f"{map_id}_oblique.png"
     records.append(dict(step="oblique", **engine.capture_ortho(airts, scene_res, oblique,
-                                                               log_dir, oblique=True)))
+                                                               log_dir, oblique=True, size=world_size)))
 
     progress(dict(stage="引擎", phase="加载与定向导航验收"))
     targets = folder / "runs" / str(seed) / "G4" / "nav_targets.json"
@@ -472,11 +475,12 @@ def build_bundle(job, folder, save):
     (root / "assets").mkdir(parents=True)
     shutil.copy2(g4_dir / f"map_{map_id}.tscn", root / "source" / f"map_{map_id}.tscn")
     shutil.copy2(g4_dir / "height_data.bin", root / "source" / "height_data.bin")
+    shutil.copy2(g4_dir / "geometry_contract.json", root / "source" / "geometry_contract.json")
     index = {
         "path": f"res://source/match/maps/generated/{map_id}/map_{map_id}.tscn",
         "name": f"Generated {map_id}",
         "players": 4,
-        "size": [256, 256],
+        **g4_export.read_world_contract(g4_dir),
         "map_id": map_id,
         "height_data": f"res://source/match/maps/generated/{map_id}/height_data.bin",
         "height_data_sha256": sha256_file(g4_dir / "height_data.bin"),

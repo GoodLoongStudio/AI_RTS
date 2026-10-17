@@ -1,0 +1,251 @@
+[
+  {
+    "id": "adjutant-command-protocol",
+    "category": "adjutant",
+    "scene": "res://tests/automated/AdjutantCommandProtocolSmokeTest.tscn",
+    "returncode": 0,
+    "seconds": 4.1,
+    "marker_ok": true,
+    "marker": "Adjutant command protocol smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 1203
+  },
+  {
+    "id": "adjutant-credential",
+    "category": "adjutant",
+    "scene": "res://tests/automated/AdjutantCredentialSmokeTest.tscn",
+    "returncode": 0,
+    "seconds": 2.0,
+    "marker_ok": true,
+    "marker": "Adjutant credential smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 19
+  },
+  {
+    "id": "adjutant-connectivity",
+    "category": "adjutant",
+    "scene": "res://tests/automated/AdjutantConnectivitySmokeTest.tscn",
+    "returncode": 0,
+    "seconds": 1.9,
+    "marker_ok": true,
+    "marker": "Adjutant connectivity smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 22
+  },
+  {
+    "id": "adjutant-observation",
+    "category": "adjutant",
+    "scene": "res://tests/automated/AdjutantObservationSmokeTest.tscn",
+    "returncode": 0,
+    "seconds": 3.8,
+    "marker_ok": true,
+    "marker": "Adjutant observation smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 125
+  },
+  {
+    "id": "adjutant-rules-export",
+    "category": "adjutant",
+    "scene": "res://tests/automated/AdjutantRulesExportSmokeTest.tscn",
+    "returncode": 0,
+    "seconds": 3.3,
+    "marker_ok": true,
+    "marker": "Adjutant rules export smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 97
+  },
+  {
+    "id": "rule-ai-aggression",
+    "category": "traditional-ai",
+    "scene": "res://tests/automated/RuleAiAggressionSmokeTest.tscn",
+    "returncode": 0,
+    "seconds": 4.8,
+    "marker_ok": true,
+    "marker": "Rule AI aggression smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 125
+  },
+  {
+    "id": "reach-geometry",
+    "category": "traditional-ai",
+    "scene": "res://tests/automated/ReachGeometryProbe.tscn",
+    "returncode": 0,
+    "seconds": 7.5,
+    "marker_ok": true,
+    "marker": "Reach geometry probe completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [
+      "Cannot call method 'get_node' on a null value.",
+      "Invalid access to property or key 'navigation' on a base object of type 'null instance'."
+    ],
+    "log_lines": 2228
+  },
+  {
+    "id": "rule-ai-battlegroup",
+    "category": "traditional-ai",
+    "scene": "res://tests/automated/RuleAiBattlegroupSmokeTest.tscn",
+    "returncode": 0,
+    "seconds": 4.7,
+    "marker_ok": true,
+    "marker": "Rule AI battlegroup smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 137
+  },
+  {
+    "id": "rule-ai-defense",
+    "category": "traditional-ai",
+    "scene": "res://tests/automated/RuleAiDefenseSmokeTest.tscn",
+    "returncode": 0,
+    "seconds": 5.8,
+    "marker_ok": true,
+    "marker": "Rule AI defense smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 153
+  },
+  {
+    "id": "rule-ai-economy-query",
+    "category": "traditional-ai",
+    "scene": "res://tests/automated/RuleAiEconomyQuerySmokeTest.tscn",
+    "returncode": 1,
+    "seconds": 14.8,
+    "marker_ok": false,
+    "marker": "Rule AI economy query smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "2"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 234
+  },
+  {
+    "id": "rule-ai-expansion",
+    "category": "traditional-ai",
+    "scene": "res://tests/automated/RuleAiExpansionSmokeTest.tscn",
+    "returncode": 3221225477,
+    "seconds": 7.9,
+    "marker_ok": true,
+    "marker": "Rule AI expansion smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [
+      "System.AccessViolationException: Attempted to read or write protected memory. This is often an indication that "
+    ],
+    "log_lines": 191
+  },
+  {
+    "id": "rule-ai-intelligence",
+    "category": "traditional-ai",
+    "scene": "res://tests/automated/RuleAiIntelligenceSmokeTest.tscn",
+    "returncode": 0,
+    "seconds": 5.3,
+    "marker_ok": true,
+    "marker": "Rule AI intelligence smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 129
+  },
+  {
+    "id": "rule-ai-offense-logistics",
+    "category": "traditional-ai",
+    "scene": "res://tests/automated/RuleAiOffenseLogisticsSmokeTest.tscn",
+    "returncode": 1,
+    "seconds": 15.7,
+    "marker_ok": false,
+    "marker": "Rule AI offense logistics smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "3"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 385
+  },
+  {
+    "id": "adjutant-hud-status-discovery",
+    "category": "adjutant",
+    "scene": "res://tests/automated/AdjutantHudStatusDiscoveryTest.tscn",
+    "returncode": 0,
+    "seconds": 2.0,
+    "marker_ok": true,
+    "marker": "AdjutantHudStatusDiscovery: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 47
+  },
+  {
+    "id": "adjutant-model-service",
+    "category": "adjutant",
+    "scene": "res://tests/automated/AdjutantModelServiceSmokeTest.tscn",
+    "returncode": 0,
+    "seconds": 3.0,
+    "marker_ok": true,
+    "marker": "Adjutant model service smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 16
+  },
+  {
+    "id": "match-end-navigation",
+    "category": "adjutant",
+    "scene": "res://tests/automated/MatchEndNavigationSmokeTest.tscn",
+    "returncode": "timeout",
+    "seconds": 6668.8,
+    "marker_ok": true,
+    "marker": "Match end navigation smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [
+      "Cannot call method 'create_timer' on a null value.",
+      "Invalid access to property or key 'process_frame' on a base object of type 'null instance'.",
+      "Invalid access to property or key 'root' on a base object of type 'null instance'."
+    ],
+    "log_lines": 44
+  }
+]

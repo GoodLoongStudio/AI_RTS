@@ -1,0 +1,80 @@
+[
+  {
+    "id": "local-avoidance",
+    "category": "navigation",
+    "scene": "res://tests/automated/LocalAvoidanceSmokeTest.tscn",
+    "returncode": 0,
+    "seconds": 4.9,
+    "marker_ok": true,
+    "marker": "Local avoidance smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 87
+  },
+  {
+    "id": "movement-recovery",
+    "category": "navigation",
+    "scene": "res://tests/automated/MovementRecoverySmokeTest.tscn",
+    "returncode": 0,
+    "seconds": 71.4,
+    "marker_ok": true,
+    "marker": "Movement recovery smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 732
+  },
+  {
+    "id": "movement-scale",
+    "category": "navigation",
+    "scene": "res://tests/automated/MovementScaleSmokeTest.tscn",
+    "returncode": 0,
+    "seconds": 4.6,
+    "marker_ok": true,
+    "marker": "Movement scale smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [
+      "Cannot instantiate C# script because the associated class could not be found. Script: 'res://source/csharp/GodotAdapter/Adjutant/AdjutantObservationRuntime.cs'. Make s",
+      "Cannot instantiate C# script because the associated class could not be found. Script: 'res://source/csharp/GodotAdapter/Battlefield/BattlefieldEventRuntime.cs'. Make s",
+      "Cannot instantiate C# script because the associated class could not be found. Script: 'res://source/csharp/GodotAdapter/Combat/ProjectileRuntime.cs'. Make sure the scr",
+      "Cannot instantiate C# script because the associated class could not be found. Script: 'res://source/csharp/GodotAdapter/Composition/CommandRuntime.cs'. Make sure the s",
+      "Cannot instantiate C# script because the associated class could not be found. Script: 'res://source/csharp/GodotAdapter/Configuration/BalanceConfigRuntime.cs'. Make su",
+      "Cannot instantiate C# script because the associated class could not be found. Script: 'res://source/csharp/GodotAdapter/Construction/StructurePlacementRuntime.cs'. Mak",
+      "Cannot instantiate C# script because the associated class could not be found. Script: 'res://source/csharp/GodotAdapter/Economy/EconomyRuntime.cs'. Make sure the scrip",
+      "Cannot instantiate C# script because the associated class could not be found. Script: 'res://source/csharp/GodotAdapter/Input/InputBindingRuntime.cs'. Make sure the sc",
+      "Cannot instantiate C# script because the associated class could not be found. Script: 'res://source/csharp/GodotAdapter/Input/UnitCommandGateway.cs'. Make sure the scr",
+      "Cannot instantiate C# script because the associated class could not be found. Script: 'res://source/csharp/GodotAdapter/Match/MatchOutcomeRuntime.cs'. Make sure the sc",
+      "Cannot instantiate C# script because the associated class could not be found. Script: 'res://source/csharp/GodotAdapter/Production/ProductionRuntime.cs'. Make sure the",
+      "Cannot instantiate C# script because the associated class could not be found. Script: 'res://source/csharp/GodotAdapter/Queries/WorldQueryRuntime.cs'. Make sure the sc",
+      "Cannot instantiate C# script because the associated class could not be found. Script: 'res://source/csharp/GodotAdapter/Rally/RallyPointRuntime.cs'. Make sure the scri",
+      "Cannot instantiate C# script because the associated class could not be found. Script: 'res://source/csharp/GodotAdapter/Selection/ControlGroupRuntime.cs'. Make sure th",
+      "Cannot instantiate C# script because the associated class could not be found. Script: 'res://source/csharp/GodotAdapter/Units/Visuals/UnitVisualBindings.cs'. Make sure"
+    ],
+    "log_lines": 4807
+  },
+  {
+    "id": "unit-grounding",
+    "category": "navigation",
+    "scene": "res://tests/automated/UnitGroundingSmokeTest.tscn",
+    "returncode": 0,
+    "seconds": 4.7,
+    "marker_ok": true,
+    "marker": "Unit grounding smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [
+      "Cannot open file 'res://source/match/maps/generated/16-0/map_16-0.tscn'."
+    ],
+    "log_lines": 104
+  }
+]

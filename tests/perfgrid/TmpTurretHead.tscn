@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://b8pckq1xn44ss"]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="PackedScene" uid="uid://cgsi062w5fjia" path="res://source/match/units/traits/Highlight.tscn" id="1_5gp2d"]
 [ext_resource type="Script" path="res://source/match/units/AntiGroundTurret.gd" id="1_6hw4x"]

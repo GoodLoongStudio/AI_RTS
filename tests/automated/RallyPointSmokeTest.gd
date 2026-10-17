@@ -47,17 +47,17 @@ func _ready():
 	)
 
 	_check(
-		gateway.SetEngagementStance([command_center], "HoldGround", human)["status"] == "Accepted",
+		gateway.SetEngagementStance([vehicle_factory], "HoldGround", human)["status"] == "Accepted",
 		"无武器生产建筑应能保存出厂默认姿态"
 	)
 	_check(
-		gateway.SetFirePolicy([command_center], "HoldFire", human)["status"] == "Accepted",
+		gateway.SetFirePolicy([vehicle_factory], "HoldFire", human)["status"] == "Accepted",
 		"无武器生产建筑应能保存出厂默认开火策略"
 	)
 	# ⚠️ 注入额必须覆盖造价：Worker/Drone 在 demo.balance.v1.json 里各 200 A，
 	# 原来的 10 A 会让 C# ProductionService 直接判 InsufficientResources（produce 静默返回 null）。
 	human.add_resources({"resource_a": 1000}, "ScriptedAdjustment")
-	_check(command_center.production_queue.produce(WorkerScene) != null, "Worker 应成功入队")
+	_check(vehicle_factory.production_queue.produce(WorkerScene) != null, "车厂应能入队矿车")
 
 	var elapsed_seconds := 0.0
 	while _produced_worker == null and elapsed_seconds < 12.0:
@@ -119,9 +119,9 @@ func _ready():
 	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1)
 
 
-## 捕获 CommandCenter 实际完成部署的 Worker。
+## 捕获车厂实际完成部署的矿车。主基地已不再生产矿车。
 func _on_unit_production_finished(unit, producer):
-	if producer.name == "CommandCenter":
+	if producer.name == "VehicleFactory" and unit.scene_file_path == WorkerScene.resource_path:
 		_produced_worker = unit
 	elif producer.name == "AircraftFactory":
 		_produced_drone = unit

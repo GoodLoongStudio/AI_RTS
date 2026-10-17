@@ -1,0 +1,158 @@
+[
+  {
+    "id": "force-attack-friendly",
+    "category": "combat",
+    "scene": "res://tests/automated/ForceAttackFriendlySmokeTest.tscn",
+    "returncode": 1,
+    "seconds": 26.9,
+    "marker_ok": false,
+    "marker": "Force attack friendly smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "2"
+    ],
+    "fail_lines": [
+      "选中炮塔时强制攻击按钮应可用（计数=1）",
+      "炮塔强制攻击友军工人应造成伤害（hp 6.0 → 6.0）"
+    ],
+    "errors": [
+      "System.InvalidOperationException: 场景 res://tests/perfgrid/TmpTurretHead.tscn 没有受信任的单位类型定义。"
+    ],
+    "log_lines": 433
+  },
+  {
+    "id": "movement-recovery",
+    "category": "navigation",
+    "scene": "res://tests/automated/MovementRecoverySmokeTest.tscn",
+    "returncode": 1,
+    "seconds": 27.4,
+    "marker_ok": false,
+    "marker": "Movement recovery smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "4"
+    ],
+    "fail_lines": [
+      "绕墙到达误差应合理（13.71m）",
+      "绕墙场景确实发生了长距离移动（3.71m）",
+      "集体回基地应至少 7/8 抵达基地附近（实际 0）",
+      "新命令到达误差应合理（8.99m）"
+    ],
+    "errors": [],
+    "log_lines": 381
+  },
+  {
+    "id": "movement-scale",
+    "category": "navigation",
+    "scene": "res://tests/automated/MovementScaleSmokeTest.tscn",
+    "returncode": 1,
+    "seconds": 232.5,
+    "marker_ok": false,
+    "marker": "Movement scale smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "2"
+    ],
+    "fail_lines": [
+      "n=200 仍有 31 个单位未收敛（上限 4）",
+      "n=200 到达率 0.845 低于阈值"
+    ],
+    "errors": [],
+    "log_lines": 12001
+  },
+  {
+    "id": "rule-ai-battlegroup",
+    "category": "traditional-ai",
+    "scene": "res://tests/automated/RuleAiBattlegroupSmokeTest.tscn",
+    "returncode": 1,
+    "seconds": 10.4,
+    "marker_ok": false,
+    "marker": "Rule AI battlegroup smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "3"
+    ],
+    "fail_lines": [],
+    "errors": [
+      "System.InvalidOperationException: 场景 res://tests/perfgrid/TmpTurretHead.tscn 没有受信任的单位类型定义。"
+    ],
+    "log_lines": 177
+  },
+  {
+    "id": "rule-ai-economy-query",
+    "category": "traditional-ai",
+    "scene": "res://tests/automated/RuleAiEconomyQuerySmokeTest.tscn",
+    "returncode": 1,
+    "seconds": 14.9,
+    "marker_ok": false,
+    "marker": "Rule AI economy query smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "2"
+    ],
+    "fail_lines": [],
+    "errors": [
+      "System.InvalidOperationException: 场景 res://tests/perfgrid/TmpTurretHead.tscn 没有受信任的单位类型定义。"
+    ],
+    "log_lines": 269
+  },
+  {
+    "id": "rule-ai-expansion",
+    "category": "traditional-ai",
+    "scene": "res://tests/automated/RuleAiExpansionSmokeTest.tscn",
+    "returncode": 1,
+    "seconds": 16.5,
+    "marker_ok": false,
+    "marker": "Rule AI expansion smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "1"
+    ],
+    "fail_lines": [],
+    "errors": [
+      "System.InvalidOperationException: 场景 res://tests/perfgrid/TmpTurretHead.tscn 没有受信任的单位类型定义。"
+    ],
+    "log_lines": 303
+  },
+  {
+    "id": "rule-ai-offense-logistics",
+    "category": "traditional-ai",
+    "scene": "res://tests/automated/RuleAiOffenseLogisticsSmokeTest.tscn",
+    "returncode": 1,
+    "seconds": 12.0,
+    "marker_ok": false,
+    "marker": "Rule AI offense logistics smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "2"
+    ],
+    "fail_lines": [],
+    "errors": [
+      "System.InvalidOperationException: 场景 res://tests/perfgrid/TmpTurretHead.tscn 没有受信任的单位类型定义。"
+    ],
+    "log_lines": 297
+  },
+  {
+    "id": "ground-attack-move-arrival",
+    "category": "combat",
+    "scene": "res://tests/automated/GroundAttackMoveArrivalSmokeTest.tscn",
+    "returncode": 0,
+    "seconds": 12.1,
+    "marker_ok": true,
+    "marker": "Ground attack move arrival smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 167
+  },
+  {
+    "id": "unit-auto-attack",
+    "category": "combat",
+    "scene": "res://tests/automated/UnitAutoAttackSmokeTest.tscn",
+    "returncode": 0,
+    "seconds": 7.7,
+    "marker_ok": true,
+    "marker": "Unit auto attack smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 101
+  }
+]

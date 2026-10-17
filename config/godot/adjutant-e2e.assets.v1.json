@@ -11,10 +11,6 @@
       "scenePath": "res://source/match/units/Worker.tscn"
     },
     {
-      "unitTypeId": "scout",
-      "scenePath": "res://source/match/units/Scout.tscn"
-    },
-    {
       "unitTypeId": "helicopter",
       "scenePath": "res://source/match/units/Helicopter.tscn"
     },

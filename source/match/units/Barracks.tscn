@@ -10,44 +10,45 @@
 [ext_resource type="PackedScene" uid="uid://b8jwlpdvxgrr6" path="res://source/match/units/traits/RallyPoint.tscn" id="8_rally"]
 [ext_resource type="PackedScene" uid="uid://cd3v6508vjcu3" path="res://source/match/units/traits/ProductionQueue.tscn" id="9_queue"]
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_barracks"]
-height = 2.000
-radius = 2.083
+[sub_resource type="BoxShape3D" id="CylinderShape3D_barracks"]
+size = Vector3(4.784, 4.8185, 7.1415)
 
 [node name="Barracks" type="Area3D"]
-scale = Vector3(3.00, 3.00, 3.00)
 collision_layer = 2
 collision_mask = 0
 script = ExtResource("1_script")
 
 [node name="Geometry" parent="." instance=ExtResource("4_geometry")]
+transform = Transform3D(1.725, 0, 0, 0, 1.725, 0, 0, 0, 1.725, 0, 0, 0)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.40925, 0)
 shape = SubResource("CylinderShape3D_barracks")
 
 [node name="Highlight" parent="." instance=ExtResource("2_highlight")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
-radius = 1.5
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.075, 0)
+radius = 2.783
 
 [node name="Selection" parent="." instance=ExtResource("3_selection")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
-radius = 1.5
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.075, 0)
+radius = 2.783
 
 [node name="MovementObstacle" parent="." instance=ExtResource("5_obstacle")]
-radius = 6.25
+radius = 3.57075
 vertices = PackedVector3Array(0, 0, -1.1, 0.777, 0, -0.777, 1.1, 0, 0, 0.777, 0, 0.777, 0, 0, 1.1, -0.777, 0, 0.777, -1.1, 0, 0, -0.777, 0, -0.777)
 affect_navigation_mesh = true
 path_height_offset = 0.6
 
+carve_from_collision_bounds = true
 [node name="HealthBar" parent="." instance=ExtResource("6_healthbar")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2, 0)
-size = Vector2(200, 10)
+transform = Transform3D(3, 0, 0, 0, 3, 0, 0, 0, 3, 0, 3.795, 0)
+size = Vector2(100, 5)
 
 [node name="Targetability" parent="." instance=ExtResource("7_targetability")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
-radius = 1.5
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.075, 0)
+radius = 2.783
 
 [node name="RallyPoint" parent="." instance=ExtResource("8_rally")]
+scale = Vector3(3, 3, 3)
 
 [node name="ProductionQueue" parent="." instance=ExtResource("9_queue")]

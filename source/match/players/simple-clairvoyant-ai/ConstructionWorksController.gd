@@ -1,5 +1,7 @@
 extends Node
 
+const AiPerfStats = preload("res://source/match/players/simple-clairvoyant-ai/AiPerfStats.gd")
+
 const FIELD_POSITION := 1 << 0
 const FIELD_TYPE := 1 << 1
 const FIELD_CONSTRUCTION := 1 << 4
@@ -36,17 +38,26 @@ func _setup_refresh_timer():
 
 ## 为尚无活动建造者的随机己方蓝图分配一名随机 Worker。
 func _on_refresh_timer_timeout():
-	var result: Dictionary = _world_query_runtime.GetOwnForces(
-		_query_session_id,
-		FIELD_POSITION | FIELD_TYPE | FIELD_CONSTRUCTION
-	)
-	if result.get("status", "") != "Accepted":
-		push_warning("rule AI force query was rejected: %s" % result.get("error", "Unknown"))
-		return
-	var workers: Array = result["entities"].filter(
+	var _perf_start := Time.get_ticks_usec()
+	# round-01：同帧去重 —— 真实对局里父节点是 SimpleClairvoyantAI，走它的按物理帧
+	# 缓存；独立实例化（无 AI 父节点）的单元测试保持原直查路径。
+	var own_entities: Array = []
+	var ai: Node = get_parent()
+	if ai != null and ai.has_method("own_forces_scan"):
+		own_entities = ai.own_forces_scan()
+	else:
+		var result: Dictionary = _world_query_runtime.GetOwnForces(
+			_query_session_id,
+			FIELD_POSITION | FIELD_TYPE | FIELD_CONSTRUCTION
+		)
+		if result.get("status", "") != "Accepted":
+			push_warning("rule AI force query was rejected: %s" % result.get("error", "Unknown"))
+			return
+		own_entities = result.get("entities", [])
+	var workers: Array = own_entities.filter(
 		func(entity): return entity.get("type_id", "") == "worker"
 	)
-	var construction_sites: Array = result["entities"].filter(
+	var construction_sites: Array = own_entities.filter(
 		func(entity):
 			var construction = entity.get("construction", null)
 			return (
@@ -54,6 +65,11 @@ func _on_refresh_timer_timeout():
 				and construction.get("state", "") == "UnderConstruction"
 			)
 	)
+	# Automatic sites advance without builders. Keep miners on their economic
+	# orders instead of assigning redundant Construct commands every refresh.
+	var balance: Node = find_parent("Match").get_node("BalanceConfigRuntime")
+	construction_sites = construction_sites.filter(func(site):
+		return balance.GetConstructionProgressSourceForType(str(site.get("type_id", ""))) != "automatic")
 	# 【2026-09-17 修复确定缺陷】原实现：只要**任意一个**工地已有工人在建，就 `return`
 	# 退出**整个**分配 ⇒ 第二座及以后的工地永远排不到人，产能迟迟建不起来
 	# （方案第 1 节表）。改为逐工地独立派工：每座工地各自判断在岗缺口，
@@ -105,3 +121,5 @@ func _on_refresh_timer_timeout():
 		)
 		if command_result.get("status", "Rejected") == "Rejected":
 			push_warning("规则 AI 分配施工任务被拒绝：%s" % command_result)
+	if AiPerfStats.enabled():
+		AiPerfStats.add("construction", Time.get_ticks_usec() - _perf_start)

@@ -1,7 +1,7 @@
 extends Node
 
 ## 重坦榴弹验证（2026-09-27 用户要求）：
-##   ① 射程：heavy_tank_cannon = 20m > 全部防御塔（16/16/14）
+##   ① 射程：heavy_tank_cannon = 40m > 全部防御塔（32/32/28）——2026-10-01 尺度 ×2。
 ##   ② 弹道：HeavyCannonShell 走真抛物线——爬升过峰（明显高于出膛高度）再落地
 ## 用真实 Match + 真实 BalanceConfigRuntime 配置单位，请求强制攻击地面后
 ## 逐帧采样 Projectiles 容器里弹体的 Y。
@@ -59,7 +59,7 @@ func _ready():
 		_finish()
 		return
 
-	# ---- ① 射程口径：重坦 20 > 防御塔 16/16/14 ----
+	# ---- ① 射程口径：重坦 40 > 防御塔 32/32/28（尺度 ×2）----
 	var catalog = a_match.get_node("BalanceConfigRuntime")
 	var turret_scenes := {
 		"anti_ground_turret": load("res://source/match/units/AntiGroundTurret.tscn"),
@@ -85,10 +85,10 @@ func _ready():
 	heavy.free()
 	print("[INFO] heavy range=", heavy_range, " sight=", heavy_sight,
 		" turret_ranges=", turret_ranges)
-	_check(heavy_range == 20.0, "重坦炮射程应为 20m（实际 %s）" % heavy_range)
+	_check(heavy_range == 40.0, "重坦炮射程应为 40m（实际 %s）" % heavy_range)
 	# 【2026-09-27 用户改口径】视野 10m（多兵种配合，小于射程是设计意图：
 	# 20m 的炮需要队友点亮目标），不再断言"视野 ≥ 射程"。
-	_check(heavy_sight == 10.0, "重坦视野应为 10m（实际 %s）" % heavy_sight)
+	_check(heavy_sight == 20.0, "重坦视野应为 20m（2026-10-01 尺度 ×2）（实际 %s）" % heavy_sight)
 	for name in turret_ranges:
 		_check(heavy_range > float(turret_ranges[name]),
 			"重坦射程应比 %s 远（%s > %s）" % [name, heavy_range, turret_ranges[name]])

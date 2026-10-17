@@ -1,5 +1,8 @@
 extends Node
 
+const AiPerfStats = preload("res://source/match/players/simple-clairvoyant-ai/AiPerfStats.gd")
+const AiBuildAnchors = preload("res://source/match/players/simple-clairvoyant-ai/AiBuildAnchors.gd")
+
 signal resources_required(resources, metadata)
 
 const AGTurretScene = preload("res://source/match/units/AntiGroundTurret.tscn")
@@ -8,6 +11,7 @@ const AATurretScene = preload("res://source/match/units/AntiAirTurret.tscn")
 const FIELD_POSITION := 1 << 0
 const FIELD_TYPE := 1 << 1
 const FIELD_RELATION := 1 << 2
+const FIELD_CONSTRUCTION := 1 << 4
 const REFRESH_INTERVAL_S := 1.0 / 60.0 * 30.0
 const MAX_PLACEMENT_PROBES := 8
 const PLACEMENT_BACKOFF_MS := 8000
@@ -36,6 +40,9 @@ const TURRET_MAX_RADIUS_M := 18.0
 ## 的同一批扇区）开始试，多座塔会挤在相邻位置。塔占位约 2m，这里取 12m：
 ## 既避免两座塔贴身（浪费视野与火力覆盖），又不会因为"没地方可放"而建不出来。
 const TURRET_MIN_SEPARATION_M := 12.0
+## 每个候选方位交给 FindAutoSpot("hint") 时的求解半径（米）：候选可能落在合法带
+## 的 Occupied 侧，带点距候选 ≤ 相邻窗口宽度 + 结构半径差，6m 足够覆盖。
+const TURRET_HINT_SEARCH_RADIUS_M := 6.0
 
 ## 决策节奏倍率：由 SimpleClairvoyantAI 按"本局电脑玩家人数"注入（唯一实现见 AiCadence）。
 ## 默认 1.0 = 原始节奏；3 个电脑时为 2.0（0.5s → 1.0s）。
@@ -43,6 +50,8 @@ var refresh_scale := 1.0
 
 var _world_query_runtime = null
 var _query_session_id := ""
+## 查询边界缺失只警告一次（开局首帧属正常竞态窗口）。
+var _query_boundary_warned := false
 var _command_gateway = null
 var _number_of_pending_ag_turret_resource_requests := 0
 var _number_of_pending_aa_turret_resource_requests := 0
@@ -64,18 +73,23 @@ func setup(world_query_runtime, query_session_id: String, command_gateway):
 
 
 ## 使用已经获准的资源请求尝试放置对应防御建筑。
-func provision(resources, metadata):
+func provision(resources, metadata) -> String:
 	var own_entities := _get_own_entities()
 	if metadata == "ag_turret":
 		assert(resources == _balance.GetConstructionCost(AGTurretScene), "unexpected resources")
-		_number_of_pending_ag_turret_resource_requests -= 1
-		_try_construct_turret(AG_TURRET_TYPE_ID, own_entities)
+		var outcome := _try_construct_turret(AG_TURRET_TYPE_ID, own_entities)
+		if outcome != "pending":
+			_number_of_pending_ag_turret_resource_requests -= 1
+		return outcome
 	elif metadata == "aa_turret":
 		assert(resources == _balance.GetConstructionCost(AATurretScene), "unexpected resources")
-		_number_of_pending_aa_turret_resource_requests -= 1
-		_try_construct_turret(AA_TURRET_TYPE_ID, own_entities)
+		var outcome := _try_construct_turret(AA_TURRET_TYPE_ID, own_entities)
+		if outcome != "pending":
+			_number_of_pending_aa_turret_resource_requests -= 1
+		return outcome
 	else:
 		assert(false, "unexpected flow")
+		return "done"
 
 
 func _setup_refresh_timer():
@@ -119,6 +133,13 @@ func _enforce_structure_count(
 	var current_count := own_entities.filter(
 		func(entity): return entity.get("type_id", "") == unit_type_id
 	).size()
+	var centers := AiBuildAnchors.completed_centers(own_entities)
+	var protected_centers := {}
+	for entity in own_entities:
+		if entity.get("type_id", "") == unit_type_id and not centers.is_empty():
+			protected_centers[AiBuildAnchors.nearest_center(entity, centers)["id"]] = true
+	# Towers at home do not cover an expansion. Pending sites count too.
+	expected_count = maxi(expected_count, current_count + centers.size() - protected_centers.size())
 	var pending_count: int = get(pending_property)
 	var missing_count := expected_count - current_count - pending_count
 	for _i in range(max(0, missing_count)):
@@ -130,17 +151,13 @@ func _enforce_structure_count(
 ## 防御塔选址（用户 2026-09-15 口径）：**建在基地外缘（≤ `TURRET_BAND_OUTER_M`），基地内保留少量**。
 ## 规则：该类塔已有"内圈塔"时 → 外圈优先（按目标带打分，带内越外越好）；
 ## 一座内圈塔都没有时 → 这一座补在内圈（同样按带打分，从最靠近分界处往里收），免得基地门户全空。
-func _try_construct_turret(unit_type_id: String, own_entities: Array):
+func _try_construct_turret(unit_type_id: String, own_entities: Array) -> String:
 	if Time.get_ticks_msec() < _placement_backoff_until_ms:
-		return
-	if not own_entities.any(func(entity): return entity.get("type_id", "") == WORKER_TYPE_ID):
-		return
-	var command_centers: Array = own_entities.filter(
-		func(entity): return entity.get("type_id", "") == COMMAND_CENTER_TYPE_ID
-	)
-	if command_centers.is_empty():
-		return
-	var center: Vector3 = command_centers[0]["position"]
+		return "done"
+	# 【2026-09-28 开局零矿车】automatic 建筑自动施工，放塔不再要求先有 Worker。
+	var center := AiBuildAnchors.defense_anchor(own_entities, unit_type_id)
+	if not center.is_finite():
+		return "done"
 	# 候选上限分两档（见 `TURRET_INITIAL_RADIUS_M` 的注释）：没有塔当视野锚点时 16m，
 	# 已有塔时沿它的 16m 视野最多到 18m —— 都收在基地附近（旧口径是 17/31m）。
 	var existing_turrets: int = own_entities.filter(
@@ -186,22 +203,64 @@ func _try_construct_turret(unit_type_id: String, own_entities: Array):
 	var order: Array[Vector3] = (inner + outer) if _needs_one_inside_turret(
 		unit_type_id, own_entities, center
 	) else (outer + inner)
+	# 【2026-09-30 相邻建造适配】保留候选生成（反扎堆 + 防御带），但合法性求解交给
+	# 权威端 FindAutoSpot("hint")：0.75m 合法带下盲试 PlaceStructure 的
+	# NotAdjacent/Occupied 拒绝率是纯浪费（基线实测 NotAdjacent×244）。每个候选
+	# 方位由权威端在附近解出确定性的合法邻接落点；施工中（全局忙碌）一次即答。
+	var placement := _structure_placement_runtime()
+	if placement == null:
+		return "done"
 	var last_result: Dictionary = {}
 	var probes := 0
-	for position in order:
+	for candidate in order:
 		if probes >= MAX_PLACEMENT_PROBES:
 			break
 		probes += 1
+		var reply: Variant = placement.FindAutoSpotBudgeted(
+			_ai, _prototype_of(unit_type_id), "hint", candidate, TURRET_HINT_SEARCH_RADIUS_M, 1500
+		) if placement.has_method("FindAutoSpotBudgeted") else placement.FindAutoSpot(
+			_ai, _prototype_of(unit_type_id), "hint", candidate, TURRET_HINT_SEARCH_RADIUS_M
+		)
+		if reply is Dictionary and bool(reply.get("pending", false)):
+			return "pending"
+		if not (reply is Dictionary):
+			break
+		if not bool(reply.get("found", false)):
+			var reason := str(reply.get("reason", ""))
+			if not reason.is_empty():
+				# 全局性拒绝与候选方位无关：换候选也不会变，零成本等待。
+				_placement_backoff_until_ms = Time.get_ticks_msec() + PLACEMENT_BACKOFF_MS
+				print("规则 AI 放置防御建筑等待中（%s）" % reason)
+				return "done"
+			continue
+		var spot: Vector3 = reply.get("pos", Vector3.INF)
 		last_result = _command_gateway.PlaceStructure(
 			unit_type_id,
-			Transform3D(Basis.IDENTITY, position)
+			Transform3D(Basis.IDENTITY, spot)
 		)
 		if last_result.get("accepted", false):
-			return
+			return "done"
 		if last_result.get("primary_issue", "") == "InsufficientResources":
-			break
+			return "done"
 	_placement_backoff_until_ms = Time.get_ticks_msec() + PLACEMENT_BACKOFF_MS
-	print("规则 AI 放置防御建筑被拒绝：%s" % last_result)
+	print("规则 AI 放置防御建筑未成：%s" % [
+		last_result if not last_result.is_empty() else "所有候选方位均无合法落点"])
+	return "done"
+
+
+## 与 EconomyController/OffenseController 同一权威口径的自动选址入口。
+func _structure_placement_runtime() -> Node:
+	var match_node := find_parent("Match")
+	if match_node == null:
+		return null
+	var placement: Node = match_node.get_node_or_null("StructurePlacementRuntime")
+	if placement == null or not placement.has_method("FindAutoSpot"):
+		return null
+	return placement
+
+
+func _prototype_of(unit_type_id: String) -> PackedScene:
+	return AGTurretScene if unit_type_id == AG_TURRET_TYPE_ID else AATurretScene
 
 
 ## 候选点到"最近的已有同类塔"的水平距离；没有已有塔时返回 `INF`（即不受限）。
@@ -253,9 +312,17 @@ func _needs_one_inside_turret(unit_type_id: String, own_entities: Array, center:
 
 ## 查询准确己方实体；查询失败时返回显式空集合并保留诊断。
 func _get_own_entities() -> Array:
-	var result: Dictionary = _world_query_runtime.GetOwnForces(
-		_query_session_id,
-		FIELD_POSITION | FIELD_TYPE
+	# round-01：同帧去重 —— 真实对局里父节点是 SimpleClairvoyantAI，走它的按物理帧
+	# 缓存；独立实例化（无 AI 父节点）的单元测试保持原直查路径。
+	if _ai != null and _ai.has_method("own_forces_scan"):
+		return _ai.own_forces_scan()
+	var runtime: Variant = _resolve_query_runtime()
+	if runtime == null:
+		_warn_once_query_boundary_missing()
+		return []
+	var result: Dictionary = runtime.GetOwnForces(
+		_resolve_query_session_id(),
+		FIELD_POSITION | FIELD_TYPE | FIELD_CONSTRUCTION
 	)
 	if result.get("status", "") != "Accepted":
 		push_warning("rule AI force query was rejected: %s" % result.get("error", "Unknown"))
@@ -263,13 +330,43 @@ func _get_own_entities() -> Array:
 	return result["entities"]
 
 
+## 观察快照是 AI 在 `_ready` 之后才注入的。setup 若缓存到当时仍为 null 的引用，
+## 首个刷新周期会在 Nil 上调用 GetOwnForces。这里惰性回源，缺边界时警告一次。
+func _resolve_query_runtime():
+	if _world_query_runtime != null:
+		return _world_query_runtime
+	var current: Variant = _ai.get("_world_query_runtime") if _ai != null else null
+	if current != null:
+		_world_query_runtime = current
+	return current
+
+
+func _resolve_query_session_id() -> String:
+	if _query_session_id != "":
+		return _query_session_id
+	var current: Variant = _ai.get("_query_session_id") if _ai != null else null
+	if current != null and String(current) != "":
+		_query_session_id = String(current)
+	return _query_session_id
+
+
+func _warn_once_query_boundary_missing() -> void:
+	if _query_boundary_warned:
+		return
+	_query_boundary_warned = true
+	push_warning("规则 AI 防御控制器：查询边界（world_query_runtime）尚未注入，本周期跳过规划")
+
+
 func _on_refresh_timer_timeout():
+	var _perf_start := Time.get_ticks_usec()
 	if Time.get_ticks_msec() < _placement_backoff_until_ms:
 		_refresh_threat_scan()
-		return
-	_enforce_number_of_ag_turrets()
-	_enforce_number_of_aa_turrets()
-	_refresh_threat_scan()
+	else:
+		_enforce_number_of_ag_turrets()
+		_enforce_number_of_aa_turrets()
+		_refresh_threat_scan()
+	if AiPerfStats.enabled():
+		AiPerfStats.add("defense", Time.get_ticks_usec() - _perf_start)
 
 
 ## 基地威胁扫描（AI-plan Part A Phase 5，降级版）：
@@ -299,8 +396,12 @@ func _refresh_threat_scan():
 		if counted == 0:
 			return
 		center = sum / float(counted)
-	var result: Dictionary = _world_query_runtime.ScanCircle(
-		_query_session_id,
+	var runtime: Variant = _resolve_query_runtime()
+	if runtime == null:
+		_warn_once_query_boundary_missing()
+		return
+	var result: Dictionary = runtime.ScanCircle(
+		_resolve_query_session_id(),
 		center,
 		_ai.defense_scan_radius,
 		FIELD_POSITION | FIELD_RELATION

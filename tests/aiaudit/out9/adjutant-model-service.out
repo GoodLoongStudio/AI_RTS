@@ -1,0 +1,16 @@
+Godot Engine v4.7.1.stable.mono.official.a13da4feb - https://godotengine.org
+
+[DBGCTL] 端口 24579 被占用, 调试控制端点未启动
+[DBGCTL] 本实例不可被调试控制；自动化模式下 MatchInstanceRegistry 会按严格模式退场（避免留下'看着在对局里、其实命令下不进去'的僵尸局）
+[godot_ai game_helper] registered mcp capture (debugger active=false, logger=true)
+[guard-model] 模型服务当前监听状态：没在听
+WARNING: [ADJ-MODEL] 调用方节点尚未进入场景树，无法启动模型服务保障
+   at: push_warning (core/variant/variant_utility.cpp:1033)
+   GDScript backtrace (most recent call first):
+       [0] ensure_started (res://source/ui/AdjutantModelService.gd:228)
+       [1] _ready (res://tests/automated/AdjutantModelServiceSmokeTest.gd:73)
+Adjutant model service smoke test completed: 0 failure(s)
+[EXIT-TRACE] EXIT_TREE：场景树收尾（tick=-1，场景=unknown，对局结果=无该节点）
+[EXIT-TRACE] PREDELETE：引擎收尾（Globals 释放，tick=unknown(已脱离场景树)）
+WARNING: 1 ObjectDB instance was leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2536)

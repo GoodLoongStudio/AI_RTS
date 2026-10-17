@@ -28,15 +28,14 @@ public partial class BalanceConfigRuntime : Node
     /// <summary>向同一 Match 的 C# Adapter 提供不可变 PackedScene 映射。</summary>
     internal GodotAssetManifest Assets { get; private set; } = null!;
 
+    private string _initializationError = string.Empty;
+
     /// <summary>在其他 Match 子节点初始化前完成配置加载；错误配置直接阻止对局启动。</summary>
     public override void _EnterTree()
     {
         ApplyCommandLineOverrides();
-        // 修复联机/进局黑屏：C# 异常从 _EnterTree 抛到 Godot 会中断节点初始化，
-        // 导致 Assets/Catalog 永远保持 null，随后每个 C# 调用都在 GDScript 侧
-        // 触发 NullReferenceException 级联（WorkerMenu._ready → Loading 卡死 → 黑屏）。
-        // 这里吞掉异常并降级：打印完整堆栈后让对局以「配置降级」方式继续启动，
-        // 各查询方法的 null 防御会返回空结果而不是再次级联崩溃。
+        SetMeta("initialization_failed", false);
+        SetMeta("initialization_error", string.Empty);
         try
         {
             var balance = new BalanceConfigLoader().Load(
@@ -63,14 +62,21 @@ public partial class BalanceConfigRuntime : Node
         }
         catch (System.Exception ex)
         {
-            GD.PrintErr($"[BalanceConfigRuntime] 初始化异常，配置降级继续启动：{ex}");
-            GD.PushError($"[BalanceConfigRuntime] 初始化异常，配置降级继续启动：{ex.Message}");
+            MarkInitializationFailed($"配置初始化异常：{ex.Message}", ex.ToString());
         }
     }
 
+    /// <summary>供 GDScript/自动化探针判断本次 Match 是否可以继续。</summary>
+    public bool IsHealthy() => string.IsNullOrWhiteSpace(_initializationError)
+        && Catalog is not null && Assets is not null;
+
+    /// <summary>返回阻止开局的完整配置错误。</summary>
+    public string GetInitializationError() => _initializationError;
+
     /// <summary>按单位或建筑场景查询稳定 UnitTypeId；未知场景返回空字符串。</summary>
     public string GetUnitTypeId(PackedScene scene) =>
-        Assets.FindUnitType(scene)?.Value ?? string.Empty;
+        Assets is null || scene is null ? string.Empty :
+            Assets.FindUnitType(scene)?.Value ?? string.Empty;
 
     /// <summary>
     /// 同类建筑加速：每多一座已完工同类建筑，速率增加的比例（0 = 规则关闭）。
@@ -82,6 +88,10 @@ public partial class BalanceConfigRuntime : Node
     /// <summary>按建筑原型查询蓝图场景路径；未知或非建筑类型返回空字符串。</summary>
     public string GetBlueprintScenePath(PackedScene scene)
     {
+        if (Assets is null || scene is null)
+        {
+            return string.Empty;
+        }
         var unitTypeId = Assets.FindUnitType(scene);
         return unitTypeId is null ? string.Empty :
             Assets.FindBlueprintScene(unitTypeId.Value)?.ResourcePath ?? string.Empty;
@@ -96,7 +106,7 @@ public partial class BalanceConfigRuntime : Node
             "resource_b" => ResourceKind.B,
             _ => (ResourceKind?)null
         };
-        if (kind is null || Catalog.FindResource(kind.Value) is not { } definition)
+        if (Catalog is null || kind is null || Catalog.FindResource(kind.Value) is not { } definition)
         {
             GD.PushError($"未知资源采集配置：{legacyResourceName}");
             return 0.0;
@@ -116,7 +126,7 @@ public partial class BalanceConfigRuntime : Node
             "resource_b" => ResourceKind.B,
             _ => (ResourceKind?)null
         };
-        if (kind is null || Catalog.FindResource(kind.Value) is not { } definition)
+        if (Catalog is null || kind is null || Catalog.FindResource(kind.Value) is not { } definition)
         {
             return new Godot.Collections.Dictionary { ["enabled"] = false };
         }
@@ -143,7 +153,10 @@ public partial class BalanceConfigRuntime : Node
             {
                 ["unit_type_id"] = string.Empty,
                 ["hp_max"] = 0.0f,
-                ["sight_range"] = 0.0f
+                ["sight_range"] = 0.0f,
+                ["attack_damage"] = 0.0f,
+                ["attack_interval"] = 0.0f,
+                ["attack_range"] = 0.0f
             };
         }
         var unitTypeId = Assets.FindUnitType(scene);
@@ -156,7 +169,10 @@ public partial class BalanceConfigRuntime : Node
             {
                 ["unit_type_id"] = string.Empty,
                 ["hp_max"] = 0.0f,
-                ["sight_range"] = 0.0f
+                ["sight_range"] = 0.0f,
+                ["attack_damage"] = 0.0f,
+                ["attack_interval"] = 0.0f,
+                ["attack_range"] = 0.0f
             };
         }
         var result = new Godot.Collections.Dictionary
@@ -184,6 +200,14 @@ public partial class BalanceConfigRuntime : Node
     /// <summary>按产品场景返回包含 resource_a/resource_b 的生产成本副本。</summary>
     public Godot.Collections.Dictionary GetProductionCost(PackedScene scene)
     {
+        if (Catalog is null || Assets is null || scene is null)
+        {
+            return new Godot.Collections.Dictionary
+            {
+                ["resource_a"] = 0,
+                ["resource_b"] = 0
+            };
+        }
         var definition = FindProduction(scene) ??
             throw new InvalidOperationException($"场景 {scene.ResourcePath} 没有生产定义。");
         return ToLegacyCosts(definition.Cost);
@@ -195,17 +219,31 @@ public partial class BalanceConfigRuntime : Node
         // 防御：配置降级时返回空成本，而不是抛异常中断 GDScript 调用栈（修复黑屏级联）。
         if (Catalog is null || Assets is null || scene is null)
         {
-            return new Godot.Collections.Dictionary();
+            return new Godot.Collections.Dictionary
+            {
+                ["resource_a"] = 0,
+                ["resource_b"] = 0
+            };
         }
         var definition = FindConstruction(scene);
         return definition is null ?
-            new Godot.Collections.Dictionary() :
+            new Godot.Collections.Dictionary
+            {
+                ["resource_a"] = 0,
+                ["resource_b"] = 0
+            } :
             ToLegacyCosts(definition.Placement.ConstructionCost);
     }
 
     /// <summary>把不可变单位类型和主武器快照写入 Legacy Unit 表现节点。</summary>
     public void ConfigureUnit(Node unit)
     {
+        if (!IsHealthy() || unit is null)
+        {
+            // 子节点 _ready 早于 Match._ready；坏配置时只允许它们保持默认值，
+            // 由 Match/Loading 的硬闸门拒绝进局，不能在这里再抛级联异常。
+            return;
+        }
         var definition = FindUnitType(unit) ??
             throw new InvalidOperationException(
                 $"场景 {unit.SceneFilePath} 没有受信任的单位类型定义。");
@@ -223,7 +261,6 @@ public partial class BalanceConfigRuntime : Node
         // 矿场运营参数（原先是 OreRefinery.gd 里的常量）：只有声明了 oreRefinery 的单位才写入。
         if (definition.OreRefinery is { } refinery)
         {
-            unit.Set("service_radius_m", refinery.ServiceRadiusMeters);
             unit.Set("worker_capacity", refinery.WorkerCapacity);
             unit.Set("claim_interval_s", refinery.ClaimIntervalSeconds);
         }
@@ -247,6 +284,18 @@ public partial class BalanceConfigRuntime : Node
         };
     }
 
+    /// <summary>供只读 AI 观察按已映射类型查询施工来源，避免自动工地抢走矿车。</summary>
+    public string GetConstructionProgressSourceForType(string unitTypeId)
+    {
+        var definition = Catalog?.FindConstruction(new StructureDefinitionId(unitTypeId));
+        return definition is null ? "worker" : definition.ProgressSource switch
+        {
+            ConstructionProgressSource.Automatic => "automatic",
+            ConstructionProgressSource.Hybrid => "hybrid",
+            _ => "worker"
+        };
+    }
+
     /// <summary>按 PackedScene 查询已经验证的建筑施工定义。</summary>
     internal StructureConstructionDefinition? FindConstruction(PackedScene scene)    {
         // 防御：配置降级或场景缺失时返回空，避免 NullReferenceException 级联（修复黑屏）。
@@ -262,6 +311,10 @@ public partial class BalanceConfigRuntime : Node
     /// <summary>按运行时建筑的稳定 UnitTypeId 查询施工定义；非建筑返回空。</summary>
     internal StructureConstructionDefinition? FindConstruction(Node structure)
     {
+        if (Catalog is null || structure is null)
+        {
+            return null;
+        }
         var unitTypeId = structure.Get("unit_type_id").AsString();
         return string.IsNullOrWhiteSpace(unitTypeId) ? null :
             Catalog.FindConstruction(new StructureDefinitionId(unitTypeId));
@@ -288,6 +341,10 @@ public partial class BalanceConfigRuntime : Node
     /// <summary>按产品场景查询唯一生产定义。</summary>
     internal ProductionDefinition? FindProduction(PackedScene scene)
     {
+        if (Catalog is null || Assets is null || scene is null)
+        {
+            return null;
+        }
         var unitTypeId = Assets.FindUnitType(scene);
         return unitTypeId is null ? null : Catalog.Productions.SingleOrDefault(
             item => item.ProductTypeId == unitTypeId.Value);
@@ -296,6 +353,10 @@ public partial class BalanceConfigRuntime : Node
     /// <summary>按运行时单位查询已经完整校验的实体类型定义。</summary>
     internal UnitTypeDefinition? FindUnitType(Node unit)
     {
+        if (Catalog is null || Assets is null || unit is null)
+        {
+            return null;
+        }
         var unitTypeId = Assets.FindUnitType(unit.SceneFilePath);
         return unitTypeId is null ? null : Catalog.FindUnitType(unitTypeId.Value);
     }
@@ -403,13 +464,20 @@ public partial class BalanceConfigRuntime : Node
         return Godot.FileAccess.GetFileAsString(resourcePath);
     }
 
-    /// <summary>输出全部配置错误并以异常阻止 Match 使用部分数据继续启动。</summary>
-    private static void Fail(string title, IEnumerable<string> errors)
+    /// <summary>记录全部配置错误；Match/Loading 会据此拒绝进入僵尸房。</summary>
+    private void Fail(string title, IEnumerable<string> errors)
     {
         var message = $"{title}：{System.Environment.NewLine}" +
             string.Join(System.Environment.NewLine, errors);
-        GD.PushError(message);
-        GD.PrintErr(message);  // 同时写 stderr：Godot logger 未必转发到进程 stderr，便于离线诊断
-        throw new InvalidOperationException(message);
+        MarkInitializationFailed(message, message);
+    }
+
+    private void MarkInitializationFailed(string message, string diagnostic)
+    {
+        _initializationError = message;
+        SetMeta("initialization_failed", true);
+        SetMeta("initialization_error", message);
+        GD.PushError($"[BalanceConfigRuntime] {message}");
+        GD.PrintErr($"[BalanceConfigRuntime] {diagnostic}");
     }
 }

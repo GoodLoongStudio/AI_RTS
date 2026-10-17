@@ -154,12 +154,13 @@ def main():
         build_scene(movers, []))
     print("Move200: %d units" % len(movers))
 
-    # ---- G4 生成地图（35-0/map_35-0.tscn，256×256，height_data 逻辑高度场）：
+    # ---- G4 生成地图（256×256，height_data 逻辑高度场）：
     # 真实"单位多会卡"的环境（20Hz 物理 + 大地图表现锁定 + 统一 30m 相机档）。
     # 注意：根级 seed_*.tscn 旧方案文件已全部删除（2026-09-27 用户要求）
     # 不触发大地图路径（2026-09-26 实测），必须用带 map_index 的正式导出目录。
     # 单位由 PerfGridRunner 运行时经 _setup_and_spawn_unit 生成（贴地校正）。
-    G4 = "res://source/match/maps/generated/16-0-2057e4a0b4/map_16-0-2057e4a0b4.tscn"
+    # 【2026-09-29】夹具 16-0-2057e4a0b4 是旧规则产物已删除，改用最新合格图（布局 47）。
+    G4 = "res://source/match/maps/generated/47-903520021-767a002977/map_47-903520021-767a002977.tscn"
     for count in (200, 400):
         path = os.path.join(OUT_DIR, "PerfGridG4Idle%d.tscn" % count)
         write_scene(path, build_scene([], [], G4))

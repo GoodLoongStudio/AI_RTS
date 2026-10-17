@@ -6,8 +6,9 @@ extends Node
 signal progress(text)
 
 const GENERATED_DIR := "res://source/match/maps/generated"
-const WORKBENCH_PORTS := [8766, 8765]
-const WORKBENCH_PORT := 8766
+const REQUIRED_WORLD_SIZE := Vector2(512, 512)
+const EXPORT_CONTRACT_VERSION := "world-meters-v2"
+const WORKBENCH_PORTS := [8766, 8765, 8767, 8768]
 const POLL_INTERVAL_S := 1.0
 const BOOT_WAIT_S := 12.0
 const GENERATE_TIMEOUT_S := 900.0
@@ -90,6 +91,11 @@ func _ensure_workbench() -> bool:
 func _launch_backend() -> bool:
 	if _backend_launched:
 		return true
+	_backend_launched = launch_compatible_backend()
+	return _backend_launched
+
+
+static func launch_compatible_backend() -> bool:
 	var root := ProjectSettings.globalize_path("res://tools/mapgen").trim_suffix("/").trim_suffix("\\")
 	var script := root.path_join("serve_g2.py")
 	if not FileAccess.file_exists(script):
@@ -100,9 +106,18 @@ func _launch_backend() -> bool:
 	var exe := pyw if FileAccess.file_exists(pyw) else py
 	if not FileAccess.file_exists(exe):
 		return false
-	if OS.create_process(exe, PackedStringArray([script, "--port", str(WORKBENCH_PORT)]), false) < 0:
+	# An old service can stay running; never kill it or try to bind its port.
+	var free_port := -1
+	for candidate in WORKBENCH_PORTS:
+		var reservation := TCPServer.new()
+		if reservation.listen(candidate, "127.0.0.1") == OK:
+			reservation.stop()
+			free_port = candidate
+			break
+	if free_port < 0:
 		return false
-	_backend_launched = true
+	if OS.create_process(exe, PackedStringArray([script, "--port", str(free_port)]), false) < 0:
+		return false
 	return true
 
 
@@ -112,16 +127,34 @@ func _probe_workbench() -> bool:
 		var data := await _http_json(HTTPClient.METHOD_GET, url + "/api/bootstrap", {}, 1.2)
 		if data.is_empty() or not data.has("version"):
 			continue
+		if not compatible_bootstrap(data):
+			continue
 		_url = url
 		return true
 	_url = ""
 	return false
 
 
+static func compatible_bootstrap(data: Dictionary) -> bool:
+	var fixed: Dictionary = data.get("fixed", {})
+	return has_required_world_size(fixed.get("world_size_m", [])) and fixed.get("export_contract_version", "") == EXPORT_CONTRACT_VERSION
+
+
+static func has_required_world_size(value: Variant) -> bool:
+	# JSON numbers decode as floats; Array equality also compares element types.
+	if not value is Array or value.size() != 2:
+		return false
+	for extent in value:
+		if typeof(extent) not in [TYPE_INT, TYPE_FLOAT] or float(extent) != 512.0:
+			return false
+	return true
+
+
 func _start_or_follow_job() -> Dictionary:
 	var payload := {
 		"target": "full",
 		"schema_version": 2,
+		"required_world_size_m": [512, 512],
 		"player_spacing": "any",
 		# 跳过工作台的 ENGINE 验收（三张截图 + 导航检查要另起 Godot 进程，
 		# 实测 60s+）：加载页干等没有收益，地图在 G4 阶段已装进工程，
@@ -156,8 +189,42 @@ static func installed_map_path(job: Dictionary) -> String:
 	var path := "%s/%s/map_%s.tscn" % [GENERATED_DIR, map_id, map_id]
 	var abs_path := ProjectSettings.globalize_path(path)
 	if FileAccess.file_exists(path) or FileAccess.file_exists(abs_path):
-		return path
+		var index_path := path.get_base_dir().path_join("map_index.json")
+		if not FileAccess.file_exists(index_path):
+			return ""
+		var index = JSON.parse_string(FileAccess.get_file_as_string(index_path))
+		if not index is Dictionary or not has_required_world_size(index.get("size", [])) or index.get("export_contract_version", "") != EXPORT_CONTRACT_VERSION:
+			return ""
+		var packed := load(path) as PackedScene
+		if packed == null:
+			return ""
+		return path if scene_matches_world_contract(packed) else ""
 	return ""
+
+
+static func scene_matches_world_contract(packed: PackedScene) -> bool:
+	var state := packed.get_state()
+	var size_ok := false
+	var terrain_span_ok := false
+	var terrain_scale_ok := false
+	for prop in state.get_node_property_count(0):
+		var key := state.get_node_property_name(0, prop)
+		var value = state.get_node_property_value(0, prop)
+		if key == "size":
+			size_ok = value == REQUIRED_WORLD_SIZE
+		elif key == "scale" and value != Vector3.ONE:
+			return false
+	for node in state.get_node_count():
+		if str(state.get_node_path(node)).trim_prefix("./") != "Geometry/Terrain":
+			continue
+		for prop in state.get_node_property_count(node):
+			var key := state.get_node_property_name(node, prop)
+			var value = state.get_node_property_value(node, prop)
+			if key == "semantic_span":
+				terrain_span_ok = is_equal_approx(float(value), 512.0)
+			elif key == "world_scale":
+				terrain_scale_ok = is_equal_approx(float(value), 1.0)
+	return size_ok and terrain_span_ok and terrain_scale_ok
 
 
 func _emit_job_progress(job: Dictionary, elapsed: float) -> void:

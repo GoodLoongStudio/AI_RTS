@@ -1,0 +1,1 @@
+Adjutant rules export smoke test completed: 0 failure(s)

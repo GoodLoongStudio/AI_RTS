@@ -35,6 +35,12 @@ var _recorder: MatchReportRecorder = null
 var _match_finished_awaiting_start := false
 var _match_id := ""
 var _connected := false
+## 已经看见本局的 `match_started`。用来区分「胜负比开局信号更早」和「开局已发、建档还在下一帧」。
+var _start_seen := false
+## 记录器还没挂上时先到的结算。等这一局的记录器建好再收尾，避免先写一份 0 秒报告再另开一个记录器。
+var _pending_finish: Dictionary = {}
+## 上一份报告所属的对局根。同一局里的重复结算要丢掉；换了一局根再来的结算是新的一把。
+var _sealed_root_id := 0
 ## 本进程内已发出的对局编号序号（见 `_make_match_id()` 的说明）。
 var _match_seq := 0
 
@@ -86,6 +92,7 @@ func _on_match_started() -> void:
 	# `match_started` 在对局 `_ready()` 末尾发出。此时地图与玩家都挂好了，但仍然
 	# 延后一帧再动手：不在别人的 `_ready()` 里改节点树（本节点的子节点归属是 store，
 	# 而 recorder 要挂到对局根上，属于跨树操作）。
+	_start_seen = true
 	call_deferred("_begin_recording")
 
 
@@ -107,9 +114,11 @@ func _on_match_defeat() -> void:
 func _begin_recording() -> void:
 	if not is_inside_tree():
 		return
+	var pending := _pending_finish.duplicate()
+	_pending_finish = {}
 	# 上一局还没收尾就开了新的一局（重开/异常）：先把旧的按"中止"落盘，不丢已采数据。
 	if is_instance_valid(_recorder) and _recorder.active:
-		_finish("aborted", "上一局在新对局开始前未正常结束")
+		_seal("aborted", "上一局在新对局开始前未正常结束")
 	_recorder = null
 	var root := _match_root()
 	if root == null:
@@ -124,33 +133,59 @@ func _begin_recording() -> void:
 	recorder.begin(_context())
 	_recorder = recorder
 	_match_finished_awaiting_start = false
+	# 胜负比建档更早：挂上之后立刻收这一份，不再留一个空转记录器。
+	if not pending.is_empty():
+		_seal(str(pending.get("result", "unknown")), str(pending.get("reason", "")))
 
 
 func _finish(result: String, reason: String = "") -> void:
+	if is_instance_valid(_recorder) and _recorder.active:
+		_seal(result, reason)
+		return
+	if _match_finished_awaiting_start and not _belongs_to_unrecorded_match():
+		# 上一局已收尾后的重复上报：忽略，避免统计翻倍/串味。
+		# 换了新的对局根则不是重复，落到下面排队，跟这一把的记录器一起收。
+		print("[MatchHistoryHook] 忽略重复结算上报：%s（上一局已落盘）" % result)
+		return
+	# 记录器还没挂上。先记住结果：开局信号随后会建档并收尾。
+	# 若开局信号根本不会来，下一帧自己建档，避免这一把丢掉。
+	_pending_finish = {"result": result, "reason": reason}
+	if not _start_seen:
+		call_deferred("_seal_pending_without_start")
+
+
+func _seal_pending_without_start() -> void:
+	if _pending_finish.is_empty() or _start_seen:
+		return
+	if is_instance_valid(_recorder) and _recorder.active:
+		return
+	print("[MatchHistoryHook] 结算早于开局：建档并收尾（%s）" % str(_pending_finish.get("result", "")))
+	_begin_recording()
+
+
+func _seal(result: String, reason: String = "") -> void:
 	if not is_instance_valid(_recorder):
-		if _match_finished_awaiting_start:
-			# 上一局已收尾后的重复上报：忽略，避免统计翻倍/串味。
-			print("[MatchHistoryHook] 忽略重复结算上报：%s（上一局已落盘）" % result)
-			return
-		# 开局前就结束的真局：就地建 recorder 再收尾（报告时长会很短，但数据是真的）。
-		print("[MatchHistoryHook] 结算早于开局：就地建档并收尾（%s）" % result)
-		_begin_recording()
-		if not is_instance_valid(_recorder):
-			return
+		return
 	# 立刻"摘掉"引用：finish() 内部会 upsert 并触发 reports_changed，
 	# 重入时不应再看到这个 recorder。
 	var recorder := _recorder
 	_recorder = null
 	if not recorder.active:
 		return
+	var parent: Node = recorder.get_parent()
+	_sealed_root_id = parent.get_instance_id() if parent != null else 0
 	# 收局快照（真实值）。growth_before 已在 _context() 里写入。
 	var after := _growth_snapshot()
 	recorder.context["growth_after"] = after
 	var before: Variant = recorder.context.get("growth_before", null)
 	recorder.context["growth_spent_this_match"] = _spent_delta(before, after)
 	_contribute_authoritative(recorder)
+	var condition := _note_outcome_condition(recorder, result)
+	if result == "defeat" and reason.is_empty():
+		reason = condition
 	recorder.finish(result, reason)
 	_match_finished_awaiting_start = true
+	_start_seen = false
 	# 收尾后立刻把 recorder 摘掉：它挂在**对局根**下，若一个 Match 实例里连打多局
 	# （重开），死掉的 recorder 会一局一个地堆在场景树里。
 	if is_instance_valid(recorder):
@@ -188,6 +223,25 @@ func _contribute_authoritative(recorder: MatchReportRecorder) -> void:
 		recorder.contribute(section_path[0], "%s.%s" % [section_path[1], section_path[2]], float(value))
 
 
+func _note_outcome_condition(recorder: MatchReportRecorder, result: String) -> String:
+	var root := _match_root()
+	if root == null:
+		return ""
+	var outcome := root.get_node_or_null("MatchOutcomeRuntime")
+	if outcome == null or not outcome.has_method("InspectOutcome"):
+		return ""
+	var snapshot: Variant = outcome.call("InspectOutcome")
+	if not snapshot is Dictionary:
+		return ""
+	var kind := str((snapshot as Dictionary).get("kind", ""))
+	if kind != "Won" and kind != "Draw":
+		return ""
+	var text := "双方建造建筑同时清空" if kind == "Draw" else "建造建筑被清空"
+	if result == "victory" and str(recorder.context.get("victory_condition", "")).is_empty():
+		recorder.context["victory_condition"] = text
+	return text
+
+
 # ==================== 从对局层读真实字段 ====================
 
 ## 对局根节点 = 当前场景。用 `current_scene` 而不是硬编码路径：单机 / 联机 /
@@ -197,11 +251,30 @@ func _match_root() -> Node:
 	if tree == null:
 		return null
 	var scene := tree.current_scene
-	if scene == null:
-		return null
-	if scene.get_node_or_null("Players") == null:
-		return null
-	return scene
+	if _is_match_root(scene):
+		return scene
+	# 加载页、测试壳或重开改名时，Match 不一定是 current_scene。
+	# 场景自己进 `match_root` 组，这里按组找还在树上的那一局。
+	var fallback: Node = null
+	for node in tree.get_nodes_in_group("match_root"):
+		if not _is_match_root(node):
+			continue
+		if scene != null and node.is_ancestor_of(scene):
+			return node
+		fallback = node
+	return fallback
+
+
+func _belongs_to_unrecorded_match() -> bool:
+	var root := _match_root()
+	if root == null:
+		return false
+	return root.get_instance_id() != _sealed_root_id
+
+
+func _is_match_root(node: Node) -> bool:
+	return node != null and is_instance_valid(node) and node.is_inside_tree() \
+		and node.get_node_or_null("Players") != null
 
 
 ## 组装 recorder 的上下文。**只放真实读到的值**，读不到就是 null。

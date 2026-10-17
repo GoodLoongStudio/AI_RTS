@@ -102,18 +102,58 @@ def event_units(events: Iterable[Dict[str, Any]], kinds: Optional[Iterable[str]]
     return units
 
 
+def _optional_state(state, name: str, default: Any = None) -> Any:
+    """dict / 状态对象都能读；缺字段时用默认值（图视图缺键会抛 AttributeError）。"""
+    if isinstance(state, dict):
+        return state.get(name, default)
+    try:
+        return getattr(state, name)
+    except AttributeError:
+        return default
+
+
+def effective_strategy_interval_ticks(state, config: Dict[str, Any]) -> int:
+    """普通复核间隔：有实测 tick 率时用「复核秒数 × Hz」，否则用配置里的 tick 间隔。
+
+    不把 5 秒写成默认，也不写死 300/600 tick。暂停时 server tick 不涨，
+    这里自然不会按墙钟补发错过的请求。
+    """
+    seconds = float(config.get("strategy_review_seconds", 0) or 0)
+    hz = float(_optional_state(state, "measured_tick_hz", 0) or 0)
+    if seconds > 0 and hz > 0:
+        return max(1, int(round(seconds * hz)))
+    return max(1, int(config.get("strategy_interval_ticks", 3600)))
+
+
+def strategy_event_debounce_ticks(state, config: Dict[str, Any]) -> int:
+    """重大事件提前复核的去抖。有 Hz 时按 2 个模拟秒换算，否则取普通间隔的一小段。"""
+    hz = float(_optional_state(state, "measured_tick_hz", 0) or 0)
+    if hz > 0:
+        return max(1, int(round(2.0 * hz)))
+    return max(1, effective_strategy_interval_ticks(state, config) // 5)
+
+
 def is_strategy_due(state, current_tick: int, events: Iterable[Dict[str, Any]],
                     config: Dict[str, Any]) -> bool:
-    """战略触发：开局/周期到期/重大事件（且当前计划已过期或尚无计划）。"""
-    if state.active_plan is None:
-        return True
-    interval = int(config.get("strategy_interval_ticks", 3600))
+    """战略触发：尚无计划且没在等结果、普通复核到期、或去抖后的重大事件。
+
+    在途请求不算到期（调用方还要看 strategy_inflight）。没有计划时，
+    已经发起过一次就按间隔再试，避免每 tick 都独占战略路由。
+    """
+    interval = effective_strategy_interval_ticks(state, config)
     last = state.last_strategy_tick
-    if last is None:
+    if state.active_plan is None:
+        if last is None:
+            return True
+        return int(current_tick) - int(last) >= interval
+    if last is None or int(current_tick) - int(last) >= interval:
         return True
-    if current_tick - int(last) >= interval:
-        return True
-    return has_major_event(events) and plan_expired(state, current_tick)
+    if has_major_event(events):
+        debounce = strategy_event_debounce_ticks(state, config)
+        last_event = _optional_state(state, "last_strategy_event_tick", None)
+        if last_event is None or int(current_tick) - int(last_event) >= debounce:
+            return True
+    return False
 
 
 def strategy_in_cooldown(state, current_tick: int, config: Dict[str, Any]) -> bool:
@@ -182,7 +222,11 @@ def classify_route(state, events: List[Dict[str, Any]], current_tick: int,
     # 也不进冷却 → 路由永远 strategic，战术节点（唯一决策/下发入口）被饿死
     # （2026-09-12 实测：556/556 全 strategic、task_patch_submitted=0、own=4 全程不变）。
     strategy_active = not bool(getattr(state, "strategy_disabled", False))
-    if strategy_active and is_strategy_due(state, current_tick, events, config) and not \
+    # 思考还在工作线程里：不要占住战略路由。结果在分类节点里当场采纳，
+    # 这样同一轮的 Laya/规则不会被战略路由挡住。
+    strategy_busy = bool(_optional_state(state, "strategy_inflight", False))
+    if strategy_active and not strategy_busy and is_strategy_due(
+            state, current_tick, events, config) and not \
             strategy_in_cooldown(state, current_tick, config):
         return ROUTE_STRATEGIC
     if is_tactics_due(state, current_tick, events, config,

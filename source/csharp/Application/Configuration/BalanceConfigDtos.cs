@@ -230,9 +230,6 @@ internal sealed class ConstructorDefinitionDto
 /// <summary>保存尚未校验的矿场运营参数。</summary>
 internal sealed class OreRefineryDefinitionDto
 {
-    /// <summary>服务半径（米）：只接管距矿场这么近的矿点。</summary>
-    public float? ServiceRadiusMeters { get; set; }
-
     /// <summary>同时指派的工人上限。</summary>
     public int? WorkerCapacity { get; set; }
 

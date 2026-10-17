@@ -1,0 +1,454 @@
+Godot Engine v4.7.1.stable.mono.official.a13da4feb - https://godotengine.org
+
+SCRIPT ERROR: Parse Error: Too many arguments for "_is_agent_placement_position_valid()" call. Expected at most 5 but received 6.
+   at: GDScript::reload (res://source/match/utils/UnitPlacementUtils.gd:36)
+SCRIPT ERROR: Parse Error: Too many arguments for "_is_agent_placement_position_valid()" call. Expected at most 5 but received 6.
+   at: GDScript::reload (res://source/match/utils/UnitPlacementUtils.gd:63)
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+   at: GDScript::reload (res://source/match/MatchUtils.gd:0)
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+   at: GDScript::reload (res://source/Utils.gd:0)
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+   at: GDScript::reload (res://source/match/units/actions/AttackingWhileInRange.gd:0)
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+   at: GDScript::reload (res://source/match/units/actions/OpportunisticMovingFire.gd:0)
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+   at: GDScript::reload (res://source/match/units/actions/Moving.gd:0)
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+   at: GDScript::reload (res://source/match/units/Unit.gd:0)
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+   at: GDScript::reload (res://source/match/units/Structure.gd:0)
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+   at: GDScript::reload (res://source/match/units/CommandCenter.gd:0)
+ERROR: Failed to load script "res://source/match/units/CommandCenter.gd" with error "Compilation failed".
+   at: load (modules/gdscript/gdscript_resource_format.cpp:46)
+[DBGCTL] 调试控制端点已启动 127.0.0.1:24579
+[godot_ai game_helper] registered mcp capture (debugger active=false, logger=true)
+G4PERF fog_resize 416x416 px_per_m=2
+    ... [last line repeated 1 more times]
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=11 tint=(0.4, 0.6941, 1.0, 1.0)
+[G4PERF] minimap viewport=416x416 scale=2.000
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+       [2] _ready (res://source/match/hud/Minimap.gd:107)
+       [3] _ready (res://tests/automated/MovementRecoverySmokeTest.gd:31)
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+       [2] _follow_minimap_fog_mask (res://source/match/hud/Minimap.gd:118)
+       [3] _ready (res://source/match/hud/Minimap.gd:111)
+       [4] _ready (res://tests/automated/MovementRecoverySmokeTest.gd:31)
+G4PERF command_runtime_us=4893 frames=1
+G4PERF production_runtime_us=1190 frames=1
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+[INPUT] UnitActionsController waiting for local player player=Human
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+G4PERF command_runtime_us=114 frames=2
+G4PERF production_runtime_us=23 frames=2
+NAVDBG air polygons=2 vertices=4 rid_valid=true region_on_our_map=true map_active=true
+NAVDBG bake map=/root/MovementRecoverySmokeTest/Match/Map StaticBody3D in subtree=0
+WARNING: Property agent_height is ceiled to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:367)
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+       [2] _follow_minimap_fog_mask (res://source/match/hud/Minimap.gd:118)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+NAVDBG polygons=179 vertices=157
+[ECO] PublishSnapshot player=5cbdc56e a=0
+WARNING: [MatchHistoryHook] 未找到对局根节点，本局不写入历史。
+   at: push_warning (core/variant/variant_utility.cpp:1033)
+   GDScript backtrace (most recent call first):
+       [0] _begin_recording (res://source/history/MatchHistoryHook.gd:116)
+[INPUT] UnitActionsController enabled player=Human
+G4PERF command_runtime_us=59 frames=40
+G4PERF production_runtime_us=4 frames=40
+G4PERF movement_us=157 unit=Tank
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+WARNING: Property agent_height is ceiled to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:367)
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+G4PERF command_runtime_us=43 frames=80
+G4PERF production_runtime_us=5 frames=80
+G4PERF movement_us=86 unit=Tank
+NAVDBG polygons=179 vertices=157
+G4PERF command_runtime_us=22 frames=120
+G4PERF production_runtime_us=1 frames=120
+G4PERF movement_us=49 unit=Tank
+G4PERF command_runtime_us=49 frames=160
+G4PERF production_runtime_us=2 frames=160
+G4PERF movement_us=117 unit=Tank
+ERROR: Movement recovery assertion failed: 绕墙到达误差应合理（13.71m）
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check (res://tests/automated/MovementRecoverySmokeTest.gd:367)
+       [1] _scenario_wall_detour (res://tests/automated/MovementRecoverySmokeTest.gd:82)
+       [2] _order_and_wait (res://tests/automated/MovementRecoverySmokeTest.gd:315)
+       [3] _wait_terminal_order (res://tests/automated/MovementRecoverySmokeTest.gd:324)
+ERROR: Movement recovery assertion failed: 绕墙场景确实发生了长距离移动（3.71m）
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check (res://tests/automated/MovementRecoverySmokeTest.gd:367)
+       [1] _scenario_wall_detour (res://tests/automated/MovementRecoverySmokeTest.gd:83)
+       [2] _order_and_wait (res://tests/automated/MovementRecoverySmokeTest.gd:315)
+       [3] _wait_terminal_order (res://tests/automated/MovementRecoverySmokeTest.gd:324)
+[MOVEMENT] wall-detour state=Arrived elapsed_ms=1372 start=(13.263, -0.000015, 12.637) end=(9.560212, -0.000015, 12.36818) planar_err=13.71
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+G4PERF command_runtime_us=42 frames=200
+G4PERF production_runtime_us=3 frames=200
+G4PERF movement_us=112 unit=Tank
+WARNING: Property agent_height is ceiled to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:367)
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+NAVDBG polygons=196 vertices=172
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+[GATHER] action _ready unit=Unit_13 resource=true
+[GATHER] 进入 MOVING_TO_RESOURCE, resource=ResourceA2:<Area3D#233756953509>
+G4PERF command_runtime_us=44 frames=240
+G4PERF production_runtime_us=4 frames=240
+G4PERF movement_us=108 unit=Tank
+G4PERF movement_us=47 unit=Unit_12
+G4PERF movement_us=40 unit=Unit_13
+G4PERF command_runtime_us=41 frames=280
+G4PERF production_runtime_us=3 frames=280
+G4PERF movement_us=89 unit=Tank
+G4PERF movement_us=55 unit=Unit_12
+G4PERF movement_us=47 unit=Unit_13
+[MOVEMENT] head-on a=Arrived b=Arrived elapsed_ms=1392 separation=5.92
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+ERROR: Movement recovery assertion failed: 集体回基地应至少 7/8 抵达基地附近（实际 0）
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check (res://tests/automated/MovementRecoverySmokeTest.gd:367)
+       [1] _scenario_group_return_to_base (res://tests/automated/MovementRecoverySmokeTest.gd:180)
+[MOVEMENT] group-return arrived=7/8 at_base=0 min_sep=6.75 elapsed_ms=4 stats={ "stall_detections": 0, "repaths": 10, "escapes": 0, "unreachable": 0, "budget_skips": 0, "soft_phase_enters": 0, "soft_phase_exits": 0, "soft_phase_rejects": 0 }
+G4PERF command_runtime_us=36 frames=320
+G4PERF production_runtime_us=3 frames=320
+G4PERF movement_us=137 unit=Tank
+WARNING: Property agent_height is ceiled to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:367)
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+NAVDBG polygons=218 vertices=196
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+G4PERF command_runtime_us=23 frames=360
+G4PERF production_runtime_us=1 frames=360
+G4PERF movement_us=62 unit=Tank
+WARNING: Property agent_height is ceiled to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:367)
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+NAVDBG polygons=179 vertices=157
+G4PERF command_runtime_us=19 frames=400
+G4PERF production_runtime_us=1 frames=400
+G4PERF movement_us=43 unit=Tank
+G4PERF command_runtime_us=18 frames=440
+G4PERF production_runtime_us=2 frames=440
+G4PERF movement_us=43 unit=Tank
+G4PERF command_runtime_us=49 frames=480
+G4PERF production_runtime_us=3 frames=480
+G4PERF movement_us=91 unit=Tank
+G4PERF command_runtime_us=32 frames=520
+G4PERF production_runtime_us=2 frames=520
+G4PERF movement_us=75 unit=Tank
+G4PERF command_runtime_us=14 frames=560
+G4PERF production_runtime_us=1 frames=560
+G4PERF movement_us=46 unit=Tank
+G4PERF command_runtime_us=35 frames=600
+G4PERF production_runtime_us=3 frames=600
+G4PERF movement_us=86 unit=Tank
+G4PERF command_runtime_us=37 frames=640
+G4PERF production_runtime_us=2 frames=640
+G4PERF movement_us=106 unit=Tank
+G4PERF command_runtime_us=45 frames=680
+G4PERF production_runtime_us=2 frames=680
+G4PERF movement_us=85 unit=Tank
+G4PERF command_runtime_us=19 frames=720
+G4PERF production_runtime_us=2 frames=720
+G4PERF movement_us=40 unit=Tank
+G4PERF command_runtime_us=36 frames=760
+G4PERF production_runtime_us=11 frames=760
+G4PERF movement_us=86 unit=Tank
+G4PERF command_runtime_us=23 frames=800
+G4PERF production_runtime_us=2 frames=800
+G4PERF movement_us=47 unit=Tank
+G4PERF command_runtime_us=30 frames=840
+G4PERF production_runtime_us=2 frames=840
+G4PERF movement_us=78 unit=Tank
+G4PERF command_runtime_us=31 frames=880
+G4PERF production_runtime_us=2 frames=880
+G4PERF movement_us=91 unit=Tank
+G4PERF command_runtime_us=32 frames=920
+G4PERF production_runtime_us=1 frames=920
+G4PERF movement_us=95 unit=Tank
+[MOVEMENT] building-mid-move state=Arrived elapsed_ms=10399 planar_err=0.48 stats={ "stall_detections": 2, "repaths": 12, "escapes": 2, "unreachable": 0, "budget_skips": 0, "soft_phase_enters": 0, "soft_phase_exits": 0, "soft_phase_rejects": 0 }
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+G4PERF command_runtime_us=16 frames=960
+G4PERF production_runtime_us=1 frames=960
+G4PERF movement_us=53 unit=Tank
+WARNING: Property agent_height is ceiled to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:367)
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+NAVDBG polygons=200 vertices=176
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+G4PERF command_runtime_us=38 frames=1000
+G4PERF production_runtime_us=3 frames=1000
+G4PERF movement_us=114 unit=Tank
+G4PERF movement_us=48 unit=Unit_32
+G4PERF movement_us=36 unit=Unit_33
+G4PERF movement_us=34 unit=Unit_34
+G4PERF movement_us=32 unit=Unit_35
+G4PERF movement_us=34 unit=Unit_36
+G4PERF command_runtime_us=22 frames=1040
+G4PERF production_runtime_us=1 frames=1040
+G4PERF movement_us=37 unit=Tank
+G4PERF movement_us=27 unit=Unit_32
+G4PERF movement_us=24 unit=Unit_33
+G4PERF movement_us=40 unit=Unit_34
+G4PERF movement_us=26 unit=Unit_35
+G4PERF movement_us=24 unit=Unit_36
+G4PERF command_runtime_us=44 frames=1080
+G4PERF production_runtime_us=2 frames=1080
+G4PERF movement_us=129 unit=Tank
+G4PERF movement_us=41 unit=Unit_32
+G4PERF movement_us=28 unit=Unit_33
+G4PERF movement_us=65 unit=Unit_34
+G4PERF movement_us=32 unit=Unit_35
+G4PERF movement_us=27 unit=Unit_36
+G4PERF command_runtime_us=55 frames=1120
+G4PERF production_runtime_us=4 frames=1120
+G4PERF movement_us=84 unit=Tank
+G4PERF movement_us=29 unit=Unit_32
+G4PERF movement_us=22 unit=Unit_33
+G4PERF movement_us=54 unit=Unit_34
+G4PERF movement_us=33 unit=Unit_35
+G4PERF movement_us=27 unit=Unit_36
+G4PERF command_runtime_us=25 frames=1160
+G4PERF production_runtime_us=1 frames=1160
+[MOV][软穿行] Tank 进入：友军贴身=3 敌军近处=0 半径 2.00→0.50 历时=0.40s
+G4PERF movement_us=127 unit=Tank
+G4PERF movement_us=28 unit=Unit_32
+G4PERF movement_us=42 unit=Unit_33
+G4PERF movement_us=36 unit=Unit_34
+G4PERF movement_us=33 unit=Unit_35
+G4PERF movement_us=29 unit=Unit_36
+[MOV][软穿行] Unit_32 进入：友军贴身=2 敌军近处=0 半径 2.00→0.50 历时=0.40s
+[MOV][软穿行] Tank 退出（abort）：半径还原 2.00
+[MOV][软穿行] Unit_32 退出（timeout）：半径还原 2.00
+G4PERF command_runtime_us=32 frames=1200
+G4PERF production_runtime_us=1 frames=1200
+G4PERF movement_us=52 unit=Tank
+G4PERF movement_us=29 unit=Unit_32
+G4PERF movement_us=35 unit=Unit_33
+G4PERF movement_us=34 unit=Unit_34
+G4PERF movement_us=31 unit=Unit_35
+G4PERF movement_us=31 unit=Unit_36
+G4PERF command_runtime_us=41 frames=1240
+G4PERF production_runtime_us=2 frames=1240
+G4PERF movement_us=120 unit=Tank
+G4PERF movement_us=56 unit=Unit_32
+G4PERF movement_us=57 unit=Unit_33
+G4PERF movement_us=53 unit=Unit_34
+G4PERF movement_us=52 unit=Unit_35
+G4PERF movement_us=48 unit=Unit_36
+G4PERF command_runtime_us=48 frames=1280
+G4PERF production_runtime_us=4 frames=1280
+G4PERF movement_us=144 unit=Tank
+G4PERF movement_us=48 unit=Unit_32
+G4PERF movement_us=72 unit=Unit_33
+G4PERF movement_us=50 unit=Unit_34
+G4PERF movement_us=48 unit=Unit_35
+G4PERF movement_us=35 unit=Unit_36
+G4PERF command_runtime_us=31 frames=1320
+G4PERF production_runtime_us=3 frames=1320
+G4PERF movement_us=84 unit=Tank
+G4PERF movement_us=72 unit=Unit_32
+G4PERF movement_us=50 unit=Unit_33
+G4PERF movement_us=47 unit=Unit_34
+G4PERF movement_us=44 unit=Unit_35
+G4PERF movement_us=49 unit=Unit_36
+[MOV][软穿行] Tank 进入：友军贴身=4 敌军近处=0 半径 2.00→0.50 历时=0.40s
+G4PERF command_runtime_us=52 frames=1360
+G4PERF production_runtime_us=4 frames=1360
+G4PERF movement_us=149 unit=Tank
+G4PERF movement_us=107 unit=Unit_32
+G4PERF movement_us=66 unit=Unit_33
+G4PERF movement_us=39 unit=Unit_34
+G4PERF movement_us=43 unit=Unit_35
+G4PERF movement_us=39 unit=Unit_36
+[MOV][软穿行] Tank 退出（timeout）：半径还原 2.00
+G4PERF command_runtime_us=32 frames=1400
+G4PERF production_runtime_us=2 frames=1400
+G4PERF movement_us=89 unit=Tank
+G4PERF movement_us=161 unit=Unit_32
+G4PERF movement_us=50 unit=Unit_33
+G4PERF movement_us=44 unit=Unit_34
+G4PERF movement_us=40 unit=Unit_35
+G4PERF movement_us=38 unit=Unit_36
+G4PERF command_runtime_us=39 frames=1440
+G4PERF production_runtime_us=2 frames=1440
+G4PERF movement_us=88 unit=Tank
+G4PERF movement_us=58 unit=Unit_32
+G4PERF movement_us=38 unit=Unit_33
+G4PERF movement_us=34 unit=Unit_34
+G4PERF movement_us=39 unit=Unit_35
+G4PERF movement_us=49 unit=Unit_36
+G4PERF command_runtime_us=36 frames=1480
+G4PERF production_runtime_us=2 frames=1480
+G4PERF movement_us=89 unit=Tank
+G4PERF movement_us=59 unit=Unit_32
+G4PERF movement_us=46 unit=Unit_33
+G4PERF movement_us=31 unit=Unit_34
+G4PERF movement_us=34 unit=Unit_35
+G4PERF movement_us=27 unit=Unit_36
+G4PERF command_runtime_us=47 frames=1520
+G4PERF production_runtime_us=2 frames=1520
+G4PERF movement_us=181 unit=Tank
+G4PERF movement_us=72 unit=Unit_32
+G4PERF movement_us=48 unit=Unit_33
+G4PERF movement_us=47 unit=Unit_34
+G4PERF movement_us=52 unit=Unit_35
+G4PERF movement_us=53 unit=Unit_36
+G4PERF command_runtime_us=21 frames=1560
+G4PERF production_runtime_us=2 frames=1560
+G4PERF movement_us=37 unit=Tank
+G4PERF movement_us=38 unit=Unit_32
+G4PERF movement_us=37 unit=Unit_33
+G4PERF movement_us=37 unit=Unit_34
+G4PERF movement_us=75 unit=Unit_35
+G4PERF movement_us=47 unit=Unit_36
+[MOV][软穿行] Tank 进入：友军贴身=3 敌军近处=0 半径 2.00→0.50 历时=0.40s
+G4PERF command_runtime_us=32 frames=1600
+G4PERF production_runtime_us=6 frames=1600
+G4PERF movement_us=111 unit=Tank
+G4PERF movement_us=74 unit=Unit_32
+G4PERF movement_us=47 unit=Unit_33
+G4PERF movement_us=40 unit=Unit_34
+G4PERF movement_us=37 unit=Unit_35
+G4PERF movement_us=39 unit=Unit_36
+[MOV][软穿行] Tank 退出（timeout）：半径还原 2.00
+G4PERF command_runtime_us=21 frames=1640
+G4PERF production_runtime_us=2 frames=1640
+G4PERF movement_us=37 unit=Tank
+G4PERF movement_us=37 unit=Unit_32
+G4PERF movement_us=114 unit=Unit_33
+G4PERF movement_us=52 unit=Unit_34
+G4PERF movement_us=41 unit=Unit_35
+G4PERF movement_us=41 unit=Unit_36
+ERROR: Movement recovery assertion failed: 新命令到达误差应合理（8.70m）
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check (res://tests/automated/MovementRecoverySmokeTest.gd:367)
+       [1] _scenario_player_override_during_recovery (res://tests/automated/MovementRecoverySmokeTest.gd:264)
+       [2] _wait_terminal_order (res://tests/automated/MovementRecoverySmokeTest.gd:324)
+[MOVEMENT] override new=Arrived old=Arrived planar_err=8.70 recovery_mode= detections=2→9
+[MOVEMENT] recovery_stats={ "stall_detections": 13, "repaths": 28, "escapes": 9, "unreachable": 0, "budget_skips": 0, "soft_phase_enters": 4, "soft_phase_exits": 4, "soft_phase_rejects": 0 } budget_skips=0
+Movement recovery smoke test completed: 4 failure(s)
+[EXIT-TRACE] EXIT_TREE：场景树收尾（tick=1683，场景=unknown，对局结果=无该节点）
+[EXIT-TRACE] PREDELETE：引擎收尾（Globals 释放，tick=unknown(已脱离场景树)）

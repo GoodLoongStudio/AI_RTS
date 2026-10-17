@@ -99,14 +99,14 @@ public partial class ProjectileRuntime : Node
         return Spawn(snapshot, launch.ProjectileScene!, muzzle, source, null);
     }
 
-    /// <summary>返回制导目标的最新有效位置；目标失效后保持最后已知位置。</summary>
+    /// <summary>返回弹体落点；只有防空炮在飞行期间刷新目标位置。</summary>
     public Vector3 GetAimPoint(string attackId)
     {
         if (!TryGetActive(attackId, out var state))
         {
             return Vector3.Inf;
         }
-        if (state.Target is not null &&
+        if (state.TracksTarget && state.Target is not null &&
             state.Target.TryGetTarget(out var target) &&
             GodotObject.IsInstanceValid(target) &&
             target.IsInsideTree())
@@ -116,6 +116,10 @@ public partial class ProjectileRuntime : Node
 
         return state.LastAimPoint;
     }
+
+    /// <summary>返回该次攻击的弹头范围半径（米），供落点特效按判定范围自适应缩放；直击弹头为 0。</summary>
+    public float GetWarheadRadius(string attackId) =>
+        TryGetActive(attackId, out var state) ? state.Snapshot.WarheadRadius : 0.0f;
 
     /// <summary>在实际爆点对当前可伤害对象执行一次结算；重复调用不会再次造成伤害。</summary>
     public int ResolveImpact(string attackId, Vector3 impactPoint)
@@ -187,7 +191,9 @@ public partial class ProjectileRuntime : Node
             target.SetMeta("damage_presentation", new Godot.Collections.Dictionary
             {
                 ["reaction"] = state.ImpactReaction,
-                ["direction"] = direction
+                ["direction"] = direction,
+                ["amount"] = application.Damage,
+                ["source_player_id"] = state.Snapshot.SourcePlayerId.Value.ToString("D")
             });
             try
             {
@@ -240,7 +246,8 @@ public partial class ProjectileRuntime : Node
             warhead.RadiusMeters,
             warhead.FriendlyFireDamageMultiplier,
             selectionMode,
-            allowsFriendlyDamage);
+            allowsFriendlyDamage,
+            TracksTarget(weapon));
     }
 
     /// <summary>读取开火单位的成长伤害倍率；缺失或非法值一律视为 1.0（无加成）。</summary>
@@ -271,8 +278,10 @@ public partial class ProjectileRuntime : Node
             snapshot,
             null,
             ToVector(snapshot.InitialAimPoint),
-            "bullet");
+            "bullet",
+            snapshot.TracksTarget);
         _active.Add(snapshot.AttackId, state);
+        source.SetMeta("projectile_tracks_target", snapshot.TracksTarget);
 
         var muzzle = muzzleTransform.Origin;
         var impact = ToVector(snapshot.InitialAimPoint);
@@ -287,7 +296,8 @@ public partial class ProjectileRuntime : Node
     /// <summary>生成一条 0.15 秒内淡出消失的白色发光曳光带（有宽度的长条，1 像素线在远处不可见）。</summary>
     private void SpawnTracer(Vector3 from, Vector3 to)
     {
-        var start = from + new Vector3(0.0f, 0.25f, 0.0f);
+        // from 已经是权威炮口挂点的世界坐标；不能再抬高，否则曳光带会悬在枪口上方。
+        var start = from;
         var end = to + new Vector3(0.0f, 0.45f, 0.0f);
         var length = (end - start).Length();
         if (length < 0.05f)
@@ -331,7 +341,8 @@ public partial class ProjectileRuntime : Node
             snapshot,
             target is null ? null : new WeakReference<Node3D>(target),
             ToVector(snapshot.InitialAimPoint),
-            projectile.GetMeta("impact_reaction", "bullet").AsString());
+            projectile.GetMeta("impact_reaction", "bullet").AsString(),
+            snapshot.TracksTarget);
         _active.Add(snapshot.AttackId, state);
 
         var id = snapshot.AttackId.Value.ToString("D");
@@ -339,6 +350,8 @@ public partial class ProjectileRuntime : Node
         projectile.Set("projectile_runtime", this);
         projectile.Set("launch_transform", launchTransform);
         projectile.Set("visible_snapshot", source.Visible);
+        projectile.Set("tracks_target", snapshot.TracksTarget);
+        source.SetMeta("projectile_tracks_target", snapshot.TracksTarget);
         projectile.TreeExited += () => Forget(id);
         _projectiles.AddChild(projectile);
         // 实体攻击、地面攻击与调试发射共用同一真实发射事件，避免各 Action 漏报或重复报。
@@ -421,7 +434,8 @@ public partial class ProjectileRuntime : Node
         AttackLaunchSnapshot snapshot,
         WeakReference<Node3D>? target,
         Vector3 lastAimPoint,
-        string impactReaction)
+        string impactReaction,
+        bool tracksTarget)
     {
         /// <summary>发射时冻结的权威攻击数据。</summary>
         public AttackLaunchSnapshot Snapshot { get; } = snapshot;
@@ -432,9 +446,15 @@ public partial class ProjectileRuntime : Node
         /// <summary>目标失效后继续使用的最后有效瞄准点。</summary>
         public Vector3 LastAimPoint { get; set; } = lastAimPoint;
 
+        /// <summary>只允许可信防空武器在飞行期间刷新实体目标位置。</summary>
+        public bool TracksTarget { get; } = tracksTarget;
+
         /// <summary>从投射物资源冻结的命中表现，不参与伤害数值计算。</summary>
         public string ImpactReaction { get; } = impactReaction;
     }
+
+    private static bool TracksTarget(WeaponDefinition weapon) =>
+        string.Equals(weapon.Id.Value, "anti_air_turret_rocket", StringComparison.Ordinal);
 
     /// <summary>汇总一次发射所需的不可变配置和 Godot 表现场景。</summary>
     private sealed record LaunchDefinition(

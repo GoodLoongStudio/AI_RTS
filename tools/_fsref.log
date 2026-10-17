@@ -1,0 +1,12 @@
+[selfplay] 验收端口 24589 在专用段 24589-24592 内
+清理：没有属于本局端口的 Godot 进程
+[selfplay] 大厅就绪: 指挥官-309
+[selfplay] op=start -> {'map': 'res://source/match/maps/PlainAndSimple.tscn', 'ok': True, 'passive_ai_test': False, 'peaceful': False, 'seed': 0, 'with_ai': True}
+runner 启动 pid=45332 state_dir=G:\AIRTS\tmp_logs\langgraph_recon\selfplay\state_fs_ref
+pidfile=38872
+[selfplay] 对局开始，采样 260s（backend=off difficulty=-1）
+[selfplay] 矿场建造回执 -> {'detail': '自动放置找不到合法落点（基地周围无可建地面/没有已探明的新矿点）。', 'error': 'no valid auto site', 'ok': False, 'reason': 'NoValidSite', 'status': 'Rejected'}
+停止 runner roots=[45332]（全部=[38872, 45332]，authority-port=24572）
+清理本局进程树 roots=[55136, 54432] (全部=[51592, 54432, 54700, 55136])
+[selfplay] 终局: verdict=timeout own=70 enemy=25 units={'command_center': 1, 'drone': 1, 'worker': 6, 'barracks': 2, 'soldier': 60, 'anti_air_turret': 2, 'anti_ground_turret': 2, 'vehicle_factory': 1} balance={'a': 37600}
+[selfplay] written: G:\AIRTS\tmp_logs\langgraph_recon\selfplay\result_fs_ref.json

@@ -87,8 +87,10 @@ func _update_circle_params():
 
 
 ## 选中时显示攻击范围圈（2026-09-12 用户要求："点击炮塔和单位要显示其攻击范围"）。
-## 半径取权威值 attack_range（= 主武器射程），与所有射程判定同口径
-## （单位中心到目标中心的水平距离，见 Action/UnitCommandService 的射程比较）。
+## 半径取权威口径 **attack_range + 自身半径**（2026-10-01 随表面到表面射程口径更新）：
+## 权威判定（Unit.reach_range_against）= 基础射程 + 双方半径的圆心距；
+## 本圈画"基础射程 + 自身半径" = 对**点目标**的精确可及范围 ——
+## 目标表面触及圈沿 = 刚好可及；对有半径的目标再按其半径外扩（同一公式的目标项）。
 ## 没有武器的单位（Worker/Drone）attack_range 是 Nil
 ## （见 BalanceConfigRuntime.ConfigurePrimaryWeapon），本来就没有攻击范围可显示，圈保持隐藏。
 func _show_attack_range():
@@ -98,7 +100,10 @@ func _show_attack_range():
 	if attack_range == null:
 		_range_indicator.hide_range()
 		return
-	_range_indicator.show_range(float(attack_range))
+	var own_radius: float = (
+		float(_unit.body_radius()) if _unit.has_method("body_radius") else 0.0
+	)
+	_range_indicator.show_range(float(attack_range) + own_radius)
 
 
 func _hide_attack_range():
@@ -116,7 +121,9 @@ func _on_input_event(_camera, event, _click_position, _click_normal, _shape_idx)
 		if actions_controller != null and (
 			actions_controller.is_repair_targeting() or actions_controller.is_sell_targeting()
 		):
-			MatchSignals.unit_targeted.emit(_unit, _click_position)
+			# 【2026-10-08】同上：unit_targeted 要 Vector3 世界坐标，
+			# input_event 给的是 Vector2 屏幕坐标（详见 Targetability.gd）。
+			MatchSignals.unit_targeted.emit(_unit, _unit.global_position)
 			get_viewport().set_input_as_handled()
 			return
 		print("[INPUT] unit click unit=", _unit.name, " pos=", event.position)

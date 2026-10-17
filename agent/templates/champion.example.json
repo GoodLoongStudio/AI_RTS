@@ -1,0 +1,27 @@
+{
+  "run_id": "<run-id>",
+  "stage": "<stage>",
+  "created_at": "<ISO-8601>",
+  "ref_or_tree_hash": "<git-ref-or-working-tree-hash>",
+  "hard_gates": {
+    "parse_or_build": "pass|fail|not-run",
+    "real_match_start": "pass|fail|not-run",
+    "target_positive": "pass|fail|not-run",
+    "target_negative": "pass|fail|not-run",
+    "fresh_screenshot": "pass|fail|not-run",
+    "related_regression": "pass|fail|not-run",
+    "independent_review": "pass|fail|not-run",
+    "no_zombie_instance": "pass|fail|not-run"
+  },
+  "quality_vector": {
+    "target_behavior": "<before-to-candidate>",
+    "regression": "<before-to-candidate>",
+    "visual": "<before-to-candidate>",
+    "stability": "<before-to-candidate>",
+    "performance": "<before-to-candidate>"
+  },
+  "evidence": [
+    "agent/runs/<run-id>/round-NN/verification.md"
+  ],
+  "reason": "<why this is the retained champion>"
+}

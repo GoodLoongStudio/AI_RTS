@@ -95,6 +95,13 @@ func _ready():
 	_check(btn_src.contains("func _query_status_inner"),
 		"_query_status 应有 inner 实现（外层重入守卫包装）")
 
+	# --- ⑦ 夹具所有权：显式释放裸 Node（2026-10-11 归因确认的夹具缺陷） ---
+	# node 是 `AdjutantButtonScript.new()` 创建的裸对象：不挂树（_ready 不跑，
+	# 父节点不负责回收），必须由本测试显式 free。不 free 的实测后果：
+	# 退出时 6 ObjectDB leaked（Node + GDScript + GDScriptNativeClass + _op/_path/_kv
+	# 三个 RegEx 实例成员）+ 1 resource still in use，命中回归 forbidden。
+	node.free()
+
 	if _failures == 0:
 		print("Adjutant UI state consistency: 0 failure(s)")
 		get_tree().quit(0)

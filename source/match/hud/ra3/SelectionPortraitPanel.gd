@@ -23,14 +23,13 @@ const ICON_BY_SCENE := {
 	"res://source/match/units/MachineGunTurret.tscn": "machine_gun_turret",
 	"res://source/match/units/Barracks.tscn": "barracks",
 	"res://source/match/units/OreRefinery.tscn": "ore_refinery",
-	"res://source/match/units/Scout.tscn": "scout",
 }
 
 const CAPTION_BY_ICON := {
 	"worker": "矿车",
 	"tank": "坦克",
 	"heavy_tank": "重坦",
-	"helicopter": "直升机",
+	"helicopter": "战斗机",
 	"drone": "无人机",
 	"soldier": "步兵",
 	"sniper": "狙击",
@@ -45,7 +44,6 @@ const CAPTION_BY_ICON := {
 	"machine_gun_turret": "机枪塔",
 	"barracks": "兵营",
 	"ore_refinery": "矿场",
-	"scout": "侦察机",
 }
 
 ## 单元格尺寸（2026-09-28 用户"单位 UI 要小一点、不要重叠"）：
@@ -151,6 +149,8 @@ func _sync_live_stats() -> void:
 		if not child.has_meta("units"):
 			continue
 		_apply_hp(child, child.get_meta("units"))
+		# 载员数会随上下车变化，而 signature 只按"场景+数量"去重 → 必须在这里刷新。
+		_apply_cargo(child, child.get_meta("units"))
 
 
 func _make_portrait(units: Array) -> Button:
@@ -240,8 +240,63 @@ func _make_portrait(units: Array) -> Button:
 	button.set_meta("unit", unit)
 	button.set_meta("units", units)
 	_apply_hp(button, units)
+	_add_cargo_chip(button, units)
+	_apply_cargo(button, units)
 	button.pressed.connect(_on_portrait_pressed.bind(units))
 	return button
+
+
+## 运输车的载员徽标（2026-10-12 用户要求"要有显示"）：左下角显示 `已载/容量`，
+## 只在带 CargoHold 的单位上出现；数值由 `_apply_cargo()` 每轮刷新。
+func _add_cargo_chip(button: Button, units: Array) -> void:
+	var unit = units[0] if not units.is_empty() else null
+	if unit == null or not is_instance_valid(unit):
+		return
+	if unit.find_child("CargoHold", true, false) == null:
+		return
+	var chip := PanelContainer.new()
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var style := SystemUIStyle.rounded(
+		Color(SystemUIStyle.CYAN_DEEP.r, SystemUIStyle.CYAN_DEEP.g, SystemUIStyle.CYAN_DEEP.b, 0.92),
+		ThemeTokens.CYAN,
+		1,
+		4
+	)
+	style.content_margin_left = 4
+	style.content_margin_right = 4
+	style.content_margin_top = 1
+	style.content_margin_bottom = 1
+	chip.add_theme_stylebox_override("panel", style)
+	var label := Label.new()
+	label.add_theme_font_size_override("font_size", 11)
+	label.add_theme_color_override("font_color", ThemeTokens.CYAN)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chip.add_child(label)
+	button.add_child(chip)
+	# 落在底部信息条（高 20px）上方，避免被压住。
+	chip.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+	chip.offset_left = 3
+	chip.offset_top = -40
+	chip.offset_bottom = -22
+	button.set_meta("cargo_label", label)
+
+
+## 刷新载员徽标文本：整组（同类型多个运输车）的载员与容量求和。
+func _apply_cargo(button: Control, units: Array) -> void:
+	var label = button.get_meta("cargo_label") if button.has_meta("cargo_label") else null
+	if label == null or not is_instance_valid(label):
+		return
+	var loaded := 0
+	var capacity := 0
+	for unit in units:
+		if not is_instance_valid(unit):
+			continue
+		var cargo = unit.find_child("CargoHold", true, false)
+		if cargo == null:
+			continue
+		loaded += int(cargo.get_passenger_count())
+		capacity += int(cargo.get_capacity())
+	label.text = "%d/%d" % [loaded, capacity]
 
 
 func _add_count_badge(button: Button, count: int) -> void:

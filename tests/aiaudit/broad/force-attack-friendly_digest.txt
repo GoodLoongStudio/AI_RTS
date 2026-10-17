@@ -1,0 +1,3 @@
+ERROR: Force attack friendly assertion failed: 选中炮塔时强制攻击按钮应可用（计数=1）
+ERROR: Force attack friendly assertion failed: 炮塔强制攻击友军工人应造成伤害（hp 6.0 → 6.0）
+Force attack friendly smoke test completed: 2 failure(s)

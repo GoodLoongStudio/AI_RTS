@@ -3,6 +3,7 @@ extends Node3D
 const SIGHT_COMPENSATION = 2.0  # compensates for blurry edges of FoW
 
 const Structure = preload("res://source/match/units/Structure.gd")
+const _PerfBuckets = preload("res://source/match/PerfBuckets.gd")
 
 var _units_processed_at_least_once = {}
 var _structure_to_dummy_mapping = {}
@@ -23,8 +24,13 @@ func _ready():
 
 
 func _physics_process(delta):
+	var t0 := 0
+	if _PerfBuckets.enabled:
+		t0 = Time.get_ticks_usec()
 	_update_elapsed += delta
 	if _update_elapsed < UPDATE_INTERVAL and not _cache_dirty:
+		if t0 != 0:
+			_PerfBuckets.add("visibility", int(Time.get_ticks_usec() - t0))
 		return
 	_update_elapsed = fmod(_update_elapsed, UPDATE_INTERVAL)
 	if _cache_dirty:
@@ -45,6 +51,8 @@ func _physics_process(delta):
 		if unit.is_queued_for_deletion():
 			continue
 		_recalculate_unit_visibility(unit, revealed_units)
+	if t0 != 0:
+		_PerfBuckets.add("visibility", int(Time.get_ticks_usec() - t0))
 
 
 func _is_disabled():
@@ -71,7 +79,15 @@ func _recalculate_unit_visibility(unit, revealed_units = null):
 				(revealed_unit.global_position * Vector3(1, 0, 1)).distance_squared_to(
 					unit.global_position * Vector3(1, 0, 1)
 				)
-				<= pow(float(revealed_unit.sight_range) + SIGHT_COMPENSATION, 2.0)
+				# 尺寸统一遗留（2026-09-29）：迷雾可见性也按"表面到表面"判定，
+				# 否则放大后的敌方建筑/单位中心永远进不了侦察圈（口径见
+				# Unit.sight_range_against）。伪单位无该方法时退回旧口径。
+				<= pow(
+					(revealed_unit.sight_range_against(unit)
+						if revealed_unit.has_method("sight_range_against")
+						else float(revealed_unit.sight_range))
+					+ SIGHT_COMPENSATION, 2.0
+				)
 			)
 		):
 			should_be_visible = true

@@ -1,0 +1,127 @@
+[
+  {
+    "id": "vehicle-factory-worker-production",
+    "category": "production",
+    "scene": "res://tests/automated/VehicleFactoryWorkerProductionSmokeTest.tscn",
+    "returncode": 0,
+    "seconds": 7.1,
+    "marker_ok": true,
+    "marker": "Vehicle factory worker production smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [
+      "System.InvalidOperationException: 场景 res://tests/perfgrid/TmpTurretHead.tscn 没有受信任的单位类型定义。"
+    ],
+    "log_lines": 189
+  },
+  {
+    "id": "death-cleanup",
+    "category": "combat",
+    "scene": "res://tests/automated/DeathCleanupSmokeTest.tscn",
+    "returncode": 0,
+    "seconds": 4.4,
+    "marker_ok": true,
+    "marker": "Death cleanup smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 84
+  },
+  {
+    "id": "economy-account",
+    "category": "economy",
+    "scene": "res://tests/automated/EconomyAccountSmokeTest.tscn",
+    "returncode": 1,
+    "seconds": 4.1,
+    "marker_ok": false,
+    "marker": "Economy account smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "4"
+    ],
+    "fail_lines": [],
+    "errors": [
+      "System.InvalidOperationException: 场景 res://tests/perfgrid/TmpTurretHead.tscn 没有受信任的单位类型定义。"
+    ],
+    "log_lines": 184
+  },
+  {
+    "id": "force-attack-friendly",
+    "category": "combat",
+    "scene": "res://tests/automated/ForceAttackFriendlySmokeTest.tscn",
+    "returncode": 1,
+    "seconds": 26.8,
+    "marker_ok": false,
+    "marker": "Force attack friendly smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "2"
+    ],
+    "fail_lines": [
+      "选中炮塔时强制攻击按钮应可用（计数=1）",
+      "炮塔强制攻击友军工人应造成伤害（hp 6.0 → 6.0）"
+    ],
+    "errors": [
+      "System.InvalidOperationException: 场景 res://tests/perfgrid/TmpTurretHead.tscn 没有受信任的单位类型定义。"
+    ],
+    "log_lines": 427
+  },
+  {
+    "id": "movement-recovery",
+    "category": "navigation",
+    "scene": "res://tests/automated/MovementRecoverySmokeTest.tscn",
+    "returncode": 1,
+    "seconds": 30.2,
+    "marker_ok": false,
+    "marker": "Movement recovery smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "4"
+    ],
+    "fail_lines": [
+      "绕墙到达误差应合理（13.71m）",
+      "绕墙场景确实发生了长距离移动（3.71m）",
+      "集体回基地应至少 7/8 抵达基地附近（实际 0）",
+      "新命令到达误差应合理（8.98m）"
+    ],
+    "errors": [],
+    "log_lines": 410
+  },
+  {
+    "id": "movement-scale",
+    "category": "navigation",
+    "scene": "res://tests/automated/MovementScaleSmokeTest.tscn",
+    "returncode": 1,
+    "seconds": 232.1,
+    "marker_ok": false,
+    "marker": "Movement scale smoke test completed: 0 failure(s)",
+    "conclusion": [],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 40001
+  },
+  {
+    "id": "production-queue",
+    "category": "production",
+    "scene": "res://tests/automated/ProductionQueueSmokeTest.tscn",
+    "returncode": 1,
+    "seconds": 10.4,
+    "marker_ok": false,
+    "marker": "Production queue smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "5"
+    ],
+    "fail_lines": [
+      "容量内的生产项目应入队",
+      "容量内的生产项目应入队",
+      "容量内的生产项目应入队",
+      "统一生产队列容量应为 5",
+      "被 QueueFull 拒绝的项目不得额外扣款"
+    ],
+    "errors": [
+      "System.InvalidOperationException: 场景 res://tests/perfgrid/TmpTurretHead.tscn 没有受信任的单位类型定义。"
+    ],
+    "log_lines": 248
+  }
+]

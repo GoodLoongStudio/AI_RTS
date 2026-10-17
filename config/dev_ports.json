@@ -25,7 +25,34 @@
       "所以验收段扩成两段：默认 24589-24592；并行会话用 24609-24612（基端口 24609）。",
       "用法：AIRTS_TEST_BASE=24609（starter 会校验它落在任一段内）。"
     ],
-    "acceptance_parallel": [24609, 24612]
+    "acceptance_parallel": [24609, 24612],
+    "dynamic_dev": [24700, 25899]
+  },
+
+  "instances": {
+    "_readme": [
+      "【对局实例契约】2026-09-29：本机要能**同时开多个单人对局**（AI coding 工具开发/测试），",
+      "所以不再靠人工分配预留段，改成『动态端口 + 实例登记』：",
+      "  1) 端口从 dynamic_dev 段里**实测**挑一段连续空闲块（TCP+UDP 都试绑），多路会话天然不撞；",
+      "     预留段（player/panel/acceptance）保持原样，给既有流程继续用，谁都不许动它们。",
+      "  2) 游戏侧 source/net/MatchInstanceRegistry.gd 在 AIRTS_INSTANCE_DIR 指向的目录里落登记",
+      "     文件（pid/父 pid/角色/**实际监听端口**/心跳/对局号）。工具**读登记**取端口，绝不猜端口",
+      "     —— 这是'连到别人家对局'的根治（2026-09-28 实测过：测试脚本秒连上了并行会话的客户端）。",
+      "  3) 清理一律**按 pid 进程树**（taskkill /T /F），**绝不再按端口杀**",
+      "     —— 2026-09-13 血案：验收收尾按端口清理，把游戏内面板的 runner 一起杀了。",
+      "  4) 启动器一死，游戏侧看门狗（AIRTS_PARENT_PID）立即自退 ⇒ 不留'僵尸局'。",
+      "工具：AI_RTS/tools/dev/match_instance.py（ls / reap / ports）。"
+    ],
+    "registry_dir_env": "AIRTS_INSTANCE_DIR",
+    "default_registry_dir": "tmp_logs/instances（仓库上一级，与既有 tmp_logs 纪律同源）",
+    "parent_pid_env": "AIRTS_PARENT_PID",
+    "stale_after_seconds_env": "AIRTS_INSTANCE_STALE_S",
+    "strict_dcs_env": "AIRTS_INSTANCE_STRICT_DCS",
+    "port_offsets": {
+      "game": 0,
+      "client_dcs": 1,
+      "server_dcs": 3
+    }
   },
 
   "roles": {

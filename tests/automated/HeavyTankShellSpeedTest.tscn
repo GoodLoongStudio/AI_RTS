@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tests/automated/HeavyTankShellSpeedTest.gd" id="1_htss"]
+
+[node name="HeavyTankShellSpeedTest" type="Node"]
+script = ExtResource("1_htss")

@@ -1,0 +1,8 @@
+---
+description: AI_RTS 主工程定位及成品/运行时保护
+alwaysApply: true
+---
+
+先读 `AGENTS.md`、`skills/airts-workspace-boundaries/SKILL.md` 和 `agent/manifest.json`。本机默认开发根为 `G:/AIRTS/AI_RTS`，交付成品为 `G:/AIRTS/打包版`。编辑游戏前运行 `python tools/check_workspace_target.py --mode develop --target <实际绝对路径>`；默认开发检查必须 rc=0。
+
+源码测试明确 `--path G:/AIRTS/AI_RTS`，保留现有目录和启动/导出配置；`build/adjutant_runtime` 是模型运行依赖，禁止清空或迁移。其他工程、worktree、打包和运行时维护按用户已明确授权的任务范围执行，详细边界以主工程技能为准。

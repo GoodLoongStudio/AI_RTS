@@ -116,19 +116,21 @@ static func _economy(report: Dictionary) -> Dictionary:
 	var parts := PackedStringArray()
 	var scores: Array = []
 
-	if gathered != null and duration != null and float(duration) > 0.0:
-		var per_min := float(gathered) / (float(duration) / 60.0)
+	var gathered_total := MatchReportSchema._sum_amounts(gathered, null)
+	var wasted_total := MatchReportSchema._sum_amounts(wasted, null)
+	if gathered_total >= 0.0 and duration != null and float(duration) > 0.0:
+		var per_min := gathered_total / (float(duration) / 60.0)
 		scores.append(clampf(per_min / GATHER_PER_MIN_REFERENCE, 0.0, 1.0))
 		parts.append("采集 %s，均速 %.1f/min（参考线 %.0f）" % [
-			MatchReportSchema.number_text(gathered), per_min, GATHER_PER_MIN_REFERENCE])
+			MatchReportSchema.dict_amount_text(gathered), per_min, GATHER_PER_MIN_REFERENCE])
 	if utilization != null:
 		scores.append(clampf(float(utilization), 0.0, 1.0))
 		parts.append("资源利用率 %s" % MatchReportSchema.percent_text(utilization))
-	if gathered != null and wasted != null and float(gathered) > 0.0:
-		var waste_ratio := float(wasted) / float(gathered)
+	if gathered_total > 0.0 and wasted_total >= 0.0:
+		var waste_ratio := wasted_total / gathered_total
 		scores.append(clampf(1.0 - waste_ratio * 4.0, 0.0, 1.0))
 		parts.append("浪费 %s（占采集 %s）" % [
-			MatchReportSchema.number_text(wasted), MatchReportSchema.percent_text(waste_ratio)])
+			MatchReportSchema.dict_amount_text(wasted), MatchReportSchema.percent_text(waste_ratio)])
 	if scores.is_empty():
 		return {"score": null, "basis": "缺少采集/消耗数据，无法评分", "metrics": []}
 	return {"score": _average(scores), "basis": "；".join(parts), "metrics": []}

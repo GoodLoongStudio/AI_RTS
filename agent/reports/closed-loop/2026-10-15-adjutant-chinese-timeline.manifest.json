@@ -1,0 +1,3750 @@
+{
+  "exported_at": "2026-10-15T10:40:00.329191+00:00",
+  "run": "C:/Users/Administrator/.codex/visualizations/2026/10/14/01a13a75-a7c7-7152-be8c-9f467f7f82d3/20261015-adjutant-observe-10min02",
+  "source_hashes": {
+    "summary.json": "5e3d561a2a9dbe89424981cb5efb6944606820d89f60085ad273d02a0641fa29",
+    "attempts.jsonl": "74c0342161b84594981e17e31aefd9f98b7f68c65ad136e833cd9db8151cb655",
+    "http.jsonl": "cbb5b54b957c40d37f74347712aea25c116656311795b47d7424ae9f1d08264b",
+    "attempts/strategy-0001.context.json": "42bc01d5ae7597547d2929bc887218af12502c87889d53d69e20d7301fc92624",
+    "attempts/strategy-0001.result.json": "078a9846fcf78c036f1ac047f74dc4e92918adfd8525b319e6c1a058d234c73f",
+    "attempts/strategy-0002.context.json": "f37fc209004014c9687c16e8580d73dee0a6ac96496a5c858f85feed630f3f34",
+    "attempts/strategy-0002.result.json": "ef5fd6c9d82081d29330fcb7ce9399b887778bf7efdab77afec3df7ed7867859",
+    "attempts/strategy-0003.context.json": "881c8777a02a740d1d568c07ba606cf11222ac82a83c9da43f05c764001a9ee7",
+    "attempts/strategy-0003.result.json": "f31ad54b65363033ea2b39a153761c9fef39297e019c540e483fc15fe05a4acb",
+    "attempts/strategy-0004.context.json": "e472cb4ba82002b88b479e154ef1af2f1edc61a11a17c2d3621af8dbe6c67791",
+    "attempts/strategy-0004.result.json": "4434416fd80d0823b2f602e24728c196713dd55d4d6d5ff3fc34beef085cba76",
+    "attempts/strategy-0005.context.json": "5a1515859573b8cf66d0df8182273d053dc04d976c7f896415f88497d3608270",
+    "attempts/strategy-0005.result.json": "836fe90f453157fa1920a53c35e7e09510a7e52f2c2c16b52dc54a6f7b4cf4f4",
+    "attempts/strategy-0006.context.json": "e0965b125bc4b0438991377fb992745241d6caa683355038c19bbcc1012230a9",
+    "attempts/strategy-0006.result.json": "f12e3e2aa736ab346a42415ea303fb8844a036bfb222ae3a70fbd3cb6554b8a6",
+    "attempts/strategy-0007.context.json": "c0436f21344b840d04eaf03c02043f92d9e79531978a9b9330c0677090bf0163",
+    "attempts/strategy-0007.result.json": "e24018f72405cd6072e65b6a0b8ea18a2d340dc0fea2f37941aeb148176aba8b",
+    "attempts/strategy-0008.context.json": "eca4ab8cdac12ad66e53b89ac68ca569e6a69b48c93b74333fb6d93a7533678e",
+    "attempts/strategy-0009.context.json": "8789278651b8184f7f5503d9f339c68a74dd5addc12b7c6014cce2f039aa4a15",
+    "attempts/strategy-0009.result.json": "2972eb1ead60947c6cec156c9034ac7313ce89f58956c823901e5337603af858",
+    "attempts/strategy-0010.context.json": "76692fdf6e65341d12a0d5df3a65d849bcc5a3ba6ea69494d8c60057ac952900",
+    "attempts/strategy-0010.result.json": "5ee49d7815c2b329abff9bb2bb6f3ee8a749bf4eae816b04ef597e09d41cd60d",
+    "attempts/strategy-0011.context.json": "96042f0da424588dfcdd39a39acb7deea1c7afdfca0f4ac1e94b49ebbfab05d8",
+    "attempts/strategy-0011.result.json": "7a91984af935647e92a884451f89fba9e6b2fdb4e7884b94dc679f905de3ad3b",
+    "attempts/strategy-0012.context.json": "f4c00f8eb4362ff28f08bca3595782daa08588be50bce000fbefe377273e8296",
+    "attempts/strategy-0012.result.json": "b568a414be82d05529b293a642ea1f3a3b4e6c6b715a2b32f8d65311f2bb8245",
+    "attempts/strategy-0013.context.json": "af5ad5d61d56ceb87baaeeba3b4449a93193f690b7631ec241cec9768c838a96",
+    "attempts/strategy-0013.result.json": "49eeecd80ad25b3bb555ab8d0c211346c34c07a50a6665b6979c85af2f99466a",
+    "attempts/strategy-0014.context.json": "44a4d070dc4e3dc0f7986e417529df3739e8a068274f39a71d1e10c5ea1adefd",
+    "attempts/strategy-0014.result.json": "13d6ec3f7381a8b208981889e02efc0975b038d9dfeca9c9c25bc5c62a27254b",
+    "attempts/strategy-0015.context.json": "f0de9d312fc6b987c1d5bced2ed04090bd28a88a2b107334b036f1c1cbe3b53c",
+    "attempts/strategy-0015.result.json": "f66b666ca20e0922e0e3fb8f47a795e34ae9a89d53929605fd6cde75b7f78977",
+    "attempts/strategy-0016.context.json": "0cc00151fc488daca2aab7296171cda8d9996f9dc803ad4fb96d488af4ac0a0d",
+    "attempts/strategy-0016.result.json": "fe69c4e34f6d88d61c7d5afd18d40967bf65f7e39e66d9da07b961b4c70f989e",
+    "attempts/strategy-0017.context.json": "d008c38f3cff8e6bfb97c7764606d59da409781cec7f85e6581f63f1af9ae3d4",
+    "attempts/strategy-0017.result.json": "d826367c9ca6c248ee3fd4c95991badc58e12bb25481e8721bf167d4e523e0da",
+    "attempts/strategy-0018.context.json": "63ea721d9f61c41a128ccb0f5af3358a7643e0c326cd5e7dcf7e1bb66d893542",
+    "attempts/strategy-0018.result.json": "6267d056a18d98da463a780b00267d320794db9d9ac5e12fddcb2f23857e93b7",
+    "attempts/strategy-0019.context.json": "00b9b2b811701a5e023d04bf88ed929d6b3dac7e95dfce0c05615ff1a1c10094",
+    "attempts/strategy-0019.result.json": "3d3a3e94bd5a6db6c8a57c05ba57e6c0059897aa3dade93020d4275c41d18791",
+    "attempts/strategy-0020.context.json": "34d62c5b5a28cf1e7a055a52d5e4f054816842bdb10bdb6799510e9aa3fde7e0",
+    "attempts/strategy-0020.result.json": "9a3d34f71181f79bf4443be48204d82c39aa99a72a4bdf656e08772788a4899a",
+    "attempts/strategy-0021.context.json": "5424255f34523060b2ef96fda8e84e0ccfefc96df26865354273c5159a8c643e",
+    "attempts/strategy-0021.result.json": "9f43584631b3eff8e22735afd0c1b278382bfec7b826ca7976baaf2ebe60932f",
+    "attempts/strategy-0022.context.json": "92fd6d3072c6ab764d85fb5a7ad197bf2b69e8f3e013bd7eac5504571ec4f3f8",
+    "attempts/strategy-0022.result.json": "d945ae5134bae6bcd325054a046d4d0ff3671530345f9cebb236cd2a0a75db87",
+    "attempts/strategy-0023.context.json": "8dba91232de82ac3037261b057619b3ed7af72ef30e0080e4a8182074c9088c5",
+    "attempts/strategy-0023.result.json": "c09fb769b1f3da38cebd45d56da341c30d6983b3d87f4b61978e38b39622dc54",
+    "attempts/strategy-0024.context.json": "b399d04f67c8685724e97c92ede893e6290cc63fc270733fca164aa53c7e7773",
+    "attempts/strategy-0024.result.json": "d2e652582bea55b9b46a05cec01da61056959a843f8710525672bb51e0ec031c",
+    "attempts/strategy-0025.context.json": "b97bf43aba86d4f8b48afe03afea6fb5688ac9e8aef23b83c157619468c9ccf9",
+    "attempts/strategy-0025.result.json": "fbc05608494570d4e800b3d8ce00adbefdf9f5d8b357d69837f4f6bb9813e9f5",
+    "attempts/strategy-0026.context.json": "57812f1930ce1db448fc5ade67e0c39cb2c4b25c0c9a158a38c675964f0227b4",
+    "attempts/strategy-0026.result.json": "ad182911b87dbfd795c60a97caa6a119ac413ae83d0022df9ff1528410161a13",
+    "attempts/strategy-0027.context.json": "c4f7b61b89ad6433fdb93b2ef7eb5bd3e3cf04a9c4f15744e98b7cb4f68373b7",
+    "attempts/strategy-0027.result.json": "8d003b1c802dac81800260d8a39c632bc05aedf7a7868b95204abf8d248c97b4",
+    "attempts/strategy-0028.context.json": "54e981309da4ff173cae627357fc75f99b936e7cd055bcd8439105addc2a3e27",
+    "attempts/strategy-0028.result.json": "2f63790895eaf0a81863eed0cfa2bfffc8fd5bc8132e69078df815e8191abcbf",
+    "attempts/strategy-0029.context.json": "428ece103cf311bb4d70b1208f0dbe25fcdda5cc90a2b6008fb9d7d83f6a18dd",
+    "attempts/strategy-0029.result.json": "931ad71cbe2307bee736ff927edd4342f99b729112b74af093e42d539b2afd8e",
+    "attempts/strategy-0030.context.json": "09c4dff0b1bff0c36ee3a71ca81a1b408488c9195573bc5fcade26c6b565a768",
+    "attempts/strategy-0030.result.json": "3e06f0220fb09598298628253e6c778398f0ab7d478705669a94d7f8fa499edf",
+    "attempts/strategy-0031.context.json": "c7bb3b31e6b2eb9aeb446b9df7ca54aacd296612ce9154118891af458a341d9e",
+    "attempts/strategy-0031.result.json": "db49b46629614081ed1b6f4e78d64b04586972b457fdb503bec0403e89c69a36",
+    "attempts/strategy-0032.context.json": "df91740771f5860124a5d35aefafd546ce1cce3ca7893286e9ef4f742d81cb40",
+    "attempts/strategy-0032.result.json": "dcf7a61e1b4b5f05fafdd22e6bdb35b549b7ecf89d95e065fd9611ef21a93eca",
+    "attempts/strategy-0033.context.json": "5923eda6bb6a0516b19d90f0e0ba9142d1d91873f5b1ed456332d9881c9dc93f",
+    "attempts/strategy-0033.result.json": "4f586b60e92782ea9763406ca8309b4e7e231f2b0d8ae755491b8ab2d23bae31",
+    "attempts/strategy-0034.context.json": "4e6260e7d449e8d72dc62de47edb63a7094513bde807c88a945e5411a5207cad",
+    "attempts/strategy-0034.result.json": "dbe2badadffa8efae045e170fdb44b997b6b0ead56464a515d126325e044805f",
+    "attempts/strategy-0035.context.json": "dc07719b8101e57551280b76ed05267a3c9f44d3ecc6ec4b6ab2e81d2d81a0a0",
+    "attempts/strategy-0035.result.json": "968d946d7c5e8a5a3de850c1de938d87ef3727bb3604d8b48e27ea2a9c7af6ac",
+    "attempts/strategy-0036.context.json": "82bad6b82be9fece44f0249303d269892748ef73931ebf6ecf638c171ac49e26",
+    "attempts/strategy-0036.result.json": "17ef7317c12e51f210ab49809002e18732a71787a3e7ceadc9a48cecc38d8092",
+    "attempts/strategy-0037.context.json": "afa38c0faa3f81f279c1bfe2a1b452e48de0e5b12f04f2e278baeb92921a6b22",
+    "attempts/strategy-0037.result.json": "d35665e56f456729495b6ee9086e7402fa6b77b9c329aa7b97f5dee106551cea",
+    "attempts/strategy-0038.context.json": "8ccb2f1314006cd9ccd15fd0d8c8ac5af4c7b04c872c87c5af6142c7c558ecc2",
+    "attempts/strategy-0038.result.json": "55880ed157d063f3f9a026d18729e6261c077e5086528a8bb0e0eb65faad5cfc",
+    "attempts/strategy-0039.context.json": "be5b7266b844d7b13631d2582d8144eab018f8884333082a554cb9bd9a07dc70",
+    "attempts/strategy-0039.result.json": "21f838f14259a7a194e480f480813c6e5fe2223db1bbcd0d85c258e055f8f286",
+    "attempts/tactics-0001.context.json": "35de5abcf6a94c501d01f7cdef70fadc96ab971dcdfb56cb1ed7b0a4a0d671b5",
+    "attempts/tactics-0002.context.json": "c195504b1336ac91b590e098b57582b32c1f6fe3a58c984687685170e85df337",
+    "attempts/tactics-0003.context.json": "1155ad630e83802f86a5b0b6544a72a27a8e1e9b001cbb6ea8c6747f543e4b7b",
+    "attempts/tactics-0003.result.json": "af0823b43116814f09b821a82a764cb2f6f80859172134f0a879edf9bfba8a10",
+    "attempts/tactics-0004.context.json": "ce31544c090581204e5e9a4ccce0489276d2f6bd2807b891dcc081b3ef228fc2",
+    "attempts/tactics-0004.result.json": "8369f11ebc9a108e6d461e9b2d596c2410882331951e506c3501c3625699feae",
+    "attempts/tactics-0005.context.json": "8a2b7fef315ae5099a4e0c10340a6b1c7f6ebfca9c0bd24482380e9fde14e573",
+    "attempts/tactics-0005.result.json": "ad94452c8612a4ad335f9889d9c4c91ac6af3eb7995fd3163fe80022e4bf16b7",
+    "attempts/tactics-0006.context.json": "4595db97ed100b17d8094f2be554f6b368a66c3b1fb8a7b67eae631e04bd0c49",
+    "attempts/tactics-0006.result.json": "d300663ecf5fc4f108df80e482d5f08da2a1d3c67024292c926def70b41cbcf5",
+    "attempts/tactics-0007.context.json": "6116a9fa776aae98b82797592548fff153923789663da3e5a84b29b1f79ff5c1",
+    "attempts/tactics-0007.result.json": "5f10e9a2bf8655a72d8b33d73394b40c5c3f6fd9aa814f7f6811c847173c68ce",
+    "attempts/tactics-0008.context.json": "48c07e23c49d03f824af5fd0637d1186b6114a26b8f86c7a9625829828fe128d",
+    "attempts/tactics-0008.result.json": "0bb1dc3750e52ba70c0f7e0ff64cb0dd98d11f567011e78c5b0b945103a02e3a",
+    "attempts/tactics-0009.context.json": "0ddfa42ec4e8f0fd1c137f7d17db0e7705328c76e6af04592c6237697282ce7d",
+    "attempts/tactics-0009.result.json": "0c21b61a61bd7cea877146d393adb911ac6cb87ffe59eb5f11c02938ed75abb5",
+    "attempts/tactics-0010.context.json": "c927f96efe4e21fd5013d9da8a09138f16e2ae84185a804bec95501e09cee12d",
+    "attempts/tactics-0010.result.json": "d449554735e16e765d170dd07747e47d2afaa73f0b70c24d42d613e20dde8f40",
+    "attempts/tactics-0011.context.json": "cba6476558ad013f9b4bcc0dabe17b85085ebc5cec98cd17e6977dca435e841a",
+    "attempts/tactics-0011.result.json": "a33253c040f74baf40842e61678dcdf188da43485fa520cd68e482e852430369",
+    "attempts/tactics-0012.context.json": "e29e47b6c6a1e342725457e92f5ef182a6199ce30aee166d3423870c81c275fa",
+    "attempts/tactics-0012.result.json": "d7b7d787525ca96a35ec5eb76f53237322c5a8aabc637d770da2fb27d76fb68e",
+    "attempts/tactics-0013.context.json": "ac68ff110245e498778d2861235487c0e1340af1547e694bbfc1a83c72e3ec7a",
+    "attempts/tactics-0013.result.json": "a0120fdd1eeab216ee5196bff362121d2ebdcefc349e556036b39944dd5465f4",
+    "attempts/tactics-0014.context.json": "ad9273172b0f38052d8e0c4576455f31b1292e85da26cc1fdce9df34a4acfc28",
+    "attempts/tactics-0014.result.json": "a918752ba6690270cc7b752196f2ea850a60797c557ffdc2b87baffa8b46d5b2",
+    "attempts/tactics-0015.context.json": "ee90349888cb02bf06de0261e9b1c4bc3102a506308d54fb13bcf33aee64d3c2",
+    "attempts/tactics-0015.result.json": "0ea2dc3b70c7d680878835e6978805f909beb9bc9516535e672a63d3c6136d31",
+    "attempts/tactics-0016.context.json": "c26788cb3653227443ff377b4156ebb59d8d12fb6b7cee0eeccc95ea9bf5d00b",
+    "attempts/tactics-0016.result.json": "9c834c31530d37edbee52fbe331fb8d95fb38160eaa6ab7a09a333af73e813b8",
+    "attempts/tactics-0017.context.json": "1b475b1a944fa9fb901760efff2038860a0618e1c30ce0c869f655dc2050718a",
+    "attempts/tactics-0017.result.json": "b38799f9f915b6412b92c98abbb5ba4470312ec7a76285deda47d00864ad3f30",
+    "attempts/tactics-0018.context.json": "644a14ce85bd0632bf655949a6e67c9dff9198cb0b87d15330d9241b8b06a279",
+    "attempts/tactics-0018.result.json": "c6950c09a36ef855c5d61567efcc9609d9a3a15db29bb28624533d766d360cb6",
+    "attempts/tactics-0019.context.json": "ee44a4145e894c3f3c7ec771055359c3fd8418552fab8a8e8b56830d6cfcac02",
+    "attempts/tactics-0019.result.json": "192c1cb99d8e2c5bd3a9e706632b2ddb8fd953173892d2f2d82b9dd360a3e122",
+    "attempts/tactics-0020.context.json": "c0d12314b7911511d4594dfc30c566f7c6946dc504fd6774410cd65641b3dfba",
+    "attempts/tactics-0020.result.json": "1d3f773aa99af14868e24cdf1205f562bf7ce568b312e06b5d7a79cf82a49b23",
+    "attempts/tactics-0021.context.json": "cd4080a5177d3df8eef8520339b30b0762969a290cbb1b27d8005243eaa4e5d3",
+    "attempts/tactics-0021.result.json": "3310bedae9b7a5cdf98d60da847a387a0f847d002bced9375ac02905b5503a3a",
+    "attempts/tactics-0022.context.json": "4f3450f6827de86d1729cf9134d68c927dec1d28bc75f519e8b32e91fb9ca3e8",
+    "attempts/tactics-0022.result.json": "e243eeda203bbe97a746f31cc48edb18b12955fcdf74c1f7efb293c97fe8e240",
+    "attempts/tactics-0023.context.json": "b42ae7b78ead058e0ef6db732d7fb0d4ee465499898144b4425fe516ac49019f",
+    "attempts/tactics-0023.result.json": "89a86ce9a64be8fbd9e1706cc38aa4324d54a24159173d059c88abd1ec4af14d",
+    "attempts/tactics-0024.context.json": "d7de800af9cc56b1f62969b66df6a1a91e8c111a08d20ca1d14be9e78f7f6873",
+    "attempts/tactics-0024.result.json": "c943e50326c7ec1bb900ae1c2d20eefd1fc552910ba33dfd1250dd73e0d7f5d2",
+    "attempts/tactics-0025.context.json": "bf13e1536a5916002568fb15f52a6de00045ce1fc873c73cb3eace655ede2504",
+    "attempts/tactics-0025.result.json": "930bf54c7a565b62f8e9706bf2b009bf5b0e9d656f2fdf389b4f7682375f35eb",
+    "attempts/tactics-0026.context.json": "4d16966133719dc4a386e0c615fe7e6074d67dfdae13288dfcf6317674c4ea49",
+    "attempts/tactics-0026.result.json": "d49983a037fe886e99dd63eae7710a4f192080ec55a03669e27ba6a8eaa11cd1",
+    "attempts/tactics-0027.context.json": "a27c7039f3912d7ceb5cd0bf892d47c10edae95de7ed9afcd789c8a61147ed2f",
+    "attempts/tactics-0027.result.json": "f909276914cc0eb3d40433ee4ccc4a02e1555ceee52f419364e543e55df4627c",
+    "attempts/tactics-0028.context.json": "cd484b258a3de094fd888198f86d48fce255a8cd2b2a67777b04657c0beecae1",
+    "attempts/tactics-0028.result.json": "0e7a8f9642dafa76372cb47f5dd42d8c658c7d408ae3b52715b869170ab724dc",
+    "attempts/tactics-0029.context.json": "42b659382ecce2e18d84d802292f2bf3a4cdcaf01269be2aafa2dee955800493",
+    "attempts/tactics-0029.result.json": "02616d40bce27a9a081993b7c0688fbb946cd6bf89297369828a7f1404707469",
+    "attempts/tactics-0030.context.json": "1534cc045cd8047341d6edc093478dfa5ee52aa901c23159023f48bea20c53da",
+    "attempts/tactics-0030.result.json": "0361177dedb5b1ae36ad6ec62020db4be2e8740ab497eee549199907c2c9a053",
+    "attempts/tactics-0031.context.json": "2adc0855410cddb19ebacab31f7cbd928dd0510ce7aa0080669b1df31bc55c53",
+    "attempts/tactics-0031.result.json": "67074e6f7c6c9fa34720350fe1a3887b824b689d6d297ab469a987ed33917ce9",
+    "attempts/tactics-0032.context.json": "0f28aa9aeea330fd05246f0d06477fdea25ab32ee0afc23e974afc85ff4df24b",
+    "attempts/tactics-0032.result.json": "6967831ead94f31839fef1b5f81852fb729e5d7f9c3749cd1f458bb072a2087c",
+    "attempts/tactics-0033.context.json": "488625bb586b3b8cd9709b514ff2c6df8b76759d1de97247f9053b772e4b14ec",
+    "attempts/tactics-0033.result.json": "6f77a284abe3efcaeb8c80015e06530011709e1f0fd0fefec4b4d49544ec60ba",
+    "attempts/tactics-0034.context.json": "fdf2799423c634345f4f4c30a451a18a31062329d32d4e5942f397166f87518e",
+    "attempts/tactics-0034.result.json": "c4502b10fb3c948532d3abdaaebc49336b90ec814fa2b8a180399a507ac9756d",
+    "attempts/tactics-0035.context.json": "e4eef28f2ced2cb4891bc4c74b93451029e025452630259a590c2829fa8bfe6d",
+    "attempts/tactics-0035.result.json": "e362b4bc0bc35395aaf3c051078a593a61059b01b35f3e40024a9d8b0d808128",
+    "attempts/tactics-0036.context.json": "8c3b2d2ec9f779be015524cced87fb87e98830c7a78e35d7300a83e3df2f4292",
+    "attempts/tactics-0036.result.json": "f10858f460fb608cc13d593d5a9d81b41270d3d79af22df25ef21a8ca9cd846b",
+    "attempts/tactics-0037.context.json": "566629dbeddae4e77bdbd4cbe0c7063bfeafd79219ce0a3205468748026d08f3",
+    "attempts/tactics-0037.result.json": "c393b86a8649f97f79b5c8f8d7c9570ac44a8bcb3ebc27feac619214caf529d8",
+    "attempts/tactics-0038.context.json": "14ffe43c388b907eb618439eacbd6fca0da5e599381224b6997d6fa9ef899c7c",
+    "attempts/tactics-0038.result.json": "787faf88bc9257b773aa693593ea62fd0284a11385e743c945a4e58296ceb0fa",
+    "attempts/tactics-0039.context.json": "27cab139d0a5c06e551de6fb8a95ee17cc4dd18348198787340ab94f0c8c72e7",
+    "attempts/tactics-0039.result.json": "014bd079726019b353ba7bf8842ccd7d76808a2449604fe4c8656d7a5b5b9be7",
+    "attempts/tactics-0040.context.json": "a38671051985a1859fd9165b1f8989bedf60b136f35fc90988098aeb64281a0a",
+    "attempts/tactics-0040.result.json": "13c3033c02bfce475bb21739a88cb3adef72d99e06883847bd18ad6ac6e7efed",
+    "attempts/tactics-0041.context.json": "7f4725ce9c136b1a5ea93b44444618989bbc5c2d448c94d3778338ce7dba9252",
+    "attempts/tactics-0041.result.json": "8e7623c5db26a68a1eb62d12908f46a1d8e067d73a86e781053967e512aba4da",
+    "attempts/tactics-0042.context.json": "b8654f41139bb53d2f90efced099aef0693a478c87599436af42d14ad20c2d84",
+    "attempts/tactics-0042.result.json": "b8c489eed741cea155ced37d34ef4007a06e1ccc064c5d788d0bfda442ba1944",
+    "attempts/tactics-0043.context.json": "b4ae76a26fbc230533874955758a2543ad6b44c14b88b3f7b00caad183a27710",
+    "attempts/tactics-0043.result.json": "1cdd579b0ff6e864414440e25b1a247aa225ec6549c2fbe1fc43542a7a1c24fd",
+    "attempts/tactics-0044.context.json": "06b1f6693d8ad39e02c178e021ef7169efc43fa77d85d0364f4f970f2de9038e",
+    "attempts/tactics-0044.result.json": "6dce15847eac95936b7c46130b0d43a88c4c46522fe2ef89eb8dcf61fdd0397f",
+    "attempts/tactics-0045.context.json": "8ef95b6e3b0ca904b5aef6c5ddca429c2f80c3759d970dbf8a47ab543e90c7f3",
+    "attempts/tactics-0045.result.json": "92a16bf2fa60dcfa247400302f536ad13006e61c65b5cd11c827ee9ec85864a8",
+    "attempts/tactics-0046.context.json": "66be89c87000a988bcbf1fbe34440ed2a3fe14001dcd25525a27ad4c34895811",
+    "attempts/tactics-0046.result.json": "769de87ed1f8baea00a978c22af51e11fab4f4f75ded83fd6569046c574ae8b1",
+    "attempts/tactics-0047.context.json": "a1b331f783eeef3d16904a4adda1578926d8d3da6eb93ebf6e50998b61227738",
+    "attempts/tactics-0047.result.json": "576a8386846e577ab1b01893d4b80ae65fd79909292434f5aca26dc996b1729c",
+    "attempts/tactics-0048.context.json": "73319448a6b209a3a8b5db54f2450fd2c4ebf3c4113470cf231004347bb3f598",
+    "attempts/tactics-0048.result.json": "39a783fd4de34fda6f4f8d06b8ba6f3f6391122088a24077a542031b6823e4cc",
+    "attempts/tactics-0049.context.json": "55275d4c62abcc49d2d0256d1152d1285bddd6f77bc3b13b158f2664a19d7207",
+    "attempts/tactics-0049.result.json": "20dd377d94af7f70a1d0d6eeceea045fc7e15a7e4ebcc820b4dd3f935e83fe02",
+    "attempts/tactics-0050.context.json": "4d8c027606e1972346ce51ec633120773aaa88c9e945e7c04dc63a9641215a68",
+    "attempts/tactics-0050.result.json": "ad33fbfad061e1efdc015ff02b169796ab7b4071d202870f01efbd8629d3a489",
+    "attempts/tactics-0051.context.json": "9490a56ad18773296c8827c98c078f95bdeb7e0326c56657b48fda97db5a933f",
+    "attempts/tactics-0051.result.json": "24e3b02f35c5a070f244ec8bbfea6117e5f40dfd9d43af55a15dcce5ada767fc",
+    "attempts/tactics-0052.context.json": "804265caf999d21af652e1ca723555b386b9007e07e5b6391b71ed9c5c650169",
+    "attempts/tactics-0052.result.json": "6a933284e637af7285141e5aecb97b80163a97897f03ab281701663455871d00",
+    "attempts/tactics-0053.context.json": "7da3f66148ed15991d3624e93047edfd8a3845f17d195ce10e2838b6d130a1d8",
+    "attempts/tactics-0053.result.json": "bb084c02bef1cf36405587916c9f8aa94a14d7f9ef2381fec08bfacaa543987c",
+    "attempts/tactics-0054.context.json": "f78c6a4158e764ae8a0a28ac192ab4a88c22186a1ca294117bb62e31e12da469",
+    "attempts/tactics-0054.result.json": "bc5ee1af8d0e6b61b43c8f5784814d1e1306f4e63d543ed8097226ed7e1e9207",
+    "attempts/tactics-0055.context.json": "e5515662a304c9e417e6facc1884bb09ced4543bb1ca05c3f48a8e54b6a69e65",
+    "attempts/tactics-0055.result.json": "4521048d02ae86c1d65b0781a7272c42f43b174d797a5fae0ec217468de82af8",
+    "attempts/tactics-0056.context.json": "3bcc6c24fdfcb06beca9e36d15e544126720c2862467dd9504f989c465a31398",
+    "attempts/tactics-0056.result.json": "2110229e013f8798637169de2e1837e7fc56276f6d88989dc27dbd4ae9c8411d",
+    "attempts/tactics-0057.context.json": "f99b34fb58c27a87b11b5230c9eca89d97fd0d10d5305fd2a63d52042b503b9d",
+    "attempts/tactics-0057.result.json": "55ff21a7b860ce90c1de3a5d0aa5527c2095b9ba3c255c97a1691d400d5bd8b4",
+    "attempts/tactics-0058.context.json": "2af82bc08db061ac21fa3688e3a33d651f48de64985f5a21167948a073c3b468",
+    "attempts/tactics-0058.result.json": "8f4e366a61000e88ac2ccfef69aa4d62bd7affb9cdf72fd0e0037a9b4c69a437",
+    "attempts/tactics-0059.context.json": "6bdfef7e5a0836e09ac27b431ed58d3598785ed7b180d8d8f1e0336ba5d6cf3e",
+    "attempts/tactics-0059.result.json": "77134100e9a36539b9bbf46bd6b356422f3638a7f109f128c1930e3a31cd8206",
+    "attempts/tactics-0060.context.json": "7df1aed7efb0ec81d1f71a993b4ecdb6e058561379182232846e972aad3c9c57",
+    "attempts/tactics-0060.result.json": "c6a0991f7e5c41f71c314b94063eaeff0c20051938e5362a3862afd548b56101",
+    "attempts/tactics-0061.context.json": "1b0251a69ae4030bb2fda3c9660befb912a8060e889e5f605f34f00e13e3b4f8",
+    "attempts/tactics-0061.result.json": "4641aaea280f2c69b67ce221a3a5508e83cd67047d580b420ab72390d5af5d4c",
+    "attempts/tactics-0062.context.json": "3c23053586397e6e16b384f49c704936383e0aa3221a04f07b903f800e0e34b9",
+    "attempts/tactics-0062.result.json": "5bc56c7619264e593f89235924196d8404e1512d6fd88b2d5083cecaf622fea0",
+    "attempts/tactics-0063.context.json": "3c5f288e9ae2b1cce91921c0754c9f737416acfbd7be754fb0d42cc32584e4ba",
+    "attempts/tactics-0063.result.json": "deb6b0904e0b479351fed4e4426aa221feb259f932254b8ee5d88e600a59d313",
+    "attempts/tactics-0064.context.json": "49fc92e3055ac144ec1b7c452e0bb2948aff2034420839e600c79594fe2380e6",
+    "attempts/tactics-0064.result.json": "43f2e0cbf2e99d4cfbb91738037d6ce4be81fac529f06bf1bf369e1918c91e58",
+    "attempts/tactics-0065.context.json": "ac8995f670999aa80e81fa5653c2b5b0e4685406507bacaf13a63d69efbcbc01",
+    "attempts/tactics-0065.result.json": "6971b6cf31b290c93283042d94b9ea1d2ba43b83328ddb61b530233df746c011",
+    "attempts/tactics-0066.context.json": "97219dae7c67b81527d0aafe171ffeb6549d5dfd6f41c66bcccd524124c3eac5",
+    "attempts/tactics-0066.result.json": "d73e046718965a14d5155e62370dae7f173b5bfbbd8a7381014a0ffb204aec8e",
+    "attempts/tactics-0067.context.json": "dbded5c841013cc41225bd9809efcb8b9b99b2e0b5a043a33702ffcf89e25c40",
+    "attempts/tactics-0067.result.json": "cc338ea71df414d7c60f4f6503c94a5d1d426c85603ee2df2f0979ebcd4878ea",
+    "attempts/tactics-0068.context.json": "3cfb288eb0b9a7ea047e60714a1e249761bbaace08bc28e20cd09d3071cde0a2",
+    "attempts/tactics-0068.result.json": "3d7297af446bb46fa1c11c3231416e3d771c49a9cffadc374fd203e1f8125dcc",
+    "attempts/tactics-0069.context.json": "8be5c1495c5036579c1658606d6b3abddda0169eb44b6a90d0280e5063d665e9",
+    "attempts/tactics-0069.result.json": "3e25c56ba5c2eee622e30f947796757a5d3cd111e895c6f3d26fc3a2aee1eb2c",
+    "attempts/tactics-0070.context.json": "67790c6c941b7b2f44b4e9bbfcd90c4cfeeaef668afb61e0d73ced0b46a601a2",
+    "attempts/tactics-0070.result.json": "085fa03f2a6bdc8bb6a173c9ad6a9b59ff63ad1d85f256e80c300dbe8b8819a9",
+    "attempts/tactics-0071.context.json": "b082f5f9cb3ead6c1f6bb6ec3dc206a95a9f581f92670dd83bff7c7b2a7482e0",
+    "attempts/tactics-0071.result.json": "5dcf439cb077f0cb6e18b9f794102b98eb2bfa032372d788f5137ecafc2c1c90",
+    "attempts/tactics-0072.context.json": "673c5a81156bed6de7524139778e22dd780aae0d0725b24ec21d8d7ff33335e6",
+    "attempts/tactics-0072.result.json": "3572c43944a83b3f61663c2b2fbdc35fa642d9ffd306149335169fe5c0bd3b8f",
+    "attempts/tactics-0073.context.json": "33f69e64c62927289bd200eaf1670974604cd1c8416f88ded1513c82aee59748",
+    "attempts/tactics-0073.result.json": "96ac35283bbe6a0cdc0758b1a71a281b64d0f4e7d7ae506cf04fa15df22c848b",
+    "attempts/tactics-0074.context.json": "84d7b00fed4a7367db07e03120e164db522e135f0e6b0b0e1c3cbbf692da81ab",
+    "attempts/tactics-0074.result.json": "b49c15e8f238af2f1cb7db3cda6f24bca9e25fb9e66b27aa1c48dcacc218ea77",
+    "attempts/tactics-0075.context.json": "c9506edb89efc566a18559e62041e014b0320e83a5106dbd48b013409871b8ea",
+    "attempts/tactics-0075.result.json": "03d61b23766e7c6f78dd34233b53161858cd35b59567c3cf5bc4587483ec8a5b",
+    "attempts/tactics-0076.context.json": "461b62971fe2d33d0a3346eb0d79e1cbdbae7752f6b0d15bfee3785a92d7d5ac",
+    "attempts/tactics-0076.result.json": "6da51ffdebda370160ecf6aabc2cd7964a12491e3a907b7d6b1bb38fb9d8eb37",
+    "attempts/tactics-0077.context.json": "5039e45d11581675809d14ab3a66f655266520f8b014749f9b248bf64ce1e8f8",
+    "attempts/tactics-0077.result.json": "a932a2641e879a043e398b9bada1db890328612d168c1c47c74e428bb6b64cd7",
+    "attempts/tactics-0078.context.json": "766c84cf3b5458772cad7c467807a390b005e5b55e85555b6a4514cf889d1a6c",
+    "attempts/tactics-0078.result.json": "6f91dd5273a3fe3200fcee8b9e67fce02d920c788162f2d70d6d432e0293ba84",
+    "attempts/tactics-0079.context.json": "dd585caec6b830dcc1eac76101bc58447f25ac6d94bbed2d107eb042b76da213",
+    "attempts/tactics-0079.result.json": "53050157ae266c9a1a819f05799677318d73a24b1948c786483fadb80889b28b",
+    "attempts/tactics-0080.context.json": "4ae99a8803f32956591370d5caba7d6bf61a84738a75fce7136e5ca26bb4e246",
+    "attempts/tactics-0080.result.json": "946bb171b9527a2bdd176936cd6394a886ae65722b7ef41b2cca6c3daa2d43b5",
+    "attempts/tactics-0081.context.json": "8acd57c3ae60330b2b74df79a3b52d8c4b91ba5add3339180dbd9b53dd97d5db",
+    "attempts/tactics-0081.result.json": "d6c51dc90d0f62a9e38cbd70e32ed380eb870cb1d484b8d19ea5a7b41e3a4f67",
+    "attempts/tactics-0082.context.json": "bc05c855ca319a2f327749d2ff7782a3a5c348d804b935275bba5788f2724374",
+    "attempts/tactics-0082.result.json": "d6d351142625f13b75a29a1c0ef84e04f380ecf3c2755331fdfd3a9e2e4cdf54",
+    "attempts/tactics-0083.context.json": "a3c14a418acecd38f3ea9b6268101a66234163be25d762eb0539593a208bc4d8",
+    "attempts/tactics-0083.result.json": "4f5e4334dda42c0e34d8e056c37601e26e335392a237236e4a2bd3f8c8039ab0",
+    "attempts/tactics-0084.context.json": "04d90ffa2fc42baa96a185bdc25d3ff3c07e002025cdc7a97bb32112d9e6e1a7",
+    "attempts/tactics-0084.result.json": "1bf39a22fa687b0b3f3691c990c3dd075137e425e94d4d702e1c00a57505b69f",
+    "attempts/tactics-0085.context.json": "0727fffdfb8150888badf91271738af3c824129b37e553f9eb3f9952cea54331",
+    "attempts/tactics-0085.result.json": "778bc3bc7716b34c07c1705df97dc6d56b5eecb8cabfc94cf7f09135bd3a1898",
+    "attempts/tactics-0086.context.json": "20449b943cb98773bd065a0999697f7571a01977bd5d5329f2f302632a672ac3",
+    "attempts/tactics-0086.result.json": "67330f2537fe681e6f51783544ed3f5099a9e3f0ed1f91c4fc0dd519880c972d",
+    "attempts/tactics-0087.context.json": "48dfb3727f582ac09e972bce699fb638335228d12c07fea17e3d4f06d1f1af75",
+    "attempts/tactics-0087.result.json": "be40a8954f80214773198482f5919d964d86b4fcc68d503ef44104f7e6029168",
+    "attempts/tactics-0088.context.json": "89aa3a1ba7e5464738d84e79338525544896fbc90904276a7d3ba9ce804a26b3",
+    "attempts/tactics-0088.result.json": "46581b477c10b7f259ab085ab676180035740b0575eb96b3bb5cc08c6ed54874",
+    "attempts/tactics-0089.context.json": "b99c35a73079a04f4e4b5479c4415789013c5367a718e7f92fbd5c4b9c5671e5",
+    "attempts/tactics-0089.result.json": "8c662cc02be808ce0399b00a3bf9c0fd63acc59b614473abb416c92401439749",
+    "attempts/tactics-0090.context.json": "57b166ecb437c60d3787902d7a67c645bfd3d5fef6db0e3267330aa3ebe5ba87",
+    "attempts/tactics-0090.result.json": "e435fd0771fd0a78f5c9a2f422d9c42e0ce3f51f984ebf5d6439e8b43454f4ab",
+    "attempts/tactics-0091.context.json": "53bfe017d66ecc84dcc527051ea98333469c0d27e36b4dfe34c3d30e4cc03e1a",
+    "attempts/tactics-0091.result.json": "5963231fdb0bb512ff7c87f4619070d0456dd8bb458332b23c039520d7f50860",
+    "attempts/tactics-0092.context.json": "545e26327ffdd07edd86a151b9f3ec7cc2562bf2648699ef6a8b10c311055e82",
+    "attempts/tactics-0092.result.json": "4c2bbd5d9568d669a183d47f7ce0ebd13899f9a67dfc98e9e8b8735fa7abe039",
+    "attempts/tactics-0093.context.json": "3793b03513fd3ca239e44289b1d0cabdd7a3d927e69c246a1fe633927c421603",
+    "attempts/tactics-0093.result.json": "8660258b50bbef953200554477f9708e061c9b4f5efa0902642d49531d44e7a3",
+    "attempts/tactics-0094.context.json": "e181f9880ba2be1a9a2bfc06ead7f9a3bde47d82c5b74223a94bbc580e9acfe7",
+    "attempts/tactics-0094.result.json": "5f794afc125d80f715a44dd2e4bc71aa70d59fa60045e64552b226d5f991bdfa",
+    "attempts/tactics-0095.context.json": "4bf9abf35f50f917c1ed9f8984c8a8730d33ab8aac8e8e366bd847a1e069a27b",
+    "attempts/tactics-0095.result.json": "6939c518788f32063afb3ea29ee81943c10b6e8f0534b1b0f68172a0fa486360",
+    "attempts/tactics-0096.context.json": "039d086347184b213efd22589ada001e9a21d0e06dc0ac347eac27874ac556f6",
+    "attempts/tactics-0096.result.json": "6a1e1dd0695b849bc341ca0cf663508b18debb506c9b85b2477beb801685ef68",
+    "attempts/tactics-0097.context.json": "b7a85dfe2b63c684e2b49ac064dd115f67a3bb6c8eaba1a0b558287f228f5e4d",
+    "attempts/tactics-0097.result.json": "3bdd6dee04a43cbadb949be90cbcfbd69bcfd4dbaedee9be5340daf9e89400c1",
+    "attempts/tactics-0098.context.json": "39fb64349a0fdd0d85e0aa3d211a668125f5a0a61cae6698c8747b0e55e0c216",
+    "attempts/tactics-0098.result.json": "4a377da9bd0cc7a3091907b0841095962f4f8616ab2c9c5e5e7933d65fbf2dfd",
+    "attempts/tactics-0099.context.json": "7f7de37c69bc6d2c3f582b8fdc66fb3a6209e603e605d738e2cf7d07fa2f4e91",
+    "attempts/tactics-0099.result.json": "fc913aeefb68b65001365142760e0916045fc559c56000cd65363e0692538864",
+    "attempts/tactics-0100.context.json": "ff11fe0bbb77bbfb28b69694b22f434c296a45423f4798e69ac9f8b8e2857f83",
+    "attempts/tactics-0100.result.json": "8da447702517af4d6173e9888fc2cf81870c8ea005a1cade2e34f4a9c5f51432",
+    "attempts/tactics-0101.context.json": "a9fb6dbf2d93b8f4e730236031b43e3681143411b60c4150f8a3376b789e1b90",
+    "attempts/tactics-0101.result.json": "ed00bba89ae055a0243ffb0b8aea71e1115db1e830170b3f833fbdbacf20b7c9",
+    "attempts/tactics-0102.context.json": "8f6d70f85f2426448dbde3f543724434d82c3f57e08631ad50d255b7e3444f4c",
+    "attempts/tactics-0102.result.json": "4fcb22dbe8e22eff8b60e30da8c4431af5cdcdd00d08942425470e5343016ac3",
+    "attempts/tactics-0103.context.json": "0b66cbd7bbaf0bba1917b42d8752869d1d4210f6e4c1f5e34fcc67e91ecb0f82",
+    "attempts/tactics-0103.result.json": "714e93661725559f10be68c9a98b9379bba33a62371708f72d1b836dfecd8bd0",
+    "attempts/tactics-0104.context.json": "81417e632c57fe1538e8921e06419d9af77398336fb81597a3e0b9993bd272b8",
+    "attempts/tactics-0104.result.json": "2a39d7fd0bc66c15195047463c7f4f03b38e0f1f004249c8444e253dd195bb92",
+    "attempts/tactics-0105.context.json": "9bafb47117b756ef6d40179f3272a67950a0e3f7687faa0d884f3db49caf27c7",
+    "attempts/tactics-0105.result.json": "004829fd8b23f0e8c91bd2abcb2f306cea1fef9cad1dd3614bc135eaae6c8ea3",
+    "attempts/tactics-0106.context.json": "621f99f06800a9260c2bd27255bdb24a534bc79f6bc989fd1d497473bc7988d1",
+    "attempts/tactics-0106.result.json": "cf7ae017c68f716687422b1b5befcf842a69cea449b31c24364954cf1e71f2e0",
+    "attempts/tactics-0107.context.json": "54536b98a4ac202fc347641db8af30c8a27a64201541285ea4b127228c6966f9",
+    "attempts/tactics-0107.result.json": "61e992e4a69ae936caa04b60a34616c5553226f83c14867327b5e0ce8555d75c",
+    "attempts/tactics-0108.context.json": "91cf3b2fde65271418fe155fe8ace679f2101aae7e888a09027fa159d9c2d825",
+    "attempts/tactics-0108.result.json": "e874f23217f94902445d905ea5fcafa15ae4da3920bddb98b4422b71e4b2367a",
+    "attempts/tactics-0109.context.json": "f50d74456106a93347b77db25c5e1770fa9e400cd68ced93a7e946f29aeeedfa",
+    "attempts/tactics-0109.result.json": "e5790dd50a4a48f7e8f772b8c8eec67b0ef8c41766133b2a33e47add1c9edb92",
+    "attempts/tactics-0110.context.json": "4addab790fa43e91e676c78be99b9c990a88f6e8599ac5ba7b61c4804b6baeda",
+    "attempts/tactics-0110.result.json": "a04b101a0940f8d36478c8e37501c6fd73deacbb3fc9972f14665779dc140b73",
+    "attempts/tactics-0111.context.json": "34e7278e5712ba0a8d2fe74a63284e7ddf7df7998af08c77d2b74b066514e6b0",
+    "attempts/tactics-0111.result.json": "93f0bf3501ca8ecdb1a647568bb1a73c3648be589501571bee307bd5868c0515",
+    "attempts/tactics-0112.context.json": "1d91d9fac26c3ed4a89d24840985b4218395c3ade998fbd6d5ed31f6462fd588",
+    "attempts/tactics-0112.result.json": "040121e05d08eebf183dc06265d768e0875a3d8f981b8bbd6b2ccc8c09fe5ab6",
+    "attempts/tactics-0113.context.json": "ca19c4d5be11b90a25ce97335bafc7da1d8f084f1adc3fb5fd1fc737293f1c01",
+    "attempts/tactics-0113.result.json": "117ca46b8e75821c4fa614d0d4ed583052ab4734654e0c4a51832140d95181f2",
+    "attempts/tactics-0114.context.json": "1c4cf715f258a53177c72b643877088eead5e53cdeeb8be67cdcc9739ece0bbf",
+    "attempts/tactics-0114.result.json": "704a65bb488010a255511013445af43471ec6e5ba40e55fe0832cafac45f2fd0",
+    "attempts/tactics-0115.context.json": "ebca75a76f4ec66395f20b35bd066d17cf51d692b53a0f9d35cb09a47ce9f8cd",
+    "attempts/tactics-0115.result.json": "e44fba4e3315a5623b1143c160dbb0e2b913348037d4e9ab38a9cc9b9b1e2ff5",
+    "attempts/tactics-0116.context.json": "48b250242508a7372aa63914bbc6970d1ceedd7dcc4cedbb3d129c13b6e2467f",
+    "attempts/tactics-0116.result.json": "8a11133b75a7cf46fcfca8222fb0a95a938e5e5d6cab10871bcdde5ad3d70fdf",
+    "attempts/tactics-0117.context.json": "931c06393a1ac4f5548a7e65da3230e2be87b7073295c2fa6fa39a1a2672d8b4",
+    "attempts/tactics-0117.result.json": "c70e86c1e4a5fbd5d75cb7a8868f897d8e5c3e8d176ca336bb0a2190648b3e21",
+    "attempts/tactics-0118.context.json": "c4efd5b7ff720da2e3ff2dbb745de1349483c610ebe6886c03de082b752bd800",
+    "attempts/tactics-0118.result.json": "9ccdd9c75c7390aa8cab8c66de5a524ea442ec55d1c21b49fa7d13a2b2e38079",
+    "attempts/tactics-0119.context.json": "54ee61df61d89c014c8cd6ea2ea475500de89b2d28546f764343d20875ab8f3f",
+    "attempts/tactics-0119.result.json": "63033856166f8ec6b82d10bdc6b97fe44bcb684f5c84264a87fe426e61c35139",
+    "attempts/tactics-0120.context.json": "2144ce1ede287ae8c9cc6921e4ee0a468c460ce05efd42509206c705d9af95e3",
+    "attempts/tactics-0120.result.json": "fa841e192bfbba7da14d30b57848421fdf67bc47e03e7821afe68b99f1650916",
+    "attempts/tactics-0121.context.json": "434f0c60721a71b57af10f25ea384e839641c64a802c8071979f5b1e6b81ac90",
+    "attempts/tactics-0121.result.json": "65ead8624b2d0bdc1160d57008a91013701f2c6fec38d46c6eb9e4f41219629c",
+    "attempts/tactics-0122.context.json": "43723149f7e9620a3c00abe6519946f8bfac0166a30eefa27eb7cedcfecd5569",
+    "attempts/tactics-0122.result.json": "4c0a604e76507f1a58fbb07e4747a01e0a2668a0787af2a6de6c00b6f5836ba9",
+    "attempts/tactics-0123.context.json": "b68fafacf5fea298b9a64280bd26590835f70051a38ca4df684dc01bd7e3806d",
+    "attempts/tactics-0123.result.json": "de003555c9fb5d7d7feb3b23c6cf9316010a47c66a474c8ecf0a85c86dbb9d90",
+    "attempts/tactics-0124.context.json": "23477d792bb1610e962f93252e9b4e61d0348b5a88d2da3072934c120f7ed363",
+    "attempts/tactics-0124.result.json": "28f879a7d41a7f520e9b3950343e88b2644068d4bc307c3d562bfa1ac2c2d9fe",
+    "attempts/tactics-0125.context.json": "28fb7587d4ca910400cf966e3ec634e3df511141ef8a8c957ae3c481902e1fe4",
+    "attempts/tactics-0125.result.json": "88b36203e5318276197d74c8f93e892fab8f8737f82ec0abb43ee2cc416e1cfc",
+    "attempts/tactics-0126.context.json": "47c29b84fa3cb7b5564e9630428538577f5571d998dddd885822544178ac65cf",
+    "attempts/tactics-0126.result.json": "f8832ffba0d0a46b5d8b3008f1dea6bfcce14493ef32fcbcb259a902623862f7",
+    "attempts/tactics-0127.context.json": "7d9ed4bad16d92f837164ca41f1c5c3a14085844a9158b776296c7e6b9b72c51",
+    "attempts/tactics-0127.result.json": "7f031549b4407074b40007bc18a4136621a5cc5660176a393a79504545b03672",
+    "attempts/tactics-0128.context.json": "36f9c16fd3c6a5e964440e02571db608e570c0258d6a6e1271852adf683aea48",
+    "attempts/tactics-0128.result.json": "29f8abcc737400ac2d0e69bb8f55df47ed1885b19b68712fbb5b6a800a7479a5",
+    "attempts/tactics-0129.context.json": "c95ade42de547967edc7f6e68c6e6b93722cd657c09d272f68879ec9b5960321",
+    "attempts/tactics-0129.result.json": "87b94962f411402b4783d83fa9337baa7219b8c1ff5a091181dadc536d7f3ef1",
+    "attempts/tactics-0130.context.json": "4fb1f9b0b853e0e66c2e8c4d721a5941d393eb7235e74e379bb7f9ddee7eb174",
+    "attempts/tactics-0130.result.json": "cf2c90f6aa4dacbc0ce2b2a50e12ef5e7fd1532fae82fc099c47d4f404834975",
+    "attempts/tactics-0131.context.json": "036143012d03378f438876450a6ae2a8bc9f083b8dbdb0fef2d8675a30a38f4f",
+    "attempts/tactics-0131.result.json": "3e6c6440162086a216895b7ec95acbf29327ad8b3d2ef616d412ab5fb30247b3",
+    "attempts/tactics-0132.context.json": "81944e7aa2c677b3e3b785d205d8a3e58802df1abdd95a4e3e7f0439d994d673",
+    "attempts/tactics-0132.result.json": "f4b5ae01954df05ce34405fafbbb18f4de4a28a9087806240b08c4507248db04",
+    "attempts/tactics-0133.context.json": "ad2142664317f177f4ef5ef15b55f4e93b72aac1a234046c6db81d7fee1983b7",
+    "attempts/tactics-0133.result.json": "a27937076fe19d6677b68751d97611618f0fd1bf5fa81c8060108a54fa79f4b5",
+    "attempts/tactics-0134.context.json": "77084af4e5a92e1d8796156d86d168ddc00d453b0ddc749732bb54029cc9204e",
+    "attempts/tactics-0134.result.json": "2156eaa3594193035fc18cd54b17aaf53a20f609412573efaa0fcb10982e00e2",
+    "attempts/tactics-0135.context.json": "8d9356ad213d7ebfb5826d6f1d9c7731911e8e41b76849ee2ad04e061beda702",
+    "attempts/tactics-0135.result.json": "26acc0cc5d96ee6ebe7c5f0640ab1f9e58d2533e36de7c797c1bb13d21bc883d",
+    "attempts/tactics-0136.context.json": "69a5a606f7d6553d7b539a248ff666510cfb05f708b533bfedae71f1fc521234",
+    "attempts/tactics-0136.result.json": "8936f3ccad64539672712369d1f6b08461c4d08602cbb839908dd3ef17925617",
+    "attempts/tactics-0137.context.json": "a999c3de88c1d7c53b78d78b192cb283078d5f7ae42ccb12170113e5b6fec73b",
+    "attempts/tactics-0137.result.json": "453b7ca278e15a13c3aacecca560e44b9e9ea2a0d8b7f55ce4a29875f7dc1f0a",
+    "attempts/tactics-0138.context.json": "2f44bb74759d18829139020533c0b7465c66048dac6fa2c0b1c37562f90562f8",
+    "attempts/tactics-0138.result.json": "a6767676e688dbf01d73b6b7a3f21f60ddca10dca51bccef8e2e97ba3babe92d",
+    "attempts/tactics-0139.context.json": "224cecae0a4865737f58cde47ce68f50df75ecc177825ef47832dddbbbe32162",
+    "attempts/tactics-0139.result.json": "385a226cba498775be7928f42d65c2aee661d82c72fc2e4578f42a72529cff2f",
+    "attempts/tactics-0140.context.json": "be07b0b5b7044dfa69732b5dce7344a232e788248fb0a4f757e686ea43de2105",
+    "attempts/tactics-0140.result.json": "9b65f7840ff10ed9ff8f02acb01117b85325588fe5273dac3c6fcee4aeef9041",
+    "attempts/tactics-0141.context.json": "eb83859225ce65ad3f17fe33f253ad721e9ed5ef4228cbbe505d51a03ddf649a",
+    "attempts/tactics-0141.result.json": "d229c0ebbed5ec13dd78dd927897f04d168a8fbd5c3cf993f6211278f28488a7",
+    "attempts/tactics-0142.context.json": "a95204e6af54eec5186ca20f201673ce4cf53eb89c271bc34aa95c6f74ced28a",
+    "attempts/tactics-0142.result.json": "cba2ac72e32f3c89328183adb31c48ad9e5716e8c6808dc6cca6299f588ea82f",
+    "attempts/tactics-0143.context.json": "a65a921a75f811ebaf82c32edf2dc3993c5ff964aa59b45598e40bff3ec4a74f",
+    "attempts/tactics-0143.result.json": "181124cfe26b8797a438b3349f2189759b12400a592c20c87a1385be6dfbfe43",
+    "attempts/tactics-0144.context.json": "e56e495ecc1a331771fe5818d4e692138445412c5970d2dd0a4a76a39576a1ae",
+    "attempts/tactics-0144.result.json": "4ac454e8d9cf5fac335bc2bdc10ee449d2d85b1d712be0e46498a5fea624542a",
+    "attempts/tactics-0145.context.json": "0caa02ec1773d86097a1d111c4e6292e4ca60467c464b99c94fb7049c5c9ef61",
+    "attempts/tactics-0145.result.json": "95b5c3d827eb54fe1ef94ef22ebc66b79c4fce305c8840f90803fd5338f435f4",
+    "attempts/tactics-0146.context.json": "a9850601a6e86c5ce0b7d9fbe267b19535a8d1e68169145388009d5a8159cf0c",
+    "attempts/tactics-0146.result.json": "bc228aa8a48a7d612411f41a0ee4c5f5ffbb100c48e3d62320eca7d250381b65",
+    "attempts/tactics-0147.context.json": "24cd6912fd3958cb4274e53151a3166dfda1e68f71ea76e1e0f0d81b03751130",
+    "attempts/tactics-0147.result.json": "53c687f33e543121782177864ef6cd05069b6683706eddfbdca11abfe277e998",
+    "attempts/tactics-0148.context.json": "ef170e864185fcec40b2c27e625b9a092ecdbe9a06f354f9e0152590f61be256",
+    "attempts/tactics-0148.result.json": "903655d53e28702362174267007874aafe758fa9399d91ee42ce6f5d86284561",
+    "attempts/tactics-0149.context.json": "1ffb448f6c01419f3e5329904d8d65c0f22e5ec3749c9244ee5aa4d798878580",
+    "attempts/tactics-0149.result.json": "29b0a49538ccfa324a22c992404d0c0c86aed5ecc4d3a7cc2c57237d17953660",
+    "attempts/tactics-0150.context.json": "08eb8dbc84a7727ff4f79731fe2b5d6f98b71964c1c518ac7eaf31461ef93175",
+    "attempts/tactics-0150.result.json": "93dcf8362940f2fd4995bee06ca3aa5dda7f0d183b06744547057898a9be26cc",
+    "attempts/tactics-0151.context.json": "5229177a41ef2d15727514f90ba3d1623d6e932fe0013fcf71e7d56f0c77f7f2",
+    "attempts/tactics-0151.result.json": "e9b7a165a9cdecaaf9e6735f2faa96360bbaaced5a3b2da0edd6c70b884ef6bd",
+    "attempts/tactics-0152.context.json": "b5fe821b5ace77b1e293b52c9686eaa73dbd84ac3649b3b6b7bec91601509956",
+    "attempts/tactics-0152.result.json": "9293422f5a237f3baff8c367b8329ab5cfbf72747e29905a994da3e5aad98573",
+    "attempts/tactics-0153.context.json": "6eb7fe11995e7ee1f435b18ff007e9b9652cdf468923708478fdc85594e1d411",
+    "attempts/tactics-0153.result.json": "cba2114341c8ef864cfdeb0773c9ae4dd6ef38418bd17b1597d625c972af4536",
+    "attempts/tactics-0154.context.json": "36d8037358f98fc62d1932921d674fb158b75ec1d7696d6b274dcede04f348d8",
+    "attempts/tactics-0154.result.json": "d4654ec27c4f75769a2a2653ead33c358e7aaaa406424a0920d10c5224c6a964",
+    "attempts/tactics-0155.context.json": "cfb69e59cb9f591df7fe4b437281e8ea5f7051b691bde9dfe254b9c3ea50ef6d",
+    "attempts/tactics-0155.result.json": "1867fec5fb240098721cce2d8e2d20614a3558165aba199cd8da44fd68569b4a",
+    "attempts/tactics-0156.context.json": "b98f05b6d682643816fb3dedb7a6f19554626845b11535df980285d87ff2e4ab",
+    "attempts/tactics-0156.result.json": "286eb74652c8441002678845242e799c4d391dcfe43d2d92b339496c3eb2a88f",
+    "attempts/tactics-0157.context.json": "5f0d2f6a21371ce44f892b35c22636619b71395a17df973bfbb8fdba76b8b51a",
+    "attempts/tactics-0157.result.json": "be2cfd231a260e0a198d3a585a51ec1a1113415a9effa7e0620d76652452fcec",
+    "attempts/tactics-0158.context.json": "fe2bd3e47323b8acfd691ab3c17306b2da1a438096c1c47b721f0bc088d2e1a0",
+    "attempts/tactics-0158.result.json": "5a0af961ed6ca8a27b3a1c092b434e128117270776547933d35594fc8e6bb702",
+    "attempts/tactics-0159.context.json": "1acb3fdb5a29ab207b2c1cb41ff73280d1e122210707006898a1936a9ab97f23",
+    "attempts/tactics-0159.result.json": "d1ce2b7da88a71edbd338a1987f4a0611d20aa5592968cc953470e319222f890",
+    "attempts/tactics-0160.context.json": "ca6d27a086d284398d592175ea9b58d3d40b383dcc3c1860b0b4645fd3a11b8d",
+    "attempts/tactics-0160.result.json": "eb7c365f28991d521843be76394a2bd31c5601eb1e3b35acc623ddc211a6751a",
+    "attempts/tactics-0161.context.json": "d63926b51d5557e34f64e586fae25396e1530a662a3ef37751918f33466baf79",
+    "attempts/tactics-0161.result.json": "29cdd75439a663c744ec514f124385d8e5e74e48e9c183d76866f102fb3d1bad",
+    "attempts/tactics-0162.context.json": "ee829cddce1eb51bc4938b7314d5e1b8810edfc9489d858cf5163087f468d1ad",
+    "attempts/tactics-0162.result.json": "06f77fa69b17cf0fa49db895323330f541a9f537c75829f5a7014e771df74bde",
+    "attempts/tactics-0163.context.json": "fb5533d7be8aa1917fc3e9709b35dade707ce795e26322cbdf044c22ac8bc869",
+    "attempts/tactics-0163.result.json": "7178fe69d3989ff3c25bcfde0c1fe1d349a8520ffa9c59b15a33883c2878dde4",
+    "attempts/tactics-0164.context.json": "81590f4bc8a8d5dadc3b43edbba874a32e25df4fe6b75517592e38738ccea919",
+    "attempts/tactics-0164.result.json": "c6dcd0d13dea9c3222e33606cd48e565d04c9cd4129d8519f424282dfc89dcfa",
+    "attempts/tactics-0165.context.json": "25ff74fb0c9fa7efbd6864d02a490c38b1589f2d4be371404d4c02daa40c848e",
+    "attempts/tactics-0165.result.json": "cd7b2d859e506d417c6a268792443701503450c5b3ca4bd2fb140910906eedc5",
+    "attempts/tactics-0166.context.json": "41951821f9a0a2c9cedf7718406c48ca399548b214a91615eb1896d756d0ee1a",
+    "attempts/tactics-0166.result.json": "84d9b7ae23f9e6283d84401ed81c2878d5a1345b9a9f082084d059518b038282",
+    "attempts/tactics-0167.context.json": "5012134191e74732075da8d2f89d1c25660cb7a96ee2206539d5372d817a3e46",
+    "attempts/tactics-0167.result.json": "e557b532830f4d1204b4f61b9ddf7b6e4947062b1e04cc73498473527d1f3462",
+    "attempts/tactics-0168.context.json": "95d2b07abc7de567d42a79349fd7321f349e7d2c79bc489458f61cfa1a057d45",
+    "attempts/tactics-0168.result.json": "d99ead564ecfab6469b95681618d977232e8acf9f8e12cb96d0ba985dc2ef3ee",
+    "attempts/tactics-0169.context.json": "c02cc16b054f7244b7daa6cef414145e381adafbd874fd618c6d0769df903acc",
+    "attempts/tactics-0169.result.json": "341ea52fb011924eda69cee2c7d07b3067ae9821e01077314d7f505322f3eea7",
+    "attempts/tactics-0170.context.json": "105275de1965f1858bbb350cd871c85abc16225220b10801f196526427b0bc9f",
+    "attempts/tactics-0170.result.json": "25a417a08c0ba41793ec97094e47f53345134e538d4064bdb58813dd22d83699",
+    "attempts/tactics-0171.context.json": "6369a671bf31d1110f12b6f90f72ce14ae16b48fb09a25bbb00cd4fcacc992fd",
+    "attempts/tactics-0171.result.json": "5c8c798b680690f939306055608b2a00bf04add1632496c4da248837913bca83",
+    "attempts/tactics-0172.context.json": "6bb393d02ac64254d6ba9868e4263b56727cdbb856b5fa18156176d8f81984d8",
+    "attempts/tactics-0172.result.json": "a0504ad75cf4b66395b88b481ec295aafbf80f20a1a6eed05ffd06930f7a6ee7",
+    "attempts/tactics-0173.context.json": "3407bfdf0b20c6b310fd5c3198a6012220d77b2a18ffa41dcec3670cb1a1a58a",
+    "attempts/tactics-0173.result.json": "f8a156b54a29b4cd7a81b6265ae98a3dbbf2b19cd4adae8853ec6afbb1ffa6c1",
+    "attempts/tactics-0174.context.json": "15ef19ba5d68fc2846f240c4c0f0d6c71637d4342be6e03648347a00a01e1bac",
+    "attempts/tactics-0174.result.json": "bc382dd8e65b876a656e9dff6baca3c56c9c4677a9c93680c0baa269d5cdfe48",
+    "attempts/tactics-0175.context.json": "6c305e22d02722618ac35223d4bc5ce5b0430ccc0bbc48ee5e595f62f21b28b1",
+    "attempts/tactics-0175.result.json": "452c5453fa22e8def8cd2ffadc98905568b967fcfde203849ddec92776b7b236",
+    "attempts/tactics-0176.context.json": "11e32c55a06a2e1da660466bb5dc66d94c8c8acdae603cc2ff8e6bf1ff52077d",
+    "attempts/tactics-0176.result.json": "e22e2b5c347a8f658b3a0fd16f489afc2b6a4e4b829db5766d3dc290120079e4",
+    "attempts/tactics-0177.context.json": "e660a3d528c5939f84c2c0636ab637285becc28364a3fa8afb23f22041e71bfd",
+    "attempts/tactics-0177.result.json": "16cedb9ca1e9e8fa877a1745917e1ff336a8ccc5f6f61891284c35c94c112cce",
+    "attempts/tactics-0178.context.json": "0894b289c21b811394c78c9d5c947d4dca259570819ae7781111a56293de4fef",
+    "attempts/tactics-0178.result.json": "11405f6890f3910bf0b4eaa9aa919abd5ea850bcf36613fbd2dcfe40ea195b74",
+    "attempts/tactics-0179.context.json": "6d585657ee0fee5f046ccfd005860513722b1d0792fe6488870dfef23cbb609a",
+    "attempts/tactics-0179.result.json": "0f6cd5499d9a6268703a403ce37e405e0dbdfc26c3ce9ce97991ad29780d770b",
+    "attempts/tactics-0180.context.json": "64a4802c7d5072e6c13e20ed881c9fc332ddd2415d8b6609ef1aad2e8f8ca2d5",
+    "attempts/tactics-0180.result.json": "b87949b46ed91e5929e002fc7005954d23a3c684d93b7d8691ad74a121b7556c",
+    "attempts/tactics-0181.context.json": "4e150a267fb6f294006f8ace979f06930cc5ddb9ae49c61c72931299418f57a1",
+    "attempts/tactics-0181.result.json": "e9f569293a49cb9ae5e17eee5a4cb2de51ac6c42a5a4cbebd6d8ac6d1564b670",
+    "attempts/tactics-0182.context.json": "7cf43dc52e9870646e6799bc9a54779c2dfb76f62f8a3c53ff7284fc90abad70",
+    "attempts/tactics-0182.result.json": "fce93bdb7f853f3fa33498a49f2747494fbd694e1a9c8f7ba2525ae5fed41b84",
+    "attempts/tactics-0183.context.json": "b25bf3ffc317f11f2845567176b347ccc44230f8f77eedaa8a29b2565f591988",
+    "attempts/tactics-0183.result.json": "e2ac91a5df02bc13a5787a7065a169425ac78d65837aa285b53fd0caee3a4cba",
+    "attempts/tactics-0184.context.json": "b7d21a53018979b010893eaa26aac711a837ae841d44c8740e0396bef7a391bb",
+    "attempts/tactics-0184.result.json": "4c3466dd150ea67ce41a7400d4bab5f0fa50035c4d7e6beaab7b02b5d8b0e5c8",
+    "attempts/tactics-0185.context.json": "dec4cc25bb6f6e2bf4a127e60f9b9101305e4fb6110e0e7e485d4c93757dd667",
+    "attempts/tactics-0185.result.json": "bb595ccec54c2f2cc2caa78c5c79c2bf389886a9d5e18e525c2c6a1cdd6ef04e",
+    "attempts/tactics-0186.context.json": "ba8a79335c240165aefb4d08c0825f065f784c7c068f5c773f6d27a7a155048a",
+    "attempts/tactics-0186.result.json": "c47960a2dfa612be8ace2b76bcc2f69df72e678faa156fd1c0bb5aa375b0cfd8",
+    "attempts/tactics-0187.context.json": "d3e3b74cafd687532460b9ee4c1a2bbda85b7f9b9e1360362481f093f0b5a3f8",
+    "attempts/tactics-0187.result.json": "8c1b159f36bc18b9aadffde11cb7dc951dcb6a3613503004624a4bbec15c4a12",
+    "attempts/tactics-0188.context.json": "2cc2f4d699f7fad1f1a2847d058fd3730e9417adbc0bb5f16e040a1c092f3685",
+    "attempts/tactics-0188.result.json": "e598d1cc051492044c6843b8e0802e7163c88d64dc02f5a71666ed9a5ca19adc",
+    "attempts/tactics-0189.context.json": "21ccd77a4a07aaebed91e8fc3588db85f258d19569b0b0ca2fe088ef913f89a5",
+    "attempts/tactics-0189.result.json": "0c1c9d4b28818934a14f150375adf0361a25a7500990d28eb3574001cc104be4",
+    "attempts/tactics-0190.context.json": "bb8f11c1f0a517712755c2cef1b82b5e87ebd9ddce687b7d03c02ac1d09906ed",
+    "attempts/tactics-0190.result.json": "956f48a68efcdfac99a466d5b95587c3244e81b879f65a79680f272242f68add",
+    "attempts/tactics-0191.context.json": "402bb0b314919873044b6aa383e6265859f6985aed2a90a10b3d92782cdedd7f",
+    "attempts/tactics-0191.result.json": "3165b24e4cdd752a41cf0ab370fe6d56c17a7fee8403d2d58c3d2a2277f64e5d",
+    "attempts/tactics-0192.context.json": "e7fe30799ce2e847690c3a991812892d896ab9032b028a9d5be3ddafcc073cee",
+    "attempts/tactics-0192.result.json": "1d87449e8d08bffa2f4f554718a971391262b7db113b106a4b62a50c6b59a09a",
+    "attempts/tactics-0193.context.json": "0f44fceb798162b080b923a55340b14127a24f0761856a7e995843cd0a894206",
+    "attempts/tactics-0193.result.json": "ace66bce15a255ee3eea3da54413bba309c5a3c1d9ea131150fabd7ce1129036",
+    "attempts/tactics-0194.context.json": "3edab26bc880dcb8437869e72108a050fac5e25ed21bdbdb96293878943bbf08",
+    "attempts/tactics-0194.result.json": "332516c167f05c4bed3fbe79d77e2fd79c011f2fefa29c44b8d0b881535c7c4a",
+    "attempts/tactics-0195.context.json": "44c2c73f1a040b8b26e06cfb0fb31d53988651b2fa6f5311ad6a5cd4ed9ab082",
+    "attempts/tactics-0195.result.json": "4f493db663d16aa00b637cd3093e39db5323e0d8bc62944f8d224850408ac4fd",
+    "attempts/tactics-0196.context.json": "3c2445b569e36adc416dfa37e14129dd7b623cea2f9535e51d0788786eed46e8",
+    "attempts/tactics-0196.result.json": "09680eb0be86754e6a9cf5c83a22fd1f241531ecdec038913143c7661a9600f8",
+    "attempts/tactics-0197.context.json": "7442893e1a969f86ae368af5d21caf246873b5e50a668f2c7113cc6531aa1c4a",
+    "attempts/tactics-0197.result.json": "32e41691979d00fcf621762aaf0292620ad366f497f7f2a1d5e766342669808e",
+    "attempts/tactics-0198.context.json": "5f3be1bec0d92e85abeadd5d22a86a19b833c133dea8d19ed7169ce9747845f3",
+    "attempts/tactics-0198.result.json": "5697f77dea19da8451539340de1bc68f1e8025fbb689ddf4ea4e6e6754cd96a9",
+    "attempts/tactics-0199.context.json": "5a08f7598e5f650c82e92eb9a80861400759c1b8b0313a3f10f4696b008da343",
+    "attempts/tactics-0199.result.json": "e254666aa9b698048e616b54a0be787040be18472e7bc780fff5bad29d86016e",
+    "attempts/tactics-0200.context.json": "f7defc11c128b349944195e23b9ad83d3fd564596b2ed89e04002be96ee5c652",
+    "attempts/tactics-0200.result.json": "bba25fa634cdb36e829a1d07aa21efbb76abe86885a1958d4fb9efdb6040c2bf",
+    "attempts/tactics-0201.context.json": "4118d9ed5cad9eeafbfec844eacaddfb4a6f66fe46204a715127384f9189159a",
+    "attempts/tactics-0201.result.json": "4f25618ce99f3a18c1ae8f309ab8e7db1afb84218468e56a3c93249f184be8a5",
+    "attempts/tactics-0202.context.json": "280b1b6a6ce731ab62a2cd039db56ff4088084480d912e4896242fb46589de27",
+    "attempts/tactics-0202.result.json": "d32beec57b45e161d28d135ac832c8191c1e4ac2677853af63cc5f39311691fd",
+    "attempts/tactics-0203.context.json": "628ca01bd8c9e9a81c94ed0d9c21564b1c9aadef119fe775c38256c5df540976",
+    "attempts/tactics-0203.result.json": "52af24db0ff174410cf3ed5834492c856da315896a3afd3c6b34c3495e2be759",
+    "attempts/tactics-0204.context.json": "04c8e50a71f2b6c7628dd0d481cae84f20e6548499e20970e9714d3cfe191890",
+    "attempts/tactics-0204.result.json": "7a19e49513f73c17ae8d5768ccc4898192786759714841120d19cd042f8002c6",
+    "attempts/tactics-0205.context.json": "9184eaab0be6ca45a4b93384f6fcb6a7d1f2b71ec63c8ec22bc4e9e184dcac2d",
+    "attempts/tactics-0205.result.json": "c981f8c788b20dec7a34bbca22bb2976b463a5535fd68999a678a6cb968a1f71",
+    "attempts/tactics-0206.context.json": "cb36cfbc70a4d52ba9be3f29931609aa4a2950a2f942744c8d717792091119f1",
+    "attempts/tactics-0206.result.json": "7ac2ed65b4b7410fb942fc1aaf8d03bbedcf180fe2905cf85f9614f07133b9da",
+    "attempts/tactics-0207.context.json": "5b75c6afa463d8321de96ecc9881c5dd27ded00f7f9ae030ad6b179fcaae395b",
+    "attempts/tactics-0207.result.json": "05b71ca4b164616d8124aadb956f5a19ebc51de4458ad54cff72cc655cc7b450",
+    "attempts/tactics-0208.context.json": "b26c980ed50a90b191b7ab0852efd324f041660a5dcf7246b1de0ba5dd7c407a",
+    "attempts/tactics-0208.result.json": "8af753baa9223035c3066c233625c482884ee05a317ae016c3b1bae1e4c3dcd2",
+    "attempts/tactics-0209.context.json": "af44cd5e27f6c1686ffcf9fe36fa9564629b0d65cc14872555a3ef64cc57d299",
+    "attempts/tactics-0209.result.json": "dfcce99f597f5c8b712b6104f18bd542b11557909787c43f9fe2945ba9240437",
+    "attempts/tactics-0210.context.json": "ad6233e210074560025bc2f769ef6d5e62a26d1197abf4bad65eabd8dddc8f2b",
+    "attempts/tactics-0210.result.json": "1b84cc3d88573ba194df51acd49716fa0993e4af18f473f20388277574dbd0af",
+    "attempts/tactics-0211.context.json": "a70296a1486e6dbb3bccc24d23f33eec289cfc72da90a987f67caea795578aaa",
+    "attempts/tactics-0211.result.json": "15d80d040041d39bc67b5d98f8df53d1ab9825b630d2a66cca7c143706bdaaf2",
+    "attempts/tactics-0212.context.json": "8197023589926ddee3fb5a5ea451efcbb08c2e3d3e0d5b649c515d4c09c7598f",
+    "attempts/tactics-0212.result.json": "ce61c20ccc5c06a48282eabf2be97ce77152edc9b0e34b6e0b23c8ddb3f07f31",
+    "attempts/tactics-0213.context.json": "79160da21fcffe8e8d151a188fd58c3fb28eff8788e3ed37aae63754c2856cdf",
+    "attempts/tactics-0213.result.json": "d51cdb79e709ef4a665d9919aadf85a0541b4084e9f17c22882c7bd840606875",
+    "attempts/tactics-0214.context.json": "52c4ec0a33b0f123a76ffbe43af509b5f63bf41d7bf71595417e66c76db69ea3",
+    "attempts/tactics-0214.result.json": "5434363f152eefb6bc332c2a5040d41b654226b40df765fd3f96eb668fc4fdea",
+    "attempts/tactics-0215.context.json": "481b832fa9a3612f6997590e32b80225948649a167bdc123c61f9dbed5ab77c7",
+    "attempts/tactics-0215.result.json": "453a442b136027c388829283a0b19237aa94a3d14ee4a1ea05ab83f6f7f9458b",
+    "attempts/tactics-0216.context.json": "666aad1776f88ef0ed500aab26b4683286684b7fe3ac7cef9a57efe4542a030f",
+    "attempts/tactics-0216.result.json": "77648371252e3a2f0efc95387b16be72de8e78a27e007ff5ec8eeaa32dbf9b59",
+    "attempts/tactics-0217.context.json": "69f6fd1381bc42656df142e0b08478fcfddb13d9a2640c5185eac3d1ce7bcb8a",
+    "attempts/tactics-0217.result.json": "752954ee306820ac4f5453bc6418c92237981d8f5025adaa2d017bfe86335827",
+    "attempts/tactics-0218.context.json": "704f4d64a6b6a34046d405284555d208bb14c21dadfc0fbd20543cf63c0ee3b6",
+    "attempts/tactics-0218.result.json": "9d3e2da9dc696b22d9576f45d5d199fbbccdcb41f89068e7b2a6f857d490112c",
+    "attempts/tactics-0219.context.json": "a6a3d2b07fd0be59bb12691913c1df804652f5d8bcf373a12e03391f4afbe725",
+    "attempts/tactics-0219.result.json": "a72372dd51bc351d1c496b5452923cdcc14330e15c176e7da6467a5f8660a35e",
+    "attempts/tactics-0220.context.json": "581747b16f15143cb22a63252283a675715c5a458725a3e6dd4196a28ee4ceba",
+    "attempts/tactics-0220.result.json": "e09b912929f1f276d83064697550bd12d7ef6ccf0760cae5db1b65212d2967e6",
+    "attempts/tactics-0221.context.json": "6eb188b51b8ff42d96dc2435b3345a327567336d5ce4d59e8b6fdda6192ddee1",
+    "attempts/tactics-0221.result.json": "29857d119bd15819a2e1f6596a125e9062fd9f56d8217f95c0e5f60bae476288",
+    "attempts/tactics-0222.context.json": "d2bda138061c220d1ab870676f95fb3c35838571cdf737536e61ba1f8fa9ad61",
+    "attempts/tactics-0222.result.json": "b2e72215d2b7da36ef07ccdcc831853f3cfb20f2c03c0710d9aadb216b083447",
+    "attempts/tactics-0223.context.json": "ab5f7dbdcba72bdc2cb73d6e11467e6dfee99ad1491d16289e4e5379c06deecd",
+    "attempts/tactics-0223.result.json": "cb350aa44d42b36d71513a7845062227aa83463779dea5e8ab2f7b2e8e7d7fd2",
+    "attempts/tactics-0224.context.json": "86e400fb9f1937400ebc6588e81e1e3f1a19ef9ecd669d13a78ff9d2ba2337f0",
+    "attempts/tactics-0224.result.json": "ec5094d5a2ac3d56f991b608d28816b2d74ea50ee3fbb1312e1cc04c91f16b2e",
+    "attempts/tactics-0225.context.json": "984b5425e845e7d47597a7777a6a804440607169d7e99e96b2391802409f633c",
+    "attempts/tactics-0225.result.json": "0f6ffefaf777ffc28bad71eb057a9ba49df46a929262cb729147ce6edc4c53c1",
+    "attempts/tactics-0226.context.json": "02cb2a42b42b8e3d043600cb70b5ab57579770d737f9af8c9ba9219e700f7efd",
+    "attempts/tactics-0226.result.json": "1327580227e6dc711e74202ba74170cd3ae2f071fac66a6cf7545b774e57c3b4",
+    "attempts/tactics-0227.context.json": "2ab2c08c6b93143d449703cecc1cce2aba16844fcb2756a440e84a73dfee5e60",
+    "attempts/tactics-0227.result.json": "67efad849bd0e8a3264820c37fcae5aba28fb7eaacc6c0a843271a846cc039cb",
+    "attempts/tactics-0228.context.json": "7a44fe8bee9ee575e808cbc42cd92c9a7990b9e3a3f03790e33d3c6cebeb2121",
+    "attempts/tactics-0228.result.json": "b71cd593cb1a38f0ace9dd06e9b2c2a23ca448cc0ce98d4d013499a0d518cf7b",
+    "attempts/tactics-0229.context.json": "5c082afe390b5d41de7b56856628e69f97152ccde6bb2bbd61751f25ef44ff61",
+    "attempts/tactics-0229.result.json": "c16968bc07fe8341ca438bfc0ef9abccb629f182425db210b88e015f148b0fa2",
+    "attempts/tactics-0230.context.json": "ea921f02d61a9ce0b536c2586934d321d239c68443d86259d732610f11b3e51e",
+    "attempts/tactics-0230.result.json": "11f12270bb1dd0a52f0170a539e23ff918b0b1b124b90eabf618e5a64114cca3",
+    "attempts/tactics-0231.context.json": "2a915e3dd0afddc93e309657a0ba9c42d454472c5ed46097ab25cac1e026fa05",
+    "attempts/tactics-0231.result.json": "d54259531aa5ca441887cdb918c7371bb53fee9ad7578da49af09cecb6810b28",
+    "attempts/tactics-0232.context.json": "f99fc4b26876a0ae819a10473b630c2934185062a7211b2c563e0d943490a523",
+    "attempts/tactics-0232.result.json": "da4f7189854d3d0f66318c023695f37f42bffe4c7fe311ae48ef0bb903b67643",
+    "attempts/tactics-0233.context.json": "2438217be3c4ad9193d036fd5ea427e3aa77aeb9c826a5747f01c8ed27071bc6",
+    "attempts/tactics-0233.result.json": "01fc04626cf67cc77832f45181fba7bb7ab0b3ad911e0fef31b1708f8125d22b",
+    "attempts/tactics-0234.context.json": "02c98826268fe1ff8eda57665f846a8003b004f1d86c82def02be63e374983db",
+    "attempts/tactics-0234.result.json": "45f6801802435ca9c98600a9692fea851e1e9e607cec3ba413fccdcf4538eeb1",
+    "attempts/tactics-0235.context.json": "84b56e273173c4ab4d1316894cb37233b7850c34ae62f5c4d5182ec8d6269945",
+    "attempts/tactics-0235.result.json": "2a7753c95fb3d18df8d73a4515d92a2f7f24628fab64d27fbcff40ef31907135",
+    "attempts/tactics-0236.context.json": "c54f71de51ec40dfb76239413aaefadc0f7bd026f2cebe03d11b1d9368165840",
+    "attempts/tactics-0236.result.json": "6989640990f6f19e0ac26a1c56132657010db1d2b14de954a3a3c94b70178245",
+    "attempts/tactics-0237.context.json": "f9e40232ce66fcf5890bc8b064a7517a8f8e8310bbaac955cfb3ae4c9f83d59e",
+    "attempts/tactics-0237.result.json": "daa25d1dc1b6ec4bd9dd39d3057c52a68b7f20be3312f12bdc196262ec5a2b66",
+    "attempts/tactics-0238.context.json": "272cc19a86c5a522daec60223156cd035cff34a7041c9eb735f37eda33ab50b5",
+    "attempts/tactics-0238.result.json": "d7a2fa13583dae1e52348c2936a5f7a09cef199b291ed7cae126dc55a00ee6b0",
+    "attempts/tactics-0239.context.json": "e7777c36c911aeac8b35027bb202f55d3ac30c2cf8b1510e9681aa439c6394c3",
+    "attempts/tactics-0239.result.json": "473c9756de2dd775a810c32e8854734cd21ddd7624b7aa65091f83ae241f7a35",
+    "attempts/tactics-0240.context.json": "ac64d06e48c06df6163b36e93e7f9fcefe88da2375deed102271e885c6450bcc",
+    "attempts/tactics-0240.result.json": "cf76eef2d50cdad1f1573883a462d5745583a0e1d18de207773a83021a13a338",
+    "attempts/tactics-0241.context.json": "7fd1b0f70c4df84b352d6dd83da08c25a4f7783e6d2bca6004abffe99a6b784c",
+    "attempts/tactics-0241.result.json": "2d866a6a49742fabcc2e9b5422ddb89332aefbfb5520ce1ad9eeeca3a35dcbf7",
+    "attempts/tactics-0242.context.json": "db7d69e46e1a29928ed08048c4bd074c6e32c80b8e449ea97841f1bab8582aa8",
+    "attempts/tactics-0242.result.json": "ca788d123264c4635eee7e6ae77e14842a6f0bdc6663c02a64b9e37c13c5ebf6",
+    "attempts/tactics-0243.context.json": "139eeab6191fc0175b118b17575c3b1b5a9d9e5e069eeb2eb712e9f5b2dfac54",
+    "attempts/tactics-0243.result.json": "d7f2bab0321e2ec6c4c6fbbbfbac2c4b2a4a1a6ffdd563b737df105efca10b54",
+    "attempts/tactics-0244.context.json": "d0d1b5f3455acf1a2288035f5890b6501627b3233dc0316b9785c1496bf3250e",
+    "attempts/tactics-0244.result.json": "f0c4f64755ce358f5c42b4a9ebc3c439b057972aadb2f1500f1d89f4558d72e6",
+    "attempts/tactics-0245.context.json": "dfb9d61283c3cd5af7bc8199520319bca2f2e76a057e5187e5cd5808800502c4",
+    "attempts/tactics-0245.result.json": "2575b472420725ba75cb8bee95a6e8da756db2f496e8cb7ee657a93d8db87c32",
+    "attempts/tactics-0246.context.json": "f6cc4abd5b59eaf303ff9d51256038c0a4ea290fed8573808af78dc6b438eed6",
+    "attempts/tactics-0246.result.json": "39199f452b545fdbe7f4222c8f622106844c38422fa85fb7fbf01ab58cda0e3b",
+    "attempts/tactics-0247.context.json": "7890e12e6e840db2ef5cf279bc3e92521bff6723384513f7d97c961159746cd0",
+    "attempts/tactics-0247.result.json": "9a8c78eba4d42bcdc43232cadc2e741c43c3a086d9599f341bbfcd5d341b9ea6",
+    "attempts/tactics-0248.context.json": "27ec46fe8ff717c9129604aec4f262c7e4893b17e762563e2c3f8fbb4878fdc6",
+    "attempts/tactics-0248.result.json": "efd58e22cd2ba822fdf68e6ddd97507d28b3a636092b1234ed6630965234c804",
+    "attempts/tactics-0249.context.json": "c16a538f99de196cd043a42f9304a6c71deb50e0921d94e6207175d7b87db3f3",
+    "attempts/tactics-0249.result.json": "2a214ecde8c35f0ff253a7f5019a0183955bd231b3c117a67267472b10899268",
+    "attempts/tactics-0250.context.json": "33417c8a8e6de9fd499ac0f3779a2e12576d446a697135ba6233dae5dacd7ddd",
+    "attempts/tactics-0250.result.json": "c5dee794e181b91b3f880943e7ec0ca5306a786fee9634e1463dd4bc189dbbca",
+    "attempts/tactics-0251.context.json": "a4c64a3c3d11cc21d536c408ed11fb9502739e49df193c2a941e0245b235741a",
+    "attempts/tactics-0251.result.json": "30d5afc4934688a643a411348c330d6ba7ee41676c0a04e375f53bc572551ec4",
+    "attempts/tactics-0252.context.json": "e868920a21915809848c18bade375597b529868257efb4bfcaceaa250b1004a3",
+    "attempts/tactics-0252.result.json": "1a228d98f04929c1e8e62ad7077f2d0f23a23ef10704a71d9a523378cd975e3d",
+    "attempts/tactics-0253.context.json": "af9b363f96ce12bcd79fe9b31d53c5440b1490d917717e2be1d9eab0e54d548c",
+    "attempts/tactics-0253.result.json": "9a6a3a2589939b1d22daaee6b40169c621baba4d25d1dc51831fdb9cd1d48cee",
+    "attempts/tactics-0254.context.json": "7d86da3e6901098008f07e54d5287b449c0c40e362e69221687633511cc791fc",
+    "attempts/tactics-0254.result.json": "0febac1131e7ce7aa00c77beb9f41742bf8d5d92e10d234c03ffd737dbb2ff78",
+    "attempts/tactics-0255.context.json": "43a9b684c0faf935d3fe3914408fe67bfe0d033df6a0d03b3e998b1354d61a76",
+    "attempts/tactics-0255.result.json": "343783a884c0514ee912a3f9aaacec8241d9d6c3a3f4ae9c16e59b6306a16351",
+    "attempts/tactics-0256.context.json": "cf8d0aafd9a49be383336a16a5548ca5858d32fef30176020fc24b19d99445da",
+    "attempts/tactics-0256.result.json": "cafb824c7af5f36afb931fce9c113b4a4b48a7e1b9fb22feb03c1bccff4f21be",
+    "attempts/tactics-0257.context.json": "031f59b435c2064f51c8871ee890682860bbda77b6758919edbec640146a0fb1",
+    "attempts/tactics-0257.result.json": "ca97be85d896c968b16cea297be64cf9839d77b06e2013eb7b6df20dfb970dcd",
+    "attempts/tactics-0258.context.json": "d2150ea5909bd652220c9bdfc03aa8c8308e62ffae6f1b757bd4900ff6c1bef4",
+    "attempts/tactics-0258.result.json": "04f9a480308f3a24d8788e62efcde9ad0e7152f8e346e8db760729c99a93936d",
+    "attempts/tactics-0259.context.json": "4b1d51f20267787bbe7348ee29227d2f93e8e6ded9ccc39f0f8da792d94b419a",
+    "attempts/tactics-0259.result.json": "c4a36d0b42ed035b90e20b8859a400c571c1cc4a3854e153d21077721faef9b7",
+    "attempts/tactics-0260.context.json": "b57fe01e877ff6406006b8d2c12fdf5ce1bd9efe3ca858f5dac93622ecc1e3a9",
+    "attempts/tactics-0260.result.json": "62cc8d62de2b5bcfcd14a231b3718801cdda7223ef377af9cc3a7998d692c5e4",
+    "attempts/tactics-0261.context.json": "973e6461b8b76aa60da79430fb9f44cd75537fbc1e54e631ca91ce1e3f21f987",
+    "attempts/tactics-0261.result.json": "81fe5f6cb7f65f33fcf792a3100df008c8a876814803d9c8349acd2a29550a1e",
+    "attempts/tactics-0262.context.json": "4aa04966e2b3562bc8e7f9478275d113cb1d8e95b364e1b41e366daf7632b20a",
+    "attempts/tactics-0262.result.json": "343525d501ff2d3e7486e33ac1133591a5a7009c1f97ba07ff948180a4a252df",
+    "attempts/tactics-0263.context.json": "09e026b7d2c614ee29fa7b42ff1c400ade3821374081011f16fde732ecb5c462",
+    "attempts/tactics-0263.result.json": "d2806ddc8d59f2377298c3da81498c79604aa9e1ecdeabe756e89decca44cbf3",
+    "attempts/tactics-0264.context.json": "c86da1030322e25f24b8d4970234fb8440124a0e22508e9236bea365328f1527",
+    "attempts/tactics-0264.result.json": "eaf66f839160d3e127f05ba1309469b881cb525cc726ed60e2740fce98355c4c",
+    "attempts/tactics-0265.context.json": "f1e55b02ad942b40c3d2ccf670f0aaa049ad848d7dfd16c7473b5b5b5abecd8b",
+    "attempts/tactics-0265.result.json": "826d5da8fa8276cc5d82f720523c1c165e997e9b37ff600ded9ff8bab5c93da6",
+    "attempts/tactics-0266.context.json": "71cda40154821203b91c4a8e047ef9f6cf2c7d4b38ee2da5c43cbb5146e03bf3",
+    "attempts/tactics-0266.result.json": "ce9aa864ed8eac003fee90565209bae66fce7271223a3db1d50d72ed17a31e18",
+    "attempts/tactics-0267.context.json": "9b7918c3963c56e0b9625f13e631f2c54c3b81dfb96fa8566397bf098c1d8ab7",
+    "attempts/tactics-0267.result.json": "e65a728cc55e4ce6ef3a9f6e6d3fa06d46169b04df58b64501194f48eabf2aa4",
+    "attempts/tactics-0268.context.json": "2ee3d9995481874316c6b926f80e013663dc9680f4020b03b0dfb0b77c362da7",
+    "attempts/tactics-0268.result.json": "45921a6edb1af747464cb4cbe24982e71fa14c2b30d410bd79f978a8090b9239",
+    "attempts/tactics-0269.context.json": "45de2115ee87179cd01fc8350be9d5b4d46736f86869e0537c6a9c65fdbcd082",
+    "attempts/tactics-0269.result.json": "ef87f2232d564e727826cc9d1ffe04190cd8427564ebc4eab57c8715edf2477a",
+    "attempts/tactics-0270.context.json": "8073da10b597b5258b38d80b0e43f5a674c966a2763c65a09736ec2766a0c040",
+    "attempts/tactics-0270.result.json": "2d09d8353d2bf5fe08b4ff879054d4aa6adcba45cdc0e0f1ab9bc2eedb9d498c",
+    "attempts/tactics-0271.context.json": "55523db4591eb0118df36abe787ef0bbb0cedf2986fe38dd1cdca83d8393c6df",
+    "attempts/tactics-0271.result.json": "374a8e9eac26868fd476b815497bc958467db4b4b9aa89c85c8ace346c26cc1a",
+    "attempts/tactics-0272.context.json": "930d599f47b309bf75fa223e4073d12569b5226b93f8fdaa77bd05009da96667",
+    "attempts/tactics-0272.result.json": "e8ddea0bf317251edb5de55db1e44949e32966d223b276abbe7c5e4965c63867",
+    "attempts/tactics-0273.context.json": "513a0f0b4fcc1469974f1d40c79c983b6f976d0c26c37549a2879aef30643b28",
+    "attempts/tactics-0273.result.json": "8d6d2d70a02e00e82af2c562fb532363bb6bf8b8850d213cafd97d19b7adddbc",
+    "attempts/tactics-0274.context.json": "85885893ecbfd6272fd0d05049fa4b8d8648f261c3206540c4608f592b65a5f5",
+    "attempts/tactics-0274.result.json": "cd75968bda8a5a22ab395378ce486c5da9bc404d18129d3612e123003be94174",
+    "attempts/tactics-0275.context.json": "8bacd935ff24c4ab615a8ec14bdb1a3f368f7eec81c9d37b8fcffd7138b707cf",
+    "attempts/tactics-0275.result.json": "9dcd765dba54c1b2678f597308b31f1065db64972148955182979ccc16526042",
+    "attempts/tactics-0276.context.json": "0990e6508f083de911601b06e5fe658b7bd5463cf981c23bcc11af03f95e3c6e",
+    "attempts/tactics-0276.result.json": "94fad068872349dc1be62f11fb55a9ea10fd37f5e1a17f4a74f5c7955ad98f9c",
+    "attempts/tactics-0277.context.json": "fa353c798af8706ad549216d2ccc2c1df0209012f94e512be796d0f50ec326f7",
+    "attempts/tactics-0277.result.json": "7261ad04a2498c6899fd3658503299477d424785538e5d5016c82e18debf9351",
+    "attempts/tactics-0278.context.json": "6d5b8b5452aee7321e2f325560736e6bdfb64976a3546fbf4051d9abbd487a18",
+    "attempts/tactics-0278.result.json": "59a5ba07c4e47784e9d3746488998816758c33af7dedb9d2d0ed31d00eb97f75",
+    "attempts/tactics-0279.context.json": "4c09a4504c1cb0b4749765f8310b7e65bc24cc4c2c08193c90762a666dc44f00",
+    "attempts/tactics-0279.result.json": "027b17ad1749e59b6e267b64cbd2ec209f1fc62155054e1174b227bd7f761f62",
+    "attempts/tactics-0280.context.json": "a7f4f049c31181ead5f3b3f23f57a493e86ae8b60f003c5e49c0ee980b578020",
+    "attempts/tactics-0280.result.json": "f2dc0bea938848e834b5fed9ae609bca3bc24060043f2de00a466821d216c259",
+    "attempts/tactics-0281.context.json": "7a927bfae5068da3427c3460ec11251e85535ffb5fd79200a77c7dbe8bb16ae3",
+    "attempts/tactics-0281.result.json": "0aa20c74b853ae05c4452875714fa42333fcfdf65b6b09a6965a43180d691b46",
+    "attempts/tactics-0282.context.json": "c895abb7e394da3713d9c4d2246d301cc5d14591457925444af4f8af6f443ad6",
+    "attempts/tactics-0282.result.json": "929d2b09b60de46e3c98527754059d3e71b31067829699140e14d2c22790fa97",
+    "attempts/tactics-0283.context.json": "50a698ac4f7fae0b70b484d9bc947753ce1fd09e42eed19469a9531a9ec1ce5a",
+    "attempts/tactics-0283.result.json": "1ca3fa601d33d83e210b91f29df322f284929e2dd9ba5464c4b663600086bdb7",
+    "attempts/tactics-0284.context.json": "b1f78d9f352975b83b0185804bb0b05e7174bd49ea17d6e90cd92f9e487868f4",
+    "attempts/tactics-0284.result.json": "ce8df616df1709e144e4196c1e1ea53979a43738d2d648d213a5792b0d7df055",
+    "attempts/tactics-0285.context.json": "c34f6e59002cc45b4058c6eaeb841ebe4ee07fe88c0761766bb087a420f7d428",
+    "attempts/tactics-0285.result.json": "b35dd07d9d95f6e2cbc4f5dc6f0f333ccdbce5f4af85fb9e31ec23c5d896c6be",
+    "attempts/tactics-0286.context.json": "fc85c4ba712cca8c1f37978e9be36a714ef30f0e1674148e4804c7b04a422ef5",
+    "attempts/tactics-0286.result.json": "70452d8b3147345d6f91a619ee776382cdd9313bdbf203cfcef26606ff81c75d",
+    "attempts/tactics-0287.context.json": "9d11db86d0d1b1a7538bd845844afb4f4eafefdec9d68f4ccf2b7b5832e7f8a4",
+    "attempts/tactics-0287.result.json": "198641f61cedf1879210280b4b3d258ed0eab52c9e4a6202a56d681e8ae51355",
+    "attempts/tactics-0288.context.json": "3ea4b1ea063e5cfd17e05dcc13d89e3e2ae1d6c8db85057db58719867f0dd66d",
+    "attempts/tactics-0288.result.json": "87c7117ba43f75454ec1d521c87dc312d21f538bafc6b2147f011eb3575a2e2e",
+    "attempts/tactics-0289.context.json": "b5b00bf28ccfb8b1a6f586b75523730a9bed235a727097496d72bd16330713c9",
+    "attempts/tactics-0289.result.json": "7363776628a9a74ff6c5dffcbebff91ba883215d4c28403b8a544e712e244600",
+    "attempts/tactics-0290.context.json": "0a665ba6a993d16491a3783bc295251e1b3b4c8954fa3ccb56ad4ca7347f394c",
+    "attempts/tactics-0290.result.json": "37a520ad0ca949df1d4c92d838a3d23cf8f567ff58a2c1a4af6f8d9e55a7323d",
+    "attempts/tactics-0291.context.json": "33af294e8f90cdd19007f3382999888ee723bc1a17f2041ecd620b445439a65f",
+    "attempts/tactics-0291.result.json": "ed4288dfa26cb84fedc5e2cf090725d1ae4f5bafcf0c79774819d50cf342a441",
+    "attempts/tactics-0292.context.json": "a63537b9be98c82c7a8447888787079445474e4ca9f360439c32df524ccbea3b",
+    "attempts/tactics-0292.result.json": "78db0fa848c69edbd844a06f08868f601f87713a33a3874214aa35db2e51f1b1",
+    "attempts/tactics-0293.context.json": "17e07c9729484bdbffb2d6f63901d4782a29f5b6cbceb8b92578373e35d1d6af",
+    "attempts/tactics-0293.result.json": "bff52d7b3956538d12e036704b6291e67be63bdab251c0e5ead1395667469666",
+    "attempts/tactics-0294.context.json": "0a82a1fdcdd1aaaccc5825020756a7456ad679d004b335cdc238af98b54ad5a3",
+    "attempts/tactics-0294.result.json": "ec4359b1264b8905cc0df4918c41317716d35959e858808cbaa275260b6bc3a5",
+    "attempts/tactics-0295.context.json": "83a41a1260d0490ac129353c251b26159dede6ae4445ccd883835ebcbdbf25c3",
+    "attempts/tactics-0295.result.json": "22edc5340b9b40b247e1dea5e9f68c05d1ad450af8b67c7f390e430c2e62aa29",
+    "attempts/tactics-0296.context.json": "2cd20e769799b5dec78240244000accac421b0f00934be9eb01d89df0809a4b8",
+    "attempts/tactics-0296.result.json": "4e5983d43a60997a0822364d7d2e103d70493f9f2d13f18c1a2d774d5b41c5e1",
+    "attempts/tactics-0297.context.json": "94913a023dab9e3505c2dd9c6e331199d1e9ecdfbd6f4663b357a55b35c55252",
+    "attempts/tactics-0297.result.json": "8baab05df06beb69fe435de3d3a939b6450b6e7fad6287ad53efae851b0cb60a",
+    "attempts/tactics-0298.context.json": "979033bfdd9ddde3d5824a8d9f3dcb5dfa7c3159fcbfb8a940a2b807ed2a9fa1",
+    "attempts/tactics-0298.result.json": "e62daa5846cf959dfe3fe71e2a340ab6128c3d086a137910d640e3fa28264318",
+    "attempts/tactics-0299.context.json": "c417a3b21bced7d41feb2f0489a2954af1609142b51aaedb9f9dbf641bb50e63",
+    "attempts/tactics-0299.result.json": "05dd33f716f3ca252a9e8b71f7bd6661979073557ec0db8d382e0153a5203369",
+    "attempts/tactics-0300.context.json": "5a3386de6c4811a4383250ffc19c33ad1b11b6131a3bccfffb8b5550c0455003",
+    "attempts/tactics-0300.result.json": "2e7455b12bdf9452db3a409114fa211ae706c4e4f7d571f6f4a69942720b8aea",
+    "attempts/tactics-0301.context.json": "2efff6701040a64b21b2bca96db9f776d0ddbdafcade1b64b268a1e85c20f189",
+    "attempts/tactics-0301.result.json": "6c8c0f16eb4a5ed018c37627d7425e51e84556d9aa6925d1b84f95dbf188c227",
+    "attempts/tactics-0302.context.json": "ac85e11e164f0cd9450a7268c636eb630fdc95cc599f47a30b4fd0b615a88060",
+    "attempts/tactics-0302.result.json": "bf61cd683e5a79e7b87c43437171757625157c7f44a229431ebe8449458ebf20",
+    "attempts/tactics-0303.context.json": "c671220cb68c4b09a107273ecca54a7bf1b9621d4375a5daf51d41e77cddbd83",
+    "attempts/tactics-0303.result.json": "8c5718a4896cba80c7ac0326b6a1c6e0912fd684d0e39189988c8dd5da62d4fe",
+    "attempts/tactics-0304.context.json": "83cd09825f069d383efebbe9fe8b41e342d4071601034ece474889d75e58b4be",
+    "attempts/tactics-0304.result.json": "f2dc7b9b77653a802fe73e81156127c27c485a75b8c4e97710512c69c339e4d3",
+    "attempts/tactics-0305.context.json": "58a6d9cd92bfc20f359dbb6137d6299960a758ca29081915bd843d375354588e",
+    "attempts/tactics-0305.result.json": "505d1c0b22977bec78337af2aaaa29b8544e595a8cfb3a3337f29bb9fa1be8ea",
+    "attempts/tactics-0306.context.json": "924c2ae19376396ab2cb9d397d40f8371c29131dd1a2c761e5b11c7e78110049",
+    "attempts/tactics-0306.result.json": "8323ba7044a1e2b595dd47698134f5ef35cf1b724c64cacc4e45ce380ffe9c34",
+    "attempts/tactics-0307.context.json": "23aa2bf978db1eb763833266eabb977df42edc45e3776af8b655b5be1555337c",
+    "attempts/tactics-0307.result.json": "47954f46e5e993c76d6260dab78216d42b0b81d878392509214788e7bc9fe161",
+    "attempts/tactics-0308.context.json": "8f1385d99d8911b833fd461b32bd2916bc6100c5f9092f083c1cd18793f7dd86",
+    "attempts/tactics-0308.result.json": "930feb29448c1a9660b73ef026819f82f28661addcce6f699b97592825733ea7",
+    "attempts/tactics-0309.context.json": "e956edc7145e910f49e8f8e913c14ab46910ee1a4c17601f22a87da7bb7e1f60",
+    "attempts/tactics-0309.result.json": "aa55f7885f9f0bfd201656ca9fa79b58c2539696af46ef81481ec9cb62d3dfc3",
+    "attempts/tactics-0310.context.json": "e599780cf25a8c762235e5b32f6025ad7938419cd38d77fe7e3d65caeaf652fa",
+    "attempts/tactics-0310.result.json": "dded3022043af5a4b1ac4dab4e85314d6c59870bb101fa04c37e8bcef29bfdd8",
+    "attempts/tactics-0311.context.json": "dbe6ff08349d4d5e1e6eafddc62724e91837cfa922dc26d692c6e8a23c50afee",
+    "attempts/tactics-0311.result.json": "60bb9566a3ef6b1e85fdadf6f04abc1a51467208abc5ec0d362136e7edb9d10f",
+    "attempts/tactics-0312.context.json": "4dceb76452b91b26d70b191de41d18b80bd43d1c820540932025bf45bc858ffe",
+    "attempts/tactics-0312.result.json": "cee6bc8602a550dc6f01970e7480b060b7dba8de70e069985b1acdcfa58b71bb",
+    "attempts/tactics-0313.context.json": "152c97a30e8e145d05aa9b5730873cfcd3761a263e5fefb2763fa0d871205b77",
+    "attempts/tactics-0313.result.json": "990037da535a261b8a46c70de8a50753a075560a0e3222da4194f855689d2ef8",
+    "attempts/tactics-0314.context.json": "d407020e1026b4f5bbf89672a5bb14e8f96071c52830f8dca37b904a68a97720",
+    "attempts/tactics-0314.result.json": "8aa415c472fbf9a3412774c793a21ecd53b047a8db2d41c6f55b36ec89d34553",
+    "attempts/tactics-0315.context.json": "e220ddf1c9b381d1f1b215e5c7ff8b96d0414ef0bcc792a0439351ced4ae9107",
+    "attempts/tactics-0315.result.json": "3c5554e5783431559887227eca6c61aebac49d0464419e7d06dc5c61a0d29573",
+    "attempts/tactics-0316.context.json": "7aec68a79cecdaf13fca7ebae5e284c8364b5dd7bb0d6483aab680f2e8b8dfa7",
+    "attempts/tactics-0316.result.json": "396abfee3479de4a2dd907c775a75d3081ca7b2e1426ad3dce1df78516986373",
+    "attempts/tactics-0317.context.json": "393b302ad4ff2f18a7cc64e39596464c6f46b6835a8013e306adcd83aeaa5a9e",
+    "attempts/tactics-0317.result.json": "af4bfae5fa4f3e9df328c81c4fb1e82982a6ca1f9da5e71b43edb479afa14a32",
+    "attempts/tactics-0318.context.json": "b6a57a3caa18896621d3729a8de872845f51cabc42da5ec315a772226d18e615",
+    "attempts/tactics-0318.result.json": "6896efbdb87f01633ad4a54e6eca3af21298c46b6ef391d7db752c0569de14e2",
+    "attempts/tactics-0319.context.json": "280a6c25fa662be68e322f4e1a59c6be5133a52ddd3e01777c8b72e1e6734f14",
+    "attempts/tactics-0319.result.json": "2d5262f19403b4327d489238fd3e6c8a63c4461830e29b2ad93346e279895882",
+    "attempts/tactics-0320.context.json": "f8a04471fabb07304c328e78b55cba06c43a4a63e38dd3efebd1e17c69634224",
+    "attempts/tactics-0320.result.json": "65339f8aac4720358dc36a6a76145c9ed85547b1c1d58de3ca860f934595d15b",
+    "attempts/tactics-0321.context.json": "6a4776a9f00dc8fc69f5293eec5911cd187589b8a040445f253c8e65fe68cd51",
+    "attempts/tactics-0321.result.json": "ad4acd47444be3d43419912b45e7fb787c338dfbf032f6773762c785d7adedea",
+    "attempts/tactics-0322.context.json": "10ee70cffe0b54bfcfdb1de268c306c497683c5f8ec7d1c261e33fef5c6717d8",
+    "attempts/tactics-0322.result.json": "4b791c54031e0db7ee20db9971392572bfc9b0484e3548e4b460ca194b3e6cf8",
+    "attempts/tactics-0323.context.json": "2d7f60583b339159196caf5e2e06e516313405f27213dddfd6c7f719fdec082a",
+    "attempts/tactics-0323.result.json": "801da2ad85c8aa2cb4cfd4e81c000bd39ead87e2ea00e77606a5ea397ecfd34e",
+    "attempts/tactics-0324.context.json": "554a2d58745f4ba55765e2f35b6fcede382dd5ef3cb75c15f65a2ed174c871ce",
+    "attempts/tactics-0324.result.json": "2b3295855600be8676603aa626bcb0ac32a7e99cb90b8baed07502b17ed7e80b",
+    "attempts/tactics-0325.context.json": "9738ece44c049d62cd947e6d7e89aa019387a74db3d8d97b76bac805d8b16a20",
+    "attempts/tactics-0325.result.json": "cf0e79cf9961b678b9ff89b03e618b4ab865c63d6020cbe68da8c9b0404dd825",
+    "attempts/tactics-0326.context.json": "8bff70c05b7d879105b83a11704b85b018f7ba7a964ba31cb57fe29652d220d2",
+    "attempts/tactics-0326.result.json": "47ebac1c84804a48776933587081de2e9a58fb67a956a35832b78a07e3bad3bd",
+    "attempts/tactics-0327.context.json": "3579335baa7653184ea92367e06444ced94a180b97ac5310e73ab3fe76185dee",
+    "attempts/tactics-0327.result.json": "2bf31b53fab67361d0ae5ea4947407492702628a60a20a3ff6787537cd30b72a",
+    "attempts/tactics-0328.context.json": "f46d4b77ffbef1be97fb85a983705f05cb3a5641bcfac1809d9b743004017091",
+    "attempts/tactics-0328.result.json": "77ab514534bbd8c5488cdbfb58a00569dc0ad17ff017808e1d87f6a22356e359",
+    "attempts/tactics-0329.context.json": "48339628ea30efdf569ae9f281b1c6db0c9cf2ea8953db13b3bcd1ee28853941",
+    "attempts/tactics-0329.result.json": "3615283dbe1d4404ceaa139138b17268cea4b6d94fa16f1d3b5ea5247e2df42e",
+    "attempts/tactics-0330.context.json": "2a1ab7c6434e8f56df0e6914d46c944f4ea94a5ddf075484a7374cf5eea2913b",
+    "attempts/tactics-0330.result.json": "46b7e78a8e83ad1c4d78908f47b230aaaa6e670c75f3fbf3c4b6ddfbae4bfef4",
+    "attempts/tactics-0331.context.json": "3023e2c919960a2d599b2f4ed4dcaeb7c22936a432290f6853d8934e200db941",
+    "attempts/tactics-0331.result.json": "a505d6fb7e4ed4db15cbb1be40e0ffa035b4a5ff6fe4a8a8529000691d88dd6d",
+    "attempts/tactics-0332.context.json": "ed6690310044404e3a1b181f2a7aa233fa6213c96f1c069d01d8d73bc87961c5",
+    "attempts/tactics-0332.result.json": "0a96ad10def8e35bcec25d764f0269b62adf636307cf4ac2061641a2dd675792",
+    "attempts/tactics-0333.context.json": "94d3ff4e3d8d356168773bf101212dd42e4a5cea26484118b01670e992d31fc3",
+    "attempts/tactics-0333.result.json": "b8fae945374dc5e7eba93db883bb4f1cdf99c10a1d85be1988eb056941418544",
+    "attempts/tactics-0334.context.json": "4e86aeadddd5a87f5452d1fa7903a39bbb813f69ad36ee0bbcd0c48612276e52",
+    "attempts/tactics-0334.result.json": "6b96b647c32c1b04191bbea772a21ebe56bbfcb32bcfb3342809e6ef1dc5be80",
+    "attempts/tactics-0335.context.json": "a1e3a39ba0ac0cb188f359ecfcd55d36af8bd84c2e40559c6a92dd8fa21688b4",
+    "attempts/tactics-0335.result.json": "eb25c2a43df9cebefe96a08e0f36254e4c2101e01006ab422828f0f1d2377f3e",
+    "http/0001-strategy.request.json": "17242cc3e74a3a7d239f55134c6d2fed2c65e8ccfd24c6a98fd7a3933f03d6d7",
+    "http/0001-strategy.response.json": "29975f7d745355bc80a451a05f62443dbe725eec3fff6231cc3091c3720395d6",
+    "http/0002-strategy.request.json": "ed22978599aa737b58a6b361a8a329478b1b8d3ad0c2700e9b2016a63af9d85c",
+    "http/0002-strategy.response.json": "08f19225f33c95e6730a7d4c6269fc9bb64a760885d320b9da8af1ab90b5fe93",
+    "http/0003-strategy.request.json": "88b3368d639d678d662139720488a623d1f8e1f0d7f457ca892d469e40c0083f",
+    "http/0003-strategy.response.json": "3cb3c394746f6f969ab7b8cbc5934175c7b868e7cdd6122c8d90c414c0ff029c",
+    "http/0004-strategy.request.json": "a6595cbfae63339876dc5398b562edf2524efe5fc56941af28874aa00e122e67",
+    "http/0004-strategy.response.json": "a792170aa50981e91ebee8307515bc427e17628c5bad4b5b5dc83a16c62008a4",
+    "http/0005-strategy.request.json": "0bfad3574ebe8d779022bd5d23371ada633814f7326c40540d4a55c3da086ad5",
+    "http/0005-strategy.response.json": "e464b47c047d2d0d5b2a8ae1c762f95ef465ceeaf147dd0296b59e7e624d8a45",
+    "http/0006-strategy.request.json": "6d36440cfc91d2d7eca5aa419dd449f9ad0e126c8f29afb53c6546da1653bd4f",
+    "http/0006-strategy.response.json": "e518eb1a229aa9809caec4666af7554dea523ae1ea764805ade3d9cf2fbfc4a4",
+    "http/0007-strategy.request.json": "3d4817f46b0d4e338baf5cb2aa53f112b2fe169894946af0cf4bcf5392200da7",
+    "http/0007-strategy.response.json": "d38db41f5fef9ac428125360c68ef5d95ecbffc070de32403532640db8ee90f6",
+    "http/0008-strategy.request.json": "c180d998f86dfa0ed6d198491e23520af9f970ff1499e3e55b5c55ae1650baf8",
+    "http/0008-strategy.response.json": "8377cfebcd115059ad88da850658c0b5a698917425a9775bf58d536bef8f7797",
+    "http/0009-strategy.request.json": "2a9b922eec3126572ff0ae92c9f9392a2feb6cecf81435b838aa7b6f1f90bb60",
+    "http/0009-strategy.response.json": "e846045f7d1a8086d7a73ca8be1bd283ba4b4988f6f8847089e3edbf2b972bb6",
+    "http/0010-strategy.request.json": "f35ce5ce6cf56647b8c369b744bdae2efa2c1c2071d8a4fac7a7127b81a9f312",
+    "http/0010-strategy.response.json": "57a89e8dde2666e9ec109ad8964f200812c170703dcb5c4ae583977dbbc27072",
+    "http/0011-strategy.request.json": "042129506d86e7570b57caef1fc7cfa1e665afdc095a05c8d48bb1a07df14561",
+    "http/0011-strategy.response.json": "06c5c4b164b7cd3b6755e8a8c37592b5ccfc0d08e8a2e31a0a7c15cc2d1339d8",
+    "http/0012-strategy.request.json": "a3269ed74871d5d0a190ee404fac4be9ec651378fb57c0c457d8ffe176e98287",
+    "http/0012-strategy.response.json": "bc6ada631fde5b92b3f34b35ff4a83dca272a21ff1e42a8cc347012a249cea62",
+    "http/0013-strategy.request.json": "9564110525b8bd762423a2c9f0994ee3c1e947530f12871d822dd8c4558e1be0",
+    "http/0013-strategy.response.json": "287998df47fe2743ab55ba0dfdb367ffa054c3d053f786c68364d3e15b5f54d1",
+    "http/0014-strategy.request.json": "3e402fa83a411605bc126699c061b8fa03fa80add83f29c510adeb3d9002e3d1",
+    "http/0014-strategy.response.json": "79d70a34ad49ca5b1ea8db44553fc1e8faae684ff06154f1678bfe3db6e908aa",
+    "http/0015-strategy.request.json": "33832442a35729428a198e07d880bb3b21b688c0113e9f8b8278b56f88144121",
+    "http/0015-strategy.response.json": "025a2aa298d50e6f27e29041ba2a8531ee1c1839745b8914ec3962f390b84d84",
+    "http/0016-strategy.request.json": "80a0198284eb195ef9d7e245a599fe9eba631a003b6e53cb46267f0766b932af",
+    "http/0016-strategy.response.json": "4ba318fdfd498fa2eab07b5fa9a1f98d20ff9c23d9c7d41c671f7b8723c33666",
+    "http/0017-strategy.request.json": "6de0e6feea374c622986502125a297554c94eff6d3ce941ede0831163235b0ac",
+    "http/0017-strategy.response.json": "94c60274837ce92e0fafbcc728786cfc76a8d76b8d090a4cd726d7e40741fb92",
+    "http/0018-strategy.request.json": "66aa8457dde777df8170463e2374f6224061a56ac6ffd0ebba2981ad16194491",
+    "http/0018-strategy.response.json": "7595012a82ba9ba59133a80d267ccd3d31cb37b14f1af1882f5138ea0081ef70",
+    "http/0019-strategy.request.json": "4b71d7a415f0f0c76bbd8fa109d4df15b507560cf0ea7b3f5aceb52adbe615f9",
+    "http/0019-strategy.response.json": "7591e380f8c31e53746ad2126dbac84ce6813ad1206508a50964ff42e892aa18",
+    "http/0020-strategy.request.json": "60a28a431b17e66d8eadeb905c7cb59240cd07b5f51dee9b141fae2892f331f8",
+    "http/0020-strategy.response.json": "7e2e92fb01514a0ecb8ff076d9b5e059ce790477c9d5dfb78a66a5a3828b31c8",
+    "http/0021-strategy.request.json": "4df3cdc2135343a50f8b34abdd7f541d98103166bc1bb735c29227beb45de6c1",
+    "http/0021-strategy.response.json": "9e5a8b2508a3510533d97a21f5ed3abd64d7080cfe8246d1c028bd3405531533",
+    "http/0022-strategy.request.json": "36f0dade5cd1f16c80dd061029f874ccfdf0edafa26dd3c86a33dadb710cfbde",
+    "http/0022-strategy.response.json": "79c2e7d0956b17f1e3ff1ac923181ba805eae0bbbddef5e900a52bc9dab24e2b",
+    "http/0023-strategy.request.json": "ca1cbb23a248bee4040eb0d2d40b9dc0afc0429dbfeefd0807f7ded2bc9e5ba3",
+    "http/0023-strategy.response.json": "71baaee491a0003076165cc3bf4484a886ce312d39ea8aa555ad6be4b3184fde",
+    "http/0024-strategy.request.json": "54b129e5c41abc7dcd72a6b8b280432ed553292f61a53f517441f080a7c797d7",
+    "http/0024-strategy.response.json": "bdbbb4523b9f517671097e50391255a6d3ef929ec09c9dde247cc9913282bca2",
+    "http/0025-strategy.request.json": "20ba69458842822e9d6eb6d8b7616d5c261151a6e0ecad587b21958661c1d50e",
+    "http/0025-strategy.response.json": "28bd8cd09815fcf464df0ced262b640c15094cde4eca57e5fd89b2dc72d49903",
+    "http/0026-strategy.request.json": "70069337ae6b31c9bd27d6d2d62445cd6ef3dda40594648c727d5f01491883cc",
+    "http/0026-strategy.response.json": "3a390a0d2e96d66c6b744a4bb4c5ae0c4af2af491a9caef5346c01fcef0ab6ee",
+    "http/0027-strategy.request.json": "d85eca0095eb6641c915e1d973883ae974fce6022e0d5102ace78d7c7f439fa0",
+    "http/0027-strategy.response.json": "ddc07e95e6ddda1164868b1d4ebfec61e0048e33a16bc7a545737418e9261875",
+    "http/0028-strategy.request.json": "1e1086f16e01c41c6ce32cc9ae9e55164a06f864c265db0da8fbcf843cce44c5",
+    "http/0028-strategy.response.json": "61d1eb20d9717acea42ddc4baf31d0b4d71f2ae89279ebe8606562ee8637711f",
+    "http/0029-strategy.request.json": "941851095c9cbe814facb676febc02f4e21b391fc5aa956e3e943127f84bef34",
+    "http/0029-strategy.response.json": "0a117081e836714ab3721c0bdee9e13301c60393cbdc3eeff94663dc6fc53573",
+    "http/0030-strategy.request.json": "50b7eade1a606a77ae521278cde3c3353f60e1b154b523c5b1e6cf0642c781d9",
+    "http/0030-strategy.response.json": "1b1859f59380e38108aea352d0420fc6046e4b582b3f6b77703d0eb62360e400",
+    "http/0031-strategy.request.json": "343d1e02645ee69ecd140716103afb22b75593ba98b5060a8eece0d6c5909040",
+    "http/0031-strategy.response.json": "495c8bbba2575891dbdd6fff00183b7aa13cc45ce34f2650853a8e631f2d0da5",
+    "http/0032-strategy.request.json": "ac291abad0833387b01c21dc5f0876fe4ce9043f2e4de76b195cf3a61b560e8c",
+    "http/0032-strategy.response.json": "d6d261f3e9dd310f11bf3fbc9f19bcd023be3920d79eb43c753ea1f6ffaf5479",
+    "http/0033-strategy.request.json": "d0fbb47e41f4e4517f6a626b89ad98cf289a641f1efa0af05f3aca9fc8c0e591",
+    "http/0033-strategy.response.json": "a5029b7b02c4452b5855517941f75eb70a47109a290cb27c03499102771b3164",
+    "http/0034-strategy.request.json": "fc944fca4bb53ef964c7266122a528e6cf6787b058d8e4caa3ea9820d2972575",
+    "http/0034-strategy.response.json": "22824b7bf17202730534f604065f297a6f9c9953576bed56c50a0a5f86dc0950",
+    "http/0035-strategy.request.json": "03386edeffff899ae49716e824ffcf38015a1ce2c3f3cea44ecc7a707bd90214",
+    "http/0035-strategy.response.json": "69404f726f635a6e825f06488346bd407ee0c66e0be90fdc60540e01d84661d6",
+    "http/0036-strategy.request.json": "307acdeff3bcac3c1767cbc4bfcbdfae7407281aaf10624f1faf78e60eca121d",
+    "http/0036-strategy.response.json": "fefc6011c32719d3f585cc006a948dd2acee4c396e4f2f921e19d721e6080aa0",
+    "http/0037-strategy.request.json": "dc80c9f6fd36c376093b0e24fa07557bec1e0e8e51a87ce21e34b05ee15e1ed9",
+    "http/0037-strategy.response.json": "32fc32bf0dec1e002775681bf74a11c154203b031143c1831bba744dfb11b640",
+    "http/0038-strategy.request.json": "82abd8ae305fa2b260e12bbe5c6a9fa010b3b58b60a494c2606e9272f26dde71",
+    "http/0038-strategy.response.json": "2b408a9515c4e5147da57874b06eb6747c13920615e76a871f18485d89844bbb",
+    "http/0039-strategy.request.json": "79c79b24584a190925744bff2801a8c605c16ca3134e54e6f2dcc0a2b7c86f04",
+    "http/0039-strategy.response.json": "68cca1044b02e0ed837ef2fdbb5457d52d7bbe646ca9d68f6d51f0d881c2baeb",
+    "runner-logs/archive_155d8310/decisions.jsonl": "42fa72176c2e856209f3c21b53afb0640959c262ad0afcc563b1d9d7dfad1819",
+    "runner-logs/archive_155d8310/rounds.jsonl": "ff578a5dd22cce75c50ff0ae4ec3ff11fa655a8d8ab2bdd8f80f2da465b43bdb"
+  },
+  "source_unchanged": true,
+  "rows": [
+    {
+      "attempt_id": "strategy-0001",
+      "role": "strategy",
+      "flags": [
+        "输入无当前计划，输出却要求维持当前计划。",
+        "输出截止帧 597 ≤ 输入帧 597，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0002",
+      "role": "strategy",
+      "flags": [
+        "输入无当前计划，输出却要求维持当前计划。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0003",
+      "role": "strategy",
+      "flags": [
+        "输入无当前计划，输出却要求维持当前计划。",
+        "输出截止帧 1015 ≤ 输入帧 1015，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0004",
+      "role": "strategy",
+      "flags": [
+        "输入无当前计划，输出却要求维持当前计划。",
+        "输出截止帧 1251 ≤ 输入帧 1251，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0005",
+      "role": "strategy",
+      "flags": [
+        "输入无当前计划，输出却要求维持当前计划。",
+        "输出截止帧 1473 ≤ 输入帧 1473，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0006",
+      "role": "strategy",
+      "flags": [
+        "输入无当前计划，输出却要求维持当前计划。",
+        "输出截止帧 1689 ≤ 输入帧 1689，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0007",
+      "role": "strategy",
+      "flags": [
+        "输入无当前计划，输出却要求维持当前计划。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0001",
+      "role": "tactics",
+      "flags": [
+        "调用失败；不要从空记录推断模型选择。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0002",
+      "role": "tactics",
+      "flags": [
+        "调用失败；不要从空记录推断模型选择。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0003",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0004",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0005",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0006",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0008",
+      "role": "strategy",
+      "flags": [
+        "回复被截断，未形成合法完整 JSON。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0007",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0008",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0009",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0010",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0011",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0012",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0013",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0014",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0015",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0009",
+      "role": "strategy",
+      "flags": [
+        "输出截止帧 4480 ≤ 输入帧 4480，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0016",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0017",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0018",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0019",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0020",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0021",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0022",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0010",
+      "role": "strategy",
+      "flags": [
+        "输出截止帧 4743 ≤ 输入帧 4743，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。",
+        "输入有失败任务：建造矿场（rule-build-ore_refinery）；本次仍要求维持。是否合理需要结合恢复机制，不能仅凭 JSON 合法判定。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0023",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0024",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0025",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0026",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0027",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0028",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0029",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0030",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0031",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0032",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0033",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0011",
+      "role": "strategy",
+      "flags": [
+        "输出截止帧 5001 ≤ 输入帧 5001，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。",
+        "输入有失败任务：建造矿场（rule-build-ore_refinery）；本次仍要求维持。是否合理需要结合恢复机制，不能仅凭 JSON 合法判定。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0034",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0035",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0036",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0037",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0038",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0039",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0040",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0041",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0042",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0043",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0044",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0045",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0046",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0047",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0048",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0049",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0012",
+      "role": "strategy",
+      "flags": [
+        "输出截止帧 5261 ≤ 输入帧 5261，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。",
+        "输入有失败任务：建造矿场（rule-build-ore_refinery）；本次仍要求维持。是否合理需要结合恢复机制，不能仅凭 JSON 合法判定。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0050",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0051",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0052",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0053",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0054",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0055",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0056",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0057",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0058",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0059",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0013",
+      "role": "strategy",
+      "flags": [
+        "输出截止帧 5563 ≤ 输入帧 5563，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。",
+        "输入有失败任务：建造矿场（rule-build-ore_refinery）；本次仍要求维持。是否合理需要结合恢复机制，不能仅凭 JSON 合法判定。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0060",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0061",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0062",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0063",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0064",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0065",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0066",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0067",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0068",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0069",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0070",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0071",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0014",
+      "role": "strategy",
+      "flags": [
+        "输出截止帧 4480 ≤ 输入帧 6181，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。",
+        "输入有失败任务：建造矿场（rule-build-ore_refinery）；本次仍要求维持。是否合理需要结合恢复机制，不能仅凭 JSON 合法判定。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0072",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0073",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0074",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0075",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0076",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0077",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0078",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0079",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0080",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0081",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0082",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0015",
+      "role": "strategy",
+      "flags": [
+        "输出截止帧 6442 ≤ 输入帧 6442，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。",
+        "输入有失败任务：建造矿场（rule-build-ore_refinery）、建造反地面炮塔（rule-build-anti_ground_turret）；本次仍要求维持。是否合理需要结合恢复机制，不能仅凭 JSON 合法判定。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0083",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0084",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0085",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0086",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0087",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0088",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0089",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0090",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0091",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0092",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0093",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0016",
+      "role": "strategy",
+      "flags": [
+        "输出截止帧 6685 ≤ 输入帧 6685，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。",
+        "输入有失败任务：建造矿场（rule-build-ore_refinery）；本次仍要求维持。是否合理需要结合恢复机制，不能仅凭 JSON 合法判定。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0094",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0095",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0096",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0097",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0098",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0099",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0100",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0101",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0102",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0103",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0104",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0105",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0106",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0017",
+      "role": "strategy",
+      "flags": [
+        "输出截止帧 6929 ≤ 输入帧 6929，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。",
+        "输入有失败任务：建造矿场（rule-build-ore_refinery）；本次仍要求维持。是否合理需要结合恢复机制，不能仅凭 JSON 合法判定。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0107",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0108",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0109",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0110",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0111",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0112",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0113",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0114",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0115",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0116",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0117",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0118",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0018",
+      "role": "strategy",
+      "flags": [
+        "输出截止帧 4480 ≤ 输入帧 7192，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。",
+        "输入有失败任务：建造矿场（rule-build-ore_refinery）；本次仍要求维持。是否合理需要结合恢复机制，不能仅凭 JSON 合法判定。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0119",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0120",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0121",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0122",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0123",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0124",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0125",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0126",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0127",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0128",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0129",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0019",
+      "role": "strategy",
+      "flags": [
+        "输出截止帧 4480 ≤ 输入帧 7432，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。",
+        "输入有失败任务：建造矿场（rule-build-ore_refinery）；本次仍要求维持。是否合理需要结合恢复机制，不能仅凭 JSON 合法判定。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0130",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0131",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0132",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0133",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0134",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0135",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0136",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0137",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0138",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0139",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0140",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0020",
+      "role": "strategy",
+      "flags": [
+        "输出截止帧 4480 ≤ 输入帧 7675，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。",
+        "输入有失败任务：建造矿场（rule-build-ore_refinery）；本次仍要求维持。是否合理需要结合恢复机制，不能仅凭 JSON 合法判定。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0141",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0142",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0143",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0144",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0145",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0146",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0147",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0148",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0149",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0150",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0151",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0021",
+      "role": "strategy",
+      "flags": [
+        "输出截止帧 4480 ≤ 输入帧 7919，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。",
+        "输入有失败任务：建造矿场（rule-build-ore_refinery）；本次仍要求维持。是否合理需要结合恢复机制，不能仅凭 JSON 合法判定。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0152",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0153",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0154",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0155",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0156",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0157",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0158",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0159",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0160",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0161",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0022",
+      "role": "strategy",
+      "flags": [
+        "输出截止帧 4480 ≤ 输入帧 8142，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。",
+        "输入有失败任务：建造矿场（rule-build-ore_refinery）；本次仍要求维持。是否合理需要结合恢复机制，不能仅凭 JSON 合法判定。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0162",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0163",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0164",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0165",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0166",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0167",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0168",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0169",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0170",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0171",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0172",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0023",
+      "role": "strategy",
+      "flags": [
+        "输出截止帧 4480 ≤ 输入帧 8382，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。",
+        "输入有失败任务：建造矿场（rule-build-ore_refinery）；本次仍要求维持。是否合理需要结合恢复机制，不能仅凭 JSON 合法判定。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0173",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0174",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0175",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0176",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0177",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0178",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0179",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0180",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0181",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0182",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0183",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0024",
+      "role": "strategy",
+      "flags": [
+        "输出截止帧 4480 ≤ 输入帧 8626，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。",
+        "输入有失败任务：建造矿场（rule-build-ore_refinery）、建造反地面炮塔（rule-build-anti_ground_turret）；本次仍要求维持。是否合理需要结合恢复机制，不能仅凭 JSON 合法判定。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0184",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0185",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0186",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0187",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0188",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0189",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0190",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0191",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0192",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0193",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0194",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0025",
+      "role": "strategy",
+      "flags": [
+        "输出截止帧 4480 ≤ 输入帧 8869，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。",
+        "输入有失败任务：建造矿场（rule-build-ore_refinery）、建造反地面炮塔（rule-build-anti_ground_turret）；本次仍要求维持。是否合理需要结合恢复机制，不能仅凭 JSON 合法判定。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0195",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0196",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0197",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0198",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0199",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0200",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0201",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0202",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0203",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0026",
+      "role": "strategy",
+      "flags": [
+        "输出截止帧 9073 ≤ 输入帧 9073，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。",
+        "输入有失败任务：建造矿场（rule-build-ore_refinery）、建造反地面炮塔（rule-build-anti_ground_turret）；本次仍要求维持。是否合理需要结合恢复机制，不能仅凭 JSON 合法判定。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0204",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0205",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0206",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0207",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0208",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0209",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0210",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0211",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0212",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0213",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0214",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0027",
+      "role": "strategy",
+      "flags": [
+        "输出截止帧 4480 ≤ 输入帧 9313，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。",
+        "输入有失败任务：建造矿场（rule-build-ore_refinery）、建造反地面炮塔（rule-build-anti_ground_turret）；本次仍要求维持。是否合理需要结合恢复机制，不能仅凭 JSON 合法判定。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0215",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0216",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0217",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0218",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0219",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0220",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0221",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0222",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0223",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0224",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0225",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0028",
+      "role": "strategy",
+      "flags": [
+        "输出截止帧 4480 ≤ 输入帧 9557，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。",
+        "输入有失败任务：建造矿场（rule-build-ore_refinery）、建造反地面炮塔（rule-build-anti_ground_turret）；本次仍要求维持。是否合理需要结合恢复机制，不能仅凭 JSON 合法判定。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0226",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0029",
+      "role": "strategy",
+      "flags": [
+        "输出截止帧 9988 ≤ 输入帧 9988，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。",
+        "输入有失败任务：建造矿场（rule-build-ore_refinery）、建造反地面炮塔（rule-build-anti_ground_turret）；本次仍要求维持。是否合理需要结合恢复机制，不能仅凭 JSON 合法判定。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0227",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0228",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0229",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0230",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0231",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0232",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0233",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0234",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0235",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0236",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0237",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0030",
+      "role": "strategy",
+      "flags": [
+        "输出截止帧 4480 ≤ 输入帧 10234，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。",
+        "输入有失败任务：建造矿场（rule-build-ore_refinery）；本次仍要求维持。是否合理需要结合恢复机制，不能仅凭 JSON 合法判定。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0238",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0239",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0240",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0241",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0242",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0243",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0244",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0245",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0246",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0247",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0248",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0031",
+      "role": "strategy",
+      "flags": [
+        "输出截止帧 4480 ≤ 输入帧 10478，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。",
+        "输入有失败任务：建造矿场（rule-build-ore_refinery）；本次仍要求维持。是否合理需要结合恢复机制，不能仅凭 JSON 合法判定。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0249",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0250",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0251",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0252",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0253",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0254",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0255",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0256",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0257",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0258",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0259",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0032",
+      "role": "strategy",
+      "flags": [
+        "输出截止帧 4480 ≤ 输入帧 10723，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。",
+        "输入有失败任务：建造矿场（rule-build-ore_refinery）；本次仍要求维持。是否合理需要结合恢复机制，不能仅凭 JSON 合法判定。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0260",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0261",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0262",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0263",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0264",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0265",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0266",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0267",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0268",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0269",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0270",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0033",
+      "role": "strategy",
+      "flags": [
+        "输出截止帧 4480 ≤ 输入帧 10964，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。",
+        "输入有失败任务：建造矿场（rule-build-ore_refinery）；本次仍要求维持。是否合理需要结合恢复机制，不能仅凭 JSON 合法判定。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0271",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0272",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0273",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0274",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0275",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0276",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0277",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0278",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0279",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0280",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0281",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0282",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0034",
+      "role": "strategy",
+      "flags": [
+        "输出截止帧 4480 ≤ 输入帧 11208，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。",
+        "输入有失败任务：建造矿场（rule-build-ore_refinery）；本次仍要求维持。是否合理需要结合恢复机制，不能仅凭 JSON 合法判定。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0283",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0284",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0285",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0286",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0287",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0288",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0289",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0290",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0291",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0035",
+      "role": "strategy",
+      "flags": [
+        "输出截止帧 4480 ≤ 输入帧 11432，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。",
+        "输入有失败任务：建造矿场（rule-build-ore_refinery）；本次仍要求维持。是否合理需要结合恢复机制，不能仅凭 JSON 合法判定。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0292",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0293",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0294",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0295",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0296",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0297",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0298",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0299",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0300",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0301",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0302",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0036",
+      "role": "strategy",
+      "flags": [
+        "输出截止帧 4480 ≤ 输入帧 11673，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。",
+        "输入有失败任务：建造矿场（rule-build-ore_refinery）；本次仍要求维持。是否合理需要结合恢复机制，不能仅凭 JSON 合法判定。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0303",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0304",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0305",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0306",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0307",
+      "role": "tactics",
+      "flags": [
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0308",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0309",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0310",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0311",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0312",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0313",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0037",
+      "role": "strategy",
+      "flags": [
+        "输出截止帧 4480 ≤ 输入帧 11917，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。",
+        "输入有失败任务：建造矿场（rule-build-ore_refinery）；本次仍要求维持。是否合理需要结合恢复机制，不能仅凭 JSON 合法判定。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0314",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0315",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0316",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0317",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0318",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0319",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0320",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0321",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0322",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0323",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0324",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0038",
+      "role": "strategy",
+      "flags": [
+        "输出截止帧 4480 ≤ 输入帧 12156，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。",
+        "输入有失败任务：建造矿场（rule-build-ore_refinery）、建造反地面炮塔（rule-build-anti_ground_turret）；本次仍要求维持。是否合理需要结合恢复机制，不能仅凭 JSON 合法判定。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0325",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0326",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0327",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0328",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0329",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0330",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0331",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0332",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0333",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0334",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "tactics-0335",
+      "role": "tactics",
+      "flags": [
+        "选择与现有任务相同，解码记录 unchanged=true；转换结果不重复生成新意图。空数组不等于模型没有作选择，也不证明单位停止工作。",
+        "同次记录同时选择“进攻”路线和“采集”动作；两者分属主线分支与当前任务，不能把它读成已发出攻击命令。"
+      ]
+    },
+    {
+      "attempt_id": "strategy-0039",
+      "role": "strategy",
+      "flags": [
+        "输出截止帧 4480 ≤ 输入帧 12401，不满足请求中“valid_until_tick 必须大于 server_tick”的约束。",
+        "输入有失败任务：建造矿场（rule-build-ore_refinery）、建造反地面炮塔（rule-build-anti_ground_turret）；本次仍要求维持。是否合理需要结合恢复机制，不能仅凭 JSON 合法判定。"
+      ]
+    }
+  ],
+  "outputs": {
+    "G:/AIRTS/AI_RTS/agent/reports/closed-loop/2026-10-15-adjutant-chinese-timeline.md": "588ff598cc97945bb79f72163fe14cd15b8e00ba3a9a84bc52240621dd0831ae",
+    "G:/AIRTS/AI_RTS/agent/reports/closed-loop/2026-10-15-adjutant-chinese-timeline.html": "12a082459a051c672a00bd15ded3e707ea15abe43037bb78b0b7f2724a287b44"
+  },
+  "counts": {
+    "strategy": 39,
+    "tactics": 335
+  },
+  "roles_and_reasons": "Only strategy rationale is a recorded natural-language model reason; tactics explanations are deterministic translations"
+}

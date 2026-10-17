@@ -5,6 +5,9 @@ signal command_feedback(command_name, accepted_count, rejected_count, status)
 
 const Structure = preload("res://source/match/units/Structure.gd")
 const ResourceUnit = preload("res://source/match/units/non-player/ResourceUnit.gd")
+## 登车资格的唯一口径：运输车只载小兵（2026-10-12 用户要求），
+## 判据直接引用 CargoHold 的白名单常量（不在这里另抄一份，否则两处漂移）。
+const CargoHold = preload("res://source/match/units/traits/CargoHold.gd")
 
 var _is_repair_targeting := false
 var _is_sell_targeting := false
@@ -450,9 +453,12 @@ func _unhandled_input(event):
 		return
 	if not (event is InputEventMouseButton) or not event.pressed:
 		return
-	# 右键：退出任何"待点目标"的命令模式（红警式；维修/出售模式下同样是取消）。
+	# 右键只退出「左键点建筑」的维修/出售。强制攻击、战术后退、强制移动、
+	# 攻击移动和技能都用右键确认目标；这里若取消并 mark handled，物理拾取
+	# 不会发生，表现就是热键进了模式、右键之后单位完全没反应。
 	if event.button_index == MOUSE_BUTTON_RIGHT:
-		if not get_active_command_targeting().is_empty():
+		var active_targeting := get_active_command_targeting()
+		if active_targeting == "Repair" or active_targeting == "Sell":
 			cancel_command_targeting()
 			get_viewport().set_input_as_handled()
 		return
@@ -1053,12 +1059,21 @@ func _try_board_selected_into_transport(transport) -> bool:
 	for unit in _get_selected_controlled_units():
 		if unit == transport or not is_instance_valid(unit):
 			continue
-		if unit.get("movement_domain") != Constants.Match.Navigation.Domain.TERRAIN:
+		if not _can_board(unit):
 			continue
 		cargo.mark_boarding(unit)
 		_issue_board_move(unit, transport)
 		marked = true
 	return marked
+
+
+## 登车资格：小兵类型（CargoHold 白名单）+ 地形域。与货舱装载判据同源。
+func _can_board(unit) -> bool:
+	if str(unit.get("unit_type_id")) not in CargoHold.LOADABLE_UNIT_TYPE_IDS:
+		return false
+	if unit.get("movement_domain") != Constants.Match.Navigation.Domain.TERRAIN:
+		return false
+	return true
 
 
 ## 右键点地时，若落点靠近己方运输车且已选中地面单位，按登车处理。
@@ -1075,7 +1090,7 @@ func _selected_has_boarders(transport) -> bool:
 	for unit in _get_selected_controlled_units():
 		if unit == transport or not is_instance_valid(unit):
 			continue
-		if unit.get("movement_domain") == Constants.Match.Navigation.Domain.TERRAIN:
+		if _can_board(unit):
 			return true
 	return false
 

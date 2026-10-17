@@ -49,16 +49,33 @@ def own_units(tactical: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 
 def resource_available(resource: Any) -> bool:
-    """矿点还能否派工人。观测缺存量字段时，只要实体还在就当可用。
+    """矿点还能否派工人。
 
-    `remaining` / `amount` / `stock` / `left` 任一为 0，或显式 `depleted`/`exhausted`，
-    都视为采空（T10：工人必须转岗，不能继续认死矿）。
+    ## 【2026-10-09 修复：字段名对不上 ⇒ 140/154 条 gather 被权威拒绝】
+
+    权威回的是 `ResourceDepleted`。实测（`archive_8c4158d1`）：
+    **gather 154 条里 140 条被拒（只有 14 条接受）**，而同期 `attack_move` 接受率 98%。
+    根因是这里的字段名与**游戏实际发的**对不上：
+
+    | 游戏 `DebugControlServer` 实际发的 | 旧实现检查的 |
+    |---|---|
+    | `ore_remaining`（`resource_a + resource_b` 存量） | `remaining` / `amount` / `stock` / `left` |
+    | `ore_depleted`（`ResourceUnit.mark_depleted()` 置位） | `depleted` / `exhausted` |
+
+    **两组一个都没命中** ⇒ 落到函数末尾的 `return True`（"缺存量字段就当可用"）⇒
+    副官持续把工人派往已采空的矿点 ⇒ 权威拒绝 ⇒ 工人反复重发、看起来"走一小段就停"
+    （round-17 实测这批工人整局只走了 41m、10 次移动事件）。
+
+    两套名字都认（保留旧名，避免别处喂进来的观测失效）；耗尽布尔优先，其次看存量数值。
+    注意矿点是**会再生**的（`ResourceUnit` 状态机 ready→depleted→ready），
+    所以"耗尽"只表示**现在**别派，不是永久作废。
     """
     if not isinstance(resource, dict):
         return False
-    if resource.get("depleted") or resource.get("exhausted"):
-        return False
-    for key in ("remaining", "amount", "stock", "left"):
+    for key in ("depleted", "exhausted", "ore_depleted"):
+        if resource.get(key):
+            return False
+    for key in ("ore_remaining", "remaining", "amount", "stock", "left"):
         if key not in resource or resource[key] is None:
             continue
         try:
@@ -134,6 +151,12 @@ def normalized_units(tactical: Optional[Dict[str, Any]]) -> Dict[str, Dict[str, 
             "confirmed_dead": bool(unit.get("confirmed_dead")),
             # 武器射程（米，加法字段）：判断"是否已在射程内"用（D12 驻留攻击）。
             "attack_range": float(unit.get("attack_range") or 0.0),
+            # 视野半径（米，加法字段 · 2026-10-07）：权威端 `_tactical_self_entry` 写的是
+            # `unit.sight_range`。安全推进的"连续可见前缀"必须按**每个单位自己的**视野算
+            # （tank 16 / soldier 12 / drone 20 / scout 24 各不相同），不能全用 14 米近似。
+            # 缺字段 / 非法值一律 0.0 = "未知"，由 `movement.vision_radius_m` 决定回退口径。
+            "sight": float(unit.get("sight") or 0.0),
+            "radius": float(unit.get("radius") or 0.0),
             # 武器域 / 移动域：首次下令前过滤非法目标（F04），加法字段。
             "attack_domains": list(unit.get("attack_domains") or []),
             "domain": str(unit.get("domain") or ""),

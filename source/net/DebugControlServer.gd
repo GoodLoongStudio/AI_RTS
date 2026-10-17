@@ -1,5 +1,7 @@
 extends Node
 
+const _PerfBuckets = preload("res://source/match/PerfBuckets.gd")
+
 ## 调试控制端点：游戏内嵌 TCP 服务器，接受 JSON 指令操控对局。
 ## 两类指令：
 ##   1) 输入模拟：click/drag/key —— 合成真实 InputEvent 走引擎输入管线，
@@ -34,6 +36,49 @@ var _server := TCPServer.new()
 var _clients: Array = []
 var _buffers := {}
 var _port := DEFAULT_PORT
+# Bound retained peers/bytes/work, without dropping queued legal JSON lines.
+const TCP_CLIENT_LIMIT := 128
+const TCP_BUFFER_LIMIT := 1048576
+const TCP_READ_BUDGET := 65536
+const TCP_REQUEST_BUDGET := 256
+const TCP_PEER_REQUEST_BUDGET := 16
+const TCP_SHOT_LIMIT := 16
+var _client_cursor := 0
+const TCP_WRITE_BUDGET := 65536
+const TCP_GLOBAL_WRITE_BUDGET := 1048576
+const TCP_OUTPUT_HIGH_WATER := 262144
+const TCP_RESPONSE_LIMIT := 1048576
+const TCP_GLOBAL_OUTPUT_HIGH_WATER := 16777216
+# Protocol: empty connections expire after 5s; incomplete lines after 30s without progress.
+# Pending legal lines/receipts are never expired by the idle timer.
+const TCP_IDLE_MS := 5000
+const TCP_INCOMPLETE_MS := 30000
+var _outputs := {}
+var _last_activity := {}
+var _close_after_flush := {}
+var _output_bytes := 0
+var _idle_closed := 0
+## 本进程**请求**的调试口（0 = 本进程没被要求开调试端点）与实际监听失败原因。
+## 为什么要有：此前绑不上口只 print 一行就 `set_process(false)`，于是自动化实例
+## "看着在对局里、其实命令下不进去"，而且工具会去连**别的**进程（2026-09-28 实测）。
+## 现在把「要求了但没绑上」这件事变成可查询的事实：`MatchInstanceRegistry` 据此
+## 决定是显式退场（严格模式）还是继续，工具据登记文件判断"这局能不能被控制"。
+var _requested_port := 0
+var _bind_error := ""
+## 【截图延迟应答 · 2026-10-07】`op=screenshot` 的请求在这里排队，**下一帧绘制完成之后**
+## 才真正 `get_image()`，然后由 `_process` 把回执写回对应的客户端。
+##
+## 为什么必须延迟：`get_viewport().get_texture().get_image()` 会做一次 GPU 回读，读的是
+## **最近一次绘制完成的帧**。在请求处理路径里同步调用它，实测在本机（RTX 3080 Ti / Vulkan
+## Forward+ / 后台窗口）**稳定阻塞**：9 次调用全部 40–54 秒超时、0 字节落盘，而且卡住的是
+## DCS 自己的 `_process`，等于把整个权威调试口拖死（同一时刻 `status` 只要 15–35ms）。
+## 项目里**能工作**的截图（`tests/performance/SmallArmyPerformanceProbe.gd:72-73`、
+## `_ScaleScreenshotProbe.gd:81`）全都先 `await RenderingServer.frame_post_draw` 再取图。
+var _pending_shots: Array = []
+## 当前正在处理请求的那个客户端（截图要回执给谁）。只用于延迟应答，别处不要读。
+var _current_client = null
+## 上一帧的绘制帧号（`Engine.get_frames_drawn()`）：截图要求"至少已经绘制完一帧"。
+var _drawn_since_check := 0
 
 ## 命令终态登记上限，防止无限增长（见 _record_command）。
 const COMMAND_LOG_LIMIT := 64
@@ -88,6 +133,17 @@ const ADJUTANT_RESERVE_PERCENT := 20
 const ADJUTANT_RESOURCE_KINDS := ["A"]
 
 
+## 本进程**请求**的调试口（0 = 本进程没被要求开调试端点）。只读访问器。
+## `MatchInstanceRegistry` 用它区分"没要求"与"要求了但没绑上"。
+func requested_port() -> int:
+	return _requested_port
+
+
+## 监听失败原因（成功/未请求时为空串）。登记文件据此告诉工具"这局能不能被控制"。
+func bind_error() -> String:
+	return _bind_error
+
+
 ## 本进程**实际监听**的权威端口（0 = 未启用/监听失败）。只读访问器。
 ##
 ## 为什么需要它：游戏内面板（`AdjutantButton.gd`）就跑在**同一个进程里**，
@@ -126,12 +182,61 @@ func _ready() -> void:
 		# autoload 模式下未请求调试、且显式关闭副官的进程直接退出，不占资源。
 		queue_free()
 		return
+	_requested_port = _port
 	if _server.listen(_port, "127.0.0.1") != OK:
+		# 【2026-10-12 多开隔离】默认口被另一个本地对局实例占用时，从 dynamic_dev 段
+		# 取一个空闲口继续服务。旧行为是静默 set_process(false)：窗口还在、看着像在对局，
+		# 实际命令下不去、副官也连不上（多开第二局必踩）。
+		var fallback := _fallback_free_port()
+		if fallback > 0 and _server.listen(fallback, "127.0.0.1") == OK:
+			print("[DBGCTL] 端口 %d 被占用，改用 %d（多开隔离）" % [_requested_port, fallback])
+			_port = fallback
+			_mount_adjutant_observation()
+			print("[DBGCTL] 调试控制端点已启动 127.0.0.1:%d" % _port)
+			return
+		_bind_error = "port_in_use"
 		print("[DBGCTL] 端口 %d 被占用, 调试控制端点未启动" % _port)
+		print("[DBGCTL] 本实例不可被调试控制；自动化模式下 MatchInstanceRegistry 会按严格模式退场"
+			+ "（避免留下'看着在对局里、其实命令下不进去'的僵尸局）")
 		set_process(false)
 		return
 	_mount_adjutant_observation()
 	print("[DBGCTL] 调试控制端点已启动 127.0.0.1:%d" % _port)
+
+
+## 【多开隔离】从 config/dev_ports.json 的 dynamic_dev 段找一个空闲 TCP 口。
+## 试绑成功即释放（非原子预留；竞争由 listen 的返回值兜住——失败返回 0 走原路径）。
+## 区间口径不在这里抄一份：读同一个 config/dev_ports.json。
+func _fallback_free_port() -> int:
+	# ⚠ 用 JSON.parse_string 直读，**不要**用 ConfigFile 读 .json：ConfigFile 的 JSON
+	# 兼容层在本机这份文件上取不到嵌套段（实测返回 0，端口回退静默失效）。
+	if not FileAccess.file_exists("res://config/dev_ports.json"):
+		push_warning("[DBGCTL] 读不到 config/dev_ports.json，无法为多开分配备用端口")
+		return 0
+	var parsed: Variant = JSON.parse_string(
+		FileAccess.get_file_as_string("res://config/dev_ports.json"))
+	if not (parsed is Dictionary):
+		push_warning("[DBGCTL] config/dev_ports.json 不是合法 JSON 对象")
+		return 0
+	var blocks: Variant = (parsed as Dictionary).get("reserved_blocks", {})
+	if not (blocks is Dictionary):
+		return 0
+	var dynamic: Variant = (blocks as Dictionary).get("dynamic_dev", [])
+	if not (dynamic is Array) or (dynamic as Array).size() < 2:
+		push_warning("[DBGCTL] dev_ports.json 缺 reserved_blocks.dynamic_dev 段")
+		return 0
+	var low := int((dynamic as Array)[0])
+	var high := int((dynamic as Array)[1])
+	var span: int = maxi(1, high - low)
+	# 起点按 pid 打散：多路会话/多实例不总从同一个口开始试。
+	var start_offset: int = (OS.get_process_id() * 7) % span
+	for step in range(span):
+		var candidate: int = low + ((start_offset + step) % span)
+		var probe := TCPServer.new()
+		if probe.listen(candidate, "127.0.0.1") == OK:
+			probe.stop()
+			return candidate
+	return 0
 
 
 ## 动态挂载 C# 副官观测运行时（规则导出 + 公共包头）。
@@ -151,31 +256,204 @@ func _mount_adjutant_observation() -> void:
 
 
 func _process(_delta: float) -> void:
+	var t0 := Time.get_ticks_usec()
+	# 【截图必须先有"绘制完成的帧"】`get_viewport().get_texture().get_image()`
+	# 读的是最近一次绘制的结果；一帧都没画完时调用它会阻塞（见 `_pending_shots` 注释）。
+	# 所以在本帧开头先把上一帧排队的截图放掉：那时**至少已经绘制过一帧**。
+	_flush_pending_shots()
 	# 10Hz 缓存采样：与请求无关地先把场景事实存起来。
 	# 这样 `op=adjutant_fast_state` 才可能"读缓存"而不是"每次重扫场景"（计划 §3.1/§4）。
 	_fast_sample_tick()
 	# 玩家选中的单位 = 玩家当场控制的单位（用户 2026-09-15："我玩家控制的单位 AI 副官就不要再抢了"）。
 	_sync_selection_control()
-	if _server.is_connection_available():
+	# Backlog is bounded by the OS; empty admitted peers have an explicit idle deadline.
+	if _clients.size() < TCP_CLIENT_LIMIT and _server.is_connection_available():
 		var client := _server.take_connection()
+		var id := client.get_instance_id()
 		_clients.append(client)
-		_buffers[client.get_instance_id()] = ""
-	for client in _clients.duplicate():
-		if client.get_status() != StreamPeerTCP.STATUS_CONNECTED:
-			_buffers.erase(client.get_instance_id())
-			_clients.erase(client)
-			continue
-		var available: int = client.get_available_bytes()
+		_buffers[id] = PackedByteArray()
+		_outputs[id] = PackedByteArray()
+		_last_activity[id] = Time.get_ticks_msec()
+	var survivors: Array = []
+	var remaining := TCP_REQUEST_BUDGET
+	var write_remaining := TCP_GLOBAL_WRITE_BUDGET
+	var count := _clients.size()
+	for offset in range(count):
+		var client: StreamPeerTCP = _clients[(_client_cursor + offset) % count]
+		var id := client.get_instance_id()
+		var buffer: PackedByteArray = _buffers.get(id, PackedByteArray())
+		var healthy := client.get_status() == StreamPeerTCP.STATUS_CONNECTED
+		# Godot 4.7.1 poll() CLOSES the socket on FIN with zero available bytes.
+		# Refresh while input is still present, or after all application obligations drain.
+		# Never treat STATUS_NONE as writable / recoverable half-close.
+		if healthy and (client.get_available_bytes() > 0 or (
+				buffer.find(10) < 0 and _outputs[id].is_empty() and not _has_pending_shot(id))):
+			healthy = client.poll() == OK and client.get_status() == StreamPeerTCP.STATUS_CONNECTED
+		var available := 0
+		if healthy and not _close_after_flush.has(id) and _can_dispatch(id):
+			available = mini(client.get_available_bytes(),
+				mini(TCP_READ_BUDGET, TCP_BUFFER_LIMIT - buffer.size()))
 		if available > 0:
-			_buffers[client.get_instance_id()] += client.get_utf8_string(available)
-		var buffer: String = _buffers.get(client.get_instance_id(), "")
-		while "\n" in buffer:
-			var line_end := buffer.find("\n")
-			var line := buffer.substr(0, line_end).strip_edges()
-			buffer = buffer.substr(line_end + 1)
+			var received := client.get_partial_data(available)
+			healthy = int(received[0]) == OK
+			if healthy:
+				buffer.append_array(received[1])
+				_last_activity[id] = Time.get_ticks_msec()
+		var used := 0
+		var consumed := 0
+		var line_end := buffer.find(10)
+		while healthy and not _close_after_flush.has(id) and line_end >= 0 				and remaining > 0 and used < TCP_PEER_REQUEST_BUDGET and _can_dispatch(id):
+			var line := buffer.slice(consumed, line_end).get_string_from_utf8().strip_edges()
+			consumed = line_end + 1
+			used += 1
+			remaining -= 1
 			if not line.is_empty():
-				client.put_utf8_string(_dispatch(line) + "\n")
-		_buffers[client.get_instance_id()] = buffer
+				_current_client = client
+				var reply := _dispatch(line)
+				_current_client = null
+				if not reply.is_empty():
+					_queue_reply(client, reply)
+			line_end = buffer.find(10, consumed)
+		if consumed > 0:
+			buffer = buffer.slice(consumed)
+		if healthy and not _close_after_flush.has(id) and buffer.size() >= TCP_BUFFER_LIMIT and buffer.find(10) < 0:
+			_queue_reply(client, JSON.stringify({"ok": false, "error": "request too large",
+				"limit_bytes": TCP_BUFFER_LIMIT}))
+			_close_after_flush[id] = true
+		if healthy:
+			var output: PackedByteArray = _outputs[id]
+			var amount := mini(output.size(), mini(TCP_WRITE_BUDGET, write_remaining))
+			if amount > 0:
+				var sent := client.put_partial_data(output.slice(0, amount))
+				healthy = int(sent[0]) == OK
+				var bytes := int(sent[1])
+				if healthy and bytes > 0:
+					_outputs[id] = output.slice(bytes)
+					_output_bytes -= bytes
+					write_remaining -= bytes
+					_last_activity[id] = Time.get_ticks_msec()
+		if healthy and _outputs[id].is_empty() and not _has_pending_shot(id):
+			if _close_after_flush.has(id):
+				healthy = false
+			elif buffer.find(10) < 0:
+				# Obligations drained: now poll can safely consume FIN and reclaim the peer.
+				healthy = client.poll() == OK and client.get_status() == StreamPeerTCP.STATUS_CONNECTED
+				# poll() can consume FIN and close the socket; do not query a closed peer.
+				var unread := client.get_available_bytes() if healthy else 0
+				# Kernel input is also a legal pending obligation. Global output backpressure
+				# must not turn deliberately paused reads into idle/incomplete expiration.
+				if healthy and unread > 0:
+					_last_activity[id] = Time.get_ticks_msec()
+				var idle_ms := Time.get_ticks_msec() - int(_last_activity[id])
+				var deadline := TCP_IDLE_MS if buffer.is_empty() else TCP_INCOMPLETE_MS
+				if healthy and unread == 0 and idle_ms >= deadline:
+					_idle_closed += 1
+					healthy = false
+		if healthy:
+			_buffers[id] = buffer
+			survivors.append(client)
+		else:
+			_drop_peer(client)
+	_clients = survivors
+	# Advance by the service window, not one peer, under global request saturation.
+	_client_cursor = mini(TCP_REQUEST_BUDGET / TCP_PEER_REQUEST_BUDGET, _clients.size() - 1) if _clients.size() > 1 else 0
+	_prune_pending_shots()
+
+	_perf_note("debug_process_ms", float(Time.get_ticks_usec() - t0) / 1000.0)
+	if _PerfBuckets.enabled:
+		_PerfBuckets.add("debug_process", int(Time.get_ticks_usec() - t0))
+
+
+# Reserve room for one bounded response before executing a command. High-water pauses
+# input and execution rather than consuming a legal line without its receipt.
+func _can_dispatch(id: int) -> bool:
+	return _outputs[id].size() < TCP_OUTPUT_HIGH_WATER and _output_bytes < TCP_GLOBAL_OUTPUT_HIGH_WATER
+
+
+func _queue_reply(client: StreamPeerTCP, reply: String) -> void:
+	var id := client.get_instance_id()
+	if not _outputs.has(id):
+		return
+	var payload := (reply + "
+").to_utf8_buffer()
+	if payload.size() > TCP_RESPONSE_LIMIT:
+		# This limit is applied AFTER dispatch; the action may already have executed.
+		# Never describe this as rejection or invite replay of a non-idempotent command.
+		payload = (JSON.stringify({"ok": false, "error": "response too large",
+			"limit_bytes": TCP_RESPONSE_LIMIT, "execution_status": "unknown",
+			"retryable": false, "detail": "Request was dispatched; do not replay solely because its response exceeded the limit."}) + "
+").to_utf8_buffer()
+	# Exactly StreamPeer.put_utf8_string's default little-endian u32 + UTF8 bytes.
+	var frame := PackedByteArray()
+	frame.resize(4)
+	frame.encode_u32(0, payload.size())
+	frame.append_array(payload)
+	var output: PackedByteArray = _outputs[id]
+	output.append_array(frame)
+	_outputs[id] = output
+	_output_bytes += frame.size()
+
+
+func _has_pending_shot(id: int) -> bool:
+	for item in _pending_shots:
+		if item["client"].get_instance_id() == id:
+			return true
+	return false
+
+
+func _drop_peer(client: StreamPeerTCP) -> void:
+	var id := client.get_instance_id()
+	_output_bytes -= (_outputs.get(id, PackedByteArray()) as PackedByteArray).size()
+	_outputs.erase(id)
+	_buffers.erase(id)
+	_last_activity.erase(id)
+	_close_after_flush.erase(id)
+	client.disconnect_from_host()
+
+
+# Preserve existing asynchronous screenshot ordering (ordinary replies may overtake).
+# Capture only a draw newer than THIS request; no poll here may destroy a FIN peer.
+func _flush_pending_shots() -> void:
+	_prune_pending_shots()
+	var drawn := int(Engine.get_frames_drawn())
+	var live: Array = []
+	for item in _pending_shots:
+		var client: StreamPeerTCP = item["client"]
+		if not _can_dispatch(client.get_instance_id()):
+			live.append(item)
+		elif drawn > int(item["drawn"]):
+			_queue_reply(client, JSON.stringify(_capture_screenshot(str(item["path"]))))
+		elif Time.get_ticks_msec() - int(item["queued_ms"]) >= TCP_IDLE_MS:
+			_queue_reply(client, JSON.stringify({"ok": false, "error": "no rendered frame", "path": item["path"]}))
+		else:
+			live.append(item)
+	_pending_shots = live
+
+
+func _prune_pending_shots() -> void:
+	var live: Array = []
+	for item in _pending_shots:
+		var client = item.get("client")
+		if client != null and is_instance_valid(client) and _buffers.has(client.get_instance_id()) 				and client.get_status() == StreamPeerTCP.STATUS_CONNECTED:
+			live.append(item)
+	_pending_shots = live
+
+
+## 真正取图 + 落盘（**必须在绘制完成之后调用**，见 `_pending_shots` 的注释）。
+func _capture_screenshot(path: String) -> Dictionary:
+	var target := path if not path.is_empty() else "user://debug_screenshot.png"
+	var absolute := target if target.is_absolute_path() \
+		else ProjectSettings.globalize_path(target)
+	var texture := get_viewport().get_texture()
+	if texture == null:
+		return {"ok": false, "error": "no viewport texture", "path": absolute}
+	var image: Image = texture.get_image()
+	if image == null:
+		return {"ok": false, "error": "no image", "path": absolute}
+	var error := image.save_png(absolute)
+	return {"ok": error == OK, "path": absolute, "error_code": error,
+		"size": [image.get_width(), image.get_height()]}
+
 
 
 func _dispatch(line: String) -> String:
@@ -310,6 +588,9 @@ func _op_click(parsed) -> String:
 	if button_name == "right":
 		button_index = MOUSE_BUTTON_RIGHT
 	var double_click := bool(parsed.get("double", false))
+	# 【2026-09-29】放置 ghost 等 UI 走 Viewport.get_mouse_position()（跟真实光标），
+	# 只 parse 事件不 warp 的话合成点击永远落在过期鼠标位置（实测 ghost 不跟随）。
+	Input.warp_mouse(Vector2(x, y))
 	_synth_motion(x, y)
 	_synth_button(x, y, button_index, true, double_click)
 	_synth_button(x, y, button_index, false, double_click)
@@ -344,13 +625,18 @@ func _op_key(parsed) -> String:
 
 
 func _op_screenshot(parsed) -> String:
-	var image := get_viewport().get_texture().get_image()
-	var path := str(parsed.get("path", "user://debug_screenshot.png"))
-	var absolute := path if path.is_absolute_path() else ProjectSettings.globalize_path(path)
-	var error := image.save_png(absolute)
-	return JSON.stringify({"ok": error == OK, "path": absolute, "size": [
-		image.get_width(), image.get_height()
-	]})
+	# 【延迟应答】只排队，立刻返回空串表示"本帧不回执"。
+	# 真正的取图在**下一帧绘制完成之后**由 `_flush_pending_shots` 做（见 `_pending_shots`）。
+	# 返回空串的约定只对这一个 op 成立：`_process` 看到空串就不写回执。
+	if _pending_shots.size() >= TCP_SHOT_LIMIT:
+		return JSON.stringify({"ok": false, "error": "screenshot queue full", "retryable": true})
+	_pending_shots.append({
+		"client": _current_client,
+		"drawn": Engine.get_frames_drawn(),
+		"queued_ms": Time.get_ticks_msec(),
+		"path": str(parsed.get("path", "user://debug_screenshot.png")),
+	})
+	return ""
 
 
 func _op_camera(match_node, parsed) -> String:
@@ -636,15 +922,40 @@ func _op_build(match_node, parsed) -> String:
 			hint = Vector3(float(hint_raw[0]), 0.0, float(hint_raw[1]))
 		var auto_spot: Vector3 = Vector3.ZERO
 		var auto_found := false
+		var auto_reason := ""
 		if match_node != null:
 			var pr: Node = match_node.get_node_or_null("StructurePlacementRuntime")
 			if pr != null and pr.has_method("FindAutoSpot"):
 				var hint_vec: Vector3 = hint if hint != null else Vector3.INF
-				var reply: Variant = pr.FindAutoSpot(player, load(scene_path), auto_mode, hint_vec, 0.0)
+				# 【为什么要能传搜索上限】`FindAutoSpot` 对 resource 模式的默认上限是 14 米，
+				# 而实测同一张图上**分基地**走的调用带了 48 米并成功落点，矿场这条却
+				# 64 个采样点全部 `NotVisible`（诊断行 `[AUTOSPOT] FAIL … limit=14.0
+				# issues=NotVisible×64`）。14 米是按"贴着已探明矿点放"调的，远端专门矿场
+				# 需要的正是"在探明矿点周围的可见带里挑一块平地"，环带宽度是它的政策参数，
+				# 不该由调试入口写死。默认仍是 0（=沿用 14），只有显式传参才放宽。
+				var max_radius := float(parsed.get("max_radius_meters", 0.0))
+				var reply: Variant = pr.FindAutoSpot(
+					player, load(scene_path), auto_mode, hint_vec, max_radius)
 				if reply is Dictionary:
 					auto_found = bool(reply.get("found", false))
 					auto_spot = reply.get("pos", Vector3.ZERO)
+					# 【2026-09-30】全局性拒绝（施工中/未授权）带原因透传给副官：
+					# 语义是"等待"，不是"没地方建"——LLM 需要据此决定重发而不是改坐标。
+					auto_reason = str(reply.get("reason", ""))
 		if not auto_found:
+			if not auto_reason.is_empty():
+				var busy_detail := (
+					"当前有一次建筑正在施工（一次只能建一个）。"
+					if auto_reason == "ConstructionInProgress"
+					else "放置未获授权或校验暂不可用（%s）。" % auto_reason
+				)
+				return JSON.stringify({
+					"ok": false,
+					"status": "Rejected",
+					"reason": auto_reason,
+					"detail": busy_detail + "等 status 里施工完成后原样重发本命令即可，不要换坐标。",
+					"error": auto_reason,
+				})
 			return JSON.stringify({
 				"ok": false,
 				"status": "Rejected",
@@ -985,8 +1296,11 @@ func _collect_status_lite(match_node, player, out: Dictionary, full_vision: bool
 		})
 	if player != null:
 		out["local_player_name"] = str(player.name)
+		# 【2026-09-30 修复】旧实现这一行少缩进一级、落在 if 之外：player 为 null（旁观/
+		# 专用服/进对局前的空档）时直接 `null.resource_a`，调试构建里触发断点并刷屏 ——
+		# 实测导致 `godot -d` 进对局即报错退出（本轮之前只能全程用 debug:false 绕开）。
 		# 统一货币（2026-09-14 用户口径："我再不想看到 B 资源"）：诊断输出也不出现 B。
-	out["balance"] = {"a": int(player.resource_a)}
+		out["balance"] = {"a": int(player.resource_a)}
 	var counts := {"total": 0, "mine": 0, "scouted_enemy": 0, "mine_by_type": {}}
 	var production: Array = []
 	for unit in get_tree().get_nodes_in_group("units"):
@@ -1199,7 +1513,13 @@ func _unit_scouted(unit, player) -> bool:
 			continue
 		var delta: Vector3 = mine_unit.global_position - target_pos
 		delta.y = 0.0
-		if delta.length() <= sight:
+		# 尺寸统一（2026-09-27）把碰撞半径放大 3~3.5 倍而 sight 数值未跟着改：
+		# 圆心距判据会让"敌方大型单位/建筑永远侦察不到"→ 副官观测 enemy 恒空。
+		# 口径与游戏内自主索敌一致（Unit.sight_range_against）。
+		if mine_unit.has_method("sight_range_against"):
+			if delta.length() <= mine_unit.sight_range_against(unit):
+				return true
+		elif delta.length() <= sight:
 			return true
 	return false
 
@@ -1635,6 +1955,9 @@ func _op_tactical(match_node, parsed) -> Dictionary:
 					"domain": _domain_name(unit.get("movement_domain")
 						if "movement_domain" in unit
 						else Constants.Match.Navigation.Domain.TERRAIN),
+					# 与观测头部同口径：看见它就知道它的半径与视野（几何判据的输入）。
+					"radius": unit.body_radius() if unit.has_method("body_radius") else 0.0,
+					"sight": float(unit.sight_range) if "sight_range" in unit and unit.sight_range != null else 0.0,
 				}
 				entities.append(_tactical_enemy_entry(unit_name, intel[unit_name], "unit_enemy"))
 			elif intel.has(unit_name):
@@ -1698,11 +2021,15 @@ func _op_tactical(match_node, parsed) -> Dictionary:
 		ore_entry["ore_remaining"] = (int(remaining_a) if remaining_a != null else 0) \
 			+ (int(remaining_b) if remaining_b != null else 0)
 		if "ore_capacity" in resource:
-			ore_entry["ore_capacity"] = int(resource.get("ore_capacity") or 0)
+			ore_entry["ore_capacity"] = int(resource.get("ore_capacity")) if resource.get("ore_capacity") != null else 0
 		if "depleted" in resource:
 			ore_entry["ore_depleted"] = bool(resource.get("depleted"))
 		if "regen_remaining_ms" in resource:
-			ore_entry["regen_remaining_ms"] = int(resource.get("regen_remaining_ms") or 0)
+			ore_entry["regen_remaining_ms"] = int(resource.get("regen_remaining_ms")) if resource.get("regen_remaining_ms") != null else 0
+		# §6 逐局报告要"矿点耗尽与再生时刻、再生数量"。只报 depleted 布尔的话，
+		# 一局里"耗尽过 3 次"和"耗尽过 1 次"、"再生结算过 2 轮"和"一次都没结算"完全分不开。
+		if "regen_cycles" in resource:
+			ore_entry["ore_regen_cycles"] = int(resource.get("regen_cycles")) if resource.get("regen_cycles") != null else 0
 		entities.append(ore_entry)
 
 	# 截断与续取：显式报告，未返回的实体不等于阵亡（模型必须用 next_offset 续取）。
@@ -1769,6 +2096,12 @@ func _tactical_self_entry(unit) -> Dictionary:
 		# 武器射程（米，加法字段）：副官据此判断"是否已在射程内"——到位即点攻击
 		# 驻留，不再 attack_move 路过扫一枪（2026-09-22 D12）。0=无武器/未知。
 		"attack_range": float(unit.attack_range) if "attack_range" in unit and unit.attack_range != null else 0.0,
+		# 本体半径与视野（米，加法字段）：2026-09-27 尺寸统一后，落点/交战/前压的
+		# 几何判据一律是"基准值 + 双方半径"（口径见 Unit.center_distance_limit_for）。
+		# 协调器看不到半径就只能靠写死的米数猜几何 —— 副官"造不了建筑/选点全被拒"
+		# 的直接成因，因此这两个字段是判据的一部分，不是可选装饰。
+		"radius": unit.body_radius() if unit.has_method("body_radius") else 0.0,
+		"sight": float(unit.sight_range) if "sight_range" in unit and unit.sight_range != null else 0.0,
 		"gather": "resource_a" in unit and "resource_b" in unit,
 		"construct": "construction_work_per_tick" in unit and int(unit.get("construction_work_per_tick")) > 0,
 		# 矿场运营结果账（阶段 3 里程碑 / 阶段 6 对局报告的唯一事实来源）：
@@ -1823,6 +2156,8 @@ func _tactical_enemy_entry(unit_name: String, intel_entry: Dictionary, kind: Str
 		"last_seen_tick": int(intel_entry.get("last_seen_tick", 0)),
 		"confirmed_dead": false,
 		"domain": str(intel_entry.get("domain", "")),
+		"radius": float(intel_entry.get("radius", 0.0)),
+		"sight": float(intel_entry.get("sight", 0.0)),
 	}
 
 
@@ -2392,13 +2727,28 @@ func _adjutant_balance_of(player) -> Dictionary:
 
 
 ## 读取（必要时初始化）本局该玩家的预留额度。
-## 初始化只发生一次：之后不论余额怎么变，都保持玩家设定的绝对值。
+## 两种来源，语义不同（2026-09-29 实测修）：
+## - `source == "player"`：玩家显式设定的**绝对额度**，之后保持不变（原语义）。
+## - `source == "auto"`：开局自动建立的**比例预留**，随当前余额滚动重算。
+##   旧实现把自动预留也只初始化一次并永久冻结，于是副官按开局余额扣掉 20% 后，
+##   一旦正常消费到基线以下，之后**每一条花钱的命令都被判 reserve_blocked**
+##   （实测一局 49 次：余额 1650 时已付不起 200 的矿车 / 900 的矿场，
+##   经济从此再也不推进 —— 玩家看到的就是"副官攒完兵就不干活"）。
+##   比例预留的本意是"永远留两成余量"，那必须相对**当前**余额才算得出来。
 func _adjutant_reserve_state(match_node, player) -> Dictionary:
 	var match_id := _adjutant_match_id(match_node)
 	if match_id.is_empty() or player == null:
 		return {"initialized": false, "percent": ADJUTANT_RESERVE_PERCENT, "values": {}}
 	var view_key := "%s|%s" % [match_id, str(player.name)]
 	if not _adjutant_reserves.has(view_key):
+		_adjutant_reserves[view_key] = {
+			"initialized": false,
+			"percent": ADJUTANT_RESERVE_PERCENT,
+			"values": {},
+			"source": "auto",
+		}
+	var state: Dictionary = _adjutant_reserves[view_key]
+	if str(state.get("source", "auto")) == "auto":
 		var balance := _adjutant_balance_of(player)
 		var values := {}
 		for kind in balance.keys():
@@ -2407,12 +2757,9 @@ func _adjutant_reserve_state(match_node, player) -> Dictionary:
 				continue
 			# 向下取整：预留必须是整数量级，不能出现小数余额。
 			values[kind] = int(balance[kind]) * ADJUTANT_RESERVE_PERCENT / 100
-		_adjutant_reserves[view_key] = {
-			"initialized": true,
-			"percent": ADJUTANT_RESERVE_PERCENT,
-			"values": values,
-		}
-	return _adjutant_reserves[view_key]
+		state["values"] = values
+		state["initialized"] = true
+	return state
 
 
 ## op=adjutant_reserves：玩家查看 / 调整资源预留（按类型的**绝对值**）。
@@ -2443,6 +2790,8 @@ func _op_adjutant_reserves(match_node, parsed) -> Dictionary:
 			values[str(kind).to_upper()] = int(params[kind])
 		reserve_state["values"] = values
 		reserve_state["initialized"] = true
+		# 玩家一旦自报绝对额度，预留就不再随余额滚动（见 `_adjutant_reserve_state`）。
+		reserve_state["source"] = "player"
 	return {
 		"ok": true,
 		"match_id": _adjutant_match_id(match_node),
@@ -2541,6 +2890,7 @@ func _perf_summary(key: String) -> Dictionary:
 		"samples": size,
 		"p50": snappedf(float(sorted[size / 2]), 0.01),
 		"p95": snappedf(float(sorted[mini(size - 1, int(size * 0.95))]), 0.01),
+		"p99": snappedf(float(sorted[mini(size - 1, int(size * 0.99))]), 0.01),
 		"max": snappedf(float(sorted[size - 1]), 0.01),
 	}
 
@@ -2580,6 +2930,11 @@ func _op_perf(match_node, parsed) -> Dictionary:
 		"objects": int(Performance.get_monitor(Performance.OBJECT_COUNT)),
 		"memory_mb": snappedf(Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0, 0.1),
 		# —— 副官通道侧（我该负责的）——
+		"debug_process_ms": _perf_summary("debug_process_ms"),
+		"tcp_clients": _clients.size(),
+		"tcp_buffers": _buffers.size(),
+		"tcp_pending_shots": _pending_shots.size(),
+		"tcp_current_client": _current_client != null,
 		"copies": _fast_snapshot_seq,
 		"sample_ms": _perf_summary("sample_ms"),
 		"tactical_ms": _perf_summary("tactical_ms"),
@@ -2675,7 +3030,7 @@ func _fast_sample_tick() -> void:
 
 
 ## 记一条增量事件（**唯一入口**：所有事件都带全局递增 seq，消费方据此去重）。
-func _fast_emit(kind: String, payload: Dictionary) -> void:
+func _fast_emit(kind: String, payload: Dictionary, happened_tick: int = -1) -> void:
 	_fast_event_seq += 1
 	var event := payload.duplicate()
 	event["seq"] = _fast_event_seq
@@ -2685,7 +3040,7 @@ func _fast_emit(kind: String, payload: Dictionary) -> void:
 	var tick := 0
 	if _adjutant_observation != null:
 		tick = int(_adjutant_observation.CurrentServerTick())
-	event["server_tick"] = tick
+	event["server_tick"] = happened_tick if happened_tick >= 0 else tick
 	# 与 `_fast_state["sampled_at"]` 同口径：epoch 秒，供 Python 侧算事件延迟。
 	event["sampled_at"] = Time.get_unix_time_from_system()
 	_fast_events.append(event)
@@ -2794,6 +3149,14 @@ func _fast_sample(now_ms: int) -> void:
 ## 到达终点容差（米）：单位自己的 `path_max_distance` 是 0.3~0.51，取 1.5 米够宽松 ——
 ## 宁可早一点点报到达（会触发"重观测再规划"），也不要漏报（漏报 = 永远不知道到没到）。
 const ARRIVAL_EPS_M := 1.5
+## `Movement.maxf(radius, 0.35)` 的 0.35 那一半：采样侧的兜底下限，与游戏同源。
+## （游戏侧写死在 `Movement.gd:622/655`；这里抄一份常量而不是"再算一个 1.25 倍"，见
+## `_fast_sample_movement` 里"采样容差必须与 Movement 自己的一致"的说明。）
+const ARRIVE_RADIUS_FLOOR_M := 0.35
+## 同一条跳**重复上报 arrival** 的最小间隔（毫秒，2000 = 2 秒）。
+## 取代旧的"同一目标永久只报一次"：旧行为会在采样容差那一圈里把后续到达全吞掉，
+## 让副官只能等 `HOP_HOLD_MAX_TICKS`（30 秒）的第二道保险。
+const ARRIVAL_REEMIT_MS := 2000
 ## 判定"目标不可达"所需的**连续采样次数**（2 次 = 200ms）。
 ## 为什么不是 1 次：导航网格重烘期间 `is_target_reachable()` 会瞬时返回 false，
 ## 单次判会把"正在重烘"误报成"走不通"（副官会不必要地停止推进）。
@@ -2813,12 +3176,32 @@ var _fast_reach_used := 0
 var _fast_move_key := {}        # unit -> 当前目标键（换目标就允许重新上报）
 var _fast_move_reported := {}   # unit -> 该目标是否已上报过
 var _fast_unreachable := {}     # unit -> 连续不可达采样次数
+var _fast_terminal_seen := {}   # unit -> Movement instance ID + last terminal sequence
 
 
 func _fast_sample_movement(unit, unit_name: String, pos: Vector3) -> void:
 	var agent = _nav_agent_of(unit)
 	if agent == null:
 		return
+	if agent.has_method("terminal_events_since"):
+		var remembered: Dictionary = _fast_terminal_seen.get(unit_name,{})
+		var last_sequence := int(remembered.get("sequence",0)) if int(remembered.get("instance_id",0))==agent.get_instance_id() else 0
+		var terminals: Array = agent.terminal_events_since(last_sequence)
+		for terminal in terminals:
+			var sequence := int(terminal.get("movement_sequence",0))
+			var goal: Vector3 = terminal.get("target",Vector3.INF)
+			var final_pos: Vector3 = terminal.get("pos",pos)
+			var reason := str(terminal.get("reason",""))
+			if goal.is_finite() and reason in ["Arrived","Unreachable"]:
+				_fast_emit("arrival" if reason=="Arrived" else "path_failed",{
+					"unit":unit_name,"target":[_round2(goal.x),_round2(goal.z)],
+					"pos":[_round2(final_pos.x),_round2(final_pos.z)],
+					"distance":_round2(Vector2(final_pos.x-goal.x,final_pos.z-goal.z).length()),
+					"terminal_reason":reason,"movement_sequence":sequence,"source":"movement_terminal"},
+					int(terminal.get("server_tick",Engine.get_physics_frames())))
+				_fast_move_reported[unit_name]=Time.get_ticks_msec()
+			last_sequence=maxi(last_sequence,sequence)
+		_fast_terminal_seen[unit_name]={"instance_id":agent.get_instance_id(),"sequence":last_sequence}
 	var target: Vector3 = agent.target_position
 	# `Vector3.INF` = 没有目标（游戏侧完成移动后会置 INF）；全 0 视为"未设置"。
 	if target == Vector3.INF or target == Vector3.ZERO:
@@ -2831,16 +3214,52 @@ func _fast_sample_movement(unit, unit_name: String, pos: Vector3) -> void:
 		_fast_move_key[unit_name] = key
 		_fast_move_reported.erase(unit_name)
 		_fast_unreachable.erase(unit_name)
-	if bool(_fast_move_reported.get(unit_name, false)):
-		return
+	# 【不再是"报过就永远不再报"】`_fast_move_reported` 现在存**上次上报的毫秒时间戳**
+	# （0 = 这条跳还没报过）。抑制改由下面到达分支里的 `ARRIVAL_REEMIT_MS` 窗口负责：
+	# 这样"停在容差边缘、游戏侧又不结束订单"的单位不会对指挥层永久隐身。
+	# （旧写法 `if bool(...): return` 会在采样容差比游戏落点判据更宽时，把这条跳的
+	#  后续到达全部吞掉 —— 见下面到达分支的长注释。）
 	var skip_nav: bool = (
 		agent.has_method("_skip_navigation_server")
 		and bool(agent.call("_skip_navigation_server"))
 	)
 	var finished := false if skip_nav else bool(agent.is_navigation_finished())
 	var distance := Vector2(pos.x - target.x, pos.z - target.z).length()
-	if finished or distance <= ARRIVAL_EPS_M:
-		_fast_move_reported[unit_name] = true
+	# 到达容差必须**随单位半径**放大：Movement 的落点判据是 `maxf(radius, 0.35)`
+	# （2026-09-27 尺寸统一后单位半径 2.0~2.3），固定 1.5 米永远够不到 → 逻辑地形
+	# （skip_nav，不产生 navigation_finished）的单位被副官判成"一直在路上"，
+	# 每轮重观测重规划，部队看起来就是"下令不动"。
+	#
+	# 【2026-10-07 修正：采样容差必须**与 Movement 自己的一致**，不能更宽】
+	# 旧写法是 `maxf(1.5, radius * 1.25)`，而 Movement 结束订单的判据是
+	# `maxf(radius, 0.35)`（Movement.gd:622/655）。对 radius=2.0 的单位就是
+	# **采样 2.5 米 vs 游戏 2.0 米** —— 采样会**提前**在 2.0~2.5 米那一圈里报"到达"。
+	# 这一圈里的单位可能再也压不进 2.0 米（被挤住/被地形卡/走粗网格路），于是：
+	#   ① 采样先报了一次 arrival → `_fast_move_reported` 锁存；
+	#   ② 游戏侧 `is_navigation_finished()` **一次都没为真过**
+	#      （实测：522 条 arrival 的 `navigation_finished` **全部为 false**，
+	#        `distance` 全落在 0.1~2.47 米 —— 全是靠容差报的，不是靠导航完成报的）；
+	#   ③ 目标没变 → 锁存不解除 → **这条跳再也不报 arrival**；
+	#   ④ 副官因此永远等不到"到达"，只能等 `HOP_HOLD_MAX_TICKS`(1800 tick = 30 秒)
+	#      那第二道保险放行 —— 这就是 C2 门禁 p95 一直钉在 31.8~33.1 秒的原因。
+	# 现在改成与游戏**同一把尺子**：`maxf(radius, 0.35)`。
+	# 于是"采样说到了" ⟺ "游戏也会结束这条订单"，不再有那个提前量。
+	var agent_radius_value = agent.get("radius")
+	var arrive_eps: float = ARRIVAL_EPS_M
+	if agent_radius_value != null:
+		arrive_eps = maxf(float(agent_radius_value), ARRIVE_RADIUS_FLOOR_M)
+	if finished or distance <= arrive_eps:
+		# 【时间有界的重复上报，取代永久锁存】
+		# 旧行为是"同一目标只报一次"（永久锁存）。它会在上面那个空档里把后续到达全吞掉：
+		# 副官侧的 `note_arrival` 是**幂等**的（到达只表示移动段完成，只作废路线缓存），
+		# 所以"同一条跳在窗口内重复上报"是无害的、而且是必要的 —— 否则一个停在
+		# 容差边缘的单位对整个指挥层**不可见**。窗口与 `HOP_HOLD_MAX_TICKS` 同量级
+		# 但小得多：宁可让副官早一点规划下一跳，也不要它瞎等 30 秒。
+		var now_msec := Time.get_ticks_msec()
+		var last_report := int(_fast_move_reported.get(unit_name, 0))
+		if last_report > 0 and now_msec - last_report < ARRIVAL_REEMIT_MS:
+			return
+		_fast_move_reported[unit_name] = now_msec
 		_fast_emit("arrival", {"unit": unit_name,
 			"target": [_round2(target.x), _round2(target.z)],
 			"pos": [_round2(pos.x), _round2(pos.z)],
@@ -2864,7 +3283,10 @@ func _fast_sample_movement(unit, unit_name: String, pos: Vector3) -> void:
 		var streak := int(_fast_unreachable.get(unit_name, 0)) + 1
 		_fast_unreachable[unit_name] = streak
 		if streak >= UNREACHABLE_SAMPLES_NEEDED:
-			_fast_move_reported[unit_name] = true
+			# 与到达分支同一把尺子：锁存值现在是**毫秒时间戳**（0 = 未上报），
+			# 不再是布尔。写 `true` 会被 `int()` 读成 1 → 那条跳的重复上报窗口
+			# 会被算成"很久以前"从而失去抑制。目标不可达时按"已上报"置当前时刻。
+			_fast_move_reported[unit_name] = Time.get_ticks_msec()
 			_fast_emit("path_failed", {"unit": unit_name,
 				"target": [_round2(target.x), _round2(target.z)],
 				"pos": [_round2(pos.x), _round2(pos.z)],
@@ -2943,6 +3365,7 @@ func _fast_diff_units(units: Array) -> void:
 				"unit_type": str(entry["unit_type"])})
 	for unit_name in _fast_prev_units.keys():
 		if not current.has(unit_name):
+			_fast_terminal_seen.erase(unit_name)
 			var previous: Dictionary = _fast_prev_units[unit_name]
 			# 阵亡/丢失都要带**最后已知位置与类型**：否则复盘只能知道"少了个人"，不知道在哪丢的。
 			var last_seen := {"unit": unit_name,
@@ -3245,7 +3668,8 @@ func _op_adjutant_nav_path(match_node, parsed) -> Dictionary:
 	var start := Vector3(float(from_raw[0]), plane_y, float(from_raw[1]))
 	var goal := Vector3(float(to_raw[0]), plane_y, float(to_raw[1]))
 	# 网格是否可用：`map_get_closest_point_owner` 无效 = 网格退化/正在重烘。
-	var owner_rid := NavigationServer3D.map_get_closest_point_owner(map_rid, start) if map_rid.is_valid() else RID()
+	var map_ready := map_rid.is_valid() and NavigationServer3D.map_get_iteration_id(map_rid) > 0
+	var owner_rid := NavigationServer3D.map_get_closest_point_owner(map_rid, start) if map_ready else RID()
 	if not owner_rid.is_valid():
 		# G4 生成图/逻辑地形不烘 Recast（`Navigation.should_skip_runtime_navigation`），
 		# 地图的权威寻路是 `GeneratedTerrain` 的粗网格 A*（`find_ground_path`）——

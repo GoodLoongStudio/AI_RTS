@@ -7,14 +7,16 @@ shading_mode = 0
 albedo_color = Color(1, 0.98, 0.85, 1)
 emission_enabled = true
 emission = Color(1, 0.95, 0.8, 1)
+no_depth_test = true
+render_priority = 12
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_tracer"]
-radius = 0.04
+radius = 0.12
 height = 0.75
 
 [node name="RifleRound" instance=ExtResource("1_base")]
 metadata/impact_reaction = "bullet"
-metadata/flight_speed_mps = 45.0
+metadata/flight_speed_mps = 90.0
 metadata/arc_height = 0.04
 metadata/impact_explosion = false
 

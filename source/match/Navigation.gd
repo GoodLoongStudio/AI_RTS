@@ -65,7 +65,8 @@ func _disable_navigation_regions() -> void:
 		if region is NavigationRegion3D:
 			region.enabled = false
 	if terrain != null and "navigation_map_rid" in terrain and terrain.navigation_map_rid.is_valid():
-		NavigationServer3D.map_set_active(terrain.navigation_map_rid, false)
+		if NavigationServer3D.map_is_active(terrain.navigation_map_rid):
+			NavigationServer3D.map_set_active(terrain.navigation_map_rid, false)
 		print("G4PERF terrain_nav_map_active=false")
 	if air != null and air.has_method("release_navigation_map"):
 		air.release_navigation_map()

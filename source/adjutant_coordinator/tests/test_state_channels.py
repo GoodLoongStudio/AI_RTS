@@ -34,6 +34,7 @@ REQUIRED_KEYS = (
     "routes",
     "movement_stats",
     "movement_urgent",
+    "build_home_anchor",
 )
 
 
@@ -49,6 +50,7 @@ class StateChannelRoundTripTest(unittest.TestCase):
         state.routes = {"Unit_4": {"ok": True, "route_id": "route-abc"}}
         state.movement_stats = {"allowed": 2, "ungated": 0}
         state.movement_urgent = [{"kind": "enemy_on_route", "unit": "Unit_4"}]
+        state.build_home_anchor = [80.0, 70.0]
         restored = AdjutantGraphState.from_dict(state.to_dict())
         for key in REQUIRED_KEYS:
             self.assertEqual(getattr(restored, key), getattr(state, key),

@@ -1,0 +1,184 @@
+{
+  "generated_at": 1792074082.8115497,
+  "inputs": {
+    "attempts.jsonl": {
+      "bytes": 48922,
+      "sha256": "87ad7ae648b9f55d602083934f2162a74017c6e73b236dbbb7103c4ed473ea14"
+    },
+    "http.jsonl": {
+      "bytes": 11357,
+      "sha256": "cf8cae4fdfd3b43e0e5b9c355ac69e17a3f105c1605d655db8c6a3b1da6fa707"
+    },
+    "runner-logs/archive_0e2cce92/commands.jsonl": {
+      "bytes": 63712,
+      "sha256": "27934bbde3a447e2ac6e5292a94d5b9bf52da8f25284b8a3451b3efc357f50cd"
+    },
+    "runner-logs/archive_0e2cce92/decisions.jsonl": {
+      "bytes": 9733622,
+      "sha256": "dc0cb467749265e6a1c7ce39ebd5a7556bc4d6d30ad245021a462266c34bcf96"
+    },
+    "runner-logs/archive_0e2cce92/events.jsonl": {
+      "bytes": 30898,
+      "sha256": "133a268bf314bcf9647d8146059f87289581513d292575888ca81a8de5dbfe16"
+    },
+    "runner-logs/archive_0e2cce92/rounds.jsonl": {
+      "bytes": 8607857,
+      "sha256": "105bdce70b144625d8cdbb1d6e713368ed8ec7a8ad15eaa16b585d8c4bbef36f"
+    },
+    "runner-logs/trace.jsonl": {
+      "bytes": 43381089,
+      "sha256": "525492b9553147df45d41b92ccc73af4f449914c4a254e96bd95875fd0bdf63f"
+    },
+    "strategy-state.jsonl": {
+      "bytes": 124402,
+      "sha256": "bbf7887440ad612e57ce499c8db00caa80c822f6bf7b5fcbd1fb5828c5ca20d9"
+    },
+    "summary.json": {
+      "bytes": 4982,
+      "sha256": "acd476f5129bf4662231d49a222ebdda965fd6c7bde4947ab4d5883ee259e79c"
+    },
+    "world.jsonl": {
+      "bytes": 175157,
+      "sha256": "15983f2eaf6a0e98765c8a8bbbe63a583aaf7cef44f93ebc15104e97036ca0fb"
+    }
+  },
+  "metrics": {
+    "balance_first": 10000,
+    "balance_last": 600,
+    "balance_samples": 2121,
+    "candidate_evals": 27469,
+    "command_events": 1682,
+    "command_status_counts": {
+      "Accepted": 111,
+      "Rejected": 12,
+      "dropped": 1559
+    },
+    "diagnostic_errors": 0,
+    "edges": 2121,
+    "events_per_round_avg": 36.0,
+    "events_per_round_max": 41,
+    "first_delivery": {
+      "attempt_id": "",
+      "context": "",
+      "note": "未观测到首次交货证据",
+      "refinery_constructed": 0,
+      "refinery_delivered": 0
+    },
+    "longest_wait": {
+      "round_seq": 912,
+      "route": "strategic",
+      "server_tick": 5982,
+      "since_previous": 20.165
+    },
+    "milestones": [
+      {
+        "milestone": "M01",
+        "previous": "",
+        "server_tick": 532,
+        "status": "pending"
+      },
+      {
+        "milestone": "M02",
+        "previous": "",
+        "server_tick": 532,
+        "status": "pending"
+      },
+      {
+        "milestone": "M03",
+        "previous": "",
+        "server_tick": 532,
+        "status": "pending"
+      },
+      {
+        "milestone": "M04",
+        "previous": "",
+        "server_tick": 532,
+        "status": "pending"
+      },
+      {
+        "milestone": "M05",
+        "previous": "",
+        "server_tick": 532,
+        "status": "pending"
+      },
+      {
+        "milestone": "M06",
+        "previous": "",
+        "server_tick": 532,
+        "status": "pending"
+      },
+      {
+        "milestone": "M07",
+        "previous": "",
+        "server_tick": 532,
+        "status": "pending"
+      },
+      {
+        "milestone": "M08",
+        "previous": "",
+        "server_tick": 532,
+        "status": "pending"
+      },
+      {
+        "milestone": "M02",
+        "previous": "pending",
+        "server_tick": 636,
+        "status": "done"
+      },
+      {
+        "milestone": "M04",
+        "previous": "pending",
+        "server_tick": 1043,
+        "status": "done"
+      },
+      {
+        "milestone": "M03",
+        "previous": "pending",
+        "server_tick": 1647,
+        "status": "done"
+      }
+    ],
+    "model_calls": 291,
+    "model_result_counts": {
+      "error": 5,
+      "expired": 2,
+      "ok": 111
+    },
+    "node_spans": 38178,
+    "notes": 2118,
+    "rounds": 2121,
+    "routes": {
+      "strategic": 1474,
+      "tactical": 260,
+      "wait": 387
+    },
+    "task_event_counts": {
+      "blocked": 7,
+      "diagnosing": 20,
+      "failed": 5,
+      "progress": 29,
+      "recovering": 9,
+      "succeeded": 22,
+      "timed_out": 1,
+      "unknown": 57,
+      "waiting": 6
+    },
+    "task_events": 156,
+    "trace_events": 76257,
+    "trace_file_bytes": 43381089
+  },
+  "missing": [],
+  "outputs": {
+    "2026-10-15-adjutant-phase1-runtime-trace.html": {
+      "bytes": 15577009,
+      "sha256": "c1c3349cbaa415f415bc2068826234d1657baf6f4f2593240d6cf6a01b0efc34"
+    },
+    "2026-10-15-adjutant-phase1-runtime-trace.md": {
+      "bytes": 410046,
+      "sha256": "61930687561aa702f7a404359dd086749c7858d3023493b1d2a4f7c0631b5724"
+    }
+  },
+  "run_dir": "G:\\AIRTS\\AI_RTS\\agent\\runs\\2026-10-15-adjutant-phase1\\round-04\\match-600s-b",
+  "schema": "airts-adjutant-runtime-trace-export",
+  "version": 1
+}

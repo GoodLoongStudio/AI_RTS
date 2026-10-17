@@ -12,12 +12,16 @@ class ProductionQueueElement:
 	var required_work := 1
 	var completed_work := 0
 	var state := "Queued"
+	## 该建筑当前的每 tick 工效（成长 × 同类建筑加成的合成值，见
+	## Unit.refresh_production_work_rate）。60 = 物理帧率（tick/秒）。
+	## 工效 >1 时实际耗时更短，ETA 必须按它折算，否则进度条会"越走越慢"。
+	var work_per_tick := 1.0
 	var time_total:
 		get:
-			return float(required_work) / 60.0
+			return float(required_work) / (60.0 * work_per_tick)
 	var time_left:
 		get:
-			return float(required_work - completed_work) / 60.0
+			return float(required_work - completed_work) / (60.0 * work_per_tick)
 
 	## 返回仅用于 HUD 的归一化进度。
 	func progress():
@@ -28,12 +32,18 @@ var _queue := []
 var _runtime = null
 var _last_result: Dictionary = {}
 
+const AiPerfStats = preload("res://source/match/players/simple-clairvoyant-ai/AiPerfStats.gd")
+
 @onready var _unit = get_parent()
 
 
 func _ready():
+	var perf_on := AiPerfStats.enabled()
+	var started := Time.get_ticks_usec() if perf_on else 0
 	_runtime = find_parent("Match").get_node("ProductionRuntime")
 	_runtime.RegisterProducer(_unit, self, _unit.get_script().resource_path)
+	if perf_on:
+		AiPerfStats.add("spawn_producer", Time.get_ticks_usec() - started)
 
 
 func size():
@@ -226,6 +236,52 @@ func on_authoritative_item_removed(item):
 		MatchSignals.unit_production_queue_became_empty.emit(_unit)
 
 
+## 生产建筑模型的 XZ 世界外缘半径（Geometry 子树所有 GeometryInstance3D 的世界 AABB）。
+## 【2026-09-29 尺寸口径统一】旧实现先 `global_transform.affine_inverse()` 再乘 instance
+## 变换，等于把世界角点搬回**建筑本地空间**——这会连 root scale 一起抵消掉：
+## 场景写 scale=3 的建筑，本函数仍按"未缩放模型"算外缘 → 出生点贴着原始模型，
+## 视觉上却离实际模型很远（"兵从房子中间/背后冒出来"）。
+## 现在直接用 `instance.global_transform * corner` 得到**世界角点**，再对建筑世界原点
+## 取 XZ 距离 —— 与视觉完全一致（root scale 生效后尤其重要）。
+## 取不到（headless/无 Geometry/未就绪）返回 0，由调用方退回物理 footprint 口径。
+func _producer_model_edge() -> float:
+	if not (_unit is Node3D):
+		return 0.0
+	var origin: Vector3 = (_unit as Node3D).global_position
+	var edge := 0.0
+	for node in _unit.find_children("*", "GeometryInstance3D", true, false):
+		var instance := node as GeometryInstance3D
+		if instance == null:
+			continue
+		if instance.has_meta("exclude_from_geometry_measurements"):
+			continue
+		var aabb: AABB = instance.get_aabb()
+		if aabb.size.length() <= 0.0:
+			continue
+		var to_world: Transform3D = instance.global_transform
+		for index in 8:
+			var corner := Vector3(
+				aabb.position.x + (aabb.size.x if index & 1 else 0.0),
+				aabb.position.y + (aabb.size.y if index & 2 else 0.0),
+				aabb.position.z + (aabb.size.z if index & 4 else 0.0))
+			var world_corner: Vector3 = to_world * corner
+			edge = maxf(edge, Vector2(world_corner.x - origin.x, world_corner.z - origin.z).length())
+	return edge
+
+
+## 生产建筑正脸（局部 +Z 的世界朝向，压平 Y）：兵从"门口"出，
+## 不再恒为世界 +Z（2026-09-29 用户实报方向与兵营朝向无关）。
+func _producer_facing() -> Vector3:
+	if not (_unit is Node3D):
+		return Vector3(0, 0, 1)
+	var basis: Basis = (_unit as Node3D).global_transform.basis
+	var facing: Vector3 = basis * Vector3(0, 0, 1)
+	facing.y = 0.0
+	if facing.length() < 0.001:
+		return Vector3(0, 0, 1)
+	return facing.normalized()
+
+
 ## 尝试在有限搜索范围内部署完成单位；受阻时返回 null 供 C# 稍后重试。
 func try_deploy_authoritative(unit_prototype):
 	var produced_unit = unit_prototype.instantiate()
@@ -242,23 +298,17 @@ func try_deploy_authoritative(unit_prototype):
 		navigation_map = match_node.navigation.get_navigation_map_rid_by_domain(
 			produced_unit.movement_domain
 		)
-	var placement_position = (
-		Utils
-		. Match
-		. Unit
-		. Placement
-		. find_valid_position_radially_yet_skip_starting_radius(
-			_unit.global_position,
-			_unit.radius,
-			produced_unit.radius,
-			0.1,
-			Vector3(0, 0, 1),
-			false,
-			navigation_map,
-			get_tree(),
-			24,
-			occupancy
-		)
+	# 【2026-09-29 用户实报"兵生产出来的位置有问题"】起始半径改用建筑**模型外缘**
+	# 而不是 footprint `radius`：09-27 统一尺寸把 footprint 抬到 6.25（兵营），
+	# 于是兵永远落在距中心 6.25+1.35+0.1=7.70m 处（实测），方向还恒为世界 +Z
+	# （与兵营朝向无关）。现在：外缘取 Geometry 子树 AABB 的 XZ 最大半宽，
+	# 方向取建筑正脸（局部 +Z 的世界朝向），并把建筑自己加进 ignored_units
+	# （否则自碰撞判定仍把落点锁在 footprint 外沿，改起始半径也没用）。
+	# 【2026-09-29 尺寸口径统一】改用共享出生点算法（与 OreRefinery._grant_free_miner
+	# 同一入口，见 UnitPlacementUtils.production_spawn_spot）：世界角点算模型外缘、
+	# 方向随建筑正脸、建筑自身进 ignored_units。
+	var placement_position = Utils.Match.Unit.Placement.production_spawn_spot(
+		_unit, produced_unit, 0.1, navigation_map, get_tree(), 24, occupancy
 	)
 	if placement_position == Vector3.INF:
 		produced_unit.free()
@@ -277,6 +327,12 @@ func _apply_snapshot(element, item):
 	element.required_work = item["required_work"]
 	element.completed_work = item["completed_work"]
 	element.state = item["state"]
+	# ETA 按建筑当前工效折算（成长 × 同类建筑加成）；属性缺失或非法回退 1.0。
+	# 每次 authoritative 更新都刷新：加成在对局中途变化（新同类建筑完工/被拆）也能跟上。
+	var per_tick = _unit.get("production_work_per_tick")
+	element.work_per_tick = (
+		float(per_tick) if (per_tick != null and float(per_tick) > 0.0) else 1.0
+	)
 
 
 func _find_element(item_id: String):

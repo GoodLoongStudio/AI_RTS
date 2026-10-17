@@ -1,0 +1,220 @@
+[
+  {
+    "id": "adjutant-command-protocol",
+    "category": "adjutant",
+    "scene": "res://tests/automated/AdjutantCommandProtocolSmokeTest.tscn",
+    "returncode": 3221225477,
+    "seconds": 8.9,
+    "marker_ok": false,
+    "marker": "Adjutant command protocol smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "1"
+    ],
+    "fail_lines": [
+      "副官 build（服务器直执行）应被接受（实际 status=Rejected reason=NotAdjacent）"
+    ],
+    "errors": [
+      "System.AccessViolationException: Attempted to read or write protected memory. This is often an indication that "
+    ],
+    "log_lines": 1185
+  },
+  {
+    "id": "adjutant-credential",
+    "category": "adjutant",
+    "scene": "res://tests/automated/AdjutantCredentialSmokeTest.tscn",
+    "returncode": 0,
+    "seconds": 2.4,
+    "marker_ok": true,
+    "marker": "Adjutant credential smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 18
+  },
+  {
+    "id": "adjutant-connectivity",
+    "category": "adjutant",
+    "scene": "res://tests/automated/AdjutantConnectivitySmokeTest.tscn",
+    "returncode": 0,
+    "seconds": 2.2,
+    "marker_ok": true,
+    "marker": "Adjutant connectivity smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 21
+  },
+  {
+    "id": "adjutant-observation",
+    "category": "adjutant",
+    "scene": "res://tests/automated/AdjutantObservationSmokeTest.tscn",
+    "returncode": 0,
+    "seconds": 4.5,
+    "marker_ok": true,
+    "marker": "Adjutant observation smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 125
+  },
+  {
+    "id": "adjutant-rules-export",
+    "category": "adjutant",
+    "scene": "res://tests/automated/AdjutantRulesExportSmokeTest.tscn",
+    "returncode": 1,
+    "seconds": 3.8,
+    "marker_ok": false,
+    "marker": "Adjutant rules export smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "3"
+    ],
+    "fail_lines": [
+      "worker 载荷应来自 Catalog",
+      "tank 生产成本应来自当前对局 Catalog（A×500）",
+      "vehicle_factory 施工定义应带成本/占地/受信任蓝图场景"
+    ],
+    "errors": [],
+    "log_lines": 119
+  },
+  {
+    "id": "rule-ai-aggression",
+    "category": "traditional-ai",
+    "scene": "res://tests/automated/RuleAiAggressionSmokeTest.tscn",
+    "returncode": 0,
+    "seconds": 5.8,
+    "marker_ok": true,
+    "marker": "Rule AI aggression smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 125
+  },
+  {
+    "id": "rule-ai-battlegroup",
+    "category": "traditional-ai",
+    "scene": "res://tests/automated/RuleAiBattlegroupSmokeTest.tscn",
+    "returncode": 1,
+    "seconds": 11.0,
+    "marker_ok": false,
+    "marker": "Rule AI battlegroup smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "3"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 142
+  },
+  {
+    "id": "rule-ai-defense",
+    "category": "traditional-ai",
+    "scene": "res://tests/automated/RuleAiDefenseSmokeTest.tscn",
+    "returncode": 0,
+    "seconds": 6.6,
+    "marker_ok": true,
+    "marker": "Rule AI defense smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 152
+  },
+  {
+    "id": "rule-ai-economy-query",
+    "category": "traditional-ai",
+    "scene": "res://tests/automated/RuleAiEconomyQuerySmokeTest.tscn",
+    "returncode": 1,
+    "seconds": 15.4,
+    "marker_ok": false,
+    "marker": "Rule AI economy query smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "2"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 234
+  },
+  {
+    "id": "rule-ai-expansion",
+    "category": "traditional-ai",
+    "scene": "res://tests/automated/RuleAiExpansionSmokeTest.tscn",
+    "returncode": 1,
+    "seconds": 17.0,
+    "marker_ok": false,
+    "marker": "Rule AI expansion smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "1"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 268
+  },
+  {
+    "id": "rule-ai-intelligence",
+    "category": "traditional-ai",
+    "scene": "res://tests/automated/RuleAiIntelligenceSmokeTest.tscn",
+    "returncode": 0,
+    "seconds": 5.8,
+    "marker_ok": true,
+    "marker": "Rule AI intelligence smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 129
+  },
+  {
+    "id": "rule-ai-offense-logistics",
+    "category": "traditional-ai",
+    "scene": "res://tests/automated/RuleAiOffenseLogisticsSmokeTest.tscn",
+    "returncode": 1,
+    "seconds": 12.6,
+    "marker_ok": false,
+    "marker": "Rule AI offense logistics smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "2"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 257
+  },
+  {
+    "id": "adjutant-hud-status-discovery",
+    "category": "adjutant",
+    "scene": "res://tests/automated/AdjutantHudStatusDiscoveryTest.tscn",
+    "returncode": 0,
+    "seconds": 2.3,
+    "marker_ok": true,
+    "marker": "AdjutantHudStatusDiscovery: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 47
+  },
+  {
+    "id": "adjutant-model-service",
+    "category": "adjutant",
+    "scene": "res://tests/automated/AdjutantModelServiceSmokeTest.tscn",
+    "returncode": 0,
+    "seconds": 3.2,
+    "marker_ok": true,
+    "marker": "Adjutant model service smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 16
+  }
+]

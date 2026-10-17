@@ -41,7 +41,7 @@ func _ready() -> void:
 		_finish()
 		return
 
-	NetSession.start_solo(true)
+	NetSession.start_solo(true, true)
 	deadline = Time.get_ticks_msec() + 90000
 	while get_tree().get_first_node_in_group("units") == null and Time.get_ticks_msec() < deadline:
 		await get_tree().process_frame
@@ -59,8 +59,8 @@ func _ready() -> void:
 		_finish()
 		return
 
-	var command_center = local_player.get_node_or_null("CommandCenter")
-	var barracks = local_player.get_node_or_null("Barracks")
+	var command_center = _find_unit_script(local_player, "CommandCenter.gd")
+	var barracks = _find_unit_script(local_player, "Barracks.gd")
 	_check(command_center != null, "本地玩家应有指挥中心（开局初始单位）")
 	_check(barracks != null, "passive_ai_test 局应预置已完成兵营")
 	if command_center == null or barracks == null:
@@ -84,9 +84,11 @@ func _ready() -> void:
 			break
 	_check(soldier_seen, "联机模式下步兵应经转发在服务器部署并复制回客户端")
 
-	# 控制中心生产工人：验证既有转发链路在新平衡配置下不受影响
-	var cc_queue = command_center.production_queue
-	cc_queue.produce(WorkerScene)
+	# 矿车改由车厂生产。转发链路仍由上面的步兵覆盖；这里确认车厂入队能部署矿车。
+	var vehicle_factory = _find_unit_script(local_player, "VehicleFactory.gd")
+	_check(vehicle_factory != null, "passive_ai_test 局应预置已完成车厂")
+	if vehicle_factory != null:
+		vehicle_factory.production_queue.produce(WorkerScene)
 	deadline = Time.get_ticks_msec() + 40000
 	var worker_seen := false
 	while Time.get_ticks_msec() < deadline:
@@ -97,10 +99,20 @@ func _ready() -> void:
 				break
 		if worker_seen:
 			break
-	_check(worker_seen, "指挥中心工人生产转发链路应正常（新平衡配置下）")
+	_check(worker_seen, "车厂矿车应经转发在服务器部署并复制回客户端")
 
 	print("Net infantry smoke test completed: %d failure(s)" % _failures)
 	_finish()
+
+
+func _find_unit_script(player: Node, script_name: String) -> Node:
+	if player == null:
+		return null
+	for child in player.get_children():
+		var script = child.get_script()
+		if script != null and str(script.resource_path).ends_with(script_name):
+			return child
+	return null
 
 
 func _finish() -> void:

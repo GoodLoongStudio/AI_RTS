@@ -41,6 +41,17 @@ def unit(name, utype, *, construct=False, gather=False, queue=False, pos=(0, 0, 
             "construct": construct, "gather": gather, "queue": queue, "pos": list(pos)}
 
 
+def opening_ready(prefix="Unit_E"):
+    """2026-10-13 开局顺序夹具：经济已点火（建成矿场+矿车）+ 基础防御已落地。
+
+    `opening_order_ready` 要求这两档就绪才放开作战/侦察生产档；代表"中局"的夹具
+    必须带上它们，否则测到的是开局让位，而不是本用例想测的机制。
+    """
+    return [unit(prefix + "R", "ore_refinery"),
+            unit(prefix + "W", "worker", gather=True),
+            unit(prefix + "T", "anti_ground_turret")]
+
+
 def enemy(name, pos=(10, 0, 10)):
     return {"kind": "unit_enemy", "name": name, "pos": list(pos), "confirmed_dead": False}
 
@@ -83,8 +94,9 @@ class NoBuilderStillBuildsTest(unittest.TestCase):
         actions = [i["action"] for i in out]
         self.assertIn("build", actions,
                       "automatic 施工不该再把'没有空闲工人'当成开工前置")
+        # 2026-10-13 开局顺序：经济档车厂先于军事档兵营；本类断言的"载体语义"不变。
         self.assertEqual(out[actions.index("build")]["target"]["scene"],
-                         "res://buildings/Barracks.tscn")
+                         "res://buildings/VehicleFactory.tscn")
 
     def test_worker_source_still_requires_idle_builder(self):
         st, tact = self._busy_fixture()
@@ -170,7 +182,7 @@ class BuildLadderTest(unittest.TestCase):
         tact = {"entities": [
             unit("Unit_0", "command_center", queue=True),
             unit("Unit_2", "worker", construct=True, gather=True),
-        ]}
+        ] + opening_ready()}
         out = rf.development_intents(st, tactical=tact, rules=RULES,
                                      ttl_ticks=3600, server_tick=1000, snapshot_id=5)
         # 本用例钉两件事：① 缺兵营时必须产出**恰好一条**命令（阶梯 1 负责，不与其它轨重复）；
@@ -181,7 +193,9 @@ class BuildLadderTest(unittest.TestCase):
         self.assertEqual(len(out), 1)
         self.assertEqual(out[0]["action"], "build")
         self.assertEqual(out[0]["unit_ids"], ["Unit_2"])
-        self.assertEqual(out[0]["target"]["scene"], "res://buildings/Barracks.tscn")
+        # 2026-10-13 开局顺序：经济档（车厂）先于军事档（兵营）；
+        # "恰好一条、由工人承载、不被挤掉"三条断言不变。
+        self.assertEqual(out[0]["target"]["scene"], "res://buildings/VehicleFactory.tscn")
         self.assertEqual(out[0]["target"]["producer"], "Unit_2")
 
     def test_skips_to_next_building_when_barracks_exists(self):
@@ -220,10 +234,11 @@ class WorkerBackfillTest(unittest.TestCase):
             unit("Unit_0", "command_center", queue=True),
             unit("Unit_9", "barracks", queue=True),
             unit("Unit_8", "vehicle_factory", queue=True),
-        ]
+        ] + opening_ready()
         # 工人**必须同时在 `ai_controlled_units`**：候选池严格取租约列表，
         # 只写进观测不写租约 = 阶梯看不见它们（第一版用例就踩了这个，故留注释）。
-        ai_units = ["Unit_0", "Unit_9", "Unit_8"]
+        ai_units = ["Unit_0", "Unit_9", "Unit_8",
+                    "Unit_ER", "Unit_EW", "Unit_ET"]
         for index in range(workers):
             name = "Unit_%d" % (10 + index)
             entities.append(unit(name, "worker", gather=True))
@@ -286,8 +301,9 @@ class FinishSiteTest(unittest.TestCase):
 
 class ProduceLadderTest(unittest.TestCase):
     def test_produces_soldier_when_barracks_idle(self):
-        st = state(["Unit_9"])
-        tact = {"entities": [unit("Unit_9", "barracks", queue=True)]}
+        st = state(["Unit_9", "Unit_ER", "Unit_EW", "Unit_ET"])
+        tact = {"entities": [unit("Unit_9", "barracks", queue=True)]
+                + opening_ready()}
         out = rf.development_intents(st, tactical=tact, rules=RULES,
                                      server_tick=1000, snapshot_id=5)
         self.assertEqual(len(out), 1)
@@ -296,9 +312,10 @@ class ProduceLadderTest(unittest.TestCase):
         self.assertEqual(out[0]["target"]["producer"], "Unit_9")
 
     def test_prefers_soldier_before_tank(self):
-        st = state(["Unit_9", "Unit_8"])
+        st = state(["Unit_9", "Unit_8", "Unit_ER", "Unit_EW", "Unit_ET"])
         tact = {"entities": [unit("Unit_9", "barracks", queue=True),
-                             unit("Unit_8", "vehicle_factory", queue=True)]}
+                             unit("Unit_8", "vehicle_factory", queue=True)]
+                + opening_ready()}
         out = rf.development_intents(st, tactical=tact, rules=RULES)
         self.assertEqual(out[0]["target"]["producer"], "Unit_9")
 
@@ -309,12 +326,13 @@ class ProduceLadderTest(unittest.TestCase):
         兵营一建成第一级 (soldier, barracks) 就永远命中 → 车厂全程闲置、
         整局只有 soldier，"多兵种"名存实亡。
         """
-        st = state(["Unit_9", "Unit_8", "Unit_4", "Unit_5", "Unit_6"])
+        st = state(["Unit_9", "Unit_8", "Unit_4", "Unit_5", "Unit_6",
+                    "Unit_ER", "Unit_EW", "Unit_ET"])
         tact = {"entities": [
             unit("Unit_9", "barracks", queue=True),
             unit("Unit_8", "vehicle_factory", queue=True),
             unit("Unit_4", "soldier"), unit("Unit_5", "soldier"), unit("Unit_6", "soldier"),
-        ]}
+        ] + opening_ready()}
         out = rf.development_intents(st, tactical=tact, rules=RULES)
         self.assertEqual(out[0]["action"], "produce")
         self.assertEqual(out[0]["target"]["producer"], "Unit_8")   # 车厂
@@ -322,9 +340,10 @@ class ProduceLadderTest(unittest.TestCase):
 
     def test_prefers_soldier_when_composition_is_empty(self):
         """空编制时按阶梯顺序先出士兵（不是先出坦克）。"""
-        st = state(["Unit_9", "Unit_8"])
+        st = state(["Unit_9", "Unit_8", "Unit_ER", "Unit_EW", "Unit_ET"])
         tact = {"entities": [unit("Unit_9", "barracks", queue=True),
-                             unit("Unit_8", "vehicle_factory", queue=True)]}
+                             unit("Unit_8", "vehicle_factory", queue=True)]
+                + opening_ready()}
         out = rf.development_intents(st, tactical=tact, rules=RULES)
         self.assertEqual(out[0]["target"]["producer"], "Unit_9")
 
@@ -343,8 +362,10 @@ class ProduceLadderTest(unittest.TestCase):
 
     def test_unrelated_live_intent_does_not_stall_production(self):
         """与生产无关的在途意图**不得**让生产线停摆（这正是"有钱不出兵"的根因）。"""
-        st = state(["Unit_9"], intents=[busy_intent("Unit_9")])
-        tact = {"entities": [unit("Unit_9", "barracks", queue=True)]}
+        st = state(["Unit_9", "Unit_ER", "Unit_EW", "Unit_ET"],
+                   intents=[busy_intent("Unit_9")])
+        tact = {"entities": [unit("Unit_9", "barracks", queue=True)]
+                + opening_ready()}
         out = rf.development_intents(st, tactical=tact, rules=RULES,
                                      server_tick=1000, snapshot_id=5)
         self.assertEqual(out[0]["action"], "produce")
@@ -353,11 +374,12 @@ class ProduceLadderTest(unittest.TestCase):
 
     def test_other_producer_keeps_working_when_one_is_busy(self):
         """一座设施在产时，**其它**已完工设施照常补货（不是全线停摆）。"""
-        st = state(["Unit_9", "Unit_8"], intents=[{
+        st = state(["Unit_9", "Unit_8", "Unit_ER", "Unit_EW", "Unit_ET"], intents=[{
             "intent_id": "i-produce", "unit_ids": ["Unit_9"],
             "action": "produce", "state": "active"}])
         tact = {"entities": [unit("Unit_9", "barracks", queue=True),
-                             unit("Unit_8", "vehicle_factory", queue=True)]}
+                             unit("Unit_8", "vehicle_factory", queue=True)]
+                + opening_ready()}
         out = rf.development_intents(st, tactical=tact, rules=RULES,
                                      server_tick=1000, snapshot_id=5)
         self.assertEqual(out[0]["action"], "produce")
@@ -486,7 +508,9 @@ class ExpansionLadderTest(unittest.TestCase):
             ("Unit_4", ("barracks", (18, 0, 7))),
             ("Unit_5", ("vehicle_factory", (4, 0, 7))),
             ("Unit_13", ("aircraft_factory", (10, 0, 3))),
-        ] + self.PRODUCTION_FULL)
+        ] + self.PRODUCTION_FULL
+            + [("Unit_ER", ("ore_refinery", (12, 0, 9))),
+               ("Unit_EW", ("worker", (12, 0, 10)))])
         st["map_bounds"] = [80.0, 80.0]
         out = rf.development_intents(st, tactical=tact, rules=self.RULES,
                                      server_tick=1000, snapshot_id=5)
@@ -575,6 +599,12 @@ class ExpansionLadderTest(unittest.TestCase):
             ("Unit_11", ("anti_air_turret", (16, 0, 1))),
             ("Unit_12", ("anti_ground_turret", (4, 0, 1))),
         ] + self.PRODUCTION_FULL + self.DEFENCE_FULL)
+        # 2026-10-12: each completed HQ must have local defense coverage.
+        # Merely filling the old global cap at home no longer means "full".
+        for index, position in enumerate([(58, 0, 8), (58, 0, 17)]):
+            for type_id in ["anti_air_turret", "anti_ground_turret"]:
+                tact["entities"].append(unit("Covered_%s_%d" % (type_id, index),
+                                              type_id, pos=position))
         out = rf.development_intents(st, tactical=tact, rules=self.RULES,
                                      server_tick=1000, snapshot_id=5)
         # 建造线到顶 → 轮到"出兵"这条线（不能因为建造到顶就整轮不动）。
@@ -684,6 +714,11 @@ class ReconReplacementTest(unittest.TestCase):
         if factory:
             by_name[factory] = {"type": "aircraft_factory"}
             ai_units.append(factory)
+        # 2026-10-13 开局顺序：侦察补充档只在经济+防御就绪后开门，夹具代表中局。
+        by_name["Unit_ER"] = {"type": "ore_refinery"}
+        by_name["Unit_EW"] = {"type": "worker"}
+        by_name["Unit_ET"] = {"type": "anti_ground_turret"}
+        ai_units.extend(["Unit_ER", "Unit_EW", "Unit_ET"])
         tactical = {}
         if queued:
             tactical = {"production": [{"producer": factory,
@@ -706,11 +741,19 @@ class ReconReplacementTest(unittest.TestCase):
                          ("Unit_8", "res://units/Drone.tscn"))
 
     def test_no_drone_when_probe_alive(self):
-        self.assertIsNone(self._call(live_types=["drone", "soldier"]))
+        # 没有确认敌情、并且已经有机场：目标是 2 架。1 架在编仍要补，补到上限才停。
+        self.assertEqual(self._call(live_types=["drone", "soldier"]),
+                         ("Unit_8", "res://units/Drone.tscn"))
+
+    def test_no_drone_when_quota_full(self):
+        self.assertIsNone(self._call(live_types=["drone", "drone", "soldier"]))
 
     def test_no_drone_when_queued_or_inflight(self):
-        self.assertIsNone(self._call(live_types=["soldier"], queued=1))
-        self.assertIsNone(self._call(live_types=["soldier"], inflight=1))
+        self.assertEqual(self._call(live_types=["soldier"], queued=1),
+                         ("Unit_8", "res://units/Drone.tscn"))
+        self.assertIsNone(self._call(live_types=["soldier"], queued=2))
+        self.assertIsNone(self._call(live_types=["drone"], inflight=1))
+        self.assertIsNone(self._call(live_types=["soldier"], inflight=2))
 
     def test_no_drone_without_idle_factory(self):
         self.assertIsNone(self._call(live_types=["soldier"], factory=""))
@@ -749,3 +792,242 @@ class SiteKeepQuotaTest(unittest.TestCase):
             len(gathers), 1,
             "工地旁只该留 1 个工人，另一个必须去采矿；实际命令=%s"
             % [(i["action"], i.get("unit_ids")) for i in out])
+
+
+class PendingProductionDedupTest(unittest.TestCase):
+    """队列 / 在途的**去重**口径（2026-10-11 提示词 §一.3 第 2 条）。
+
+    一条 produce 意图被权威接受后，它会**变成**队列里的一个 item。旧代码两边各加一，
+    同一架无人机被数成 2 架 → "还差一架"永远算不满 → 副官不再补机。
+    这几条断言在修前**必红**（旧实现按 item/intent 各数一次，且不看 state、不按身份去重）。
+    """
+
+    SCENES = {"drone": "res://units/Drone.tscn"}
+
+    def test_accepted_intent_and_matching_queue_item_count_once(self):
+        tactical = {"production": [{"unit": "Unit_7", "items": [
+            {"item_id": "i1", "producer_id": "Unit_7", "definition_id": "drone",
+             "state": "Queued"},
+        ]}]}
+        state = {"active_intents": [
+            {"action": "produce", "state": "active", "unit_ids": ["Unit_7"],
+             "target": {"scene": "res://units/Drone.tscn"}},
+        ]}
+        pending = rf.pending_production(tactical, state, self.SCENES)
+        self.assertEqual(pending.get("drone", 0), 1,
+                         "同一条订单（已接受 → 已在队列）不许数成 2：%s" % pending)
+
+    def test_unaccepted_intent_still_counts_when_queue_is_empty(self):
+        # 还没被权威接受 ⇒ 队列里没有对应项，这一条必须算，否则会重复下单。
+        state = {"active_intents": [
+            {"action": "produce", "state": "pending_authority", "unit_ids": ["Unit_7"],
+             "target": {"scene": "res://units/Drone.tscn"}},
+        ]}
+        pending = rf.pending_production({"production": []}, state, self.SCENES)
+        self.assertEqual(pending.get("drone", 0), 1,
+                         "在途未接受的订单不能被吞掉：%s" % pending)
+
+    def test_terminal_queue_items_are_not_counted(self):
+        tactical = {"production": [{"unit": "Unit_7", "items": [
+            {"item_id": "a", "producer_id": "Unit_7", "definition_id": "drone",
+             "state": "Completed"},        # 已落地：单位本体已在 by_name 里
+            {"item_id": "b", "producer_id": "Unit_7", "definition_id": "drone",
+             "state": "Cancelled"},        # 已取消：永远不会出单位
+            {"item_id": "c", "producer_id": "Unit_7", "definition_id": "drone",
+             "state": "ProducerLost"},     # 生产线没了
+            {"item_id": "d", "producer_id": "Unit_7", "definition_id": "drone",
+             "state": "Producing"},
+        ]}]}
+        pending = rf.pending_production(tactical, {"active_intents": []}, self.SCENES)
+        self.assertEqual(pending.get("drone", 0), 1,
+                         "只有 Producing 那条该算：%s" % pending)
+
+    def test_same_item_id_seen_twice_counts_once(self):
+        tactical = {"production": [
+            {"unit": "Unit_7", "items": [
+                {"item_id": "dup", "producer_id": "Unit_7", "definition_id": "drone",
+                 "state": "Queued"}]},
+            {"unit": "Unit_8", "items": [
+                {"item_id": "dup", "producer_id": "Unit_7", "definition_id": "drone",
+                 "state": "Queued"}]},
+        ]}
+        pending = rf.pending_production(tactical, {"active_intents": []}, self.SCENES)
+        self.assertEqual(pending.get("drone", 0), 1,
+                         "同一 item_id 在两个视图里重复出现不许数两次：%s" % pending)
+
+    def test_two_orders_from_different_producers_are_not_merged(self):
+        # max() 合并只在同一 (生产者, 产品) 键上生效；两座机场各排一架就是两架。
+        tactical = {"production": [
+            {"unit": "Unit_7", "items": [
+                {"item_id": "x", "producer_id": "Unit_7", "definition_id": "drone",
+                 "state": "Queued"}]},
+            {"unit": "Unit_9", "items": [
+                {"item_id": "y", "producer_id": "Unit_9", "definition_id": "drone",
+                 "state": "Queued"}]},
+        ]}
+        pending = rf.pending_production(tactical, {"active_intents": []}, self.SCENES)
+        self.assertEqual(pending.get("drone", 0), 2,
+                         "不同生产者的两条订单不许被压成一条：%s" % pending)
+
+
+class ReconCoverageReportTest(unittest.TestCase):
+    """侦察覆盖增益报告（提示词 §一.3 第 1/3 条要记录的两个数）。"""
+
+    @staticmethod
+    def _state(cells):
+        return {"explore": {"cells": cells}, "server_tick": 1000}
+
+    def test_only_covered_cells_count(self):
+        st = self._state({
+            "1,1": {"state": "covered", "by": "Unit_2", "visits": 1, "tick": 10},
+            "1,2": {"state": "open", "by": "Unit_2", "visits": 0, "tick": 0},
+            "1,3": {"state": "waiting", "by": "Unit_2", "visits": 0, "tick": 0},
+        })
+        report = rf.recon_coverage_report(st, {"Unit_2": {"type": "drone"}})
+        self.assertEqual(report["dedicated_cells"], 1,
+                         "没真的走到的格不许算覆盖：%s" % report)
+
+    def test_second_drone_gain_is_incremental_not_absolute(self):
+        # 两架无人机探到**同一批格** ⇒ 第二架的增益必须是 0（这正是"多机有没有用"的判据）。
+        st = self._state({
+            "0,0": {"state": "covered", "by": "DroneA", "visits": 1, "tick": 10},
+            "0,1": {"state": "covered", "by": "DroneA", "visits": 1, "tick": 11},
+            "1,0": {"state": "covered", "by": "DroneB", "visits": 1, "tick": 20},
+            "1,1": {"state": "covered", "by": "DroneB", "visits": 1, "tick": 21},
+        })
+        report = rf.recon_coverage_report(st, {"DroneA": {"type": "drone"},
+                                               "DroneB": {"type": "drone"}})
+        per_unit = report["per_unit_new_cells"]
+        self.assertEqual([item["unit"] for item in per_unit], ["DroneA", "DroneB"],
+                         "应按首次覆盖时间排序：%s" % per_unit)
+        self.assertEqual(per_unit[0]["new_cells"], 2)
+        self.assertEqual(per_unit[1]["new_cells"], 2,
+                         "两架探到完全不同的格 ⇒ 第二架应带来 2 格净增益：%s" % per_unit)
+        self.assertEqual(report["dedicated_cells"], 4)
+
+    def test_overlapping_coverage_shows_zero_gain(self):
+        # 两架无人机探到**完全相同**的格 ⇒ 覆盖格数不许翻倍，也不许凭空造出
+        # 一个"有覆盖"的单位（cells 的 `by` 只记最后到达者）。
+        # 这条是"多机到底有没有用"的反面判据。
+        st = self._state({
+            "0,0": {"state": "covered", "by": "DroneA", "visits": 2, "tick": 10},
+            "0,1": {"state": "covered", "by": "DroneA", "visits": 1, "tick": 11},
+        })
+        report = rf.recon_coverage_report(st, {"DroneA": {"type": "drone"},
+                                               "DroneB": {"type": "drone"}})
+        self.assertEqual(report["dedicated_cells"], 2,
+                         "重叠覆盖不该虚增覆盖格数：%s" % report)
+        self.assertEqual([item["unit"] for item in report["per_unit_new_cells"]],
+                         ["DroneA"],
+                         "cells 只记最后到达者，不许凭空造出一个有覆盖的单位")
+        self.assertEqual(report["dedicated_visits"], 3,
+                         "同一格多次到达应累加工时：%s" % report)
+
+    def test_conscript_scout_share_is_recorded(self):
+        st = self._state({
+            "0,0": {"state": "covered", "by": "DroneA", "visits": 3, "tick": 10},
+            "2,2": {"state": "covered", "by": "Unit_9", "visits": 1, "tick": 12},
+        })
+        report = rf.recon_coverage_report(st, {"DroneA": {"type": "drone"},
+                                               "Unit_9": {"type": "soldier"}})
+        self.assertEqual(report["conscript_cells"], 1)
+        self.assertEqual(report["dedicated_visits"], 3)
+        self.assertAlmostEqual(report["scout_share"], 0.25, places=3,
+                               msg="小兵侦察工时比例错：%s" % report)
+
+    def test_note_is_throttled(self):
+        st = {"server_tick": 1000, "ai_controlled_units": [], "ai_units": [],
+              "map_bounds": [512.0, 512.0], "explore": {"cells": {}}}
+        by_name = {"Unit_1": {"type": "drone", "movement": True, "pos": [1, 0, 1]}}
+        scene_index = {"drone": "res://units/Drone.tscn"}
+        for tick in (1000, 1100, 1200, 1300):
+            st["server_tick"] = tick
+            rf.recon_produce_intent(st, dict(by_name), {"ai_units": ["Unit_1"]},
+                                    {"production": []}, scene_index,
+                                    free_producers=[], usable_producers=set(),
+                                    production_views={}, tick=tick)
+        notes = [n for n in st.get("decision_log", []) if n.get("kind") == "recon_coverage"]
+        self.assertEqual(len(notes), 2,
+                         "应按 %d tick 节流，实际=%s"
+                         % (rf.RECON_COVERAGE_NOTE_EVERY_TICKS, [n["server_tick"] for n in notes]))
+
+
+class OpeningOrderTest(unittest.TestCase):
+    """开局顺序（2026-10-13 用户口径）：矿场+矿车 → 基础防御 → 才是兵/坦克/无人机。
+
+    旧 `BUILD_LADDER` 把 barracks/vehicle_factory/aircraft_factory 排在矿场前面，
+    且 B1 会把机场插到队首；用户实测开局"先出兵营机场、不造矿场"。这里把顺序本身钉死。
+    """
+
+    RULES = {
+        "unit_types": [
+            {"id": "worker", "scene_path": "res://units/Worker.tscn"},
+            {"id": "soldier", "scene_path": "res://units/Soldier.tscn"},
+            {"id": "tank", "scene_path": "res://units/Tank.tscn"},
+            {"id": "ore_refinery", "scene_path": "res://buildings/OreRefinery.tscn"},
+            {"id": "anti_ground_turret", "scene_path": "res://units/anti_ground_turret.tscn"},
+            {"id": "barracks", "scene_path": "res://buildings/Barracks.tscn"},
+            {"id": "vehicle_factory", "scene_path": "res://buildings/VehicleFactory.tscn"},
+            {"id": "command_center", "scene_path": "res://buildings/CommandCenter.tscn"},
+        ],
+        "constructions": [
+            {"id": "ore_refinery",
+             "blueprint_scene_path": "res://buildings/OreRefinery.tscn"},
+            {"id": "anti_ground_turret",
+             "blueprint_scene_path": "res://units/anti_ground_turret.tscn"},
+            {"id": "barracks", "blueprint_scene_path": "res://buildings/Barracks.tscn"},
+            {"id": "vehicle_factory",
+             "blueprint_scene_path": "res://buildings/VehicleFactory.tscn"},
+        ],
+        "productions": [
+            {"product_type_id": "worker", "allowed_producer_type_ids": ["command_center"]},
+            {"product_type_id": "soldier", "allowed_producer_type_ids": ["barracks"]},
+            {"product_type_id": "tank", "allowed_producer_type_ids": ["vehicle_factory"]},
+        ],
+    }
+
+    def _out(self, entities, lease):
+        st = state(lease)
+        st["map_bounds"] = [80.0, 80.0]
+        # 矿场档要求"视野内有可采矿点"才发命令（政策不变），夹具给一个近矿。
+        ents = list(entities) + [{"kind": "resource", "name": "R_near",
+                                  "pos": [16.0, 0.0, 9.0], "resource_a": 5000,
+                                  "visible": True}]
+        return rf.development_intents(st, tactical={"entities": ents},
+                                      rules=self.RULES, server_tick=1000, snapshot_id=5)
+
+    def test_ladder_order_is_economy_then_defence_then_army(self):
+        # 顺序本身钉死（2026-10-13 用户口径）：矿场+矿车 → 基础防御 → 兵/坦克/机场。
+        order = list(rf.BUILD_LADDER)
+        self.assertEqual(order[:2], ["ore_refinery", "vehicle_factory"])
+        self.assertLess(order.index("anti_ground_turret"), order.index("barracks"))
+        self.assertLess(order.index("anti_air_turret"), order.index("barracks"))
+        self.assertLess(order.index("barracks"), order.index("aircraft_factory"))
+        self.assertLess(order.index("aircraft_factory"), order.index("command_center"))
+
+    def test_opening_does_not_start_with_army_buildings(self):
+        out = self._out([unit("Unit_0", "command_center", queue=True),
+                         unit("Unit_2", "worker", construct=True, gather=True)],
+                        ["Unit_0", "Unit_2"])
+        builds = [i for i in out if i["action"] == "build"]
+        self.assertTrue(builds, "开局必须发出建造意图")
+        first = builds[0]["target"]["scene"]
+        self.assertNotIn(first, ("res://buildings/Barracks.tscn",
+                                 "res://buildings/VehicleFactory.tscn"
+                                 if False else "res://buildings/Barracks.tscn",
+                                 "res://units/anti_air_turret.tscn"),
+                         "开局第一座不得是军事档建筑（旧顺序的第一座是兵营）")
+        self.assertEqual([i for i in out if i["action"] == "produce"], [],
+                         "经济未点火前不得产作战单位")
+
+    def test_combat_allowed_once_economy_and_defence_ready(self):
+        out = self._out([unit("Unit_0", "command_center", queue=True),
+                         unit("Unit_2", "worker", gather=True),
+                         unit("Unit_R", "ore_refinery"),
+                         unit("Unit_V", "vehicle_factory", queue=True),
+                         unit("Unit_T", "anti_ground_turret"),
+                         unit("Unit_9", "barracks", queue=True)],
+                        ["Unit_0", "Unit_2", "Unit_R", "Unit_V", "Unit_T", "Unit_9"])
+        scenes = [i["target"]["scene"] for i in out if i["action"] == "produce"]
+        self.assertTrue(set(scenes) & {"res://units/Soldier.tscn", "res://units/Tank.tscn"},
+                        "经济与防御就绪后作战档必须开门（否则是把兵线饿死的另一种病）")

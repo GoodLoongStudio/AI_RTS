@@ -16,7 +16,7 @@
 | start | `python rts_ctl.py start with_ai=true` | match=false 时开局 |
 | move | `python rts_ctl.py move units='["Unit_1"]' dest='[30,50]' as_player=主人` | units 是**数组**；dest 是 `[x,z]` |
 | gather | `python rts_ctl.py gather units='["Worker1"]' kind=a as_player=主人` | 采集 |
-| build | `python rts_ctl.py build units='["Worker1"]' pos='[10,10]' scene='res://source/match/units/VehicleFactory.tscn' as_player=主人` | pos 传 `[x,z]` 二元即可 |
+| build | `python rts_ctl.py build units='["Worker1"]' scene='res://source/match/units/VehicleFactory.tscn' as_player=主人` | **推荐省略 pos**：权威端自动相邻放置（建筑自动贴着己方建筑建，副官不需要也不会算坐标）。带 `pos='[x,z]'` 仍可用，但需自己保证位置合法 |
 | produce | `python rts_ctl.py produce unit='VehicleFactory1' scene='res://source/match/units/Tank.tscn' as_player=主人` | **`unit=` 指生产建筑**（与 move 的 units 数组不同，勿混淆） |
 | attack | `python rts_ctl.py attack units='["Tank1"]' target='EnemyUnit5' as_player=主人` | target 必须是敌方单位名 |
 | sleep | `python rts_ctl.py sleep 5`（在回复里作为工具调用） | 轮间隔；保持会话的必须工具调用 |
@@ -66,13 +66,15 @@ last_command: {...}                  # 该建筑最近一条 produce 回执
 
 | 拒绝码 | 典型原因 | 处理 |
 |---|---|---|
-| `ProductNotAllowed` | 指挥中心产坦克 / 车辆工厂产工人 | 按 `producer_type` 重选建筑（不是失败重试） |
+| `ProductNotAllowed` | 指挥中心产坦克/矿车；车辆工厂产坦克是**合法**的（矿车与坦克都由车辆工厂生产，2026-09-28 口径） | 按 `producer_type` 重选建筑（不是失败重试） |
+| `ConstructionInProgress` | **一次只能建一个**：已有建筑在施工 | **等待信号**：等 `construction[]` 完工后原样重发；不要换坐标、不要连发（2026-09-30 口径） |
 | `InsufficientResources` | 资金不够 | 攒钱，本轮零成本决策 |
 | `QueueFull` | 队列已满 | 等待 items 清空；全都满则扩产能 |
 | `ProducerNotFound` | 建筑名失效 | 从最新 `production[]` 取名重发一次 |
 | `NoProductionQueue` | 目标不是生产建筑 | 同上 |
 | `DefinitionNotFound` | scene 路径错误 | 只用本章命令表中的 scene 路径 |
-| `OutOfBounds` / `NotVisible`（build） | 位置非法/不可见 | 换坐标重试一次，仍失败记 blocked |
+| `NoValidSite`（build 免坐标） | 真没有合法落点（周围无可建地面/矿点不可见） | 换 `hint='[x,z]'` 方位重试一次，仍失败记 blocked |
+| `OutOfBounds` / `NotVisible`（build 带 pos） | 手算坐标非法/不可见 | **改用免坐标自动放置**（省略 pos），不要再手算坐标 |
 
 ## 不应该做什么
 

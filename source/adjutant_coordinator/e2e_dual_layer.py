@@ -9,8 +9,8 @@
           --smokehost 127.0.0.1 --smokeport 24569（同样加载独立测试配置）
 
 验证场景（delivery.md 第一阶段）：
-  1. 动态规则：独立测试配置的新对局中，规则视图发现新增普通内容 scout
-     与 tank 成本变更（500→555）；不读磁盘最新配置，只认当前对局 Catalog。
+  1. 动态规则：独立测试配置的新对局中，规则视图发现现役 drone、排除停用 scout
+     与 tank 成本偏差（正式表→555）；不读磁盘最新配置，只认当前对局 Catalog。
   2. 生产选择匹配动态生产关系：CommandCenter 生产 tank 被动态关系拒绝。
   3. 真实建造链：副官统一入口 build → 服务器直执行 → 战术快照出现 vehicle_factory。
   4. 真实生产链：vehicle_factory 生产 tank → PendingAuthority/终态复核 command_id。
@@ -185,19 +185,21 @@ def run_e2e(run_dir):
                 break
         expect("对局已就绪", ready)
 
-        # ---- 场景 1：动态规则发现（新增内容 + 成本变更） ----
+        # ---- 场景 1：动态规则发现（现役内容 + 成本变更） ----
         rules = tcp_call(SERVER_DBG, {"op": "rules"})
         expect("规则视图可导出", not rules.get("error"))
         types = {t["id"]: t for t in rules.get("unit_types", [])}
-        expect("新增普通内容 scout 被规则视图发现", "scout" in types,
-               "scout: %s" % json.dumps(types.get("scout", {}))[:120])
+        expect("现役 drone 被规则视图发现", "drone" in types,
+               "drone: %s" % json.dumps(types.get("drone", {}))[:120])
+        expect("已停用 scout 不出现在规则视图", "scout" not in types)
         productions = {p["id"]: p for p in rules.get("productions", [])}
         tank_cost = sum(c["amount"] for c in productions.get("tank", {}).get("cost", []))
         expect("tank 成本变更（555）被规则视图发现", tank_cost == 555,
                "实际 tank cost=%s" % tank_cost)
-        scout_producers = productions.get("scout", {}).get("allowed_producer_type_ids", [])
-        expect("scout 生产关系动态解析为 aircraft_factory",
-               scout_producers == ["aircraft_factory"], str(scout_producers))
+        drone_producers = productions.get("drone", {}).get("allowed_producer_type_ids", [])
+        expect("drone 生产关系动态解析为 aircraft_factory",
+               drone_producers == ["aircraft_factory"], str(drone_producers))
+        expect("已停用 scout 没有生产定义", "scout" not in productions)
         rules_version = str(rules.get("rules_version", {}).get("content_hash", ""))
         match_id = str(rules.get("match_id", ""))
         expect("规则版本与对局身份非空", bool(rules_version) and bool(match_id))

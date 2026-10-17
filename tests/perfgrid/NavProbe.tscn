@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tests/perfgrid/NavProbe.gd" id="1_nav"]
+
+[node name="NavProbe" type="Node"]
+script = ExtResource("1_nav")

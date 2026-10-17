@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tests/automated/_FogMinProbe.gd" id="1_fm"]
+
+[node name="FogMinProbe" type="Node"]
+script = ExtResource("1_fm")

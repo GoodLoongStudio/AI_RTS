@@ -1,0 +1,22 @@
+{
+ "algo_versions": {
+  "G1": "2.0.0",
+  "G2": "7.11.0",
+  "G3": "2.2.0",
+  "G4": "2.0.0"
+ },
+ "created_at": "2026-10-11T01:38:59",
+ "job_id": "ff948d6dcdf74a2e9295c199c9ba5032",
+ "map_id": "16-0-7544ea830a",
+ "map_pass": true,
+ "pipeline_version": "1.0.0",
+ "stage_versions": {
+  "engine": "godot",
+  "g1_input": "2.0.0",
+  "g2_terrain": "7.11.0",
+  "g3_content": "2.2.0",
+  "g4_scene": "2.0.0"
+ },
+ "visual_seed": 247953824,
+ "visual_version": null
+}

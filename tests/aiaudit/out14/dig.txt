@@ -1,0 +1,2 @@
+[MOVEMENT] head-on a=Arrived b=Arrived elapsed_ms=18498 separation=19.20
+Movement recovery smoke test completed: 0 failure(s)

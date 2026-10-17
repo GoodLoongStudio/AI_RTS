@@ -10,11 +10,11 @@
 [ext_resource type="PackedScene" uid="uid://cd66t0u7kf84j" path="res://source/match/units/traits/RotateRandomlyWhenLookingForTargetsIdle.tscn" id="8_l7mop"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_7usmv"]
-height = 1.600
-radius = 1.100
+height = 1.932
+radius = 1.38
+resource_local_to_scene = true
 
 [node name="AntiGroundTurret" type="Area3D"]
-scale = Vector3(2.00, 2.00, 2.00)
 collision_layer = 2
 collision_mask = 0
 script = ExtResource("1_6hw4x")
@@ -27,41 +27,44 @@ update_scale = false
 [node name="DetachTransform" type="Node" parent="."]
 
 [node name="Geometry" parent="DetachTransform" instance=ExtResource("2_tlome")]
+transform = Transform3D(1.725, 0, 0, 0, 1.725, 0, 0, 0, 1.725, 0, 0, 0)
 
 [node name="ProjectileOrigin" type="Marker3D" parent="DetachTransform/Geometry/SM_Veh_Turret_Medium_01"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0.9)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.529325, 1.810696, 4.733238)
 
 [node name="MuzzleL" type="Marker3D" parent="DetachTransform/Geometry/SM_Veh_Turret_Medium_01"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2259, 0.0036, 3.691)
+; Two upper barrel rings; the lower central end face is a separate component.
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.529325, 1.810696, 4.733238)
 
 [node name="MuzzleR" type="Marker3D" parent="DetachTransform/Geometry/SM_Veh_Turret_Medium_01"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.2259, 0.0036, 3.691)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.529325, 1.810696, 4.733238)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.966, 0)
 shape = SubResource("CylinderShape3D_7usmv")
 
 [node name="Highlight" parent="." instance=ExtResource("1_5gp2d")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
-radius = 0.6
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
+radius = 1.518
 
 [node name="Selection" parent="." instance=ExtResource("2_f1d12")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
-radius = 0.6
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
+radius = 1.518
 
 [node name="MovementObstacle" parent="." instance=ExtResource("3_ds80w")]
-radius = 2.20
+radius = 1.38
 vertices = PackedVector3Array(0, 0, -0.2, 0.142, 0, -0.142, 0.2, 0, 0, 0.142, 0, 0.142, 0, 0, 0.2, -0.142, 0, 0.142, -0.2, 0, 0, -0.142, 0, -0.142)
 affect_navigation_mesh = true
 path_height_offset = 0.6
 
+carve_from_collision_bounds = false
 [node name="HealthBar" parent="." instance=ExtResource("4_r6emo")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 0)
-size = Vector2(110, 10)
+transform = Transform3D(3, 0, 0, 0, 3, 0, 0, 0, 3, 0, 3.795, 0)
+size = Vector2(165, 15)
 
 [node name="Targetability" parent="." instance=ExtResource("7_4hifs")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
-radius = 0.6
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
+radius = 1.518
 
 [node name="RotateRandomlyWhenLookingForTargets" parent="." instance=ExtResource("8_l7mop")]
 node_to_rotate = NodePath("../DetachTransform/Geometry/SM_Veh_Turret_Medium_01")

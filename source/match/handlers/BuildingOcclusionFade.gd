@@ -38,6 +38,8 @@ func _process(_delta):
 
 
 func _refresh_occluders():
+	if _disabled_for_large_map:
+		return
 	_force_refresh = true
 	_restore_all()
 	_occluders.clear()

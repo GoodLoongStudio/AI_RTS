@@ -57,13 +57,18 @@ var _device_name: Dictionary = {}
 ## 服务器侧：设备 ID -> 当前在线 peer_id（同设备重复进入时顶替旧连接）
 var _device_peer: Dictionary = {}
 var _match_started := false
+var _dedicated_shutdown_requested := false
 var _status := "idle"
 var _match_ready_peers: Dictionary = {}
+# Persistent handshake: scene RPCs wait until the server has its current NetSync.
+var _server_match_ready := false
+var _match_start_received := false
 var _connect_deadline_msec := 0  # 客户端 join 超时保险（10s），防 ENet 32s 死等
 var last_lobby_slots: Array = []  # 最近一次大厅快照：[{kind, name, ready}, ×4]
 
 signal status_changed(text)
 signal match_starting
+signal server_match_ready
 signal player_dropped(slot: int)  # 复核 P1-2：对局中玩家掉线（服务器发出，slot 为其阵营槽位）
 signal lobby_updated(slots: Array)  # RA3 式大厅：4 槽位全量状态广播
 signal lobby_map_changed(path: String)
@@ -74,7 +79,7 @@ func is_networked() -> bool:
 
 
 func is_server() -> bool:
-	return is_networked() and multiplayer.is_server()
+	return is_networked() and is_inside_tree() and multiplayer != null and multiplayer.is_server()
 
 
 func is_dedicated_server() -> bool:
@@ -82,7 +87,7 @@ func is_dedicated_server() -> bool:
 
 
 func should_forward_commands() -> bool:
-	return is_networked() and not multiplayer.is_server()
+	return is_networked() and is_inside_tree() and multiplayer != null and not multiplayer.is_server()
 
 
 func is_client_puppet() -> bool:
@@ -259,11 +264,26 @@ func human_peer_ids() -> Array:
 func notify_match_ready() -> void:
 	if not is_networked():
 		return
-	if is_server() and not dedicated_server:
-		_match_ready_peers[multiplayer.get_unique_id()] = true
+	if is_server():
+		if not dedicated_server:
+			_match_ready_peers[multiplayer.get_unique_id()] = true
+		if not _server_match_ready:
+			_server_match_ready = true
+			_rpc_server_match_ready.rpc()
 		return
-	if not is_server():
-		_rpc_peer_match_ready.rpc_id(1)
+	_rpc_peer_match_ready.rpc_id(1)
+
+
+func is_server_match_ready() -> bool:
+	return is_networked() and _match_start_received and _server_match_ready
+
+
+@rpc("authority", "reliable")
+func _rpc_server_match_ready() -> void:
+	if not is_networked() or is_server() or not _match_start_received or _server_match_ready:
+		return
+	_server_match_ready = true
+	server_match_ready.emit()
 
 
 func all_human_matches_ready() -> bool:
@@ -294,6 +314,8 @@ func _reset_peer() -> void:
 	_slots.clear()
 	_ready_peers.clear()
 	_match_ready_peers.clear()
+	_server_match_ready = false
+	_match_start_received = false
 	_slot_kinds = [SLOT_EMPTY, SLOT_EMPTY, SLOT_EMPTY, SLOT_EMPTY]
 	_names.clear()
 	last_lobby_slots = []
@@ -352,13 +374,34 @@ func _on_peer_disconnected(peer_id: int) -> void:
 		# 歼灭规则随之自然结算（掉线算负），其余人继续打完。
 		if dedicated_server and connected_human_count() == 0:
 			_set_status("所有玩家已掉线，专用服退出，等待 systemd 重启")
-			get_tree().quit(0)
+			_request_dedicated_shutdown()
 			return
 		if slot >= 0 and is_server():
 			player_dropped.emit(slot)
 			_rpc_status.rpc("玩家 %d 已掉线，其单位已被移除，对局继续" % (slot + 1))
 		return
 	_broadcast_lobby()
+
+
+func _request_dedicated_shutdown() -> void:
+	if _dedicated_shutdown_requested:
+		return
+	_dedicated_shutdown_requested = true
+	_shutdown_dedicated_server.call_deferred()
+
+
+func _shutdown_dedicated_server() -> void:
+	var tree := get_tree()
+	# 标记整局待释放，让矿点 tree_exiting 遵守已有的父节点销毁守卫。
+	# 直接 quit 会在引擎收尾时创建尚未入树的消散特效，留下孤儿节点。
+	for scene_name in ["Match", "Loading"]:
+		var scene := tree.root.get_node_or_null(NodePath(scene_name))
+		if scene != null and not scene.is_queued_for_deletion():
+			scene.queue_free()
+	await tree.process_frame
+	await tree.process_frame
+	_reset_peer()
+	tree.quit(0)
 
 
 func _on_connected_to_server() -> void:
@@ -456,7 +499,12 @@ func _register_peer_identity(peer_id: int, device: String, player_name: String) 
 	_device_name[key] = final_name
 	_save_identity_store()
 	_broadcast_lobby()
-	_rpc_identity_ack.rpc_id(peer_id, final_slot, final_name)
+	# listen 服务器的本机 peer 不能对自己发 authority RPC；直接应用同一份
+	# 权威结果，避免每次本地开房都在日志留下 RPC-on-yourself 错误。
+	if peer_id == multiplayer.get_unique_id():
+		_rpc_identity_ack(final_slot, final_name)
+	else:
+		_rpc_identity_ack.rpc_id(peer_id, final_slot, final_name)
 
 
 func _slot_is_human_free(slot: int) -> bool:
@@ -942,6 +990,8 @@ func _rpc_start_match(
 	passive_ai_test: bool = false,
 	map_path: String = MAP_PATH
 ) -> void:
+	_server_match_ready = false
+	_match_start_received = true
 	self.passive_ai_test = passive_ai_test
 	var my_id := multiplayer.get_unique_id()
 	for i in range(min(peer_ids.size(), slot_ids.size())):

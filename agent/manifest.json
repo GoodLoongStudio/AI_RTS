@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "project": "AI_RTS",
+  "engine": "Godot 4.7 .NET Mono",
+  "dotnet": "8.x",
+  "agent_entry": "AGENTS.md",
+  "mandatory_reading": [
+    "skills/airts-workspace-boundaries/SKILL.md",
+    "skills/闭环验证工作法.md",
+    "skills/AI_RSI自校验循环.md",
+    "agent/manifest.json"
+  ],
+  "rsi_standard": "skills/AI_RSI自校验循环.md",
+  "workspace_layout": {
+    "primary_development_root": "G:/AIRTS/AI_RTS",
+    "packaged_delivery_root": "G:/AIRTS/打包版",
+    "historical_packaging_root": "G:/AIRTS/打包版/历史归档",
+    "workspace_archive_root": "G:/AIRTS/工作区归档",
+    "other_project_roots": ["G:/AIRTS/RTS_Map_Tool"],
+    "reference_roots": [
+      "G:/AIRTS/临时文件夹",
+      "G:/AIRTS/工作区归档",
+      "G:/AIRTS/tmp_logs"
+    ],
+    "engine_roots": ["G:/AIRTS/Godot", "G:/AIRTS/godot_mono_471"],
+    "non_source_subdirectories": ["build", ".godot", ".git", ".test-results", "tmp_logs", "agent/runs"],
+    "protected_runtime_subdirectory": "build/adjutant_runtime",
+    "build_note": "build contains export staging AND local model/runtime dependencies; never delete or relocate it wholesale",
+    "protected_workspace_dependencies": [
+      "G:/AIRTS/.venv_rts",
+      "G:/AIRTS/临时文件夹/airts_agent_venv",
+      "G:/AIRTS/tmp_logs/langgraph_recon"
+    ],
+    "registered_reference_worktree": "G:/AIRTS/临时文件夹/airts_ab_pre"
+  },
+  "conditional_skills": [
+    {
+      "path": "skills/airts-performance-optimization/SKILL.md",
+      "when": "performance audit or optimization, stutter, large armies, or changes expanding per-frame navigation, avoidance, visibility, rendering or effects work"
+    }
+  ],
+  "durable_directories": {
+    "plans": "agent/plans",
+    "prompts": "agent/prompts",
+    "mcp": "agent/mcp",
+    "checklists": "agent/checklists",
+    "closed_loop_reports": "agent/reports/closed-loop",
+    "templates": "agent/templates"
+  },
+  "ephemeral_directories": {
+    "runs": "agent/runs",
+    "legacy_logs": "tmp_logs",
+    "test_results": ".test-results"
+  },
+  "mixed_use_directories": {
+    "build": "build"
+  },
+  "protected_local_dependencies": {
+    "adjutant_runtime": "build/adjutant_runtime"
+  },
+  "commands": {
+    "workspace_target_check": "python tools/check_workspace_target.py --mode develop --target .",
+    "workspace_path_inspect": "python tools/check_workspace_target.py --mode inspect --target <absolute-path>",
+    "build": "dotnet build OpenRTS.sln --no-restore --nologo",
+    "full_regression": "powershell -File tools/run_full_regression.ps1 -GodotExecutable <godot-console>",
+    "targeted_regression": "python tools/run_targeted_godot_tests.py --godot <godot-console> --ids <comma-separated-ids>",
+    "parallel_regression": "python tools/run_parallel_suites.py --godot <godot-console> --jobs 4 --ids <ids>",
+    "size_probe": "<godot-console> --headless --path . --quit-after 2400 res://tests/automated/_SizeTableProbe.tscn",
+    "collision_probe": "<godot-console> --headless --path . --quit-after 2400 res://tests/automated/_ColliderOverlayShot.tscn"
+  },
+  "proof_requirements": [
+    "changed files compile or parse",
+    "runtime values are measured in a real Match when behavior or scale changes",
+    "key visual changes have a screenshot that an Agent actually opened and inspected",
+    "relevant tests return rc=0 and expected markers are present",
+    "critical changes have an independent probe or review",
+    "a closed-loop report links all evidence and lists unverified items",
+    "each iterative task records a checklist, round artifacts, and a champion decision"
+  ],
+  "never_claim_done_without": [
+    "agent/reports/closed-loop/<report>.md",
+    "test command and exit code",
+    "known residual risk"
+  ]
+}

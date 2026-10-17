@@ -1,0 +1,43 @@
+Godot Engine v4.7.1.stable.mono.official.a13da4feb - https://godotengine.org
+
+[DBGCTL] 调试控制端点已启动 127.0.0.1:24579
+[godot_ai game_helper] registered mcp capture (debugger active=false, logger=true)
+ERROR: Can't add child 'MatchEndNavigationSmokeTest' to 'root', already has a parent 'root'.
+   at: add_child (scene/main/node.cpp:1717)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://tests/automated/MatchEndNavigationSmokeTest.gd:36)
+[HISTORY] 已剔除早期 demo 播种报告 2 条（用户 2026-09-27：不要伪造）
+ERROR: In Object of type 'Node': Attempt to connect nonexistent signal 'MatchResolved' to callable 'CanvasLayer(MatchEndHandler.gd)::_on_match_resolved'.
+   at: connect (core/object/object.cpp:1550)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/handlers/MatchEndHandler.gd:17)
+       [1] _check_exit_navigates_to_detail (res://tests/automated/MatchEndNavigationSmokeTest.gd:143)
+       [2] _ready (res://tests/automated/MatchEndNavigationSmokeTest.gd:42)
+       [3] _check_detail_reads_report (res://tests/automated/MatchEndNavigationSmokeTest.gd:131)
+ERROR: Parameter "data.tree" is null.
+   at: get_tree (scene/main/node.h:559)
+   GDScript backtrace (most recent call first):
+       [0] _check_exit_navigates_to_detail (res://tests/automated/MatchEndNavigationSmokeTest.gd:146)
+SCRIPT ERROR: Invalid access to property or key 'process_frame' on a base object of type 'null instance'.
+   at: _check_exit_navigates_to_detail (res://tests/automated/MatchEndNavigationSmokeTest.gd:146)
+   GDScript backtrace (most recent call first):
+       [0] _check_exit_navigates_to_detail (res://tests/automated/MatchEndNavigationSmokeTest.gd:146)
+Match end navigation smoke test completed: 0 failure(s)
+ERROR: Parameter "data.tree" is null.
+   at: get_tree (scene/main/node.h:559)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://tests/automated/MatchEndNavigationSmokeTest.gd:44)
+       [1] _check_exit_navigates_to_detail (res://tests/automated/MatchEndNavigationSmokeTest.gd:146)
+SCRIPT ERROR: Invalid access to property or key 'root' on a base object of type 'null instance'.
+   at: _silence_all_music (res://tests/automated/SmokeTestExit.gd:41)
+   GDScript backtrace (most recent call first):
+       [0] _silence_all_music (res://tests/automated/SmokeTestExit.gd:41)
+       [1] request (res://tests/automated/SmokeTestExit.gd:22)
+       [2] _ready (res://tests/automated/MatchEndNavigationSmokeTest.gd:44)
+       [3] _check_exit_navigates_to_detail (res://tests/automated/MatchEndNavigationSmokeTest.gd:146)
+SCRIPT ERROR: Cannot call method 'create_timer' on a null value.
+   at: request (res://tests/automated/SmokeTestExit.gd:23)
+   GDScript backtrace (most recent call first):
+       [0] request (res://tests/automated/SmokeTestExit.gd:23)
+       [1] _ready (res://tests/automated/MatchEndNavigationSmokeTest.gd:44)
+       [2] _check_exit_navigates_to_detail (res://tests/automated/MatchEndNavigationSmokeTest.gd:146)

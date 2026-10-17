@@ -1,0 +1,20 @@
+[selfplay] 验收端口 24589 在专用段 24589-24592 内
+清理：没有属于本局端口的 Godot 进程
+[selfplay] 大厅就绪: 指挥官-309
+[selfplay] op=start -> {'map': 'res://source/match/maps/PlainAndSimple.tscn', 'ok': True, 'passive_ai_test': False, 'peaceful': False, 'seed': 0, 'with_ai': True}
+runner 启动 pid=48284 state_dir=G:\AIRTS\tmp_logs\langgraph_recon\selfplay\state_fs_ref6
+pidfile=43964
+[selfplay] 对局开始，采样 300s（backend=off difficulty=-1）
+[selfplay] 矿场前置：派 Unit_1 到 [174.27, 170.79] -> {'accepted': False, 'command_id': '', 'moved': ['Unit_1'], 'ok': False, 'reason': '命令未被接受（PendingAuthority），请根据 status 复
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 149.0, 'unit_xz': [84.7, 51.8]}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 127.1, 'unit_xz': [97.8, 69.2]}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 91.4, 'unit_xz': [119.3, 97.8]}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 52.4, 'unit_xz': [142.8, 129.0]}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': True, 'distance_m': 12.5, 'unit_xz': [166.7, 160.8]}
+[selfplay] 矿场建造第 1 次（auto）客户端={'accepted': False, 'builders': [], 'command_id': 'e41833f5-7531-408d-4c55-00001f7434a7',  权威={"found": false, "reason": "query_failed", "error": "[WinError 10061] 由于目标计算机积极拒绝，无法连接。"} 观测=[]
+[selfplay] 矿场建造第 2 次（auto）客户端={'detail': '自动放置找不到合法落点（基地周围无可建地面/没有已探明的新矿点）。', 'error': 'no valid auto site', 'ok': False 权威={"found": true, "status": "Accepted", "match": "scene_scan", "reason": "", "command_id": "e41833f5-7531-408d-4c55-00001f7434a7", "scanned": 44} 观测=[{'name': 'Unit_75', 'constructed': True, 'refinery': {'assigned': 0, 'constructed': True, 'delivered_amount': 0, 'deliv
+[selfplay] 矿场已出现在权威观测：[{'name': 'Unit_75', 'constructed': True, 'refinery': {'assigned': 0, 'constructed': True, 'delivered_amount': 0, 'delivered_count': 0, 'has_ore': True, 'service_radius_m': 30.0, 'takeovers': 0, 'work
+停止 runner roots=[48284]（全部=[43964, 48284]，authority-port=24572）
+清理本局进程树 roots=[52048, 47336] (全部=[38040, 47336, 52048, 56732])
+[selfplay] 终局: verdict=timeout own=68 enemy=9 units={'command_center': 1, 'drone': 1, 'worker': 6, 'barracks': 2, 'soldier': 46, 'vehicle_factory': 1, 'ore_refinery': 1, 'tank': 12} balance={'a': 18000}
+[selfplay] written: G:\AIRTS\tmp_logs\langgraph_recon\selfplay\result_fs_ref6.json

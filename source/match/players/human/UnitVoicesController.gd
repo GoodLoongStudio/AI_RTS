@@ -27,6 +27,8 @@ func _handle_event(event):
 
 ## 播放指定音频流（全局旁白与按单位语音共用同一播放器与占用规则）。
 func _play_stream(stream: AudioStream):
+	if NetSession.dedicated_server:
+		return
 	if _audio_player.playing or stream == null:
 		return
 	_audio_player.stream = stream

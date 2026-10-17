@@ -14,6 +14,7 @@ const MatchScene = preload("res://tests/manual/TestOneUnit.tscn")
 const WorkerScene = preload("res://source/match/units/Worker.tscn")
 const SidebarScript = preload("res://source/match/hud/ra3/Ra3Sidebar.gd")
 
+const CommandCenterScene = preload("res://source/match/units/CommandCenter.tscn")
 const AIRPORT := "res://source/match/units/AircraftFactory.tscn"
 const ANTI_AIR := "res://source/match/units/AntiAirTurret.tscn"
 const SIDEBAR_GROUP := "ra3_sidebar"
@@ -81,6 +82,16 @@ func _check_handler_layer(handler) -> void:
 		_pending_path(handler) == AIRPORT,
 		"点机场后待放置蓝图应为机场，实测 %s" % _pending_path(handler)
 	)
+	var build_area = handler._build_range_rings
+	_check(build_area != null, "进入放置模式后应创建地面建造范围显示")
+	if build_area != null:
+		_check(build_area is MeshInstance3D, "建造范围显示应是可渲染的 MeshInstance3D")
+		var area_material = build_area.material_override
+		_check(
+			area_material is StandardMaterial3D
+				and is_equal_approx((area_material as StandardMaterial3D).albedo_color.a, 0.22),
+			"建造范围应使用白色半透明材质"
+		)
 	var first_ghost = handler._active_blueprint_node
 
 	MatchSignals.place_structure.emit(anti_air)
@@ -200,7 +211,39 @@ func _check_end_to_end_layer(match_instance, human, handler) -> void:
 
 	var tank = match_instance.get_node_or_null("Players/Human/Tank")
 	var anchor: Vector3 = tank.global_position if tank != null else Vector3(13.0, 0.0, 13.0)
-	blueprint.global_transform.origin = anchor + Vector3(7.0, 0.0, 0.0)
+	# 【2026-09-30 夹具修正】TestOneUnit 场景里**没有任何己方建筑**，而建筑放置要求
+	# "与己方建筑相邻"（圆心距 <= 候选半径 + 已有半径 + 0.75）。旧实现把蓝图摆在
+	# anchor+7 随便一个位置 → 权威判定必然 NotAdjacent；自动选址也永远找不到合法点
+	# （实测 198 次采样全 NotAdjacent，诊断清单打印出 0 座可相邻的己方建筑）。
+	# 本测试要测的是"切换后落地的是新建筑"，所以先给玩家造一座主基地，
+	# 再把蓝图精确摆进相邻窗口（避免把"夹具没有基地"误判成放置链路坏了）。
+	var base_structure: Node3D = CommandCenterScene.instantiate()
+	match_instance.call(
+		"_setup_and_spawn_unit",
+		base_structure,
+		Transform3D(Basis.IDENTITY, anchor + Vector3(0.0, 0.0, 12.0)),
+		human,
+		false
+	)
+	await get_tree().process_frame
+	await get_tree().physics_frame
+	var active_build_area = handler._build_range_rings
+	if active_build_area != null:
+		for _frame in range(30):
+			if active_build_area.mesh != null:
+				break
+			await get_tree().process_frame
+		_check(
+			active_build_area.mesh != null and active_build_area.mesh.get_surface_count() > 0,
+			"已有己方建筑后，建造范围显示应生成白色地面面片"
+		)
+	var turret_probe: Node3D = load(ANTI_AIR).instantiate()
+	var turret_radius := float(turret_probe.body_radius())
+	turret_probe.free()
+	var window_center := float(base_structure.body_radius()) + turret_radius + 0.375
+	blueprint.global_transform.origin = base_structure.global_position + Vector3(window_center, 0.0, 0.0)
+	print("[probe] 相邻窗口中心=%.2f（基地 r=%.2f + 炮塔 r=%.2f + 0.375）" % [
+		window_center, float(base_structure.body_radius()), turret_radius])
 	await get_tree().process_frame
 	print(
 		"[probe] e2e validity=%s issues=%s" % [

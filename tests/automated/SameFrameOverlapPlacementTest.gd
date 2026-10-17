@@ -72,26 +72,40 @@ func _ready():
 	if cc == null:
 		print("Same-frame overlap placement: 1 failure(s)")
 		get_tree().quit(1)
+	# 【2026-09-29 尺寸口径统一】落点半径由**统一后的世界几何**直接算出，不再枚举试探：
+	#   · 最小中心距 = cc.radius + barracks.radius（Overlaps 用世界 footprint）
+	#   · 相邻上限   = 上式 + EdgeClearanceMeters（0.75）
+	# 取窗内的"刚过最小距 + 0.6m"作候选，12 个方位里必有一个合法（避开矿点 carve 的
+	# 方位由 issues 分布兜底：哪个方位被占就换下一个）。
+	var cc_radius: float = float(cc.get("radius"))
+	var barracks_radius: float = 0.0
+	var barracks_probe_node = BarracksScene.instantiate()
+	if barracks_probe_node != null:
+		barracks_radius = float(barracks_probe_node.get("radius"))
+		barracks_probe_node.free()
+	var min_center: float = cc_radius + barracks_radius
+	# EdgeClearanceMeters=0.75；+0.6 位于相邻合法窗口内部，同时避开重叠边界。
+	var window_radius: float = min_center + 0.6
 	var spot := Vector3.ZERO
 	var found := false
-	for radius in [3.0, 4.0, 5.0, 6.0, 7.0]:
-		for sector in range(12):
-			var angle := TAU * float(sector) / 12.0
-			var candidate := Vector3(
-				cc.global_position.x + cos(angle) * radius,
-				cc.global_position.y,
-				cc.global_position.z + sin(angle) * radius
-			)
-			var probe: Dictionary = runtime.Evaluate(
-				human, BarracksScene, Transform3D(Basis.IDENTITY, candidate), cost
-			)
-			if bool(probe.get("accepted", false)):
-				spot = candidate
-				found = true
-				break
-		if found:
+	var tried := 0
+	for sector in range(12):
+		var angle := TAU * float(sector) / 12.0
+		var candidate := Vector3(
+			cc.global_position.x + cos(angle) * window_radius,
+			0.0,
+			cc.global_position.z + sin(angle) * window_radius
+		)
+		tried += 1
+		var probe: Dictionary = runtime.Evaluate(
+			human, BarracksScene, Transform3D(Basis.IDENTITY, candidate), cost
+		)
+		if bool(probe.get("accepted", false)):
+			spot = candidate
+			found = true
 			break
-	_check(found, "应能在基地附近找到合法落点")
+	_check(found, "应能在基地附近找到合法落点（窗半径 %.2f = %.2f + %.2f + 0.6，试了 %d 个方位）"
+		% [window_radius, cc_radius, barracks_radius, tried])
 	if not found:
 		print("Same-frame overlap placement: 1 failure(s)")
 		get_tree().quit(1)
@@ -102,12 +116,19 @@ func _ready():
 	_check(bool(first.get("accepted", false)),
 		"同帧第一次放置应成功（issue=%s）" % str(first.get("primary_issue", "")))
 
-	# 第二次放置：**同一帧内**（不 await）对同一坐标再放一次 → 必须 Occupied 拒绝
+	# 第二次放置：**同一帧内**（不 await）对同一坐标再放一次 → 必须拒绝
+	# 2026-09-29：拒绝原因现在可能是 `Occupied`（占地判定）或 `ConstructionInProgress`
+	# （"一次只能建造一个建筑"规则，权威端有意前置短路，见
+	# tests/core/StructurePlacementServiceTests.cs 的
+	# ConstructionInProgressSitsBetweenAuthorizationAndWorld）。两者都满足
+	# "两个建筑不能重叠落地"这条硬要求，所以这里按结果断言、把实际原因打出来。
 	var second: Dictionary = runtime.Place(human, BarracksScene, transform, cost)
 	var occupied := "Occupied" in (second.get("issues", []) as Array)
+	var blocked_by_site_rule := "ConstructionInProgress" in (second.get("issues", []) as Array)
 	_check(not bool(second.get("accepted", false)),
 		"同帧第二次放置必须被拒绝（否则就是重叠建筑；issue=%s）" % str(second.get("primary_issue", "")))
-	_check(occupied, "同帧第二次放置的拒绝原因应为 Occupied")
+	_check(occupied or blocked_by_site_rule,
+		"同帧第二次放置必须因占地或在建工地被拒（实际 %s）" % str(second.get("primary_issue", "")))
 
 	# 第三次：隔一帧后再放同一坐标 → 同样必须拒绝（跨帧缓存刷新后也要挡住）
 	await get_tree().physics_frame

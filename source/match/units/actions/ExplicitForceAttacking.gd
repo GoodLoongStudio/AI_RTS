@@ -29,7 +29,7 @@ func _to_string():
 func _target_in_range() -> bool:
 	return (
 		_unit.global_position_yless.distance_to(_target_unit.global_position_yless)
-		<= _unit.attack_range
+		<= _unit.reach_range_against(_target_unit)
 	)
 
 
@@ -37,7 +37,8 @@ func _attack_or_move_closer():
 	_sub_action = (
 		AttackingWhileInRange.new(_target_unit)
 		if _target_in_range()
-		else FollowingToReachDistance.new(_target_unit, _unit.attack_range)
+		else FollowingToReachDistance.new(
+			_target_unit, _unit.reach_range_against(_target_unit))
 	)
 	if _sub_action is AttackingWhileInRange:
 		# 显式强制攻击：命中允许按友伤倍率伤害友军

@@ -100,4 +100,5 @@ public sealed record ConstructionSiteSnapshot(
     ConstructionSiteState State,
     ConstructionProgressSource ProgressSource,
     int AutomaticWorkPerTick,
-    long Version);
+    long Version,
+    double AutomaticWorkFactor = 1.0);

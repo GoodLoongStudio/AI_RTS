@@ -1,0 +1,158 @@
+{
+  "id": "53fc8a584b3947ecb04cbf1d9bd66092",
+  "baseline": false,
+  "status": "error",
+  "config": {
+    "schema_version": 2,
+    "algo_version": "7.11.0",
+    "layout_seed": 46,
+    "terrain_seed": 785207481,
+    "player_spacing": "any",
+    "controls": {
+      "river_layout": 2,
+      "river_enabled": 1,
+      "lake_count": 0,
+      "lake_area": 5000,
+      "neutral_plateau_scale": 1.7,
+      "plateau_max": 8,
+      "landform_elongation": 1.2,
+      "landform_recess": 0.2,
+      "landform_softness": 0.16,
+      "plateau_ramp_width": 8,
+      "river_width": 18,
+      "river_bend_scale": 1.0,
+      "river_crossings": 6,
+      "obstacle_percent": 40,
+      "cover_cluster_max": 10,
+      "layout_attempts": 4
+    }
+  },
+  "target": "full",
+  "spacing": "close",
+  "created_at": "2026-09-28T23:31:35",
+  "started": 1790609495.700922,
+  "duration": 9.2,
+  "title": "布局 46 · 地貌 785207481",
+  "pipeline_version": "1.0.0",
+  "stage_versions": {
+    "G1": "2.0.0",
+    "G2": "7.11.0",
+    "G3": "2.2.0",
+    "G4": "2.0.0"
+  },
+  "stages": {
+    "g1_input": {
+      "status": "done",
+      "started_at": "2026-09-28T23:31:43",
+      "duration_s": 0.1,
+      "error": null,
+      "pass": true,
+      "stage": "G1",
+      "version": "2.0.0",
+      "finished_at": "2026-09-28T23:31:43",
+      "source": "G:\\AIRTS\\AI_RTS\\tools\\mapgen\\runs\\46\\G1",
+      "source_hashes": {
+        "manifest.json": "86505365279e7e27a9119085a6b1c07b16cf4bc748390ba261e02b756cf7a973",
+        "mapgrid.npz": "ac65b91e079d1496867ceb2147585fce48d7229e9c7cdf2d3a479b570e91ab29",
+        "mapspec.json": "68f1c9d204485563cdfa28fde1ae2e5ddeaee7789580568528e5771029e5a1b9",
+        "starts.png": "7db308e8c247832a9cc01ed83faa3485dff5e330f3bae4f8bfe681fc9d09eda4",
+        "starts.png.import": "756399b7ad924fbbd8da588d986edd1106384e182c89aeabe1803e2471faac84",
+        "starts_table.png": "3047045b55724b377330ceb307a5332c6906f197477452ebde20bdedf28b01ce",
+        "starts_table.png.import": "e45bcd47f30c2d9e6321c468e1219e8c18dfdb38c89900d617bb3caf5467a267",
+        "territory.png": "f085ee8e6eabdb5410eeb2aa438bfe987768db725992501312aaf0ebc773f918",
+        "territory.png.import": "f9d1a622cc437afe75e61fa123af153ed34168b072b6c1b49cdca1dfcf07f4b7"
+      },
+      "starts": [
+        [
+          70.07,
+          160.69
+        ],
+        [
+          219.5,
+          105.86
+        ],
+        [
+          58.94,
+          66.21
+        ],
+        [
+          157.86,
+          183.74
+        ]
+      ],
+      "spacing": "close",
+      "g1_approved": false,
+      "output_hashes": {
+        "mapgrid.npz": "ac65b91e079d1496867ceb2147585fce48d7229e9c7cdf2d3a479b570e91ab29"
+      }
+    },
+    "g2_terrain": {
+      "status": "error",
+      "started_at": "2026-09-28T23:31:43",
+      "duration_s": 1.2,
+      "error": "Allocation failed (probably too large).",
+      "pass": true,
+      "stage": "G2",
+      "version": "7.11.0",
+      "finished_at": "2026-09-28T23:31:44",
+      "error_kind": "stage_error",
+      "attempts": null
+    }
+  },
+  "layout_locked": false,
+  "terrain_locked": false,
+  "skip_engine_check": true,
+  "layout_pool": [
+    36,
+    5,
+    46,
+    18,
+    4,
+    23,
+    14,
+    13,
+    49,
+    8,
+    54,
+    15,
+    42,
+    27,
+    31,
+    38,
+    16,
+    17,
+    37,
+    55,
+    35,
+    25,
+    39,
+    12,
+    3,
+    2,
+    21,
+    47,
+    51,
+    61
+  ],
+  "layout_tried": [
+    {
+      "seed": 36,
+      "reason": "checks",
+      "attempts": 0,
+      "rejected": null
+    },
+    {
+      "seed": 5,
+      "reason": "checks",
+      "attempts": 0,
+      "rejected": null
+    }
+  ],
+  "preview_only": false,
+  "progress": {
+    "stage": "G1",
+    "phase": "出生布局已就绪"
+  },
+  "error_kind": "generation_error",
+  "error": "Allocation failed (probably too large)."
+}

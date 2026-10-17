@@ -1,0 +1,46 @@
+Godot Engine v4.7.1.stable.mono.official.a13da4feb - https://godotengine.org
+
+[DBGCTL] 调试控制端点已启动 127.0.0.1:24579
+[godot_ai game_helper] registered mcp capture (debugger active=false, logger=true)
+[PASS] 事件日志文件名应解出 match_id 前 8 位
+[PASS] 没挂上对局时应解出 nomatch
+[PASS] 非事件日志（无 events）应返回空
+[PASS] 状态文件不应被当成事件日志
+[PASS] 空文件名不抛异常
+[PASS] 对局身份对齐的候选应优先于更新鲜的其它对局
+[PASS] 没有身份信息时自己目录优先
+[PASS] 没有自己目录时取最新鲜的外部候选
+[PASS] 身份都对不上时按新鲜度兜底
+[PASS] 无候选返回空字典
+[PASS] 无候选且无身份返回空字典
+[PASS] 外部局状态行应带外部进程前缀与阶段
+[PASS] 外部局状态行应保留整局主线目标
+[PASS] 外部局最近行动应显示副官在想什么
+[PASS] 外部局为什么应显示副官的理由
+[PASS] 外部局执行结果应显示本轮下发
+[PASS] 执行结果应带指挥单位数
+[PASS] 执行结果应附判据说明
+[PASS] 本机 runner 的状态行保持原格式
+[PASS] 本机 runner 的最近行动保持原格式
+[PASS] 空状态回落到运行中
+[PASS] 空状态最近行动为占位符
+[PASS] 空状态为什么为占位符
+[PASS] 空状态执行结果为占位符
+[PASS] 扫描应发现两层布局的 hud_status.json
+[PASS] 扫描应发现一层布局的 hud_status.json
+[PASS] 扫描不应带出目录外的内容（实际 2）
+[PASS] 目录的对局身份应取最新事件日志的文件名后缀
+[PASS] 刚写的状态文件应通过新鲜度闸
+[PASS] 候选应带上对局身份
+[PASS] 端到端应挑出对局身份对齐的外部副官状态
+[PASS] 身份未知时也要有内容可显示
+[PASS] 刚写的状态文件应算新鲜
+[PASS] 超出新鲜度窗口的状态文件必须判陈旧（上一局残留）
+[PASS] 没有状态文件不产生候选
+AdjutantHudStatusDiscovery: 0 failure(s)
+[EXIT-TRACE] EXIT_TREE：场景树收尾（tick=1，场景=unknown，对局结果=无该节点）
+[EXIT-TRACE] PREDELETE：引擎收尾（Globals 释放，tick=unknown(已脱离场景树)）
+WARNING: 4 RIDs of type "CanvasItem" were leaked.
+   at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2735)
+WARNING: 11 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2536)

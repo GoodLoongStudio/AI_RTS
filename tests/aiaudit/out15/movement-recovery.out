@@ -1,0 +1,732 @@
+Godot Engine v4.7.1.stable.mono.official.a13da4feb - https://godotengine.org
+
+[DBGCTL] 调试控制端点已启动 127.0.0.1:24579
+[godot_ai game_helper] registered mcp capture (debugger active=false, logger=true)
+G4PERF fog_resize 416x416 px_per_m=2
+    ... [last line repeated 1 more times]
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=11 tint=(0.4, 0.6941, 1.0, 1.0)
+[G4PERF] minimap viewport=416x416 scale=2.000
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+       [2] _ready (res://source/match/hud/Minimap.gd:107)
+       [3] _ready (res://tests/automated/MovementRecoverySmokeTest.gd:36)
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+       [2] _follow_minimap_fog_mask (res://source/match/hud/Minimap.gd:118)
+       [3] _ready (res://source/match/hud/Minimap.gd:111)
+       [4] _ready (res://tests/automated/MovementRecoverySmokeTest.gd:36)
+G4PERF command_runtime_us=4655 frames=1
+G4PERF production_runtime_us=1167 frames=1
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+[INPUT] UnitActionsController waiting for local player player=Human
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+G4PERF command_runtime_us=111 frames=2
+G4PERF production_runtime_us=14 frames=2
+NAVDBG air polygons=2 vertices=4 rid_valid=true region_on_our_map=true map_active=true
+NAVDBG bake map=/root/MovementRecoverySmokeTest/Match/Map StaticBody3D in subtree=0
+WARNING: Property agent_height is ceiled to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:367)
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+       [2] _follow_minimap_fog_mask (res://source/match/hud/Minimap.gd:118)
+NAVDBG polygons=179 vertices=157
+[ECO] PublishSnapshot player=a2a13dc8 a=0
+WARNING: [MatchHistoryHook] 未找到对局根节点，本局不写入历史。
+   at: push_warning (core/variant/variant_utility.cpp:1033)
+   GDScript backtrace (most recent call first):
+       [0] _begin_recording (res://source/history/MatchHistoryHook.gd:116)
+[INPUT] UnitActionsController enabled player=Human
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+G4PERF command_runtime_us=33 frames=40
+G4PERF production_runtime_us=3 frames=40
+G4PERF movement_us=75 unit=Tank
+WARNING: Property agent_height is ceiled to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:367)
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+NAVDBG polygons=179 vertices=157
+G4PERF command_runtime_us=35 frames=80
+G4PERF production_runtime_us=2 frames=80
+G4PERF movement_us=68 unit=Tank
+G4PERF command_runtime_us=14 frames=120
+G4PERF production_runtime_us=2 frames=120
+G4PERF movement_us=33 unit=Tank
+G4PERF command_runtime_us=27 frames=160
+G4PERF production_runtime_us=2 frames=160
+G4PERF movement_us=51 unit=Tank
+G4PERF command_runtime_us=23 frames=200
+G4PERF production_runtime_us=3 frames=200
+G4PERF movement_us=47 unit=Tank
+G4PERF command_runtime_us=15 frames=240
+G4PERF production_runtime_us=1 frames=240
+G4PERF movement_us=36 unit=Tank
+G4PERF command_runtime_us=12 frames=280
+G4PERF production_runtime_us=1 frames=280
+G4PERF movement_us=32 unit=Tank
+G4PERF command_runtime_us=38 frames=320
+G4PERF production_runtime_us=2 frames=320
+G4PERF movement_us=61 unit=Tank
+G4PERF command_runtime_us=17 frames=360
+G4PERF production_runtime_us=9 frames=360
+G4PERF movement_us=41 unit=Tank
+G4PERF command_runtime_us=14 frames=400
+G4PERF production_runtime_us=1 frames=400
+G4PERF movement_us=38 unit=Tank
+G4PERF command_runtime_us=13 frames=440
+G4PERF production_runtime_us=2 frames=440
+G4PERF movement_us=34 unit=Tank
+G4PERF command_runtime_us=19 frames=480
+G4PERF production_runtime_us=1 frames=480
+G4PERF movement_us=54 unit=Tank
+[MOVEMENT] wall-detour state=Arrived elapsed_ms=7146 start=(13.263, -0.000015, 12.637) end=(32.78811, -0.000015, 12.637) planar_err=0.47
+G4PERF command_runtime_us=30 frames=520
+G4PERF production_runtime_us=9 frames=520
+G4PERF movement_us=41 unit=Tank
+G4PERF command_runtime_us=17 frames=560
+G4PERF production_runtime_us=1 frames=560
+G4PERF movement_us=39 unit=Tank
+G4PERF command_runtime_us=14 frames=600
+G4PERF production_runtime_us=1 frames=600
+G4PERF movement_us=34 unit=Tank
+G4PERF command_runtime_us=24 frames=640
+G4PERF production_runtime_us=2 frames=640
+G4PERF movement_us=85 unit=Tank
+G4PERF command_runtime_us=13 frames=680
+G4PERF production_runtime_us=1 frames=680
+G4PERF movement_us=37 unit=Tank
+G4PERF command_runtime_us=12 frames=720
+G4PERF production_runtime_us=1 frames=720
+G4PERF movement_us=31 unit=Tank
+G4PERF command_runtime_us=20 frames=760
+G4PERF production_runtime_us=1 frames=760
+G4PERF movement_us=33 unit=Tank
+G4PERF command_runtime_us=13 frames=800
+G4PERF production_runtime_us=1 frames=800
+G4PERF movement_us=34 unit=Tank
+G4PERF command_runtime_us=35 frames=840
+G4PERF production_runtime_us=3 frames=840
+G4PERF movement_us=92 unit=Tank
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+G4PERF command_runtime_us=22 frames=880
+G4PERF production_runtime_us=6 frames=880
+G4PERF movement_us=86 unit=Tank
+WARNING: Property agent_height is ceiled to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:367)
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+NAVDBG polygons=259 vertices=229
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+[GATHER] action _ready unit=Unit_13 resource=true
+[GATHER] 进入 MOVING_TO_RESOURCE, resource=ResourceA2:<Area3D#233689844645>
+G4PERF command_runtime_us=25 frames=920
+G4PERF production_runtime_us=3 frames=920
+G4PERF movement_us=49 unit=Tank
+G4PERF movement_us=40 unit=Unit_12
+G4PERF movement_us=37 unit=Unit_13
+G4PERF command_runtime_us=30 frames=960
+G4PERF production_runtime_us=2 frames=960
+G4PERF movement_us=63 unit=Tank
+G4PERF movement_us=27 unit=Unit_12
+G4PERF movement_us=25 unit=Unit_13
+G4PERF command_runtime_us=15 frames=1000
+G4PERF production_runtime_us=1 frames=1000
+G4PERF movement_us=34 unit=Tank
+G4PERF movement_us=27 unit=Unit_12
+G4PERF movement_us=24 unit=Unit_13
+G4PERF command_runtime_us=29 frames=1040
+G4PERF production_runtime_us=1 frames=1040
+G4PERF movement_us=110 unit=Tank
+G4PERF movement_us=33 unit=Unit_12
+G4PERF movement_us=26 unit=Unit_13
+G4PERF command_runtime_us=28 frames=1080
+G4PERF production_runtime_us=2 frames=1080
+G4PERF movement_us=42 unit=Tank
+G4PERF movement_us=27 unit=Unit_12
+G4PERF movement_us=140 unit=Unit_13
+G4PERF command_runtime_us=13 frames=1120
+G4PERF production_runtime_us=1 frames=1120
+G4PERF movement_us=32 unit=Tank
+G4PERF movement_us=26 unit=Unit_12
+G4PERF movement_us=108 unit=Unit_13
+G4PERF command_runtime_us=25 frames=1160
+G4PERF production_runtime_us=2 frames=1160
+G4PERF movement_us=43 unit=Tank
+G4PERF movement_us=27 unit=Unit_12
+G4PERF movement_us=126 unit=Unit_13
+G4PERF command_runtime_us=23 frames=1200
+G4PERF production_runtime_us=2 frames=1200
+G4PERF movement_us=80 unit=Tank
+G4PERF movement_us=36 unit=Unit_12
+G4PERF movement_us=153 unit=Unit_13
+G4PERF command_runtime_us=26 frames=1240
+G4PERF production_runtime_us=3 frames=1240
+G4PERF movement_us=46 unit=Tank
+G4PERF movement_us=28 unit=Unit_12
+G4PERF movement_us=247 unit=Unit_13
+G4PERF command_runtime_us=34 frames=1280
+G4PERF production_runtime_us=10 frames=1280
+G4PERF movement_us=92 unit=Tank
+G4PERF movement_us=59 unit=Unit_12
+G4PERF movement_us=193 unit=Unit_13
+G4PERF command_runtime_us=16 frames=1320
+G4PERF production_runtime_us=2 frames=1320
+G4PERF movement_us=37 unit=Tank
+G4PERF movement_us=42 unit=Unit_12
+G4PERF movement_us=119 unit=Unit_13
+G4PERF command_runtime_us=26 frames=1360
+G4PERF production_runtime_us=2 frames=1360
+G4PERF movement_us=63 unit=Tank
+G4PERF movement_us=47 unit=Unit_12
+G4PERF movement_us=154 unit=Unit_13
+G4PERF command_runtime_us=16 frames=1400
+G4PERF production_runtime_us=2 frames=1400
+G4PERF movement_us=33 unit=Tank
+G4PERF movement_us=40 unit=Unit_12
+G4PERF movement_us=107 unit=Unit_13
+G4PERF command_runtime_us=14 frames=1440
+G4PERF production_runtime_us=1 frames=1440
+G4PERF movement_us=38 unit=Tank
+G4PERF movement_us=45 unit=Unit_12
+G4PERF movement_us=129 unit=Unit_13
+G4PERF command_runtime_us=18 frames=1480
+G4PERF production_runtime_us=2 frames=1480
+G4PERF movement_us=34 unit=Tank
+G4PERF movement_us=35 unit=Unit_12
+G4PERF movement_us=106 unit=Unit_13
+G4PERF command_runtime_us=15 frames=1520
+G4PERF production_runtime_us=1 frames=1520
+G4PERF movement_us=34 unit=Tank
+G4PERF movement_us=36 unit=Unit_12
+G4PERF movement_us=112 unit=Unit_13
+G4PERF command_runtime_us=15 frames=1560
+G4PERF production_runtime_us=1 frames=1560
+G4PERF movement_us=32 unit=Tank
+G4PERF movement_us=33 unit=Unit_12
+G4PERF movement_us=97 unit=Unit_13
+G4PERF command_runtime_us=12 frames=1600
+G4PERF production_runtime_us=1 frames=1600
+G4PERF movement_us=32 unit=Tank
+G4PERF movement_us=38 unit=Unit_12
+G4PERF movement_us=108 unit=Unit_13
+G4PERF command_runtime_us=10 frames=1640
+G4PERF production_runtime_us=1 frames=1640
+G4PERF movement_us=74 unit=Tank
+G4PERF movement_us=47 unit=Unit_12
+G4PERF movement_us=153 unit=Unit_13
+G4PERF command_runtime_us=14 frames=1680
+G4PERF production_runtime_us=1 frames=1680
+G4PERF movement_us=48 unit=Tank
+G4PERF movement_us=57 unit=Unit_12
+G4PERF movement_us=124 unit=Unit_13
+G4PERF command_runtime_us=16 frames=1720
+G4PERF production_runtime_us=1 frames=1720
+G4PERF movement_us=36 unit=Tank
+G4PERF movement_us=40 unit=Unit_12
+G4PERF movement_us=127 unit=Unit_13
+G4PERF command_runtime_us=11 frames=1760
+G4PERF production_runtime_us=1 frames=1760
+G4PERF movement_us=35 unit=Tank
+G4PERF movement_us=51 unit=Unit_12
+G4PERF movement_us=205 unit=Unit_13
+G4PERF command_runtime_us=15 frames=1800
+G4PERF production_runtime_us=1 frames=1800
+G4PERF movement_us=42 unit=Tank
+G4PERF movement_us=71 unit=Unit_12
+G4PERF movement_us=194 unit=Unit_13
+G4PERF command_runtime_us=27 frames=1840
+G4PERF production_runtime_us=2 frames=1840
+G4PERF movement_us=72 unit=Tank
+G4PERF movement_us=61 unit=Unit_12
+G4PERF movement_us=194 unit=Unit_13
+G4PERF command_runtime_us=30 frames=1880
+G4PERF production_runtime_us=3 frames=1880
+G4PERF movement_us=98 unit=Tank
+G4PERF movement_us=62 unit=Unit_12
+G4PERF movement_us=202 unit=Unit_13
+G4PERF command_runtime_us=15 frames=1920
+G4PERF production_runtime_us=1 frames=1920
+G4PERF movement_us=33 unit=Tank
+G4PERF movement_us=37 unit=Unit_12
+G4PERF movement_us=112 unit=Unit_13
+G4PERF command_runtime_us=13 frames=1960
+G4PERF production_runtime_us=1 frames=1960
+G4PERF movement_us=96 unit=Tank
+G4PERF movement_us=59 unit=Unit_12
+G4PERF movement_us=191 unit=Unit_13
+[MOVEMENT] head-on a=Arrived b=Arrived elapsed_ms=17566 separation=19.05
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+[MOVEMENT] group-return arrived=8/8 at_base=8 min_sep=6.89 elapsed_ms=22 stats={ "stall_detections": 6, "repaths": 192, "escapes": 6, "unreachable": 0, "budget_skips": 0, "soft_phase_enters": 0, "soft_phase_exits": 0, "soft_phase_rejects": 2 }
+G4PERF command_runtime_us=12 frames=2000
+G4PERF production_runtime_us=1 frames=2000
+G4PERF movement_us=46 unit=Tank
+WARNING: Property agent_height is ceiled to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:367)
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+NAVDBG polygons=222 vertices=196
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+G4PERF command_runtime_us=18 frames=2040
+G4PERF production_runtime_us=1 frames=2040
+G4PERF movement_us=34 unit=Tank
+WARNING: Property agent_height is ceiled to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:367)
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+NAVDBG polygons=179 vertices=157
+G4PERF command_runtime_us=10 frames=2080
+G4PERF production_runtime_us=1 frames=2080
+G4PERF movement_us=34 unit=Tank
+G4PERF command_runtime_us=12 frames=2120
+G4PERF production_runtime_us=1 frames=2120
+G4PERF movement_us=34 unit=Tank
+G4PERF command_runtime_us=17 frames=2160
+G4PERF production_runtime_us=1 frames=2160
+G4PERF movement_us=38 unit=Tank
+G4PERF command_runtime_us=23 frames=2200
+G4PERF production_runtime_us=2 frames=2200
+G4PERF movement_us=53 unit=Tank
+G4PERF command_runtime_us=17 frames=2240
+G4PERF production_runtime_us=1 frames=2240
+G4PERF movement_us=46 unit=Tank
+G4PERF command_runtime_us=26 frames=2280
+G4PERF production_runtime_us=2 frames=2280
+G4PERF movement_us=40 unit=Tank
+G4PERF command_runtime_us=12 frames=2320
+G4PERF production_runtime_us=1 frames=2320
+G4PERF movement_us=34 unit=Tank
+G4PERF command_runtime_us=16 frames=2360
+G4PERF production_runtime_us=2 frames=2360
+G4PERF movement_us=34 unit=Tank
+G4PERF command_runtime_us=16 frames=2400
+G4PERF production_runtime_us=2 frames=2400
+G4PERF movement_us=44 unit=Tank
+G4PERF command_runtime_us=16 frames=2440
+G4PERF production_runtime_us=1 frames=2440
+G4PERF movement_us=39 unit=Tank
+G4PERF command_runtime_us=15 frames=2480
+G4PERF production_runtime_us=1 frames=2480
+G4PERF movement_us=37 unit=Tank
+G4PERF command_runtime_us=12 frames=2520
+G4PERF production_runtime_us=1 frames=2520
+G4PERF movement_us=32 unit=Tank
+G4PERF command_runtime_us=12 frames=2560
+G4PERF production_runtime_us=1 frames=2560
+G4PERF movement_us=41 unit=Tank
+[MOVEMENT] building-mid-move state=Arrived elapsed_ms=9732 planar_err=0.47 stats={ "stall_detections": 7, "repaths": 195, "escapes": 7, "unreachable": 0, "budget_skips": 0, "soft_phase_enters": 0, "soft_phase_exits": 0, "soft_phase_rejects": 2 }
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+G4PERF command_runtime_us=15 frames=2600
+G4PERF production_runtime_us=1 frames=2600
+G4PERF movement_us=115 unit=Tank
+WARNING: Property agent_height is ceiled to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:367)
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+NAVDBG polygons=199 vertices=175
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+G4PERF command_runtime_us=13 frames=2640
+G4PERF production_runtime_us=1 frames=2640
+G4PERF movement_us=89 unit=Tank
+G4PERF movement_us=36 unit=Unit_32
+G4PERF movement_us=26 unit=Unit_33
+G4PERF movement_us=28 unit=Unit_34
+G4PERF movement_us=24 unit=Unit_35
+G4PERF movement_us=22 unit=Unit_36
+G4PERF command_runtime_us=13 frames=2680
+G4PERF production_runtime_us=1 frames=2680
+G4PERF movement_us=33 unit=Tank
+G4PERF movement_us=32 unit=Unit_32
+G4PERF movement_us=25 unit=Unit_33
+G4PERF movement_us=24 unit=Unit_34
+G4PERF movement_us=22 unit=Unit_35
+G4PERF movement_us=21 unit=Unit_36
+G4PERF command_runtime_us=24 frames=2720
+G4PERF production_runtime_us=2 frames=2720
+G4PERF movement_us=53 unit=Tank
+G4PERF movement_us=35 unit=Unit_32
+G4PERF movement_us=27 unit=Unit_33
+G4PERF movement_us=22 unit=Unit_34
+G4PERF movement_us=22 unit=Unit_35
+G4PERF movement_us=23 unit=Unit_36
+G4PERF command_runtime_us=21 frames=2760
+G4PERF production_runtime_us=1 frames=2760
+G4PERF movement_us=41 unit=Tank
+G4PERF movement_us=28 unit=Unit_32
+G4PERF movement_us=24 unit=Unit_33
+G4PERF movement_us=24 unit=Unit_34
+G4PERF movement_us=23 unit=Unit_35
+G4PERF movement_us=22 unit=Unit_36
+G4PERF command_runtime_us=12 frames=2800
+G4PERF production_runtime_us=1 frames=2800
+G4PERF movement_us=34 unit=Tank
+G4PERF movement_us=27 unit=Unit_32
+G4PERF movement_us=25 unit=Unit_33
+G4PERF movement_us=23 unit=Unit_34
+G4PERF movement_us=23 unit=Unit_35
+G4PERF movement_us=23 unit=Unit_36
+G4PERF command_runtime_us=20 frames=2840
+G4PERF production_runtime_us=2 frames=2840
+G4PERF movement_us=35 unit=Tank
+G4PERF movement_us=28 unit=Unit_32
+G4PERF movement_us=25 unit=Unit_33
+G4PERF movement_us=24 unit=Unit_34
+G4PERF movement_us=24 unit=Unit_35
+G4PERF movement_us=26 unit=Unit_36
+G4PERF command_runtime_us=16 frames=2880
+G4PERF production_runtime_us=8 frames=2880
+G4PERF movement_us=35 unit=Tank
+G4PERF movement_us=28 unit=Unit_32
+G4PERF movement_us=25 unit=Unit_33
+G4PERF movement_us=24 unit=Unit_34
+G4PERF movement_us=25 unit=Unit_35
+G4PERF movement_us=25 unit=Unit_36
+G4PERF command_runtime_us=10 frames=2920
+G4PERF production_runtime_us=1 frames=2920
+G4PERF movement_us=34 unit=Tank
+G4PERF movement_us=45 unit=Unit_32
+G4PERF movement_us=33 unit=Unit_33
+G4PERF movement_us=27 unit=Unit_34
+G4PERF movement_us=31 unit=Unit_35
+G4PERF movement_us=27 unit=Unit_36
+G4PERF command_runtime_us=12 frames=2960
+G4PERF production_runtime_us=1 frames=2960
+G4PERF movement_us=36 unit=Tank
+G4PERF movement_us=34 unit=Unit_32
+G4PERF movement_us=25 unit=Unit_33
+G4PERF movement_us=24 unit=Unit_34
+G4PERF movement_us=24 unit=Unit_35
+G4PERF movement_us=22 unit=Unit_36
+G4PERF command_runtime_us=11 frames=3000
+G4PERF production_runtime_us=1 frames=3000
+G4PERF movement_us=32 unit=Tank
+G4PERF movement_us=26 unit=Unit_32
+G4PERF movement_us=23 unit=Unit_33
+G4PERF movement_us=24 unit=Unit_34
+G4PERF movement_us=24 unit=Unit_35
+G4PERF movement_us=22 unit=Unit_36
+G4PERF command_runtime_us=14 frames=3040
+G4PERF production_runtime_us=2 frames=3040
+G4PERF movement_us=35 unit=Tank
+G4PERF movement_us=27 unit=Unit_32
+G4PERF movement_us=24 unit=Unit_33
+G4PERF movement_us=24 unit=Unit_34
+G4PERF movement_us=23 unit=Unit_35
+G4PERF movement_us=24 unit=Unit_36
+G4PERF command_runtime_us=16 frames=3080
+G4PERF production_runtime_us=2 frames=3080
+G4PERF movement_us=44 unit=Tank
+G4PERF movement_us=27 unit=Unit_32
+G4PERF movement_us=22 unit=Unit_33
+G4PERF movement_us=20 unit=Unit_34
+G4PERF movement_us=19 unit=Unit_35
+G4PERF movement_us=44 unit=Unit_36
+G4PERF command_runtime_us=23 frames=3120
+G4PERF production_runtime_us=1 frames=3120
+G4PERF movement_us=138 unit=Tank
+G4PERF movement_us=27 unit=Unit_32
+G4PERF movement_us=24 unit=Unit_33
+G4PERF movement_us=23 unit=Unit_34
+G4PERF movement_us=22 unit=Unit_35
+G4PERF movement_us=35 unit=Unit_36
+G4PERF command_runtime_us=10 frames=3160
+G4PERF production_runtime_us=2 frames=3160
+G4PERF movement_us=34 unit=Tank
+G4PERF movement_us=27 unit=Unit_32
+G4PERF movement_us=25 unit=Unit_33
+G4PERF movement_us=24 unit=Unit_34
+G4PERF movement_us=23 unit=Unit_35
+G4PERF movement_us=35 unit=Unit_36
+G4PERF command_runtime_us=11 frames=3200
+G4PERF production_runtime_us=1 frames=3200
+G4PERF movement_us=33 unit=Tank
+G4PERF movement_us=26 unit=Unit_32
+G4PERF movement_us=24 unit=Unit_33
+G4PERF movement_us=24 unit=Unit_34
+G4PERF movement_us=23 unit=Unit_35
+G4PERF movement_us=34 unit=Unit_36
+G4PERF command_runtime_us=11 frames=3240
+G4PERF production_runtime_us=1 frames=3240
+G4PERF movement_us=35 unit=Tank
+G4PERF movement_us=52 unit=Unit_32
+G4PERF movement_us=36 unit=Unit_33
+G4PERF movement_us=28 unit=Unit_34
+G4PERF movement_us=21 unit=Unit_35
+G4PERF movement_us=33 unit=Unit_36
+G4PERF command_runtime_us=16 frames=3280
+G4PERF production_runtime_us=1 frames=3280
+G4PERF movement_us=50 unit=Tank
+G4PERF movement_us=45 unit=Unit_32
+G4PERF movement_us=26 unit=Unit_33
+G4PERF movement_us=23 unit=Unit_34
+G4PERF movement_us=24 unit=Unit_35
+G4PERF movement_us=34 unit=Unit_36
+G4PERF command_runtime_us=12 frames=3320
+G4PERF production_runtime_us=2 frames=3320
+G4PERF movement_us=34 unit=Tank
+G4PERF movement_us=36 unit=Unit_32
+G4PERF movement_us=22 unit=Unit_33
+G4PERF movement_us=20 unit=Unit_34
+G4PERF movement_us=18 unit=Unit_35
+G4PERF movement_us=28 unit=Unit_36
+G4PERF command_runtime_us=11 frames=3360
+G4PERF production_runtime_us=1 frames=3360
+G4PERF movement_us=109 unit=Tank
+G4PERF movement_us=109 unit=Unit_32
+G4PERF movement_us=53 unit=Unit_33
+G4PERF movement_us=41 unit=Unit_34
+G4PERF movement_us=42 unit=Unit_35
+G4PERF movement_us=49 unit=Unit_36
+G4PERF command_runtime_us=26 frames=3400
+G4PERF production_runtime_us=2 frames=3400
+G4PERF movement_us=65 unit=Tank
+G4PERF movement_us=47 unit=Unit_32
+G4PERF movement_us=26 unit=Unit_33
+G4PERF movement_us=37 unit=Unit_34
+G4PERF movement_us=35 unit=Unit_35
+G4PERF movement_us=32 unit=Unit_36
+G4PERF command_runtime_us=12 frames=3440
+G4PERF production_runtime_us=1 frames=3440
+G4PERF movement_us=34 unit=Tank
+G4PERF movement_us=38 unit=Unit_32
+G4PERF movement_us=26 unit=Unit_33
+G4PERF movement_us=33 unit=Unit_34
+G4PERF movement_us=35 unit=Unit_35
+G4PERF movement_us=32 unit=Unit_36
+G4PERF command_runtime_us=25 frames=3480
+G4PERF production_runtime_us=2 frames=3480
+G4PERF movement_us=49 unit=Tank
+G4PERF movement_us=45 unit=Unit_32
+G4PERF movement_us=36 unit=Unit_33
+G4PERF movement_us=34 unit=Unit_34
+G4PERF movement_us=40 unit=Unit_35
+G4PERF movement_us=31 unit=Unit_36
+G4PERF command_runtime_us=13 frames=3520
+G4PERF production_runtime_us=1 frames=3520
+G4PERF movement_us=37 unit=Tank
+G4PERF movement_us=39 unit=Unit_32
+G4PERF movement_us=34 unit=Unit_33
+G4PERF movement_us=33 unit=Unit_34
+G4PERF movement_us=126 unit=Unit_35
+G4PERF movement_us=51 unit=Unit_36
+G4PERF command_runtime_us=33 frames=3560
+G4PERF production_runtime_us=2 frames=3560
+G4PERF movement_us=82 unit=Tank
+G4PERF movement_us=52 unit=Unit_32
+G4PERF movement_us=38 unit=Unit_33
+G4PERF movement_us=35 unit=Unit_34
+G4PERF movement_us=32 unit=Unit_35
+G4PERF movement_us=32 unit=Unit_36
+G4PERF command_runtime_us=13 frames=3600
+G4PERF production_runtime_us=1 frames=3600
+G4PERF movement_us=38 unit=Tank
+G4PERF movement_us=39 unit=Unit_32
+G4PERF movement_us=34 unit=Unit_33
+G4PERF movement_us=33 unit=Unit_34
+G4PERF movement_us=31 unit=Unit_35
+G4PERF movement_us=30 unit=Unit_36
+G4PERF command_runtime_us=39 frames=3640
+G4PERF production_runtime_us=3 frames=3640
+G4PERF movement_us=118 unit=Tank
+G4PERF movement_us=86 unit=Unit_32
+G4PERF movement_us=62 unit=Unit_33
+G4PERF movement_us=52 unit=Unit_34
+G4PERF movement_us=53 unit=Unit_35
+G4PERF movement_us=54 unit=Unit_36
+G4PERF command_runtime_us=34 frames=3680
+G4PERF production_runtime_us=2 frames=3680
+G4PERF movement_us=86 unit=Tank
+G4PERF movement_us=57 unit=Unit_32
+G4PERF movement_us=38 unit=Unit_33
+G4PERF movement_us=40 unit=Unit_34
+G4PERF movement_us=35 unit=Unit_35
+G4PERF movement_us=33 unit=Unit_36
+G4PERF command_runtime_us=23 frames=3720
+G4PERF production_runtime_us=2 frames=3720
+G4PERF movement_us=33 unit=Tank
+G4PERF movement_us=39 unit=Unit_32
+G4PERF movement_us=35 unit=Unit_33
+G4PERF movement_us=33 unit=Unit_34
+G4PERF movement_us=32 unit=Unit_35
+G4PERF movement_us=34 unit=Unit_36
+G4PERF command_runtime_us=22 frames=3760
+G4PERF production_runtime_us=2 frames=3760
+G4PERF movement_us=37 unit=Tank
+G4PERF movement_us=39 unit=Unit_32
+G4PERF movement_us=36 unit=Unit_33
+G4PERF movement_us=33 unit=Unit_34
+G4PERF movement_us=31 unit=Unit_35
+G4PERF movement_us=33 unit=Unit_36
+G4PERF command_runtime_us=38 frames=3800
+G4PERF production_runtime_us=3 frames=3800
+G4PERF movement_us=61 unit=Tank
+G4PERF movement_us=45 unit=Unit_32
+G4PERF movement_us=37 unit=Unit_33
+G4PERF movement_us=33 unit=Unit_34
+G4PERF movement_us=33 unit=Unit_35
+G4PERF movement_us=32 unit=Unit_36
+G4PERF command_runtime_us=28 frames=3840
+G4PERF production_runtime_us=2 frames=3840
+G4PERF movement_us=37 unit=Tank
+G4PERF movement_us=38 unit=Unit_32
+G4PERF movement_us=36 unit=Unit_33
+G4PERF movement_us=35 unit=Unit_34
+G4PERF movement_us=33 unit=Unit_35
+G4PERF movement_us=31 unit=Unit_36
+G4PERF command_runtime_us=9 frames=3880
+G4PERF production_runtime_us=1 frames=3880
+G4PERF movement_us=34 unit=Tank
+G4PERF movement_us=39 unit=Unit_32
+G4PERF movement_us=36 unit=Unit_33
+G4PERF movement_us=33 unit=Unit_34
+G4PERF movement_us=32 unit=Unit_35
+G4PERF movement_us=32 unit=Unit_36
+G4PERF command_runtime_us=43 frames=3920
+G4PERF production_runtime_us=2 frames=3920
+G4PERF movement_us=91 unit=Tank
+G4PERF movement_us=64 unit=Unit_32
+G4PERF movement_us=40 unit=Unit_33
+G4PERF movement_us=38 unit=Unit_34
+G4PERF movement_us=43 unit=Unit_35
+G4PERF movement_us=37 unit=Unit_36
+G4PERF command_runtime_us=39 frames=3960
+G4PERF production_runtime_us=3 frames=3960
+G4PERF movement_us=99 unit=Tank
+G4PERF movement_us=66 unit=Unit_32
+G4PERF movement_us=34 unit=Unit_33
+G4PERF movement_us=30 unit=Unit_34
+G4PERF movement_us=28 unit=Unit_35
+G4PERF movement_us=29 unit=Unit_36
+G4PERF command_runtime_us=15 frames=4000
+G4PERF production_runtime_us=2 frames=4000
+G4PERF movement_us=56 unit=Tank
+G4PERF movement_us=58 unit=Unit_32
+G4PERF movement_us=53 unit=Unit_33
+G4PERF movement_us=53 unit=Unit_34
+G4PERF movement_us=49 unit=Unit_35
+G4PERF movement_us=45 unit=Unit_36
+G4PERF command_runtime_us=28 frames=4040
+G4PERF production_runtime_us=2 frames=4040
+G4PERF movement_us=99 unit=Tank
+G4PERF movement_us=74 unit=Unit_32
+G4PERF movement_us=42 unit=Unit_33
+G4PERF movement_us=38 unit=Unit_34
+G4PERF movement_us=34 unit=Unit_35
+G4PERF movement_us=33 unit=Unit_36
+G4PERF command_runtime_us=39 frames=4080
+G4PERF production_runtime_us=4 frames=4080
+G4PERF movement_us=94 unit=Tank
+G4PERF movement_us=58 unit=Unit_32
+G4PERF movement_us=41 unit=Unit_33
+G4PERF movement_us=35 unit=Unit_34
+G4PERF movement_us=36 unit=Unit_35
+G4PERF movement_us=35 unit=Unit_36
+[MOVEMENT] override new=Arrived old=Arrived planar_err=0.45 recovery_mode= detections=7→9
+[MOVEMENT] recovery_stats={ "stall_detections": 21, "repaths": 211, "escapes": 21, "unreachable": 0, "budget_skips": 0, "soft_phase_enters": 0, "soft_phase_exits": 0, "soft_phase_rejects": 6 } budget_skips=0
+Movement recovery smoke test completed: 0 failure(s)
+[EXIT-TRACE] EXIT_TREE：场景树收尾（tick=4094，场景=unknown，对局结果=无该节点）
+[EXIT-TRACE] PREDELETE：引擎收尾（Globals 释放，tick=unknown(已脱离场景树)）

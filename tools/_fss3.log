@@ -1,0 +1,18 @@
+[selfplay] 验收端口 24589 在专用段 24589-24592 内
+清理本局进程树 roots=[46684, 39768] (全部=[12556, 39768, 46684, 54852])
+[selfplay] 大厅就绪: 指挥官-309
+[selfplay] op=start -> {'map': 'res://source/match/maps/PlainAndSimple.tscn', 'ok': True, 'passive_ai_test': False, 'peaceful': False, 'seed': 0, 'with_ai': True}
+runner 启动 pid=51484 state_dir=G:\AIRTS\tmp_logs\langgraph_recon\selfplay\state_fs_s3
+pidfile=45320
+[selfplay] 对局开始，采样 250s（backend=off difficulty=-1）
+[selfplay] 矿场前置：派 Unit_1 到 [174.27, 170.79] -> {'accepted': False, 'command_id': '', 'moved': ['Unit_1'], 'ok': False, 'reason': '命令未被接受（PendingAuthority），请根据 status 复
+[selfplay] 矿场建造第 1 次 -> {'detail': '自动放置找不到合法落点（基地周围无可建地面/没有已探明的新矿点）。', 'error': 'no valid auto site', 'ok': False, 'reason': 'NoValidSite', 'status': 'Rejected', 'mode': 'auto'}
+[selfplay] 矿场建造第 2 次 -> {'detail': '自动放置找不到合法落点（基地周围无可建地面/没有已探明的新矿点）。', 'error': 'no valid auto site', 'ok': False, 'reason': 'NoValidSite', 'status': 'Rejected', 'mode': 'auto'}
+[selfplay] 矿场建造第 3 次 -> {'detail': '自动放置找不到合法落点（基地周围无可建地面/没有已探明的新矿点）。', 'error': 'no valid auto site', 'ok': False, 'reason': 'NoValidSite', 'status': 'Rejected', 'mode': 'auto'}
+[selfplay] 矿场建造第 4 次 -> {'accepted': False, 'builders': [], 'command_id': '7265fd93-e34c-439c-4f13-00001d9ef8cb', 'ok': False, 'reason': '命令已发送，等待服务器确认建造位置和资源。', 'status': 'PendingAuthority', 'mode': 'explicit_pos'}
+[selfplay] 矿场建造第 5 次 -> {'accepted': False, 'builders': [], 'command_id': '5c98c1e2-d5c5-4dfa-4468-000020207a95', 'ok': False, 'reason': '命令已发送，等待服务器确认建造位置和资源。', 'status': 'PendingAuthority', 'mode': 'explicit_pos'}
+[selfplay] 矿场建造第 6 次 -> {'accepted': False, 'builders': [], 'command_id': '41d14d24-5ee6-4087-ce46-0000229a0eb2', 'ok': False, 'reason': '命令已发送，等待服务器确认建造位置和资源。', 'status': 'PendingAuthority', 'mode': 'explicit_pos'}
+停止 runner roots=[51484]（全部=[45320, 51484]，authority-port=24572）
+清理本局进程树 roots=[55904, 55836] (全部=[29836, 42008, 55836, 55904])
+[selfplay] 终局: verdict=timeout own=70 enemy=7 units={'command_center': 1, 'drone': 1, 'worker': 6, 'barracks': 2, 'soldier': 48, 'vehicle_factory': 1, 'tank': 13} balance={'a': 4700}
+[selfplay] written: G:\AIRTS\tmp_logs\langgraph_recon\selfplay\result_fs_s3.json

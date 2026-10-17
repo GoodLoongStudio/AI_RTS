@@ -1,0 +1,32 @@
+t=Helicopter
+G4PERF movement_us=61 unit=Tank
+G4PERF movement_us=32 unit=Worker
+G4PERF command_runtime_us=27 frames=280
+G4PERF production_runtime_us=82 frames=280
+G4PERF movement_us=40 unit=Drone
+G4PERF movement_us=22 unit=Helicopter
+G4PERF movement_us=38 unit=Tank
+G4PERF movement_us=30 unit=Worker
+G4PERF command_runtime_us=13 frames=320
+G4PERF production_runtime_us=49 frames=320
+G4PERF movement_us=25 unit=Drone
+G4PERF movement_us=22 unit=Helicopter
+G4PERF movement_us=40 unit=Tank
+G4PERF movement_us=37 unit=Worker
+G4PERF command_runtime_us=27 frames=360
+G4PERF production_runtime_us=75 frames=360
+G4PERF movement_us=36 unit=Drone
+G4PERF movement_us=20 unit=Helicopter
+G4PERF movement_us=32 unit=Tank
+G4PERF movement_us=26 unit=Worker
+SCRIPT ERROR: Invalid call. Nonexistent function 'get_aabb' in base 'Node3D'.
+   at: _producer_model_edge (res://source/match/units/traits/ProductionQueue.gd:242)
+   GDScript backtrace (most recent call first):
+       [0] _producer_model_edge (res://source/match/units/traits/ProductionQueue.gd:242)
+       [1] try_deploy_authoritative (res://source/match/units/traits/ProductionQueue.gd:298)
+   C# backtrace (most recent call first):
+       [0] Godot.Variant Godot.NativeCalls.godot_icall_2_923(nint, nint, Godot.NativeInterop.godot_string_name, System.ReadOnlySpan`1[Godot.Variant], Godot.NativeInterop.godot_string_name) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/NativeCalls.cs:8222)
+       [1] Godot.Variant Godot.GodotObject.Call(Godot.StringName, Godot.Variant[]) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/GodotObject.cs:749)
+       [2] AI_RTS.Application.Production.ProductionDeploymentResult AI_RTS.GodotAdapter.Production.GodotProductionDeploymentPort.TryDeploy(AI_RTS.Domain.Production.ProductionItemSnapshot) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Production\GodotProductionDeploymentPort.cs:25)
+       [3] void AI_RTS.Application.Production.ProductionService.TryComplete(AI_RTS.Domain.Production.ProductionItemSnapshot, long) (G:\AIRTS\AI_RTS\source\csharp\Application\Production\ProductionService.cs:288)
+       [4] void AI_RTS.Application.Production.Produc

@@ -36,15 +36,8 @@ func apply() -> void:
 
 ## Unit._setup_color 在玩家归属就绪后调用，把阵营色写入材质。
 func apply_team_tint(color: Color) -> void:
-	print("[TINT] apply_team_tint ", color, " on ", get_parent().name)
 	_team_tint = color
 	_apply_material()
-	var target := get_parent()
-	var count := 0
-	for mesh_instance in target.find_children("*", "MeshInstance3D", true, false):
-		var override = mesh_instance.material_override
-		count += 1
-	print("[TINT] override meshes=", count, " tint=", _team_tint)
 
 
 func _resolve_tint() -> Color:

@@ -1,0 +1,14 @@
+{
+  "commands": {
+    "audit-core-boundary": {
+      "file": "tools/audit_core_engine_boundary.ps1",
+      "description": "核心/引擎边界审计：校验 AI_RTS.Core.csproj 不依赖 Godot，且 source/csharp/Domain、Application 不越界。退出码 0=通过，非 0=有违规（输出里列出 violations）。",
+      "timeoutMs": 180000
+    },
+    "perf-baseline": {
+      "file": "tools/run_performance_baseline.ps1",
+      "description": "性能基线：构建并运行 tests/performance/PlayerVsAiPerformanceBaseline.tscn，结果写 .test-results/performance/<时间戳>。需要 GODOT4 环境变量或 PATH 上的 godot4（否则用 ps_script 带 -GodotExecutable 调用）。耗时较长。",
+      "timeoutMs": 900000
+    }
+  }
+}

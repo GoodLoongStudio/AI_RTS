@@ -1,0 +1,22 @@
+[force-attack-friendly] rc=1 marker_ok=False fails=2 secs=26.9
+[movement-recovery] rc=1 marker_ok=False fails=4 secs=27.4
+[movement-scale] rc=1 marker_ok=False fails=2 secs=232.5
+[rule-ai-battlegroup] rc=1 marker_ok=False fails=0 secs=10.4
+[rule-ai-economy-query] rc=1 marker_ok=False fails=0 secs=14.9
+
+## force-attack-friendly
+   F 选中炮塔时强制攻击按钮应可用（计数=1）
+   F 炮塔强制攻击友军工人应造成伤害（hp 6.0 → 6.0）
+   E System.InvalidOperationException: 场景 res://tests/perfgrid/TmpTurretHead.tscn 没有受信任的单位类型定义。
+## movement-recovery
+   F 绕墙到达误差应合理（13.71m）
+   F 绕墙场景确实发生了长距离移动（3.71m）
+   F 集体回基地应至少 7/8 抵达基地附近（实际 0）
+   F 新命令到达误差应合理（8.99m）
+## movement-scale
+   F n=200 仍有 31 个单位未收敛（上限 4）
+   F n=200 到达率 0.845 低于阈值
+## rule-ai-battlegroup
+   E System.InvalidOperationException: 场景 res://tests/perfgrid/TmpTurretHead.tscn 没有受信任的单位类型定义。
+## rule-ai-economy-query
+   E System.InvalidOperationException: 场景 res://tests/perfgrid/TmpTurretHead.tscn 没有受信任的单位类型定义。

@@ -12,12 +12,14 @@
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
 
 from ..coordinator import AdjutantCoordinator
 from ..protocol import Receipt
 from ..state import TASK_UNKNOWN
+from . import trace as trace_mod
 from .checkpoint import CheckpointStore, NullCheckpointStore
 from .graph import ENGINE_FALLBACK, GraphRunner, build_runner, langgraph_available
 from .nodes import GraphConfig, GraphServices
@@ -29,6 +31,8 @@ class RuntimeConfig:
     """运行时配置（与图配置一一对应；全部可配置化）。"""
 
     strategy_interval_ticks: int = 3600
+    #: 0 = 不按秒换算。runner 默认把它设成 10 个模拟秒，并用实测 Hz 换成 tick。
+    strategy_review_seconds: float = 0.0
     tactics_interval_ticks: int = 30
     emergency_min_interval_ticks: int = 6
     intent_ttl_ticks: int = 600
@@ -49,10 +53,31 @@ class RuntimeConfig:
     recheck_pending: bool = True
     pause_on_player_interrupt: bool = True
     engine: str = "auto"
+    # ---- 决策追踪（第一阶段 · 修改 1）----
+    #: 是否启用运行时追踪（JSONL 流式证据 + 有界内存环）。默认开：
+    #: 追踪是旁路，不进模型上下文、不阻塞指挥链；关掉只影响事后回放能力。
+    trace_enabled: bool = True
+    #: 追踪文件路径；空 = 仅内存环（测试/回放用）。
+    trace_path: str = ""
+    #: 内存环上限（条）与单文件轮转上限（字节）/备份数。
+    trace_memory_limit: int = 8192
+    trace_max_file_bytes: int = 64 * 1024 * 1024
+    trace_backups: int = 2
+    # ---- 任务反馈闭环（第一阶段 · 修改 2；单位：秒，0=按类型默认）----
+    loop_no_progress_seconds: float = 0.0
+    loop_deadline_seconds: float = 0.0
+    loop_retry_budget: int = 0
+    loop_cooldown_seconds: float = 0.0
+    loop_attempt_window_seconds: float = 0.0
+    # ---- 经济异常窗口（第一阶段 · 修改 3；单位：秒）----
+    econ_delivery_stall_seconds: float = 90.0
+    econ_post_delivery_stall_seconds: float = 120.0
+    econ_grace_seconds: float = 60.0
 
     def to_graph_config(self) -> GraphConfig:
         return GraphConfig(
             strategy_interval_ticks=self.strategy_interval_ticks,
+            strategy_review_seconds=self.strategy_review_seconds,
             tactics_interval_ticks=self.tactics_interval_ticks,
             emergency_min_interval_ticks=self.emergency_min_interval_ticks,
             intent_ttl_ticks=self.intent_ttl_ticks,
@@ -64,6 +89,14 @@ class RuntimeConfig:
             pending_timeout_ticks=self.pending_timeout_ticks,
             recheck_pending=self.recheck_pending,
             pause_on_player_interrupt=self.pause_on_player_interrupt,
+            loop_no_progress_seconds=self.loop_no_progress_seconds,
+            loop_deadline_seconds=self.loop_deadline_seconds,
+            loop_retry_budget=self.loop_retry_budget,
+            loop_cooldown_seconds=self.loop_cooldown_seconds,
+            loop_attempt_window_seconds=self.loop_attempt_window_seconds,
+            econ_delivery_stall_seconds=self.econ_delivery_stall_seconds,
+            econ_post_delivery_stall_seconds=self.econ_post_delivery_stall_seconds,
+            econ_grace_seconds=self.econ_grace_seconds,
         )
 
 
@@ -81,6 +114,8 @@ class TickResult:
     degraded_reason: str = ""
     checkpoint: Dict[str, Any] = field(default_factory=dict)
     state: Dict[str, Any] = field(default_factory=dict)
+    #: 本轮各阶段耗时（毫秒）+ 历史 p50/p95/p99/max（prompt §3-A 的分段计时）。
+    phases: Dict[str, Dict[str, Any]] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -94,6 +129,8 @@ class TickResult:
             "degraded_reason": self.degraded_reason,
             "checkpoint": dict(self.checkpoint),
             "state": dict(self.state),
+            "phases": {str(key): dict(value)
+                       for key, value in (self.phases or {}).items()},
         }
 
 
@@ -114,6 +151,7 @@ class AdjutantGraphRuntime:
         recheck_fn: Optional[Callable[[str], Optional[Dict[str, Any]]]] = None,
         tick_provider: Optional[Callable[[], Optional[Dict[str, int]]]] = None,
         tactics_scheduler: Any = None,
+        strategy_scheduler: Any = None,
         #: 权威路径查询（计划 §7 安全移动硬闸门）：`nav_query(unit, target) -> dict`。
         #: 由宿主接到游戏侧 `op=adjutant_nav_path`；None = 闸门无法判定（记 `ungated`）。
         nav_query: Optional[Callable[[str, Any], Dict[str, Any]]] = None,
@@ -140,11 +178,24 @@ class AdjutantGraphRuntime:
         # 复核意图窗口，否则结构合法但已过期的意图会被权威层一律判 Expired。
         self._tick_provider = tick_provider
         self._ttl_recomputed = 0
+        # ---- 决策追踪（修改 1）----
+        # 会话 id：新对局生成；restore 后从 checkpoint 沿用（跨进程段可关联）。
+        # run_id：本进程一段；恢复后 round_seq 延续但 run_id 变，可区分进程段。
+        self.trace = trace_mod.build_recorder(
+            session_id=self.state.trace_session or trace_mod.new_session_id(),
+            run_id=trace_mod.new_run_id(), match_id=match_id, player_id=player_id,
+            path=str(self.config.trace_path or ""),
+            memory_limit=int(self.config.trace_memory_limit),
+            max_file_bytes=int(self.config.trace_max_file_bytes),
+            backups=int(self.config.trace_backups),
+            enabled=bool(self.config.trace_enabled))
+        self.state.trace_session = self.trace.session_id
         self.services = GraphServices(
             strategy_model=strategy_model,
             tactics_model=tactics_model,
             # 有界异步调度（计划 §7.C）：模型调用不再阻塞观测/回执/玩家事件。
             tactics_scheduler=tactics_scheduler,
+            strategy_scheduler=strategy_scheduler,
             dispatch=self._dispatch,
             recheck=self._recheck,
             adoption=self._adopt_plan,
@@ -155,6 +206,8 @@ class AdjutantGraphRuntime:
             # 【安全移动硬闸门】权威路径查询（计划 §7）。宿主必须接上游戏侧
             # `op=adjutant_nav_path`；没接时闸门会显式记 `ungated` 而不是假装通过。
             nav_query=nav_query,
+            # 【决策追踪 · 修改 1】旁路证据链（节点 span/选边/候选/任务/命令/模型调用）。
+            trace=self.trace,
         )
         self.runner: GraphRunner = build_runner(
             self.services, engine=self.config.engine,
@@ -382,11 +435,27 @@ class AdjutantGraphRuntime:
                 intent_ids=[item.get("intent_id") for item in expired_intents[:8]])
         state_dict = self.state.to_dict()
         state_dict["server_tick"] = max(int(state_dict.get("server_tick", 0)), self._current_tick)
+        # 【决策追踪 · 修改 1】轮次边界：round_seq 每 tick +1（不用 tick 构造），
+        # 会话/轮次随状态进图通道 → checkpoint 恢复后不撞号。
+        state_dict["trace_session"] = self.trace.session_id
+        round_seq = self.trace.begin_round(
+            self._current_tick,
+            snapshot_id=int(state_dict.get("latest_snapshot_id", 0) or 0),
+            observation=observation)
+        state_dict["trace_round_seq"] = int(round_seq)
+        if expired_intents:
+            self.trace.note("intents_expired", count=len(expired_intents),
+                            intent_ids=[str(item.get("intent_id", ""))
+                                        for item in expired_intents[:8]],
+                            server_tick=self._current_tick)
         receipt_start = len(state_dict.get("command_receipts", []))
+        self.runner.begin_round_timing()
+        round_started = time.monotonic()
 
         if self.runner.paused:
             # 上一轮因玩家打断暂停：先完成该决策轮的收尾（仲裁/下发/回执/持久化），
             # 再按本轮观测完整推进一次，保证本轮事件与观测不被跳过。
+            self.trace.note("resume_from_pause", server_tick=self._current_tick)
             out = self.runner.resume(state_dict, observation=observation,
                                      tick=self._current_tick)
             out = self.runner.run_tick(out, observation=observation,
@@ -394,6 +463,17 @@ class AdjutantGraphRuntime:
         else:
             out = self.runner.run_tick(state_dict, observation=observation,
                                        tick=self._current_tick)
+        elapsed_ms = (time.monotonic() - round_started) * 1000.0
+        if bool(self.runner.paused):
+            # 玩家打断导致的暂停是**退出状态**：必须留痕（"暂停不能漏掉退出状态"），
+            # 且游戏进展等待预算不因此消耗（修改 2 的时钟纪律在这里对齐）。
+            self.trace.note("paused_player_interrupt", server_tick=self._current_tick,
+                            reason_cn="玩家控制事件：图在协调后暂停，等下一轮恢复")
+        self.trace.end_round(route=str(out.get("route", "")), elapsed_ms=elapsed_ms,
+                             server_tick=self._current_tick,
+                             extra={"paused": bool(self.runner.paused),
+                                    "engine": self.runner.engine,
+                                    "events": self.trace.stats().get("events", 0)})
         self.state = AdjutantGraphState.from_dict(out)
         if self._ttl_recomputed:
             # 决策留痕要写在“本轮最终状态”上（图返回的是另一个状态对象）。
@@ -412,6 +492,7 @@ class AdjutantGraphRuntime:
             degraded_reason=self.state.degraded_reason,
             checkpoint=dict(out.get("last_checkpoint") or {}),
             state=self.state.summary(),
+            phases=self.runner.phase_stats(),
         )
         self.last_result = result
         return result
@@ -436,9 +517,25 @@ class AdjutantGraphRuntime:
             return {"restored": False, "reason": "rules_version_mismatch",
                     "bound": stored.rules_version, "observed": expect_rules_version}
         self.state = stored
+        # 恢复出来的战略请求没有对应的工作线程，不能当成还在思考。
+        self.state.strategy_request = {}
         # checkpoint 可能来自"战略层开启"的旧会话（或没有该字段的旧代码）：
         # 恢复后按本运行时的实际模型装配重申标志，避免路由重新死锁。
         self.state.strategy_disabled = self._strategy_disabled
+        # 【决策追踪 · 修改 1】会话延续：恢复后沿用 checkpoint 里的 session_id
+        # （同一对局的跨进程段可关联）；旧 checkpoint 没有该字段时保持本进程 id。
+        # round_seq 也沿袭——否则与已写出的 trace 文件撞号。
+        if str(stored.trace_session or ""):
+            self.trace.session_id = str(stored.trace_session)
+            self.trace.set_identity(self.match_id, self.player_id)
+            self.state.trace_session = str(stored.trace_session)
+        if int(stored.trace_round_seq or 0) > 0:
+            self.trace.adopt_round_seq(int(stored.trace_round_seq))
+        self.trace.note("runtime_restored", session_id=self.trace.session_id,
+                        run_id=self.trace.run_id,
+                        round_seq=int(self.trace.round_seq),
+                        server_tick=int(self.state.server_tick),
+                        reason_cn="从 checkpoint 恢复：会话与轮次延续，在途请求等权威终态")
         # 恢复后立刻按 TTL 复核活跃意图：过期即失效（不复活旧命令）。
         expired = self.state.expire_intents(self.state.server_tick)
         self.state.decide("runtime_restored", pending_requests=sorted(self.state.pending_requests),
@@ -453,6 +550,8 @@ class AdjutantGraphRuntime:
             "state": self.state.summary(),
             "dispatched": len(self.dispatched),
             "checkpoint": self.services.checkpoint_store.describe(),
+            # 决策追踪概览（修改 1）：轮次/事件数/写入错误都在这里可见。
+            "trace": self.trace.stats(),
         }
 
     def describe(self) -> Dict[str, Any]:
@@ -463,6 +562,7 @@ class AdjutantGraphRuntime:
             "langgraph_reason": availability["reason"],
             "checkpoint_store": self.services.checkpoint_store.describe(),
             "coordinator": "AdjutantCoordinator",
+            "trace": self.trace.stats(),
             "config": {
                 "strategy_interval_ticks": self.config.strategy_interval_ticks,
                 "tactics_interval_ticks": self.config.tactics_interval_ticks,

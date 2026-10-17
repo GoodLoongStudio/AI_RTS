@@ -97,15 +97,69 @@ INTERRUPT_MAX_TICKS = 7200
 #: 基地回防 / 受袭判定半径（米）。手册 DEF-01：建筑附近见敌才算受袭。
 #: 行为树与并行军事轨必须读这个常量，不许再各写一个 40。
 DEFENSE_RADIUS_M = 40.0
+
+
+def derived_engagement_radius_m(max_weapon_range_m: float = 40.0,
+                                enemy_radius_m: float = 1.0,
+                                own_radius_m: float = 3.79) -> float:
+    """从**平衡表派生**的交战半径（米）：`range + r_enemy + r_own`（最坏 44.79m）。
+
+    ## 为什么要有这个函数（2026-10-09，用户确认口径后新增）
+
+    原先 `SCOUT_TRANSFER_SAFE_M` 与 `DEFEND_RESPOND_RADIUS_M` 都硬写 `20.0`，
+    而平衡表里**最大武器射程是 40m**（反地炮塔 16m 那套注释已经过期）。
+    两个守门测试因此长期失败：
+    `test_safe_radius_covers_max_weapon_range` /
+    `test_respond_radius_covers_max_weapon_range`（`20.0 not >= 40.0`）。
+
+    用户明确确认：**按派生值迁移**，而不是把 20 盲目 ×2。
+
+    ## ⚠ 但它对 `DEFEND_RESPOND_RADIUS_M` 会重现已实测过的退化
+
+    `DEFEND_RESPOND_RADIUS_M` 的注释（见下）记录了一次**真实测量**：
+    该半径曾是 40m 时，军事轨前压点长期落在 20~40m ⇒ **整局泡在回防圈里**、
+    `bt-defend` 286 条 vs `bt-attack_move` 122 条、大军在"家 ↔ 40m 外"振荡、
+    前 180 秒几乎零输出。
+
+    ⇒ **改这个常数必须重新实测上面那些量**（`bt-defend` / `bt-attack_move` 条数、
+    前 180 秒输出），不能只让测试变绿。本函数只提供**派生口径**，
+    是否采纳由调用方按实测决定。
+    """
+    return float(max_weapon_range_m) + float(enemy_radius_m) + float(own_radius_m)
+
 #: **谁响应**受袭的半径（米）——与上面的"受袭判定半径"故意分开（2026-09-22）。
 #: 实测（backend=off 基线局 base_off_2，240s，纯规则层）：40m 既当判定半径又当
 #: 响应半径时，军事轨的前压点（standoff 0.5 × 敌距 + advance 半径）长期落在
 #: 20~40m，**整局都泡在回防圈里**：`bt-defend` 下发 286 条、`bt-attack_move`
 #: 只有 122 条，大军在"家 ↔ 40m 外"之间振荡，前 180 秒几乎零输出（手册明令的
 #: "一条线的威胁不得升级为全军回防"就是这么被破坏的）。
-#: 现在：判定仍用 40m（敌人靠近建筑就算受袭），**响应**只用 20m——正好覆盖
-#: 当前平衡表的最大武器射程（反地炮塔 16m）加点余量；圈外部队继续原任务，
-#: 圈内 + 最多 3 个召回单位负责这一仗。
+#: 当前：40m 用于检测建筑附近的敌情，20m 用于选择附近回防兵力；
+#: 圈外部队继续原任务，圈内真空时最多召回 3 个单位。响应圈不表示武器射程。
+#:
+#: 【2026-10-09 用户确认口径：按派生值迁移 —— 但**只对 `SCOUT_TRANSFER_SAFE_M` 生效**】
+#:
+#: 用户确认把过期口径迁移到派生值 `range + r_enemy + r_own`（44.79m）。
+#: 实测结果**一改一不改**：
+#:
+#: - `SCOUT_TRANSFER_SAFE_M`（20 → 44.79）：**采纳**。它的语义就是
+#:   "必须覆盖最大射程才算安全"，与派生口径天然一致；
+#:   守门测试 `test_safe_radius_covers_max_weapon_range` 随之转绿。
+#: - `DEFEND_RESPOND_RADIUS_M`（20 → 44.79）：**不采纳，维持 20**。
+#:   实测把派生值套到它身上会**立刻回归**（本文件的 `test_behavior_tree`）：
+#:   `U_far0`（远处单位）**被召回守家**、
+#:   `test_far_line_keeps_task_when_base_is_raided` /
+#:   `test_recall_only_when_home_circle_is_empty` / `test_far_units_never_defend`
+#:   **三例同时变红** —— 正是上面注释记录过的"整局泡在回防圈里"的单元测试形态。
+#:
+#: **语义差异是根因**：这个常量回答的是"**谁去响应**"（一个**配额**问题，
+#: 设计上故意只覆盖一小圈 + 最多 3 个召回），
+#: 不是"**射程要多大才安全**"（一个**覆盖**问题）。
+#: ⇒ **同一个派生值不能套到语义不同的常量上** —— 这是"对称≠正确"的又一例
+#: （与 round-38 的 `reserve` 自伤同族）。
+#:
+#: 2026-10-12：回归改为同时验证检测圈覆盖当前射程、响应圈保持局部、
+#: 空家只召最近 3 人且有人守家时不继续召回。原断言混用两种语义，要求
+#: 同一响应半径 >=40m 且 <40m；修正判据不改变这里的玩法数值。
 DEFEND_RESPOND_RADIUS_M = 20.0
 #: 家里没人时最多召回这么多个最近的作战单位（不全军回防）。
 DEFEND_RECALL_MAX = 3
@@ -178,15 +232,25 @@ M08 = "M08"
 
 MILESTONES: Dict[str, Dict[str, Any]] = {
     M01: {
-        "id": M01, "name": "工人开采", "phase": PHASE_RECON, "track": TRACK_ECONOMY,
+        # 【2026-10-11 开局经济点火】新玩法：开局无矿车（基地+无人机）；矿车来源 =
+        # 矿场完工赠一辆 + 车厂生产后续。旧 M01 只等采集回执，但"没有矿车"时永远等不到，
+        # 于是开局 frontier 停在 M01、而阶梯照默认表先铺兵营/车厂/防御（用户实测"两兵营、
+        # 不造矿场"）。现在 M01 的 build_order 把经济建筑**排到阶梯最前**：
+        # 车厂（可产矿车的唯一设施）→ 矿场（完工赠车，首矿允许近点）。
+        # 【2026-10-15 语义审计（修改 3）】完成判据从"采集命令被接受"改为
+        # **首座矿场完工且观察到真实交货**：命令接受只证明任务已分配
+        # （`economy_assigned`），交货计数才证明经济循环已建立
+        # （`economy_established`）。旧样本 tick 914 的假 done 由此修正。
+        "id": M01, "name": "经济点火", "phase": PHASE_RECON, "track": TRACK_ECONOMY,
         "priority": 10,
         "preconditions": (),
-        "success_evidence": "至少一条采集命令被权威接受，且观测里仍有可采集单位",
-        "exit": "工人按分配后的矿点持续往返（有 Accepted 回执）",
-        "failure": "无可见资源 → 转侦察找矿（SCT-01）；资源不可达 → 改派其它矿点",
+        "success_evidence": "首座矿场完工且观察到至少一次真实交货（权威交付计数 > 0）",
+        "exit": "工人按分配后的矿点持续往返并真实交货（有交付计数，不是「已下单」）",
+        "failure": "无可见资源 → 转侦察找矿（SCT-01）；资源不可达 → 改派其它矿点；"
+                   "矿场完工但长期零交付 → 经济恢复（ECO-02/D2）",
         "retry": {"max_attempts": DEFAULT_RETRY_MAX, "stall_ticks": DEFAULT_STALL_TICKS},
         "intent_prefixes": ("rule-gather", "bt-gather"),
-        "build_order": (),
+        "build_order": ("vehicle_factory", "ore_refinery"),
     },
     M02: {
         "id": M02, "name": "产能建筑", "phase": PHASE_FOOTHOLD, "track": TRACK_BUILD,
@@ -359,13 +423,20 @@ def build_facts(state: Dict[str, Any], observation: Optional[Dict[str, Any]],
 
     counts: Dict[str, int] = {}
     constructed: Dict[str, int] = {}
-    for info in by_name.values():
+    constructed_unknown: Dict[str, int] = {}
+    own_constructed: Dict[str, Optional[bool]] = {}
+    for name, info in by_name.items():
         key = str(info.get("type", ""))
-        if not key:
-            continue
-        counts[key] = counts.get(key, 0) + 1
-        if info.get("constructed") is not False:
-            constructed[key] = constructed.get(key, 0) + 1
+        status = info.get("constructed")
+        if key:
+            counts[key] = counts.get(key, 0) + 1
+            # 完工只认权威显式 True；False 未完工，None/缺字段仍是未知。
+            if status is True:
+                constructed[key] = constructed.get(key, 0) + 1
+            elif status is None:
+                constructed_unknown[key] = constructed_unknown.get(key, 0) + 1
+        # normalized_units 的 name 已是字典键，不在 info 里重复存一份。
+        own_constructed[str(name)] = status if isinstance(status, bool) else None
 
     workers = [name for name, info in by_name.items() if info.get("gather")]
     builders = [name for name, info in by_name.items() if info.get("construct")]
@@ -439,7 +510,7 @@ def build_facts(state: Dict[str, Any], observation: Optional[Dict[str, Any]],
         refinery_delivered += int(stats.get("delivered_count", 0) or 0)
         refinery_delivered_amount += int(stats.get("delivered_amount", 0) or 0)
         refinery_assigned += int(stats.get("assigned", 0) or 0)
-        if bool(stats.get("constructed")):
+        if stats.get("constructed") is True:
             refinery_constructed += 1
 
     return {
@@ -447,6 +518,9 @@ def build_facts(state: Dict[str, Any], observation: Optional[Dict[str, Any]],
         "own": sorted(by_name.keys()),
         "counts": counts,
         "constructed": constructed,
+        "constructed_unknown": constructed_unknown,
+        # 实体名 → True/False/None 完工状态（指定工地判定用）。
+        "own_constructed": own_constructed,
         "workers": workers,
         "builders": builders,
         "producers": producers,
@@ -489,12 +563,39 @@ def build_facts(state: Dict[str, Any], observation: Optional[Dict[str, Any]],
 
 def _evidence_workers_gathering(facts: Dict[str, Any], campaign: Dict[str, Any]
                                 ) -> Tuple[bool, str]:
+    """M01「经济点火」完成判据：**首座矿场完工且观察到真实交货**。
+
+    【2026-10-15 语义审计（修改 3）】旧判据是"采集命令已被权威接受且观测到
+    工人"——那只证明**任务已分配**，不证明经济循环已建立（旧样本：tick 914
+    判 done，而矿场完工 0、交货 0、余额平台 473 秒）。新判据把两者拆开：
+
+    - `economy_assigned`（采集已分配）：有工人且采集命令被权威接受；
+      这是**过程事实**，记入 campaign 供回放，**不**完成 M01；
+    - `economy_established`（经济循环已建立）：累计交货次数 > 0；
+      这才是 M01 的完成证据（玩法事实：指挥中心不是交货点，唯一交货点是
+      已完工矿场，见 `CollectingResourcesSequentially.find_drop_off`）。
+
+    已判 done 的旧状态不被改写（历史完成事实保留）；新局按新判据。
+    """
     has_worker = bool(facts["workers"])
     accepted = int(facts["accepted_actions"].get("gather", 0))
-    if has_worker and accepted > 0:
-        return True, "采集命令已被权威接受（%d 条）且观测到工人" % accepted
-    if has_worker and facts["accepted_prefixes"].get("rule-gather"):
-        return True, "规则采集命令已被权威接受"
+    campaign["economy_assigned"] = bool(
+        has_worker and (accepted > 0 or facts["accepted_prefixes"].get("rule-gather")))
+    delivered = int(facts.get("refinery_delivered", 0) or 0)
+    built = int(facts.get("refinery_constructed", 0) or 0)
+    campaign["economy_established"] = bool(delivered > 0)
+    if delivered > 0:
+        return True, ("经济循环已建立：矿场完工 %d 座，累计真实交付 %d 次 / %d 矿"
+                      % (built, delivered,
+                         int(facts.get("refinery_delivered_amount", 0) or 0)))
+    if built > 0:
+        return False, ("矿场已完工 %d 座但尚无任何实际交付（等待首次交货；"
+                       "采集任务%s已分配）" % (built, "已" if campaign["economy_assigned"] else "未"))
+    if int(facts.get("counts", {}).get("ore_refinery", 0)) > 0:
+        return False, "矿场工地已出现，尚未完工（等待完工观测）"
+    if campaign["economy_assigned"]:
+        return False, ("采集任务已分配（accepted gather=%d）但还没有矿场可交货——"
+                       "任务已分配不等于经济循环已建立" % accepted)
     return False, "等待采集命令被权威接受（当前 accepted gather=%d）" % accepted
 
 
@@ -1496,6 +1597,35 @@ def _mainline_node_id(campaign: Dict[str, Any]) -> str:
     return ""
 
 
+def _economy_context(campaign: Dict[str, Any]) -> Dict[str, Any]:
+    """模型可见的经济链事实（唯一实现；`context_view` 与调试输出共用）。"""
+    facts = campaign.get("_facts") if isinstance(campaign.get("_facts"), dict) else {}
+    workers = facts.get("workers") or []
+    delivered = int(facts.get("refinery_delivered", 0) or 0)
+    anomaly = campaign.get("economy_anomaly") if isinstance(
+        campaign.get("economy_anomaly"), dict) else {}
+    plan = campaign.get("economy_recovery_plan") if isinstance(
+        campaign.get("economy_recovery_plan"), dict) else {}
+    return {
+        "chain": "矿场完工赠一辆矿车；车厂生产后续矿车；矿车向完工矿场交付",
+        "workers": len(workers) if isinstance(workers, (list, tuple)) else 0,
+        "refinery_constructed": int(facts.get("refinery_constructed", 0) or 0),
+        "refinery_delivered": delivered,
+        "first_delivery_done": delivered > 0,
+        # 采集任务已分配 ≠ 经济循环已建立（M01 语义审计，修改 3）。
+        "gather_assigned": bool(campaign.get("economy_assigned")),
+        "economy_established": bool(campaign.get("economy_established")),
+        # 经济异常与恢复计划（证据 + 时间窗；不依赖"先受袭"）。
+        "anomaly_active": bool(anomaly.get("active")),
+        "anomaly_kind": str(anomaly.get("kind", "") or ""),
+        "anomaly_reasons": [str(x) for x in (anomaly.get("reasons_cn") or [])][:3],
+        "recovery_executable": bool(plan.get("executable")),
+        "recovery_actions": [str(item.get("action", "")) for item in
+                             (plan.get("actions") or []) if item.get("preconditions_met")][:3],
+        "recovery_blocked_missing": [str(x) for x in (plan.get("blocked_missing") or [])][:3],
+    }
+
+
 def context_view(campaign: Dict[str, Any], limit_milestones: int = 4) -> Dict[str, Any]:
     """给模型的**主线上下文**（纠偏 §"模型上下文必须包含"逐项对应）。
 
@@ -1535,6 +1665,10 @@ def context_view(campaign: Dict[str, Any], limit_milestones: int = 4) -> Dict[st
         "pending": [{"id": str(entry.get("id", "")), "name": str(entry.get("name", ""))}
                     for entry in pending[:limit_milestones]],
         "tracks": tracks,
+        # 【2026-10-11 经济链事实】新玩法经济语义必须进模型上下文（旧提示写"指挥中心
+        # 造工人"）：矿场完工赠一辆矿车 → 车厂产后续矿车 → 矿车向完工矿场交付。
+        # 同时给出点火状态，让战略模型能自己判断"经济是否已启动"。
+        "economy": _economy_context(campaign),
         "interrupts": [{"kind": str(item.get("kind", "")),
                         "status": str(item.get("status", "")),
                         "units": [str(u) for u in (item.get("units") or [])]}
@@ -1620,6 +1754,16 @@ def update(state: Dict[str, Any], observation: Optional[Dict[str, Any]], tick: i
     campaign["new_transitions"] = []
     campaign["resolved_interrupts"] = []
     facts = build_facts(state, observation, tick)
+    # 经济恢复评估用的最小事实子集（修改 3）：只留标量与短名单，
+    # 不进坐标数组（checkpoint 体积纪律见 `_facts_signature` 注释）。
+    campaign["_econ_facts"] = {
+        "workers": list(facts.get("workers") or [])[:16],
+        "builders": list(facts.get("builders") or [])[:16],
+        "producers": list(facts.get("producers") or [])[:16],
+        "resource_count": int(facts.get("resource_count", 0) or 0),
+        "refinery_constructed": int(facts.get("refinery_constructed", 0) or 0),
+        "balance": dict(facts.get("balance") or {}),
+    }
     tactical = (observation or {}).get("tactical")
     enemies_now = _living_enemies(tactical)
     # 敌方血量监视 → "施压"里程碑的**结果证据**（掉血，不是"发过命令"）。
@@ -1745,11 +1889,22 @@ def update(state: Dict[str, Any], observation: Optional[Dict[str, Any]], tick: i
                     **{"from": previous_phase})
 
     # ⑦ 扩张候选与前探点。
-    #    经济恢复（ECO-02）的判据：刚处理完基地受袭且工人不足目标 → 需要恢复。
-    campaign["needs_recovery"] = bool(
-        int(campaign.get("under_attack_total", 0) or 0) > 0
-        and int(campaign["milestones"].get(M01, {}).get("status", "") != "done")
-        and len(facts.get("workers") or []) < 2)
+    #    经济恢复（ECO-02）入口：**证据 + 时间窗**的经济异常（修改 3）。
+    #    旧条件（受袭>0 且 M01 未完成且工人<2）作为 OR 项之一原样保留
+    #    （`economy_recovery.detect` 内部计算并写 `needs_recovery_attack`）；
+    #    关键任务失败、长期零交付、单位/设施损失不再需要"先受袭"才被识别。
+    try:
+        from . import economy_recovery as economy_mod
+        anomaly = economy_mod.detect(campaign, facts, state=state, tick=tick,
+                                     config=state.get("loop_config") or {})
+        plan = economy_mod.recovery_plan(campaign, facts, state=state)
+        campaign["economy_recovery_plan"] = plan
+    except Exception as exc:  # noqa: BLE001 —— 经济评估失败不影响主线推进
+        anomaly = {"active": bool(campaign.get("needs_recovery")), "kind": "",
+                   "kinds": [], "reasons_cn": ["经济异常评估异常：%s" % str(exc)[:60]],
+                   "evidence": {}, "since_tick": 0, "window_ticks": {}}
+    campaign["economy_anomaly"] = anomaly
+    campaign["needs_recovery"] = bool(anomaly.get("active"))
     try:
         candidates = _expansion_candidates(state, facts, campaign, tactical)
     except Exception:  # noqa: BLE001 —— 扩张选址失败不影响主线推进
@@ -1833,6 +1988,87 @@ EMERGENCY_KINDS: Tuple[str, ...] = ("base_under_attack", "enemy_spotted",
                                     "enemy_on_route")
 
 
+#: 模型服务不可用时采纳的计划身份。任务来自本模块已有主线，不另写一套目标。
+RULES_PLAN_ID = "rules-" + MAINLINE_ID
+
+
+def rules_safe_plan(context: Dict[str, Any]) -> Any:
+    """把已经在跑的程序主线投影成一份战略计划。
+
+    模型端口没起来时用这一份，不调用战略模型，也不改提示词。
+    当前计划已经是这份规则计划时，返回 maintain_current：
+    plan_version 保持不变，tasks 留空，在途经济/防守任务不被重列。
+    """
+    from .contracts import PlanTask, StrategicPlan
+
+    data = context if isinstance(context, dict) else {}
+    current = data.get("current_plan") if isinstance(data.get("current_plan"), dict) else {}
+    tick = int(data.get("server_tick") or 0)
+    snapshot = int(data.get("snapshot_id") or 0)
+    campaign = data.get("campaign") if isinstance(data.get("campaign"), dict) else {}
+    phase = str(campaign.get("phase") or PHASE_RECON)
+    frontier = str(campaign.get("frontier_name") or MILESTONES[M01]["name"])
+    phase_goal = "程序主线：%s，前沿 %s" % (phase, frontier)
+    identity = dict(
+        plan_id=RULES_PLAN_ID,
+        match_id=str(data.get("match_id") or ""),
+        player_id=str(data.get("player_id") or ""),
+        rules_version=str(data.get("rules_version") or ""),
+        based_on_snapshot=max(0, snapshot),
+        valid_until_tick=max(0, tick) + 6000,
+        phase_goal=str(current.get("phase_goal") or phase_goal),
+    )
+    if str(current.get("plan_id") or "") == RULES_PLAN_ID:
+        try:
+            version = int(current.get("plan_version") or 1)
+        except (TypeError, ValueError):
+            version = 1
+        return StrategicPlan(
+            plan_version=max(1, version),
+            tasks=[],
+            maintain_current=True,
+            rationale="rules_degraded_hold",
+            **identity,
+        )
+    economy = str(MILESTONES[M01]["success_evidence"])
+    return StrategicPlan(
+        plan_version=1,
+        tasks=[
+            PlanTask(
+                task_id="rules-economy",
+                priority=10,
+                completion=economy,
+                units=[],
+                allowed_actions=["gather", "produce", "build"],
+            ),
+            PlanTask(
+                task_id="rules-defense",
+                priority=8,
+                completion="基地与工人保持防守，复核不清空在途采矿和生产",
+                units=[],
+                allowed_actions=["defend", "hold"],
+            ),
+            PlanTask(
+                task_id="rules-recon",
+                priority=3,
+                completion="没有确认敌情时只用少量无人机侦察，不为探索排队战斗机",
+                units=[],
+                unit_constraint="drone",
+                allowed_actions=["scout"],
+            ),
+        ],
+        rationale="rules_degraded_adopt",
+        **identity,
+    )
+
+
+class RulesSafeStrategy:
+    """战略模型不可用时的规则计划。propose_plan 立即返回，不占图线程。"""
+
+    def propose_plan(self, context: Dict[str, Any]) -> Any:
+        return rules_safe_plan(context)
+
+
 def _event_units(event: Dict[str, Any]) -> List[str]:
     payload = event.get("payload") or {}
     subject = payload.get("subject", "")
@@ -1851,6 +2087,7 @@ __all__ = [
     "EVIDENCE", "EMERGENCY_KINDS", "build_facts", "context_view", "default_campaign",
     "DEFEND_RECALL_MAX", "ensure_campaign", "frontier_preferences",
     "note_emergency", "note_model_branch",
-    "note_player_override", "note_player_release", "resolve_interrupts", "summary",
+    "note_player_override", "note_player_release", "resolve_interrupts",
+    "RULES_PLAN_ID", "RulesSafeStrategy", "rules_safe_plan", "summary",
     "track_of_action", "update",
 ]

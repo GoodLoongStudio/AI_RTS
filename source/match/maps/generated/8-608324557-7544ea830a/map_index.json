@@ -1,0 +1,24 @@
+{
+ "cell_m": 2.0,
+ "export_contract_version": "world-meters-v2",
+ "height_data": "res://source/match/maps/generated/8-608324557-7544ea830a/height_data.bin",
+ "height_data_sha256": "bfa2d1a5a397e627687686dd5e6b02810d986f1c75348d2f9336c47ee470b700",
+ "height_scale": 1,
+ "map_id": "8-608324557-7544ea830a",
+ "name": "Generated 8-608324557-7544ea830a",
+ "path": "res://source/match/maps/generated/8-608324557-7544ea830a/map_8-608324557-7544ea830a.tscn",
+ "players": 4,
+ "root_scale": [
+  1,
+  1,
+  1
+ ],
+ "size": [
+  512,
+  512
+ ],
+ "source_size": [
+  256,
+  256
+ ]
+}

@@ -26,7 +26,8 @@ public sealed record RegisterConstructionSite(
     int RequiredWork,
     IReadOnlyList<ResourceAmount> ConstructionCost,
     ConstructionProgressSource ProgressSource,
-    int AutomaticWorkPerTick);
+    int AutomaticWorkPerTick,
+    double AutomaticWorkFactor = 1.0);
 
 /// <summary>表示单现场命令的稳定处理状态。</summary>
 public enum ConstructionSiteCommandStatus

@@ -3,12 +3,15 @@ using AI_RTS.Application.Production;
 using AI_RTS.Application.Queries;
 using AI_RTS.Domain.Common;
 using AI_RTS.Domain.Configuration;
+using AI_RTS.GodotAdapter.AI;
 using AI_RTS.GodotAdapter.Common;
 using AI_RTS.GodotAdapter.Composition;
 using AI_RTS.GodotAdapter.Configuration;
 using AI_RTS.GodotAdapter.Construction;
 using AI_RTS.GodotAdapter.Production;
+using AI_RTS.GodotAdapter.Queries;
 using Godot;
+using System.Diagnostics;
 
 namespace AI_RTS.GodotAdapter.AI;
 
@@ -51,6 +54,19 @@ public partial class RuleAiCommandGateway : Node
         Godot.Collections.Array<string> unitEntityIds,
         Vector3 destination)
     {
+        var perf = QueryPerfCounters.Enabled ? Stopwatch.GetTimestamp() : 0L;
+        var result = MoveCore(unitEntityIds, destination);
+        if (QueryPerfCounters.Enabled)
+        {
+            QueryPerfCounters.AddCommand("Move", Stopwatch.GetTimestamp() - perf);
+        }
+        return result;
+    }
+
+    private Godot.Collections.Dictionary MoveCore(
+        Godot.Collections.Array<string> unitEntityIds,
+        Vector3 destination)
+    {
         if (!TryGetIssuer(out var issuer))
         {
             return Rejected(CommandErrorCode.MatchNotRunning, ParseUnits(unitEntityIds));
@@ -62,6 +78,17 @@ public partial class RuleAiCommandGateway : Node
     /// <summary>按稳定单位 ID 暂停当前可停止任务，并保留订单供上层查询其 Suspended 状态。</summary>
     public Godot.Collections.Dictionary Halt(Godot.Collections.Array<string> unitEntityIds)
     {
+        var perf = QueryPerfCounters.Enabled ? Stopwatch.GetTimestamp() : 0L;
+        var result = HaltCore(unitEntityIds);
+        if (QueryPerfCounters.Enabled)
+        {
+            QueryPerfCounters.AddCommand("Halt", Stopwatch.GetTimestamp() - perf);
+        }
+        return result;
+    }
+
+    private Godot.Collections.Dictionary HaltCore(Godot.Collections.Array<string> unitEntityIds)
+    {
         var units = ParseUnits(unitEntityIds);
         if (!TryGetIssuer(out var issuer))
         {
@@ -72,6 +99,20 @@ public partial class RuleAiCommandGateway : Node
 
     /// <summary>按稳定实体引用提交普通攻击，并强制要求目标是会话当前可见的敌方。</summary>
     public Godot.Collections.Dictionary Attack(
+        Godot.Collections.Array<string> unitEntityIds,
+        string targetKind,
+        string targetEntityId)
+    {
+        var perf = QueryPerfCounters.Enabled ? Stopwatch.GetTimestamp() : 0L;
+        var result = AttackCore(unitEntityIds, targetKind, targetEntityId);
+        if (QueryPerfCounters.Enabled)
+        {
+            QueryPerfCounters.AddCommand("Attack", Stopwatch.GetTimestamp() - perf);
+        }
+        return result;
+    }
+
+    private Godot.Collections.Dictionary AttackCore(
         Godot.Collections.Array<string> unitEntityIds,
         string targetKind,
         string targetEntityId)
@@ -99,6 +140,19 @@ public partial class RuleAiCommandGateway : Node
         Godot.Collections.Array<string> workerIds,
         string constructionSiteId)
     {
+        var perf = QueryPerfCounters.Enabled ? Stopwatch.GetTimestamp() : 0L;
+        var result = ConstructCore(workerIds, constructionSiteId);
+        if (QueryPerfCounters.Enabled)
+        {
+            QueryPerfCounters.AddCommand("Construct", Stopwatch.GetTimestamp() - perf);
+        }
+        return result;
+    }
+
+    private Godot.Collections.Dictionary ConstructCore(
+        Godot.Collections.Array<string> workerIds,
+        string constructionSiteId)
+    {
         if (!_issuer.TryGetTarget(out var issuer) ||
             !GodotObject.IsInstanceValid(issuer) || !issuer.IsInsideTree())
         {
@@ -116,6 +170,17 @@ public partial class RuleAiCommandGateway : Node
 
     /// <summary>按稳定建筑类型和世界变换提交统一放置命令，不向 AI 返回 Godot Node。</summary>
     public Godot.Collections.Dictionary PlaceStructure(string unitTypeId, Transform3D transform)
+    {
+        var perf = QueryPerfCounters.Enabled ? Stopwatch.GetTimestamp() : 0L;
+        var result = PlaceStructureCore(unitTypeId, transform);
+        if (QueryPerfCounters.Enabled)
+        {
+            QueryPerfCounters.AddCommand("PlaceStructure", Stopwatch.GetTimestamp() - perf);
+        }
+        return result;
+    }
+
+    private Godot.Collections.Dictionary PlaceStructureCore(string unitTypeId, Transform3D transform)
     {
         if (!_issuer.TryGetTarget(out var issuer) ||
             !GodotObject.IsInstanceValid(issuer) || !issuer.IsInsideTree())
@@ -139,6 +204,19 @@ public partial class RuleAiCommandGateway : Node
         string producerEntityId,
         string productTypeId)
     {
+        var perf = QueryPerfCounters.Enabled ? Stopwatch.GetTimestamp() : 0L;
+        var result = EnqueueProductionCore(producerEntityId, productTypeId);
+        if (QueryPerfCounters.Enabled)
+        {
+            QueryPerfCounters.AddCommand("EnqueueProduction", Stopwatch.GetTimestamp() - perf);
+        }
+        return result;
+    }
+
+    private Godot.Collections.Dictionary EnqueueProductionCore(
+        string producerEntityId,
+        string productTypeId)
+    {
         if (!_issuer.TryGetTarget(out var issuer) ||
             !GodotObject.IsInstanceValid(issuer) || !issuer.IsInsideTree())
         {
@@ -157,6 +235,19 @@ public partial class RuleAiCommandGateway : Node
 
     /// <summary>按稳定 Worker 与资源节点 ID 提交统一 Gather 命令。</summary>
     public Godot.Collections.Dictionary Gather(
+        Godot.Collections.Array<string> workerEntityIds,
+        string resourceEntityId)
+    {
+        var perf = QueryPerfCounters.Enabled ? Stopwatch.GetTimestamp() : 0L;
+        var result = GatherCore(workerEntityIds, resourceEntityId);
+        if (QueryPerfCounters.Enabled)
+        {
+            QueryPerfCounters.AddCommand("Gather", Stopwatch.GetTimestamp() - perf);
+        }
+        return result;
+    }
+
+    private Godot.Collections.Dictionary GatherCore(
         Godot.Collections.Array<string> workerEntityIds,
         string resourceEntityId)
     {

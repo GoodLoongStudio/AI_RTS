@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using AI_RTS.Application.Economy;
 using AI_RTS.Domain.Common;
 using AI_RTS.Domain.Construction;
@@ -8,6 +9,14 @@ namespace AI_RTS.Application.Construction;
 /// <summary>组合定义、权限、空间和资源账户，生成不修改状态的建筑放置评估。</summary>
 public sealed class StructurePlacementService : IStructurePlacementService
 {
+    /// <summary>测量专用。默认关闭，不改变评估结果。</summary>
+    public static bool Timing;
+
+    public static long LastPrepTicks;
+    public static long LastWorldTicks;
+    public static long LastAccountTicks;
+    public static long LastResultTicks;
+
     private static readonly StructurePlacementIssue[] IssuePriority =
     [
         StructurePlacementIssue.UnknownDefinition,
@@ -48,6 +57,26 @@ public sealed class StructurePlacementService : IStructurePlacementService
     /// <inheritdoc />
     public StructurePlacementEvaluation Evaluate(EvaluateStructurePlacementQuery query)
     {
+        var timing = Timing;
+        var mark = timing ? Stopwatch.GetTimestamp() : 0L;
+        if (timing)
+        {
+            LastPrepTicks = 0;
+            LastWorldTicks = 0;
+            LastAccountTicks = 0;
+            LastResultTicks = 0;
+        }
+        void Stamp(ref long slot)
+        {
+            if (!timing)
+            {
+                return;
+            }
+            var now = Stopwatch.GetTimestamp();
+            slot = now - mark;
+            mark = now;
+        }
+
         var issues = new HashSet<StructurePlacementIssue>();
         var candidate = query.Candidate;
         if (!ValidDefinitionId(candidate.DefinitionId))
@@ -102,12 +131,14 @@ public sealed class StructurePlacementService : IStructurePlacementService
         }
 
         // 「一次只能建造一个建筑」：同一玩家同时只允许一个 Active 工地（2026-09-29 用户规则）。
-        // 放在授权之后、空间评估之前：无并发额度时不必做更贵的逐圈可见/占位扫描。
+        // 放在授权之后、空间评估之前；命中即提前返回 —— 建造期间拖动蓝图会持续触发
+        // 重新评估，没有并发额度时不必每次都做逐圈可见/占位扫描。
         try
         {
             if (_constructionState.HasActiveConstructionSite(query.MatchId, query.PlayerId))
             {
                 issues.Add(StructurePlacementIssue.ConstructionInProgress);
+                return Result(candidate, issues, null);
             }
         }
         catch
@@ -115,11 +146,17 @@ public sealed class StructurePlacementService : IStructurePlacementService
             issues.Add(StructurePlacementIssue.ValidationUnavailable);
         }
 
+        Stamp(ref LastPrepTicks);
         try
         {
             foreach (var issue in _world.Evaluate(
                 query.MatchId, query.PlayerId, candidate, definition))
             {
+                // 窄缝不再是放置失败。旧世界端口若仍带回 BlocksPassage，这里直接丢掉。
+                if (issue == StructurePlacementIssue.BlocksPassage)
+                {
+                    continue;
+                }
                 if (IsWorldIssue(issue))
                 {
                     issues.Add(issue);
@@ -134,6 +171,7 @@ public sealed class StructurePlacementService : IStructurePlacementService
         {
             issues.Add(StructurePlacementIssue.ValidationUnavailable);
         }
+        Stamp(ref LastWorldTicks);
 
         long? accountVersion = null;
         try
@@ -157,8 +195,11 @@ public sealed class StructurePlacementService : IStructurePlacementService
         {
             issues.Add(StructurePlacementIssue.ValidationUnavailable);
         }
+        Stamp(ref LastAccountTicks);
 
-        return Result(candidate, issues, accountVersion);
+        var result = Result(candidate, issues, accountVersion);
+        Stamp(ref LastResultTicks);
+        return result;
     }
 
     /// <summary>验证稳定建筑定义键不为空白。</summary>
@@ -210,6 +251,7 @@ public sealed class StructurePlacementService : IStructurePlacementService
         StructurePlacementIssue.NotVisible or StructurePlacementIssue.NotAdjacent or
         StructurePlacementIssue.OutOfBounds or
         StructurePlacementIssue.SurfaceNotBuildable or StructurePlacementIssue.Occupied or
+        StructurePlacementIssue.BlocksPassage or
         StructurePlacementIssue.FriendlyDisplacementUnavailable or
         StructurePlacementIssue.ValidationUnavailable;
 

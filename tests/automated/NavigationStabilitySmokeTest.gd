@@ -62,6 +62,12 @@ func _wait_for_terminal_state(
 				samples.pop_front()
 		state = gateway.GetOrderState(order_id)
 		if state in ["Arrived", "Unreachable", "Cancelled", "UnitLost"]:
+			# 【2026-09-30】权威订单状态在 C# 侧、action 交换在 GDScript 侧，两者不在同一帧
+			# 完成。旧实现检测到终态立刻返回，调用方紧接着断言`action != Moving`会**零帧竞态**
+			# 偶发失败（实测同一场景 probe：Arrived 后 +1 帧 action 已是 WaitingForTargets）。
+			# 这里只多等 2 个物理帧让 action 落定，判据本身一条没改：真卡在 Moving 仍会红。
+			for _settle in range(2):
+				await get_tree().physics_frame
 			return state
 	return state
 

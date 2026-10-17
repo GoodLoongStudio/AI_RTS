@@ -63,7 +63,9 @@ PRODUCE_QTY_HINT = "Q2"
 #: 何时开始给"扩建"候选（余额 ≥ 该值且关键建筑已齐）。
 EXPANSION_MIN_BUDGET = 1000
 #: 关键建筑（按手册 BLD-01 阶梯顺序补齐）。
-KEY_BUILDINGS = ("barracks", "vehicle_factory", "aircraft_factory")
+#: 【2026-10-11 经济优先】矿场/车厂排最前：新玩法里矿场完工赠矿车、车厂产后续矿车，
+#: 是收入的唯一来源；把经济建筑漏掉会让模型候选整局只有军事项（用户实测"没有矿场"）。
+KEY_BUILDINGS = ("ore_refinery", "vehicle_factory", "barracks", "aircraft_factory")
 
 
 def normalize_json_text(text: str) -> str:
@@ -256,8 +258,8 @@ def render_compact_text(frame, *, balance: Optional[Dict[str, Any]] = None,
             if cost <= budget:
                 candidates.append("%s产%s(%s) %s" % (ref, ref_product, product,
                                                      PRODUCE_QTY_HINT))
-    expansion = [scene for scene in ("anti_air_turret", "anti_ground_turret",
-                                     "command_center")
+    expansion = [scene for scene in ("ore_refinery", "anti_air_turret",
+                                     "anti_ground_turret", "command_center")
                  if scene not in missing and scene_to_ref.get(scene)
                  and scene_cost.get(scene, 0) <= budget]
     if budget >= EXPANSION_MIN_BUDGET and expansion and builders:
@@ -300,6 +302,9 @@ def render_compact_text(frame, *, balance: Optional[Dict[str, Any]] = None,
         lines.append("余额: " + " ".join("%s=%s" % (k, v) for k, v in balance.items()))
     if frame.phase_goal:
         lines.append("阶段目标: " + str(frame.phase_goal))
+    strategic = getattr(frame, "strategic_tasks", ()) or ()
+    if strategic:
+        lines.append("战略任务: " + " | ".join(str(item) for item in strategic))
     return "\n".join(lines)
 
 

@@ -1,0 +1,23 @@
+# 这局的经济恢复入口卡点
+
+实线解释已有条件和已记录事实；虚线是需要补的反馈入口。本轮只建立诊断图，没有修改运行时条件。
+
+```mermaid
+flowchart TD
+    observed["本局事实：工人 6；矿场失败；交货 0"] --> entry{"D2 经济恢复入口"}
+    condition["现有条件同时成立：受袭次数大于 0<br/>M01 未完成；工人少于 2"] --> entry
+    entry -->|"条件成立：本案例未满足"| recovery["D2 经济恢复候选"]
+    entry -->|"条件不成立：上下文记录 D2 不可选"| unavailable["经济恢复未进入本次候选"]
+    unavailable --> decision["模型继续在已有候选和计划中选择"]
+    decision --> repeat["已记录：维持战略；重复选择采集"]
+    repeat --> result["后续事实：末段余额 100；矿场交货仍为 0"]
+    result --> observed
+    result -. "需要补的反馈入口；本轮未实现" .-> stall["长期无进展或关键任务失败<br/>触发重新诊断与恢复评估"]
+    stall -. "建议新增；不是既有执行边" .-> recovery
+    classDef normal fill:#eaf2fb,stroke:#617e9e,color:#17334c;
+    classDef branch fill:#fff2de,stroke:#b98a48,color:#513a16;
+    classDef failure fill:#fdebe6,stroke:#bb6858,color:#6a2c22;
+    class observed,recovery,decision,repeat normal;
+    class entry,condition branch;
+    class unavailable,result,stall failure;
+```

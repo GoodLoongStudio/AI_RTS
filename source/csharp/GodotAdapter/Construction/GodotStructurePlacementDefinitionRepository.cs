@@ -1,7 +1,9 @@
+using System.Diagnostics;
 using AI_RTS.Application.Configuration;
 using AI_RTS.Application.Construction;
 using AI_RTS.Domain.Common;
 using AI_RTS.Domain.Construction;
+using AI_RTS.GodotAdapter.Queries;
 
 namespace AI_RTS.GodotAdapter.Construction;
 
@@ -18,8 +20,16 @@ internal sealed class GodotStructurePlacementDefinitionRepository :
     }
 
     /// <inheritdoc />
-    public StructurePlacementDefinition? Find(StructureDefinitionId definitionId) =>
-        _catalog.FindConstruction(definitionId)?.Placement;
+    public StructurePlacementDefinition? Find(StructureDefinitionId definitionId)
+    {
+        var started = QueryPerfCounters.Enabled ? Stopwatch.GetTimestamp() : 0L;
+        var found = _catalog.FindConstruction(definitionId)?.Placement;
+        if (QueryPerfCounters.Enabled)
+        {
+            QueryPerfCounters.AddPlacementPhase("eval_def", Stopwatch.GetTimestamp() - started);
+        }
+        return found;
+    }
 }
 
 /// <summary>迁移期允许所有已注册定义；科技树权限以后替换此端口。</summary>

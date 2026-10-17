@@ -7,6 +7,7 @@ using AI_RTS.GodotAdapter.Common;
 using AI_RTS.GodotAdapter.Composition;
 using AI_RTS.GodotAdapter.Production;
 using Godot;
+using System.Diagnostics;
 
 namespace AI_RTS.GodotAdapter.Queries;
 
@@ -36,21 +37,37 @@ public sealed class GodotWorldObservationRepository : IWorldObservationRepositor
         _production = production;
     }
 
+    private bool _notedFirstCapture;
+
     /// <inheritdoc />
     public WorldObservationSnapshot Capture()
     {
+        var perf = QueryPerfCounters.Enabled;
+        var mark = perf ? Stopwatch.GetTimestamp() : 0L;
+        void Part(string name)
+        {
+            if (!perf)
+            {
+                return;
+            }
+            var now = Stopwatch.GetTimestamp();
+            QueryPerfCounters.AddCapturePhase(name, now - mark);
+            mark = now;
+        }
+
         var players = NodesInMatch("players");
         var playerIds = players.ToDictionary(player => player, GodotStableIdentity.Player);
         var units = NodesInMatch("units");
         var resources = NodesInMatch("resource_units");
-        var revealers = players.ToDictionary(
-            player => playerIds[player],
-            player => units.Where(unit => unit.GetParent() == player && CanReveal(unit)).ToArray());
+        Part("capture_nodes");
+        var revealers = SampleRevealers(players, playerIds, units);
+        Part("capture_reveal");
         var entities = units.Select(unit => SnapshotUnit(unit, playerIds, revealers))
             .Concat(resources.Select(resource => SnapshotResource(resource, revealers)))
             .OrderBy(entity => entity.EntityId.Kind)
             .ThenBy(entity => entity.EntityId.Value)
             .ToArray();
+        Part("capture_entities");
         var economies = playerIds.Values
             .Select(playerId => _accounts.Find(playerId))
             .Where(snapshot => snapshot is not null)
@@ -63,18 +80,21 @@ public sealed class GodotWorldObservationRepository : IWorldObservationRepositor
                         .ToArray(),
                     snapshot.Version)))
             .ToArray();
+        Part("capture_economy");
         var visibilityRegions = revealers
-            .SelectMany(item => item.Value.Select(revealer => new VisibilityRegionSnapshot(
-                item.Key,
-                Position(revealer),
-                NullableFloat(revealer.Get("sight_range"))!.Value + SightCompensation)))
+            .Select(revealer => new VisibilityRegionSnapshot(
+                revealer.Player,
+                new WorldPosition(revealer.X, revealer.Y, revealer.Z),
+                revealer.SightWithCompensation))
             .ToArray();
+        var bounds = CaptureBattlefieldBounds();
+        Part("capture_rest");
         return new WorldObservationSnapshot(
             checked((long)Engine.GetPhysicsFrames()),
             entities,
             economies,
             visibilityRegions,
-            CaptureBattlefieldBounds());
+            bounds);
     }
 
     /// <inheritdoc />
@@ -89,11 +109,23 @@ public sealed class GodotWorldObservationRepository : IWorldObservationRepositor
         var frame = checked((long)Engine.GetPhysicsFrames());
         if (_sharedSnapshot is not null && frame == _sharedSnapshotFrame)
         {
+            QueryPerfCounters.AddCapture(0L, false, 0L);
             return _sharedSnapshot;
         }
 
+        var started = QueryPerfCounters.Enabled ? Stopwatch.GetTimestamp() : 0L;
         _sharedSnapshot = Capture();
         _sharedSnapshotFrame = frame;
+        if (QueryPerfCounters.Enabled)
+        {
+            var elapsed = Stopwatch.GetTimestamp() - started;
+            QueryPerfCounters.AddCapture(elapsed, true, _sharedSnapshot.Entities.Count);
+            if (!_notedFirstCapture)
+            {
+                _notedFirstCapture = true;
+                QueryPerfCounters.AddCapturePhase("capture_first", elapsed);
+            }
+        }
         return _sharedSnapshot;
     }
 
@@ -114,91 +146,153 @@ public sealed class GodotWorldObservationRepository : IWorldObservationRepositor
         return new BattlefieldBounds(0, size.X, 0, size.Y);
     }
 
+    /// <summary>一次快照里揭示者的位置和视野。避免每个观察对象再读一遍 Godot 属性。</summary>
+    private readonly record struct RevealerSample(
+        PlayerId Player, float X, float Y, float Z, float SightWithCompensation, float RangeSquared);
+
+    private static RevealerSample[] SampleRevealers(
+        Node[] players,
+        IReadOnlyDictionary<Node, PlayerId> playerIds,
+        Node[] units)
+    {
+        var samples = new List<RevealerSample>();
+        foreach (var player in players)
+        {
+            var playerId = playerIds[player];
+            foreach (var unit in units)
+            {
+                if (unit.GetParent() != player || !TryReadSight(unit, out var sight))
+                {
+                    continue;
+                }
+                if (unit.HasMethod("is_constructed") && !unit.Call("is_constructed").AsBool())
+                {
+                    continue;
+                }
+                var origin = Position(unit);
+                var range = sight + SightCompensation;
+                samples.Add(new RevealerSample(
+                    playerId, origin.X, origin.Y, origin.Z, range, range * range));
+            }
+        }
+        return samples.ToArray();
+    }
+
+    private int _slowUnitPrints;
+
     private WorldEntitySnapshot SnapshotUnit(
         Node unit,
         IReadOnlyDictionary<Node, PlayerId> playerIds,
-        IReadOnlyDictionary<PlayerId, Node[]> revealers)
+        RevealerSample[] revealers)
     {
+        var perf = QueryPerfCounters.Enabled;
+        var mark = perf ? Stopwatch.GetTimestamp() : 0L;
+        void Part(string name)
+        {
+            if (!perf)
+            {
+                return;
+            }
+            var now = Stopwatch.GetTimestamp();
+            var ticks = now - mark;
+            QueryPerfCounters.AddCapturePhase(name, ticks);
+            var microseconds = ticks * 1000000.0 / Stopwatch.Frequency;
+            if (microseconds >= 8000 && _slowUnitPrints < 6)
+            {
+                _slowUnitPrints++;
+                GD.Print($"[CAP] {name} us={microseconds:F0} unit={unit.Name}");
+            }
+            mark = now;
+        }
+
         var ownerNode = unit.GetParent();
         var owner = playerIds.GetValueOrDefault(ownerNode);
         var unitId = _commands.RegisterRuntimeUnit(unit);
         var kind = unit.HasMethod("is_constructed") ?
             BattlefieldEntityKind.Structure : BattlefieldEntityKind.Unit;
+        Part("capture_u_id");
+        var position = Position(unit);
+        var unitType = UnitType(unit);
+        var hp = NullableFloat(unit.Get("hp"));
+        var hpMax = NullableFloat(unit.Get("hp_max"));
+        Part("capture_u_props");
+        var visible = VisiblePlayers(position, owner.Value == Guid.Empty ? null : owner, revealers);
+        Part("capture_u_vis");
+        var construction = _commands.ObserveConstruction(unit);
+        Part("capture_u_build");
+        var production = _production.ObserveProduction(unit);
+        Part("capture_u_prod");
+        var order = _commands.ObserveActiveOrder(unit);
+        Part("capture_u_order");
         return new WorldEntitySnapshot(
             new BattlefieldEntityId(kind, unitId.Value),
             owner.Value == Guid.Empty ? null : owner,
-            Position(unit),
-            UnitType(unit),
-            NullableFloat(unit.Get("hp")),
-            NullableFloat(unit.Get("hp_max")),
+            position,
+            unitType,
+            hp,
+            hpMax,
             kind == BattlefieldEntityKind.Structure,
-            VisiblePlayers(unit, owner.Value == Guid.Empty ? null : owner, revealers),
-            _commands.ObserveConstruction(unit),
-            _production.ObserveProduction(unit),
-            _commands.ObserveActiveOrder(unit));
+            visible,
+            construction,
+            production,
+            order);
     }
 
     private WorldEntitySnapshot SnapshotResource(
         Node resource,
-        IReadOnlyDictionary<PlayerId, Node[]> revealers)
+        RevealerSample[] revealers)
     {
         var resourceId = _commands.RegisterRuntimeResource(resource);
+        var position = Position(resource);
         return new WorldEntitySnapshot(
             new BattlefieldEntityId(
                 BattlefieldEntityKind.ResourceNode,
                 resourceId.Value),
             null,
-            Position(resource),
+            position,
             ResourceType(resource),
             null,
             null,
             false,
-            VisiblePlayers(resource, null, revealers));
+            VisiblePlayers(position, null, revealers));
     }
 
     private static IReadOnlySet<PlayerId> VisiblePlayers(
-        Node entity,
+        WorldPosition entityPosition,
         PlayerId? owner,
-        IReadOnlyDictionary<PlayerId, Node[]> revealers)
+        RevealerSample[] revealers)
     {
         var result = new HashSet<PlayerId>();
         if (owner is not null)
         {
             result.Add(owner.Value);
         }
-        var entityPosition = Position(entity);
-        foreach (var item in revealers)
+        foreach (var revealer in revealers)
         {
-            if (item.Value.Any(revealer => IsInsideSight(revealer, entityPosition)))
+            if (result.Contains(revealer.Player))
             {
-                result.Add(item.Key);
+                continue;
+            }
+            var x = revealer.X - entityPosition.X;
+            var z = revealer.Z - entityPosition.Z;
+            if (x * x + z * z <= revealer.RangeSquared)
+            {
+                result.Add(revealer.Player);
             }
         }
         return result;
     }
 
-    private static bool IsInsideSight(Node revealer, WorldPosition target)
+    private static bool TryReadSight(Node unit, out float sight)
     {
-        var sight = NullableFloat(revealer.Get("sight_range"));
-        if (sight is null || sight <= 0)
+        var value = NullableFloat(unit.Get("sight_range"));
+        if (value is null || value <= 0)
         {
+            sight = 0;
             return false;
         }
-        var origin = Position(revealer);
-        var x = origin.X - target.X;
-        var z = origin.Z - target.Z;
-        var range = sight.Value + SightCompensation;
-        return x * x + z * z <= range * range;
-    }
-
-    private static bool CanReveal(Node unit)
-    {
-        var sight = NullableFloat(unit.Get("sight_range"));
-        if (sight is null || sight <= 0)
-        {
-            return false;
-        }
-        return !unit.HasMethod("is_constructed") || unit.Call("is_constructed").AsBool();
+        sight = value.Value;
+        return true;
     }
 
     private Node[] NodesInMatch(string group) => _matchRoot.GetTree().GetNodesInGroup(group)

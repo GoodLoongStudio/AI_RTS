@@ -56,20 +56,20 @@ func _ready():
 
 	# 1) 框住无人机在屏幕上占据的位置 → 选中无人机，且不牵连远处的坦克。
 	#    旧实现在这一步整批丢弃空军，坦克却照常选中，正是玩家看到的"框不住无人机"。
-	_box_select(_screen_rect_around(drone, 24.0))
+	_box_select(_screen_rect_around(drone, _box_radius_px(drone, tank, 0.4, 24.0)))
 	await get_tree().process_frame
 	_check(_is_selected(drone), "框住屏幕上的无人机应能选中它")
 	_check(not _is_selected(tank), "选框没盖住坦克时不应选中它")
 
 	# 2) 框住地面坦克 → 地面框选不能被这次改动破坏。
-	_box_select(_screen_rect_around(tank, 24.0))
+	_box_select(_screen_rect_around(tank, _box_radius_px(tank, drone, 0.4, 24.0)))
 	await get_tree().process_frame
 	_check(_is_selected(tank), "框住地面坦克仍应选中（地面框选回归）")
 	_check(not _is_selected(drone), "选框没盖住无人机时不应选中无人机")
 
 	# 3) 一个大框同时盖住两者 → 一起选中。
 	_box_select(
-		_screen_rect_around(drone, 24.0).expand(_camera.unproject_position(tank.global_position))
+		_screen_rect_around(drone, _box_radius_px(drone, tank, 0.4, 24.0)).expand(_camera.unproject_position(tank.global_position))
 	)
 	await get_tree().process_frame
 	_check(_is_selected(drone) and _is_selected(tank), "大框应同时框住无人机与坦克")
@@ -84,7 +84,7 @@ func _ready():
 	# 5) 拖拽过程中的高亮走同一套换算。
 	var selector = _match.get_node("RectangularSelection3D")
 	selector.started.emit()
-	selector.changed.emit(_topdown_polygon_2d(_screen_rect_around(drone, 24.0)))
+	selector.changed.emit(_topdown_polygon_2d(_screen_rect_around(drone, _box_radius_px(drone, tank, 0.4, 24.0))))
 	await get_tree().process_frame
 	_check(_is_highlighted(drone), "拖拽选框盖住无人机时应高亮它")
 	selector.interrupted.emit()
@@ -107,6 +107,15 @@ func _box_select(rect: Rect2):
 	print("[BOX] rect=", rect, " polygon=", str(polygon))
 	selector.started.emit()
 	selector.finished.emit(polygon)
+
+
+
+## 【2026-10-01 尺度 ×2 适配】选框像素半径不再写死：改为由"两单位屏幕距离"推出，
+## 这样相机随视野/尺度变化时，"框住 A 不框住 B"的语义仍然成立。
+func _box_radius_px(a: Node3D, b: Node3D, fraction: float, cap: float) -> float:
+	var pa: Vector2 = _camera.unproject_position(a.global_position)
+	var pb: Vector2 = _camera.unproject_position(b.global_position)
+	return minf(cap, maxf(8.0, pa.distance_to(pb) * fraction))
 
 
 func _screen_rect_around(world_unit, half_margin: float) -> Rect2:

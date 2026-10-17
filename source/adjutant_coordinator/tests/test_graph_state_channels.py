@@ -35,6 +35,10 @@ _STATE_WRITE = re.compile(r'state\[[\'"]([A-Za-z_][\w]*)[\'"]\]\s*='
 TRANSIENT_STATE_KEYS = {
     # 本轮服务到的线路：**只在同一轮写、没人读**（历史遗留；跨轮无意义）。
     "lanes_served_this_tick",
+    # 身份漂移证据：`node_ingest` 每轮**重新计算并覆盖**（未漂移就写成 `{}`），
+    # 同轮内由 `node_dispatch_to_godot` 消费。跨轮保留它既无意义也不安全
+    # （恢复检查点后必须以**新一轮观测**的身份为准，不能拿旧漂移证据卡死下发）。
+    "identity_drift",
 }
 
 
@@ -52,12 +56,19 @@ class GraphStateChannelTest(unittest.TestCase):
     TRANSIENT_CHANNELS = {
         # 本轮异步决策结果的同 tick 交接键（结果落地后就被消费）。
         "patch_ready",
+        # 本轮战略调度器是否仍在算。恢复后调度器是空的，这个标记必须重算。
+        "strategy_inflight",
         # 规则中台本轮是否已生成 baseline 的幂等闸（每轮重算即可，不必持久）。
         "baseline_tick",
         # 意图来源旁路账本 `{intent_id: baseline|behavior_tree|model}`（供归档区分来源）。
         "intent_origin",
         # 地图边界：每轮由 `op=strategic` 写入（**每轮都新鲜**，持久反而会用到过期值）。
         "map_bounds",
+        # 闭环/经济评估配置（修改 2/3）：`node_ingest` 每轮从 GraphConfig 重算，
+        # 同轮内由 `campaign.update` 的经济异常评估读取。必须走通道（否则 LangGraph
+        # 在节点间把它过滤掉，--econ-* 只有默认值生效）；不进 checkpoint
+        # （每轮新鲜，持久化会用上一个进程的配置快照）。
+        "loop_config",
     }
 
     def test_channels_do_not_declare_unknown_fields(self):

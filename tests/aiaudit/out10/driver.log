@@ -1,0 +1,10 @@
+[force-attack-friendly] rc=1 marker_ok=False fails=2 secs=26.9
+[movement-recovery] rc=1 marker_ok=False fails=4 secs=27.4
+[movement-scale] rc=1 marker_ok=False fails=2 secs=232.5
+[rule-ai-battlegroup] rc=1 marker_ok=False fails=0 secs=10.4
+[rule-ai-economy-query] rc=1 marker_ok=False fails=0 secs=14.9
+[rule-ai-expansion] rc=1 marker_ok=False fails=0 secs=16.5
+[rule-ai-offense-logistics] rc=1 marker_ok=False fails=0 secs=12.0
+[ground-attack-move-arrival] rc=0 marker_ok=True fails=0 secs=12.1
+[unit-auto-attack] rc=0 marker_ok=True fails=0 secs=7.7
+DONE 9 tests, 7 red

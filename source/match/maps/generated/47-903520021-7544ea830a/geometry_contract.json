@@ -1,0 +1,18 @@
+{
+ "cell_m": 2.0,
+ "export_contract_version": "world-meters-v2",
+ "height_scale": 1,
+ "root_scale": [
+  1,
+  1,
+  1
+ ],
+ "size": [
+  512,
+  512
+ ],
+ "source_size": [
+  256,
+  256
+ ]
+}

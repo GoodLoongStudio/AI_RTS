@@ -2,6 +2,7 @@ extends PanelContainer
 
 const Unit = preload("res://source/match/units/Unit.gd")
 const Moving = preload("res://source/match/units/actions/Moving.gd")
+const _PerfBuckets = preload("res://source/match/PerfBuckets.gd")
 
 const GROUND_LEVEL_PLANE = Plane(Vector3.UP, 0)
 const MINIMAP_PIXELS_PER_WORLD_METER = 2
@@ -113,7 +114,7 @@ func _ready():
 
 
 func _follow_minimap_fog_mask(deadline_msec: int) -> void:
-	if not is_inside_tree():
+	if not is_inside_tree() or DisplayServer.get_name() == "headless":
 		return
 	_sync_minimap_fog_mask()
 	if _fog_live_bound or _match == null:
@@ -158,6 +159,10 @@ func _ensure_hud_fog_mask() -> ColorRect:
 
 
 func _sync_minimap_fog_mask() -> void:
+	# The headless renderer has no viewport pixel buffer to read or bind.
+	if DisplayServer.get_name() == "headless":
+		_hide_minimap_fog_mask()
+		return
 	var fog_mask := _ensure_hud_fog_mask()
 	if fog_mask == null:
 		return
@@ -458,18 +463,30 @@ func _world_to_minimap_display(world_2d: Vector2) -> Vector2:
 
 
 func _process(_delta):
+	var t0 := 0
+	if _PerfBuckets.enabled:
+		t0 = Time.get_ticks_usec()
 	# Camera movement itself is render-frame smooth, so the minimap footprint should follow it
 	# every rendered frame instead of lagging behind on physics ticks.
 	_update_camera_indicator()
 	_process_order_marks()
+	if t0 != 0:
+		_PerfBuckets.add("minimap_process", int(Time.get_ticks_usec() - t0))
 
 
 func _physics_process(_delta):
+	var t0 := 0
+	if _PerfBuckets.enabled:
+		t0 = Time.get_ticks_usec()
 	_unit_sync_elapsed += _delta
 	if _unit_sync_elapsed < UNIT_SYNC_INTERVAL:
+		if t0 != 0:
+			_PerfBuckets.add("minimap_physics", int(Time.get_ticks_usec() - t0))
 		return
 	_unit_sync_elapsed = fmod(_unit_sync_elapsed, UNIT_SYNC_INTERVAL)
 	_sync_real_units_with_minimap_representations()
+	if t0 != 0:
+		_PerfBuckets.add("minimap_physics", int(Time.get_ticks_usec() - t0))
 
 
 func _remove_dummy_nodes():

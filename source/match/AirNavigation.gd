@@ -48,7 +48,8 @@ func _ensure_navigation_map() -> void:
 func release_navigation_map():
 	if not navigation_map_rid.is_valid():
 		return
-	NavigationServer3D.map_set_active(navigation_map_rid, false)
+	if NavigationServer3D.map_is_active(navigation_map_rid):
+		NavigationServer3D.map_set_active(navigation_map_rid, false)
 	NavigationServer3D.free_rid(navigation_map_rid)
 	navigation_map_rid = RID()
 

@@ -1,0 +1,629 @@
+@@@ A 定向非退化回归 剩余 14 条 @ 18:05:22
+[targeted] 跑 runtime-placement (RuntimePlacementSmokeTest.tscn)
+[targeted]   runtime-placement passed=True rc=0 噪声=无
+[targeted] 跑 same-frame-overlap-placement (SameFrameOverlapPlacementTest.tscn)
+[targeted]   same-frame-overlap-placement passed=False rc=1 噪声=['ObjectDB instances were leaked at exit', 'RID allocations of type .* were leaked at exit', 'resources still in use at exit']
+[targeted] 跑 structure-repair-sell (StructureRepairSellSmokeTest.tscn)
+[targeted]   structure-repair-sell passed=True rc=0 噪声=['ObjectDB instances were leaked at exit', 'RID allocations of type .* were leaked at exit', 'resources still in use at exit']
+[targeted] 跑 repair-sell-targeting (RepairSellTargetingSmokeTest.tscn)
+[targeted]   repair-sell-targeting passed=False rc=1 噪声=['ObjectDB instances were leaked at exit', 'RID allocations of type .* were leaked at exit', 'resources still in use at exit']
+[targeted] 跑 net-structure-command-contract (NetStructureCommandContractSmokeTest.tscn)
+[targeted]   net-structure-command-contract passed=True rc=0 噪声=无
+[targeted] 跑 worker-gather (WorkerGatherSmokeTest.tscn)
+[targeted]   worker-gather passed=True rc=0 噪声=['ObjectDB instances were leaked at exit', 'RID allocations of type .* were leaked at exit', 'resources still in use at exit']
+[targeted] 跑 economy-account (EconomyAccountSmokeTest.tscn)
+[targeted]   economy-account passed=False rc=1 噪声=['ObjectDB instances were leaked at exit', 'RID allocations of type .* were leaked at exit', 'resources still in use at exit']
+[targeted] 跑 worker-engagement-policy (WorkerEngagementPolicySmokeTest.tscn)
+[targeted]   worker-engagement-policy passed=True rc=0 噪声=['ObjectDB instances were leaked at exit', 'RID allocations of type .* were leaked at exit', 'resources still in use at exit']
+[targeted] 跑 production-queue (ProductionQueueSmokeTest.tscn)
+[targeted]   production-queue passed=False rc=1 噪声=['ObjectDB instances were leaked at exit', 'RID allocations of type .* were leaked at exit', 'resources still in use at exit']
+[targeted] 跑 command-center-worker-production (CommandCenterWorkerProductionSmokeTest.tscn)
+[targeted]   command-center-worker-production passed=True rc=0 噪声=['Assertion failed', 'ObjectDB instances were leaked at exit', 'RID allocations of type .* were leaked at exit', 'SCRIPT ERROR', 'resources still in use at exit']
+[targeted] 跑 fog-of-war-sight-range (FogOfWarSightRangeSmokeTest.tscn)
+[targeted]   fog-of-war-sight-range passed=True rc=0 噪声=无
+[targeted] 跑 ore-refinery (OreRefinerySmokeTest.tscn)
+[targeted]   ore-refinery passed=False rc=1 噪声=['Assertion failed', 'ObjectDB instances were leaked at exit', 'RID allocations of type .* were leaked at exit', 'SCRIPT ERROR', 'resources still in use at exit']
+[targeted] 跑 ore-regeneration (OreRegenerationSmokeTest.tscn)
+[targeted]   ore-regeneration passed=False rc=1 噪声=['ObjectDB instances were leaked at exit', 'RID allocations of type .* were leaked at exit', 'resources still in use at exit']
+[targeted] 跑 multi-unit-command (MultiUnitCommandSmokeTest.tscn)
+[targeted]   multi-unit-command passed=True rc=0 噪声=无
+[targeted] 8/14 通过；失败：same-frame-overlap-placement,repair-sell-targeting,economy-account,production-queue,ore-refinery,ore-regeneration
+@@@ A exit=1 @ 18:10:03
+@@@ B Python 全套 @ 18:10:03
+======================================================================
+FAIL: test_outnumbered_retreat_preempts_model_attack (test_ladder_batch_integration.LadderBatchIntegrationTest.test_outnumbered_retreat_preempts_model_attack)
+劣势撤离（行为树，优先级最高）必须能顶掉模型给同一个兵下的 attack。
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "G:\AIRTS\AI_RTS\source\adjutant_coordinator\tests\test_ladder_batch_integration.py", line 182, in test_outnumbered_retreat_preempts_model_attack
+    self.assertEqual(actions, {"retreat"},
+AssertionError: Items in the first set but not the second:
+'attack'
+Items in the second set but not the first:
+'retreat' : 劣势撤离被模型的 attack 挡住了（求生优先级失效）
+
+----------------------------------------------------------------------
+Ran 946 tests in 10.499s
+
+FAILED (failures=10, errors=14, skipped=6)
+{"ok": false, "role": "tactics", "status": "timeout", "reason": "timeout", "latency_s": 0.0, "usage": [], "note": "无命令提交；已接受的既有任务继续运行"}
+{"ok": true, "role": "tactics", "sent": 1, "accepted": 1, "rejected": [], "latency_s": 0.0, "usage": []}
+{"ok": true, "role": "tactics", "sent": 2, "accepted": 2, "rejected": [], "latency_s": 0.0, "usage": []}
+{"op": "status", "data": {"players": [{"name": "Player_0", "human": true}]}}
+{"ok": false, "rejected": "op=move 已被 v5 技能禁用", "reason": "旧无版本命令绕过统一协调器，禁止使用。一切游戏动作必须经 rts_act.py（内部走 adjutant_command，完整包络 + 幂等 + 规则版本校验）。"}
+{"ok": false, "rejected": "op=gather 已被 v5 技能禁用", "reason": "旧无版本命令绕过统一协调器，禁止使用。一切游戏动作必须经 rts_act.py（内部走 adjutant_command，完整包络 + 幂等 + 规则版本校验）。"}
+{"ok": false, "rejected": "op=build 已被 v5 技能禁用", "reason": "旧无版本命令绕过统一协调器，禁止使用。一切游戏动作必须经 rts_act.py（内部走 adjutant_command，完整包络 + 幂等 + 规则版本校验）。"}
+{"ok": false, "rejected": "op=start 已被 v5 技能禁用", "reason": "旧无版本命令绕过统一协调器，禁止使用。一切游戏动作必须经 rts_act.py（内部走 adjutant_command，完整包络 + 幂等 + 规则版本校验）。"}
+{"ok": false, "role": "strategy", "status": "error", "reason": "http 500", "latency_s": 0.0, "usage": []}
+@@@ B done @ 18:10:15
+@@@ C 生成图真机截图（走实际游戏入口，不用裸挂场景） @ 18:10:15
+[selfplay] 验收端口 24609 在专用段 24609-24612 内
+清理：没有属于本局端口的 Godot 进程
+[selfplay] 服务端未就绪
+@@@ C exit=2 @ 18:12:04
+@@@ D 微调 ft_v27（只用 verified_result 样本） @ 18:12:04
+records=48 examples=375
+by question: {'task': 137, 'actor': 53, 'params': 128, 'branch': 55, 'target': 2}
+Fetching 5 files:   0%|          | 0/5 [00:00<?, ?it/s]Fetching 5 files: 100%|██████████| 5/5 [00:00<00:00, 665.45it/s]
+@@@ D exit=139 @ 18:14:04
+@@@ E 固定评测集对照 ft_v2 vs ft_v27 @ 18:14:04
+observations=120 ab_records=240 mode=fast
+Fetching 5 files:   0%|          | 0/5 [00:00<?, ?it/s]Fetching 5 files: 100%|██████████| 5/5 [00:00<00:00, 1250.76it/s]
+laya device: cuda
+decision points: 60
+  ... 20/60 points
+  ... 40/60 points
+  ... 60/60 points
+{
+ "generated_at": "2026-09-28 18:14:50",
+ "mode": "fast",
+ "decision_points": 60,
+ "device": "cuda",
+ "configs": {
+  "zero": {
+   "agreement": {
+    "n": 60,
+    "agree_set": 0,
+    "agree_set_rate": 0.0,
+    "agree_dominant": 0,
+    "agree_dominant_rate": 0.0,
+    "agree_rule": 0,
+    "agree_rule_rate": 0.0,
+    "dev_points": 60,
+    "dev_hit_rate": 0.0,
+    "dev_picks": 0,
+    "dev_precision": null
+   },
+   "latency": {
+    "n": 60,
+    "p50_ms": 24.8,
+    "p95_ms": 26.1,
+    "max_ms": 208.4,
+    "mean_ms": 27.9
+   },
+   "pick_distribution": {
+    "ATK": 58,
+    "AMOV": 2
+   },
+   "mean_confidence": 0.4709,
+   "state_tokens_max": 235,
+   "input_tokens_max": 1462
+  },
+  "zero_rot": {
+   "agreement": {
+    "n": 60,
+    "agree_set": 0,
+    "agree_set_rate": 0.0,
+    "agree_dominant": 0,
+    "agree_dominant_rate": 0.0,
+    "agree_rule": 0,
+    "agree_rule_rate": 0.0,
+    "dev_points": 60,
+    "dev_hit_rate": 0.0,
+    "dev_picks": 0,
+    "dev_precision": null
+   },
+   "latency": {
+    "n": 60,
+    "p50_ms": 24.8,
+    "p95_ms": 26.1,
+    "max_ms": 32.7,
+    "mean_ms": 25.0
+   },
+   "pick_distribution": {
+    "ATK": 58,
+    "AMOV": 2
+   },
+   "mean_confidence": 0.3996,
+   "state_tokens_max": 235,
+   "input_tokens_max": 1462
+  },
+  "fs_adjacent": {
+   "agreement": {
+    "n": 60,
+    "agree_set": 58,
+    "agree_set_rate": 96.7,
+    "agree_dominant": 57,
+    "agree_dominant_rate": 95.0,
+    "agree_rule": 57,
+    "agree_rule_rate": 95.0,
+    "dev_points": 60,
+    "dev_hit_rate": 1.7,
+    "dev_picks": 1,
+    "dev_precision": 100.0
+   },
+   "latency": {
+    "n": 60,
+    "p50_ms": 27.8,
+    "p95_ms": 33.7,
+    "max_ms": 34.8,
+    "mean_ms": 28.3
+   },
+   "pick_distribution": {
+    "GAT": 57,
+    "AMOV": 1,
+    "PROD": 1,
+    "ATK": 1
+   },
+   "mean_confidence": 0.8855,
+   "state_tokens_max": 307,
+   "input_tokens_max": 1822
+  },
+  "fs_adjacent_rot": {
+   "agreement": {
+    "n": 60,
+    "agree_set": 58,
+    "agree_set_rate": 96.7,
+    "agree_dominant": 57,
+    "agree_dominant_rate": 95.0,
+    "agree_rule": 57,
+    "agree_rule_rate": 95.0,
+    "dev_points": 60,
+    "dev_hit_rate": 1.7,
+    "dev_picks": 1,
+    "dev_precision": 100.0
+   },
+   "latency": {
+    "n": 60,
+    "p50_ms": 27.7,
+    "p95_ms": 28.4,
+    "max_ms": 32.2,
+    "mean_ms": 27.8
+   },
+   "pick_distribution": {
+    "GAT": 57,
+    "AMOV": 1,
+    "PROD": 1,
+    "ATK": 1
+   },
+   "mean_confidence": 0.827,
+   "state_tokens_max": 307,
+   "input_tokens_max": 1822
+  },
+  "fs_cross": {
+   "agreement": {
+    "n": 60,
+    "agree_set": 0,
+    "agree_set_rate": 0.0,
+    "agree_dominant": 0,
+    "agree_dominant_rate": 0.0,
+    "agree_rule": 0,
+    "agree_rule_rate": 0.0,
+    "dev_points": 60,
+    "dev_hit_rate": 0.0,
+    "dev_picks": 0,
+    "dev_precision": null
+   },
+   "latency": {
+    "n": 60,
+    "p50_ms": 24.8,
+    "p95_ms": 26.7,
+    "max_ms": 31.7,
+    "mean_ms": 25.0
+   },
+   "pick_distribution": {
+    "ATK": 58,
+    "AMOV": 2
+   },
+   "mean_confidence": 0.4709,
+   "state_tokens_max": 235,
+   "input_tokens_max": 1462
+  },
+  "fs_cross_rot": {
+   "agreement": {
+    "n": 60,
+    "agree_set": 0,
+    "agree_set_rate": 0.0,
+    "agree_dominant": 0,
+    "agree_dominant_rate": 0.0,
+    "agree_rule": 0,
+    "agree_rule_rate": 0.0,
+    "dev_points": 60,
+    "dev_hit_rate": 0.0,
+    "dev_picks": 0,
+    "dev_precision": null
+   },
+   "latency": {
+    "n": 60,
+    "p50_ms": 24.8,
+    "p95_ms": 27.0,
+    "max_ms": 36.0,
+    "mean_ms": 25.1
+   },
+   "pick_distribution": {
+    "ATK": 58,
+    "AMOV": 2
+   },
+   "mean_confidence": 0.3996,
+   "state_tokens_max": 235,
+   "input_tokens_max": 1462
+  },
+  "fs_mixed8": {
+   "agreement": {
+    "n": 60,
+    "agree_set": 0,
+    "agree_set_rate": 0.0,
+    "agree_dominant": 0,
+    "agree_dominant_rate": 0.0,
+    "agree_rule": 0,
+    "agree_rule_rate": 0.0,
+    "dev_points": 60,
+    "dev_hit_rate": 0.0,
+    "dev_picks": 0,
+    "dev_precision": null
+   },
+   "latency": {
+    "n": 60,
+    "p50_ms": 24.8,
+    "p95_ms": 29.0,
+    "max_ms": 33.6,
+    "mean_ms": 25.1
+   },
+   "pick_distribution": {
+    "ATK": 58,
+    "AMOV": 2
+   },
+   "mean_confidence": 0.4709,
+   "state_tokens_max": 235,
+   "input_tokens_max": 1462
+  },
+  "fs_mixed8_rot": {
+   "agreement": {
+    "n": 60,
+    "agree_set": 0,
+    "agree_set_rate": 0.0,
+    "agree_dominant": 0,
+    "agree_dominant_rate": 0.0,
+    "agree_rule": 0,
+    "agree_rule_rate": 0.0,
+    "dev_points": 60,
+    "dev_hit_rate": 0.0,
+    "dev_picks": 0,
+    "dev_precision": null
+   },
+   "latency": {
+    "n": 60,
+    "p50_ms": 24.8,
+    "p95_ms": 27.0,
+    "max_ms": 36.7,
+    "mean_ms": 25.0
+   },
+   "pick_distribution": {
+    "ATK": 58,
+    "AMOV": 2
+   },
+   "mean_confidence": 0.3996,
+   "state_tokens_max": 235,
+   "input_tokens_max": 1462
+  }
+ },
+ "majority_baseline": {
+  "skill": "GAT",
+  "n": 60,
+  "agree_set": 60,
+  "agree_set_rate": 100.0,
+  "agree_dominant": 60,
+  "agree_dominant_rate": 100.0,
+  "agree_rule": 60,
+  "agree_rule_rate": 100.0,
+  "dev_points": 60,
+  "dev_hit_rate": 0.0,
+  "dev_picks": 0,
+  "dev_precision": null
+ },
+ "actual_distribution": {
+  "GAT": 60,
+  "PROD": 60
+ },
+ "target_fine_latency": {
+  "n": 40,
+  "p50_ms": 27.4,
+  "p95_ms": 28.0,
+  "max_ms": 28.2,
+  "mean_ms": 27.4
+ }
+}
+written: G:/AIRTS/tmp_logs/loop27_eval_ft_v2.json
+@@@ E ft_v2 exit=0 @ 18:14:51
+observations=120 ab_records=240 mode=fast
+Fetching 5 files:   0%|          | 0/5 [00:00<?, ?it/s]Fetching 5 files: 100%|██████████| 5/5 [00:00<00:00, 1424.99it/s]
+laya device: cuda
+decision points: 60
+  ... 20/60 points
+  ... 40/60 points
+  ... 60/60 points
+{
+ "generated_at": "2026-09-28 18:15:33",
+ "mode": "fast",
+ "decision_points": 60,
+ "device": "cuda",
+ "configs": {
+  "zero": {
+   "agreement": {
+    "n": 60,
+    "agree_set": 0,
+    "agree_set_rate": 0.0,
+    "agree_dominant": 0,
+    "agree_dominant_rate": 0.0,
+    "agree_rule": 0,
+    "agree_rule_rate": 0.0,
+    "dev_points": 60,
+    "dev_hit_rate": 0.0,
+    "dev_picks": 0,
+    "dev_precision": null
+   },
+   "latency": {
+    "n": 60,
+    "p50_ms": 24.8,
+    "p95_ms": 30.2,
+    "max_ms": 55.3,
+    "mean_ms": 25.7
+   },
+   "pick_distribution": {
+    "ATK": 58,
+    "AMOV": 2
+   },
+   "mean_confidence": 0.4709,
+   "state_tokens_max": 235,
+   "input_tokens_max": 1462
+  },
+  "zero_rot": {
+   "agreement": {
+    "n": 60,
+    "agree_set": 0,
+    "agree_set_rate": 0.0,
+    "agree_dominant": 0,
+    "agree_dominant_rate": 0.0,
+    "agree_rule": 0,
+    "agree_rule_rate": 0.0,
+    "dev_points": 60,
+    "dev_hit_rate": 0.0,
+    "dev_picks": 0,
+    "dev_precision": null
+   },
+   "latency": {
+    "n": 60,
+    "p50_ms": 24.8,
+    "p95_ms": 27.6,
+    "max_ms": 34.7,
+    "mean_ms": 25.2
+   },
+   "pick_distribution": {
+    "ATK": 58,
+    "AMOV": 2
+   },
+   "mean_confidence": 0.3996,
+   "state_tokens_max": 235,
+   "input_tokens_max": 1462
+  },
+  "fs_adjacent": {
+   "agreement": {
+    "n": 60,
+    "agree_set": 58,
+    "agree_set_rate": 96.7,
+    "agree_dominant": 57,
+    "agree_dominant_rate": 95.0,
+    "agree_rule": 57,
+    "agree_rule_rate": 95.0,
+    "dev_points": 60,
+    "dev_hit_rate": 1.7,
+    "dev_picks": 1,
+    "dev_precision": 100.0
+   },
+   "latency": {
+    "n": 60,
+    "p50_ms": 27.8,
+    "p95_ms": 29.1,
+    "max_ms": 37.7,
+    "mean_ms": 28.2
+   },
+   "pick_distribution": {
+    "GAT": 57,
+    "AMOV": 1,
+    "PROD": 1,
+    "ATK": 1
+   },
+   "mean_confidence": 0.8855,
+   "state_tokens_max": 307,
+   "input_tokens_max": 1822
+  },
+  "fs_adjacent_rot": {
+   "agreement": {
+    "n": 60,
+    "agree_set": 58,
+    "agree_set_rate": 96.7,
+    "agree_dominant": 57,
+    "agree_dominant_rate": 95.0,
+    "agree_rule": 57,
+    "agree_rule_rate": 95.0,
+    "dev_points": 60,
+    "dev_hit_rate": 1.7,
+    "dev_picks": 1,
+    "dev_precision": 100.0
+   },
+   "latency": {
+    "n": 60,
+    "p50_ms": 27.8,
+    "p95_ms": 30.8,
+    "max_ms": 33.6,
+    "mean_ms": 28.0
+   },
+   "pick_distribution": {
+    "GAT": 57,
+    "AMOV": 1,
+    "PROD": 1,
+    "ATK": 1
+   },
+   "mean_confidence": 0.827,
+   "state_tokens_max": 307,
+   "input_tokens_max": 1822
+  },
+  "fs_cross": {
+   "agreement": {
+    "n": 60,
+    "agree_set": 0,
+    "agree_set_rate": 0.0,
+    "agree_dominant": 0,
+    "agree_dominant_rate": 0.0,
+    "agree_rule": 0,
+    "agree_rule_rate": 0.0,
+    "dev_points": 60,
+    "dev_hit_rate": 0.0,
+    "dev_picks": 0,
+    "dev_precision": null
+   },
+   "latency": {
+    "n": 60,
+    "p50_ms": 24.8,
+    "p95_ms": 25.8,
+    "max_ms": 32.8,
+    "mean_ms": 24.9
+   },
+   "pick_distribution": {
+    "ATK": 58,
+    "AMOV": 2
+   },
+   "mean_confidence": 0.4709,
+   "state_tokens_max": 235,
+   "input_tokens_max": 1462
+  },
+  "fs_cross_rot": {
+   "agreement": {
+    "n": 60,
+    "agree_set": 0,
+    "agree_set_rate": 0.0,
+    "agree_dominant": 0,
+    "agree_dominant_rate": 0.0,
+    "agree_rule": 0,
+    "agree_rule_rate": 0.0,
+    "dev_points": 60,
+    "dev_hit_rate": 0.0,
+    "dev_picks": 0,
+    "dev_precision": null
+   },
+   "latency": {
+    "n": 60,
+    "p50_ms": 24.7,
+    "p95_ms": 25.3,
+    "max_ms": 42.6,
+    "mean_ms": 24.9
+   },
+   "pick_distribution": {
+    "ATK": 58,
+    "AMOV": 2
+   },
+   "mean_confidence": 0.3996,
+   "state_tokens_max": 235,
+   "input_tokens_max": 1462
+  },
+  "fs_mixed8": {
+   "agreement": {
+    "n": 60,
+    "agree_set": 0,
+    "agree_set_rate": 0.0,
+    "agree_dominant": 0,
+    "agree_dominant_rate": 0.0,
+    "agree_rule": 0,
+    "agree_rule_rate": 0.0,
+    "dev_points": 60,
+    "dev_hit_rate": 0.0,
+    "dev_picks": 0,
+    "dev_precision": null
+   },
+   "latency": {
+    "n": 60,
+    "p50_ms": 24.8,
+    "p95_ms": 25.8,
+    "max_ms": 28.1,
+    "mean_ms": 24.8
+   },
+   "pick_distribution": {
+    "ATK": 58,
+    "AMOV": 2
+   },
+   "mean_confidence": 0.4709,
+   "state_tokens_max": 235,
+   "input_tokens_max": 1462
+  },
+  "fs_mixed8_rot": {
+   "agreement": {
+    "n": 60,
+    "agree_set": 0,
+    "agree_set_rate": 0.0,
+    "agree_dominant": 0,
+    "agree_dominant_rate": 0.0,
+    "agree_rule": 0,
+    "agree_rule_rate": 0.0,
+    "dev_points": 60,
+    "dev_hit_rate": 0.0,
+    "dev_picks": 0,
+    "dev_precision": null
+   },
+   "latency": {
+    "n": 60,
+    "p50_ms": 24.8,
+    "p95_ms": 25.5,
+    "max_ms": 32.1,
+    "mean_ms": 24.8
+   },
+   "pick_distribution": {
+    "ATK": 58,
+    "AMOV": 2
+   },
+   "mean_confidence": 0.3996,
+   "state_tokens_max": 235,
+   "input_tokens_max": 1462
+  }
+ },
+ "majority_baseline": {
+  "skill": "GAT",
+  "n": 60,
+  "agree_set": 60,
+  "agree_set_rate": 100.0,
+  "agree_dominant": 60,
+  "agree_dominant_rate": 100.0,
+  "agree_rule": 60,
+  "agree_rule_rate": 100.0,
+  "dev_points": 60,
+  "dev_hit_rate": 0.0,
+  "dev_picks": 0,
+  "dev_precision": null
+ },
+ "actual_distribution": {
+  "GAT": 60,
+  "PROD": 60
+ },
+ "target_fine_latency": {
+  "n": 40,
+  "p50_ms": 27.4,
+  "p95_ms": 28.1,
+  "max_ms": 34.3,
+  "mean_ms": 27.6
+ }
+}
+written: G:/AIRTS/tmp_logs/loop27_eval_ft_v27.json
+@@@ E ft_v27 exit=0 @ 18:15:34
+@@@ F 重渲染 §6 表 @ 18:15:34
+[selfplay] 验收端口 24609 在专用段 24609-24612 内
+[rerender] 30 行 -> G:/AIRTS/AI_RTS/build/selfplay\sweep_rerendered.md
+@@@ CHAIN3 DONE @ 18:15:35

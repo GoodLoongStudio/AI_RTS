@@ -1,0 +1,5 @@
+ERROR: Movement recovery assertion failed: 绕墙到达误差应合理（13.71m）
+ERROR: Movement recovery assertion failed: 绕墙场景确实发生了长距离移动（3.71m）
+ERROR: Movement recovery assertion failed: 集体回基地应至少 7/8 抵达基地附近（实际 0）
+ERROR: Movement recovery assertion failed: 新命令到达误差应合理（8.98m）
+Movement recovery smoke test completed: 4 failure(s)

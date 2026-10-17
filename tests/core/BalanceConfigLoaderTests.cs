@@ -81,18 +81,34 @@ internal sealed class BalanceConfigLoaderTests
         Check(catalog.FindWarhead(new WarheadDefinitionId("direct_full_damage"))?
             .FriendlyFireDamageMultiplier == 0.5f,
             "演示直接命中弹头对友军按 0.5 倍率结算（强制攻击友军可造成伤害）");
+        // 2026-10-12 用户要求扩大命中判定范围（激进档）：范围弹头半径 ×2；
+        // 直击弹头半径必须保持 0（schema 限制），其额外容差在 WarheadDamageResolver 里。
+        Check(catalog.FindWarhead(new WarheadDefinitionId("cannon_splash"))?.RadiusMeters == 5.0f,
+            "cannon_splash 溅射半径应为 5.0m（2.5 × 2）");
+        Check(catalog.FindWarhead(new WarheadDefinitionId("tank_cannon_splash"))?
+            .RadiusMeters == 8.0f,
+            "tank_cannon_splash 溅射半径应为 8.0m（4.0 × 2，重坦也吃这条放大）");
+        Check(catalog.FindWarhead(new WarheadDefinitionId("direct_full_damage"))?
+            .RadiusMeters == 0.0f,
+            "direct_full_damage 半径必须仍为 0：直击容差不走 balance，避免被当成溅射");
+        Check(catalog.FindWarhead(new WarheadDefinitionId("cannon_splash"))?
+                .FriendlyFireDamageMultiplier == 0.5f &&
+            catalog.FindWarhead(new WarheadDefinitionId("tank_cannon_splash"))?
+                .FriendlyFireDamageMultiplier == 0.5f,
+            "area 弹头友伤倍率仍是 0.5：零误伤写在 WarheadDamageResolver 的显式 ForceAttack 闸门上，" +
+            "不把数据清零（清零会连玩家主动下令打自己单位这条机制一起砍掉）");
 
         var tankProduction = catalog.FindProduction(new ProductionDefinitionId("tank"));
         Check(tankProduction?.ProductTypeId == new UnitTypeId("tank") &&
-            tankProduction.RequiredWork == 360,
-            "Tank 生产定义应显式引用产品类型并保持 360 工作量");
+            tankProduction.RequiredWork == 180,
+            "Tank 生产定义应显式引用产品类型并保持 180 工作量（2026-10-12 生产/建造统一 2 倍速，360 ÷ 2）");
         Check(tankProduction?.Cost.OrderBy(item => item.Kind).SequenceEqual(
                 [new ResourceAmount(ResourceKind.A, 500)]) == true,
             "Tank 生产成本应匹配单币种基线（A×500，2026-09-03 同步）");
 
         var commandCenter = catalog.FindConstruction(new StructureDefinitionId("command_center"));
-        Check(commandCenter?.RequiredWork == 1000,
-            "CommandCenter 施工应远程部署主基地保持 1000 工作量（明显慢于普通建筑）");
+        Check(commandCenter?.RequiredWork == 100,
+            "CommandCenter 施工工作量与普通建筑同口径（2026-10-12 统一 2 倍速后 200 ÷ 2 = 100）");
         Check(catalog.FindResource(ResourceKind.B)?.CollectionDurationMilliseconds == 200,
             "Resource B 采集时间应映射为 200 整数毫秒（2026-09-03 采集节奏调整为 20 秒/趟）");
 

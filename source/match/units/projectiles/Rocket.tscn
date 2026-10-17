@@ -10,9 +10,11 @@ shading_mode = 0
 albedo_color = Color(0.9, 0.08, 0.05, 1)
 emission_enabled = true
 emission = Color(0.7, 0.06, 0.03, 1)
+no_depth_test = true
+render_priority = 12
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_vlm3w"]
-radius = 0.08
+radius = 0.24
 height = 0.46
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_xyj84"]
@@ -21,6 +23,8 @@ shading_mode = 0
 vertex_color_use_as_albedo = true
 billboard_mode = 1
 albedo_color = Color(1, 0.62, 0.18, 1)
+no_depth_test = true
+render_priority = 12
 
 [sub_resource type="Gradient" id="Gradient_b34yk"]
 offsets = PackedFloat32Array(0, 0.675258, 1)
@@ -31,13 +35,13 @@ gradient = SubResource("Gradient_b34yk")
 
 [sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_ymmm3"]
 emission_shape = 1
-emission_sphere_radius = 0.2
+emission_sphere_radius = 0.6
 spread = 8.0
 gravity = Vector3(0, 1.2, 0)
 color_ramp = SubResource("GradientTexture1D_36doo")
 
 [sub_resource type="QuadMesh" id="QuadMesh_gpge5"]
-size = Vector2(0.16, 0.16)
+size = Vector2(0.48, 0.48)
 
 [sub_resource type="Animation" id="Animation_ud13x"]
 length = 0.001
@@ -164,7 +168,7 @@ _data = {
 
 [node name="Rocket" type="Node3D"]
 metadata/impact_reaction = "explosion"
-metadata/flight_speed_mps = 5.33
+metadata/flight_speed_mps = 10.66
 script = ExtResource("1_dy0dc")
 
 [node name="DetachTransform" type="Node" parent="."]

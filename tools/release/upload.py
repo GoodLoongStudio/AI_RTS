@@ -11,6 +11,7 @@
 """
 import json
 import os
+from pathlib import Path
 import sys
 import time
 import urllib.error
@@ -27,6 +28,16 @@ TAG = "test_demo"
 RELEASE_NAME = "AI RTS Demo — 评委体验版"
 
 API = "https://api.github.com"
+
+
+def default_stage():
+    manifest = Path(__file__).resolve().parents[2] / "agent/manifest.json"
+    return json.loads(manifest.read_text(encoding="utf-8-sig"))["workspace_layout"]["packaged_delivery_root"]
+
+
+def delivery_files(stage):
+    return sorted(f for f in os.listdir(stage)
+                  if os.path.isfile(os.path.join(stage, f)) and f.lower() != "agents.md")
 
 
 def req(method, url, token, data=None, headers=None, raw=False):
@@ -87,6 +98,13 @@ def upload_asset(upload_url, token, path, name):
 
 
 def main():
+    if "--dry-run" in sys.argv[1:]:
+        dry_args = [a for a in sys.argv[1:] if a != "--dry-run"]
+        if dry_args and dry_args[0].startswith(("ghp_", "github_pat_")):
+            dry_args.pop(0)
+        stage = dry_args[0] if dry_args and not dry_args[0].startswith("--") else default_stage()
+        print(json.dumps({"stage": stage, "files": delivery_files(stage), "dry_run": True}, ensure_ascii=False))
+        return 0
     # token 来源：命令行首参（若形如 ghp_/github_pat_）优先，其次环境变量 GH_TOKEN
     args = [a for a in sys.argv[1:]]
     token = ""
@@ -97,13 +115,13 @@ def main():
     if not token:
         print("ERROR: 未提供 token（命令行首参或 GH_TOKEN 环境变量）")
         return 1
-    stage = sys.argv[1] if len(sys.argv) > 1 else r"G:\AIRTS\release_assets_gpu"
+    stage = args[0] if args and not args[0].startswith("--") else default_stage()
     only = []
     if "--only" in sys.argv:
         i = sys.argv.index("--only")
         only = sys.argv[i + 1:]
 
-    files = sorted(f for f in os.listdir(stage) if os.path.isfile(os.path.join(stage, f)))
+    files = delivery_files(stage)
     if only:
         files = [f for f in files if any(o in f for o in only)]
     print("stage  :", stage)

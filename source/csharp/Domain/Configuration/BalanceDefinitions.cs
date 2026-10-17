@@ -40,11 +40,9 @@ public sealed record GathererDefinition(int CarryCapacity);
 public sealed record ConstructorDefinition(int WorkPerTick);
 
 /// <summary>描述矿场完工后的运营参数（原先散落在 OreRefinery.gd 的常量里）。</summary>
-/// <param name="ServiceRadiusMeters">只服务距矿场这么近的矿点与工人。</param>
 /// <param name="WorkerCapacity">同时指派的工人上限。</param>
 /// <param name="ClaimIntervalSeconds">两轮圈矿之间的游戏时间，单位为秒。</param>
 public sealed record OreRefineryDefinition(
-    float ServiceRadiusMeters,
     int WorkerCapacity,
     float ClaimIntervalSeconds);
 

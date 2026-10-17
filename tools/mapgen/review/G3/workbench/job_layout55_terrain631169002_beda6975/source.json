@@ -1,0 +1,80 @@
+{
+  "job_id": "beda6975d89a49cab4b84d147e768d9b",
+  "seed": 55,
+  "terrain": 631169002,
+  "target": "full",
+  "status": "error",
+  "title": "布局 55 · 地貌 631169002",
+  "label": null,
+  "map_pass": false,
+  "created_at": "2026-09-29T00:07:37",
+  "reverified_with_current_code": false,
+  "visual_version": 1,
+  "visual_profile": "default",
+  "map_id": "55-631169002-767a002977",
+  "checks_summary": {
+    "g2_pass": true,
+    "g3_pass": true,
+    "engine_pass": null
+  },
+  "failed_paths": [],
+  "failed_forbidden": [],
+  "nav_all": null,
+  "smoke_assertions": {},
+  "stages": {
+    "G1": {
+      "state": "通过",
+      "images": [
+        "contact.png"
+      ],
+      "preview": "contact.png",
+      "version": "2.0.0",
+      "history_versions": []
+    },
+    "G2": {
+      "state": "通过",
+      "images": [
+        "contact.png",
+        "seed_17_minimap.png",
+        "seed_17_overview.png",
+        "seed_17_strategy.png",
+        "seed_18_minimap.png",
+        "seed_18_overview.png",
+        "seed_18_strategy.png",
+        "seed_36_minimap.png",
+        "seed_36_overview.png",
+        "seed_36_strategy.png",
+        "seed_38_minimap.png",
+        "seed_38_overview.png",
+        "seed_38_strategy.png",
+        "seed_49_minimap.png",
+        "seed_49_overview.png",
+        "seed_49_strategy.png",
+        "seed_55_minimap.png",
+        "seed_55_overview.png",
+        "seed_55_strategy.png",
+        "seed_5_minimap.png",
+        "seed_5_overview.png",
+        "seed_5_strategy.png"
+      ],
+      "preview": "seed_17_overview.png",
+      "version": "7.11.0",
+      "history_versions": []
+    },
+    "G3": {
+      "state": "通过",
+      "images": [
+        "contact.png",
+        "seed_55_overview.png"
+      ],
+      "preview": "seed_55_overview.png",
+      "version": "2.2.0",
+      "history_versions": []
+    }
+  },
+  "folder": "job_layout55_terrain631169002_beda6975",
+  "gate": "G3",
+  "source_job": "G:\\AIRTS\\AI_RTS\\tools\\mapgen\\workbench_output\\beda6975d89a49cab4b84d147e768d9b\\job.json",
+  "synced_at": "2026-09-29T01:00:29",
+  "note": "图像来自本任务权威数据/真实引擎输出；生成或导航通过不等于实战通过。"
+}

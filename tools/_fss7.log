@@ -1,0 +1,24 @@
+[selfplay] 验收端口 24589 在专用段 24589-24592 内
+清理：没有属于本局端口的 Godot 进程
+[selfplay] 大厅就绪: 指挥官-309
+[selfplay] op=start -> {'map': 'res://source/match/maps/PlainAndSimple.tscn', 'ok': True, 'passive_ai_test': False, 'peaceful': False, 'seed': 0, 'with_ai': True}
+runner 启动 pid=45468 state_dir=G:\AIRTS\tmp_logs\langgraph_recon\selfplay\state_fs_ref7
+pidfile=58704
+[selfplay] 对局开始，采样 290s（backend=off difficulty=-1）
+[selfplay] 矿场前置：派 Unit_1 到 [174.27, 170.79] -> {'accepted': False, 'command_id': '', 'moved': ['Unit_1'], 'ok': False, 'reason': '命令未被接受（PendingAuthority），请根据 status 复
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 146.2, 'unit_xz': [79.1, 59.9]}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 106.2, 'unit_xz': [105.1, 90.2]}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 65.7, 'unit_xz': [131.5, 120.9]}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 26.8, 'unit_xz': [156.8, 150.5]}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'reason': 'unit_not_observed'}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': True, 'distance_m': 10.8, 'unit_xz': [167.2, 162.6]}
+[selfplay] 矿场建造第 1 次（auto）客户端={'accepted': False, 'builders': [], 'command_id': 'd5be8e7b-136e-4086-a566-000020654d76',  权威={"found": true, "status": "Rejected", "match": "command_id", "reason": "Occupied", "subject": ""} 观测=[]
+[selfplay] 矿场建造第 2 次（auto）客户端={'accepted': False, 'builders': [], 'command_id': '91f21f2a-93b9-4f2e-47e7-000022e484fc',  权威={"found": true, "status": "Rejected", "match": "command_id", "reason": "Occupied", "subject": ""} 观测=[]
+[selfplay] 矿场建造第 3 次（explicit_pos）客户端={'accepted': False, 'builders': [], 'command_id': '77f40146-8cdd-4db0-599f-0000257685ff',  权威={"found": true, "status": "Rejected", "match": "command_id", "reason": "SurfaceNotBuildable", "subject": ""} 观测=[]
+[selfplay] 矿场建造第 4 次（explicit_pos）客户端={'accepted': False, 'builders': [], 'command_id': '2fa90b03-2a8e-4c73-8b2b-000027ff80df',  权威={"found": true, "status": "Rejected", "match": "command_id", "reason": "SurfaceNotBuildable", "subject": ""} 观测=[]
+[selfplay] 矿场建造第 5 次（explicit_pos）客户端={'accepted': False, 'builders': [], 'command_id': '52301cd0-1b93-4561-2dfd-00002a9b793a',  权威={"found": true, "status": "Rejected", "match": "command_id", "reason": "SurfaceNotBuildable", "subject": ""} 观测=[]
+[selfplay] 矿场建造第 6 次（explicit_pos）客户端={'accepted': False, 'builders': [], 'command_id': '6a6c1adf-016e-45ed-f2b0-00002d213c5c',  权威={"found": true, "status": "Rejected", "match": "command_id", "reason": "SurfaceNotBuildable", "subject": ""} 观测=[]
+停止 runner roots=[45468]（全部=[45468, 58704]，authority-port=24572）
+清理本局进程树 roots=[6104, 43896] (全部=[6104, 43896, 50588, 50872])
+[selfplay] 终局: verdict=timeout own=67 enemy=3 units={'command_center': 1, 'drone': 1, 'worker': 6, 'barracks': 2, 'soldier': 46, 'vehicle_factory': 1, 'tank': 11} balance={'a': 31200}
+[selfplay] written: G:\AIRTS\tmp_logs\langgraph_recon\selfplay\result_fs_ref7.json

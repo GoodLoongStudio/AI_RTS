@@ -1,0 +1,13 @@
+[selfplay] 验收端口 24589 在专用段 24589-24592 内
+清理：没有属于本局端口的 Godot 进程
+[selfplay] 大厅就绪: 指挥官-309
+[selfplay] op=start -> {'map': 'res://source/match/maps/PlainAndSimple.tscn', 'ok': True, 'passive_ai_test': False, 'peaceful': False, 'seed': 0, 'with_ai': True}
+runner 启动 pid=40260 state_dir=G:\AIRTS\tmp_logs\langgraph_recon\selfplay\state_fs_diag
+pidfile=38656
+[selfplay] 对局开始，采样 240s（backend=off difficulty=-1）
+[selfplay] 矿场建造第 1 次 -> {'detail': '自动放置找不到合法落点（基地周围无可建地面/没有已探明的新矿点）。', 'error': 'no valid auto site', 'ok': False, 'reason': 'NoValidSite', 'status': 'Rejected', 'mode': 'auto'}
+[selfplay] 矿场建造第 2 次 -> {'detail': '自动放置找不到合法落点（基地周围无可建地面/没有已探明的新矿点）。', 'error': 'no valid auto site', 'ok': False, 'reason': 'NoValidSite', 'status': 'Rejected', 'mode': 'auto'}
+[selfplay] 矿场建造第 3 次 -> {'accepted': False, 'builders': [], 'command_id': 'e87fbf5c-c223-49d5-4a51-00001576dc8b', 'ok': False, 'reason': '命令已发送，等待服务器确认建造位置和资源。', 'status': 'PendingAuthority', 'mode': 'explicit_pos'}
+[selfplay] 矿场建造第 4 次 -> {'detail': '自动放置找不到合法落点（基地周围无可建地面/没有已探明的新矿点）。', 'error': 'no valid auto site', 'ok': False, 'reason': 'NoValidSite', 'status': 'Rejected', 'mode': 'auto'}
+[selfplay] 矿场建造第 5 次 -> {'accepted': False, 'builders': [], 'command_id': '00100086-7202-4e99-9268-0000205c409f', 'ok': False, 'reason': '命令已发送，等待服务器确认建造位置和资源。', 'status': 'PendingAuthority', 'mode': 'explicit_pos'}
+[selfplay] 矿场建造第 6 次 -> {'accepted': False, 'builders': [], 'command_id': '81d02816-8bf2-4ece-8a6d-0000254d1695', 'ok': False, 'reason': '命令已发送，等待服务器确认建造位置和资源。', 'status': 'PendingAuthority', 'mode': 'explicit_pos'}

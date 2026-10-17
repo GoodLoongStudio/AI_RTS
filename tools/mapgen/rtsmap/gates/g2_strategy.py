@@ -181,7 +181,14 @@ def connected_river(starts, plateaus, pairs, params, rng):
     if not 4 <= int(params['river_crossings']) <= 8:
         raise ValueError('Intersecting rivers require 4 to 8 bridges for alternate access.')
     scale = _extent_scale()
-    bank_margin = max(6., params['river_width'][1] * .57 + 1.)
+    # 【2026-10-11 河岸留滩】旧口径 bank_margin = 最大半宽 + 1m：水线允许贴到
+    # 基地净空圈外 1m（用户 512 图实测：基地建筑直接怼在水边，主河成了贴脸
+    # 护城河）。半宽因子 .57 已覆盖 ±14% 宽度鼓包，缺的是一段真实滩涂——
+    # 现在给出生点避让圈额外加一段可走的岸地（512 图 8m，随图幅缩放、下限
+    # 4m）。台地避让维持原口径：256 级小图候选本就吃紧（seed16 实测加宽台地
+    # 圈会把 4 次尝试搜空），而建筑贴水的抱怨来自出生圈。
+    bank_beach = max(4., 8. * scale)
+    bank_margin = max(6., params['river_width'][1] * .57 + 1.) + bank_beach
     avoid = [(np.array(s), params['home_radius'] + bank_margin) for s in starts]
     plateau_pad = max(5., 10. * scale)
     for pl in plateaus:

@@ -10,6 +10,7 @@ BLUEPRINT_NOT_ENOUGH_RESOURCES,Not enough resources,Brakuje zasobów
 BLUEPRINT_OUT_OF_MAP,Out of map limits,Poza granicami mapy
 BLUEPRINT_NOT_VISIBLE,Insufficient vision,Niewystarczające pole widzenia
 BLUEPRINT_NOT_ADJACENT,Must connect to your buildings,Połącz z własnymi budynkami
+BLUEPRINT_BLOCKS_PASSAGE,Gap too narrow for vehicles: place flush or leave a wider lane,Za wąskie przejście dla pojazdów: postaw przy budynku lub zostaw szerszy przejazd
 BLUEPRINT_CONSTRUCTION_IN_PROGRESS,Only one building can be under construction at a time,Tylko jeden budynek może być w budowie jednocześnie
 RESOURCE_A,Blue Crystal,Niebieski Kryształ
 RESOURCE_B,Red Crystal,Czerwony Kryształ

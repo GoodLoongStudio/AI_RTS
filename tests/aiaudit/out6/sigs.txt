@@ -1,0 +1,4 @@
+120 | SCRIPT ERROR: Invalid call. Nonexistent function 'find_valid_position_radially_yet_skip_starting_radius' in base 'GDScript'.
+8 | SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+2 | SCRIPT ERROR: Parse Error: Too many arguments for "_is_agent_placement_position_valid()" call. Expected at most 5 but received 6.
+1 | ERROR: System.InvalidOperationException: 场景 res://tests/perfgrid/TmpTurretHead.tscn 没有受信任的单位类型定义。

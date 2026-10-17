@@ -46,6 +46,45 @@ class StateSerializationTest(unittest.TestCase):
         self.assertEqual(restored.decision_log[-1]["kind"], "test_marker")
         self.assertEqual(restored.summary()["route"], state.route)
 
+    def test_roundtrip_preserves_learned_ledgers(self):
+        """**新增的状态字段必须同时进 `to_dict`/`from_dict`**（2026-10-09 实测的静默丢失）。
+
+        为什么单独立这一条：`to_dict` 是**逐字段挑着写**的，不是枚举 dataclass。
+        加了 dataclass 字段却忘了补序列化 ⇒ 每轮归零，**而且声明类守门测试查不出来**
+        （`test_graph_state_channels` 只扫"有没有声明"，不扫"序列化有没有带上"）。
+
+        实测：`depleted_resources` / `advance_cursor` 就是这么漏的 ——
+        它们分别支撑"换矿"与"轮转服务顺序"，一归零就等于那两个修复**从未生效**。
+        是一条 `round-trip` 探针把它揪出来的，所以这里把它固化成测试。
+        """
+        state = make_state()
+        state.depleted_resources = {"Unit_2|Res_A": 1234}
+        state.advance_cursor = 7
+        restored = AdjutantGraphState.from_checkpoint(state.to_checkpoint())
+        self.assertEqual(restored.depleted_resources, {"Unit_2|Res_A": 1234},
+                         "矿点拉黑账丢了 ⇒ 换矿记忆形同虚设（每轮往刚被拒的矿上撞）")
+        self.assertEqual(restored.advance_cursor, 7,
+                         "轮转游标丢了 ⇒ 每轮从 0 开始 = 没有轮转")
+
+    def test_roundtrip_preserves_movement_round_delta(self):
+        """每轮增量账与它的基线快照都必须跨轮活下来（2026-10-09，round-24 的教训）。
+
+        第一版把基线放在 `agent_runner` 的**进程内字典**、按 `id(state)` 索引 ——
+        结果**一条增量都没落盘**：`TickResult.state` 是 `summary()` 生成的**新字典**，
+        而且 runner 每轮还会从检查点重建状态对象，`id()` 每次都不同。
+        **这与 `to_dict` 漏字段是同一个病根**：把要跨轮活下来的东西放在不跨轮的地方。
+        """
+        state = make_state()
+        state.movement_round_delta = {"planned": 8, "invalidations": 3}
+        state.movement_stats_snapshot = {"tick": 200, "counts": {"planned": 18}}
+        restored = AdjutantGraphState.from_checkpoint(state.to_checkpoint())
+        self.assertEqual(restored.movement_round_delta, {"planned": 8, "invalidations": 3})
+        self.assertEqual(restored.movement_stats_snapshot.get("tick"), 200,
+                         "基线快照丢了 ⇒ 下一轮算不出增量")
+        self.assertIn("movement_round_delta", state.summary(),
+                      "**必须进 summary**：runner 从 summary 读，不进就等于没落盘"
+                      "（`continuity_supervision` 踩过同一个坑）")
+
     def test_checkpoint_version_mismatch_is_rejected(self):
         payload = make_state().to_checkpoint()
         payload["checkpoint_version"] = CHECKPOINT_VERSION + 99
@@ -166,6 +205,27 @@ class JsonCheckpointStoreTest(unittest.TestCase):
         with open(store.path, "r", encoding="utf-8") as handle:
             payload = json.load(handle)
         self.assertEqual(payload["state"]["match_id"], MATCH)
+
+    def test_continuity_ledger_survives_the_checkpoint(self):
+        """连续行动台账必须跨轮/跨 checkpoint 活下来（2026-10-07）。
+
+        它是"停了多久"的唯一依据：丢了它每轮从零开始，停滞永远到不了 2s/5s/10s 阈值
+        —— 正是本项目"功能写了、单测也过、真机每轮归零"那一类病。
+        """
+        store = JsonCheckpointStore(self.root, MATCH, PLAYER)
+        state = make_state()
+        state.continuity_units = {"Unit_4": {"last_moved_tick": 120, "stall_count": 4,
+                                            "level": "recover", "waiting_reason": ""}}
+        state.continuity_supervision = {"updated_tick": 300, "recoveries": 1,
+                                        "levels": {"recover": 1}}
+        self.assertTrue(store.save(state)["saved"])
+        loaded = store.load()
+        self.assertEqual(loaded.continuity_units["Unit_4"]["last_moved_tick"], 120)
+        self.assertEqual(loaded.continuity_supervision["recoveries"], 1)
+        # 也要能进 JSON（检查点落盘是 JSON，不是 pickle）。
+        with open(store.path, "r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+        self.assertEqual(payload["state"]["continuity_units"]["Unit_4"]["stall_count"], 4)
 
 
 if __name__ == "__main__":

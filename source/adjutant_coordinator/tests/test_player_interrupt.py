@@ -183,10 +183,18 @@ class RouteClassificationTest(unittest.TestCase):
     def test_no_strategy_plan_triggers_strategic_route(self):
         state = make_state()
         state.active_plan = None
+        state.last_strategy_tick = None
         data = state.to_dict()
         data["pending_events"] = []
         data = node_classify(data, make_ctx(tick=5))
         self.assertEqual(data["route"], itr.ROUTE_STRATEGIC)
+
+        recent = make_state()
+        recent.active_plan = None
+        recent_data = recent.to_dict()
+        recent_data["pending_events"] = []
+        recent_data = node_classify(recent_data, make_ctx(tick=5))
+        self.assertNotEqual(recent_data["route"], itr.ROUTE_STRATEGIC)
 
     def test_pending_authority_does_not_block_tactics_route(self):
         """在途命令**不得**全局压制战术决策（2026-09-12 晚契约变更）。

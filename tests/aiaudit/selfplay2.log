@@ -1,0 +1,6 @@
+[sweep] 开始 audit_fixed2_11 map=res://source/match/maps/PlainAndSimple.tscn seed=11
+[selfplay] 验收端口 24609 在专用段 24609-24612 内
+[sweep] 结束 audit_fixed2_11 -> {"verdict": "timeout", "worker_seconds_on_construction": 0.0, "refinery_delivered_amount": null, "error": null}
+[sweep] 开始 audit_fixed2_22 map=res://source/match/maps/PlainAndSimple.tscn seed=22
+[sweep] 结束 audit_fixed2_22 -> {"verdict": "timeout", "worker_seconds_on_construction": 0.0, "refinery_delivered_amount": null, "error": null}
+[sweep] 2 局，表 -> G:/AIRTS/AI_RTS/build/selfplay_audit\sweep_audit_fixed2.md

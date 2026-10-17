@@ -1,0 +1,389 @@
+Godot Engine v4.7.1.stable.mono.official.a13da4feb - https://godotengine.org
+
+[DBGCTL] 调试控制端点已启动 127.0.0.1:24579
+[godot_ai game_helper] registered mcp capture (debugger active=false, logger=true)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+G4PERF terrain_built path=G:/AIRTS/AI_RTS/source/match/maps/generated/16-0-2057e4a0b4/height_data.bin source=513x513 render=513x513 height=[-2.4,52.53]
+G4PERF terrain_block bridges=0 slabs=0 walk_physics=on
+G4PERF authoring_removed water=78 collision=292
+G4PERF terrain_block bridges=0 slabs=0 walk_physics=on
+G4PERF budget water_removed=purged shadows_disabled=0 decor_culled=1 decor_shadow_off=0 collision_left=0 physics_stripped=16
+G4PERF terrain_block bridges=0 slabs=0 walk_physics=on
+G4PERF ground_path grid=129x129 cell=3.97 solid=6894
+G4PERF terrain_block cells=77984/264196 cliffs=7557 submerged=2698 span=256.0 bridges=0
+G4PERF resources_grounded=16
+G4PERF diag map=Map backend= world_scale=1.0 terrain_vertices=263169 terrain_triangles=524288 nodes=590 meshes=130 lights=0 static_bodies=0 collision_shapes=16 nav_regions=0 terrain_collision=false nav_bake_expected=false
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+G4PERF terrain_built path=G:/AIRTS/AI_RTS/source/match/maps/generated/14-1795193960-767a002977/height_data.bin source=513x513 render=513x513 height=[-2.4,52.11]
+G4PERF terrain_block bridges=84 slabs=84 walk_physics=on
+G4PERF authoring_removed water=0 collision=261
+G4PERF budget water_removed=purged shadows_disabled=0 decor_culled=211 decor_shadow_off=0 collision_left=0 physics_stripped=16
+G4PERF ground_path grid=129x129 cell=3.97 solid=8830
+G4PERF terrain_block cells=111930/264196 cliffs=6140 submerged=16043 span=256.0 bridges=84
+G4PERF resources_grounded=16
+G4PERF diag map=Map backend= world_scale=1.0 terrain_vertices=263169 terrain_triangles=524288 nodes=1334 meshes=376 lights=0 static_bodies=54 collision_shapes=70 nav_regions=0 terrain_collision=false nav_bake_expected=false
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _run (res://tools/audit_ore_layout.gd:50)
+SCRIPT ERROR: Trying to assign value of type 'bool' to a variable of type 'Array'.
+   at: _write_outputs (res://tools/audit_ore_layout.gd:196)
+   GDScript backtrace (most recent call first):
+       [0] _write_outputs (res://tools/audit_ore_layout.gd:196)
+       [1] _run (res://tools/audit_ore_layout.gd:58)
+[EXIT-TRACE] EXIT_TREE：场景树收尾（tick=536，场景=unknown，对局结果=无该节点）
+[EXIT-TRACE] PREDELETE：引擎收尾（Globals 释放，tick=unknown(已脱离场景树)）

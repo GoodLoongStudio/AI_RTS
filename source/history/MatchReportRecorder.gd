@@ -44,9 +44,26 @@ var damage_dealt := 0.0
 var damage_taken := 0.0
 var kills := 0
 var contributions: Dictionary = {}
+## 本局是否订上了伤害 / 经济信号。订上之后 0 是测到的 0，不是「没测」。
+var damage_tracking := false
+var economy_tracking := false
+var gathered_a := 0.0
+var gathered_b := 0.0
+var spent_a := 0.0
+var spent_b := 0.0
 
 var _sample_accumulator := 0.0
 var _connected := false
+var _saw_process := false
+var _balance_a: Dictionary = {}
+var _balance_b: Dictionary = {}
+var _local_economy_id := ""
+## 本方最近一次打中的敌方单位。它阵亡时才记成击杀，不明掉血不算。
+var _hit_by_local: Dictionary = {}
+
+const GATHER_REASONS := ["WorkerDelivery", "PassiveIncome", "MissionReward"]
+const SPEND_REASONS := ["ConstructionCost", "ProductionCost", "SkillCost"]
+const REFUND_REASONS := ["ConstructionRefund", "ProductionRefund", "SkillRefund"]
 
 
 func _ready() -> void:
@@ -60,6 +77,7 @@ func begin(ctx: Dictionary = {}) -> void:
 	active = true
 	elapsed_seconds = 0.0
 	set_process(true)
+	_seed_economy()
 	_connect_signals()
 	_add_event("match_start", "游戏开始", "记录器已挂载", "", false)
 
@@ -67,6 +85,7 @@ func begin(ctx: Dictionary = {}) -> void:
 func _process(delta: float) -> void:
 	if not active:
 		return
+	_saw_process = true
 	elapsed_seconds = float(Time.get_ticks_msec() - started_at_ms) / 1000.0
 	_sample_accumulator += delta
 	# 1Hz 采样资源库存，足以画出曲线，又不会给对局添负担。
@@ -81,6 +100,10 @@ func finish(result: String, reason: String = "") -> Dictionary:
 		return {}
 	active = false
 	set_process(false)
+	# 模拟帧还没跑过（同一帧里收局）时，用挂载以来的墙钟补时长。
+	# 已经在跑的对局继续用帧累计，避免把暂停菜单的墙钟算进去。
+	if not _saw_process:
+		elapsed_seconds = maxf(0.0, float(Time.get_ticks_msec() - started_at_ms) / 1000.0)
 	outcome = result
 	end_reason = reason
 	ended_at = Time.get_datetime_string_from_system()
@@ -168,17 +191,20 @@ func build_report() -> Dictionary:
 			"units_produced": produced_total,
 			"structures_built": buildings_built,
 			"units_lost": _sum_values(lost_by_type),
-			# 击杀没有可订阅的信号：没有外部 contribute 时它是"未测量"而不是 0。
-			"enemies_killed": kills if kills > 0 else null,
-			"damage_dealt": damage_dealt if damage_dealt > 0.0 else null,
-			"damage_taken": damage_taken if damage_taken > 0.0 else null,
-			"total_gathered": context.get("total_gathered", null),
-			"total_spent": context.get("total_spent", null),
+			"enemies_killed": kills if damage_tracking else null,
+			"damage_dealt": damage_dealt if damage_tracking else null,
+			"damage_taken": damage_taken if damage_tracking else null,
+			"total_gathered": _tracked_amounts(gathered_a, gathered_b) if economy_tracking else context.get("total_gathered", null),
+			"total_spent": _tracked_amounts(spent_a, spent_b) if economy_tracking else context.get("total_spent", null),
 			"final_resources": context.get("final_resources", null),
 			"key_events": _key_events(),
 		},
 		"economy": {
 			"series": series,
+			"totals": {
+				"gathered": _tracked_amounts(gathered_a, gathered_b) if economy_tracking else null,
+				"spent": _tracked_amounts(spent_a, spent_b) if economy_tracking else null,
+			},
 			"structure": {
 				"drought_windows": _drought_windows(),
 			},
@@ -187,8 +213,8 @@ func build_report() -> Dictionary:
 		"construction": {"total_built": buildings_built, "buildings": building_rows},
 		"combat": {
 			"damage": {
-				"dealt": damage_dealt if damage_dealt > 0.0 else null,
-				"taken": damage_taken if damage_taken > 0.0 else null,
+				"dealt": damage_dealt if damage_tracking else null,
+				"taken": damage_taken if damage_tracking else null,
 			},
 			"units": unit_rows.duplicate(true),
 			# 汇总从明细推导：明细行里没有的列（如 killed / damage_*）推导结果是 null，
@@ -240,8 +266,14 @@ func _connect_signals() -> void:
 	_connect(signals, "unit_production_finished", _on_unit_production_finished)
 	_connect(signals, "unit_construction_finished", _on_unit_construction_finished)
 	_connect(signals, "unit_died", _on_unit_died)
+	_connect(signals, "unit_damaged", _on_unit_damaged)
 	_connect(signals, "not_enough_resources_for_production", _on_not_enough_resources)
 	_connect(signals, "not_enough_resources_for_construction", _on_not_enough_resources)
+	damage_tracking = signals.has_signal("unit_damaged")
+	if economy_tracking:
+		var economy: Node = get_parent().get_node_or_null("EconomyRuntime") if get_parent() != null else null
+		if economy != null:
+			_connect(economy, "BalanceChanged", _on_balance_changed)
 
 
 func _connect(source: Node, signal_name: String, target: Callable) -> void:
@@ -250,6 +282,8 @@ func _connect(source: Node, signal_name: String, target: Callable) -> void:
 
 
 func _on_unit_production_finished(unit, _producer) -> void:
+	if _side_of(unit) == "enemy":
+		return
 	produced_total += 1
 	var key := _unit_key(unit)
 	produced_by_type[key] = int(produced_by_type.get(key, 0)) + 1
@@ -258,6 +292,8 @@ func _on_unit_production_finished(unit, _producer) -> void:
 
 
 func _on_unit_construction_finished(unit) -> void:
+	if _side_of(unit) == "enemy":
+		return
 	buildings_built += 1
 	var key := _unit_key(unit)
 	buildings_by_type[key] = int(buildings_by_type.get(key, 0)) + 1
@@ -266,10 +302,47 @@ func _on_unit_construction_finished(unit) -> void:
 
 
 func _on_unit_died(unit) -> void:
+	var side := _side_of(unit)
+	if side == "enemy":
+		if unit != null and bool(_hit_by_local.get(unit.get_instance_id(), false)):
+			kills += 1
+			_hit_by_local.erase(unit.get_instance_id())
+		return
 	var key := _unit_key(unit)
 	lost_by_type[key] = int(lost_by_type.get(key, 0)) + 1
 	if _sum_values(lost_by_type) == 1:
 		_add_event("first_contact", "首次损失单位", key, key, false)
+
+
+func _on_unit_damaged(unit) -> void:
+	if unit == null or not unit.has_meta("damage_presentation"):
+		return
+	var presentation: Variant = unit.get_meta("damage_presentation")
+	if not presentation is Dictionary:
+		return
+	var amount_value: Variant = (presentation as Dictionary).get("amount", null)
+	if amount_value == null:
+		return
+	var amount := float(amount_value)
+	if amount <= 0.0 or is_nan(amount):
+		return
+	var source := str((presentation as Dictionary).get("source_player_id", ""))
+	var from_local := not source.is_empty() and source == _local_player_id()
+	var side := _side_of(unit)
+	if side == "local":
+		damage_taken += amount
+	if from_local and side != "local":
+		damage_dealt += amount
+		_hit_by_local[unit.get_instance_id()] = true
+	elif from_local and side == "local":
+		damage_dealt += amount
+
+
+func _on_balance_changed(player_id: String, _transaction_id: String, reason: String,
+		resource_a: int, resource_b: int, _version: int) -> void:
+	if not economy_tracking or str(player_id) != _local_economy_id:
+		return
+	_apply_balance_delta(reason, float(resource_a), float(resource_b))
 
 
 func _on_not_enough_resources(_player) -> void:
@@ -366,6 +439,78 @@ func _make_report_id() -> String:
 	if not match_id.is_empty():
 		return "MR-%s-%s" % [stamp, match_id]
 	return "MR-%s" % stamp
+
+
+func _seed_economy() -> void:
+	var root := get_parent()
+	if root == null:
+		return
+	var economy := root.get_node_or_null("EconomyRuntime")
+	if economy == null or not economy.has_signal("BalanceChanged"):
+		return
+	var player := _local_player()
+	if player == null:
+		return
+	if player.has_meta("ai_rts_player_id"):
+		_local_economy_id = str(player.get_meta("ai_rts_player_id"))
+	if _local_economy_id.is_empty():
+		return
+	economy_tracking = true
+	if economy.has_method("GetSnapshot"):
+		var snapshot: Variant = economy.call("GetSnapshot", player)
+		if snapshot is Dictionary:
+			_balance_a[_local_economy_id] = float((snapshot as Dictionary).get("resource_a", 0.0))
+			_balance_b[_local_economy_id] = float((snapshot as Dictionary).get("resource_b", 0.0))
+
+
+func _apply_balance_delta(reason: String, resource_a: float, resource_b: float) -> void:
+	var previous_a := float(_balance_a.get(_local_economy_id, resource_a))
+	var previous_b := float(_balance_b.get(_local_economy_id, resource_b))
+	var delta_a := resource_a - previous_a
+	var delta_b := resource_b - previous_b
+	_balance_a[_local_economy_id] = resource_a
+	_balance_b[_local_economy_id] = resource_b
+	if reason in GATHER_REASONS:
+		if delta_a > 0.0:
+			gathered_a += delta_a
+		if delta_b > 0.0:
+			gathered_b += delta_b
+	elif reason in SPEND_REASONS:
+		if delta_a < 0.0:
+			spent_a += -delta_a
+		if delta_b < 0.0:
+			spent_b += -delta_b
+	elif reason in REFUND_REASONS:
+		if delta_a > 0.0:
+			spent_a = maxf(0.0, spent_a - delta_a)
+		if delta_b > 0.0:
+			spent_b = maxf(0.0, spent_b - delta_b)
+
+
+func _tracked_amounts(amount_a: float, amount_b: float) -> Dictionary:
+	return {"resource_a": amount_a, "resource_b": amount_b}
+
+
+func _side_of(unit) -> String:
+	if unit == null:
+		return ""
+	if unit.is_in_group("controlled_units"):
+		return "local"
+	if unit.is_in_group("adversary_units"):
+		return "enemy"
+	var parent: Node = unit.get_parent()
+	if parent != null and parent.get("is_local_player") == true:
+		return "local"
+	return ""
+
+
+func _local_player_id() -> String:
+	if not _local_economy_id.is_empty():
+		return _local_economy_id
+	var player := _local_player()
+	if player != null and player.has_meta("ai_rts_player_id"):
+		return str(player.get_meta("ai_rts_player_id"))
+	return ""
 
 
 static func _sum_values(source: Dictionary) -> int:

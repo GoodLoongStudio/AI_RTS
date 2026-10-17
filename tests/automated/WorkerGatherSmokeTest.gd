@@ -4,6 +4,7 @@ const SmokeTestWarmup = preload("res://tests/automated/SmokeTestWarmup.gd")
 
 const MatchScene = preload("res://tests/manual/TestAllUnits.tscn")
 const WorkerScene = preload("res://source/match/units/Worker.tscn")
+const RefineryScene = preload("res://source/match/units/OreRefinery.tscn")
 const GatherAction = preload(
 	"res://source/match/units/actions/CollectingResourcesSequentially.gd"
 )
@@ -16,17 +17,35 @@ var _feedback_events: Array[Dictionary] = []
 ## 验证 Worker Gather 公共订单、仅交付入账、Stop 暂停和耗尽后待机。
 func _ready():
 	var match_instance = MatchScene.instantiate()
+	# 统一货币后不再存在的 B 矿：它与 A14 圆心只隔 2.2m，两颗矿的避让圆（各 1.2m）
+	# 重叠成墙，而矿点不挖导航洞，路径照样从缝里穿 ⇒ 满载工人被 RVO 顶向主基地、
+	# 原地卡死（legacy 口径同样复现）。该缺陷单独登记，不由本测覆盖。
+	match_instance.get_node("Map/Resources/ResourceB5").free()
 	add_child(match_instance)
 	await SmokeTestWarmup.wait_for_units(get_tree(), 1)
 
 	var human = match_instance.get_node("Players/Human")
 	var worker = human.get_node("Worker")
-	var resource = match_instance.get_node("Map/Resources/ResourceB5")
+	# 统一货币（2026-09-14）后账户只登记资源 A，B 矿交货会被丢弃；夹具里残留的 ResourceB5
+	# 不再代表现行玩法，改用 A 矿。采集按 TARGET_FILL_SECONDS 批量结算（每 tick 约 24 个），
+	# 存量必须多于一批、少于一车，「暂停时矿未采空 → 恢复后一趟交完耗尽」的时序才成立。
+	var resource = match_instance.get_node("Map/Resources/ResourceA14")
+	resource.resource_a = 60
+	var resource_stock: int = resource.resource_a
+	# 交货点是最近的己方完工矿场，不再要求事先指派。TestAllUnits 没有矿场，所以这里放一座。
+	# 容量 0 让它不主动接管（接管会下发报到移动、打断本测的 Stop/恢复时序）。
+	# 指派标记不再决定能否交货，留下只是不让别的路径把这辆车当成完全无主。
+	var refinery = RefineryScene.instantiate()
+	match_instance.call(
+		"_setup_and_spawn_unit", refinery, Transform3D(Basis.IDENTITY, Vector3(26.0, 0.0, 30.0)), human, false
+	)
+	refinery.worker_capacity = 0
+	worker.set_meta("ore_refinery_assignment", refinery)
 	var gateway = human.get_node("UnitCommandGateway")
 	var controller = human.get_node("UnitActionsController")
 	match_instance.get_node("CommandRuntime").connect("OrderStateChanged", _on_order_state_changed)
 	controller.command_feedback.connect(_on_command_feedback)
-	var player_resources_before: int = human.resource_b
+	var player_resources_before: int = human.resource_a
 
 	MatchSignals.deselect_all_units.emit()
 	worker.find_child("Selection").select()
@@ -42,7 +61,7 @@ func _ready():
 	_check(_last_feedback_status("Gather") == "Accepted", "Gather 应提供 Accepted 即时反馈")
 
 	_check(await _wait_for_worker_cargo(worker, 1, 5.0), "Worker 应从目标资源点取得第一份载荷")
-	_check(human.resource_b == player_resources_before, "未返回 CommandCenter 前玩家资源不得增长")
+	_check(human.resource_a == player_resources_before, "未返回 CommandCenter 前玩家资源不得增长")
 	controller.stop_selected_units()
 	await get_tree().process_frame
 	_check(gateway.GetOrderState(first_order_id) == "Suspended", "Stop 应暂停并保留 Gather 订单")
@@ -50,13 +69,13 @@ func _ready():
 		worker.action != null and worker.action.is_task_suspended(),
 		"Stop 应暂停整个采集 Action，而不是只清零一帧速度"
 	)
-	var cargo_while_suspended: int = worker.resource_b
-	var resource_while_suspended: int = resource.resource_b
+	var cargo_while_suspended: int = worker.resource_a
+	var resource_while_suspended: int = resource.resource_a
 	var position_while_suspended: Vector3 = worker.global_position
 	await get_tree().create_timer(2.3).timeout
-	_check(worker.resource_b == cargo_while_suspended, "暂停期间 Worker 载荷不得继续增长")
-	_check(resource.resource_b == resource_while_suspended, "暂停期间资源节点不得继续减少")
-	_check(human.resource_b == player_resources_before, "暂停期间不得发生隐藏交付")
+	_check(worker.resource_a == cargo_while_suspended, "暂停期间 Worker 载荷不得继续增长")
+	_check(resource.resource_a == resource_while_suspended, "暂停期间资源节点不得继续减少")
+	_check(human.resource_a == player_resources_before, "暂停期间不得发生隐藏交付")
 	_check(
 		worker.global_position.distance_to(position_while_suspended) < 0.03,
 		"暂停期间 Worker 不得自动恢复移动"
@@ -70,11 +89,14 @@ func _ready():
 	_check(gateway.GetOrderState(second_order_id) == "InProgress", "新 Gather 应恢复工作循环")
 
 	_check(
-		await _wait_for_player_resource(human, player_resources_before + 2, 10.0),
-		"资源耗尽后 Worker 应完成最后一次交付，玩家资源增加两点"
+		await _wait_for_player_resource(human, player_resources_before + resource_stock, 10.0),
+		"资源耗尽后 Worker 应完成最后一次交付，玩家资源增加矿点全部存量"
 	)
 	await get_tree().process_frame
-	_check(worker.resource_b == 0, "交付完成后 Worker 携带资源应清零")
+	_check(worker.resource_a == 0, "交付完成后 Worker 携带资源应清零")
+	# 资源在卸货开始时入账；现行卸货停留结束后才发布任务终态。
+	# 有界等待公共订单状态，保留下方 Completed 和待机断言。
+	await _wait_for_gather_completion(gateway, second_order_id, 5.0)
 	_check(gateway.GetOrderState(second_order_id) == "Completed", "耗尽后的最后交付应完成订单")
 	await get_tree().create_timer(0.5).timeout
 	_check(worker.action == null, "资源耗尽并交付后 Worker 应待机，不得自动寻找新矿")
@@ -113,11 +135,11 @@ func _ready():
 func _wait_for_worker_cargo(worker, expected: int, timeout_seconds: float) -> bool:
 	var elapsed_seconds := 0.0
 	while elapsed_seconds < timeout_seconds:
-		if worker.resource_b >= expected:
+		if worker.resource_a >= expected:
 			return true
 		await get_tree().create_timer(0.1).timeout
 		elapsed_seconds += 0.1
-	return worker.resource_b >= expected
+	return worker.resource_a >= expected
 
 
 ## 等待载荷丢失测试 Worker 取得指定数量的 A 类资源。
@@ -135,11 +157,19 @@ func _wait_for_worker_resource_a(worker, expected: int, timeout_seconds: float) 
 func _wait_for_player_resource(player, expected: int, timeout_seconds: float) -> bool:
 	var elapsed_seconds := 0.0
 	while elapsed_seconds < timeout_seconds:
-		if player.resource_b >= expected:
+		if player.resource_a >= expected:
 			return true
 		await get_tree().create_timer(0.1).timeout
 		elapsed_seconds += 0.1
-	return player.resource_b >= expected
+	return player.resource_a >= expected
+
+
+## 等待交货后的卸货阶段结束；超时或其它终态仍由原断言判定失败。
+func _wait_for_gather_completion(gateway, order_id: String, timeout_seconds: float) -> void:
+	var elapsed_seconds := 0.0
+	while elapsed_seconds < timeout_seconds and gateway.GetOrderState(order_id) == "InProgress":
+		await get_tree().create_timer(0.1).timeout
+		elapsed_seconds += 0.1
 
 
 ## 收集 Match 级订单状态事件。

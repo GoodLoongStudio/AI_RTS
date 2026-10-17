@@ -1,0 +1,21 @@
+[selfplay] 验收端口 24609 在专用段 24609-24612 内
+清理：没有属于本局端口的 Godot 进程
+[selfplay] 大厅就绪: 指挥官-309（等 4s）
+[selfplay] op=start -> {'map': 'res://source/match/maps/PlainAndSimple.tscn', 'ok': True, 'passive_ai_test': False, 'peaceful': False, 'seed': 0, 'with_ai': True}
+runner 启动 pid=45188 state_dir=G:\AIRTS\tmp_logs\langgraph_recon\selfplay\state_fs_verify1
+pidfile=5864
+[selfplay] 对局开始，采样 300s（backend=off difficulty=-1）
+[selfplay] 矿场前置：派 Unit_1 到 [174.27, 170.79] -> {'accepted': False, 'command_id': '', 'moved': ['Unit_1'], 'ok': False, 'reason': '命令未被接受（PendingAuthority），请根据 status 复
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 132.4, 'unit_xz': [92.8, 66.3]}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 91.8, 'unit_xz': [117.8, 98.4]}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 51.4, 'unit_xz': [142.6, 130.2]}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': True, 'distance_m': 11.9, 'unit_xz': [167.0, 161.4]}
+[selfplay] 矿场建造第 1 次（auto）客户端={'detail': '自动放置找不到合法落点（基地周围无可建地面/没有已探明的新矿点）。', 'error': 'no valid auto site', 'ok': False 权威={"found": false, "reason": "still_pending", "scanned": 63} 观测=[]
+[selfplay] 矿场建造第 2 次（auto）客户端={'accepted': False, 'builders': [], 'command_id': '98dfd741-5bfa-446f-0b29-0000235555fd',  权威={"found": true, "status": "Rejected", "match": "command_id", "reason": "Occupied", "subject": ""} 观测=[]
+[selfplay] 矿场建造第 3 次（auto）客户端={'accepted': False, 'builders': [], 'command_id': '36bad578-442d-476e-ee79-000025e1971b',  权威={"found": true, "status": "Accepted", "match": "command_id", "reason": "", "subject": ""} 观测=[]
+[selfplay] 矿场已出现在权威观测：[{'name': 'Unit_107', 'constructed': True, 'refinery': {'assigned': 1, 'constructed': True, 'delivered_amount': 0, 'delivered_count': 0, 'has_ore': True, 'service_radius_m': 30.0, 'takeovers': 6, 'wor
+[selfplay] 对局已结束（胜利），服务端按设计回收
+没有在跑的 runner（authority-port=24612）
+清理本局进程树 roots=[49972] (全部=[25052, 49972])
+[selfplay] 终局: verdict=win own=75 enemy=3 units={} balance={'a': 2750}
+[selfplay] written: G:\AIRTS\tmp_logs\langgraph_recon\selfplay\result_fs_verify1.json

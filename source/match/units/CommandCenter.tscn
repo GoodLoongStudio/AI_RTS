@@ -11,44 +11,49 @@
 [ext_resource type="PackedScene" uid="uid://d4cm4yhtf11ur" path="res://source/match/units/traits/Targetability.tscn" id="17_dco2r"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_pav5c"]
-height = 1.600
-radius = 2.333
-
+height = 5.9059
+radius = 4.9764
 [node name="CommandCenter" type="Area3D"]
-scale = Vector3(3.00, 3.00, 3.00)
 collision_layer = 2
 collision_mask = 0
 script = ExtResource("1_hpo2s")
 
 [node name="Geometry" parent="." instance=ExtResource("2_hwq4d")]
+; Authored visual size only; logic root remains unscaled.
+transform = Transform3D(2.145, 0, 0, 0, 2.145, 0, 0, 0, 2.145, 0, 0, 0)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.95295, 0)
 shape = SubResource("CylinderShape3D_pav5c")
 
 [node name="Highlight" parent="." instance=ExtResource("2_c41i5")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
-radius = 2.0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.075, 0)
+radius = 5.47404
 
 [node name="Selection" parent="." instance=ExtResource("3_slmue")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
-radius = 2.0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.075, 0)
+radius = 5.47404
 
+; 【归一化】不再需要 1/父缩放 的补偿：radius 本就是世界米，父链 scale 现在也是 1。
 [node name="MovementObstacle" parent="." instance=ExtResource("4_f5u8t")]
-radius = 7.00
+radius = 4.9764
 vertices = PackedVector3Array(0, 0, -1.4, 0.99, 0, -0.99, 1.4, 0, 0, 0.99, 0, 0.99, 0, 0, 1.4, -0.99, 0, 0.99, -1.4, 0, 0, -0.99, 0, -0.99)
 affect_navigation_mesh = true
 path_height_offset = 0.6
 
+carve_from_collision_bounds = false
 [node name="HealthBar" parent="." instance=ExtResource("5_xuulo")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
-size = Vector2(380, 10)
+; 表现节点：用节点 scale 保持迁移前的世界外观（第二阶段再把它并进 Visual 叶子）。
+transform = Transform3D(3, 0, 0, 0, 3, 0, 0, 0, 3, 0, 4.29, 0)
+size = Vector2(190, 5)
 
 [node name="Targetability" parent="." instance=ExtResource("17_dco2r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
-radius = 2.0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.075, 0)
+radius = 5.47404
 
 [node name="RallyPoint" parent="." instance=ExtResource("8_8qw5y")]
+; 表现节点：同上，先保持世界外观。
+transform = Transform3D(3, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0)
 
 [node name="ProductionQueue" parent="." instance=ExtResource("9_y6bg8")]
 

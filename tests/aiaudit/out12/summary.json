@@ -1,0 +1,19 @@
+[
+  {
+    "id": "movement-recovery",
+    "category": "navigation",
+    "scene": "res://tests/automated/MovementRecoverySmokeTest.tscn",
+    "returncode": 1,
+    "seconds": 51.9,
+    "marker_ok": false,
+    "marker": "Movement recovery smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "1"
+    ],
+    "fail_lines": [
+      "对穿缺口的第一辆车必须到达（state=Unreachable）"
+    ],
+    "errors": [],
+    "log_lines": 562
+  }
+]

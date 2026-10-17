@@ -1,0 +1,6 @@
+ERROR: Production queue assertion failed: 容量内的生产项目应入队
+ERROR: Production queue assertion failed: 容量内的生产项目应入队
+ERROR: Production queue assertion failed: 容量内的生产项目应入队
+ERROR: Production queue assertion failed: 统一生产队列容量应为 5
+ERROR: Production queue assertion failed: 被 QueueFull 拒绝的项目不得额外扣款
+Production queue smoke test completed: 5 failure(s)

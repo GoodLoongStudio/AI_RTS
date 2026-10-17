@@ -1,7 +1,7 @@
 extends Node
 
-## 主基地生产工人冒烟测试（2026-09-06）：开局只要有主基地就能生产工人，
-## 无需先造兵营（balance: worker.allowedProducerUnitTypeIds = [command_center]）。
+## 主基地不再生产矿车（balance: worker.allowedProducerUnitTypeIds = [vehicle_factory]）。
+## 入队必须被权威拒绝。车厂能产出矿车由 VehicleFactoryWorkerProductionSmokeTest 覆盖。
 
 const MatchScene = preload("res://tests/manual/TestAllUnits.tscn")
 const WorkerScene = preload("res://source/match/units/Worker.tscn")
@@ -34,21 +34,8 @@ func _ready():
 	_check(resources_ready, "权威经济账户应在 10s 内就绪以注入测试资源")
 
 	var item = queue.produce(WorkerScene)
-	_check(item != null, "主基地应可入队生产工人（无需兵营）")
-
-	var elapsed := 0.0
-	while _produced_workers.is_empty() and elapsed < PRODUCE_TIMEOUT_SECONDS:
-		await get_tree().create_timer(0.2).timeout
-		elapsed += 0.2
-	_check(
-		_produced_workers.size() == 1,
-		"工人应在 %.0fs 内从主基地部署（实际 %d 个）" % [PRODUCE_TIMEOUT_SECONDS, _produced_workers.size()]
-	)
-	if _produced_workers.size() == 1:
-		_check(
-			_produced_workers[0].scene_file_path == WorkerScene.resource_path,
-			"部署的单位应是工人"
-		)
+	_check(item == null, "主基地入队矿车应被拒绝")
+	_check(_produced_workers.is_empty(), "主基地不应部署矿车")
 
 	print("Command center worker production smoke test completed: %d failure(s)" % _failures)
 	match_instance.queue_free()

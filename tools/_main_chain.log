@@ -1,0 +1,30 @@
+@@@@@ MAIN START Sun Sep 27 23:42:29     2026 @@@@
+@@@@@ SWEEP EXIT=0 Mon Sep 28 01:06:25     2026 @@@@
+tools/run_post_sweep_checks.sh: line 19: same-frame-overlap-placement,structure-repair-sell,repair-sell-targeting,: command not found
+ËùÔÚÎ»ÖÃ G:\AIRTS\AI_RTS\tools\run_full_regression.ps1:189 ×Ö·û: 1
++ }
++ ~
+±í´ïÊ½»òÓï¾äÖĞ°üº¬ÒâÍâµÄ±ê¼Ç¡°}¡±¡£
+ËùÔÚÎ»ÖÃ G:\AIRTS\AI_RTS\tools\run_full_regression.ps1:329 ×Ö·û: 1
++ }
++ ~
+±í´ïÊ½»òÓï¾äÖĞ°üº¬ÒâÍâµÄ±ê¼Ç¡°}¡±¡£
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : UnexpectedToken
+ 
+tools/run_post_sweep_checks.sh: line 24: worker-engagement-policy,production-queue,command-center-worker-production,: command not found
+tools/run_post_sweep_checks.sh: line 23: net-structure-command-contract,net-infantry,worker-gather,economy-account,: command not found
+tools/run_post_sweep_checks.sh: line 24: unexpected EOF while looking for matching ``'
+@@@@@ CHECKS EXIT=127 Mon Sep 28 01:06:25     2026 @@@@
+=== WAIT post-sweep checks @ 01:06:25 ===
+=== â‘  é‡‡é›† æ•™å¸ˆå±€ backend=model @ 01:06:25 ===
+=== â‘  é‡‡é›† å­¦ç”Ÿå±€ backend=layaï¼ˆå½“å‰ ft_v2ï¼‰ @ 01:12:07 ===
+=== â‘¡ å®¡è®¡æ ·æœ¬ï¼ˆlabel_quality å‡çº§åˆ°ç»“æœå±‚ï¼Œéš”ç¦»æ— ç»“æœæ ·æœ¬ï¼‰ @ 01:17:52 ===
+tools/run_training_loop_20260927.sh: line 41: G:/AIRTS/tmp_logs/selfplay/loop27_teacher.trainable.jsonl: No such file or directory
+tools/run_training_loop_20260927.sh: line 42: G:/AIRTS/tmp_logs/selfplay/loop27_laya.trainable.jsonl: No such file or directory
+=== â‘¢ å¾®è°ƒï¼ˆåªç”¨ verified_result æ ·æœ¬ï¼‰ @ 01:17:52 ===
+=== â‘£ å›ºå®šè¯„æµ‹é›†å¯¹ç…§ base(ft_v2) vs ft_v27 @ 01:17:52 ===
+=== â‘¤ å†é‡‡é›†ï¼ˆç¬¬ 2 è½®ï¼Œç”¨ ft_v27 å½“å­¦ç”Ÿï¼‰ @ 01:17:53 ===
+=== LOOP DONE @ 01:20:45 ===
+@@@@@ LOOP EXIT=0 Mon Sep 28 01:20:45     2026 @@@@
+@@@@@ MAIN DONE Mon Sep 28 01:21:17     2026 @@@@

@@ -1,0 +1,25 @@
+{
+ "algo_version": "7.11.0",
+ "controls": {
+  "cover_cluster_max": 10,
+  "lake_area": 5000,
+  "lake_count": 0,
+  "landform_elongation": 1.2,
+  "landform_recess": 0.2,
+  "landform_softness": 0.16,
+  "layout_attempts": 4,
+  "neutral_plateau_scale": 1.7,
+  "obstacle_percent": 40,
+  "plateau_max": 8,
+  "plateau_ramp_width": 8,
+  "river_bend_scale": 1.0,
+  "river_crossings": 6,
+  "river_enabled": 1,
+  "river_layout": 2,
+  "river_width": 18
+ },
+ "layout_seed": 16,
+ "player_spacing": "any",
+ "schema_version": 2,
+ "terrain_seed": 0
+}

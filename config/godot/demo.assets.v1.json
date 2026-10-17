@@ -81,10 +81,6 @@
   {
    "unitTypeId": "rocketeer",
    "scenePath": "res://source/match/units/Rocketeer.tscn"
-  },
-  {
-   "unitTypeId": "scout",
-   "scenePath": "res://source/match/units/Scout.tscn"
   }
  ],
  "weaponAssets": [

@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tests/automated/_StrategicSandboxProbe.gd" id="1_sb"]
+
+[node name="StrategicSandboxProbe" type="Node"]
+script = ExtResource("1_sb")

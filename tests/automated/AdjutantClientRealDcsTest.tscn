@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tests/automated/AdjutantClientRealDcsTest.gd" id="1_realdcs"]
+
+[node name="AdjutantClientRealDcsTest" type="Node"]
+script = ExtResource("1_realdcs")

@@ -37,7 +37,8 @@ const STATE_LOCKED := "unlocked_off"
 const STATE_QUEUE_FULL := "queue_full"
 const STATE_PRODUCING := "producing"
 const STATE_MAXED := "maxed"
-const STATE_DAMAGED := "damaged"
+## 【2026-10-10 已移除 STATE_DAMAGED】受损不影响生产（产量只在 Unit.gd:152-155），
+## 之前的 "#受损" 徽标会被理解成"受损会减速"，按用户口径整条删除。
 
 ## 状态 → (描边色, 角标色, 角标字形, 中文短标签)
 ## 角标字形刻意用 ASCII：项目主题字体不保证含 ✔ ✕ ⚠ 等符号。
@@ -49,7 +50,6 @@ const STATE_TABLE := {
 	STATE_QUEUE_FULL: {"edge": AMBER, "badge": AMBER, "glyph": "F", "label": "队列已满"},
 	STATE_PRODUCING: {"edge": GREEN, "badge": GREEN, "glyph": ">", "label": "生产中"},
 	STATE_MAXED: {"edge": GREEN, "badge": GREEN, "glyph": "=", "label": "已满"},
-	STATE_DAMAGED: {"edge": RED, "badge": RED, "glyph": "#", "label": "受损"},
 }
 
 # ---------- 几何 ----------

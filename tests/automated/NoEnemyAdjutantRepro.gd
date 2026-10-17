@@ -12,12 +12,15 @@ extends Node
 ##
 ## 输出：每 10s 一行 [REPRO] 概要；发现卡住打 [STUCK] 明细（含逐帧 [TRACE]）。
 
+## 【2026-09-29】旧表里的 5 张图（14/16/17/25/5-1444805660）全是旧规则产物，已随
+## "坏地图清理"从工程删除；这里改指当前 5 张新规则合格图，key 直接用 map_id，免得
+## 布局号撞车（现在有两张都是布局 8）。
 const MAPS := {
-	"14": "res://source/match/maps/generated/14-1795193960-767a002977/map_14-1795193960-767a002977.tscn",
-	"16": "res://source/match/maps/generated/16-0-2057e4a0b4/map_16-0-2057e4a0b4.tscn",
-	"17": "res://source/match/maps/generated/17-210894544-767a002977/map_17-210894544-767a002977.tscn",
-	"25": "res://source/match/maps/generated/25-39141542-767a002977/map_25-39141542-767a002977.tscn",
-	"5": "res://source/match/maps/generated/5-1444805660-767a002977/map_5-1444805660-767a002977.tscn",
+	"8-561215132-767a002977": "res://source/match/maps/generated/8-561215132-767a002977/map_8-561215132-767a002977.tscn",
+	"39-655312406-767a002977": "res://source/match/maps/generated/39-655312406-767a002977/map_39-655312406-767a002977.tscn",
+	"36-1846106761-767a002977": "res://source/match/maps/generated/36-1846106761-767a002977/map_36-1846106761-767a002977.tscn",
+	"47-903520021-767a002977": "res://source/match/maps/generated/47-903520021-767a002977/map_47-903520021-767a002977.tscn",
+	"8-608324557-767a002977": "res://source/match/maps/generated/8-608324557-767a002977/map_8-608324557-767a002977.tscn",
 }
 
 const MatchSettings = preload("res://source/data-model/MatchSettings.gd")
@@ -31,7 +34,7 @@ const OSC_MIN_PATH_M := 6.0
 const OSC_MAX_NET_M := 2.5
 const OSC_MIN_PROGRESS_M := 2.0
 
-var _map_key := "49"
+var _map_key := "47-903520021-767a002977"
 var _seconds := 600.0
 var _stuck_history := {}  # unit_path -> [pos, elapsed]
 var _stuck_reported := {}  # unit_path -> 最近一次已报告的 elapsed

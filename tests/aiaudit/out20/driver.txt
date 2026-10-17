@@ -1,0 +1,5 @@
+[rule-ai-battlegroup] rc=0 marker_ok=True fails=0 secs=4.7
+[rule-ai-economy-query] rc=1 marker_ok=False fails=0 secs=14.6
+[rule-ai-expansion] rc=3221225477 marker_ok=True fails=0 secs=7.9
+[rule-ai-offense-logistics] rc=1 marker_ok=False fails=0 secs=15.6
+DONE 4 tests, 2 red

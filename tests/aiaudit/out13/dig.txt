@@ -1,0 +1,3 @@
+ERROR: Movement recovery assertion failed: 对穿缺口的第一辆车必须到达（state=Unreachable）
+[MOVEMENT] head-on a=Unreachable b=Arrived elapsed_ms=1857 separation=10.69
+Movement recovery smoke test completed: 1 failure(s)

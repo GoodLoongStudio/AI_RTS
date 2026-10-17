@@ -1,0 +1,19 @@
+[
+  {
+    "id": "adjutant-rules-export",
+    "category": "adjutant",
+    "scene": "res://tests/automated/AdjutantRulesExportSmokeTest.tscn",
+    "returncode": 0,
+    "seconds": 4.0,
+    "marker_ok": true,
+    "marker": "Adjutant rules export smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [
+      "System.InvalidOperationException: 场景 res://tests/perfgrid/TmpTurretHead.tscn 没有受信任的单位类型定义。"
+    ],
+    "log_lines": 122
+  }
+]

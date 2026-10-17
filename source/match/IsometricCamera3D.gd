@@ -1,12 +1,21 @@
 extends Camera3D
 
+const _PerfBuckets = preload("res://source/match/PerfBuckets.gd")
+
 const EXPECTED_X_ROTATION_DEGREES = -45.0
 const EXPECTED_PROJECTION = PROJECTION_ORTHOGONAL
 ## 所有地图开局同一档：正交 size 与镜头离地高度。
 ## 【2026-09-26 用户：默认镜头高度统一 30m】普通图与大图开局档位都锚定 30m
 ## （原普通图 25m / 大图 35m 两档并存，现统一）；高度锚点 = 本图开局档位。
-const OPENING_SIZE := 21.25
-const OPENING_HEIGHT := 30.0
+## 【2026-09-30 用户：默认视角高度 ×2 —— 09-27 建筑统一放大后开局视野装不下基地】
+## 正交 size 21.25→42.5、离地高度 30→60（大图档位系数同步 ×2，见
+## configure_for_large_terrain）。两者一起翻倍才能保持俯角与构图不变、
+## 只把可视范围放大一倍：正交相机下"能看到多少地面"只由 size 决定，
+## 高度同时翻倍是为了让拉远梯子（size→高度）与包围盒夹紧仍在同一比例上。
+## 2026-10-10: modestly wider opening view for the building/mobile-unit rebalance.
+const OPENING_SIZE := 46.75
+## 2026-10-10: default opening height raised to 80m for the current RTS framing.
+const OPENING_HEIGHT := 80.0
 ## 当前生效的开局档位：大图由 configure_for_large_terrain 抬高（2026-09-24
 ## 用户反馈"默认视图太低"）。force_opening_isometric() 无参调用时用它，
 ## 否则 Match._ready 第 139 行的统一开学会把大图档位重置回 21.25。
@@ -101,6 +110,9 @@ func _apply_user_camera_options():
 
 
 func _process(delta: float):
+	var t0 := 0
+	if _PerfBuckets.enabled:
+		t0 = Time.get_ticks_usec()
 	# Camera movement is visual feedback and should update on render frames rather than
 	# the fixed physics tick. This avoids visible stepping on 90/120/144 Hz displays.
 	var realtime_delta = delta
@@ -113,11 +125,17 @@ func _process(delta: float):
 		_smoothed_screen_move_vector = Vector2.ZERO
 		set_position_safely(_follow_target.global_position)
 		_try_handling_arrowkey_rotation(realtime_delta)
+		if t0 != 0:
+			_PerfBuckets.add("camera_process", int(Time.get_ticks_usec() - t0))
 		return
 
 	if _try_handling_movement(realtime_delta):
+		if t0 != 0:
+			_PerfBuckets.add("camera_process", int(Time.get_ticks_usec() - t0))
 		return
 	_try_handling_arrowkey_rotation(realtime_delta)
+	if t0 != 0:
+		_PerfBuckets.add("camera_process", int(Time.get_ticks_usec() - t0))
 
 
 func _unhandled_input(event: InputEvent):
@@ -195,14 +213,14 @@ func configure_for_large_terrain(map_size: Vector2, peak_world_y: float = 80.0) 
 	# 小图（<120m）仍走原 OPENING_SIZE，手搓小地图观感不变。
 	# 【2026-09-26 用户：开局高度统一 30m】离地高度不再参与档位推导——
 	# `_align_camera_position_to_size` 以**本图开局档位**为高度锚点，任何
-	# 开局 size 都精确落在 OPENING_HEIGHT(30m)；拉远继续抬升的梯子不变。
+	# 开局 size 都精确落在 OPENING_HEIGHT(80m)；拉远继续抬升的梯子不变。
 	var short_edge := minf(map_size.x, map_size.y)
-	size_max = maxf(size_max, short_edge * 0.24)
+	# 【2026-09-30 视角 ×2】拉远上限与开局档位的地图系数同步翻倍（0.24→0.48、0.173→0.346），
+	# 否则大图开局相对普通图会比改之前更"近"，与"整体放大一倍"不一致。
+	size_max = maxf(size_max, short_edge * 0.48)
 	set_map_bounds(map_size)
-	if short_edge >= 120.0:
-		_opening_size = minf(size_max, maxf(OPENING_SIZE, short_edge * 0.173))
-	else:
-		_opening_size = OPENING_SIZE
+	# Map area changes pan bounds, not the apparent size of units at match entry.
+	_opening_size = OPENING_SIZE
 	force_opening_isometric(_opening_size)
 
 
@@ -533,8 +551,8 @@ func _align_camera_properties_to_size(a_size: float):
 
 
 func _align_camera_position_to_size(a_size: float):
-	# 高度锚点 = **本图开局档位**（普通图 21.25、大图 ≈0.173×短边）：
-	# 开局（a_size == _opening_size）时镜头精确落在 OPENING_HEIGHT（统一 30m），
+	# Height is anchored to this map's opening size (46.75, or 0.3806 of its short edge).
+	# Opening height is 80m; zooming preserves the current ground pivot.
 	# 拉远/拉近只按 size 差补高度，不再被山峰峰值抬高整段镜头。
 	var target_height = (
 		OPENING_HEIGHT

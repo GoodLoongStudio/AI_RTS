@@ -17,6 +17,9 @@ var _sub_action = null
 var _returning_home = false
 ## 空间网格索敌索引（Match 级，2026-09-26 优化）。为 null 时回退全场组扫描。
 var _target_grid = null
+static var _checked_process_frame := -1
+static var _multiple_players := false
+static var _sentinel_id := 0
 
 @onready var _unit = Utils.NodeEx.find_parent_with_group(self, "units")
 @onready var _command_runtime = null
@@ -36,6 +39,9 @@ func _ready():
 	_timer = Timer.new()
 	_timer.timeout.connect(_on_timer_timeout)
 	add_child(_timer)
+	add_to_group("waiting_for_targets")
+	if _sentinel_id == 0:
+		_sentinel_id = get_instance_id()
 	_start_acquisition_timer(true)
 
 
@@ -77,6 +83,27 @@ func refresh_combat_policy():
 	_on_timer_timeout()
 
 
+func _refresh_player_count() -> void:
+	var frame := Engine.get_process_frames()
+	if frame == _checked_process_frame:
+		return
+	_checked_process_frame = frame
+	var seen := {}
+	var count := 0
+	for unit in get_tree().get_nodes_in_group("units"):
+		if not is_instance_valid(unit):
+			continue
+		var player = unit.get("player")
+		var key = player if player != null else "__none__"
+		if seen.has(key):
+			continue
+		seen[key] = true
+		count += 1
+		if count > 1:
+			break
+	_multiple_players = count > 1
+
+
 func _get_units_to_attack():
 	if _unit == null or _command_runtime == null:
 		return []
@@ -91,6 +118,11 @@ func _get_units_to_attack():
 	# 回基地期间完全停止自主索敌，避免追击逻辑抢回移动控制权。
 	if stance == "ReturnToBase":
 		return []
+	# 场上只有一方有单位时，精确过滤的结果一定是空。每渲染帧只扫一次玩家归属，
+	# 避免 400 个计时器各自做网格查询。出现第二方后仍走原来的网格索敌。
+	_refresh_player_count()
+	if not _multiple_players:
+		return []
 	var guard_anchor: Vector3 = _command_runtime.GetGuardAnchor(_unit)
 	if stance == "Guard":
 		# 已经追出岗位太远 → 不再接新战，先回家（否则刚被 leash 收手，回头又看见
@@ -103,15 +135,19 @@ func _get_units_to_attack():
 	# 本单位视野就该打）。警戒旧口径拿"岗位点"当圆心——单位一旦离开岗位
 	# （归途/被命令挪动），贴着他身边的敌人反而进不了索敌圈，单位站着挨打。
 	var detection_origin: Vector3 = _unit.global_position_yless
-	var detection_range: float = _unit.sight_range
-	if stance == "HoldGround":
-		detection_range = _unit.attack_range
+	var raw_base = _unit.attack_range if stance == "HoldGround" else _unit.sight_range
+	var detection_base: float = float(raw_base) if raw_base != null else 0.0
 	# 候选筛选源（2026-09-26 优化）：默认走 Match 级空间网格（XZ 分格，
 	# 覆盖检测圆的所有格子，不只 9 宫格）；敌我/域/姿态/有效性仍在此处按
 	# 原规则精确检查。AIRTS_TARGETING=basestats/baseline 时回退全场组扫描。
+	# 半径补偿（2026-09-29 尺寸统一遗留）：sight/attack 是"表面到表面"的距离，
+	# 圆心距判据在碰撞半径放大 3~3.5 倍后恒假 → 索敌按"基准 + 双方半径"判定
+	# （换算唯一实现见 Unit.center_distance_limit_for）。网格查询用**有界**补偿圈，
+	# 避免为 7~9.8 米的敌方建筑把查询面积放大数倍、吃掉第二轮索敌优化成果。
 	var scan_t0 := Time.get_ticks_usec()
+	var grid_range: float = _unit.center_distance_scan_range_for(detection_base)
 	var candidates: Array = (
-		_target_grid.acquire_candidates(detection_origin, detection_range)
+		_target_grid.acquire_candidates(detection_origin, grid_range)
 		if _target_grid != null
 		else get_tree().get_nodes_in_group("units")
 	)
@@ -121,7 +157,8 @@ func _get_units_to_attack():
 				is_instance_valid(unit)
 				and unit.player != _unit.player
 				and unit.movement_domain in _unit.attack_domains
-				and detection_origin.distance_to(unit.global_position_yless) <= detection_range
+				and detection_origin.distance_to(unit.global_position_yless)
+					<= _unit.center_distance_limit_for(detection_base, unit)
 			)
 	)
 	# 诊断：索敌总耗时 = 候选收集 + 精确过滤（基线/网格两口径对称计入）。
@@ -154,6 +191,34 @@ func force_attack(target_unit) -> bool:
 	return true
 
 
+func _exit_tree() -> void:
+	if get_instance_id() != _sentinel_id:
+		return
+	_sentinel_id = 0
+	var tree := get_tree()
+	if tree == null:
+		return
+	for node in tree.get_nodes_in_group("waiting_for_targets"):
+		if node == self or not is_instance_valid(node):
+			continue
+		_sentinel_id = node.get_instance_id()
+		if node._timer != null and node._timer.is_stopped():
+			node._start_acquisition_timer(false)
+		return
+
+
+## 单方战场只留一个哨兵计时器。第二方出现后按原相位把其余计时器拉起来。
+func _sync_peer_timers() -> void:
+	for node in get_tree().get_nodes_in_group("waiting_for_targets"):
+		if node == self or node._timer == null:
+			continue
+		if _multiple_players:
+			if node._timer.is_stopped():
+				node._start_acquisition_timer(true)
+		elif not node._timer.is_stopped():
+			node._timer.stop()
+
+
 func _on_timer_timeout():
 	if _timer.one_shot:
 		# 相位偏移的首跑结束 → 转入标准周期（此后一直重复，动作期间只摘回调不停表，
@@ -165,6 +230,8 @@ func _on_timer_timeout():
 		return
 	# 敌人进视野 → 打（归途中的立即转身，不再走完回家的路再回头）。
 	var units_to_attack = _get_units_to_attack()
+	if get_instance_id() == _sentinel_id:
+		_sync_peer_timers()
 	if not units_to_attack.is_empty():
 		if _returning_home:
 			_abort_return_home()

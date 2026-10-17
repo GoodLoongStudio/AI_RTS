@@ -1,0 +1,40 @@
+{
+  "job_id": "beda6975d89a49cab4b84d147e768d9b",
+  "seed": 55,
+  "terrain": 631169002,
+  "target": "full",
+  "status": "error",
+  "title": "布局 55 · 地貌 631169002",
+  "label": null,
+  "map_pass": false,
+  "created_at": "2026-09-29T00:07:37",
+  "reverified_with_current_code": false,
+  "visual_version": 1,
+  "visual_profile": "default",
+  "map_id": "55-631169002-767a002977",
+  "checks_summary": {
+    "g2_pass": true,
+    "g3_pass": true,
+    "engine_pass": null
+  },
+  "failed_paths": [],
+  "failed_forbidden": [],
+  "nav_all": null,
+  "smoke_assertions": {},
+  "stages": {
+    "G1": {
+      "state": "通过",
+      "images": [
+        "contact.png"
+      ],
+      "preview": "contact.png",
+      "version": "2.0.0",
+      "history_versions": []
+    }
+  },
+  "folder": "job_layout55_terrain631169002_beda6975",
+  "gate": "G1",
+  "source_job": "G:\\AIRTS\\AI_RTS\\tools\\mapgen\\workbench_output\\beda6975d89a49cab4b84d147e768d9b\\job.json",
+  "synced_at": "2026-09-29T01:00:29",
+  "note": "图像来自本任务权威数据/真实引擎输出；生成或导航通过不等于实战通过。"
+}

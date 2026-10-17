@@ -28,6 +28,35 @@ func _ready():
 	_unit.deselected.connect(_on_unit_deselected)
 	_unit.hp_changed.connect(_on_hp_changed)
 	_visibility_timer.timeout.connect(_on_visibility_timer_timeout)
+	# 【2026-10-10 残血常显】出生/镜像进来时就已经受伤的单位，也要立刻显示血条
+	# （客户端中途加入、或单位在 _ready 之前就掉过血）。
+	_sync_visibility()
+
+
+## 【2026-10-10 用户口径】残血（受伤）单位与建筑的血条**常显**。
+##
+## 判据 = 有 hp/hp_max、**不是施工中的建筑**、且 hp < hp_max。
+##
+## ⚠️ 为什么必须排除施工中的建筑：`Structure.mark_as_under_construction()` 故意把 hp 置 1，
+## 之后按施工进度 `1 + progress * (hp_max - 1)` 逐段补血（`Structure.gd:96`、`:108-112`）。
+## 若直接按 "hp < hp_max" 判定，**所有在建建筑都会常显血条**（明显观感回归）。
+func _is_damaged() -> bool:
+	if _unit.hp == null or _unit.hp_max == null:
+		return false
+	if _unit.has_method("is_under_construction") and _unit.is_under_construction():
+		return false
+	return float(_unit.hp) < float(_unit.hp_max)
+
+
+## 可见性**单一入口**：选中或残血 ⇒ 常显（并停掉自动隐藏计时器）；
+## 否则"没有待熄灭的窗口"时隐藏（保留"数值变化后闪 2 秒"的既有行为）。
+func _sync_visibility():
+	if _selected or _is_damaged():
+		_visibility_timer.stop()
+		show()
+		return
+	if _visibility_timer.is_stopped():
+		hide()
 
 
 ## 非本地玩家的单位血条染红（满血红色，随血量衰减到灰）。
@@ -58,6 +87,9 @@ func _recalulate_bar_value():
 	if _bar_value_initialized and not is_equal_approx(old_value, new_value):
 		_show_for_a_while()
 	_bar_value_initialized = true
+	# 【2026-10-10 残血常显】数值变化后立刻同步一次：
+	# 残血 ⇒ 停表常显；刚修满 ⇒ 保留 `_show_for_a_while()` 起的 2s 窗口，窗口结束后再隐藏。
+	_sync_visibility()
 
 
 func _show_for_a_while():
@@ -80,7 +112,8 @@ func _on_unit_selected():
 
 func _on_unit_deselected():
 	_selected = false
-	hide()
+	# 【2026-10-10 残血常显】取消选中不再无条件隐藏：仍残血就继续显示。
+	_sync_visibility()
 
 
 func _on_hp_changed():
@@ -88,4 +121,7 @@ func _on_hp_changed():
 
 
 func _on_visibility_timer_timeout():
+	# 兜底：选中或残血期间不该熄灭（正常路径下计时器已被 _sync_visibility() 停掉）。
+	if _selected or _is_damaged():
+		return
 	hide()

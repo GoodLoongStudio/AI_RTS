@@ -32,9 +32,11 @@
 
 | 要生产的产品 | `producer_type` 必须是 |
 |---|---|
-| Worker（工人） | `CommandCenter`（指挥中心） |
+| Worker（矿车，2026-09-28 起由车辆工厂生产） | `VehicleFactory`（车辆工厂） |
 | Tank（坦克） | `VehicleFactory`（车辆工厂） |
 | Drone / 直升机 | `AircraftFactory`（飞行器工厂） |
+
+**指挥中心不产任何单位**（主基地生产按钮已按红警2口径移除）。第一辆矿车来自矿场完工赠送（经济起点 = 建矿场，见 02 章）。
 
 流程：**先看 `production`，再选 producer**——从 `production[]` 里筛 `producer_type` 匹配且 `items==[]`（或资源紧张时优先最短队列）的建筑，用它 `producer` 字段的原名下单。
 

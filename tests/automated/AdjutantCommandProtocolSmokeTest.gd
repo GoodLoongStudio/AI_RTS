@@ -101,14 +101,15 @@ func _ready():
 	_expect_accept(produce, "VehicleFactory 生产 tank 应被接受（成本从当前账本扣除）")
 
 	var factory_scene := _scene_of_type("vehicle_factory")
-	# 测试准备：直接传送 worker 到开阔建造点（不经过命令路径，避免触发玩家接管语义）。
-	var worker_node: Variant = _find_unit(human, worker_name)
-	if worker_node != null:
-		(worker_node as Node3D).global_position = Vector3(30.0, 0.0, 30.0)
-		await get_tree().create_timer(0.5).timeout
+	# 建造命令**不带坐标**：2026-09-23 用户口径"建筑自动相邻造"后，落点由权威端
+	# `StructurePlacementRuntime.FindAutoSpot` 搜索（副官只发"建什么"）。
+	# 夹具若自己写死米数，就等于把"当前 footprint/视野几何"钉在测试里 ——
+	# 2026-09-27 尺寸统一把 footprint 放大到 6~9.8 米后，写死的 (30,30) 立刻变成
+	# 注定被拒的落点（实测先 `NotAdjacent`、按旧几何改成相切点后又 `SurfaceNotBuildable`），
+	# 那测的是夹具的坐标感，不是命令协议。
 	var build := _submit("build-vf-1", "build",
-		{"units": [worker_name], "scene": factory_scene, "pos": [30.0, 30.0]})
-	_expect_accept(build, "副官 build（服务器直执行）应被接受")
+		{"units": [worker_name], "scene": factory_scene})
+	_expect_accept(build, "副官 build（自动放置，服务器直执行）应被接受")
 
 	# ---------- 逐条批次：非原子，逐条校验 ----------
 	var batch: Dictionary = _dbg._op_adjutant_batch(_match, {"commands": [

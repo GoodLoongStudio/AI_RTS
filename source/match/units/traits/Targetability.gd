@@ -77,5 +77,11 @@ func _on_input_event(_camera, event, click_position, _click_normal, _shape_idx):
 		and event.button_index == MOUSE_BUTTON_RIGHT
 		and event.pressed
 	):
-		MatchSignals.unit_targeted.emit(_unit, click_position)
+		# 【2026-10-08】click_position 是 Godot input_event 的 Vector2 屏幕坐标，
+		# 而 unit_targeted 契约（UnitActionsController._on_unit_targeted 的
+		# target_position: Vector3）要的是世界坐标——原样转发会让接收方形参
+		# 类型不匹配，整条右键派单**静默失败**（实测：强制攻击建筑/友军模式
+		# 不退、订单不执行）。这里统一转成目标自身的世界坐标。
+		var world_position: Vector3 = click_position if click_position is Vector3 			else _unit.global_position
+		MatchSignals.unit_targeted.emit(_unit, world_position)
 		get_viewport().set_input_as_handled()

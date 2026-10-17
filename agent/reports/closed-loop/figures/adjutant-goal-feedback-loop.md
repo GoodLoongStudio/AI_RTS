@@ -1,0 +1,30 @@
+# 必须具备的目标反馈循环
+
+需求合同图，包含成功、正常等待、失败与超时回退；不是已实现全部分支的证明。
+
+```mermaid
+flowchart TD
+    facts["读取新事实：余额、完工、交货、威胁"] --> goal{"目标和优先级仍适用？"}
+    goal -->|"否：前提失效"| diagnose["定位卡点：原因码与失败证据"]
+    goal -->|"是"| choose["从满足条件的分支选择方案"]
+    choose --> task["建立可追踪任务：目标、成功判据、等待期限"]
+    task --> gate{"合法性和资源门禁通过？"}
+    gate -->|"否：记录拒绝原因"| diagnose
+    gate -->|"是"| execute["下发动作并记录回执"]
+    execute --> progress{"后续世界事实是否支持目标？"}
+    progress -->|"达成：有结果证据"| success["关闭任务并推进目标"]
+    progress -->|"有进展且未到期限"| waiting["正常等待：保持任务"]
+    progress -->|"失败、超时或长期无进展"| diagnose
+    success --> facts
+    waiting --> facts
+    diagnose --> alternate{"有可执行替代方案？"}
+    alternate -->|"有：禁用已证实失败的方案"| choose
+    alternate -->|"没有或证据不足"| blocked["保留失败状态与缺失信息；降级或请求目标"]
+    blocked -->|"条件或证据变化后再评估"| facts
+    classDef normal fill:#eaf2fb,stroke:#617e9e,color:#17334c;
+    classDef branch fill:#fff2de,stroke:#b98a48,color:#513a16;
+    classDef failure fill:#fdebe6,stroke:#bb6858,color:#6a2c22;
+    class facts,choose,task,execute,success,waiting normal;
+    class goal,gate,progress,alternate branch;
+    class diagnose,blocked failure;
+```

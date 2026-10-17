@@ -1,0 +1,18 @@
+{
+	"cell_m": 2.0,
+	"export_contract_version": "world-meters-v2",
+	"height_data": "res://source/match/maps/generated/36-1846106761-767a002977/height_data.bin",
+	"height_data_sha256": "3524df27c0329cd608e5ecba37bb8a588435fc8ecfdc5880360a7d54733a7eb1",
+	"map_id": "36-1846106761-767a002977",
+	"name": "Generated 36-1846106761-767a002977",
+	"path": "res://source/match/maps/generated/36-1846106761-767a002977/map_36-1846106761-767a002977.tscn",
+	"players": 4.0,
+	"size": [
+		512,
+		512
+	],
+	"source_size": [
+		256,
+		256
+	]
+}

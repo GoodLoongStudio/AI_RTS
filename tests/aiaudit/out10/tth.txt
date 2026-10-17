@@ -1,0 +1,25 @@
+pture (debugger active=false, logger=true)
+WARNING: Parent path './DetachTransform/Geometry/SM_Veh_Turret_Large_01' for node 'ProjectileOrigin' has vanished when instantiating: 'res://tests/perfgrid/TmpTurretHead.tscn'.
+   at: instantiate (scene/resources/packed_scene.cpp:213)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://tests/automated/RuleAiBattlegroupSmokeTest.gd:15)
+WARNING: Parent path './DetachTransform/Geometry/SM_Veh_Turret_Large_01' for node 'MuzzleL' has vanished when instantiating: 'res://tests/perfgrid/TmpTurretHead.tscn'.
+   at: instantiate (scene/resources/packed_scene.cpp:213)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://tests/automated/RuleAiBattlegroupSmokeTest.gd:15)
+WARNING: Parent path './DetachTransform/Geometry/SM_Veh_Turret_Large_01' for node 'MuzzleR' has vanished when instantiating: 'res://tests/perfgrid/TmpTurretHead.tscn'.
+   at: instantiate (scene/resources/packed_scene.cpp:213)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://tests/automated/RuleAiBattlegroupSmokeTest.gd:15)
+规则 AI 难度=NORMAL 首波=0s 再派=17s 情报复查=60s
+G4PERF fog_resize 416x416 px_per_m=2
+    ... [last line repeated 1 more times]
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=2 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=1 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=1 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] 

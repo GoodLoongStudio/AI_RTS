@@ -1,0 +1,3 @@
+[rule-ai-battlegroup] rc=0 marker_ok=True fails=0 secs=4.8
+[rule-ai-economy-query] rc=1 marker_ok=False fails=0 secs=14.8
+DONE 2 tests, 1 red

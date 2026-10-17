@@ -177,16 +177,31 @@ class RecordingTransport:
 
     def send_command(self, envelope: Dict[str, Any]) -> Dict[str, Any]:
         self.sent.append(dict(envelope))
-        if self.script:
-            override = self.script.pop(0)
-            receipt = dict(override)
-        else:
-            receipt = {"ok": self.default_accepted, "accepted": self.default_accepted,
-                       "status": self.default_status}
+        override = self._take_override(envelope)
+        receipt = dict(override) if override is not None else {
+            "ok": self.default_accepted, "accepted": self.default_accepted,
+            "status": self.default_status}
         receipt.setdefault("command_id", str(envelope.get("command_id", "")))
         receipt.setdefault("intent_id", str(envelope.get("intent_id", "")))
         receipt.setdefault("result", {})
         return receipt
+
+    def _take_override(self, envelope: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """从脚本里取走该用给这条命令的回执；取不到就走默认回执。
+
+        脚本项写了 "intent_id" 就**只**服务那一条命令：规则地板每轮常驻，会先于模型
+        下发（实测第 0 轮就发 `rule-fill-advance-*`），纯位置的脚本会被它吃掉队首，
+        测试关心的模型命令反而拿到默认 Accepted。没写 intent_id 的项保持旧的队首口径。
+        """
+        if not self.script:
+            return None
+        intent_id = str(envelope.get("intent_id", ""))
+        index = next((i for i, item in enumerate(self.script)
+                      if item.get("intent_id") == intent_id), None)
+        if index is None:
+            index = next((i for i, item in enumerate(self.script)
+                          if "intent_id" not in item), None)
+        return self.script.pop(index) if index is not None else None
 
     def heartbeat(self) -> bool:
         return True

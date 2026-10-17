@@ -35,7 +35,46 @@ func _terrain_span() -> float:
 	return semantic_span if semantic_span > 1.0 else SEMANTIC_SPAN
 
 
+## 【2026-10-12 P1】从地图合同（`Map.size`）解析世界 XZ 跨度，作为材质掩码、水域占用
+## 与寻路格的**唯一来源**。返回是否真的解析到了地图尺寸。
+##
+## 为什么必须在首次材质绑定之前：`_apply_material()` 把 `_world_span` 复制进 shader 参数
+## `mask_world_size`，而 shader 用 `muv = worldXZ / mask_world_size` 取掩码（`repeat_disable`）。
+## 512 图在初值 256 下会把整张掩码压进半跨度，256 以外还被钳到边缘 → 出生地直条色块、
+## 河道与桥/高度场错位。旧次序把这一步留在 `_ready` 的 `_build_water_occupancy`，晚于两次
+## `_apply_material`。
+##
+## 语义与旧实现一致：只有 G4 生成图（有高度场 / size≥256 / generated 路径）解析；
+## 其余场景沿用语义跨度默认值；合法 256 历史导出图解析结果仍是 256。
+func _resolve_world_span_from_map() -> bool:
+	var geometry := get_parent()
+	var map_node: Node = geometry.get_parent() if geometry != null else null
+	if map_node == null or not _is_g4_runtime_map(map_node):
+		return false
+	var map_size: Variant = map_node.get("size")
+	if not (map_size is Vector2) or map_size.x <= 1.0:
+		return false
+	_world_span = maxf(map_size.x, map_size.y)
+	return true
+
+
+## 解析不到时**不静默沿用 256**：有高度场的生成图一定应拿到地图尺寸，否则材质掩码必然错位。
+func _resolve_world_span_or_warn(stage: String) -> bool:
+	var resolved := _resolve_world_span_from_map()
+	if not resolved and not height_data_path.is_empty():
+		push_warning(
+			(
+				"GeneratedTerrain: %s 未能从 Map.size 解析世界跨度（沿用 %.1f）；"
+				+ "地图父级或 size 未就绪，材质掩码可能错位。"
+			)
+			% [stage, _world_span]
+		)
+	return resolved
+
+
 func _enter_tree() -> void:
+	# 【2026-10-12 P1】先解析世界跨度：后面的 `_apply_material()` 立刻要用它。
+	_resolve_world_span_or_warn("_enter_tree")
 	# 必须在 _enter_tree 建网格：同帧就要换轻量材质并删作者碰撞/水面。
 	_build()
 	# 第一帧就要换着色器、藏 200+ 半透明水面片。放到 _ready 时玩家已经看见
@@ -54,6 +93,8 @@ func _ready() -> void:
 	# （清理会 free 掉 `Collision/*`，而 `_enter_tree` 时桥节点还没进树、
 	# global_transform 还是单位阵）。仍在同一帧， perf 语义不变。
 	_purge_large_map_authoring_nodes()
+	# 同上：_ready 这次材质绑定也必须用解析后的跨度（覆盖 _enter_tree 时父级尚未就绪的地图）。
+	_resolve_world_span_or_warn("_ready")
 	_apply_material()
 	_wire_water_mask()
 	_hide_redundant_ground_plates()
@@ -97,6 +138,8 @@ func _ground_resource_nodes() -> void:
 var _water_bits := PackedByteArray()
 var _water_w := 0
 var _water_h := 0
+## 掩码建完后的禁行格数量。0 表示线段不必再按米查水；-1 表示掩码还没建完。
+var _water_blocked_cells := -1
 ## 语义跨度（height_data.bin 的坐标域，本地 XZ）。sample_height/_stamp_bridges 用它。
 var _water_span := SEMANTIC_SPAN
 ## 世界 XZ 跨度（= map.size，2026-09-26 地图 XZ×2 后 semantic×xz_scale）。
@@ -122,8 +165,15 @@ var _structure_blockers: Dictionary = {}
 var _structure_cell_ref: Dictionary = {}
 const MAX_GROUND_STEP_M := 2.4
 const PATH_CACHE_MAX := 192
+const AiPerfStats = preload("res://source/match/players/simple-clairvoyant-ai/AiPerfStats.gd")
 const PATH_COARSE_MIN_WALKABLE := 2
 ## 建筑足迹略小于避让半径，外圈留给工人贴边施工/回城。
+## ⚠ 这个 0.85 让"禁行圆"比建筑自己的碰撞体还小，A* 因此可以合法规划出穿楼路径
+## （不相撞需要 `建筑半径 + 单位半径`）。改成 1.0 的尝试**已回退**：
+## 实测对 `_RefineryJamProbe`（gap=2/6）与 `StructurePlacementSmokeTest` 的关键指标
+## **没有任何改善**，而"贴边施工/回城找不到落点"的风险是真实的。
+## 真正的卡点在移动层的"路径走完就按宽容半径判到达"，见
+## `agent/plans/2026-10-12-building-blocks-units-rootcause.md`。
 const STRUCTURE_STAMP_RADIUS_SCALE := 0.85
 const STRUCTURE_STAMP_RADIUS_MIN := 1.15
 
@@ -217,9 +267,8 @@ func _build_water_occupancy() -> void:
 	var map_node: Node = geometry.get_parent() if geometry != null else null
 	if map_node == null or not _is_g4_runtime_map(map_node):
 		return
-	var map_size: Variant = map_node.get("size")
-	if map_size is Vector2 and map_size.x > 1.0:
-		_world_span = maxf(map_size.x, map_size.y)
+	# 2026-10-12 P1：跨度解析收敛到 `_resolve_world_span_from_map`（与材质绑定单一来源）。
+	_resolve_world_span_from_map()
 	# 桥面收集**不依赖掩码**：先收，掩码缺失的回退路径也要能标"桥上可走"。
 	if _bridge_rects.is_empty():
 		_collect_bridge_rects()
@@ -253,6 +302,10 @@ func _build_water_occupancy() -> void:
 	var cliffs := _stamp_steep_cliffs()
 	var submerged := _stamp_submerged_cells()
 	_stamp_bridges_walkable()
+	_water_blocked_cells = 0
+	for bit in _water_bits:
+		if bit != 0:
+			_water_blocked_cells += 1
 	_water_ready = true
 	map_node.set_meta("water_occupancy", self)
 	_build_path_grid()
@@ -501,13 +554,35 @@ func _within_stamped_bridge(x: float, z: float) -> bool:
 	return false
 
 
-func set_structure_blocker(blocker_id: int, world: Vector3, radius: float) -> void:
-	_structure_blockers[int(blocker_id)] = {"pos": world, "radius": radius}
+## 登记一栋建筑的地面禁行足迹。
+## `outline` = 世界 XZ 的**凸多边形**（来自建筑自己的 CollisionShape3D 包围面）；
+## 传了就走真足迹判定，`radius` 只当外接圆做粗筛。不传（无碰撞形状）才退回圆。
+##
+## 【2026-10-12 建筑卡单位】生成图（有 height_data_path）一律是逻辑地形：
+## `Navigation.should_skip_runtime_navigation()` 为真 ⇒ 导航网格不烘、NavigationObstacle
+## 的 `affect_navigation_mesh=false`、RVO 不参与、`UnitMovementUtils.structure_approach_point`
+## 直接返回 null。**本函数登记的足迹是这类地图上唯一一处"楼在哪"的权威。**
+## 旧实现只有 `radius` 圆，且再乘 `STRUCTURE_STAMP_RADIUS_SCALE=0.85`：
+## 实测车厂 BoxShape3D=(7.944,3.672,6.108) ⇒ 半宽 3.972/3.054、角点 5.011，
+## 而障碍 `radius=3.972` → 判定圆只有 3.376，比真实外墙**最多欠 1.64m**：
+## 单位被合法地规划/走进楼体里侧，且没有导航面可以把它推出来 ⇒ 卡在墙角。
+func set_structure_blocker(
+	blocker_id: int, world: Vector3, radius: float, outline: PackedVector2Array = PackedVector2Array()
+) -> void:
+	var entry := {"pos": world, "radius": radius}
+	if outline.size() >= 3:
+		entry["outline"] = outline
+	_structure_blockers[int(blocker_id)] = entry
 	_rebuild_structure_solids()
+
 
 
 func clear_structure_blocker(blocker_id: int) -> void:
 	if not _structure_blockers.erase(int(blocker_id)):
+		return
+	# Map leaves the tree before unit obstacles during normal Match teardown.
+	# Clear bookkeeping, but avoid rebuilding terrain from an invalid transform.
+	if not is_inside_tree():
 		return
 	_rebuild_structure_solids()
 
@@ -516,15 +591,94 @@ func _structure_stamp_radius(radius: float) -> float:
 	return maxf(radius * STRUCTURE_STAMP_RADIUS_SCALE, STRUCTURE_STAMP_RADIUS_MIN)
 
 
-func _structure_blocks_world(world: Vector3) -> bool:
-	# 迈步/脱位必须用圆形足迹。粗格只给 A*：2m 格会把禁行区伸出到楼外，
-	# 回城/出兵落点正好踩在格边上，走入→瞬移→再走入。
-	for data in _structure_blockers.values():
+## 外接圆半径（粗筛用）：多边形顶点是**世界 XZ**，所以到"楼心"的最远距离才是外接半径，
+## 不能直接取顶点长度（那是到世界原点的距离）。没有多边形时沿用旧的缩放圆。
+func _blocker_bound_radius(data: Dictionary) -> float:
+	var outline: PackedVector2Array = data.get("outline", PackedVector2Array())
+	if outline.size() >= 3:
 		var pos: Vector3 = data["pos"]
-		var r := _structure_stamp_radius(float(data["radius"]))
-		var dx := world.x - pos.x
-		var dz := world.z - pos.z
-		if dx * dx + dz * dz <= r * r:
+		var farthest := 0.0
+		for vertex in outline:
+			farthest = maxf(farthest, Vector2(vertex.x - pos.x, vertex.y - pos.z).length())
+		return farthest
+	return _structure_stamp_radius(float(data["radius"]))
+
+
+## 凸多边形内/外判定：对每条边取叉积，全部同号即在内部。
+## `outline` 是**世界 XZ** 顶点（登记方已换算），顺/逆时针都可能，
+## 所以由第一条非零边定号，再要求其余边一致；退化多边形（叉积全零）判 false。
+static func _polygon_covers(outline: PackedVector2Array, point: Vector2) -> bool:
+	var sign := 0.0
+	for index in outline.size():
+		var a: Vector2 = outline[index]
+		var b: Vector2 = outline[(index + 1) % outline.size()]
+		var cross := (b.x - a.x) * (point.y - a.y) - (b.y - a.y) * (point.x - a.x)
+		if cross > 0.0001:
+			if sign < 0.0:
+				return false
+			sign = 1.0
+		elif cross < -0.0001:
+			if sign > 0.0:
+				return false
+			sign = -1.0
+	return sign != 0.0
+
+
+## 凸多边形的"朝内法线"翻转系数：shoelace 面积 >0 是逆时针，此时边的 (dy,-dx) 指向外侧。
+static func _polygon_inward_flip(outline: PackedVector2Array) -> float:
+	var area := 0.0
+	for index in outline.size():
+		var a: Vector2 = outline[index]
+		var b: Vector2 = outline[(index + 1) % outline.size()]
+		area += a.x * b.y - b.x * a.y
+	return -1.0 if area > 0.0 else 1.0
+
+
+## 凸多边形与线段的相交区间 [t0,t1]（Liang-Barsky 逐边裁剪）。返回 null = 不相交。
+## 与圆解析解同样是"每条边一次算术"，但不会把外墙角欠掉。
+static func _segment_polygon_span(
+		from: Vector2, delta: Vector2, outline: PackedVector2Array, flip: float
+	) -> Variant:
+	var t0 := 0.0
+	var t1 := 1.0
+	for index in outline.size():
+		var a: Vector2 = outline[index]
+		var b: Vector2 = outline[(index + 1) % outline.size()]
+		# 取内侧法线 ⇒ 半平面条件写成 normal·(p-a) >= 0。
+		var normal := Vector2(b.y - a.y, -(b.x - a.x)) * flip
+		var denominator := normal.dot(delta)
+		var numerator := normal.dot(a - from)
+		if absf(denominator) < 0.000001:
+			# 与这条边平行：整条线段恒在边外侧 ⇒ 不相交。
+			if numerator > 0.0001:
+				return null
+			continue
+		var t := numerator / denominator
+		if denominator > 0.0:
+			t0 = maxf(t0, t)
+		else:
+			t1 = minf(t1, t)
+		if t0 >= t1:
+			return null
+	return Vector2(t0, t1)
+
+
+
+func _blocker_covers(data: Dictionary, world: Vector3) -> bool:
+	var point := Vector2(world.x, world.z)
+	var outline: PackedVector2Array = data.get("outline", PackedVector2Array())
+	if outline.size() >= 3:
+		return _polygon_covers(outline, point)
+	var pos: Vector3 = data["pos"]
+	var radius := _structure_stamp_radius(float(data["radius"]))
+	return Vector2(point.x - pos.x, point.y - pos.z).length_squared() <= radius * radius
+
+
+func _structure_blocks_world(world: Vector3) -> bool:
+	# 迈步/脱位必须用**真实足迹**（多边形），不能再退化成圆：圆比方形外墙角最多欠 1.64m，
+	# 单位停在欠掉的那圈里就是"卡在建筑里"，而逻辑地形没有导航面能把它推出来。
+	for data in _structure_blockers.values():
+		if _blocker_covers(data, world):
 			return true
 	return false
 
@@ -538,16 +692,15 @@ func _rebuild_structure_solids() -> void:
 			if _path_grid.is_in_boundsv(c):
 				_path_grid.set_point_solid(c, _coarse_blocked(c.x, c.y))
 		for blocker_id in _structure_blockers:
-			var data: Dictionary = _structure_blockers[blocker_id]
-			_stamp_one_structure(data["pos"], float(data["radius"]))
+			_stamp_one_structure(_structure_blockers[blocker_id])
 	_path_cache.clear()
 
 
-func _stamp_one_structure(world: Vector3, radius: float) -> void:
+func _stamp_one_structure(data: Dictionary) -> void:
 	if _path_grid == null or _path_w < 1:
 		return
-	var stamp_r := _structure_stamp_radius(radius)
-	var r2 := stamp_r * stamp_r
+	var world: Vector3 = data["pos"]
+	var stamp_r := _blocker_bound_radius(data)
 	var min_c := _world_to_path_cell(world.x - stamp_r, world.z - stamp_r)
 	var max_c := _world_to_path_cell(world.x + stamp_r, world.z + stamp_r)
 	var cz := min_c.y
@@ -557,14 +710,14 @@ func _stamp_one_structure(world: Vector3, radius: float) -> void:
 			var cell := Vector2i(cx, cz)
 			var px := (float(cx) + 0.5) * _path_cell
 			var pz := (float(cz) + 0.5) * _path_cell
-			var dx := px - world.x
-			var dz := pz - world.z
-			if dx * dx + dz * dz <= r2:
+			# 逐格用真足迹判定：外接圆只用来定遍历范围，不参与内/外结论。
+			if _blocker_covers(data, Vector3(px, world.y, pz)):
 				_structure_cell_ref[cell] = int(_structure_cell_ref.get(cell, 0)) + 1
 				if _path_grid.is_in_boundsv(cell):
 					_path_grid.set_point_solid(cell, true)
 			cx += 1
 		cz += 1
+
 
 
 func _stamp_bridges_walkable() -> void:
@@ -698,16 +851,220 @@ func _segment_hits_water(from: Vector3, to: Vector3) -> bool:
 	return false
 
 
-func _segment_hits_blocked(from: Vector3, to: Vector3) -> bool:
+func _segment_hits_blocked(from: Vector3, to: Vector3, clearance: float = 0.0) -> bool:
 	var dx := to.x - from.x
 	var dz := to.z - from.z
-	var length := sqrt(dx * dx + dz * dz)
-	if length < 0.25:
-		return is_ground_blocked(to)
+	var length_sq := dx * dx + dz * dz
+	if length_sq < 0.0625:
+		if is_ground_blocked(to):
+			return true
+		return clearance > 0.0 and _point_within_structure_clearance(Vector2(to.x, to.z), clearance)
+	var perf_on := AiPerfStats.enabled()
+	var started := Time.get_ticks_usec() if perf_on else 0
+	# 建筑足迹与原先「每米一个采样点」同一组点：解出圆与线段的交区间，看区间里有没有采样。
+	# 不再让每个采样都扫一遍全部建筑。水面仍按米采样；整张掩码没有禁行格时结果必为 false。
+	# clearance>0 只用于寻路：车身半径外的擦边也算挡住。is_ground_blocked / path_snap 仍用真实多边形。
+	var blocked := _segment_samples_hit_structure(from, dx, dz, length_sq)
+	if not blocked and clearance > 0.0:
+		blocked = _segment_near_structure(from, to, clearance)
+	if not blocked and _water_blocked_cells != 0:
+		blocked = _segment_samples_hit_water(from, dx, dz, sqrt(length_sq))
+	if perf_on:
+		AiPerfStats.add("path_segment", Time.get_ticks_usec() - started)
+	return blocked
+
+
+## 寻路用：线段是否进入「建筑多边形外扩 clearance」的范围。足迹本身的判定不走这里。
+func body_segment_blocked(from: Vector3, to: Vector3, clearance: float) -> bool:
+	return _segment_hits_blocked(from, to, clearance)
+
+
+func _point_within_structure_clearance(point: Vector2, clearance: float) -> bool:
+	for data in _structure_blockers.values():
+		if _point_near_blocker(point, data, clearance):
+			return true
+	return false
+
+
+func _point_near_blocker(point: Vector2, data: Dictionary, clearance: float) -> bool:
+	var pos: Vector3 = data["pos"]
+	var center := Vector2(pos.x, pos.z)
+	var bound := _blocker_bound_radius(data) + clearance
+	if point.distance_squared_to(center) > bound * bound:
+		return false
+	var outline: PackedVector2Array = data.get("outline", PackedVector2Array())
+	if outline.size() < 3:
+		var radius := _structure_stamp_radius(float(data["radius"])) + clearance
+		return point.distance_squared_to(center) <= radius * radius
+	if _polygon_covers(outline, point):
+		return true
+	if clearance <= 0.0:
+		return false
+	var limit2 := clearance * clearance
+	for index in outline.size():
+		var a: Vector2 = outline[index]
+		var b: Vector2 = outline[(index + 1) % outline.size()]
+		if _point_segment_distance_squared(point, a, b) <= limit2:
+			return true
+	return false
+
+
+func _segment_near_structure(from: Vector3, to: Vector3, clearance: float) -> bool:
+	var a := Vector2(from.x, from.z)
+	var b := Vector2(to.x, to.z)
+	for data in _structure_blockers.values():
+		if _segment_near_blocker(a, b, data, clearance):
+			return true
+	return false
+
+
+func _segment_near_blocker(a: Vector2, b: Vector2, data: Dictionary, clearance: float) -> bool:
+	var pos: Vector3 = data["pos"]
+	var center := Vector2(pos.x, pos.z)
+	var bound := _blocker_bound_radius(data) + clearance
+	if _point_segment_distance_squared(center, a, b) > bound * bound:
+		return false
+	var outline: PackedVector2Array = data.get("outline", PackedVector2Array())
+	if outline.size() < 3:
+		var radius := _structure_stamp_radius(float(data["radius"])) + clearance
+		return _point_segment_distance_squared(center, a, b) <= radius * radius
+	var span: Variant = _segment_polygon_span(a, b - a, outline, _polygon_inward_flip(outline))
+	if span is Vector2:
+		var t0: float = maxf(float((span as Vector2).x), 0.0)
+		var t1: float = minf(float((span as Vector2).y), 1.0)
+		if t0 <= t1:
+			return true
+	for index in outline.size():
+		var e0: Vector2 = outline[index]
+		var e1: Vector2 = outline[(index + 1) % outline.size()]
+		if _segment_segment_distance(a, b, e0, e1) <= clearance:
+			return true
+	return false
+
+
+static func _point_segment_distance_squared(point: Vector2, a: Vector2, b: Vector2) -> float:
+	var ab := b - a
+	var len2 := ab.length_squared()
+	if len2 <= 0.0000001:
+		return point.distance_squared_to(a)
+	var t := clampf((point - a).dot(ab) / len2, 0.0, 1.0)
+	return point.distance_squared_to(a + ab * t)
+
+
+static func _segment_segment_distance(a0: Vector2, a1: Vector2, b0: Vector2, b1: Vector2) -> float:
+	var d1 := _orient2(b0, b1, a0)
+	var d2 := _orient2(b0, b1, a1)
+	var d3 := _orient2(a0, a1, b0)
+	var d4 := _orient2(a0, a1, b1)
+	if d1 * d2 < 0.0 and d3 * d4 < 0.0:
+		return 0.0
+	return sqrt(minf(
+		minf(_point_segment_distance_squared(a0, b0, b1), _point_segment_distance_squared(a1, b0, b1)),
+		minf(_point_segment_distance_squared(b0, a0, a1), _point_segment_distance_squared(b1, a0, a1))
+	))
+
+
+static func _orient2(a: Vector2, b: Vector2, c: Vector2) -> float:
+	return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)
+
+
+## 把代表点落在车身净空内的粗格临时标成障碍。调用方必须配对 _end_path_clearance。
+func _begin_path_clearance(clearance: float) -> Array[Vector2i]:
+	var marked: Array[Vector2i] = []
+	if clearance <= 0.01 or _path_grid == null or _structure_blockers.is_empty():
+		return marked
+	for data in _structure_blockers.values():
+		var pos: Vector3 = data["pos"]
+		var reach := _blocker_bound_radius(data) + clearance
+		var min_c := _world_to_path_cell(pos.x - reach, pos.z - reach)
+		var max_c := _world_to_path_cell(pos.x + reach, pos.z + reach)
+		var cz := min_c.y
+		while cz <= max_c.y:
+			var cx := min_c.x
+			while cx <= max_c.x:
+				var cell := Vector2i(cx, cz)
+				if _path_grid.is_in_boundsv(cell) and not _path_grid.is_point_solid(cell):
+					var point := _path_cell_to_world(cell)
+					if _point_near_blocker(Vector2(point.x, point.z), data, clearance):
+						_path_grid.set_point_solid(cell, true)
+						marked.append(cell)
+				cx += 1
+			cz += 1
+	return marked
+
+
+func _end_path_clearance(marked: Array[Vector2i]) -> void:
+	if _path_grid == null:
+		return
+	for cell in marked:
+		if _path_grid.is_in_boundsv(cell):
+			_path_grid.set_point_solid(cell, false)
+
+
+func _last_clear_point(from: Vector3, to: Vector3, clearance: float) -> Vector3:
+	if not _segment_hits_blocked(from, to, clearance):
+		return to
+	var lo := 0.0
+	var hi := 1.0
+	var best := from
+	for _i in 8:
+		var mid := (lo + hi) * 0.5
+		var sample := from.lerp(to, mid)
+		if _segment_hits_blocked(from, sample, clearance):
+			hi = mid
+		else:
+			lo = mid
+			best = sample
+	return best
+
+
+func _segment_samples_hit_structure(from: Vector3, dx: float, dz: float, length_sq: float) -> bool:
+	if _structure_blockers.is_empty():
+		return false
+	var steps := maxi(1, int(ceil(sqrt(length_sq))))
+	var step_t := 1.0 / float(steps)
+	for data in _structure_blockers.values():
+		var pos: Vector3 = data["pos"]
+		# 先用外接圆粗筛（与旧解析解同样便宜），命中再按真足迹裁剪线段。
+		var bound := _blocker_bound_radius(data)
+		var fx := from.x - pos.x
+		var fz := from.z - pos.z
+		var b_coef := 2.0 * (fx * dx + fz * dz)
+		var c_coef := fx * fx + fz * fz - bound * bound
+		var disc := b_coef * b_coef - 4.0 * length_sq * c_coef
+		if disc < 0.0:
+			continue
+		var root := sqrt(disc)
+		var inv := 0.5 / length_sq
+		var s_lo := ceili((-b_coef - root) * inv / step_t - 0.0000001)
+		var s_hi := floori((-b_coef + root) * inv / step_t + 0.0000001)
+		if maxi(s_lo, 1) > mini(s_hi, steps):
+			continue
+		var outline: PackedVector2Array = data.get("outline", PackedVector2Array())
+		if outline.size() < 3:
+			return true
+		# 圆只证明"可能擦到"；方形外墙角比同外接圆更靠外，必须按多边形复核。
+		var span: Variant = _segment_polygon_span(
+			Vector2(from.x, from.z), Vector2(dx, dz), outline, _polygon_inward_flip(outline))
+		if span is Vector2:
+			var t0: float = maxf(float((span as Vector2).x), 0.0)
+			var t1: float = minf(float((span as Vector2).y), 1.0)
+			if floori(t1 / step_t + 0.0000001) >= ceili(t0 / step_t - 0.0000001):
+				return true
+	return false
+
+
+
+func _segment_samples_hit_water(from: Vector3, dx: float, dz: float, length: float) -> bool:
 	var steps := maxi(1, int(ceil(length)))
+	var bridges := not _bridge_slabs.is_empty()
 	for s in range(1, steps + 1):
 		var t := float(s) / float(steps)
-		if is_ground_blocked(from.lerp(to, t)):
+		var x := from.x + dx * t
+		var z := from.z + dz * t
+		if bridges and _on_bridge(x, z):
+			continue
+		if _sample_water(x, z):
 			return true
 	return false
 
@@ -750,7 +1107,7 @@ func unstick_ground(origin: Vector3, salt: int = 0) -> Vector3:
 	return land
 
 
-func find_ground_path(from: Vector3, to: Vector3) -> PackedVector3Array:
+func find_ground_path(from: Vector3, to: Vector3, clearance: float = 0.0) -> PackedVector3Array:
 	var empty := PackedVector3Array()
 	if not _water_ready or _path_grid == null:
 		return empty
@@ -764,24 +1121,68 @@ func find_ground_path(from: Vector3, to: Vector3) -> PackedVector3Array:
 		var direct := PackedVector3Array()
 		direct.append(end_pos)
 		return direct
-	var cache_key := _path_cache_key(start_cell, end_cell)
-	if _path_cache.has(cache_key):
-		return _with_final_destination(_path_cache[cache_key], end_pos)
-	var ids: Array = _path_grid.get_id_path(start_cell, end_cell, true)
-	if ids.is_empty():
-		return empty
-	var points := PackedVector3Array()
-	for id in ids:
-		points.append(_snap_path_point(_path_cell_to_world(id)))
-	# A* 含起点格。第一航点若是格心，单位会先折回去再出发。
-	if points.size() > 1:
-		points.remove_at(0)
-	points = _simplify_ground_path(points)
-	points = _with_final_destination(points, end_pos)
+	var perf_on := AiPerfStats.enabled()
+	var path_started := Time.get_ticks_usec() if perf_on else 0
+	# 直线无阻挡时，A* 再简化得到的仍是终点单点。先走这条，避免 129 格全图搜索。
+	# clearance 是寻路车身净空，不改变 is_ground_blocked 的真实足迹。
+	if not _segment_hits_blocked(start_pos, end_pos, clearance):
+		var clear_path := PackedVector3Array()
+		clear_path.append(end_pos)
+		_remember_path(_path_cache_key(start_cell, end_cell, clearance), clear_path)
+		if perf_on:
+			AiPerfStats.add("path_direct", Time.get_ticks_usec() - path_started)
+		return clear_path
+	var marked := _begin_path_clearance(clearance)
+	start_cell = _nearest_open_path_cell(_world_to_path_cell(start_pos.x, start_pos.z))
+	end_cell = _nearest_open_path_cell(_world_to_path_cell(end_pos.x, end_pos.z))
+	var result := PackedVector3Array()
+	if start_cell.x >= 0 and end_cell.x >= 0 and start_cell != end_cell:
+		var cache_key := _path_cache_key(start_cell, end_cell, clearance)
+		if _path_cache.has(cache_key):
+			result = _path_cache[cache_key]
+			if clearance <= 0.0:
+				result = _with_final_destination(result, end_pos)
+		else:
+			var astar_started := Time.get_ticks_usec() if perf_on else 0
+			var ids: Array = _path_grid.get_id_path(start_cell, end_cell, true)
+			if perf_on:
+				AiPerfStats.add("path_astar", Time.get_ticks_usec() - astar_started)
+			if not ids.is_empty():
+				var snap_started := Time.get_ticks_usec() if perf_on else 0
+				var points := PackedVector3Array()
+				for id in ids:
+					points.append(_snap_path_point(_path_cell_to_world(id)))
+				if perf_on:
+					AiPerfStats.add("path_snap", Time.get_ticks_usec() - snap_started)
+				# A* 含起点格。第一航点若是格心，单位会先折回去再出发。
+				if points.size() > 1:
+					points.remove_at(0)
+				var simplify_started := Time.get_ticks_usec() if perf_on else 0
+				points = _simplify_ground_path(points, clearance)
+				if perf_on:
+					AiPerfStats.add("path_simplify", Time.get_ticks_usec() - simplify_started)
+				var goal := end_pos
+				if (
+					clearance > 0.0
+					and not points.is_empty()
+					and _segment_hits_blocked(points[points.size() - 1], goal, clearance)
+				):
+					goal = _last_clear_point(points[points.size() - 1], goal, clearance)
+				points = _with_final_destination(points, goal)
+				_remember_path(cache_key, points)
+				result = points
+				if perf_on:
+					AiPerfStats.add("path_astar_total", Time.get_ticks_usec() - path_started)
+	elif start_cell == end_cell and start_cell.x >= 0:
+		result.append(end_pos)
+	_end_path_clearance(marked)
+	return result
+
+
+func _remember_path(cache_key: int, points: PackedVector3Array) -> void:
 	if _path_cache.size() >= PATH_CACHE_MAX:
 		_path_cache.clear()
 	_path_cache[cache_key] = points
-	return points
 
 
 func ground_path_cell_meters() -> float:
@@ -1048,8 +1449,10 @@ func _nearest_open_path_cell(cell: Vector2i) -> Vector2i:
 	return Vector2i(-1, -1)
 
 
-func _path_cache_key(a: Vector2i, b: Vector2i) -> int:
-	return a.x | (a.y << 8) | (b.x << 16) | (b.y << 24)
+func _path_cache_key(a: Vector2i, b: Vector2i, clearance: float = 0.0) -> int:
+	var base := a.x | (a.y << 8) | (b.x << 16) | (b.y << 24)
+	var quantized := int(round(maxf(clearance, 0.0) * 100.0))
+	return base | (quantized << 32)
 
 
 func _with_final_destination(points: PackedVector3Array, dest: Vector3) -> PackedVector3Array:
@@ -1062,7 +1465,7 @@ func _with_final_destination(points: PackedVector3Array, dest: Vector3) -> Packe
 	return out
 
 
-func _simplify_ground_path(points: PackedVector3Array) -> PackedVector3Array:
+func _simplify_ground_path(points: PackedVector3Array, clearance: float = 0.0) -> PackedVector3Array:
 	if points.size() <= 2:
 		return points
 	var out := PackedVector3Array()
@@ -1070,7 +1473,7 @@ func _simplify_ground_path(points: PackedVector3Array) -> PackedVector3Array:
 	out.append(points[0])
 	while i < points.size() - 1:
 		var j := points.size() - 1
-		while j > i + 1 and _segment_hits_blocked(points[i], points[j]):
+		while j > i + 1 and _segment_hits_blocked(points[i], points[j], clearance):
 			j -= 1
 		out.append(points[j])
 		i = j
@@ -1318,6 +1721,7 @@ func _apply_material() -> void:
 		mat.set_shader_parameter("mask_tex", ImageTexture.create_from_image(mask_img))
 		mat.set_shader_parameter("mask_from_tex", 1.0)
 		mat.set_shader_parameter("mask_world_size", _world_span)
+		_record_material_span_binding()
 	# 256 图 world_scale=1：着色器里的 p 必须是世界米。以前除以 3.90625
 	# 会把 8m 高地当成 31m 台顶，镜头距离也被放大，近景直接走远景宏贴图。
 	mat.set_shader_parameter("showcase_world_scale", world_scale)
@@ -1339,6 +1743,22 @@ func _apply_material() -> void:
 	gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 	extra_cull_margin = 0.0
 	material_override = mat
+
+
+## 【2026-10-12】记录这次材质绑定使用的跨度（入树首帧与 _ready 两次都记）。
+## 回归断言 tests/automated/TerrainMaskSpanContract.gd 读这条记录：
+## 只在 `_ready` 末尾补刷一次也能让"最终值"正确，但首帧已经错了——
+## 必须能从证据上区分"一开始就绑对"和"后来被刷对"。
+func _record_material_span_binding() -> void:
+	var bindings: Array = get_meta("material_span_bindings", [])
+	bindings.append(
+		{
+			"span": _world_span,
+			"semantic_span": _terrain_span(),
+			"frame": Engine.get_process_frames(),
+		}
+	)
+	set_meta("material_span_bindings", bindings)
 
 
 func _hide_redundant_ground_plates() -> void:

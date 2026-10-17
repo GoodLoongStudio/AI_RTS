@@ -1,0 +1,74 @@
+{
+  "id": "f0597f88773846bc959ccfb2bc0517d2",
+  "baseline": false,
+  "status": "error",
+  "config": {
+    "schema_version": 2,
+    "algo_version": "7.11.0",
+    "layout_seed": 16,
+    "terrain_seed": 0,
+    "player_spacing": "any",
+    "controls": {
+      "river_layout": 2,
+      "river_enabled": 1,
+      "lake_count": 0,
+      "lake_area": 5000,
+      "neutral_plateau_scale": 1.7,
+      "plateau_max": 8,
+      "landform_elongation": 1.2,
+      "landform_recess": 0.2,
+      "landform_softness": 0.16,
+      "plateau_ramp_width": 8,
+      "river_width": 18,
+      "river_bend_scale": 1.0,
+      "river_crossings": 6,
+      "obstacle_percent": 40,
+      "cover_cluster_max": 10,
+      "layout_attempts": 4
+    }
+  },
+  "target": "g2",
+  "spacing": "close",
+  "created_at": "2026-10-11T23:28:41",
+  "started": 1791732521.5998924,
+  "duration": 0.0,
+  "title": "布局 16 · 地貌 0",
+  "pipeline_version": "1.1.0",
+  "stage_versions": {
+    "G1": "2.0.0",
+    "G2": "7.11.0",
+    "G3": "2.2.0",
+    "G4": "2.0.0"
+  },
+  "stages": {},
+  "layout_locked": true,
+  "terrain_locked": true,
+  "skip_engine_check": false,
+  "layout_pool": [
+    16
+  ],
+  "layout_tried": [
+    {
+      "seed": 16,
+      "reason": "no_candidate",
+      "attempts": 1,
+      "rejected": "No room for the terrain"
+    }
+  ],
+  "preview_only": false,
+  "progress": {
+    "attempt": 0,
+    "limit": 4,
+    "phase": "准备出生布局",
+    "stage": "G1"
+  },
+  "hard_reject_streak": 0,
+  "error_kind": "no_candidate",
+  "attempts": [
+    {
+      "attempt": 1,
+      "rejected": "No room for the terrain"
+    }
+  ],
+  "error": "在 1 个候选内未找到可用地貌。请重新随机生成，或调整水域选项；所选湖泊不会自动缩小。"
+}

@@ -1,0 +1,29 @@
+生成的 RTS 地图包 16-0-bundletest
+================================
+
+内容：
+- source/map_16-0-bundletest.tscn     地图场景（真实高程地形、桥、水域、资源、装饰）
+- source/height_data.bin       地形高度场（与场景/碰撞/导航同源）
+- source/map_index.json        地图登记项（AI_RTS 自动发现，无需手改代码）
+- runtime/                     随包冻结的运行脚本/内置贴图（GeneratedTerrain.gd、
+                               ApplyAtlas.gd、ridge_rock.png），安装从包内取，不依赖开发机
+- data/                        G1–G4 权威数据（npz/json，可复现与审计）
+- reports/                     导航验收目标、导出与高度场报告、视觉计划
+- assets/dependencies.json     完整依赖清单：运行脚本 + 素材（逐项 sha256、来源）
+                               + 运行时版本要求（Godot/算法版本/terrain navmesh climb）
+- install.ps1                  安装脚本（缺依赖明确失败 exit 1，不会假报完成）
+- previews/                    正交与游戏斜视截图（Godot 实际输出）
+
+安装（目标：Godot 4.7 mono 版 AI_RTS）：
+1. 在 PowerShell 中执行（-AssetSource 为素材来源目录，默认指向包声明的初选素材包）：
+   .\install.ps1 -AirtsRoot "<AI_RTS工程根>" -GodotExe "<Godot_v*-stable_mono_win64_console.exe>"
+2. 脚本把地图复制到 source/match/maps/generated/16-0-bundletest/，从包内 runtime/ 装运行脚本，
+   从 -AssetSource 装素材（缺失则 exit 1 并列出缺项），校验 terrain navmesh 配套后运行 Godot 导入。
+3. 启动 AI_RTS，在 Play → 地图列表选择 “Generated 16-0-bundletest”。
+
+运行时要求（dependencies.json.runtime_requirements）：
+- Godot 4.7.1-stable mono；算法/管线版本见清单。
+- terrain navmesh agent_max_climb 必须 >=0.3（坡道连通）；本包配套值为 0.5，
+  安装脚本会校验目标 Match.tscn，若为 0.0 则失败并提示先应用配套。
+- 素材 FBX/PNG 若目标工程已存在则跳过；其余从 -AssetSource 安装，允许外部素材目录，
+  但任何缺项都会使安装明确失败（不生成不可用的“安装完成”）。

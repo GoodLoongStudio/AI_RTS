@@ -1,0 +1,77 @@
+{
+  "job_id": "df6e94e2d6de459c9fbdd2bce0646b11",
+  "seed": 8,
+  "terrain": 561215132,
+  "target": "full",
+  "status": "done",
+  "title": "布局 8 · 地貌 561215132",
+  "label": null,
+  "map_pass": false,
+  "created_at": "2026-09-29T01:19:43",
+  "reverified_with_current_code": false,
+  "visual_version": 1,
+  "visual_profile": "default",
+  "map_id": "8-561215132-767a002977",
+  "checks_summary": {
+    "g2_pass": true,
+    "g3_pass": true,
+    "engine_pass": null
+  },
+  "failed_paths": [],
+  "failed_forbidden": [],
+  "nav_all": null,
+  "smoke_assertions": {},
+  "stages": {
+    "G1": {
+      "state": "通过",
+      "images": [
+        "contact.png"
+      ],
+      "preview": "contact.png",
+      "version": "2.0.0",
+      "history_versions": []
+    },
+    "G2": {
+      "state": "通过",
+      "images": [
+        "contact.png",
+        "seed_14_minimap.png",
+        "seed_14_overview.png",
+        "seed_14_strategy.png",
+        "seed_18_minimap.png",
+        "seed_18_overview.png",
+        "seed_18_strategy.png",
+        "seed_23_minimap.png",
+        "seed_23_overview.png",
+        "seed_23_strategy.png",
+        "seed_36_minimap.png",
+        "seed_36_overview.png",
+        "seed_36_strategy.png",
+        "seed_5_minimap.png",
+        "seed_5_overview.png",
+        "seed_5_strategy.png",
+        "seed_8_minimap.png",
+        "seed_8_overview.png",
+        "seed_8_strategy.png"
+      ],
+      "preview": "seed_14_overview.png",
+      "version": "7.11.0",
+      "history_versions": []
+    },
+    "G3": {
+      "state": "通过",
+      "images": [
+        "contact.png",
+        "seed_8_overview.png"
+      ],
+      "preview": "seed_8_overview.png",
+      "version": "2.2.0",
+      "history_versions": []
+    }
+  },
+  "folder": "job_layout8_terrain561215132_df6e94e2",
+  "gate": "G3",
+  "source_job": "G:\\AIRTS\\AI_RTS\\tools\\mapgen\\workbench_output\\df6e94e2d6de459c9fbdd2bce0646b11\\job.json",
+  "synced_at": "2026-09-29T01:20:07",
+  "note": "图像来自本任务权威数据/真实引擎输出；生成或导航通过不等于实战通过。"
+}

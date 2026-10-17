@@ -1,0 +1,524 @@
+Godot Engine v4.7.1.stable.mono.official.a13da4feb - https://godotengine.org
+
+SCRIPT ERROR: Parse Error: Too few arguments for "maxf()" call. Expected at least 2 but received 1.
+   at: GDScript::reload (res://source/match/units/traits/Movement.gd:1135)
+ERROR: Failed to load script "res://source/match/units/traits/Movement.gd" with error "Parse error".
+   at: load (modules/gdscript/gdscript_resource_format.cpp:46)
+[DBGCTL] 端口 24579 被占用, 调试控制端点未启动
+[godot_ai game_helper] registered mcp capture (debugger active=false, logger=true)
+G4PERF fog_resize 416x416 px_per_m=2
+SCRIPT ERROR: Assertion failed: Navmesh 'agent_radius' must match established constant
+   at: _safety_checks (res://source/match/AirNavigation.gd:107)
+   GDScript backtrace (most recent call first):
+       [0] _safety_checks (res://source/match/AirNavigation.gd:107)
+       [1] _ready (res://source/match/AirNavigation.gd:19)
+       [2] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:28)
+SCRIPT ERROR: Assertion failed.
+   at: _ready (res://source/match/AirNavigation.gd:19)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/AirNavigation.gd:19)
+       [1] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:28)
+G4PERF fog_resize 416x416 px_per_m=2
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=2 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=1 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=3 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=4 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=4 tint=(0.4, 0.6941, 1.0, 1.0)
+SCRIPT ERROR: Invalid access to property or key 'domain' on a base object of type 'NavigationAgent3D'.
+   at: _get_movement_domain (res://source/match/units/Unit.gd:631)
+   GDScript backtrace (most recent call first):
+       [0] _get_movement_domain (res://source/match/units/Unit.gd:631)
+       [1] _safety_checks (res://source/match/units/Unit.gd:743)
+       [2] _ready (res://source/match/units/Unit.gd:128)
+       [3] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:28)
+SCRIPT ERROR: Invalid access to property or key 'domain' on a base object of type 'NavigationAgent3D'.
+   at: _get_movement_domain (res://source/match/units/Unit.gd:631)
+   GDScript backtrace (most recent call first):
+       [0] _get_movement_domain (res://source/match/units/Unit.gd:631)
+       [1] _safety_checks (res://source/match/units/Unit.gd:751)
+       [2] _ready (res://source/match/units/Unit.gd:128)
+       [3] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:28)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=8 tint=(0.4, 0.6941, 1.0, 1.0)
+SCRIPT ERROR: Invalid access to property or key 'domain' on a base object of type 'NavigationAgent3D'.
+   at: _get_movement_domain (res://source/match/units/Unit.gd:631)
+   GDScript backtrace (most recent call first):
+       [0] _get_movement_domain (res://source/match/units/Unit.gd:631)
+       [1] _safety_checks (res://source/match/units/Unit.gd:743)
+       [2] _ready (res://source/match/units/Unit.gd:128)
+       [3] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:28)
+SCRIPT ERROR: Invalid access to property or key 'domain' on a base object of type 'NavigationAgent3D'.
+   at: _get_movement_domain (res://source/match/units/Unit.gd:631)
+   GDScript backtrace (most recent call first):
+       [0] _get_movement_domain (res://source/match/units/Unit.gd:631)
+       [1] _safety_checks (res://source/match/units/Unit.gd:751)
+       [2] _ready (res://source/match/units/Unit.gd:128)
+       [3] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:28)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=11 tint=(0.4, 0.6941, 1.0, 1.0)
+SCRIPT ERROR: Invalid access to property or key 'domain' on a base object of type 'NavigationAgent3D'.
+   at: _get_movement_domain (res://source/match/units/Unit.gd:631)
+   GDScript backtrace (most recent call first):
+       [0] _get_movement_domain (res://source/match/units/Unit.gd:631)
+       [1] _safety_checks (res://source/match/units/Unit.gd:743)
+       [2] _ready (res://source/match/units/Unit.gd:128)
+       [3] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:28)
+SCRIPT ERROR: Invalid access to property or key 'domain' on a base object of type 'NavigationAgent3D'.
+   at: _get_movement_domain (res://source/match/units/Unit.gd:631)
+   GDScript backtrace (most recent call first):
+       [0] _get_movement_domain (res://source/match/units/Unit.gd:631)
+       [1] _safety_checks (res://source/match/units/Unit.gd:751)
+       [2] _ready (res://source/match/units/Unit.gd:128)
+       [3] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:28)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+SCRIPT ERROR: Invalid access to property or key 'domain' on a base object of type 'NavigationAgent3D'.
+   at: _get_movement_domain (res://source/match/units/Unit.gd:631)
+   GDScript backtrace (most recent call first):
+       [0] _get_movement_domain (res://source/match/units/Unit.gd:631)
+       [1] _safety_checks (res://source/match/units/Unit.gd:743)
+       [2] _ready (res://source/match/units/Unit.gd:128)
+       [3] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:28)
+SCRIPT ERROR: Invalid access to property or key 'domain' on a base object of type 'NavigationAgent3D'.
+   at: _get_movement_domain (res://source/match/units/Unit.gd:631)
+   GDScript backtrace (most recent call first):
+       [0] _get_movement_domain (res://source/match/units/Unit.gd:631)
+       [1] _safety_checks (res://source/match/units/Unit.gd:751)
+       [2] _ready (res://source/match/units/Unit.gd:128)
+       [3] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:28)
+[G4PERF] minimap viewport=416x416 scale=2.000
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:196)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:179)
+       [2] _ready (res://source/match/hud/Minimap.gd:105)
+       [3] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:28)
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:196)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:179)
+       [2] _follow_minimap_fog_mask (res://source/match/hud/Minimap.gd:116)
+       [3] _ready (res://source/match/hud/Minimap.gd:109)
+       [4] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:28)
+G4PERF command_runtime_us=5876 frames=1
+G4PERF production_runtime_us=1778 frames=1
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:196)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:179)
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:196)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:179)
+[INPUT] UnitActionsController waiting for local player player=Human
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:196)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:179)
+WARNING: Property agent_height is ceiled to cell_height voxel units and loses precision.
+G4PERF command_runtime_us=153 frames=2
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:367)
+G4PERF production_runtime_us=97 frames=2
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+NAVDBG air polygons=2 vertices=4 rid_valid=true region_on_our_map=true map_active=true
+NAVDBG bake map=/root/AutomaticConstructionSmokeTest/Match/Map StaticBody3D in subtree=0
+WARNING: Property agent_height is ceiled to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:367)
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+NAVDBG polygons=116 vertices=98
+[ECO] PublishSnapshot player=2bcdba9b a=0
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:196)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:179)
+[INPUT] UnitActionsController enabled player=Human
+[ECO] PublishSnapshot player=2bcdba9b a=3000
+[ECO] ApplyLegacy reason=ScriptedAdjustment player=2bcdba9b status=Applied a=3000
+SCRIPT ERROR: Invalid access to property or key 'domain' on a base object of type 'NavigationAgent3D'.
+   at: _get_movement_domain (res://source/match/units/Unit.gd:631)
+   GDScript backtrace (most recent call first):
+       [0] _get_movement_domain (res://source/match/units/Unit.gd:631)
+       [1] _find_legal_transform (res://tests/automated/AutomaticConstructionSmokeTest.gd:113)
+       [2] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:48)
+       [3] wait_for_units (res://tests/automated/SmokeTestWarmup.gd:33)
+       [4] _wait_for_usable_navigation (res://tests/automated/SmokeTestWarmup.gd:60)
+   C# backtrace (most recent call first):
+       [0] Godot.Variant Godot.NativeCalls.godot_icall_1_168(nint, nint, Godot.NativeInterop.godot_string_name) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/NativeCalls.cs:1513)
+       [1] Godot.Variant Godot.GodotObject.Get(Godot.StringName) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/GodotObject.cs:435)
+       [2] int AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.Domain(Godot.Node3D) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:338)
+       [3] AI_RTS.GodotAdapter.Construction.GodotPlacementWorldAssessment AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.EvaluateDetailed(AI_RTS.Domain.Common.PlayerId, AI_RTS.Domain.Construction.StructurePlacementCandidate, AI_RTS.Domain.Construction.StructurePlacementDefinition) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:85)
+       [4] System.Collections.Generic.IReadOnlyList`1[AI_RTS.Application.Construction.StructurePlacementIssue] AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.Evaluate(AI_RTS.Domain.Common.MatchId, AI_RTS.Domain.Common.PlayerId, AI_RTS.Domain.Construction.StructurePlacementCandidate, AI_RTS.Domain.Construction.StructurePlacementDefinition) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:40)
+       [5] AI_RTS.Application.Construction.StructurePlacementEvaluation AI_RTS.Application.Construction.StructurePlacementService.Evaluate(AI_RTS.Application.Construction.EvaluateStructurePlacementQuery) (G:\AIRTS\AI_RTS\source\csharp\Application\Construction\StructurePlacementService.cs:101)
+       [6] Godot.Collections.Dictionary AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime.Evaluate(Godot.Node, Godot.PackedScene, Godot.Transform3D, Godot.Collections.Dictionary) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\StructurePlacementRuntime.cs:50)
+       [7] bool AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (G:\AIRTS\AI_RTS\.godot\mono\temp\obj\Debug\Godot.SourceGenerators\Godot.SourceGenerators.ScriptMethodsGenerator\AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime_ScriptMethods.generated.cs:86)
+       [8] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+SCRIPT ERROR: Invalid access to property or key 'domain' on a base object of type 'NavigationAgent3D'.
+   at: _get_movement_domain (res://source/match/units/Unit.gd:631)
+   GDScript backtrace (most recent call first):
+       [0] _get_movement_domain (res://source/match/units/Unit.gd:631)
+       [1] _find_legal_transform (res://tests/automated/AutomaticConstructionSmokeTest.gd:113)
+       [2] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:48)
+       [3] wait_for_units (res://tests/automated/SmokeTestWarmup.gd:33)
+       [4] _wait_for_usable_navigation (res://tests/automated/SmokeTestWarmup.gd:60)
+   C# backtrace (most recent call first):
+       [0] Godot.Variant Godot.NativeCalls.godot_icall_1_168(nint, nint, Godot.NativeInterop.godot_string_name) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/NativeCalls.cs:1513)
+       [1] Godot.Variant Godot.GodotObject.Get(Godot.StringName) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/GodotObject.cs:435)
+       [2] int AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.Domain(Godot.Node3D) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:338)
+       [3] AI_RTS.GodotAdapter.Construction.GodotPlacementWorldAssessment AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.EvaluateDetailed(AI_RTS.Domain.Common.PlayerId, AI_RTS.Domain.Construction.StructurePlacementCandidate, AI_RTS.Domain.Construction.StructurePlacementDefinition) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:85)
+       [4] System.Collections.Generic.IReadOnlyList`1[AI_RTS.Application.Construction.StructurePlacementIssue] AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.Evaluate(AI_RTS.Domain.Common.MatchId, AI_RTS.Domain.Common.PlayerId, AI_RTS.Domain.Construction.StructurePlacementCandidate, AI_RTS.Domain.Construction.StructurePlacementDefinition) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:40)
+       [5] AI_RTS.Application.Construction.StructurePlacementEvaluation AI_RTS.Application.Construction.StructurePlacementService.Evaluate(AI_RTS.Application.Construction.EvaluateStructurePlacementQuery) (G:\AIRTS\AI_RTS\source\csharp\Application\Construction\StructurePlacementService.cs:101)
+       [6] Godot.Collections.Dictionary AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime.Evaluate(Godot.Node, Godot.PackedScene, Godot.Transform3D, Godot.Collections.Dictionary) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\StructurePlacementRuntime.cs:50)
+       [7] bool AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (G:\AIRTS\AI_RTS\.godot\mono\temp\obj\Debug\Godot.SourceGenerators\Godot.SourceGenerators.ScriptMethodsGenerator\AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime_ScriptMethods.generated.cs:86)
+       [8] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+SCRIPT ERROR: Invalid access to property or key 'domain' on a base object of type 'NavigationAgent3D'.
+   at: _get_movement_domain (res://source/match/units/Unit.gd:631)
+   GDScript backtrace (most recent call first):
+       [0] _get_movement_domain (res://source/match/units/Unit.gd:631)
+       [1] _find_legal_transform (res://tests/automated/AutomaticConstructionSmokeTest.gd:113)
+       [2] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:48)
+       [3] wait_for_units (res://tests/automated/SmokeTestWarmup.gd:33)
+       [4] _wait_for_usable_navigation (res://tests/automated/SmokeTestWarmup.gd:60)
+   C# backtrace (most recent call first):
+       [0] Godot.Variant Godot.NativeCalls.godot_icall_1_168(nint, nint, Godot.NativeInterop.godot_string_name) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/NativeCalls.cs:1513)
+       [1] Godot.Variant Godot.GodotObject.Get(Godot.StringName) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/GodotObject.cs:435)
+       [2] int AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.Domain(Godot.Node3D) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:338)
+       [3] AI_RTS.GodotAdapter.Construction.GodotPlacementWorldAssessment AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.EvaluateDetailed(AI_RTS.Domain.Common.PlayerId, AI_RTS.Domain.Construction.StructurePlacementCandidate, AI_RTS.Domain.Construction.StructurePlacementDefinition) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:85)
+       [4] System.Collections.Generic.IReadOnlyList`1[AI_RTS.Application.Construction.StructurePlacementIssue] AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.Evaluate(AI_RTS.Domain.Common.MatchId, AI_RTS.Domain.Common.PlayerId, AI_RTS.Domain.Construction.StructurePlacementCandidate, AI_RTS.Domain.Construction.StructurePlacementDefinition) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:40)
+       [5] AI_RTS.Application.Construction.StructurePlacementEvaluation AI_RTS.Application.Construction.StructurePlacementService.Evaluate(AI_RTS.Application.Construction.EvaluateStructurePlacementQuery) (G:\AIRTS\AI_RTS\source\csharp\Application\Construction\StructurePlacementService.cs:101)
+       [6] Godot.Collections.Dictionary AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime.Evaluate(Godot.Node, Godot.PackedScene, Godot.Transform3D, Godot.Collections.Dictionary) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\StructurePlacementRuntime.cs:50)
+       [7] bool AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (G:\AIRTS\AI_RTS\.godot\mono\temp\obj\Debug\Godot.SourceGenerators\Godot.SourceGenerators.ScriptMethodsGenerator\AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime_ScriptMethods.generated.cs:86)
+       [8] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+SCRIPT ERROR: Invalid access to property or key 'domain' on a base object of type 'NavigationAgent3D'.
+   at: _get_movement_domain (res://source/match/units/Unit.gd:631)
+   GDScript backtrace (most recent call first):
+       [0] _get_movement_domain (res://source/match/units/Unit.gd:631)
+       [1] _find_legal_transform (res://tests/automated/AutomaticConstructionSmokeTest.gd:113)
+       [2] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:48)
+       [3] wait_for_units (res://tests/automated/SmokeTestWarmup.gd:33)
+       [4] _wait_for_usable_navigation (res://tests/automated/SmokeTestWarmup.gd:60)
+   C# backtrace (most recent call first):
+       [0] Godot.Variant Godot.NativeCalls.godot_icall_1_168(nint, nint, Godot.NativeInterop.godot_string_name) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/NativeCalls.cs:1513)
+       [1] Godot.Variant Godot.GodotObject.Get(Godot.StringName) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/GodotObject.cs:435)
+       [2] int AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.Domain(Godot.Node3D) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:338)
+       [3] AI_RTS.GodotAdapter.Construction.GodotPlacementWorldAssessment AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.EvaluateDetailed(AI_RTS.Domain.Common.PlayerId, AI_RTS.Domain.Construction.StructurePlacementCandidate, AI_RTS.Domain.Construction.StructurePlacementDefinition) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:85)
+       [4] System.Collections.Generic.IReadOnlyList`1[AI_RTS.Application.Construction.StructurePlacementIssue] AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.Evaluate(AI_RTS.Domain.Common.MatchId, AI_RTS.Domain.Common.PlayerId, AI_RTS.Domain.Construction.StructurePlacementCandidate, AI_RTS.Domain.Construction.StructurePlacementDefinition) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:40)
+       [5] AI_RTS.Application.Construction.StructurePlacementEvaluation AI_RTS.Application.Construction.StructurePlacementService.Evaluate(AI_RTS.Application.Construction.EvaluateStructurePlacementQuery) (G:\AIRTS\AI_RTS\source\csharp\Application\Construction\StructurePlacementService.cs:101)
+       [6] Godot.Collections.Dictionary AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime.Evaluate(Godot.Node, Godot.PackedScene, Godot.Transform3D, Godot.Collections.Dictionary) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\StructurePlacementRuntime.cs:50)
+       [7] bool AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (G:\AIRTS\AI_RTS\.godot\mono\temp\obj\Debug\Godot.SourceGenerators\Godot.SourceGenerators.ScriptMethodsGenerator\AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime_ScriptMethods.generated.cs:86)
+       [8] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+SCRIPT ERROR: Invalid access to property or key 'domain' on a base object of type 'NavigationAgent3D'.
+   at: _get_movement_domain (res://source/match/units/Unit.gd:631)
+   GDScript backtrace (most recent call first):
+       [0] _get_movement_domain (res://source/match/units/Unit.gd:631)
+       [1] _find_legal_transform (res://tests/automated/AutomaticConstructionSmokeTest.gd:113)
+       [2] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:48)
+       [3] wait_for_units (res://tests/automated/SmokeTestWarmup.gd:33)
+       [4] _wait_for_usable_navigation (res://tests/automated/SmokeTestWarmup.gd:60)
+   C# backtrace (most recent call first):
+       [0] Godot.Variant Godot.NativeCalls.godot_icall_1_168(nint, nint, Godot.NativeInterop.godot_string_name) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/NativeCalls.cs:1513)
+       [1] Godot.Variant Godot.GodotObject.Get(Godot.StringName) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/GodotObject.cs:435)
+       [2] int AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.Domain(Godot.Node3D) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:338)
+       [3] AI_RTS.GodotAdapter.Construction.GodotPlacementWorldAssessment AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.EvaluateDetailed(AI_RTS.Domain.Common.PlayerId, AI_RTS.Domain.Construction.StructurePlacementCandidate, AI_RTS.Domain.Construction.StructurePlacementDefinition) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:85)
+       [4] System.Collections.Generic.IReadOnlyList`1[AI_RTS.Application.Construction.StructurePlacementIssue] AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.Evaluate(AI_RTS.Domain.Common.MatchId, AI_RTS.Domain.Common.PlayerId, AI_RTS.Domain.Construction.StructurePlacementCandidate, AI_RTS.Domain.Construction.StructurePlacementDefinition) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:40)
+       [5] AI_RTS.Application.Construction.StructurePlacementEvaluation AI_RTS.Application.Construction.StructurePlacementService.Evaluate(AI_RTS.Application.Construction.EvaluateStructurePlacementQuery) (G:\AIRTS\AI_RTS\source\csharp\Application\Construction\StructurePlacementService.cs:101)
+       [6] Godot.Collections.Dictionary AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime.Evaluate(Godot.Node, Godot.PackedScene, Godot.Transform3D, Godot.Collections.Dictionary) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\StructurePlacementRuntime.cs:50)
+       [7] bool AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (G:\AIRTS\AI_RTS\.godot\mono\temp\obj\Debug\Godot.SourceGenerators\Godot.SourceGenerators.ScriptMethodsGenerator\AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime_ScriptMethods.generated.cs:86)
+       [8] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+SCRIPT ERROR: Invalid access to property or key 'domain' on a base object of type 'NavigationAgent3D'.
+   at: _get_movement_domain (res://source/match/units/Unit.gd:631)
+   GDScript backtrace (most recent call first):
+       [0] _get_movement_domain (res://source/match/units/Unit.gd:631)
+       [1] _find_legal_transform (res://tests/automated/AutomaticConstructionSmokeTest.gd:113)
+       [2] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:48)
+       [3] wait_for_units (res://tests/automated/SmokeTestWarmup.gd:33)
+       [4] _wait_for_usable_navigation (res://tests/automated/SmokeTestWarmup.gd:60)
+   C# backtrace (most recent call first):
+       [0] Godot.Variant Godot.NativeCalls.godot_icall_1_168(nint, nint, Godot.NativeInterop.godot_string_name) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/NativeCalls.cs:1513)
+       [1] Godot.Variant Godot.GodotObject.Get(Godot.StringName) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/GodotObject.cs:435)
+       [2] int AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.Domain(Godot.Node3D) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:338)
+       [3] AI_RTS.GodotAdapter.Construction.GodotPlacementWorldAssessment AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.EvaluateDetailed(AI_RTS.Domain.Common.PlayerId, AI_RTS.Domain.Construction.StructurePlacementCandidate, AI_RTS.Domain.Construction.StructurePlacementDefinition) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:85)
+       [4] System.Collections.Generic.IReadOnlyList`1[AI_RTS.Application.Construction.StructurePlacementIssue] AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.Evaluate(AI_RTS.Domain.Common.MatchId, AI_RTS.Domain.Common.PlayerId, AI_RTS.Domain.Construction.StructurePlacementCandidate, AI_RTS.Domain.Construction.StructurePlacementDefinition) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:40)
+       [5] AI_RTS.Application.Construction.StructurePlacementEvaluation AI_RTS.Application.Construction.StructurePlacementService.Evaluate(AI_RTS.Application.Construction.EvaluateStructurePlacementQuery) (G:\AIRTS\AI_RTS\source\csharp\Application\Construction\StructurePlacementService.cs:101)
+       [6] Godot.Collections.Dictionary AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime.Evaluate(Godot.Node, Godot.PackedScene, Godot.Transform3D, Godot.Collections.Dictionary) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\StructurePlacementRuntime.cs:50)
+       [7] bool AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (G:\AIRTS\AI_RTS\.godot\mono\temp\obj\Debug\Godot.SourceGenerators\Godot.SourceGenerators.ScriptMethodsGenerator\AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime_ScriptMethods.generated.cs:86)
+       [8] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+SCRIPT ERROR: Invalid access to property or key 'domain' on a base object of type 'NavigationAgent3D'.
+   at: _get_movement_domain (res://source/match/units/Unit.gd:631)
+   GDScript backtrace (most recent call first):
+       [0] _get_movement_domain (res://source/match/units/Unit.gd:631)
+       [1] _find_legal_transform (res://tests/automated/AutomaticConstructionSmokeTest.gd:113)
+       [2] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:48)
+       [3] wait_for_units (res://tests/automated/SmokeTestWarmup.gd:33)
+       [4] _wait_for_usable_navigation (res://tests/automated/SmokeTestWarmup.gd:60)
+   C# backtrace (most recent call first):
+       [0] Godot.Variant Godot.NativeCalls.godot_icall_1_168(nint, nint, Godot.NativeInterop.godot_string_name) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/NativeCalls.cs:1513)
+       [1] Godot.Variant Godot.GodotObject.Get(Godot.StringName) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/GodotObject.cs:435)
+       [2] int AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.Domain(Godot.Node3D) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:338)
+       [3] AI_RTS.GodotAdapter.Construction.GodotPlacementWorldAssessment AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.EvaluateDetailed(AI_RTS.Domain.Common.PlayerId, AI_RTS.Domain.Construction.StructurePlacementCandidate, AI_RTS.Domain.Construction.StructurePlacementDefinition) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:85)
+       [4] System.Collections.Generic.IReadOnlyList`1[AI_RTS.Application.Construction.StructurePlacementIssue] AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.Evaluate(AI_RTS.Domain.Common.MatchId, AI_RTS.Domain.Common.PlayerId, AI_RTS.Domain.Construction.StructurePlacementCandidate, AI_RTS.Domain.Construction.StructurePlacementDefinition) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:40)
+       [5] AI_RTS.Application.Construction.StructurePlacementEvaluation AI_RTS.Application.Construction.StructurePlacementService.Evaluate(AI_RTS.Application.Construction.EvaluateStructurePlacementQuery) (G:\AIRTS\AI_RTS\source\csharp\Application\Construction\StructurePlacementService.cs:101)
+       [6] Godot.Collections.Dictionary AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime.Evaluate(Godot.Node, Godot.PackedScene, Godot.Transform3D, Godot.Collections.Dictionary) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\StructurePlacementRuntime.cs:50)
+       [7] bool AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (G:\AIRTS\AI_RTS\.godot\mono\temp\obj\Debug\Godot.SourceGenerators\Godot.SourceGenerators.ScriptMethodsGenerator\AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime_ScriptMethods.generated.cs:86)
+       [8] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+SCRIPT ERROR: Invalid access to property or key 'domain' on a base object of type 'NavigationAgent3D'.
+   at: _get_movement_domain (res://source/match/units/Unit.gd:631)
+   GDScript backtrace (most recent call first):
+       [0] _get_movement_domain (res://source/match/units/Unit.gd:631)
+       [1] _find_legal_transform (res://tests/automated/AutomaticConstructionSmokeTest.gd:113)
+       [2] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:48)
+       [3] wait_for_units (res://tests/automated/SmokeTestWarmup.gd:33)
+       [4] _wait_for_usable_navigation (res://tests/automated/SmokeTestWarmup.gd:60)
+   C# backtrace (most recent call first):
+       [0] Godot.Variant Godot.NativeCalls.godot_icall_1_168(nint, nint, Godot.NativeInterop.godot_string_name) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/NativeCalls.cs:1513)
+       [1] Godot.Variant Godot.GodotObject.Get(Godot.StringName) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/GodotObject.cs:435)
+       [2] int AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.Domain(Godot.Node3D) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:338)
+       [3] AI_RTS.GodotAdapter.Construction.GodotPlacementWorldAssessment AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.EvaluateDetailed(AI_RTS.Domain.Common.PlayerId, AI_RTS.Domain.Construction.StructurePlacementCandidate, AI_RTS.Domain.Construction.StructurePlacementDefinition) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:85)
+       [4] System.Collections.Generic.IReadOnlyList`1[AI_RTS.Application.Construction.StructurePlacementIssue] AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.Evaluate(AI_RTS.Domain.Common.MatchId, AI_RTS.Domain.Common.PlayerId, AI_RTS.Domain.Construction.StructurePlacementCandidate, AI_RTS.Domain.Construction.StructurePlacementDefinition) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:40)
+       [5] AI_RTS.Application.Construction.StructurePlacementEvaluation AI_RTS.Application.Construction.StructurePlacementService.Evaluate(AI_RTS.Application.Construction.EvaluateStructurePlacementQuery) (G:\AIRTS\AI_RTS\source\csharp\Application\Construction\StructurePlacementService.cs:101)
+       [6] Godot.Collections.Dictionary AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime.Evaluate(Godot.Node, Godot.PackedScene, Godot.Transform3D, Godot.Collections.Dictionary) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\StructurePlacementRuntime.cs:50)
+       [7] bool AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (G:\AIRTS\AI_RTS\.godot\mono\temp\obj\Debug\Godot.SourceGenerators\Godot.SourceGenerators.ScriptMethodsGenerator\AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime_ScriptMethods.generated.cs:86)
+       [8] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+SCRIPT ERROR: Invalid access to property or key 'domain' on a base object of type 'NavigationAgent3D'.
+   at: _get_movement_domain (res://source/match/units/Unit.gd:631)
+   GDScript backtrace (most recent call first):
+       [0] _get_movement_domain (res://source/match/units/Unit.gd:631)
+       [1] _find_legal_transform (res://tests/automated/AutomaticConstructionSmokeTest.gd:113)
+       [2] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:48)
+       [3] wait_for_units (res://tests/automated/SmokeTestWarmup.gd:33)
+       [4] _wait_for_usable_navigation (res://tests/automated/SmokeTestWarmup.gd:60)
+   C# backtrace (most recent call first):
+       [0] Godot.Variant Godot.NativeCalls.godot_icall_1_168(nint, nint, Godot.NativeInterop.godot_string_name) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/NativeCalls.cs:1513)
+       [1] Godot.Variant Godot.GodotObject.Get(Godot.StringName) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/GodotObject.cs:435)
+       [2] int AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.Domain(Godot.Node3D) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:338)
+       [3] AI_RTS.GodotAdapter.Construction.GodotPlacementWorldAssessment AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.EvaluateDetailed(AI_RTS.Domain.Common.PlayerId, AI_RTS.Domain.Construction.StructurePlacementCandidate, AI_RTS.Domain.Construction.StructurePlacementDefinition) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:85)
+       [4] System.Collections.Generic.IReadOnlyList`1[AI_RTS.Application.Construction.StructurePlacementIssue] AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.Evaluate(AI_RTS.Domain.Common.MatchId, AI_RTS.Domain.Common.PlayerId, AI_RTS.Domain.Construction.StructurePlacementCandidate, AI_RTS.Domain.Construction.StructurePlacementDefinition) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:40)
+       [5] AI_RTS.Application.Construction.StructurePlacementEvaluation AI_RTS.Application.Construction.StructurePlacementService.Evaluate(AI_RTS.Application.Construction.EvaluateStructurePlacementQuery) (G:\AIRTS\AI_RTS\source\csharp\Application\Construction\StructurePlacementService.cs:101)
+       [6] Godot.Collections.Dictionary AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime.Evaluate(Godot.Node, Godot.PackedScene, Godot.Transform3D, Godot.Collections.Dictionary) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\StructurePlacementRuntime.cs:50)
+       [7] bool AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (G:\AIRTS\AI_RTS\.godot\mono\temp\obj\Debug\Godot.SourceGenerators\Godot.SourceGenerators.ScriptMethodsGenerator\AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime_ScriptMethods.generated.cs:86)
+       [8] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+SCRIPT ERROR: Invalid access to property or key 'domain' on a base object of type 'NavigationAgent3D'.
+   at: _get_movement_domain (res://source/match/units/Unit.gd:631)
+   GDScript backtrace (most recent call first):
+       [0] _get_movement_domain (res://source/match/units/Unit.gd:631)
+       [1] _find_legal_transform (res://tests/automated/AutomaticConstructionSmokeTest.gd:113)
+       [2] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:48)
+       [3] wait_for_units (res://tests/automated/SmokeTestWarmup.gd:33)
+       [4] _wait_for_usable_navigation (res://tests/automated/SmokeTestWarmup.gd:60)
+   C# backtrace (most recent call first):
+       [0] Godot.Variant Godot.NativeCalls.godot_icall_1_168(nint, nint, Godot.NativeInterop.godot_string_name) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/NativeCalls.cs:1513)
+       [1] Godot.Variant Godot.GodotObject.Get(Godot.StringName) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/GodotObject.cs:435)
+       [2] int AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.Domain(Godot.Node3D) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:338)
+       [3] AI_RTS.GodotAdapter.Construction.GodotPlacementWorldAssessment AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.EvaluateDetailed(AI_RTS.Domain.Common.PlayerId, AI_RTS.Domain.Construction.StructurePlacementCandidate, AI_RTS.Domain.Construction.StructurePlacementDefinition) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:85)
+       [4] System.Collections.Generic.IReadOnlyList`1[AI_RTS.Application.Construction.StructurePlacementIssue] AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.Evaluate(AI_RTS.Domain.Common.MatchId, AI_RTS.Domain.Common.PlayerId, AI_RTS.Domain.Construction.StructurePlacementCandidate, AI_RTS.Domain.Construction.StructurePlacementDefinition) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:40)
+       [5] AI_RTS.Application.Construction.StructurePlacementEvaluation AI_RTS.Application.Construction.StructurePlacementService.Evaluate(AI_RTS.Application.Construction.EvaluateStructurePlacementQuery) (G:\AIRTS\AI_RTS\source\csharp\Application\Construction\StructurePlacementService.cs:101)
+       [6] Godot.Collections.Dictionary AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime.Evaluate(Godot.Node, Godot.PackedScene, Godot.Transform3D, Godot.Collections.Dictionary) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\StructurePlacementRuntime.cs:50)
+       [7] bool AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (G:\AIRTS\AI_RTS\.godot\mono\temp\obj\Debug\Godot.SourceGenerators\Godot.SourceGenerators.ScriptMethodsGenerator\AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime_ScriptMethods.generated.cs:86)
+       [8] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+SCRIPT ERROR: Invalid access to property or key 'domain' on a base object of type 'NavigationAgent3D'.
+   at: _get_movement_domain (res://source/match/units/Unit.gd:631)
+   GDScript backtrace (most recent call first):
+       [0] _get_movement_domain (res://source/match/units/Unit.gd:631)
+       [1] _find_legal_transform (res://tests/automated/AutomaticConstructionSmokeTest.gd:113)
+       [2] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:48)
+       [3] wait_for_units (res://tests/automated/SmokeTestWarmup.gd:33)
+       [4] _wait_for_usable_navigation (res://tests/automated/SmokeTestWarmup.gd:60)
+   C# backtrace (most recent call first):
+       [0] Godot.Variant Godot.NativeCalls.godot_icall_1_168(nint, nint, Godot.NativeInterop.godot_string_name) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/NativeCalls.cs:1513)
+       [1] Godot.Variant Godot.GodotObject.Get(Godot.StringName) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/GodotObject.cs:435)
+       [2] int AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.Domain(Godot.Node3D) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:338)
+       [3] AI_RTS.GodotAdapter.Construction.GodotPlacementWorldAssessment AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.EvaluateDetailed(AI_RTS.Domain.Common.PlayerId, AI_RTS.Domain.Construction.StructurePlacementCandidate, AI_RTS.Domain.Construction.StructurePlacementDefinition) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:85)
+       [4] System.Collections.Generic.IReadOnlyList`1[AI_RTS.Application.Construction.StructurePlacementIssue] AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.Evaluate(AI_RTS.Domain.Common.MatchId, AI_RTS.Domain.Common.PlayerId, AI_RTS.Domain.Construction.StructurePlacementCandidate, AI_RTS.Domain.Construction.StructurePlacementDefinition) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:40)
+       [5] AI_RTS.Application.Construction.StructurePlacementEvaluation AI_RTS.Application.Construction.StructurePlacementService.Evaluate(AI_RTS.Application.Construction.EvaluateStructurePlacementQuery) (G:\AIRTS\AI_RTS\source\csharp\Application\Construction\StructurePlacementService.cs:101)
+       [6] Godot.Collections.Dictionary AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime.Evaluate(Godot.Node, Godot.PackedScene, Godot.Transform3D, Godot.Collections.Dictionary) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\StructurePlacementRuntime.cs:50)
+       [7] bool AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (G:\AIRTS\AI_RTS\.godot\mono\temp\obj\Debug\Godot.SourceGenerators\Godot.SourceGenerators.ScriptMethodsGenerator\AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime_ScriptMethods.generated.cs:86)
+       [8] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+SCRIPT ERROR: Invalid access to property or key 'domain' on a base object of type 'NavigationAgent3D'.
+   at: _get_movement_domain (res://source/match/units/Unit.gd:631)
+   GDScript backtrace (most recent call first):
+       [0] _get_movement_domain (res://source/match/units/Unit.gd:631)
+       [1] _find_legal_transform (res://tests/automated/AutomaticConstructionSmokeTest.gd:113)
+       [2] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:48)
+       [3] wait_for_units (res://tests/automated/SmokeTestWarmup.gd:33)
+       [4] _wait_for_usable_navigation (res://tests/automated/SmokeTestWarmup.gd:60)
+   C# backtrace (most recent call first):
+       [0] Godot.Variant Godot.NativeCalls.godot_icall_1_168(nint, nint, Godot.NativeInterop.godot_string_name) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/NativeCalls.cs:1513)
+       [1] Godot.Variant Godot.GodotObject.Get(Godot.StringName) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/GodotObject.cs:435)
+       [2] int AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.Domain(Godot.Node3D) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:338)
+       [3] AI_RTS.GodotAdapter.Construction.GodotPlacementWorldAssessment AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.EvaluateDetailed(AI_RTS.Domain.Common.PlayerId, AI_RTS.Domain.Construction.StructurePlacementCandidate, AI_RTS.Domain.Construction.StructurePlacementDefinition) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:85)
+       [4] System.Collections.Generic.IReadOnlyList`1[AI_RTS.Application.Construction.StructurePlacementIssue] AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.Evaluate(AI_RTS.Domain.Common.MatchId, AI_RTS.Domain.Common.PlayerId, AI_RTS.Domain.Construction.StructurePlacementCandidate, AI_RTS.Domain.Construction.StructurePlacementDefinition) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:40)
+       [5] AI_RTS.Application.Construction.StructurePlacementEvaluation AI_RTS.Application.Construction.StructurePlacementService.Evaluate(AI_RTS.Application.Construction.EvaluateStructurePlacementQuery) (G:\AIRTS\AI_RTS\source\csharp\Application\Construction\StructurePlacementService.cs:101)
+       [6] Godot.Collections.Dictionary AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime.Evaluate(Godot.Node, Godot.PackedScene, Godot.Transform3D, Godot.Collections.Dictionary) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\StructurePlacementRuntime.cs:50)
+       [7] bool AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (G:\AIRTS\AI_RTS\.godot\mono\temp\obj\Debug\Godot.SourceGenerators\Godot.SourceGenerators.ScriptMethodsGenerator\AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime_ScriptMethods.generated.cs:86)
+       [8] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+SCRIPT ERROR: Invalid access to property or key 'domain' on a base object of type 'NavigationAgent3D'.
+   at: _get_movement_domain (res://source/match/units/Unit.gd:631)
+   GDScript backtrace (most recent call first):
+       [0] _get_movement_domain (res://source/match/units/Unit.gd:631)
+       [1] _find_legal_transform (res://tests/automated/AutomaticConstructionSmokeTest.gd:113)
+       [2] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:48)
+       [3] wait_for_units (res://tests/automated/SmokeTestWarmup.gd:33)
+       [4] _wait_for_usable_navigation (res://tests/automated/SmokeTestWarmup.gd:60)
+   C# backtrace (most recent call first):
+       [0] Godot.Variant Godot.NativeCalls.godot_icall_1_168(nint, nint, Godot.NativeInterop.godot_string_name) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/NativeCalls.cs:1513)
+       [1] Godot.Variant Godot.GodotObject.Get(Godot.StringName) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/GodotObject.cs:435)
+       [2] int AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.Domain(Godot.Node3D) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:338)
+       [3] AI_RTS.GodotAdapter.Construction.GodotPlacementWorldAssessment AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.EvaluateDetailed(AI_RTS.Domain.Common.PlayerId, AI_RTS.Domain.Construction.StructurePlacementCandidate, AI_RTS.Domain.Construction.StructurePlacementDefinition) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:85)
+       [4] System.Collections.Generic.IReadOnlyList`1[AI_RTS.Application.Construction.StructurePlacementIssue] AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.Evaluate(AI_RTS.Domain.Common.MatchId, AI_RTS.Domain.Common.PlayerId, AI_RTS.Domain.Construction.StructurePlacementCandidate, AI_RTS.Domain.Construction.StructurePlacementDefinition) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:40)
+       [5] AI_RTS.Application.Construction.StructurePlacementEvaluation AI_RTS.Application.Construction.StructurePlacementService.Evaluate(AI_RTS.Application.Construction.EvaluateStructurePlacementQuery) (G:\AIRTS\AI_RTS\source\csharp\Application\Construction\StructurePlacementService.cs:101)
+       [6] Godot.Collections.Dictionary AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime.Evaluate(Godot.Node, Godot.PackedScene, Godot.Transform3D, Godot.Collections.Dictionary) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\StructurePlacementRuntime.cs:50)
+       [7] bool AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (G:\AIRTS\AI_RTS\.godot\mono\temp\obj\Debug\Godot.SourceGenerators\Godot.SourceGenerators.ScriptMethodsGenerator\AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime_ScriptMethods.generated.cs:86)
+       [8] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+SCRIPT ERROR: Invalid access to property or key 'domain' on a base object of type 'NavigationAgent3D'.
+   at: _get_movement_domain (res://source/match/units/Unit.gd:631)
+   GDScript backtrace (most recent call first):
+       [0] _get_movement_domain (res://source/match/units/Unit.gd:631)
+       [1] _find_legal_transform (res://tests/automated/AutomaticConstructionSmokeTest.gd:113)
+       [2] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:48)
+       [3] wait_for_units (res://tests/automated/SmokeTestWarmup.gd:33)
+       [4] _wait_for_usable_navigation (res://tests/automated/SmokeTestWarmup.gd:60)
+   C# backtrace (most recent call first):
+       [0] Godot.Variant Godot.NativeCalls.godot_icall_1_168(nint, nint, Godot.NativeInterop.godot_string_name) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/NativeCalls.cs:1513)
+       [1] Godot.Variant Godot.GodotObject.Get(Godot.StringName) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/GodotObject.cs:435)
+       [2] int AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.Domain(Godot.Node3D) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:338)
+       [3] AI_RTS.GodotAdapter.Construction.GodotPlacementWorldAssessment AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.EvaluateDetailed(AI_RTS.Domain.Common.PlayerId, AI_RTS.Domain.Construction.StructurePlacementCandidate, AI_RTS.Domain.Construction.StructurePlacementDefinition) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:85)
+       [4] System.Collections.Generic.IReadOnlyList`1[AI_RTS.Application.Construction.StructurePlacementIssue] AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.Evaluate(AI_RTS.Domain.Common.MatchId, AI_RTS.Domain.Common.PlayerId, AI_RTS.Domain.Construction.StructurePlacementCandidate, AI_RTS.Domain.Construction.StructurePlacementDefinition) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:40)
+       [5] AI_RTS.Application.Construction.StructurePlacementEvaluation AI_RTS.Application.Construction.StructurePlacementService.Evaluate(AI_RTS.Application.Construction.EvaluateStructurePlacementQuery) (G:\AIRTS\AI_RTS\source\csharp\Application\Construction\StructurePlacementService.cs:101)
+       [6] Godot.Collections.Dictionary AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime.Evaluate(Godot.Node, Godot.PackedScene, Godot.Transform3D, Godot.Collections.Dictionary) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\StructurePlacementRuntime.cs:50)
+       [7] bool AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (G:\AIRTS\AI_RTS\.godot\mono\temp\obj\Debug\Godot.SourceGenerators\Godot.SourceGenerators.ScriptMethodsGenerator\AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime_ScriptMethods.generated.cs:86)
+       [8] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+SCRIPT ERROR: Invalid access to property or key 'domain' on a base object of type 'NavigationAgent3D'.
+   at: _get_movement_domain (res://source/match/units/Unit.gd:631)
+   GDScript backtrace (most recent call first):
+       [0] _get_movement_domain (res://source/match/units/Unit.gd:631)
+       [1] _find_legal_transform (res://tests/automated/AutomaticConstructionSmokeTest.gd:113)
+       [2] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:48)
+       [3] wait_for_units (res://tests/automated/SmokeTestWarmup.gd:33)
+       [4] _wait_for_usable_navigation (res://tests/automated/SmokeTestWarmup.gd:60)
+   C# backtrace (most recent call first):
+       [0] Godot.Variant Godot.NativeCalls.godot_icall_1_168(nint, nint, Godot.NativeInterop.godot_string_name) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/NativeCalls.cs:1513)
+       [1] Godot.Variant Godot.GodotObject.Get(Godot.StringName) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/GodotObject.cs:435)
+       [2] int AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.Domain(Godot.Node3D) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:338)
+       [3] AI_RTS.GodotAdapter.Construction.GodotPlacementWorldAssessment AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.EvaluateDetailed(AI_RTS.Domain.Common.PlayerId, AI_RTS.Domain.Construction.StructurePlacementCandidate, AI_RTS.Domain.Construction.StructurePlacementDefinition) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:85)
+       [4] System.Collections.Generic.IReadOnlyList`1[AI_RTS.Application.Construction.StructurePlacementIssue] AI_RTS.GodotAdapter.Construction.GodotStructurePlacementWorldPort.Evaluate(AI_RTS.Domain.Common.MatchId, AI_RTS.Domain.Common.PlayerId, AI_RTS.Domain.Construction.StructurePlacementCandidate, AI_RTS.Domain.Construction.StructurePlacementDefinition) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\GodotStructurePlacementWorldPort.cs:40)
+       [5] AI_RTS.Application.Construction.StructurePlacementEvaluation AI_RTS.Application.Construction.StructurePlacementService.Evaluate(AI_RTS.Application.Construction.EvaluateStructurePlacementQuery) (G:\AIRTS\AI_RTS\source\csharp\Application\Construction\StructurePlacementService.cs:101)
+       [6] Godot.Collections.Dictionary AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime.Evaluate(Godot.Node, Godot.PackedScene, Godot.Transform3D, Godot.Collections.Dictionary) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Construction\StructurePlacementRuntime.cs:50)
+       [7] bool AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (G:\AIRTS\AI_RTS\.godot\mono\temp\obj\Debug\Godot.SourceGenerators\Godot.SourceGenerators.ScriptMethodsGenerator\AI_RTS.GodotAdapter.Construction.StructurePlacementRuntime_ScriptMethods.generated.cs:86)
+       [8] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+[ECO] PublishSnapshot player=2bcdba9b a=2400
+[ECO] ApplyLegacy reason=ConstructionCost player=2bcdba9b status=Applied a=2400
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=1 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+SCRIPT ERROR: Invalid call. Nonexistent 'float' constructor.
+   at: _apply_speed (res://source/growth/GrowthModifiers.gd:156)
+   GDScript backtrace (most recent call first):
+       [0] _apply_speed (res://source/growth/GrowthModifiers.gd:156)
+       [1] apply_to_unit (res://source/growth/GrowthModifiers.gd:142)
+       [2] _ready (res://source/match/units/Unit.gd:127)
+       [3] _setup_and_spawn_unit (res://source/match/Match.gd:742)
+       [4] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:64)
+       [5] wait_for_units (res://tests/automated/SmokeTestWarmup.gd:33)
+       [6] _wait_for_usable_navigation (res://tests/automated/SmokeTestWarmup.gd:60)
+SCRIPT ERROR: Invalid access to property or key 'domain' on a base object of type 'NavigationAgent3D'.
+   at: _get_movement_domain (res://source/match/units/Unit.gd:631)
+   GDScript backtrace (most recent call first):
+       [0] _get_movement_domain (res://source/match/units/Unit.gd:631)
+       [1] _safety_checks (res://source/match/units/Unit.gd:743)
+       [2] _ready (res://source/match/units/Unit.gd:128)
+       [3] _setup_and_spawn_unit (res://source/match/Match.gd:742)
+       [4] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:64)
+       [5] wait_for_units (res://tests/automated/SmokeTestWarmup.gd:33)
+       [6] _wait_for_usable_navigation (res://tests/automated/SmokeTestWarmup.gd:60)
+SCRIPT ERROR: Invalid access to property or key 'domain' on a base object of type 'NavigationAgent3D'.
+   at: _get_movement_domain (res://source/match/units/Unit.gd:631)
+   GDScript backtrace (most recent call first):
+       [0] _get_movement_domain (res://source/match/units/Unit.gd:631)
+       [1] _safety_checks (res://source/match/units/Unit.gd:751)
+       [2] _ready (res://source/match/units/Unit.gd:128)
+       [3] _setup_and_spawn_unit (res://source/match/Match.gd:742)
+       [4] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:64)
+       [5] wait_for_units (res://tests/automated/SmokeTestWarmup.gd:33)
+       [6] _wait_for_usable_navigation (res://tests/automated/SmokeTestWarmup.gd:60)
+SCRIPT ERROR: Invalid access to property or key 'domain' on a base object of type 'NavigationAgent3D'.
+   at: _get_movement_domain (res://source/match/units/Unit.gd:631)
+   GDScript backtrace (most recent call first):
+       [0] _get_movement_domain (res://source/match/units/Unit.gd:631)
+       [1] _setup_and_spawn_unit (res://source/match/Match.gd:746)
+       [2] _ready (res://tests/automated/AutomaticConstructionSmokeTest.gd:64)
+       [3] wait_for_units (res://tests/automated/SmokeTestWarmup.gd:33)
+       [4] _wait_for_usable_navigation (res://tests/automated/SmokeTestWarmup.gd:60)
+   C# backtrace (most recent call first):
+       [0] Godot.Variant Godot.NativeCalls.godot_icall_1_168(nint, nint, Godot.NativeInterop.godot_string_name) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/NativeCalls.cs:1513)
+       [1] Godot.Variant Godot.GodotObject.Get(Godot.StringName) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/GodotObject.cs:435)
+       [2] System.Nullable`1[AI_RTS.Application.Units.UnitCommandSnapshot] AI_RTS.GodotAdapter.Units.GodotUnitRegistry.Find(AI_RTS.Domain.Common.UnitId) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Units\GodotUnitRegistry.cs:45)
+       [3] void AI_RTS.Application.Commands.UnitCommandService.EquipAutomaticSkills(AI_RTS.Domain.Common.UnitId) (G:\AIRTS\AI_RTS\source\csharp\Application\Commands\UnitCommandService.cs:501)
+       [4] AI_RTS.Domain.Common.UnitId AI_RTS.GodotAdapter.Composition.CommandRuntime.EquipRuntimeUnit(Godot.Node) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Composition\CommandRuntime.cs:1314)
+       [5] void AI_RTS.GodotAdapter.Composition.CommandRuntime.OnUnitSpawned(Godot.Node) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Composition\CommandRuntime.cs:1285)
+       [6] void Godot.Callable.<From>g__Trampoline|2_0<T0>(object, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Callable.generics.cs:56)
+       [7] void Godot.DelegateUtils.InvokeWithVariantArgs(nint, System.Void*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/DelegateUtils.cs:86)
+G4PERF command_runtime_us=65 frames=40
+G4PERF production_runtime_us=8 frames=40
+G4PERF command_runtime_us=642 frames=80
+G4PERF production_runtime_us=25 frames=80
+G4PERF command_runtime_us=90 frames=120
+G4PERF production_runtime_us=9 frames=120
+G4PERF command_runtime_us=83 frames=160
+G4PERF production_runtime_us=10 frames=160
+G4PERF command_runtime_us=31 frames=200
+G4PERF production_runtime_us=8 frames=200
+[ECO] PublishSnapshot player=2bcdba9b a=2300
+Automatic construction smoke test completed: 0 failure(s)
+[EXIT-TRACE] EXIT_TREE：场景树收尾（tick=-1，场景=unknown，对局结果=无该节点）
+[EXIT-TRACE] PREDELETE：引擎收尾（Globals 释放，tick=unknown(已脱离场景树)）
+ERROR: 3 RID allocations of type '13NavObstacle3D' were leaked at exit.
+ERROR: 3 RID allocations of type '10NavAgent3D' were leaked at exit.
+ERROR: 3 RID allocations of type 'P11GodotArea3D' were leaked at exit.
+ERROR: 1 RID allocations of type 'P12GodotShape3D' were leaked at exit.
+ERROR: 11 RID allocations of type 'N13RendererDummy15MaterialStorage13DummyMaterialE' were leaked at exit.
+ERROR: 1 RID allocations of type 'N13RendererDummy15MaterialStorage11DummyShaderE' were leaked at exit.
+ERROR: 16 RID allocations of type 'N13RendererDummy9DummyMeshE' were leaked at exit.
+ERROR: 30 RID allocations of type 'N17RendererSceneCull8InstanceE' were leaked at exit.
+ERROR: Pages in use exist at exit in PagedAllocator: N20RasterizerSceneDummy21GeometryInstanceDummyE
+   at: ~PagedAllocator (./core/templates/paged_allocator.h:170)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: 142 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2536)
+ERROR: 31 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

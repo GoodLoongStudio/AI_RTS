@@ -1,0 +1,77 @@
+[
+  {
+    "id": "rule-ai-battlegroup",
+    "category": "traditional-ai",
+    "scene": "res://tests/automated/RuleAiBattlegroupSmokeTest.tscn",
+    "returncode": 1,
+    "seconds": 10.2,
+    "marker_ok": false,
+    "marker": "Rule AI battlegroup smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "3"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 141
+  },
+  {
+    "id": "rule-ai-economy-query",
+    "category": "traditional-ai",
+    "scene": "res://tests/automated/RuleAiEconomyQuerySmokeTest.tscn",
+    "returncode": 1,
+    "seconds": 14.6,
+    "marker_ok": false,
+    "marker": "Rule AI economy query smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "2"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 233
+  },
+  {
+    "id": "rule-ai-expansion",
+    "category": "traditional-ai",
+    "scene": "res://tests/automated/RuleAiExpansionSmokeTest.tscn",
+    "returncode": 1,
+    "seconds": 16.3,
+    "marker_ok": false,
+    "marker": "Rule AI expansion smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "1"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 258
+  },
+  {
+    "id": "rule-ai-offense-logistics",
+    "category": "traditional-ai",
+    "scene": "res://tests/automated/RuleAiOffenseLogisticsSmokeTest.tscn",
+    "returncode": 1,
+    "seconds": 11.9,
+    "marker_ok": false,
+    "marker": "Rule AI offense logistics smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "2"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 255
+  },
+  {
+    "id": "turret-aiming",
+    "category": "combat",
+    "scene": "res://tests/automated/TurretAimingSmokeTest.tscn",
+    "returncode": 0,
+    "seconds": 5.4,
+    "marker_ok": true,
+    "marker": "Turret aiming smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 94
+  }
+]

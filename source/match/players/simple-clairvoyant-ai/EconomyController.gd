@@ -1,9 +1,14 @@
 extends Node
 
+const AiPerfStats = preload("res://source/match/players/simple-clairvoyant-ai/AiPerfStats.gd")
+const AiBuildAnchors = preload("res://source/match/players/simple-clairvoyant-ai/AiBuildAnchors.gd")
+
 signal resources_required(resources, metadata)
 
 const CommandCenterScene = preload("res://source/match/units/CommandCenter.tscn")
 const WorkerScene = preload("res://source/match/units/Worker.tscn")
+const OreRefineryScene = preload("res://source/match/units/OreRefinery.tscn")
+const VehicleFactoryScene = preload("res://source/match/units/VehicleFactory.tscn")
 
 const FIELD_POSITION := 1 << 0
 const FIELD_TYPE := 1 << 1
@@ -14,20 +19,27 @@ const REFRESH_INTERVAL_S := 0.5
 const PLACEMENT_BACKOFF_MS := 8000
 const COMMAND_CENTER_TYPE_ID := "command_center"
 const WORKER_TYPE_ID := "worker"
+## 【2026-09-28 红警2 口径】矿车（原"工人"）改由车厂生产（balance 同步），
+## 主基地不再能生产它；开局也不送，车厂是唯一稳定产能入口。
+const VEHICLE_FACTORY_TYPE_ID := "vehicle_factory"
+## 矿场是**点火建筑**：开局不送矿车后，`OreRefinery._grant_free_miner` 完工赠的那一辆
+## 是场上第一辆矿车的唯一来源（balance 里 ore_refinery 的 constructionProgressSource
+## 是 "automatic"，不需要工人就能自己盖起来）。
+const ORE_REFINERY_TYPE_ID := "ore_refinery"
 ## 统一货币（2026-09-14）：B 已从玩法移除，AI 只认 resource_a。
 const RESOURCE_A_TYPE_ID := "resource_a"
 
 ## ---- 扩张选址与落点搜索（2026-09-27 缩放适配）----
 ## 地图 XZ ×2 之后 80m 圈在 512m 图上经常一个合格矿点都扫不到，扩到 120m。
 const EXPANSION_SCAN_RADIUS_M := 120.0
-## 新基地必须与现有基地保持的平安距离（20m 的平方）。
-const MIN_CC_SEPARATION_SQ := 400.0
+## 新基地至少离任意己方基地 30m（平方距离）。
+const MIN_CC_SEPARATION_SQ := 900.0
 ## 扩张点必须落在己方单位视野覆盖内：放置层要求整个 footprint 圆 `FullyVisible`，
-## 而单位 sight 只有 5~10m（见 balance 的 sightRangeMeters）⇒ 远处未揭示的矿点
+## 而单位 sight 为 10~20m（2026-10-01 尺度 ×2 后）（见 balance 的 sightRangeMeters）⇒ 远处未揭示的矿点
 ## 周边一个合法落点都搜不到，只会刷"放置被拒绝"。
 const EXPANSION_VISION_COVERAGE_M := 10.0
-## 远处扩张点只在工人视野内做螺旋搜索（外扩太多整环落到视野外 = NotVisible）。
-const SITE_SPOT_MAX_RADIUS_M := 14.0
+## 在已观测的真实矿点附近搜索；是否允许远程建造由权威放置层判定。
+const SITE_SPOT_MAX_RADIUS_M := 24.0
 ## 贴主基地搜索时给足半径：CC footprint 半径 6m（建筑 ×3 缩放后），
 ## 基地周边还挤着厂/塔，环太短永远撞避让圈。
 const BASE_SPOT_MAX_RADIUS_M := 48.0
@@ -45,7 +57,11 @@ var _query_boundary_warned := false
 var _command_gateway = null
 var _number_of_pending_cc_resource_requests := 0
 var _number_of_pending_worker_resource_requests := 0
+var _number_of_pending_refinery_resource_requests := 0
+var _number_of_pending_factory_resource_requests := 0
 var _placement_backoff_until_ms := 0
+var _assign_first_recorded := false
+var _production_home_anchor := Vector3.INF
 
 @onready var _ai = get_parent()
 @onready var _balance = find_parent("Match").get_node("BalanceConfigRuntime")
@@ -61,7 +77,7 @@ func setup(world_query_runtime, query_session_id: String, command_gateway):
 
 
 ## 使用已经获准的资源请求，通过公共命令边界生产 Worker 或放置 CommandCenter。
-func provision(resources, metadata):
+func provision(resources, metadata) -> String:
 	if metadata == "worker":
 		assert(
 			resources == _balance.GetProductionCost(WorkerScene),
@@ -69,16 +85,38 @@ func provision(resources, metadata):
 		)
 		_number_of_pending_worker_resource_requests -= 1
 		_try_produce_worker(_get_own_entities())
+		return "done"
 	elif metadata == "cc":
 		assert(
 			resources == _balance.GetConstructionCost(CommandCenterScene),
 			"unexpected amount of resources"
 		)
-		_number_of_pending_cc_resource_requests -= 1
 		var own_entities := _get_own_entities()
-		_try_construct_cc(own_entities, _find_expansion_site(own_entities))
+		var outcome := _try_construct_cc(own_entities, _find_expansion_site(own_entities))
+		if outcome != "pending":
+			_number_of_pending_cc_resource_requests -= 1
+		return outcome
+	elif metadata == "refinery":
+		assert(
+			resources == _balance.GetConstructionCost(OreRefineryScene),
+			"unexpected amount of resources"
+		)
+		var outcome := _try_construct_refinery(_get_own_entities())
+		if outcome != "pending":
+			_number_of_pending_refinery_resource_requests -= 1
+		return outcome
+	elif metadata == "factory":
+		assert(
+			resources == _balance.GetConstructionCost(VehicleFactoryScene),
+			"unexpected amount of resources"
+		)
+		var outcome := _try_construct_factory(_get_own_entities())
+		if outcome != "pending":
+			_number_of_pending_factory_resource_requests -= 1
+		return outcome
 	else:
 		assert(false, "unexpected flow")
+		return "done"
 
 
 func _setup_refresh_timer():
@@ -90,15 +128,154 @@ func _setup_refresh_timer():
 
 ## 使用同一己方快照补齐建筑、Worker 与采集计划，避免读取 Legacy Node 状态。
 func _refresh_planning():
+	var perf_on := AiPerfStats.enabled()
+	var own_started := Time.get_ticks_usec() if perf_on else 0
 	var own_entities := _get_own_entities()
-
-	var idle_workers := _count_idle_workers(own_entities)
-	_enforce_number_of_ccs(own_entities, idle_workers)
+	if perf_on:
+		AiPerfStats.add("economy_forces", Time.get_ticks_usec() - own_started)
+	var enforce_started := Time.get_ticks_usec() if perf_on else 0
+	if not _production_home_anchor.is_finite():
+		_production_home_anchor = AiBuildAnchors.production_anchor(own_entities)
+	_enforce_number_of_refineries(own_entities)
+	_enforce_number_of_ccs(own_entities)
 	_enforce_number_of_workers(own_entities)
+	if perf_on:
+		AiPerfStats.add("economy_enforce", Time.get_ticks_usec() - enforce_started)
+	var assign_started := Time.get_ticks_usec() if perf_on else 0
 	_assign_idle_workers_to_resources(own_entities)
+	if perf_on:
+		var assign_elapsed := Time.get_ticks_usec() - assign_started
+		AiPerfStats.add("economy_assign", assign_elapsed)
+		if not _assign_first_recorded:
+			_assign_first_recorded = true
+			AiPerfStats.add("economy_assign_first", assign_elapsed)
 
 
-## 统计没有活动订单的 Worker 数量（扩张门槛用：全部在岗才允许开分矿）。
+## 经济点火（2026-09-28 红警2 口径的补课）：场上既没有矿车、也没有生产中的矿车、
+## 还没有矿场时，先要一座矿场。规则 AI 原来只有"CC + 矿车"两步，矿车改由车厂生产、
+## 开局又不送之后，它就永远拿不到第一辆矿车 ⇒ 采集/车厂/生产线全部停摆
+## （实测 rule-ai-economy-query、rule-ai-expansion、rule-ai-offense-logistics 同批变红）。
+## 矿场是自动施工（balance: constructionProgressSource="automatic"），不需要工人；
+## 完工时 `OreRefinery._grant_free_miner` 送出第一辆矿车，链条才接上。
+func _enforce_number_of_refineries(own_entities: Array):
+	if Time.get_ticks_msec() < _placement_backoff_until_ms:
+		return
+	if AiBuildAnchors.refinery_anchor(own_entities) == Vector3.INF:
+		return
+	if own_entities.any(func(entity):
+		var site = entity.get("construction", null)
+		return site != null and site.get("state", "") == "UnderConstruction"):
+		return
+	if _number_of_pending_refinery_resource_requests > 0:
+		return
+	resources_required.emit(_balance.GetConstructionCost(OreRefineryScene), "refinery")
+	_number_of_pending_refinery_resource_requests += 1
+
+
+## 开局点火；分基地完工后也在本地接入一座矿场。
+func _try_construct_refinery(own_entities: Array) -> String:
+	if Time.get_ticks_msec() < _placement_backoff_until_ms:
+		return "done"
+	var anchor := AiBuildAnchors.refinery_anchor(own_entities)
+	if anchor == Vector3.INF:
+		return "done"
+	var spot := _find_legal_structure_spot(
+		OreRefineryScene, anchor, BASE_SPOT_MAX_RADIUS_M
+	)
+	if _placement_pending():
+		return "pending"
+	if spot == Vector3.INF:
+		# 【2026-09-30】"施工中"不是选址失败：一次只能建一个，等当前工地完工即可，
+		# 不要把全局忙碌误报成"无合法落点"误导上层换点/放弃。
+		_break_off_placement(
+			"矿场选址未成（%s）anchor=%s" % [
+				_spot_fail_reason(_last_spot_reply), str(anchor)],
+			ORE_REFINERY_TYPE_ID
+		)
+		return "done"
+	var result: Dictionary = _command_gateway.PlaceStructure(
+		ORE_REFINERY_TYPE_ID, Transform3D(Basis.IDENTITY, spot)
+	)
+	if result.get("accepted", false):
+		print("规则 AI 矿场已放置 %s" % str(spot))
+		return "done"
+	if result.get("primary_issue", "") == "InsufficientResources":
+		return "done"
+	_break_off_placement("落点 %s 放置被拒 %s" % [str(spot), str(result)], ORE_REFINERY_TYPE_ID)
+	return "done"
+
+
+func _has_completed_vehicle_factory(own_entities: Array) -> bool:
+	for entity in own_entities:
+		if entity.get("type_id", "") != VEHICLE_FACTORY_TYPE_ID:
+			continue
+		var construction = entity.get("construction", null)
+		if construction != null and construction.get("state", "") == "Completed":
+			return true
+	return false
+
+
+## 点火矿场（或它赠的第一辆矿车）还没出现时不建车厂，避免和矿场抢同一个施工位。
+## 已有别的建筑在施工、或主基地/矿场的放置请求还排着时，这一轮也不插队。
+func _request_vehicle_factory(own_entities: Array) -> void:
+	if Time.get_ticks_msec() < _placement_backoff_until_ms:
+		return
+	if _number_of_pending_factory_resource_requests > 0:
+		return
+	if _number_of_pending_cc_resource_requests > 0 or _number_of_pending_refinery_resource_requests > 0:
+		return
+	for entity in own_entities:
+		if entity.get("type_id", "") == VEHICLE_FACTORY_TYPE_ID:
+			return
+		var construction = entity.get("construction", null)
+		if construction != null and construction.get("state", "") not in ["", "Completed"]:
+			return
+	var has_worker: bool = own_entities.any(
+		func(entity): return entity.get("type_id", "") == WORKER_TYPE_ID
+	)
+	var has_refinery: bool = own_entities.any(
+		func(entity):
+			var construction = entity.get("construction", null)
+			return entity.get("type_id", "") == ORE_REFINERY_TYPE_ID \
+				and construction != null and construction.get("state", "") == "Completed"
+	)
+	if not has_worker and not has_refinery:
+		return
+	resources_required.emit(_balance.GetConstructionCost(VehicleFactoryScene), "factory")
+	_number_of_pending_factory_resource_requests += 1
+
+
+func _try_construct_factory(own_entities: Array) -> String:
+	if Time.get_ticks_msec() < _placement_backoff_until_ms:
+		return "done"
+	var anchor := AiBuildAnchors.production_anchor(own_entities, _production_home_anchor)
+	if anchor == Vector3.INF:
+		return "done"
+	var spot := _find_legal_structure_spot(
+		VehicleFactoryScene, anchor, BASE_SPOT_MAX_RADIUS_M
+	)
+	if _placement_pending():
+		return "pending"
+	if spot == Vector3.INF:
+		_break_off_placement(
+			"车厂选址未成（%s）anchor=%s" % [
+				_spot_fail_reason(_last_spot_reply), str(anchor)],
+			VEHICLE_FACTORY_TYPE_ID
+		)
+		return "done"
+	var result: Dictionary = _command_gateway.PlaceStructure(
+		VEHICLE_FACTORY_TYPE_ID, Transform3D(Basis.IDENTITY, spot)
+	)
+	if result.get("accepted", false):
+		print("规则 AI 车厂已放置 %s" % str(spot))
+		return "done"
+	if result.get("primary_issue", "") == "InsufficientResources":
+		return "done"
+	_break_off_placement("落点 %s 放置被拒 %s" % [str(spot), str(result)], VEHICLE_FACTORY_TYPE_ID)
+	return "done"
+
+
+## 统计没有活动订单的 Worker 数量；自动施工不以该数量作为扩张门槛。
 func _count_idle_workers(own_entities: Array) -> int:
 	return own_entities.filter(
 		func(entity):
@@ -108,9 +285,9 @@ func _count_idle_workers(own_entities: Array) -> int:
 
 ## 扩张逻辑（AI-plan Part A Phase 1）：
 ## - 无任何 CC 时无条件重建（旧口径兜底）；
-## - 有 CC 时条件触发：未达上限 + 无待处理扩张请求 + 工人全部在岗 + 双资源余额过门槛。
+## - 有 CC 时条件触发：未达上限、无待处理施工、各基地矿场已补齐、资金达标且有新矿。
 ## 一次只请求一座（串行扩张），规避 ConstructionWorksController 单工地短路。
-func _enforce_number_of_ccs(own_entities: Array, idle_worker_count: int):
+func _enforce_number_of_ccs(own_entities: Array, _idle_worker_count: int = 0):
 	if Time.get_ticks_msec() < _placement_backoff_until_ms:
 		return
 	var current_count := own_entities.filter(
@@ -125,9 +302,18 @@ func _enforce_number_of_ccs(own_entities: Array, idle_worker_count: int):
 		return
 	if _number_of_pending_cc_resource_requests > 0:
 		return
-	if idle_worker_count > 0:
+	if own_entities.any(func(entity):
+		var site = entity.get("construction", null)
+		return site != null and site.get("state", "") == "UnderConstruction"):
+		return
+	if not own_entities.any(func(entity): return entity.get("type_id", "") == ORE_REFINERY_TYPE_ID):
+		return
+	if _number_of_pending_refinery_resource_requests > 0 \
+		or AiBuildAnchors.refinery_anchor(own_entities) != Vector3.INF:
 		return
 	if not _economy_meets_expansion_threshold():
+		return
+	if _find_expansion_site(own_entities) == Vector3.INF:
 		return
 	resources_required.emit(_balance.GetConstructionCost(CommandCenterScene), "cc")
 	_number_of_pending_cc_resource_requests += 1
@@ -153,7 +339,11 @@ func _economy_meets_expansion_threshold() -> bool:
 
 ## 统计已部署及所有生产队列中的 Worker，并为数量缺口提交资源请求。
 ## 目标工人数 = 现有 CC 数（含施工现场）× workers_per_command_center。
+## 矿车只能由车厂生产。没有完工车厂时不发生产请求；点火矿场还没落下之前也不抢施工位。
 func _enforce_number_of_workers(own_entities: Array):
+	if not _has_completed_vehicle_factory(own_entities):
+		_request_vehicle_factory(own_entities)
+		return
 	var current_count := own_entities.filter(
 		func(entity): return entity.get("type_id", "") == WORKER_TYPE_ID
 	).size()
@@ -210,13 +400,20 @@ func _assign_idle_workers_to_resources(own_entities: Array):
 		if worker.get("order", null) != null:
 			continue
 		# 统一货币：场上只有资源 A 一种矿，原来在这里做的 A/B 均衡分配不再需要。
+		var perf_on := AiPerfStats.enabled()
+		var scan_started := Time.get_ticks_usec() if perf_on else 0
 		var resource := _find_visible_resource(worker["position"], RESOURCE_A_TYPE_ID, assigned_counts_by_node)
+		if perf_on:
+			AiPerfStats.add("economy_assign_scan", Time.get_ticks_usec() - scan_started)
 		if resource.is_empty():
 			continue
+		var gather_started := Time.get_ticks_usec() if perf_on else 0
 		var result: Dictionary = _command_gateway.Gather(
 			[worker["id"]],
 			resource["id"]
 		)
+		if perf_on:
+			AiPerfStats.add("economy_assign_gather", Time.get_ticks_usec() - gather_started)
 
 		if result.get("status", "") in ["Accepted", "PartiallyAccepted"]:
 			assigned_counts_by_type[resource["type_id"]] += 1
@@ -233,19 +430,26 @@ func _find_visible_resource(
 	var runtime: Variant = _resolve_query_runtime()
 	if runtime == null:
 		return {}
+	var perf_on := AiPerfStats.enabled()
+	var api_started := Time.get_ticks_usec() if perf_on else 0
 	var result: Dictionary = runtime.ScanCircle(
 		_resolve_query_session_id(),
 		worker_position,
 		Constants.Match.Units.NEW_RESOURCE_SEARCH_RADIUS_M,
 		FIELD_POSITION | FIELD_TYPE
 	)
+	if perf_on:
+		AiPerfStats.add("economy_scan_api", Time.get_ticks_usec() - api_started)
 	if result.get("status", "") != "Accepted":
 		push_warning("rule AI resource query was rejected: %s" % result.get("error", "Unknown"))
 		return {}
+	var sort_started := Time.get_ticks_usec() if perf_on else 0
 	var resources: Array = result["entities"].filter(
 		func(entity): return entity.get("type_id", "") == RESOURCE_A_TYPE_ID
 	)
 	if resources.is_empty():
+		if perf_on:
+			AiPerfStats.add("economy_scan_sort", Time.get_ticks_usec() - sort_started)
 		return {}
 	var preferred: Array = resources.filter(
 		func(entity): return entity.get("type_id", "") == preferred_type
@@ -261,6 +465,8 @@ func _find_visible_resource(
 				worker_position.distance_squared_to(right["position"])
 			)
 	)
+	if perf_on:
+		AiPerfStats.add("economy_scan_sort", Time.get_ticks_usec() - sort_started)
 	return candidates[0]
 
 
@@ -268,7 +474,7 @@ func _find_visible_resource(
 func _try_produce_worker(own_entities: Array):
 	var producers: Array = own_entities.filter(
 		func(entity):
-			if entity.get("type_id", "") != COMMAND_CENTER_TYPE_ID:
+			if entity.get("type_id", "") != VEHICLE_FACTORY_TYPE_ID:
 				return false
 			if entity.get("production", null) == null:
 				return false
@@ -277,6 +483,13 @@ func _try_produce_worker(own_entities: Array):
 	)
 	if producers.is_empty():
 		return
+	# 队列里已经在产矿车就不再下单：权威端回 QueueFull，而旧实现每轮都重发一遍
+	# （实测 rule-ai-offense-logistics 一轮里连刷 6 条被拒命令，白占命令边界与日志）。
+	var queue = producers[0].get("production", null)
+	if queue != null:
+		for item in queue.get("items", []):
+			if item.get("product_type_id", "") == WORKER_TYPE_ID:
+				return
 	var result: Dictionary = _command_gateway.EnqueueProduction(
 		producers[0]["id"],
 		WORKER_TYPE_ID
@@ -290,66 +503,107 @@ func _try_produce_worker(own_entities: Array):
 ## 【2026-09-27 缩放适配】旧实现自己在 center 周围铺 3~17m 的环、再 `shuffle()` 后只探
 ## 8 个点：建筑 ×3（CC footprint 半径 6m）+ 地图 ×2 之后，这些环全落在己方建筑避让圈里，
 ## 放置必被拒（issues=NotVisible/OutOfBounds/SurfaceNotBuildable）。
-## 现在改用玩家侧同一套 footprint 感知的螺旋搜索（`FindAutoSpot`：首环 = 半径+2m、
-## 逐环外扩 2m、黄金角错开、每个候选都过权威放置校验），并按
-## "远处扩张点 → 主 CC → 残余 Worker" 的顺序回退重试。
-func _try_construct_cc(own_entities: Array, preferred_center: Vector3 = Vector3.INF):
+## 现在调用共用 FindAutoSpot：有预算的几何评分、通道保护和权威复验。
+## 有基地时只去新矿扩张；无基地时才允许从残余 Worker 附近重建。
+func _try_construct_cc(own_entities: Array, preferred_center: Vector3 = Vector3.INF) -> String:
 	if Time.get_ticks_msec() < _placement_backoff_until_ms:
-		return
+		return "done"
 	var workers: Array = own_entities.filter(
 		func(entity): return entity.get("type_id", "") == WORKER_TYPE_ID
 	)
-	if workers.is_empty():
-		return
 	var command_centers: Array = own_entities.filter(
 		func(entity): return entity.get("type_id", "") == COMMAND_CENTER_TYPE_ID
 	)
-	# 回退链：扩张点（有工人视野覆盖才给）→ 主 CC → 残余 Worker。
+	# 扩张使用新矿锚点；残余 Worker 仅用于失去全部基地后的重建。
 	var anchors: Array = []
 	if preferred_center != Vector3.INF:
 		anchors.append({"position": preferred_center, "max_radius": SITE_SPOT_MAX_RADIUS_M})
 	var base_position: Vector3 = (
 		command_centers[0]["position"] if not command_centers.is_empty()
-		else workers[0]["position"]
+		else (workers[0]["position"] if not workers.is_empty() else Vector3.INF)
 	)
-	anchors.append({"position": base_position, "max_radius": BASE_SPOT_MAX_RADIUS_M})
+	# Existing HQ: an unavailable expansion is a wait, never a second HQ at home.
+	if not command_centers.is_empty() and preferred_center == Vector3.INF:
+		return "done"
 	if command_centers.is_empty():
-		anchors.append({"position": workers[0]["position"], "max_radius": BASE_SPOT_MAX_RADIUS_M})
+		if base_position == Vector3.INF:
+			return "done"
+		anchors.append({"position": base_position, "max_radius": BASE_SPOT_MAX_RADIUS_M})
+	var fail_reason := "无合法落点"
 	for anchor in anchors:
 		var spot := _find_legal_cc_spot(anchor["position"], anchor["max_radius"])
+		if _placement_pending():
+			return "pending"
 		if spot == Vector3.INF:
+			# 全局性拒绝（施工中等）与锚点无关：换锚点结果不变，直接终局并如实上报。
+			var reason := _spot_fail_reason(_last_spot_reply)
+			if reason.begins_with("全局忙碌"):
+				fail_reason = reason
+				break
+			continue
+		if command_centers.any(func(center): return spot.distance_squared_to(center["position"]) < MIN_CC_SEPARATION_SQ):
 			continue
 		var result: Dictionary = _command_gateway.PlaceStructure(
 			COMMAND_CENTER_TYPE_ID,
 			Transform3D(Basis.IDENTITY, spot)
 		)
 		if result.get("accepted", false):
-			return
+			return "done"
 		# 缺钱不是选址问题：落点合法，扣款失败等下一轮，别进选址退避。
 		if result.get("primary_issue", "") == "InsufficientResources":
-			return
+			return "done"
 		_break_off_placement("落点 %s 放置被拒 %s" % [str(spot), str(result)])
-		return
-	_break_off_placement("无合法落点 anchors=%d" % anchors.size())
+		return "done"
+	_break_off_placement("分基地 %s anchors=%d" % [fail_reason, anchors.size()])
+	return "done"
 
 
 ## 进入选址退避并留一行诊断（原来只在失败时 print 一次被拒结果）。
-func _break_off_placement(reason: String) -> void:
+func _break_off_placement(reason: String, what: String = "CommandCenter") -> void:
 	_placement_backoff_until_ms = Time.get_ticks_msec() + PLACEMENT_BACKOFF_MS
-	print("规则 AI 放置 CommandCenter 被拒绝：%s" % reason)
+	print("规则 AI 放置 %s 被拒绝：%s" % [what, reason])
 
 
 ## 用玩家侧的自动落点搜索找一个能放 CC 的合法坐标；找不到返回 Vector3.INF。
 func _find_legal_cc_spot(anchor: Vector3, max_radius_m: float) -> Vector3:
+	return _find_legal_structure_spot(CommandCenterScene, anchor, max_radius_m, "resource")
+
+
+## 共用自动选址入口：候选先按 footprint/通道评分，优选点再通过权威放置校验。
+## resource 模式用于矿场/分基地，base 模式用于已完工基地周边的发展。
+## 找到返回落点，找不到返回 Vector3.INF；原始回执（含 reason）留在 _last_spot_reply。
+var _last_spot_reply: Variant = null
+
+
+func _find_legal_structure_spot(prototype: PackedScene, anchor: Vector3, max_radius_m: float, mode: String = "base") -> Vector3:
 	var placement := _structure_placement_runtime()
 	if placement == null:
+		_last_spot_reply = null
 		return Vector3.INF
-	var reply: Variant = placement.FindAutoSpot(
-		_ai, CommandCenterScene, CC_AUTO_SPOT_MODE, anchor, max_radius_m
+	var reply: Variant = placement.FindAutoSpotBudgeted(
+		_ai, prototype, mode, anchor, max_radius_m, 1500
+	) if placement.has_method("FindAutoSpotBudgeted") else placement.FindAutoSpot(
+		_ai, prototype, mode, anchor, max_radius_m
 	)
+	_last_spot_reply = reply
 	if not (reply is Dictionary) or not bool(reply.get("found", false)):
 		return Vector3.INF
 	return reply.get("pos", Vector3.INF)
+
+
+## 选址失败的**准确**原因：全局性拒绝（施工中/未授权/校验不可用）不是"无合法落点"，
+## 上层应等待而不是换点或放弃（2026-09-30 修"busy 被误报成无落点"）。
+func _placement_pending() -> bool:
+	return _last_spot_reply is Dictionary and bool(_last_spot_reply.get("pending", false))
+
+
+func _spot_fail_reason(reply: Variant) -> String:
+	if reply == null or not (reply is Dictionary):
+		return "选址服务不可用"
+	var reason := str(reply.get("reason", ""))
+	if not reason.is_empty():
+		return "全局忙碌 %s，等当前施工完成" % reason
+	return "无合法落点"
 
 
 func _structure_placement_runtime() -> Node:
@@ -362,10 +616,9 @@ func _structure_placement_runtime() -> Node:
 	return placement
 
 
-## 扩张选址：以主 CC 为心做大半径扫描，取「距所有己方 CC 至少 20m、且落在己方单位
-## 视野覆盖内（否则放置层整圈 NotVisible）」中**最近**的资源簇位置。
+## 扩张选址：以主 CC 为心扫描已观测资源，选距所有己方 CC 至少 30m 的最近新矿。
 ## 【2026-09-19】此前取的是**最远**的（见下方注释），与方案 3.F"不再默认最远矿点最优"冲突。
-## 找不到合适资源时返回 Vector3.INF（本轮放弃扩张，由 _try_construct_cc 回退到主 CC 附近）。
+## 找不到新矿返回 Vector3.INF，等待下一轮探索，不在主基地旁造伪分基地。
 func _find_expansion_site(own_entities: Array) -> Vector3:
 	var command_centers: Array = own_entities.filter(
 		func(entity): return entity.get("type_id", "") == COMMAND_CENTER_TYPE_ID
@@ -385,7 +638,7 @@ func _find_expansion_site(own_entities: Array) -> Vector3:
 	if result.get("status", "") != "Accepted":
 		return Vector3.INF
 	var best_position := Vector3.INF
-	var best_distance := 400.0  # 20m 平方下限：新基地必须与现有基地保持距离
+	var best_distance := INF  # Separation is a lower bound, not the best-distance upper bound.
 	for entity in result.get("entities", []):
 		if entity.get("type_id", "") != RESOURCE_A_TYPE_ID:
 			continue
@@ -397,12 +650,12 @@ func _find_expansion_site(own_entities: Array) -> Vector3:
 				break
 		if too_close:
 			continue
-		if not _covered_by_own_vision(position, own_entities):
-			continue
+		# ScanCircle already enforces this player's observation policy. Remote CC
+		# does not require a worker standing within a stale fixed 10m proxy.
 		# 【2026-09-19 修确定缺陷】原实现用 `distance > best_distance` ⇒ **专挑最远**的
 		# 资源簇当分矿：跑得最久、最容易被截、工人往返最费的定位反而被优先选中
 		# （方案第 1 节："扩张偏远…"；方案 3.F："不再默认最远矿点最优"）。
-		# 改为取"满足平安距离（best_distance 初值 = 20m 平方）之外**最近**"的资源簇：
+		# 最小间距单独检查，best_distance 从 INF 开始取最近新矿。
 		# 路程短 ⇒ 回收期短、防御链短、工人往返少。过近点已被上面的 too_close 排除。
 		var distance := position.distance_squared_to(primary_position)
 		if distance < best_distance:
@@ -423,6 +676,10 @@ func _covered_by_own_vision(target: Vector3, own_entities: Array) -> bool:
 
 ## 查询准确己方实体以及生产、施工和活动订单；失败时返回显式空集合。
 func _get_own_entities() -> Array:
+	# round-01：同帧去重 —— 真实对局里父节点是 SimpleClairvoyantAI，走它的按物理帧
+	# 缓存；独立实例化（无 AI 父节点）的单元测试保持原直查路径。
+	if _ai != null and _ai.has_method("own_forces_scan"):
+		return _ai.own_forces_scan()
 	var runtime: Variant = _resolve_query_runtime()
 	if runtime == null:
 		_warn_once_query_boundary_missing()
@@ -470,4 +727,7 @@ func _warn_once_query_boundary_missing() -> void:
 
 
 func _on_refresh_timer_timeout():
+	var _perf_start := Time.get_ticks_usec()
 	_refresh_planning()
+	if AiPerfStats.enabled():
+		AiPerfStats.add("economy", Time.get_ticks_usec() - _perf_start)

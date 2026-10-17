@@ -148,13 +148,18 @@ DECISION_NODES: Tuple[Dict[str, Any], ...] = (
     {
         "id": "D2", "node": "ECO-02", "name": "经济恢复", "track": campaign_mod.TRACK_ECONOMY,
         "phases": (campaign_mod.PHASE_FOOTHOLD, campaign_mod.PHASE_EXPAND), "priority": 25,
+        # 【2026-10-15 修改 3】`needs_recovery` 现在是**证据 + 时间窗**的经济异常
+        # （关键任务失败 / 长期零交付 / 单位或设施损失 / 原受袭条件），不再要求
+        # "先受袭且 M01 未完成且工人<2"。`has_worker` 保留：零工人时入口锁定，
+        # 缺项在 `economy_recovery_plan.blocked_missing` 里列明（可选≠可执行）。
         "preconditions": ("needs_recovery", "has_worker"), "milestone": "",
         "build_order": (),
         "candidates": ({"skill": "GAT", "target": "resource"},
                        {"skill": "PROD", "target": "product"}),
-        "success": "工人数回升且余额恢复上升",
-        "failure": "生产建筑被毁且无法重建 → 转 D4（重建产能）",
-        "exit": "工人数达到目标且余额上升",
+        "success": "观察到真实交货（交付计数增加）或经济指标恢复上升",
+        "failure": "生产建筑被毁且无法重建 → 转 D4（重建产能）；"
+                   "零工人/无建造者/资金不足/无可见资源 → 按缺项给替代或受阻",
+        "exit": "经济异常解除（交货恢复）后退出恢复，不每轮重复下单",
     },
     {
         "id": "D3", "node": "BLD-01", "name": "推进发展阶梯", "track": campaign_mod.TRACK_BUILD,
@@ -332,6 +337,35 @@ def _precondition_status(node: Dict[str, Any], facts: Dict[str, Any],
     return (not unmet), unmet
 
 
+def condition_report(node: Dict[str, Any], facts: Dict[str, Any],
+                     campaign: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """候选入口条件逐项**实际值/结果/缺项**（第一阶段 · 修改 1 的追踪合同）。
+
+    与 `_precondition_status` 同一批谓词（不另写一套判据），但把每一项的
+    求值结果单独留痕：回放要能回答"这条边为什么不能走"，缺的到底是哪一项。
+    判定异常按"不满足 + 记 error"处理，绝不猜 True。
+    """
+    report: List[Dict[str, Any]] = []
+    for name in node.get("preconditions") or ():
+        key = str(name)
+        evaluator = PRECONDITIONS.get(key)
+        value: Optional[bool] = None
+        error = ""
+        if evaluator is None:
+            error = "unknown_precondition"
+        else:
+            try:
+                value = bool(evaluator(facts, campaign))
+            except Exception as exc:  # noqa: BLE001 —— 求值失败留痕，不猜
+                error = "eval_error:%s" % str(exc)[:60]
+        ok = bool(value) and not error
+        report.append({
+            "name": key, "text": PRECONDITION_TEXT.get(key, key),
+            "value": value, "result": ok, "missing": (not ok), "error": error,
+        })
+    return report
+
+
 def retrieve(facts: Dict[str, Any], campaign: Dict[str, Any],
              *, limit: int = 6) -> Dict[str, Any]:
     """按当前事实检索决策地图：可用节点（`available`）+ 尚不满足条件的节点（`locked`）。
@@ -354,6 +388,9 @@ def retrieve(facts: Dict[str, Any], campaign: Dict[str, Any],
             "needs": [PRECONDITION_TEXT.get(name, name) for name in
                       (node.get("preconditions") or ())],
             "unmet": [PRECONDITION_TEXT.get(name, name) for name in unmet],
+            # 逐项条件值（追踪/回放用）：可选、被排除、实际选择的区分依据。
+            # 只留在 campaign 诊断结构里，**不进模型上下文**（context_lines 另出）。
+            "conditions": condition_report(node, facts, campaign),
         }
         if ok:
             available.append(entry)
@@ -411,6 +448,6 @@ def candidate_refs(retrieved: Dict[str, Any]) -> List[str]:
 
 __all__ = [
     "DECISION_NODES", "NODE_BY_ID", "NODE_BY_MANUAL_ID", "PRECONDITIONS",
-    "PRECONDITION_TEXT", "candidate_refs", "context_lines", "order_override",
-    "resolve_branch", "retrieve",
+    "PRECONDITION_TEXT", "candidate_refs", "condition_report", "context_lines",
+    "order_override", "resolve_branch", "retrieve",
 ]

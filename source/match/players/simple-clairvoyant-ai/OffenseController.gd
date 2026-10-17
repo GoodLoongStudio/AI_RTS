@@ -1,5 +1,8 @@
 extends Node
 
+const AiPerfStats = preload("res://source/match/players/simple-clairvoyant-ai/AiPerfStats.gd")
+const AiBuildAnchors = preload("res://source/match/players/simple-clairvoyant-ai/AiBuildAnchors.gd")
+
 signal resources_required(resources, metadata)
 
 const VehicleFactoryScene = preload("res://source/match/units/VehicleFactory.tscn")
@@ -16,7 +19,6 @@ const FIELD_CONSTRUCTION := 1 << 4
 const FIELD_PRODUCTION := 1 << 5
 const FIELD_ORDER := 1 << 6
 const REFRESH_INTERVAL_S := 0.5
-const MAX_PLACEMENT_PROBES := 8
 const PLACEMENT_BACKOFF_MS := 8000
 const COMMAND_CENTER_TYPE_ID := "command_center"
 const WORKER_TYPE_ID := "worker"
@@ -38,6 +40,8 @@ var refresh_scale := 1.0
 
 var _world_query_runtime = null
 var _query_session_id := ""
+## 查询边界缺失只警告一次（开局首帧属正常竞态窗口）。
+var _query_boundary_warned := false
 var _command_gateway = null
 var _primary_structure_scene: PackedScene = null
 var _secondary_structure_scene: PackedScene = null
@@ -65,6 +69,7 @@ var _setup_ticks_ms := 0
 var _defense_battlegroup = null
 var _defense_recalled_at_ms := 0
 var _placement_backoff_until_ms := 0
+var _production_home_anchor := Vector3.INF
 
 @onready var _ai = get_parent()
 @onready var _balance = find_parent("Match").get_node("BalanceConfigRuntime")
@@ -85,10 +90,10 @@ func setup(player, world_query_runtime, query_session_id: String, command_gatewa
 
 
 ## 使用已经获准的资源请求放置生产建筑或向对应完工建筑提交生产入队。
-func provision(resources, metadata):
+func provision(resources, metadata) -> String:
 	var own_entities := _get_own_entities()
 	if metadata == "primary_structure":
-		_provision_structure(
+		return _provision_structure(
 			_primary_structure_type_id,
 			_primary_structure_scene,
 			resources,
@@ -96,7 +101,7 @@ func provision(resources, metadata):
 			own_entities
 		)
 	elif metadata == "secondary_structure":
-		_provision_structure(
+		return _provision_structure(
 			_secondary_structure_type_id,
 			_secondary_structure_scene,
 			resources,
@@ -112,6 +117,7 @@ func provision(resources, metadata):
 			metadata,
 			own_entities
 		)
+		return "done"
 	elif metadata == "secondary_unit":
 		_provision_unit(
 			_secondary_unit_type_id,
@@ -121,8 +127,9 @@ func provision(resources, metadata):
 			metadata,
 			own_entities
 		)
+		return "done"
 	elif metadata == "barracks_structure":
-		_provision_structure(
+		return _provision_structure(
 			BARRACKS_TYPE_ID,
 			BarracksScene,
 			resources,
@@ -138,6 +145,7 @@ func provision(resources, metadata):
 			metadata,
 			own_entities
 		)
+		return "done"
 	elif metadata == "rocketeer_unit":
 		_provision_unit(
 			ROCKETEER_TYPE_ID,
@@ -147,8 +155,10 @@ func provision(resources, metadata):
 			metadata,
 			own_entities
 		)
+		return "done"
 	else:
 		assert(false, "unexpected flow")
+		return "done"
 
 
 func _configure_primary_and_secondary_types():
@@ -198,6 +208,8 @@ func _setup_refresh_timer():
 ## 用一次己方快照维护工厂存在性与生产队列，避免直接读取建筑 Node。
 func _refresh_logistics():
 	var own_entities := _get_own_entities()
+	if not _production_home_anchor.is_finite():
+		_production_home_anchor = AiBuildAnchors.production_anchor(own_entities)
 	_refresh_battlegroups(own_entities)
 	_enforce_structure_existence(
 		_primary_structure_type_id,
@@ -534,17 +546,20 @@ func _provision_structure(
 	resources: Dictionary,
 	metadata: String,
 	own_entities: Array
-):
+) -> String:
 	assert(
 		resources == _balance.GetConstructionCost(structure_scene),
 		"unexpected amount of resources"
 	)
-	_number_of_pending_structure_resource_requests[metadata] -= 1
 	if own_entities.any(func(entity): return entity.get("type_id", "") == structure_type_id):
-		return
-	if not own_entities.any(func(entity): return entity.get("type_id", "") == WORKER_TYPE_ID):
-		return
-	_try_construct_structure(structure_type_id, own_entities)
+		_number_of_pending_structure_resource_requests[metadata] -= 1
+		return "done"
+	# 【2026-09-28 开局零矿车】不再把"拥有 Worker"当作放建筑的前置：
+	# automatic/hybrid 建筑由权威 Tick 自动施工，PlaceStructure 不需要建造者。
+	var outcome := _try_construct_structure(structure_type_id, structure_scene, own_entities)
+	if outcome != "pending":
+		_number_of_pending_structure_resource_requests[metadata] -= 1
+	return outcome
 
 
 ## 消耗一项单位资源请求，并向对应的已完工生产建筑提交稳定 ID 入队命令。
@@ -576,43 +591,66 @@ func _provision_unit(
 		print("规则 AI 生产作战单位被拒绝(5s 退避)：%s" % result)
 
 
-## 围绕己方 CommandCenter（失去基地时改用 Worker）尝试放置生产建筑。
-func _try_construct_structure(structure_type_id: String, own_entities: Array):
+## 围绕己方 CommandCenter 尝试放置生产建筑。
+## 【2026-09-30 相邻建造适配】选址交给权威端 FindAutoSpot（确定性邻接求解）：
+## 0.75m 合法带下自己铺环试点的 NotAdjacent/Occupied 拒绝率是纯浪费
+## （基线实测 244 次 NotAdjacent），AI 只发"建什么"，"建哪"由权威端解出。
+## 施工中（一次只能建一个）FindAutoSpot 带 reason 一次即答，进零成本等待。
+func _try_construct_structure(structure_type_id: String, structure_scene: PackedScene, own_entities: Array) -> String:
 	if Time.get_ticks_msec() < _placement_backoff_until_ms:
-		return
-	var workers: Array = own_entities.filter(
-		func(entity): return entity.get("type_id", "") == WORKER_TYPE_ID
+		return "done"
+	var anchor := AiBuildAnchors.production_anchor(own_entities, _production_home_anchor)
+	if anchor == Vector3.INF:
+		return "done"
+	var placement := _structure_placement_runtime()
+	if placement == null:
+		return "done"
+	var reply: Variant = placement.FindAutoSpotBudgeted(
+		_ai, structure_scene, "base", anchor, PRODUCTION_SPOT_MAX_RADIUS_M, 1500
+	) if placement.has_method("FindAutoSpotBudgeted") else placement.FindAutoSpot(
+		_ai, structure_scene, "base", anchor, PRODUCTION_SPOT_MAX_RADIUS_M
 	)
-	if workers.is_empty():
-		return
-	var command_centers: Array = own_entities.filter(
-		func(entity): return entity.get("type_id", "") == COMMAND_CENTER_TYPE_ID
+	if reply is Dictionary and bool(reply.get("pending", false)):
+		return "pending"
+	if not (reply is Dictionary) or not bool(reply.get("found", false)):
+		_placement_backoff_until_ms = Time.get_ticks_msec() + PLACEMENT_BACKOFF_MS
+		print("规则 AI 放置生产建筑选址未成（%s）：%s" % [_spot_fail_reason(reply), structure_type_id])
+		return "done"
+	var spot: Vector3 = reply.get("pos", Vector3.INF)
+	var last_result: Dictionary = _command_gateway.PlaceStructure(
+		structure_type_id,
+		Transform3D(Basis.IDENTITY, spot)
 	)
-	var center: Vector3 = (
-		workers[0]["position"] if command_centers.is_empty() else command_centers[0]["position"]
-	)
-	var candidates: Array[Vector3] = []
-	for radius in range(3, 18, 2):
-		for sector in range(16):
-			var angle := TAU * float(sector) / 16.0
-			candidates.append(center + Vector3(cos(angle) * radius, 0.0, sin(angle) * radius))
-	candidates.shuffle()
-	var last_result: Dictionary = {}
-	var probes := 0
-	for position in candidates:
-		if probes >= MAX_PLACEMENT_PROBES:
-			break
-		probes += 1
-		last_result = _command_gateway.PlaceStructure(
-			structure_type_id,
-			Transform3D(Basis.IDENTITY, position)
-		)
-		if last_result.get("accepted", false):
-			return
-		if last_result.get("primary_issue", "") == "InsufficientResources":
-			break
+	if last_result.get("accepted", false):
+		return "done"
+	if last_result.get("primary_issue", "") == "InsufficientResources":
+		return "done"
 	_placement_backoff_until_ms = Time.get_ticks_msec() + PLACEMENT_BACKOFF_MS
-	print("规则 AI 放置生产建筑被拒绝：%s" % last_result)
+	print("规则 AI 放置生产建筑被拒：%s" % last_result)
+	return "done"
+
+
+## 与 EconomyController 同一权威口径的自动选址入口与失败原因归类。
+const PRODUCTION_SPOT_MAX_RADIUS_M := 24.0
+
+
+func _structure_placement_runtime() -> Node:
+	var match_node := find_parent("Match")
+	if match_node == null:
+		return null
+	var placement: Node = match_node.get_node_or_null("StructurePlacementRuntime")
+	if placement == null or not placement.has_method("FindAutoSpot"):
+		return null
+	return placement
+
+
+func _spot_fail_reason(reply: Variant) -> String:
+	if reply == null or not (reply is Dictionary):
+		return "选址服务不可用"
+	var reason := str(reply.get("reason", ""))
+	if not reason.is_empty():
+		return "全局忙碌 %s，等当前施工完成" % reason
+	return "无合法落点"
 
 
 ## 在己方快照中确保指定生产建筑存在；施工蓝图已经计入数量。
@@ -724,14 +762,49 @@ func _number_of_additional_units_required() -> int:
 
 ## 查询生产后勤所需的准确己方位置、类型、施工状态与生产队列。
 func _get_own_entities() -> Array:
-	var result: Dictionary = _world_query_runtime.GetOwnForces(
-		_query_session_id,
+	# round-01：同帧去重 —— 真实对局里父节点是 SimpleClairvoyantAI，走它的按物理帧
+	# 缓存；独立实例化（无 AI 父节点）的单元测试保持原直查路径。
+	if _ai != null and _ai.has_method("own_forces_scan"):
+		return _ai.own_forces_scan()
+	var runtime: Variant = _resolve_query_runtime()
+	if runtime == null:
+		_warn_once_query_boundary_missing()
+		return []
+	var result: Dictionary = runtime.GetOwnForces(
+		_resolve_query_session_id(),
 		FIELD_POSITION | FIELD_TYPE | FIELD_CONSTRUCTION | FIELD_PRODUCTION | FIELD_ORDER
 	)
 	if result.get("status", "") != "Accepted":
 		push_warning("rule AI offense query was rejected: %s" % result.get("error", "Unknown"))
 		return []
 	return result["entities"]
+
+
+## 观察快照是 AI 在 `_ready` 之后才注入的。setup 若缓存到当时仍为 null 的引用，
+## 首个刷新周期会在 Nil 上调用 GetOwnForces。这里惰性回源，缺边界时警告一次。
+func _resolve_query_runtime():
+	if _world_query_runtime != null:
+		return _world_query_runtime
+	var current: Variant = _ai.get("_world_query_runtime") if _ai != null else null
+	if current != null:
+		_world_query_runtime = current
+	return current
+
+
+func _resolve_query_session_id() -> String:
+	if _query_session_id != "":
+		return _query_session_id
+	var current: Variant = _ai.get("_query_session_id") if _ai != null else null
+	if current != null and String(current) != "":
+		_query_session_id = String(current)
+	return _query_session_id
+
+
+func _warn_once_query_boundary_missing() -> void:
+	if _query_boundary_warned:
+		return
+	_query_boundary_warned = true
+	push_warning("规则 AI 进攻控制器：查询边界（world_query_runtime）尚未注入，本周期跳过规划")
 
 
 ## 创建只持有稳定单位 ID、使用公共查询和固定身份命令的作战编组。
@@ -758,8 +831,8 @@ func _try_creating_new_battlegroup() -> bool:
 	# ⚠ `earliest_attack_sim_ms` 必须真的传进 setup，否则首波门槛只在本地声明、不生效。
 	battlegroup.setup(
 		_ai.expected_number_of_units_in_battlegroup,
-		_world_query_runtime,
-		_query_session_id,
+		_resolve_query_runtime(),
+		_resolve_query_session_id(),
 		_command_gateway,
 		_ai.retreat_threshold,
 		_ai.is_passive_test_ai(),
@@ -777,9 +850,12 @@ func _try_creating_new_battlegroup() -> bool:
 ## 用己方公共快照维护编组成员，并把尚未分配的作战单位交给第一个未满编的编组
 ## （撤退回满、战损补充都走同一条增援路径）。
 func _refresh_battlegroups(own_entities: Array):
+	var _perf_start := Time.get_ticks_usec()
 	for battlegroup in _battlegroups.duplicate():
 		if is_instance_valid(battlegroup) and not battlegroup.is_queued_for_deletion():
 			battlegroup.refresh(own_entities)
+	if AiPerfStats.enabled():
+		AiPerfStats.add("battlegroups", Time.get_ticks_usec() - _perf_start)
 	_attach_unassigned_battle_units(own_entities)
 
 
@@ -826,4 +902,7 @@ func _on_battlegroup_died(battlegroup):
 
 
 func _on_refresh_timer_timeout():
+	var _perf_start := Time.get_ticks_usec()
 	_refresh_logistics()
+	if AiPerfStats.enabled():
+		AiPerfStats.add("offense", Time.get_ticks_usec() - _perf_start)

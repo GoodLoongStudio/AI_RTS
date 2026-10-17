@@ -15,6 +15,7 @@ extends Node
 ## 跑法：godot --headless --path . res://tests/automated/ClientHpFirstSyncSmokeTest.tscn
 ##      （或 run_tests.ps1 -Tests "ClientHpFirstSyncSmokeTest"）
 
+const MatchScene = preload("res://tests/manual/TestAllUnits.tscn")
 const NetSyncScript = preload("res://source/net/NetSync.gd")
 const BarracksScene = preload("res://source/match/units/Barracks.tscn")
 
@@ -25,6 +26,8 @@ const HIT_HP := 0.5
 var _failures := 0
 var _finished := false
 var _damaged := 0
+var _match: Node = null
+var _fixture_ready := false
 
 
 func _ready():
@@ -34,20 +37,28 @@ func _ready():
 	# 不进树：只借用方法，避免 NetSync._ready 里的 HUD/可视化挂载去依赖 Match。
 	var net_sync: Node = NetSyncScript.new()
 
-	# 单位 `_ready` 会向上找 "Match" 上下文（导航/玩家等）。本测试不跑对局，
-	# 给一个最小桩把"缺上下文"的报错压到最低；本测试只关心 hp 同步语义。
-	var match_stub := Node.new()
-	match_stub.name = "Match"
-	add_child(match_stub)
-
+	# Real unit traits require the actual Match runtimes and a real player.
+	_match = MatchScene.instantiate()
+	MatchSignals.match_started.connect(func(): _fixture_ready = true, CONNECT_ONE_SHOT)
+	add_child(_match)
+	var ready_deadline := Time.get_ticks_msec() + 20000
+	while not _fixture_ready and Time.get_ticks_msec() < ready_deadline:
+		await get_tree().process_frame
+	if not _fixture_ready:
+		_failures += 1
+		net_sync.free()
+		_finish()
+		return
+	var human = _match.get_node("Players/Human")
 	var structure: Node = BarracksScene.instantiate()
+	MatchSignals.setup_and_spawn_unit.emit(
+		structure, Transform3D(Basis.IDENTITY, Vector3(20, 0, 20)), human, false
+	)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	# Establish the same full-HP premise after normal balance initialization.
 	structure.hp_max = FULL_HP
-	# 客户端 _ready 后"配置应用 = 满血"的等效状态（真实前提见探针与
-	# BalanceConfigRuntime 的 unit.Set("hp", definition.MaxHp)）。
 	structure.hp = FULL_HP
-	match_stub.add_child(structure)
-	await get_tree().process_frame
-	await get_tree().process_frame
 
 	_damaged = 0
 	net_sync.call("_apply_authoritative_hp", structure, SITE_HP)
@@ -86,7 +97,7 @@ func _finish() -> void:
 		return
 	_finished = true
 	print("Client HP first-sync smoke test completed: %d failure(s)" % _failures)
-	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1)
+	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1, _match)
 
 
 func _check(condition: bool, message: String):

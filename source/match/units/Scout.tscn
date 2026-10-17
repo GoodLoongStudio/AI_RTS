@@ -12,15 +12,15 @@
 [ext_resource type="Script" path="res://source/match/units/SyntyMaterialBinder.gd" id="10_synty_binder"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_2f8yw"]
-height = 0.3
-radius = 1.000
+height = 0.6992
+radius = 0.644
 [node name="Scout" type="Area3D"]
-scale = Vector3(2.00, 2.00, 2.00)
 collision_layer = 4
 collision_mask = 0
 script = ExtResource("1_5qo4j")
 
 [node name="Geometry" type="Node3D" parent="."]
+transform = Transform3D(1.84, 0, 0, 0, 1.84, 0, 0, 0, 1.84, 0, 0, 0)
 
 [node name="SM_Veh_Hover_Bike_01" parent="Geometry" instance=ExtResource("6_hoverbike")]
 transform = Transform3D(-0.22, 0, 0, 0, 0.22, 0, 0, 0, -0.22, 0, 0.08, 0)
@@ -30,30 +30,32 @@ script = ExtResource("10_synty_binder")
 albedo_texture = ExtResource("9_scifi_atlas")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3496, 0)
 shape = SubResource("CylinderShape3D_2f8yw")
 
 [node name="Highlight" parent="." instance=ExtResource("1_44soy")]
-radius = 0.6
+radius = 0.6072
 
 [node name="Selection" parent="." instance=ExtResource("2_5w4nl")]
-radius = 0.6
+radius = 0.6072
 
 [node name="Movement" parent="." instance=ExtResource("4_wemaw")]
-path_desired_distance = 0.1
-target_desired_distance = 0.1
+path_desired_distance = 0.3
+target_desired_distance = 0.15
 path_height_offset = 0.8
-radius = 2.00
+radius = 1.104
 neighbor_distance = 3.0
 max_neighbors = 16
 time_horizon_agents = 4.5
 domain = 0
 
 [node name="HealthBar" parent="." instance=ExtResource("5_vqiw1")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
+transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 1.288, 0)
 size = Vector2(100, 10)
 
 [node name="AirToTerrainMarker" parent="." instance=ExtResource("7_hxqr1")]
+; 归一化：该表现节点原本靠根缩放 2 得到世界尺寸，补回后世界外观不变。
+scale = Vector3(2, 2, 2)
 
 [node name="Targetability" parent="." instance=ExtResource("8_hsorq")]
-radius = 0.6
+radius = 0.6072

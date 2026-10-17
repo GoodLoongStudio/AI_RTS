@@ -64,3 +64,7 @@ build/*
 
 # perfgrid 回归测试的本地状态缓存（pass/fail 标记，仅本机有意义）
 tests/perfgrid/.regress_state/
+
+# Agent automation: durable plans/prompts/reports are tracked; raw run output is local.
+agent/runs/*
+!agent/runs/.gitkeep

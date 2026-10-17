@@ -1,0 +1,207 @@
+{
+  "id": "e90749ec3c434260a29f6ddcadf8ec4a",
+  "baseline": false,
+  "status": "error",
+  "config": {
+    "schema_version": 2,
+    "algo_version": "7.11.0",
+    "layout_seed": 47,
+    "terrain_seed": 2019167691,
+    "player_spacing": "any",
+    "controls": {
+      "river_layout": 2,
+      "river_enabled": 1,
+      "lake_count": 0,
+      "lake_area": 5000,
+      "neutral_plateau_scale": 1.7,
+      "plateau_max": 8,
+      "landform_elongation": 1.2,
+      "landform_recess": 0.2,
+      "landform_softness": 0.16,
+      "plateau_ramp_width": 8,
+      "river_width": 18,
+      "river_bend_scale": 1.0,
+      "river_crossings": 6,
+      "obstacle_percent": 40,
+      "cover_cluster_max": 10,
+      "layout_attempts": 4
+    }
+  },
+  "target": "full",
+  "spacing": "far",
+  "created_at": "2026-09-28T22:45:25",
+  "started": 1790606725.132125,
+  "duration": 38.2,
+  "title": "布局 47 · 地貌 2019167691",
+  "pipeline_version": "1.0.0",
+  "stage_versions": {
+    "G1": "2.0.0",
+    "G2": "7.11.0",
+    "G3": "2.2.0",
+    "G4": "2.0.0"
+  },
+  "stages": {
+    "g1_input": {
+      "status": "done",
+      "started_at": "2026-09-28T22:46:01",
+      "duration_s": 0.1,
+      "error": null,
+      "pass": true,
+      "stage": "G1",
+      "version": "2.0.0",
+      "finished_at": "2026-09-28T22:46:01",
+      "source": "G:\\AIRTS\\AI_RTS\\tools\\mapgen\\runs\\47\\G1",
+      "source_hashes": {
+        "manifest.json": "14492b21190e684bf87c6d6c8e500b15beed8af6879c5ba9363c499fefc62983",
+        "mapgrid.npz": "987df519ed4d7c7992d53ffa5becca4c9af11eadc74a6c60b3cacf61f39691ca",
+        "mapspec.json": "ff06a99a032e17d6f8ad46e9ec67e5942ea80acf07b202e68e2e7b2c2e83bd8a",
+        "starts.png": "4e598aec091bec439789e009f53a4d570ac6b9cb1b35695726ccafd4f9caa370",
+        "starts.png.import": "c07b4675797881a03f8cc9f2cdcca33357cbabb45b4e895e9add6f72338daec1",
+        "starts_table.png": "5b33b23ad02636e8641432e21b37262a0f67444efcfe700c5521168cc7e2270e",
+        "starts_table.png.import": "fd8cbaed20a5b2896ab387daa8219019318cd563880d0d2b63d13797c745acf6",
+        "territory.png": "f7445a6c3452a70037a92b86f5fef6cc16f6b954baa4bc13b8e28ec7fd3bce02",
+        "territory.png.import": "d4a892d80c3362bb82af55fed3a97f50824389acb40e29c1989e9b1851fc0640"
+      },
+      "starts": [
+        [
+          233.11,
+          116.36
+        ],
+        [
+          147.68,
+          229.48
+        ],
+        [
+          25.18,
+          159.78
+        ],
+        [
+          82.98,
+          29.89
+        ]
+      ],
+      "spacing": "far",
+      "g1_approved": false,
+      "output_hashes": {
+        "mapgrid.npz": "987df519ed4d7c7992d53ffa5becca4c9af11eadc74a6c60b3cacf61f39691ca"
+      }
+    },
+    "g2_terrain": {
+      "status": "error",
+      "started_at": "2026-09-28T22:46:01",
+      "duration_s": 1.7,
+      "error": "Unable to allocate 1.50 MiB for an array with shape (3, 256, 256) and data type float64",
+      "pass": true,
+      "stage": "G2",
+      "version": "7.11.0",
+      "finished_at": "2026-09-28T22:46:03",
+      "error_kind": "stage_error",
+      "attempts": null
+    }
+  },
+  "layout_locked": false,
+  "terrain_locked": false,
+  "skip_engine_check": false,
+  "layout_pool": [
+    36,
+    5,
+    17,
+    4,
+    42,
+    8,
+    51,
+    55,
+    2,
+    25,
+    47,
+    14,
+    49,
+    21,
+    31,
+    35,
+    3,
+    38,
+    54,
+    13,
+    27,
+    37,
+    12,
+    15,
+    16,
+    46,
+    61,
+    18,
+    23,
+    39
+  ],
+  "layout_tried": [
+    {
+      "seed": 36,
+      "reason": "checks",
+      "attempts": 0,
+      "rejected": null
+    },
+    {
+      "seed": 5,
+      "reason": "checks",
+      "attempts": 0,
+      "rejected": null
+    },
+    {
+      "seed": 17,
+      "reason": "checks",
+      "attempts": 0,
+      "rejected": null
+    },
+    {
+      "seed": 4,
+      "reason": "checks",
+      "attempts": 0,
+      "rejected": null
+    },
+    {
+      "seed": 42,
+      "reason": "no_candidate",
+      "attempts": 3,
+      "rejected": "No complete river corridors satisfy the selected layout and home clearance."
+    },
+    {
+      "seed": 8,
+      "reason": "g3_checks",
+      "attempts": 0,
+      "rejected": null
+    },
+    {
+      "seed": 51,
+      "reason": "checks",
+      "attempts": 0,
+      "rejected": null
+    },
+    {
+      "seed": 55,
+      "reason": "checks",
+      "attempts": 0,
+      "rejected": null
+    },
+    {
+      "seed": 2,
+      "reason": "checks",
+      "attempts": 0,
+      "rejected": null
+    },
+    {
+      "seed": 25,
+      "reason": "checks",
+      "attempts": 0,
+      "rejected": null
+    }
+  ],
+  "preview_only": false,
+  "progress": {
+    "stage": "G1",
+    "phase": "出生布局已就绪"
+  },
+  "hard_reject_streak": 1,
+  "error_kind": "generation_error",
+  "error": "Unable to allocate 1.50 MiB for an array with shape (3, 256, 256) and data type float64"
+}

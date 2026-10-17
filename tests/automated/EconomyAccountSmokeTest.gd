@@ -37,14 +37,23 @@ func _ready():
 	if not initial.is_empty():
 		_check(initial["resource_a"] == human.resource_a, "初始 A 镜像应与权威快照一致")
 
+	# 注入量按**当前目录造价**推导：写死 600 在 2026-09-29 造价重调（tank A×1050）后
+	# 变成"钱不够"，于是这条用例红的是夹具的假设，不是账本语义（本用例要验的是
+	# 拒绝不部分扣除 / 入队按 ProductionCost 扣款 / 权威事件计数，都与具体造价无关）。
+	var production_cost = match_instance.get_node("BalanceConfigRuntime").GetProductionCost(
+		TankScene
+	)
+	var tank_cost_a: int = int(production_cost["resource_a"])
+	_check(tank_cost_a > 0, "应从当前目录读到 Tank 造价")
+	var grant_a: int = tank_cost_a + 600
 	_check(
 		human.add_resources(
-			{"resource_a": 600},
+			{"resource_a": grant_a},
 			"ScriptedAdjustment"
 		),
 		"显式调试交易应成功注入测试资源"
 	)
-	_check(human.resource_a == 600, "成功交易应同步 Legacy 镜像")
+	_check(human.resource_a == grant_a, "成功交易应同步 Legacy 镜像")
 
 	var events_before_rejection := _balance_events.size()
 	var rejected = human.subtract_resources(
@@ -52,15 +61,12 @@ func _ready():
 		"ConstructionCost"
 	)
 	_check(not rejected, "资源不足时扣款应整体拒绝")
-	_check(human.resource_a == 600, "拒绝交易不得部分扣除 A")
+	_check(human.resource_a == grant_a, "拒绝交易不得部分扣除 A")
 	_check(
 		_balance_events.size() == events_before_rejection,
 		"拒绝交易不得发布权威余额变化事件"
 	)
 
-	var production_cost = match_instance.get_node("BalanceConfigRuntime").GetProductionCost(
-		TankScene
-	)
 	var before_production_a: int = human.resource_a
 	var queue_size_before: int = vehicle_factory.production_queue.size()
 	vehicle_factory.production_queue.produce(TankScene)

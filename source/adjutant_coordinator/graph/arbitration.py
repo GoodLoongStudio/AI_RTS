@@ -74,6 +74,28 @@ MERGEABLE_ACTIONS = (
 #: 取 4：与验收口径"2~4 个单位即可独立行动"一致；真正需要集火同一目标时
 #: （`attack` 同 entity_id）仍在同一目标下拆组，各组各自推进。
 MERGE_UNIT_LIMIT = 4
+#: 移动类目标的合并粒度（米）。小于这一档的坐标抖动仍算同一个目标，命令本身的坐标不改。
+#: 撤退和点攻击不走这档：撤退必须立刻能换方向，点攻击按实体 id 区分。
+_MERGE_POS_BUCKET_M = 4.0
+_MERGE_COARSE_ACTIONS = ("move", "attack_move", "scout", "regroup")
+
+
+def _merge_target_key(intent: Dict[str, Any]) -> str:
+    target = intent.get("target") or {}
+    action = str(intent.get("action", ""))
+    if action in _MERGE_COARSE_ACTIONS and isinstance(target, dict):
+        pos = target.get("pos")
+        if isinstance(pos, (list, tuple)) and len(pos) >= 2:
+            try:
+                snapped = dict(target)
+                snapped["pos"] = [
+                    int(float(pos[0]) // _MERGE_POS_BUCKET_M),
+                    int(float(pos[1]) // _MERGE_POS_BUCKET_M),
+                ]
+                target = snapped
+            except (TypeError, ValueError):
+                pass
+    return json.dumps(target, ensure_ascii=False, sort_keys=True)
 
 
 def merge_same_orders(
@@ -123,7 +145,7 @@ def merge_same_orders(
         # 真实对局里几乎必然不等；若把它纳入键，合并基本永不发生（实测：整局 0 次）。
         # 代际在合并时按**组内最大值**带走，安全性见下面的说明。
         key = (action,
-               json.dumps(intent.get("target") or {}, ensure_ascii=False, sort_keys=True),
+               _merge_target_key(intent),
                str(intent.get("task_id", "")),
                bool(intent.get("emergency", False)))
         incoming = [str(u) for u in (intent.get("unit_ids") or [])]

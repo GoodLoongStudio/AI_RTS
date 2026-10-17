@@ -7,6 +7,8 @@ extends Node
 const MatchScene = preload("res://tests/manual/TestAllUnits.tscn")
 const TransportTruckScene = preload("res://source/match/units/TransportTruck.tscn")
 const InfantryScene = preload("res://source/match/units/Infantry.tscn")
+## 非步兵对照（2026-10-12：运输车只载小兵，坦克/矿车等地面单位不得上车）。
+const TankScene = preload("res://source/match/units/Tank.tscn")
 
 const PRODUCE_TIMEOUT_SECONDS := 40.0
 const WAIT_SECONDS := 120.0
@@ -86,6 +88,19 @@ func _ready():
 	_check(cargo.get_passenger_count() == 0, "未标记登车的步兵不应被自动装载")
 	_check(bystander.visible, "未登车步兵应保持可见")
 
+	# 3b) 只载小兵：坦克（同为地面单位、非步兵）标记登车也不得上车
+	var tank = TankScene.instantiate()
+	MatchSignals.setup_and_spawn_unit.emit(
+		tank, Transform3D(Basis.IDENTITY, Vector3(11.5, 0, 10.5)), human, false
+	)
+	await get_tree().process_frame
+	cargo.mark_boarding(tank)
+	await get_tree().create_timer(1.5).timeout
+	_check(
+		cargo.get_passenger_count() == 0,
+		"运输车只载小兵：坦克标记登车也不应上车（实际 %d）" % cargo.get_passenger_count()
+	)
+
 	# 4) 模拟"选中士兵右键运输车"：标记登车（与 UnitActionsController 登车令同路径）+ 士兵在 3 米内
 	var soldiers: Array = []
 	for i in range(12):
@@ -98,16 +113,27 @@ func _ready():
 		soldiers.append(soldier)
 	await get_tree().process_frame
 	await get_tree().create_timer(0.5).timeout
-	for soldier in soldiers:
-		if is_instance_valid(soldier):
-			cargo.mark_boarding(soldier)
-	var load_waited := 0.0
-	while cargo.get_passenger_count() < 10 and load_waited < 25.0:
-		await get_tree().create_timer(0.25).timeout
-		load_waited += 0.25
+	var cap: int = int(cargo.get_capacity())
+	_check(cap == 8, "运输车容量上限应为 8（实际 %d）" % cap)
+	# 多次上货：分批（先 4 名 → 再 4 名 → 再补 4 名，最后 4 名应因满舱被拒）
+	var board_index := 0
+	for batch in [4, 4, 4]:
+		for k in range(batch):
+			if board_index < soldiers.size() and is_instance_valid(soldiers[board_index]):
+				cargo.mark_boarding(soldiers[board_index])
+			board_index += 1
+		var waited_batch := 0.0
+		var expect: int = mini(board_index, cap)
+		while cargo.get_passenger_count() < expect and waited_batch < 25.0:
+			await get_tree().create_timer(0.25).timeout
+			waited_batch += 0.25
+		_check(
+			cargo.get_passenger_count() == expect,
+			"分批上货后应为 %d 名（实际 %d）" % [expect, cargo.get_passenger_count()]
+		)
 	_check(
-		cargo.get_passenger_count() == 10,
-		"登车步兵应在 25s 内上车且不超过容量 10（实际 %d）" % cargo.get_passenger_count()
+		cargo.get_passenger_count() == cap,
+		"登车步兵应上车且不超过容量 %d（实际 %d）" % [cap, cargo.get_passenger_count()]
 	)
 	var hidden_count := 0
 	for soldier in soldiers:
@@ -121,10 +147,28 @@ func _ready():
 			print("[TT-DBG] %s visible=%s meta=%s pos=%s" % [soldier.name, soldier.visible, "有" if meta != null else "无", str(soldier.global_position)])
 			if soldier.global_position.y < -10 or not soldier.visible:
 				hidden_count += 1
-	_check(hidden_count == 10, "上车的 10 名步兵应全部隐藏（实际 %d）" % hidden_count)
+	_check(hidden_count == cap, "上车的 %d 名步兵应全部隐藏（实际 %d）" % [cap, hidden_count])
 	_check(bystander.visible, "未登车的旁观步兵不应被装载")
 
-	# 5) 卸货：全部恢复可见并散开落位
+	# 5) 卸货（全部下车）；卸空后还能再装 —— 上下车可反复多次
+	cargo.unload_all()
+	await get_tree().process_frame
+	_check(cargo.get_passenger_count() == 0, "卸货后货舱应为空")
+	# 先清掉未上车士兵的残留登车标记：标记登车=持续尝试上车，腾出舱位后它们会自动补上，
+	# 那样就验证不了"只再装 1 名"。
+	for soldier in soldiers:
+		if is_instance_valid(soldier) and soldier.has_meta("boarding_transport"):
+			soldier.remove_meta("boarding_transport")
+	if is_instance_valid(soldiers[0]):
+		cargo.mark_boarding(soldiers[0])
+		var re_waited := 0.0
+		while cargo.get_passenger_count() < 1 and re_waited < 10.0:
+			await get_tree().create_timer(0.25).timeout
+			re_waited += 0.25
+	_check(
+		cargo.get_passenger_count() == 1,
+		"卸空后应可再次上货（实际 %d）" % cargo.get_passenger_count()
+	)
 	cargo.unload_all()
 	await get_tree().process_frame
 	_check(cargo.get_passenger_count() == 0, "卸货后货舱应为空")

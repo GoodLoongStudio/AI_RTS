@@ -54,6 +54,7 @@ public sealed class ConstructionService : IConstructionService
             string.IsNullOrWhiteSpace(request.DefinitionId.Value) || request.RequiredWork <= 0 ||
             (request.ProgressSource != ConstructionProgressSource.Worker &&
                 request.AutomaticWorkPerTick <= 0) ||
+            !double.IsFinite(request.AutomaticWorkFactor) || request.AutomaticWorkFactor <= 0 ||
             request.ConstructionCost is null || request.ConstructionCost.Count == 0 ||
             request.ConstructionCost.Any(cost =>
                 !Enum.IsDefined(cost.Kind) || cost.Amount < 0) ||
@@ -72,7 +73,8 @@ public sealed class ConstructionService : IConstructionService
             ConstructionSiteState.Active,
             request.ProgressSource,
             request.AutomaticWorkPerTick,
-            1);
+            1,
+            request.AutomaticWorkFactor);
         if (!_sitePort.ApplyProgress(request.SiteId, 0, request.RequiredWork))
         {
             return false;
@@ -202,7 +204,7 @@ public sealed class ConstructionService : IConstructionService
                 site.ProgressSource != ConstructionProgressSource.Worker &&
                 site.AutomaticWorkPerTick > 0)
             {
-                workBySite[site.SiteId] = site.AutomaticWorkPerTick *
+                workBySite[site.SiteId] = site.AutomaticWorkPerTick * site.AutomaticWorkFactor *
                     ConstructionRateFor(site.OwnerId);
             }
         }

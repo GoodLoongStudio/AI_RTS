@@ -189,6 +189,8 @@ def run_replay(fixture: str, run_id: str, engine: str = "fallback",
     transport = ReplayTransport()
     strategy = FakeStructuredModel("strategy", [])
     tactics = FakeStructuredModel("tactics", [])
+    # 【决策追踪 · 修改 1】回放同样落 trace.jsonl（与真实对局同一份合同），
+    # 每步再把本轮新增事件抄一份到 steps 目录，供"按步检查实际路径"。
     runtime = AdjutantGraphRuntime(
         match_id, player_id, transport=transport,
         strategy_model=strategy, tactics_model=tactics,
@@ -196,8 +198,14 @@ def run_replay(fixture: str, run_id: str, engine: str = "fallback",
                                              match_id, player_id),
         config=RuntimeConfig(engine=engine, strategy_interval_ticks=100000,
                              tactics_interval_ticks=1, emergency_min_interval_ticks=1,
-                             intent_ttl_ticks=600, emergency_intent_ttl_ticks=300),
+                             intent_ttl_ticks=600, emergency_intent_ttl_ticks=300,
+                             trace_enabled=True,
+                             # 回放是短程确定性工具：内存环放大到不会丢事件，
+                             # 保证"每步新增事件"完整（真实对局走文件 + 有界环）。
+                             trace_memory_limit=200000,
+                             trace_path=os.path.join(run_dir, "trace.jsonl")),
     )
+    trace_events_path = os.path.join(run_dir, "trace-events.jsonl")
 
     results: List[Dict[str, Any]] = []
     inputs_path = os.path.join(run_dir, "inputs.jsonl")
@@ -208,7 +216,8 @@ def run_replay(fixture: str, run_id: str, engine: str = "fallback",
     with open(inputs_path, "w", encoding="utf-8") as inputs_handle, \
             open(states_path, "w", encoding="utf-8") as states_handle, \
             open(intents_path, "w", encoding="utf-8") as intents_handle, \
-            open(receipts_path, "w", encoding="utf-8") as receipts_handle:
+            open(receipts_path, "w", encoding="utf-8") as receipts_handle, \
+            open(trace_events_path, "w", encoding="utf-8") as trace_handle:
         for index, step in enumerate(steps):
             tick = int(step.get("tick", 0))
             model_script = step.get("model") or {}
@@ -225,9 +234,15 @@ def run_replay(fixture: str, run_id: str, engine: str = "fallback",
                     runtime.on_player_command(units, tick, str(player_action.get("reason", "")))
             transport.script = list(step.get("receipts") or [])
             sent_before = len(transport.sent)
+            trace_before = runtime.trace.stats().get("events", 0)
 
             observation = build_observation(step, tick, match_id, player_id, rules_version)
             result = runtime.tick(tick, observation)
+            # 本轮新增的追踪事件（round_seq 与本步对应；回放按步可查）。
+            for entry in runtime.trace.query(limit=10 ** 6):
+                if int(entry.get("seq", 0)) > int(trace_before):
+                    trace_handle.write(json.dumps(dict(entry, step=index, tick=tick),
+                                                  ensure_ascii=False, sort_keys=True) + "\n")
 
             inputs_handle.write(json.dumps({
                 "run_id": run_id, "step": index, "tick": tick,
@@ -254,15 +269,20 @@ def run_replay(fixture: str, run_id: str, engine: str = "fallback",
     failed = sum(1 for item in results if item["kind"] == FAIL)
     skipped = sum(1 for item in results if item["kind"] == SKIP)
     counts = {"PASS": passed, "FAIL": failed, "SKIP": skipped}
+    trace_stats = runtime.trace.stats()
     summary = {
         "run_id": run_id, "fixture": os.path.basename(fixture), "engine": runtime.runner.engine,
         "steps": len(steps), **counts, "counts": counts, "results": results,
         "dispatch_total": len(transport.sent),
         "state": runtime.state.summary(),
+        # 决策追踪概览（修改 1）：轮次/事件数/内存上限/写入错误。
+        "trace": trace_stats,
+        "trace_events_file": os.path.basename(trace_events_path),
     }
     with open(os.path.join(run_dir, "summary.json"), "w", encoding="utf-8") as handle:
         json.dump(summary, handle, ensure_ascii=False, indent=2, sort_keys=True)
     verify_summary(summary)
+    runtime.trace.close()
     return summary
 
 

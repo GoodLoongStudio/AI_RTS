@@ -71,17 +71,37 @@ class E2eFixtureParityTest(unittest.TestCase):
                          % missing)
 
     def test_fixture_keeps_its_dynamic_rules_intent(self):
-        """夹具的**测试意图**不能被"对齐主表"冲掉：scout 新增、tank 成本 555。"""
+        """夹具的**测试意图**不能被"对齐主表"冲掉。"""
         e2e = load(E2E_BALANCE)
-        types = {item.get("id") for item in e2e.get("unitTypes") or []}
-        main_types = {item.get("id") for item in load(MAIN_BALANCE).get("unitTypes") or []}
-        self.assertIn("scout", types, "e2e 夹具必须保留新增内容 scout")
-        self.assertNotIn("scout", main_types, "scout 不该出现在正式平衡表里")
-        tank = next((item for item in e2e.get("productions") or []
-                     if item.get("id") == "tank"), None)
-        self.assertIsNotNone(tank, "e2e 夹具必须有 tank 生产定义")
-        cost = sum(int(piece.get("amount", 0)) for piece in tank.get("cost") or [])
-        self.assertEqual(cost, 555, "e2e 夹具的 tank 成本必须是 555（动态规则验证用）")
+        main_table = load(MAIN_BALANCE)
+        # Independent dynamic-rule coverage is the cost difference, not retired Scout.
+        def tank_cost(table):
+            tank = next((item for item in table.get("productions") or []
+                         if item.get("id") == "tank"), None)
+            return sum(int(piece.get("amount", 0)) for piece in (tank or {}).get("cost") or [])
+        self.assertEqual(tank_cost(e2e), 555, "e2e 夹具的 tank 成本必须是 555（动态规则验证用）")
+        self.assertNotEqual(tank_cost(main_table), 555,
+                            "正式表 tank 成本不得与夹具样本相同，否则动态规则验证失去意义")
+
+    def test_retired_scout_is_absent_and_drone_remains_producible(self):
+        for balance_path, asset_path in ((MAIN_BALANCE, MAIN_ASSETS),
+                                         (E2E_BALANCE, E2E_ASSETS)):
+            with self.subTest(balance=balance_path):
+                table = load(balance_path)
+                types = {item["id"] for item in table["unitTypes"]}
+                self.assertNotIn("scout", types)
+                self.assertIn("drone", types)
+                products = table["productions"]
+                self.assertFalse(any(item["id"] == "scout" or
+                                     item["productUnitTypeId"] == "scout"
+                                     for item in products))
+                drone = next(item for item in products if item["productUnitTypeId"] == "drone")
+                self.assertEqual(drone["allowedProducerUnitTypeIds"], ["aircraft_factory"])
+                assets = load(asset_path)["unitAssets"]
+                self.assertFalse(any(item["unitTypeId"] == "scout" or
+                                     item["scenePath"].endswith("/Scout.tscn") for item in assets))
+                self.assertTrue(any(item["unitTypeId"] == "drone" and
+                                    item["scenePath"].endswith("/Drone.tscn") for item in assets))
 
 
 if __name__ == "__main__":

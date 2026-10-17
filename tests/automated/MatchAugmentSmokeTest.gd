@@ -187,10 +187,14 @@ func _test_player_pick() -> void:
 	var offer: Array = snap.get("offer", [])
 	var pick_id := str(offer[0].get("id", ""))
 	var picked: Dictionary = _runtime.pick(_human, pick_id, "player")
+	var fade_started_msec := Time.get_ticks_msec()
 	_check(bool(picked.get("ok", false)), "玩家点选应成功")
 	snap = _runtime.snapshot_for(_human)
 	_check((snap.get("owned", []) as Array).size() == 1, "点选后应拥有 1 张")
-	_check(overlay != null and overlay.visible == false, "选完后覆盖层应收起")
+	# 随 2026-10-12 用户口径 B 更新：关闭须先淡出 0.4 秒，不能同步硬切。
+	_check(overlay != null and overlay.visible and bool(overlay.get("_fading")),
+		"选完后覆盖层应开始淡出，不能立即硬切隐藏")
+	_check(gate != null and not gate.is_held("augment"), "点选成功应立即释放选牌暂停")
 	var tray = _match.find_child("AugmentTray", true, false)
 	_check(tray != null and tray.visible, "顶栏托盘应显示已选加成")
 	var card: Dictionary = Catalog.card(pick_id)
@@ -218,7 +222,33 @@ func _test_player_pick() -> void:
 		_check(mobile != null and float(mobile.hp_max) > before_hp_mobile, "作战单位生命加成应提高 hp_max")
 	elif effect_type == "sight_mult":
 		_check(mobile != null and float(mobile.sight_range) > before_sight, "视野加成应提高 sight_range")
+	# 结算断言先执行；等待动画不能让额外经济收入污染即时赠予额度。
+	await _await_overlay_fade(overlay, fade_started_msec)
 	await get_tree().create_timer(0.05, true, false, true).timeout
+
+
+func _await_overlay_fade(overlay: Node, started_msec: int) -> void:
+	if overlay == null:
+		return
+	var panel = overlay.get("_root")
+	if not _check(panel is Control, "淡出浮层应有实际显示面板"):
+		return
+	var saw_intermediate_alpha := false
+	var previous_alpha := 1.0
+	while overlay.visible and Time.get_ticks_msec() - started_msec < 1000:
+		await get_tree().process_frame
+		if not overlay.visible:
+			break
+		var alpha := float(panel.modulate.a)
+		_check(alpha >= 0.0 and alpha <= previous_alpha + 0.001,
+			"淡出透明度应有界且单调下降")
+		saw_intermediate_alpha = saw_intermediate_alpha or (alpha > 0.0 and alpha < 0.99)
+		previous_alpha = alpha
+	var elapsed := Time.get_ticks_msec() - started_msec
+	_check(saw_intermediate_alpha, "关闭应实际经过半透明中间态")
+	_check(not overlay.visible and not bool(overlay.get("_fading")), "选牌淡出应在 1 秒内完成并收起")
+	_check(elapsed >= 300 and elapsed <= 1000, "0.4 秒淡出应有实际持续时间，不能硬切或悬挂")
+	print("Augment close fade observed: elapsed_msec=%d intermediate_alpha=%s" % [elapsed, saw_intermediate_alpha])
 
 
 func _test_timeout_hermes() -> void:

@@ -8,6 +8,8 @@ public sealed class MatchOutcomeService(IMatchOutcomeRule rule) : IMatchOutcomeS
 {
     private readonly Dictionary<PlayerId, MatchParticipant> _participants = [];
     private readonly Dictionary<UnitId, MatchCombatant> _combatants = [];
+    /// <summary>曾经拥有过计入建筑的阵营。还没登场的一方不是“已被歼灭”。</summary>
+    private readonly HashSet<MatchSideId> _fieldedSides = [];
     private MatchResolution _resolution = new(MatchResolutionKind.InProgress, [], [], 0);
     private bool _started;
     private bool _dirty = true;
@@ -53,6 +55,11 @@ public sealed class MatchOutcomeService(IMatchOutcomeRule rule) : IMatchOutcomeS
             return;
         }
         _combatants.Add(combatant.UnitId, combatant);
+        if (combatant.CountsForElimination
+            && _participants.TryGetValue(combatant.OwnerPlayerId, out var owner))
+        {
+            _fieldedSides.Add(owner.SideId);
+        }
         _dirty = true;
     }
 
@@ -88,6 +95,21 @@ public sealed class MatchOutcomeService(IMatchOutcomeRule rule) : IMatchOutcomeS
         var evaluation = rule.Evaluate(
             _participants.Values.ToArray(),
             _combatants.Values.ToArray());
+        // 开局名册还没到齐：有参战方从未拥有过计入建筑。此时规则看到的“只剩一方”
+        // 是出生顺序，不是歼灭。压回进行中，等那一方真正登场后再按清空建筑判。
+        if (evaluation.Kind != MatchResolutionKind.InProgress && RosterStillArriving())
+        {
+            var pending = _participants.Values
+                .Select(item => item.SideId)
+                .Distinct()
+                .Where(side => !_fieldedSides.Contains(side));
+            var surviving = evaluation.SurvivingSideIds
+                .Concat(pending)
+                .Distinct()
+                .OrderBy(side => side.Value)
+                .ToArray();
+            evaluation = new MatchRuleEvaluation(MatchResolutionKind.InProgress, [], surviving);
+        }
         _resolution = new MatchResolution(
             evaluation.Kind,
             evaluation.WinningSideIds.ToArray(),
@@ -131,6 +153,13 @@ public sealed class MatchOutcomeService(IMatchOutcomeRule rule) : IMatchOutcomeS
 
     /// <inheritdoc />
     public MatchResolution GetSnapshot() => _resolution;
+
+    /// <summary>至少两名参战方时，还有人从未拥有过计入建筑。</summary>
+    private bool RosterStillArriving()
+    {
+        var sides = _participants.Values.Select(item => item.SideId).Distinct().ToArray();
+        return sides.Length >= 2 && sides.Any(side => !_fieldedSides.Contains(side));
+    }
 
     /// <summary>按当前计分实体汇总仍存活阵营，不改写显式终局。</summary>
     private IReadOnlyList<MatchSideId> CurrentSurvivingSides()

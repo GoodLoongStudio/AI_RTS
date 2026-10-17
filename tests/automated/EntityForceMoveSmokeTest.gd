@@ -71,9 +71,21 @@ func _ready():
 	)
 	_check(_last_feedback_status("ForceMove") == "Rejected", "Tank 点实体的强制移动应拒绝")
 
-	var ground_for_tank: Vector3 = enemy_building.global_position + Vector3(-8.0, 0.0, 0.0)
+	# 【2026-09-30 夹具几何过期】原落点 = 敌建筑 + (-8,0,0)，落在该建筑的 **carve 洞内**
+	# （洞 = footprint 7.0 + navmesh agent_radius 2.8 = 9.8m）。Movement 会把不可达目标
+	# clamp 到洞外，clamp 后距坦克仅约 0.9m < 到达半径 max(radius 2.0, 0.35)，于是**立刻 Arrived**、
+	# 动作正常结束 —— 断言却要求此刻仍是 Moving，属夹具几何过期（carve 修复之前洞只有 4.2m，
+	# 8m 处是可达的，所以旧夹具能过）。改为洞外的 13m，让坦克真的要走路。
+	var ground_for_tank: Vector3 = enemy_building.global_position + Vector3(-13.0, 0.0, 0.0)
 	MatchSignals.terrain_targeted.emit(ground_for_tank)
-	await get_tree().process_frame
+	# 【2026-09-30 夹具竞态修正】订单→action 的换装**跨帧**：只等 1 个 process_frame
+	# 会读到换装前的 WaitingForTargets（实测：action=WaitingForTargets、且订单事件尚未发布），
+	# 那是夹具竞态而非"退化为 Attack"。改为有界等待（≤8 帧），断言本身不放宽：
+	# 8 帧内没换成 Moving 依旧判红。
+	for _wait_frame in range(8):
+		await get_tree().process_frame
+		if tank.action != null and tank.action.get_script() == Moving:
+			break
 	_check(_has_force_move_order(tank), "随后右键地面应为 Tank 提交 ForceMove")
 	_check(
 		tank.action != null and tank.action.get_script() == Moving,

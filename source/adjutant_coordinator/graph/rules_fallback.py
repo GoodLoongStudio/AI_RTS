@@ -20,7 +20,9 @@ from .contracts import (
     ACTION_HOLD, ACTION_MOVE, ACTION_PRODUCE, ACTION_REGROUP, ACTION_RETREAT,
     ACTION_SCOUT,
 )
+import json
 import math
+import os
 
 from .model_context import rules_scene_index
 from . import campaign as campaign_mod
@@ -129,8 +131,13 @@ def combat_types_from_rules(rules) -> Tuple[str, ...]:
 #: 【2026-09-23 矿场】"ore_refinery" 排在分基地之前：先在新矿旁盖矿场（自动放置）、
 #: 工人被矿场自动指派本地采矿，再开第二座指挥中心 —— 扩张的经济收益先落地。
 #: 不在规则视图里的类型会被 `scene_index` 过滤掉，所以这张表可以写得比实际可建项更全。
-BUILD_LADDER = ("barracks", "vehicle_factory", "aircraft_factory",
-                "anti_air_turret", "anti_ground_turret", "ore_refinery", "command_center")
+#: 开局建造顺序（2026-10-13 用户口径）：**矿场+矿车 → 基础防御 → 才是兵/坦克/无人机**。
+#: 旧顺序把 barracks/vehicle_factory/aircraft_factory 排在矿场前面，实测开局先出兵营和
+#: 机场、矿场排第六永远轮不到（用户反馈"发展经济为什么不会造矿场"）。
+#: 矿车由车厂生产（2026-09-28 口径），所以车厂属于经济档而不是军事档。
+BUILD_LADDER = ("ore_refinery", "vehicle_factory",
+                "anti_air_turret", "anti_ground_turret",
+                "barracks", "aircraft_factory", "command_center")
 #: 每类建造物的**座数上限**（没有条目 = 1 座）。
 #: 为什么需要"多座"：旧实现是"有一座就跳过"，于是兵营+车厂之后发展线彻底停摆
 #: （实测余额 46800 花不出去、既没有防御也没有第二个基地）。
@@ -153,9 +160,10 @@ BUILD_LIMITS = {
     "ore_refinery": 2,
 }
 #: 各建造物对应的"由谁生产什么"（产品 id → 生产建筑类型）。
-#: 【2026-09-12 晚扩线】补上机场产品（`helicopter`）—— 否则新建的机场**永远闲着**，
-#: 又变成"有建筑不用"（用户反馈"不会发展"）。只加作战单位，不加 `drone`：
-#: 无人机无武器、侦察已由"前压探索 + 专职侦察"覆盖，避免无人机制造堆积。
+#: 【2026-09-12 晚扩线】补上机场的战斗产品（`helicopter`）—— 否则新建的机场在
+#: 有确认敌情时会闲着。`drone` 不进这张作战阶梯：侦察无人机走独立配额
+#: （`recon_produce_intent`），上限 `RECON_DESIRED_MAX`。没有确认敌情时机场
+#: 不得为了探索改去排队造战斗机；战斗机也不能占掉还没补齐的无人机名额。
 PRODUCT_LADDER = (("soldier", "barracks"), ("tank", "vehicle_factory"),
                   ("helicopter", "aircraft_factory"))
 #: "这个单位打不了这个目标"的记忆时长（tick，默认 1800 ≈ 30 秒）。
@@ -250,6 +258,64 @@ def can_attack_by_capability(state: Optional[Dict[str, Any]], unit: str, enemy,
     if not domains or not target:
         return None
     return target in set(domains)
+
+
+#: 资源点拉黑时长（tick，900 = 15 秒）。矿点再生计时实测 90000ms = 90 秒，
+#: 但"别人刚把它采空"通常几十秒内会有别的矿可用，所以 15 秒足够换矿、
+#: 又不至于让一个矿被永久误伤。
+#: （与 `placement.RESOURCE_BAN_TICKS` 同值：那边给账本用，这边给筛选用；
+#: `rules_fallback` **不能** import `placement`（会成环），所以两处各留一份常量，
+#: 并在测试里钉住它们相等 —— 见 `test_resource_allocation`。）
+RESOURCE_BAN_TICKS = 900
+
+
+def ban_depleted_resource(state: Dict[str, Any], units, entity, tick: int) -> None:
+    """记下「这些单位**现在**采不了这个矿」（按 `单位 × 矿点` 记账，有界、**限时**）。
+
+    为什么要这一档（2026-10-09 实测）：
+      - 一局里 **gather 154 条只有 14 条接受（9%）**，拒因 140/140 全是 `ResourceDepleted`；
+        同期 `attack_move` 接受率 98%。
+      - 第一层根因是**字段名对不上**（游戏发 `ore_remaining`/`ore_depleted`，副官查
+        `remaining`/`depleted`，一个都没命中 → 兜底当可用）—— 已修，接受率升到 33%。
+      - 但**仍有 105 条被拒**，且接受/拒绝随时间**交错**（翻转 55 次）⇒ 剩下的不是
+        "挑错了矿"，而是**命令发出去之后矿被采空了**（多个工人竞争同一个矿 / 观测滞后）。
+        这种情况重发同一条命令只会继续被拒，必须**换成别的矿**。
+
+    **限时**（`RESOURCE_BAN_TICKS`，不是 `SITE_BAN_TICKS`）：矿点会再生
+    （`ResourceUnit`：ready → depleted → ready），永久拉黑会把一个本会恢复的矿废掉。
+    **按单位 × 矿点**而不是只按矿点：同一时刻别人的矿未必也空，只按矿点会误伤。
+    """
+    entity = str(entity or "")
+    if not entity:
+        return
+    bans = state.setdefault("depleted_resources", {})
+    for unit in units or []:
+        bans["%s|%s" % (str(unit), entity)] = int(tick)
+    cutoff = int(tick) - int(RESOURCE_BAN_TICKS)
+    for key in [k for k, v in bans.items() if int(v) < cutoff]:
+        bans.pop(key, None)
+    while len(bans) > 256:                      # 有界（防长局无限增长）
+        bans.pop(next(iter(bans)))
+
+
+def resource_usable_by(state: Dict[str, Any], unit: str, resource) -> bool:
+    """这个矿**对这个单位**现在可用吗（排除刚被权威拒过的）。
+
+    只读 `state["depleted_resources"]`（`ban_depleted_resource` 写的账）。
+    没有账 / 账过期 ⇒ 可用 —— 与 `resource_available` 的"缺字段当可用"同向：
+    宁可试一次，也不要因为一个陈旧账本把矿全废掉。
+    """
+    entity = str(entity_id_of(resource) or "")
+    if not entity:
+        return True
+    bans = state.get("depleted_resources") or {}
+    if not isinstance(bans, dict):
+        return True
+    stamped = bans.get("%s|%s" % (str(unit), entity))
+    if stamped is None:
+        return True
+    now = int(state.get("server_tick", 0) or 0)
+    return (now - int(stamped)) >= int(RESOURCE_BAN_TICKS)
 
 
 def ban_unattackable_target(state: Dict[str, Any], units, entity, tick: int,
@@ -536,7 +602,12 @@ def note_army_cap(state: Dict[str, Any], deployed: int, queued: int, tick: int) 
 
 def combat_production_allowed(state: Dict[str, Any], tactical, tick: int,
                               rules=None) -> bool:
-    """兵力未达上限 → True（照常产兵）；达到 → **记账后** False（本轮停发作战生产）。"""
+    """兵力未达上限 → True（照常产兵）；达到 → **记账后** False（本轮停发作战生产）。
+
+    开局"经济→防御→兵线"的顺序由 `BUILD_LADDER` 的建造档位保证（兵线产能建筑排在
+    防御之后），不在生产档另设闸门 —— 2026-10-13 试过生产闸，爆炸半径覆盖十条
+    编码旧顺序的夹具，且防御落点失败时会把兵线永久饿死，收益不抵风险。
+    """
     deployed, queued = combat_units(state, tactical, rules)
     if deployed + queued >= COMBAT_UNIT_CAP:
         note_army_cap(state, deployed, queued, tick)
@@ -554,6 +625,90 @@ def queue_item_product(item) -> str:
     if not isinstance(item, dict):
         return ""
     return str(item.get("definition_id") or item.get("product_type_id") or "")
+
+
+#: 队列项里"还没变成场上单位"的权威状态（`Domain/Production/Production.cs` 的
+#: `ProductionItemState`）。`Completed` 的单位**已经出现在 `by_name` 里**，再数一次就是双计；
+#: `Cancelled` / `ProducerLost` 已经终结，永远不会再出单位，旧代码却照样 +1。
+QUEUE_PENDING_STATES = ("Queued", "Producing", "AwaitingDeployment")
+
+
+def queue_pending_by_producer(tactical) -> Dict[Tuple[str, str], int]:
+    """按 `(生产者, 产品)` 统计**尚未落地**的队列项，并按 `item_id` 去重。
+
+    提示词 §一.3 第 2 条点名的口径问题：旧代码"每个 item 加一"，既不看 `state`
+    （完成/取消/生产线丢失的都算进去了），也不按身份去重（同一 `item_id` 在多个视图里
+    重复出现就会重复计数）。权威队列项**没有 quantity 字段**——一项就是一辆，
+    所以"多数量订单"在观测里表现为多个 item；这里保持"一项一计数"，但把状态和身份钉住。
+    """
+    counts: Dict[Tuple[str, str], int] = {}
+    seen = set()
+    for entry in (tactical or {}).get("production") or []:
+        if not isinstance(entry, dict):
+            continue
+        entry_producer = str(entry.get("unit") or entry.get("producer") or "")
+        for item in entry.get("items") or []:
+            if not isinstance(item, dict):
+                continue
+            item_id = str(item.get("item_id") or "")
+            if item_id and item_id in seen:
+                continue
+            state = str(item.get("state") or "")
+            if state and state not in QUEUE_PENDING_STATES:
+                continue
+            product = queue_item_product(item)
+            if not product:
+                continue
+            if item_id:
+                seen.add(item_id)
+            producer = str(item.get("producer_id") or entry_producer)
+            key = (producer, product)
+            counts[key] = counts.get(key, 0) + 1
+    return counts
+
+
+def produce_intent_counts(state, scene_index: Optional[Dict[str, str]] = None
+                          ) -> Dict[Tuple[str, str], int]:
+    """本协调器已下发、权威还没结算完的 `produce` 意图，按 `(生产者, 产品)` 计数。"""
+    scene_to_product: Dict[str, str] = {}
+    for product, scene in (scene_index or {}).items():
+        if scene:
+            scene_to_product[str(scene)] = str(product)
+    counts: Dict[Tuple[str, str], int] = {}
+    for intent in (state or {}).get("active_intents") or []:
+        if not isinstance(intent, dict):
+            continue
+        if str(intent.get("action", "")) != ACTION_PRODUCE:
+            continue
+        if str(intent.get("state", "")) not in LIVE_INTENT_STATES:
+            continue
+        target = intent.get("target")
+        scene = str(target.get("scene", "")) if isinstance(target, dict) else ""
+        product = scene_to_product.get(scene, "")
+        if not product:
+            continue
+        unit_ids = intent.get("unit_ids") or [""]
+        key = (str(unit_ids[0] if unit_ids else ""), product)
+        counts[key] = counts.get(key, 0) + 1
+    return counts
+
+
+def pending_production(tactical, state,
+                       scene_index: Optional[Dict[str, str]] = None) -> Dict[str, int]:
+    """**还没落地**的生产量（队列 ∪ 在途意图，按 `(生产者,产品)` 取 max 合并）。
+
+    一条 produce 意图被权威接受后，它会**变成**队列里的一个 item：同一条订单在
+    "在途意图"和"队列"里各出现一次。两边各加一 ⇒ 同一架无人机被数成 2 架，
+    "还差一架"永远算不满、副官就不再补机。取 max 而不是相加：谁反映真实条数就用谁。
+    """
+    queue_counts = queue_pending_by_producer(tactical)
+    intent_counts = produce_intent_counts(state, scene_index)
+    merged: Dict[str, int] = {}
+    for key in set(queue_counts) | set(intent_counts):
+        product = key[1]
+        merged[product] = merged.get(product, 0) + max(
+            int(queue_counts.get(key, 0)), int(intent_counts.get(key, 0)))
+    return merged
 
 
 def produce_totals(by_name: Dict[str, Any], tactical, state,
@@ -574,29 +729,8 @@ def produce_totals(by_name: Dict[str, Any], tactical, state,
         key = str((info or {}).get("type", ""))
         if key:
             totals[key] = totals.get(key, 0) + 1
-    for entry in (tactical or {}).get("production") or []:
-        if not isinstance(entry, dict):
-            continue
-        for item in entry.get("items") or []:
-            key = queue_item_product(item)
-            if key:
-                totals[key] = totals.get(key, 0) + 1
-    scene_to_product: Dict[str, str] = {}
-    for product, scene in (scene_index or {}).items():
-        if scene:
-            scene_to_product[str(scene)] = str(product)
-    for intent in (state or {}).get("active_intents") or []:
-        if not isinstance(intent, dict):
-            continue
-        if str(intent.get("action", "")) != ACTION_PRODUCE:
-            continue
-        if str(intent.get("state", "")) not in LIVE_INTENT_STATES:
-            continue
-        target = intent.get("target")
-        scene = str(target.get("scene", "")) if isinstance(target, dict) else ""
-        product = scene_to_product.get(scene, "")
-        if product:
-            totals[product] = totals.get(product, 0) + 1
+    for product, count in pending_production(tactical, state, scene_index).items():
+        totals[product] = totals.get(product, 0) + count
     return totals
 
 
@@ -626,6 +760,226 @@ def soldier_shortage(soldier_total: int, combat_total: int) -> bool:
 #: 于是"专职侦察一死，整局再没有侦察"；这里给一条**有上限**的专用补充档，
 #: 只补到 `RECON_MIN_PROBES` 为止，不会像作战单位那样堆积。
 RECON_MIN_PROBES = 1
+#: 【B1 2026-10-11】大地图阈值（米）：两边都 ≥ 它的地图按"两架分两个方向"给需求
+#: （512m 图 = 先试验两架）。小图不做强制多机。
+RECON_BIG_MAP_EDGE_M = 400.0
+#: 侦察在编目标数上限（本阶段口径；防空损失/预算信号后续再收紧）。
+RECON_DESIRED_MAX = 2
+
+
+def _live_probes(by_name: Dict[str, Dict[str, Any]], ai_units) -> int:
+    """在编（未确认阵亡）的专职侦察数量（drone/scout）。"""
+    count = 0
+    for name in ai_units or []:
+        info = by_name.get(name) or {}
+        if str(info.get("type", "")) in PROBE_TYPES and not info.get("confirmed_dead"):
+            count += 1
+    return count
+
+
+def _refinery_infos(by_name: Dict[str, Dict[str, Any]]):
+    for info in (by_name or {}).values():
+        if str((info or {}).get("type", "")) == "ore_refinery":
+            yield info or {}
+
+
+def _refinery_built(info: Dict[str, Any]) -> bool:
+    """矿场**已建成**：权威 `constructed` 不为 False，且运营账存在时要求 `constructed` 为真。"""
+    if info.get("constructed") is False:
+        return False
+    stats = info.get("refinery")
+    if isinstance(stats, dict):
+        return bool(stats.get("constructed"))
+    return True
+
+
+def income_observed(by_name: Dict[str, Dict[str, Any]]) -> bool:
+    """**已经发生收入**：只认权威端交付账 `refinery.delivered_count > 0`。
+
+    提示词 §A1 的口径：模型输出、命令 accepted、余额下降都**不算**收入——余额下降
+    恰恰是花钱，不是进钱。首笔交付是验收点，但**不**用它去锁死必要防御、首次矿场
+    建设和无人机全灭后的最低视野恢复（那些走 `recon` 基础档与建造阶梯）。
+    """
+    for info in (by_name or {}).values():
+        stats = (info or {}).get("refinery")
+        if isinstance(stats, dict) and int(stats.get("delivered_count", 0) or 0) > 0:
+            return True
+    return False
+
+
+def economy_under_construction(by_name: Dict[str, Dict[str, Any]]) -> bool:
+    """**经济链正在建设**：有在建矿场。只代表"上路了"，不代表有矿车、更不代表有收入。"""
+    return any(info.get("constructed") is False for info in _refinery_infos(by_name))
+
+
+def economy_ready(by_name: Dict[str, Dict[str, Any]]) -> bool:
+    """**已具备可用矿场和矿车**：已建成的 `ore_refinery` + 至少一辆矿车。
+
+    旧 `economy_ignited` 只要看到任意 `worker` 就返回 True —— 而真实局里出现过
+    "7 辆矿车全部满载 400A、余额 150、根本没有 `ore_refinery`"：那种工人只是
+    **没有交付目标的运力**，把它当经济点火，会让第二座产能建筑和多机侦察建立在
+    一个不存在的收入流上（提示词 §A1 第 1 条）。
+    """
+    if not any(_refinery_built(info) for info in _refinery_infos(by_name)):
+        return False
+    return any(str((info or {}).get("type", "")) == "worker"
+               for info in (by_name or {}).values())
+
+
+def economy_ignited(by_name: Dict[str, Dict[str, Any]]) -> bool:
+    """经济已运转 = 有已建成矿场**且**有矿车（不再由单一 worker 存在触发）。
+
+    需要"更硬"的收入证据时用 `income_observed`；想表达"正在建设"用
+    `economy_under_construction`。三个口径分开，是为了让报告能回答
+    "这一局到底是没建、没建成、还是建成了没交付"。
+    """
+    return economy_ready(by_name)
+
+
+def intel_confirmed(state: Optional[Dict[str, Any]], tactical=None) -> bool:
+    """已经有确认敌情：可见活敌人，或自己侦察记下的情报点。都没有就是未知，不是“没敌人”。"""
+    if isinstance(state, dict) and (state.get("enemy_intel_points") or []):
+        return True
+    if tactical is not None and _living_enemies(tactical):
+        return True
+    return False
+
+
+def _owns_aircraft_factory(by_name: Dict[str, Dict[str, Any]]) -> bool:
+    for info in (by_name or {}).values():
+        if str((info or {}).get("type", "")) == "aircraft_factory":
+            return True
+    return False
+
+
+def recon_desired_count(state: Dict[str, Any], inputs: Dict[str, Any],
+                        by_name: Dict[str, Dict[str, Any]], tactical=None) -> int:
+    """侦察在编目标数（有上限，不无限堆无人机）：
+    - 基础 1；
+    - 大地图且经济已点火 → 2（`RECON_DESIRED_MAX`）；
+    - **没有确认敌情、并且已经有机场**：把目标抬到同一上限，用来补无人机，
+      而不是把机场让给战斗机。没有机场时不抬，避免为了第二架把建造顺序改掉。
+    """
+    desired = RECON_MIN_PROBES
+    bounds = state.get("map_bounds") if isinstance(state, dict) else None
+    if not bounds:
+        bounds = (inputs or {}).get("map_bounds")
+    edge_ok = False
+    if isinstance(bounds, (list, tuple)) and len(bounds) >= 2:
+        try:
+            edge_ok = min(float(bounds[0]), float(bounds[1])) >= RECON_BIG_MAP_EDGE_M
+        except (TypeError, ValueError):
+            edge_ok = False
+    if edge_ok and economy_ignited(by_name or {}):
+        desired = RECON_DESIRED_MAX
+    if (not intel_confirmed(state, tactical)
+            and _owns_aircraft_factory(by_name or {})):
+        desired = max(desired, RECON_DESIRED_MAX)
+    return min(int(desired), RECON_DESIRED_MAX)
+
+
+def helicopter_blocked_by_recon(state: Dict[str, Any], inputs: Dict[str, Any],
+                                by_name: Dict[str, Dict[str, Any]], tactical,
+                                scene_index) -> bool:
+    """战斗机不能顶掉侦察无人机，也不能在没有确认敌情时为了探索去排队。"""
+    if not intel_confirmed(state, tactical):
+        return True
+    desired = recon_desired_count(state, inputs, by_name, tactical)
+    live = _live_probes(by_name, (inputs or {}).get("ai_units"))
+    pending = pending_production(tactical, state, scene_index).get("drone", 0)
+    return live + int(pending or 0) < int(desired)
+
+
+#: 侦察覆盖增益的节流记录间隔（tick）：够写进报告即可，不追每轮精度。
+RECON_COVERAGE_NOTE_EVERY_TICKS = 300
+
+
+def recon_coverage_report(state: Dict[str, Any],
+                          by_name: Optional[Dict[str, Dict[str, Any]]] = None
+                          ) -> Dict[str, Any]:
+    """侦察覆盖增益（提示词 §一.3 第 1 条要的"第二架相对单机增加的新视野/新区域"）。
+
+    只读 `state["explore"]["cells"]` 里已经**被权威确认到达过**的格
+    （`explore_frontier` 在单位真的走到格中心时才写 `state="covered"`），
+    因此这是"实际走过的覆盖"，不是"发过一条侦察令"。
+
+    返回：
+    - `dedicated_cells` / `conscript_cells`：专职（无人机）与临时抽兵各自覆盖的**不同格数**；
+    - `dedicated_visits` / `conscript_visits`：工时代理量（同一格多次到达会累加）；
+    - `per_unit_new_cells`：按每格**首次**覆盖时间排序后，每个单位带来的**新增**格数
+      —— 第二个条目的值就是"多一架无人机比单机多探出的区域"；
+    - `scout_share`：小兵工时占全部侦察工时的比例（§一.3 第 3 条要求记录的比值）。
+    """
+    cells = ((state or {}).get("explore") or {}).get("cells") or {}
+    by_name = by_name or {}
+    first_tick: Dict[str, int] = {}
+    owners: Dict[str, set] = {}
+    visits_by_unit: Dict[str, int] = {}
+    for key, entry in cells.items():
+        if not isinstance(entry, dict) or str(entry.get("state", "")) != "covered":
+            continue
+        owner = str(entry.get("by") or "")
+        if not owner:
+            continue
+        owners.setdefault(owner, set()).add(str(key))
+        visits_by_unit[owner] = visits_by_unit.get(owner, 0) + int(entry.get("visits", 0) or 0)
+        tick = int(entry.get("tick", 0) or 0)
+        if owner not in first_tick or (tick and tick < first_tick[owner]):
+            first_tick[owner] = tick
+
+    def _dedicated(unit: str) -> bool:
+        info = by_name.get(unit) or {}
+        return str(info.get("type", "")) in PROBE_TYPES or unit.startswith(("drone", "Drone"))
+
+    dedicated_cells = set()
+    conscript_cells = set()
+    dedicated_visits = 0
+    conscript_visits = 0
+    for unit, covered in owners.items():
+        if _dedicated(unit):
+            dedicated_cells |= covered
+            dedicated_visits += visits_by_unit.get(unit, 0)
+        else:
+            conscript_cells |= covered
+            conscript_visits += visits_by_unit.get(unit, 0)
+    # 增量：谁先探到算谁的，后一个单位只计"它探到而前面所有单位都没探到"的格。
+    per_unit_new_cells: List[Dict[str, Any]] = []
+    seen = set()
+    for unit in sorted(owners, key=lambda name: (first_tick.get(name, 0), name)):
+        fresh = owners[unit] - seen
+        seen |= owners[unit]
+        per_unit_new_cells.append({
+            "unit": unit,
+            "dedicated": bool(_dedicated(unit)),
+            "new_cells": len(fresh),
+            "total_cells": len(owners[unit]),
+        })
+    total_visits = dedicated_visits + conscript_visits
+    return {
+        "dedicated_cells": len(dedicated_cells),
+        "conscript_cells": len(conscript_cells),
+        "dedicated_visits": dedicated_visits,
+        "conscript_visits": conscript_visits,
+        "scout_share": (round(float(conscript_visits) / float(total_visits), 3)
+                        if total_visits else 0.0),
+        "per_unit_new_cells": per_unit_new_cells,
+    }
+
+
+def _aircraft_factory_can_queue(by_name: Dict[str, Dict[str, Any]],
+                               inputs: Dict[str, Any], tactical) -> bool:
+    """已有空闲机场、队列还没满：这一拍还能补无人机。"""
+    producers = set((inputs or {}).get("constructed_producers") or [])
+    views: Dict[str, Dict[str, Any]] = {}
+    for entry in (tactical or {}).get("production") or []:
+        if isinstance(entry, dict) and entry.get("producer"):
+            views[str(entry["producer"])] = entry
+    for name in producers:
+        if str((by_name.get(name) or {}).get("type", "")) != "aircraft_factory":
+            continue
+        if _queue_size_of(views, name) < PRODUCER_QUEUE_CAP:
+            return True
+    return False
 
 
 def recon_produce_intent(state: Dict[str, Any], by_name: Dict[str, Dict[str, Any]],
@@ -637,7 +991,8 @@ def recon_produce_intent(state: Dict[str, Any], by_name: Dict[str, Dict[str, Any
 
     返回 `(producer, drone_scene)`；没有缺口 / 没有空闲机场 → None。
     口径：现役专职（drone/scout，未阵亡）+ 队列里的 drone + 在途 drone
-    < `RECON_MIN_PROBES` → 用**空闲机场**补一架。
+    < `recon_desired_count`（有界阶段需求：小图 1、大地图且经济已点火 2）
+    → 用**空闲机场**补一架。
 
     为什么单独成档、不塞进 `PRODUCT_LADDER`（那边注释明确不加 drone 防堆积）：
     侦察必须"独立配额"（2026-09-15 用户要求"不能被建造/采集/军事挤掉"），
@@ -654,27 +1009,21 @@ def recon_produce_intent(state: Dict[str, Any], by_name: Dict[str, Dict[str, Any
         if info.get("confirmed_dead"):
             continue
         live += 1
-    queued_drones = 0
-    for entry in (tactical or {}).get("production") or []:
-        if not isinstance(entry, dict):
-            continue
-        for item in entry.get("items") or []:
-            if queue_item_product(item) == "drone":
-                queued_drones += 1
-    inflight = 0
-    for intent in (state.get("active_intents") or []):
-        if not isinstance(intent, dict):
-            continue
-        if str(intent.get("action", "")) != ACTION_PRODUCE:
-            continue
-        if str(intent.get("state", "")) not in LIVE_INTENT_STATES:
-            continue
-        target = intent.get("target")
-        scene = str(target.get("scene", "")) if isinstance(target, dict) else ""
-        if scene == drone_scene:
-            inflight += 1
-    in_service = live + queued_drones + inflight
-    if in_service >= RECON_MIN_PROBES:
+    # 队列 + 在途走**同一个** `pending_production` 口径（含 item_id 去重、终态剔除、
+    # 队列/已接受意图不双计）。旧这里自己写了两遍"+1 per item / +1 per intent"，
+    # 与 `produce_totals` 是两套口径——正是提示词 §一.3 第 2 条点名的地方。
+    in_service = live + pending_production(tactical, state, scene_index).get("drone", 0)
+    # 覆盖增益按节流写进决策日志：报告要能回答"第二架到底多探出多少、有没有还在抽小兵"。
+    # 节流游标放进**已经声明为图通道**的 `explore` 里（不新增顶层 state 键 ——
+    # `test_every_literal_state_write_is_declared` 扫的就是这个），并且和它要描述的
+    # 覆盖数据同生共死，不会出现"游标活着、cells 没了"的错位。
+    tick_now = int((state or {}).get("server_tick", 0) or 0)
+    explore_memory = state.setdefault("explore", {}) if isinstance(state, dict) else {}
+    last_note_tick = int(explore_memory.get("coverage_note_tick", 0) or 0)
+    if tick_now - last_note_tick >= RECON_COVERAGE_NOTE_EVERY_TICKS:
+        explore_memory["coverage_note_tick"] = tick_now
+        _note(state, "recon_coverage", **recon_coverage_report(state, by_name))
+    if in_service >= recon_desired_count(state, inputs, by_name, tactical):
         return None
     producer = next((name for name in free_producers
                      if str((by_name.get(name) or {}).get("type", "")) == "aircraft_factory"
@@ -866,7 +1215,38 @@ def construction_progress_source(rules, building) -> str:
     return "worker"
 
 
-def pick_expansion_spot(by_name, resources, anchor, blocked=None, bounds=None) -> list:
+def building_footprint_radius(rules, building) -> float:
+    """规则视图里某建筑的占地半径（米）；查不到返回 0 = 维持旧的近似口径。
+
+    2026-09-27 尺寸统一把 footprint 从 2.0 拉到 6.0~9.8，落点判据里凡是写死米数的
+    一环（视野安全半径 8m、4/6/8m 环、塔离基地最小 6m）都随之失真：产出的点要么被
+    权威端拒成 `Occupied`/`NotVisible`/`SurfaceNotBuildable`，要么干脆一个都不发。
+    几何量一律从目录取，不再写死。
+    """
+    for item in (rules or {}).get("constructions") or []:
+        if isinstance(item, dict) and str(item.get("id", "")) == str(building):
+            return float(item.get("footprint_radius_meters") or 0.0)
+    return 0.0
+
+
+def _anchor_radius_at(by_name, anchor) -> float:
+    """锚点（通常是主基地）所在位置实体的本体半径，取不到为 0。"""
+    if anchor is None:
+        return 0.0
+    best = 0.0
+    for info in (by_name or {}).values():
+        pos = _pos2d(info) if isinstance(info, dict) else None
+        if pos is None:
+            continue
+        if abs(pos[0] - float(anchor[0])) < 0.75 and abs(pos[1] - float(anchor[1])) < 0.75:
+            best = max(best, float(info.get("radius") or 0.0))
+    return best
+
+
+def pick_expansion_spot(by_name, resources, anchor, blocked=None, bounds=None,
+                        rules=None, building: str = "command_center",
+                        min_distance_m: float = EXPANSION_MIN_DISTANCE_M,
+                        prefer_near: bool = False) -> list:
     """分基地选址：**离主基地较远的可见矿点附近**（而不是主基地旁边再盖一座）。
 
     为什么不能复用 `pick_build_spot`（4/6/8m 环绕主基地）：
@@ -875,18 +1255,48 @@ def pick_expansion_spot(by_name, resources, anchor, blocked=None, bounds=None) -
     - 但落点**必须在己方视野内**（实测建造被拒的唯一原因就是 `NotVisible`），
       而**矿点附近一定在视野里**（有工人在那儿采矿）→ "挨着远端矿点"既安全又有收益；
     - 拿不到符合条件的矿点就返回 `[]`（宁可不建，也不在主基地旁边堆一座假分基地）。
+
+    【2026-10-11 首个矿场例外】`min_distance_m=0 + prefer_near=True` 时允许**最近的
+    可采矿点**：新玩法里矿场是经济点火（完工赠矿车 + 短 delivery loop），开局没有
+    "远端新矿"概念；不能拿分基地的"越远越好"政策把首个矿场永久挡死。有产能后再走
+    远端扩张政策（调用方按"是否首个经济建筑"分流）。
     """
     if anchor is None:
         return []
     blocked = blocked if blocked is not None else []
-    units = [_pos2d(info) for info in by_name.values() if info.get("pos")]
+    revealers = [info for info in by_name.values() if info.get("pos")]
+    footprint = building_footprint_radius(rules, building)
+    # Current automatic construction has no worker/footprint-visibility gate.
+    # Resource entries must still come from the player's tactical observation.
+    # Send the actual ore as the hint, never an offset mistaken for the ore.
+    if footprint > 0 and construction_progress_source(rules, building) in NO_BUILDER_REQUIRED_SOURCES:
+        centers = [_pos2d(info) for info in by_name.values()
+                   if info.get("type") == "command_center"]
+        candidates = []
+        for resource in resources or []:
+            if not isinstance(resource, dict) or not resource_available(resource):
+                continue
+            pos = _pos2d(resource)
+            distance = math.hypot(pos[0]-anchor[0], pos[1]-anchor[1])
+            if distance < min_distance_m:
+                continue
+            if building == "command_center" and any(
+                    math.hypot(pos[0]-p[0], pos[1]-p[1]) < EXPANSION_MIN_DISTANCE_M for p in centers):
+                continue
+            if not placement.in_bounds(pos, bounds, footprint) or placement.is_banned(blocked, pos):
+                continue
+            candidates.append((distance, pos))
+        if candidates:
+            pos = min(candidates, key=lambda item: item[0])[1]
+            return [round(pos[0], 1), round(pos[1], 1)]
+        return []
     best, best_distance = None, 0.0
     for resource in resources or []:
         if not isinstance(resource, dict):
             continue
         pos = _pos2d(resource)
         distance = math.hypot(pos[0] - anchor[0], pos[1] - anchor[1])
-        if distance < EXPANSION_MIN_DISTANCE_M:
+        if distance < min_distance_m:
             continue
         # 从矿点朝"离开主基地"的方向再外推一点，避免压在采集往返通道上。
         dx, dz = pos[0] - anchor[0], pos[1] - anchor[1]
@@ -896,9 +1306,11 @@ def pick_expansion_spot(by_name, resources, anchor, blocked=None, bounds=None) -
         # 可行性走**同一套判据**（界内 + 视野内 + 有净空 + 未被拉黑）。
         # 这里"视野内"天然等于"有己方单位在附近"——远端矿点有工人采矿才算数，
         # 于是"看不见的远方基地"根本不会被产出（那正是 172 条 NotVisible 的来源）。
-        if placement.spot_issue(spot, bounds, units, blocked) is not None:
+        if placement.spot_issue(spot, bounds, revealers, blocked,
+                                 footprint=footprint) is not None:
             continue
-        if best is None or distance > best_distance:   # 越远越优先：真正的新地盘
+        if (best is None or (distance < best_distance if prefer_near
+                             else distance > best_distance)):
             best, best_distance = spot, distance
     if best is None:
         return []
@@ -920,7 +1332,7 @@ def _note(state, kind: str, **payload) -> None:
 
 
 def pick_build_spot(by_name, resources, anchor, blocked=None, bounds=None,
-                    state=None) -> list:
+                    state=None, rules=None, building: str = "") -> list:
     """选建造落点：**离己方单位与采矿通道最远**，且在地图内、视野内、有净空。
 
     实测依据（2026-09-12 用户反馈："兵营造的位置会卡住工人采矿"）：
@@ -933,11 +1345,24 @@ def pick_build_spot(by_name, resources, anchor, blocked=None, bounds=None,
     与视野外（`NotVisible`）这两类**必然被拒**的点在下发前就已被剔除，
     本函数只负责在可行点里按"离采矿通道最远"排序（业务目标）。
     """
-    units = [_pos2d(info) for info in by_name.values() if info.get("pos")]
+    revealers = [info for info in by_name.values() if info.get("pos")]
+    footprint = building_footprint_radius(rules, building)
+    if footprint > 0 and construction_progress_source(rules, building) in NO_BUILDER_REQUIRED_SOURCES:
+        # This is an area hint, not a guessed final position. Authority knows
+        # current terrain/footprints and reserves the final construction site.
+        if placement.in_bounds(anchor, bounds, footprint) and not placement.is_banned(blocked, anchor):
+            return [round(float(anchor[0]), 1), round(float(anchor[1]), 1)]
+        return []
+    anchor_radius = _anchor_radius_at(by_name, anchor)
     resource = _nearest_resource_pos(by_name, resources)
+    # 建造环由"footprint + 当前视野"推出（见 `placement.build_ring_band`）；
+    # footprint 未知（旧配置/旧调用点）时维持原 4/6/8 环口径，行为不变。
     spots = placement.candidate_spots(anchor[0], anchor[1], bounds=bounds,
-                                      own_points=units, rejected=blocked,
-                                      radii=BUILD_PLACEMENT_RADII_FLOOR)
+                                      own_points=revealers, rejected=blocked,
+                                      radii=(BUILD_PLACEMENT_RADII_FLOOR
+                                             if footprint <= 0.0 else None),
+                                      footprint=footprint,
+                                      anchor_radius=anchor_radius)
     if spots:
         best, best_score = None, None
         for spot in spots:
@@ -954,7 +1379,8 @@ def pick_build_spot(by_name, resources, anchor, blocked=None, bounds=None,
         return [round(best[0], 1), round(best[1], 1)]
     # 兜底：环上候选全被淘汰（贴边基地 / 点都被拉黑）→ **朝地图中心**逐级后退。
     retreat = placement.retreat_spot(anchor[0], anchor[1], bounds=bounds,
-                                     own_points=units, rejected=blocked)
+                                     own_points=revealers, rejected=blocked,
+                                     footprint=footprint)
     if retreat is not None:
         return retreat
     # 【最后一次兜底也必须守拉黑与净空（2026-09-14 迭代3 现场修）】
@@ -963,7 +1389,8 @@ def pick_build_spot(by_name, resources, anchor, blocked=None, bounds=None,
     # 因为这条路绕过了账本）。用户原话："你下达命令不能瞎下达"。
     # 纪律：**宁可不建**，也不产出一条注定被拒的命令。
     clamped = placement.clamp_into_bounds(anchor, bounds)
-    if placement.spot_issue(clamped, bounds, units, blocked) is None:
+    if placement.spot_issue(clamped, bounds, revealers, blocked,
+                            footprint=footprint) is None:
         return [round(float(clamped[0]), 1), round(float(clamped[1]), 1)]
     if state is not None:
         _note(state, "build_spot_exhausted", anchor=[round(float(anchor[0]), 1),
@@ -1168,6 +1595,24 @@ def busy_units(state: Dict[str, Any]) -> set:
     return busy
 
 
+def _busy_blocker(state: Dict[str, Any], unit: str) -> Tuple[str, str]:
+    """谁把 `unit` 占成了"忙"：返回 `(intent_id, action)`。
+
+    只读 `state["active_intents"]`；找不到就返回空串（别猜）。
+    为什么必须带 `action`：`busy_units` 把**所有**活跃意图都算上，
+    而"移动段活过到达"（该修）与"采集/建造/点攻击驻留"（合法）必须分开统计 ——
+    round-15 修掉移动段释放之后 `busy` 占比没变，正是分不清这两类的后果。
+    """
+    for intent in (state.get("active_intents") or []):
+        if not isinstance(intent, dict):
+            continue
+        if intent.get("state") not in LIVE_INTENT_STATES:
+            continue
+        if unit in {str(item) for item in (intent.get("unit_ids") or [])}:
+            return (str(intent.get("intent_id", "")), str(intent.get("action", "")))
+    return ("", "")
+
+
 def _nearest_resource(unit: Dict[str, Any],
                       resources: List[Dict[str, Any]],
                       *, load: Optional[Dict[str, int]] = None,
@@ -1199,7 +1644,14 @@ def _nearest_resource(unit: Dict[str, Any],
             best, best_distance = resource, distance
     if best is None:
         # 所有矿点都满了：退回"最近的"（宁可挤，也不要让工人闲置）。
-        return _nearest_resource(unit, resources)
+        # 【2026-10-09 修】但**采空的矿点不能被这次退回重新引入**：
+        # 旧写法把整份 `resources`（调用方可能没过滤）再喂一遍，等于绕过 `cap`
+        # 的同时**也绕过可用性** —— 而"满了"和"空了"是两回事：
+        # 满了可以挤，空了派过去只会被权威以 `ResourceDepleted` 拒（实测 140/154）。
+        feasible = [item for item in resources if resource_available(item)]
+        if not feasible:
+            return None          # 没有可采矿点：让上层决定（转岗/等待），别硬派
+        return _nearest_resource(unit, feasible)
     return best
 
 
@@ -1246,6 +1698,114 @@ def _worker_product(rules, owned_types: set) -> Optional[Tuple[str, str]]:
         return None
 
 
+def economy_unbootstrapped(rules, tactical, state, by_name) -> bool:
+    """经济是否**还没点火**：一台矿车都没有，但已经有完工的矿车产能建筑空着。
+
+    只用于"建造让位给矿车"这一件事，所以刻意要求 `deployed == 0`（不是"低于目标"）：
+    已有矿车的局建造优先级不变（既有阶梯夹具通常都自带 1 个 worker，不该被这条改动打到）。
+    """
+    owned = {str(info.get("type", "")) for info in (by_name or {}).values() if info.get("type")}
+    found = _worker_product(rules, owned)
+    if not found:
+        return False
+    product_id = found[1]
+    if any(str(info.get("type", "")) == product_id for info in (by_name or {}).values()):
+        return False
+    return worker_bootstrap_reserve(rules, tactical, state, by_name) > 0
+
+
+def _production_cost_a(rules, product_id: str) -> int:
+    """某产品（目录 id）的 A 造价；规则里查不到返回 0（= 不设限，绝不猜数值）。"""
+    for definition in (rules or {}).get("productions") or []:
+        if not isinstance(definition, dict):
+            continue
+        if str(definition.get("product_type_id", "")) != str(product_id):
+            continue
+        total = 0
+        for entry in definition.get("cost") or []:
+            if isinstance(entry, dict) and str(entry.get("kind", "")).upper() == "A":
+                total += int(entry.get("amount", 0) or 0)
+        return total
+    return 0
+
+
+def _building_cost_a(rules, building_id: str) -> int:
+    """某建筑（constructions 目录 id）的 A 造价；查不到返回 0（绝不猜数值）。
+
+    与 `_production_cost_a` 对称：经济种子预算要用它给"第一座车厂/矿场"留钱，
+    数值一律来自当前对局规则视图，不写死。
+    """
+    for definition in (rules or {}).get("constructions") or []:
+        if not isinstance(definition, dict):
+            continue
+        if str(definition.get("id", "")) != str(building_id):
+            continue
+        total = 0
+        for entry in definition.get("cost") or []:
+            if isinstance(entry, dict) and str(entry.get("kind", "")).upper() == "A":
+                total += int(entry.get("amount", 0) or 0)
+        return total
+    return 0
+
+
+def worker_bootstrap_reserve(rules, tactical, state, by_name) -> int:
+    """为了把经济点着火，本轮还必须**给矿车（worker）留多少 A**（0 = 不需要留）。
+
+    2026-09-29 真实局铁证（PlainAndSimple，seed 11/22，backend=off）：副官开局 60 秒把
+    9400 全花在步兵与坦克上（30 兵 + 4 坦克），等车厂完工、阶梯 1.8 终于能发
+    `rule-produce-worker-*`（200/台）时余额只剩 100 ⇒ 预算闸门把每一条工人意图都拦成
+    `insufficient_reserve:A`（一局 29 条），于是整局 `workers=0`、没有矿场、余额永不增长
+    ——玩家看到的"副官攒一波兵之后彻底不干活"就是这个机制。
+    矿车是收入的唯一来源，所以它必须在同一批预算里优先拿到钱：这里算出
+    "补到目标工人数还差多少钱"，阶梯 2 的作战生产不许把它吃光。
+    """
+    owned_types = {str(info.get("type", "")) for info in (by_name or {}).values()
+                   if info.get("type")}
+    worker_product = _worker_product(rules, owned_types)
+    reserve = 0
+    if worker_product:
+        producer_type, product_id = worker_product
+        base_count = sum(1 for info in (by_name or {}).values()
+                         if str(info.get("type", "")) == producer_type)
+        if base_count > 0:
+            deployed = sum(1 for info in (by_name or {}).values()
+                           if str(info.get("type", "")) == product_id)
+            queued = 0
+            for entry in ((tactical or {}).get("production") or []):
+                if not isinstance(entry, dict):
+                    continue
+                for item in entry.get("items") or []:
+                    item_id = str((item or {}).get("definition_id")
+                                  or (item or {}).get("product_type_id", ""))
+                    if item_id == product_id:
+                        queued += 1
+            in_flight = 1 if worker_production_in_flight(state, product_id) else 0
+            shortfall = max(WORKER_TARGET, base_count * WORKERS_PER_BASE) \
+                - deployed - queued - in_flight
+            if shortfall > 0:
+                reserve = _production_cost_a(rules, product_id) * shortfall
+    # 【2026-10-11 经济种子】还没有任何经济建筑（车厂/矿场）且没有矿车时，为"点火链"
+    # 预留 min(车厂 + 1 台矿车, 矿场) 的 A。旧实现只服务"已有车厂"的场景（上面的分支），
+    # 开局 reserve=0 → 阶梯 2 作战生产把余额吃光，连第一座经济建筑都存不起
+    # （用户实测：钱全砸兵/防御、802 轮无矿场；这正是新玩法与旧预算口径的错位）。
+    # 类型名 "worker" 与 `_worker_product` 的判据同源（product_type_id 含 worker）。
+    has_economy = ("vehicle_factory" in owned_types) or ("ore_refinery" in owned_types)
+    has_worker_now = any(str(info.get("type", "")) == "worker"
+                         for info in (by_name or {}).values())
+    if not has_economy and not has_worker_now:
+        factory_cost = _building_cost_a(rules, "vehicle_factory")
+        refinery_cost = _building_cost_a(rules, "ore_refinery")
+        worker_cost = _production_cost_a(rules, "worker")
+        chains = []
+        if factory_cost > 0 and worker_cost > 0:
+            chains.append(factory_cost + worker_cost)
+        if refinery_cost > 0:
+            chains.append(refinery_cost)
+        if chains:
+            reserve += min(chains)
+    return reserve
+
+
 def worker_production_in_flight(state: Dict[str, Any], product_id: str) -> bool:
     """是否**已有在途的该产品（工人）生产意图**（LIVE 状态）。
 
@@ -1264,7 +1824,7 @@ def worker_production_in_flight(state: Dict[str, Any], product_id: str) -> bool:
 
 
 #: 优先执行"扩张前探"的单位类型（专职侦察；没有它们才退到其它机动单位）。
-PROBE_TYPES = ("drone", "scout")
+PROBE_TYPES = ("drone",)
 #: 视为"产能建筑"的类型：只有它们存在时，"先补兵"才有意义（没有产能时先建造）。
 PRODUCTION_BUILDINGS = ("barracks", "vehicle_factory", "aircraft_factory")
 
@@ -1701,9 +2261,14 @@ SQUAD_ACTION_MIN = 2
 #: 届时有空闲战斗单位可派，不必抽唯一的专职侦察。
 EXPANSION_PROBE_MIN_ARMY = 6
 #: 转交侦察的安全距离（米）：候选单位与可见敌人近于它就不转交（保命）——
-# 把正在交火的兵拉去侦察等于让它边挨打边走路。取 20m ≈ 当前平衡表最大
-# 武器射程（反地炮塔 16m）加点余量。
-SCOUT_TRANSFER_SAFE_M = 20.0
+# 把正在交火的兵拉去侦察等于让它边挨打边走路。
+#:
+#: 【2026-10-09 用户确认口径：按派生值迁移】原取值 20m，注释里的
+#: "反地炮塔 16m"已过期 —— 平衡表实际最大射程是 **40m**，
+#: 于是 `test_safe_radius_covers_max_weapon_range` 长期失败（`20.0 not >= 40.0`）。
+#: 用户确认改用**派生值** `range + r_enemy + r_own`（最坏 44.79m），**不是**盲目 ×2。
+#: 这个常量语义就是"必须覆盖最大射程才安全"，所以派生口径与它天然一致。
+SCOUT_TRANSFER_SAFE_M = campaign_mod.derived_engagement_radius_m()
 #: 【D15】扩张前探的最大连续次数 / 退避时长（tick）：探不出合法落点就停一段时间，
 #: 把阶梯的出勤座位还给攻击/生产（实测 det_40：428 条前探令把 56 个部队钉在
 #: 15~40m 中圈，攻击级一次都没轮到）。
@@ -1934,7 +2499,7 @@ EXPLORE_WAIT_REASONS = frozenset({
 #: 真正的路径失败（两点不连通 / 退化路径）。累计到上限才标 `unreachable`。
 EXPLORE_FAIL_REASONS = frozenset({"path_failed", "no_path", "path_too_short"})
 #: 空中单位类型（规则视图缺失时的移动域兜底，与 `squads.SQUAD_AIR_TYPES` 同口径）。
-AIR_UNIT_TYPES = ("drone", "helicopter", "scout")
+AIR_UNIT_TYPES = ("drone", "helicopter")
 #: 基地回防半径：唯一口径在 `campaign.DEFENSE_RADIUS_M`（手册 DEF-01）。
 DEFENSE_RADIUS_M = campaign_mod.DEFENSE_RADIUS_M
 #: 回防**响应**半径（单位离基地多近才算"圈内、该回防"）：唯一口径
@@ -2803,7 +3368,80 @@ def make_intent(intent_id, action, unit, target, priority, rationale, task_id,
 #: 一次决策最多补多少条并行意图（其余下一轮继续）。
 #: 与 `GraphConfig.max_batch` 同量级；决策 ~1.4 轮/秒 × 上限 8 ⇒ 上限约 11 条/秒，
 #: 这是"每秒至少一次操作"在结构上得以成立的原因。
-PARALLEL_FILL_CAP = 8
+PARALLEL_FILL_CAP = 12
+
+
+#: 到达优先的生效窗口（tick）：距最近一次到达这么近，才有资格跨过 `busy`。
+#:
+#: 为什么需要、为什么是 300（=5 秒）：
+#:   `node_ingest` 处理到达后会作废路线并结束移动段意图，但**同一轮**的
+#:   `node_tactical_agent` 又会给这个单位新建一条意图（刚到达、该发下一跳），
+#:   于是下一轮它重新算 `busy`、被挡到新意图 TTL。窗口覆盖"到达后紧接着的几轮"，
+#:   把这段竞态让过去；**不是**无条件放行（见使用处的三条边界）。
+#:   取 300 而不是更大：再久就不该算"刚到达"，否则等于把 `busy` 那条纪律废掉。
+ARRIVAL_PRIORITY_WINDOW_TICKS = 300
+
+#: "刚到达的单位跨过 `busy`"这个候选的开关（round-30 重新启用）。
+#:
+#: 追出的竞态是真的（`Unit_18`，`archive_140b4c40`）：到达 t=2458 被处理 →
+#: 结束移动段意图 → **同一轮**的 `node_tactical_agent` 又给它新建一条意图 →
+#: 下一轮重新算 `busy` → 被挡到 **t=4262（30.07 秒 ≈ `HOP_HOLD_MAX_TICKS`）**。
+#:
+#: round-29 第一版把对局打挂了两次，根因**不是**这个候选的逻辑，而是
+#: 日志载荷里放了 `⇒`(U+21D2)、而 runner 要 `print` 到 **GBK 控制台**。
+#: round-30 已修 `agent_runner._log`（编码失败时降级为 `backslashreplace`，
+#: 并保证日志异常绝不打挂调用方），所以这里重新启用。
+#: 本文件的日志载荷仍**只用 ASCII**（双保险：不走降级路径，输出保持干净）。
+ARRIVAL_BUSY_OVERRIDE = True
+
+
+def _recently_arrived(state: Dict[str, Any], unit: str, tick: int) -> bool:
+    """该单位是否**刚刚**到达（距最近一次到达 ≤ `ARRIVAL_PRIORITY_WINDOW_TICKS`）。
+
+    只读 `state["unit_arrival_tick"]`（由 `node_ingest` 的到达分支写，随检查点持久化）。
+    """
+    ledger = state.get("unit_arrival_tick")
+    if not isinstance(ledger, dict):
+        return False
+    stamped = ledger.get(str(unit))
+    if not isinstance(stamped, int):
+        return False
+    return 0 <= int(tick) - stamped <= ARRIVAL_PRIORITY_WINDOW_TICKS
+
+
+def _trace_gate(state: Dict[str, Any], unit: str, gate: str, **extra) -> None:
+    """军事轨的**逐出口漏斗追踪**（仅在 `AIRTS_ADVANCE_TRACE` 给出文件路径时生效）。
+
+    为什么要有它（round-31）：军事轨有**五处静默 `continue`**，只看最终输出无法
+    区分"放行了但没产出"是哪一处拦的。round-30 我因此误判过一次。
+    写文件而不是 stdout/decisions：
+      - 不走 stdout ⇒ 不受控制台编码限制（round-29 的 `⇒` 事故）；
+      - 不进 `decisions.jsonl` ⇒ 不受 `MAX_DECISION_LOG` 上限挤掉（C-104）。
+    生产路径上它只做一次 `os.environ.get`，没有其它开销。
+    """
+    path = os.environ.get("AIRTS_ADVANCE_TRACE")
+    if not path:
+        return
+    try:
+        with open(path, "a", encoding="utf-8") as handle:
+            payload = {"unit": str(unit), "gate": str(gate),
+                       "tick": int(state.get("server_tick", 0) or 0)}
+            payload.update(extra)
+            handle.write(json.dumps(payload, ensure_ascii=False) + "\n")
+    except Exception:  # noqa: BLE001 —— 追踪是旁路，绝不许影响决策
+        pass
+
+
+def _bump_state(state: Dict[str, Any], key: str, amount: int = 1) -> None:
+    """只读计数累加（写进 `state["movement_stats"]`，让验收能从归档里读到）。
+
+    为什么需要它：`rules_fallback` 里那些"这一轮跳过某单位"的分支**没有留痕**，
+    于是"单位为什么没拿到新命令"只能靠读代码推理。这些计数把每一次否决变成事实。
+    """
+    if not isinstance(state, dict):
+        return
+    stats = state.setdefault("movement_stats", {})
+    stats[key] = int(stats.get(key, 0)) + int(amount)
 
 
 def _parallel_intents(state: Dict[str, Any], *, tactical=None, rules=None,
@@ -2909,8 +3547,25 @@ def _parallel_intents(state: Dict[str, Any], *, tactical=None, rules=None,
             info = by_name.get(name) or {}
             if not _free(name) or name == scout_pick or name in on_site or not info.get("gather"):
                 continue
+            # 【2026-10-11 R2 实测：满载矿车被补采打断，交付永不来】载货 > 0 的矿车
+            # 正在返程交付（或刚采满）；补发 gather 会把它的采集 action 重置回
+            # MOVING_TO_RESOURCE —— 实测 86 次任务启动只有 11 次到达、交付 0 次、
+            # 余额只降不升（矿车满载在矿点旁逐圈重启）。带货车交给权威返程逻辑，
+            # 不再补采；满车且无矿场可交付时宁可持续持货，也不再无效往返。
+            carried = info.get("carried") or (0, 0)
+            if isinstance(carried, (list, tuple)) and any(int(x or 0) > 0 for x in carried):
+                continue
             resource = _nearest_resource(info, resources, load=load,
                                          cap=RESOURCE_WORKERS_PER_NODE)
+            # 【换矿 · 2026-10-09】刚被权威以 `ResourceDepleted` 拒过的矿，对这个单位
+            # 在窗口内不再作候选 —— 否则我们每轮重发同一条命令、继续被拒
+            # （实测接受/拒绝交错翻转 55 次）。只对这一档生效，矿点再生后自动恢复。
+            if resource is not None and not resource_usable_by(state, name, resource):
+                alternatives = [item for item in resources
+                                if resource_usable_by(state, name, item)]
+                resource = _nearest_resource(info, alternatives, load=load,
+                                             cap=RESOURCE_WORKERS_PER_NODE) \
+                    if alternatives else None
             if resource is None:
                 break
             entity = str(entity_id_of(resource))
@@ -2964,13 +3619,17 @@ def _parallel_intents(state: Dict[str, Any], *, tactical=None, rules=None,
                    for product, producer in PRODUCT_LADDER
                    if producer == producer_type and producer in own_types
                    and scene_index.get(product, "")
-                   and (combat_allowed or product not in combat_ids)]
-        # 【2026-09-15 决定：**并行轨不补工人**，补工人只由阶梯 1.8 负责】
-        # 曾试过在这里也补工人（为了绕过阶梯的「逐级 return」），但同一轮内两条路径会各产
-        # 一条（`worker_production_in_flight` 只查**历史** state，看不到本轮刚产出的意图）⇒
-        # 每轮多一条 produce 意图，打乱了"每轮下发条数"的既有契约（`test_graph_runtime_fake`
-        # 等以 `transport.sent == 1` 钉住该契约）。根因改由**阶梯 1.8 的生产者判据放宽**解决
-        # （见 `_development_intents_raw` 里「与阶梯 2 同口径」那段）。
+                   and (combat_allowed or product not in combat_ids)
+                   and not (product == "helicopter" and helicopter_blocked_by_recon(
+                       state, inputs, by_name, tactical, scene_index))]
+        if producer_type == "aircraft_factory":
+            drone_scene = str(scene_index.get("drone") or "")
+            live = _live_probes(by_name, ai_units)
+            pending = int(pending_production(tactical, state, scene_index).get("drone", 0) or 0)
+            desired = recon_desired_count(state, inputs, by_name, tactical)
+            if drone_scene and live + pending < desired:
+                options = [("drone", drone_scene)]
+        # 并行轨不补工人，补工人只由阶梯 1.8 负责。同一轮两条路径会各产一条。
         if not options:
             continue
         product, scene = min(options, key=lambda item: counts.get(item[0], 0))
@@ -2993,6 +3652,11 @@ def _parallel_intents(state: Dict[str, Any], *, tactical=None, rules=None,
     bounds = state.get("map_bounds")
     combat_all = [n for n in ai_units
                   if str(by_name.get(n, {}).get("type", "")) in combat_ids]
+    # 【作战轨保底名额：已撤销（round-38）】`military_reserve` 不再使用，
+    # 军事轨回到裸 `_room()`。原因见军事轨循环处的注释：
+    # `PARALLEL_FILL_CAP = 8` 是硬上限，保底只是把一格从别的轨挪过来，
+    # 实测目标指标（`advance_batch_full` 占比）与替代口径（军事意图/轮、`emitted` 合计）
+    # **全部变差**。这里保留一段说明而不是删干净，是为了让后来者知道"试过、测过、不行"。
     # 主动交火的门槛与阶梯 3 **同口径**（兵力达标 ∧ 阶段允许 ∧ 有可见敌人）：
     # 并行填充只放宽"谁能拿到任务"，绝不放宽"什么时候能打"（手册禁止未达规模就添油）。
     may_attack = (bool(enemies) and bool(prefs.get("allow_attack", True))
@@ -3002,7 +3666,12 @@ def _parallel_intents(state: Dict[str, Any], *, tactical=None, rules=None,
     scout_names = [name for name in ai_units
                    if _free(name)
                    and str((by_name.get(name) or {}).get("type", "")) in PROBE_TYPES]
-    if not scout_names:
+    pending_drones = int(
+        pending_production(tactical, state, scene_index).get("drone", 0) or 0)
+    drones_unavailable = (
+        _live_probes(by_name, ai_units) <= 0 and pending_drones <= 0
+        and not _aircraft_factory_can_queue(by_name, inputs, tactical))
+    if not scout_names and drones_unavailable:
         replacement = scout_pick
         if replacement and replacement not in suspended:
             # 转交时允许抢采集工：专职没了比"工人继续采"更缺执行者。
@@ -3073,8 +3742,13 @@ def _parallel_intents(state: Dict[str, Any], *, tactical=None, rules=None,
     if not isinstance(confirm_units, dict):
         confirm_units = {}
         confirm["units"] = confirm_units
-    if _room() and int(tick) - int(confirm.get("last_tick") or 0) >= (
-            SCOUT_CONFIRM_INTERVAL_TICKS):
+    # 【2026-10-11 C-025 审计】专职侦察在编齐备（≥ 阶段需求）时**不再抽战斗单位**做
+    # 双保险：提示词 §B1"不应在无人机已覆盖时反复抽走军队"（R5 实测：两架 drone 在编
+    # 期间仍抽了 Unit_7/Unit_8 两次）。专职不足（阵亡/未量产）或没有专职时按原 D13
+    # 照常轮转——"不依赖无人机存活"的初衷留给真正的缺口期。
+    if (drones_unavailable and not scout_names and _room()
+            and int(tick) - int(confirm.get("last_tick") or 0)
+            >= SCOUT_CONFIRM_INTERVAL_TICKS):
         contact = [_pos2d(enemy) for enemy in (enemies or ())]
         contact = [point for point in contact if point]
         primary = set(scout_names)
@@ -3133,11 +3807,155 @@ def _parallel_intents(state: Dict[str, Any], *, tactical=None, rules=None,
         by_name, home)) if defending_home else set()
     from . import movement as _movement
     local_radius = float(getattr(_movement, "LOCAL_CONTACT_RADIUS_M", 30.0))
-    for index, name in enumerate(ai_units):
+    # 【轮转服务顺序 · 2026-10-09】`ai_units` 是 `nodes.py` 里 `sorted(...)` 出来的
+    # **固定字母序**，而本轨每轮有产出上限（`PARALLEL_FILL_CAP`）。两者叠加的后果是：
+    # 靠前的单位每轮都被先服务，靠后的单位**每次都被截断** —— 不是"拿不到意图"，
+    # 而是"要等前面的人轮完"。
+    #
+    # 实测（`archive_9e5627fe`，round-21 `rotation_fairness.py`）：
+    #   - 推进意图在列表里的**平均排名跨度 0.0 → 16.7**（完全没有轮转）；
+    #   - **排在最后的正是停最久的**：`Unit_41` 平均排名 16.2 / `Unit_36` 11.5 /
+    #     `Unit_37` 12.4 / `Unit_38` 13.2；
+    #   - 而真停滞样本的恢复时刻**成簇**、且同一簇内"到达越早、停得越久"
+    #     （`Unit_38/37/33` = 26.3/23.5/22.4 秒）—— 这正是**排队**的形状。
+    #
+    # 修法：用一个持久游标**旋转起点**（与 `lanes.interleave` 的 cursor 同一思路），
+    # 让每个单位都有机会排在前面。只改**顺序**，不改任何筛选判据、不改上限。
+    total_units = len(ai_units)
+    start = int(state.get("advance_cursor", 0) or 0) % total_units if total_units else 0
+    ordered_units = ai_units[start:] + ai_units[:start] if total_units else []
+    # 【到达优先服务 · 2026-10-09】在轮转之上再叠一层"**刚到达的排前面**"。
+    #
+    # 依据（round-26 实测，prompt §3-C 原文要求"arrival 触发下一段优先服务"）：
+    #   - 接续 p95 = 4.68s，而"等到下一决策轮"的 p95 只有 1.45s
+    #     ⇒ 单位平均**多等 2~3 轮**才被服务到（排队，不是不能动）；
+    #   - 40.1% 的接续落在 1~5 秒，全是战斗单位；
+    #   - 只有 4.4% 超过 5 秒 ⇒ **要动的不是尾巴**，是"多等的那 1~4 轮"。
+    #
+    # 做法：把 `unit_arrival_tick`（`node_ingest` 到达时写）作为**主排序键**，
+    # **降序**（最近到达的在前）；没到达记录的单位排在后面，仍按轮转顺序。
+    # 之所以 `node_ingest` 在本轨之前运行，正是为了让这一轮就能看到本轮的到达。
+    arrival_ticks = state.get("unit_arrival_tick")
+    if isinstance(arrival_ticks, dict) and arrival_ticks:
+        ordered_units = sorted(
+            ordered_units,
+            key=lambda name: (
+                0 if isinstance(arrival_ticks.get(name), int) else 1,
+                -int(arrival_ticks.get(name) or 0),
+            ))
+        _note(state, "advance_priority",
+              prioritized=sum(1 for name in ordered_units
+                              if isinstance(arrival_ticks.get(name), int)),
+              total=total_units)
+        _bump_state(state, "advance_prioritized")
+    if total_units:
+        # 本轮起点前移一格：下一个单位下一轮排第一。
+        state["advance_cursor"] = (start + max(1, int(PARALLEL_FILL_CAP))) % total_units
+    _trace_gate(state, "(loop-input)", "ordered",
+                count=len(ordered_units), start=start,
+                units=",".join(str(u) for u in ordered_units[:12]))
+    for index, name in enumerate(ordered_units):
+        # 【作战轨保底名额 · 2026-10-09（round-37 候选，round-38 **已撤销**）】
+        #
+        # 曾试过 `_room(reserve=military_reserve)`（复刻侦察轨的 `scout_reserve` 模式），
+        # 但实测**目标指标与替代口径全部变差** ⇒ 按 `airts-performance-optimization`
+        # 门禁"优化不明显或失败 ⇒ 只撤销本轮自己的改动"**已回退成裸 `_room()`**。
+        #
+        # 实测（三局对照，都是 `run_health` OK 的运行）：
+        #   | 口径 | 对照 `81893e7b` | 无保底 `ab487d43` | **有保底 `9d887277`** |
+        #   |---|---|---|---|
+        #   | `advance_batch_full` 轮次占比 | 82.4% | 83.1% | **87.1%**（更差） |
+        #   | 军事意图/轮（`skipped`+`emitted`） | 10.45 | **19.79** | **16.39**（更差） |
+        #   | `emitted` 合计 | 1048 | **1304** | **1127**（更差） |
+        #
+        # 为什么会这样（round-38 更正了 round-37 的解释）：
+        # `PARALLEL_FILL_CAP = 8` 是**硬上限**，而 `advance_batch_full` 的
+        # `emitted` 分布从 `{8:131}` 变成 `{7:137, 8:21}` —— 即"前面的轨用到 7 就停，
+        # 留 1 格给军事轨"。但**总量还是 8 封顶**，保底只是**把一格从别的轨挪过来**；
+        # 结果军事轨反而更早停（它的 `_room` 更早为假）。
+        # ⇒ **在硬上限下，保底 = 零和搬运（甚至净损）**，这是可测的结论。
         if not _room():
+            # 名额用尽：**留下的单位这一轮全体没机会**。逐个留痕会刷爆日志，
+            # 所以只记"总共有多少单位因为名额被挡"，并带上本轮已产出条数。
+            _note(state, "advance_batch_full", emitted=len(out),
+                  remaining=total_units - index, start=start,
+                  note="本轮从第 %d 个单位开始（轮转，防固定顺序饥饿）" % start)
             break
         info = by_name.get(name) or {}
+        # 【到达优先跨过 busy · 2026-10-09（round-29）】**已实现但尚未验证 → 本轮先关闭。**
+        #
+        # 追出的竞态是真的（`Unit_18`，`archive_140b4c40`）：到达 t=2458 被处理 →
+        # 结束移动段意图 → **同一轮**的 `node_tactical_agent` 又给它新建一条意图
+        # → 下一轮重新算 `busy` → 被挡到 **t=4262（30.07 秒 ≈ 1800 tick）**。
+        #
+        # 但第一版实现**把对局打挂了两次**（都在 16~36 tick 内）：
+        #   1. 我在日志载荷里放了 `⇒`（U+21D2），而 runner 的 `_log` 要 `print` 到
+        #      **GBK 控制台** → `UnicodeEncodeError` → 每轮抛异常 → 归档残缺；
+        #   2. 期间还误判过一次原因（以为是 lambda 形参遮蔽 `str`，其实那处形参叫 `name`）。
+        # `run_health` 两次都判"不可用"，所以我**没有**采信任何读数 ——
+        # 这正是 round-24 立下"跑完先验尸"的用处。
+        #
+        # 按纪律（prompt §4：一轮一个明确候选；没验证的不算成果），本轮**先关闭**它，
+        # 让它留在工作树外，等下一轮**单独**实现并在 ASCII 日志下验证。
+        # 下面这段保留为**关闭状态**的实现草案（`ARRIVAL_BUSY_OVERRIDE = False`），
+        # 打开前必须先处理"日志只允许 GBK 可编码字符"这条约束。
+        if ARRIVAL_BUSY_OVERRIDE:
+            recently_arrived = _recently_arrived(state, str(name), tick)
+            blocked_by_busy = (not _free(name)) and name in busy
+            # ⚠ `_en_route` **只许调用一次**并缓存：它经 `hop_in_progress` →
+            # `previous_route`，而后者**会顺手清理过期路线**（有副作用）。
+            # round-30 实测踩到：为了打调试信息多调一次，第二次的返回值就变了，
+            # 于是"有调试信息"和"没调试信息"的行为不一致 —— 这种 bug 极难查。
+            en_route = bool(_en_route(name))
+            # 边界（三条，都必须满足）：
+            #   ① 刚到达（窗口 `ARRIVAL_PRIORITY_WINDOW_TICKS`）；
+            #   ② 确实被 `busy` 挡住；
+            #   ③ **不在途**且未挂起 —— 守住 round-06 立下的"半路不许改令"纪律。
+            # 满足则 `continue` **跳过下面那道 busy 关卡**，让本轨照常为它生成下一跳
+            #（不是"什么都不做"：continue 之后就是正常生成路径）。
+            if recently_arrived and blocked_by_busy and not en_route \
+                    and name not in suspended:
+                _bump_state(state, "advance_busy_overridden")
+                _note(state, "advance_priority_override", unit=str(name),
+                      note="arrived recently and not en route; bypass busy")
+                continue
+        # 【可复现漏斗追踪 · 2026-10-09】逐单位记录"走到哪一步、被哪道闸挡下"。
+        # 为什么要有它（round-31）：军事轨有**五处静默 `continue`**，只看最终输出
+        # 分不清"放行了但没产出"到底是哪一处拦的 —— round-30 我就因为证据不足
+        # 误判成"卡在第二道闸"（其实那时还叠着一个测试自身的双调用 bug）。
+        # 只在环境变量给出路径时写文件（**不走 stdout**，避免控制台编码问题；
+        # 也不进 decisions 日志，避免被 `MAX_DECISION_LOG` 挤掉）。
+        _trace_gate(state, name, "enter", index=int(index))
         if not _free(name) or str(info.get("type", "")) not in combat_ids:
+            # 【逐条留痕 · 2026-10-09】这是 round-14 交给本轮的问题：
+            # 到达之后 20~30 秒生成侧**一条推进意图都不产出**。
+            # 军事轨把单位挡掉只有四个出口，这里是第一道，也是最可疑的一道：
+            # `_free` = 不在 `busy` / `used` / `suspended` 里，而
+            # `busy = busy_units(state)` 会把**任何持有活跃意图的单位**算进去
+            # （`active_intents` 里 `state ∈ INTENT_LIVE_STATES`）。
+            # 关键点：`note_arrival` **只作废路线缓存、不结束意图** ——
+            # 于是"到达之后旧意图仍然活着"就足以让这个单位每轮被挡在这里，
+            # 直到意图 `expires_tick` 到期。这正好能解释"到达后静默 20~30 秒"。
+            reason = ("not_free" if not _free(name) else "not_combat")
+            blocker = ""
+            blocker_action = ""
+            if reason == "not_free":
+                if name in busy:
+                    reason = "busy"
+                    # 【把 `busy` 拆开 · 2026-10-09】只报"busy"没法判断该不该修：
+                    # `busy_units` 把**所有**活跃意图都算上（移动段、点攻击驻留、
+                    # 采集、建造、生产…），而军事轨只关心作战单位。
+                    # round-15 修掉"移动段意图活过到达"之后 `busy` 占比**没变**
+                    # （73.8% → 73.8%），所以必须知道**究竟是哪种意图占住了它**：
+                    # 若仍是移动段 ⇒ 还有路径没走到释放分支（真 bug）；
+                    # 若是采集/建造/驻留 ⇒ 与本轨无关（合法）。
+                    blocker, blocker_action = _busy_blocker(state, str(name))
+                elif name in used:
+                    reason = "used"
+                else:
+                    reason = "suspended"
+            _note(state, "advance_skipped", unit=str(name), reason=reason,
+                  index=int(index), blocker=blocker, blocker_action=blocker_action)
             continue
         if defending_home and (unit_near_base(_pos2d(info), home) or name in recall_ids):
             # 近处回防、家里无人时的召回：都归行为树 `defend`，填充不抢。
@@ -3214,7 +4032,14 @@ def _parallel_intents(state: Dict[str, Any], *, tactical=None, rules=None,
                              {"entity_id": target_id}, 2,
                              "并行填充：军事轨（交火局部最近/高威胁目标）", "rule-attack")
             continue
-        # 无可见敌人：才谈"前压"。前压点由 `military_waypoint` 给
+        # 没有确认敌情（看不见敌人，也没有情报点）：作战单位不全体改道。
+        # 侦察留给无人机；这里继续看下一个单位，不发 attack_move。
+        if not intel_points:
+            _note(state, "advance_skipped", unit=str(name), reason="no_confirmed_intel",
+                  index=int(index))
+            _trace_gate(state, name, "no_confirmed_intel", index=int(index))
+            continue
+        # 有情报点、但这一拍看不见敌人：才按情报前压。前压点由 `military_waypoint` 给
         # （朝地图内侧 / 朝已知敌情、不越交战线、不贴边）。
         # **小队已成形 → search=True**：允许更远（去找人打），否则部队会在家门口转圈
         # （实测一局攒到 36 个作战单位、可见敌人 0、只有前压命令 = 玩家眼里的"攒兵不打"）。
@@ -3228,12 +4053,34 @@ def _parallel_intents(state: Dict[str, Any], *, tactical=None, rules=None,
                                   intel=intel_points, search=True,
                                   ring=1 + index // 4, state=state, unit=name)
         if not point:
-            break
+            # 【2026-10-09 修 `break` → `continue`】原来这里是 `break`：
+            # **一个单位**算不出航点会**终止整条军事轨**，把它之后的**所有**作战单位
+            # 一起饿掉。`military_waypoint` 只在 `not base or len(base) < 2` 时返回空，
+            # 而 `origin or base` 在 `origin` 为 `None` 时退到 `base` —— 所以它确实会空。
+            # 一个单位的异常不该让整个军事轨停摆（这是"有的兵动、有的兵一直不动"的
+            # 一个直接机制）。改成 `continue`：只跳过这一个单位。
+            _note(state, "advance_skipped", unit=str(name), reason="no_waypoint",
+                  index=int(index))
+            _trace_gate(state, name, "no_waypoint", index=int(index))
+            continue
         if _en_route(name):
+            # 【逐条留痕 · 2026-10-09】这一条是"通往新命令的唯一道路"。
+            # 实测漏斗（`archive_f2c668c0`）：生成 756 → 接受 702 → 下发 702 →
+            # 权威全 Accepted，**链路上没有任何丢失**，但 60+ 单位 143 轮只生成
+            # 5.3 条/轮 —— 因为"在路上"的单位全被这里否决。
+            #
+            # 为什么用 `_note` 逐条记而不是只累加计数：计数写在 `movement_stats` 里，
+            # 会被 `movement_stats()` 视图的键集变化掩盖（round-11 实测：同一套机制、
+            # 上一轮加的 `arrival_marker_kept` 读到了，这两个新键没读到 → 观测失败）。
+            # 逐条决策记录不会被合并或覆盖，复盘时能直接数出"每轮多少单位被否"。
+            _note(state, "advance_skipped", unit=str(name), reason="en_route",
+                  index=int(index))
+            _trace_gate(state, name, "en_route", index=int(index))
             continue
         _add("rule-fill-advance-%s-%d" % (name, tick), ACTION_ATTACK_MOVE, name,
              {"pos": point}, 3,
              "并行填充：军事轨（前压到 %s，遇敌即交火）" % (point,), "rule-advance")
+        _trace_gate(state, name, "emitted_advance", index=int(index))
 
     return out
 
@@ -3470,17 +4317,59 @@ def _development_intents_raw(state: Dict[str, Any], *, tactical=None, rules=None
         expansion_pack = (["ore_refinery", "command_center"] if expansion_cc_open
                           and "command_center" in build_order else [])
         pending_order = [item for item in expansion_pack if item in build_order]
+    # 【B1 插队已撤销（2026-10-13 用户口径）】旧实现把机场插到本轮建造最前去补侦察产能，
+    # 但建造阶梯是"每 tick 只发一条"（见本函数尾部 return），插队 = 本 tick 矿场/防御全让位，
+    # 与"开局先矿场+矿车、再基础防御、无人机后面再造"直接冲突。
+    # 机场现在按 BUILD_LADDER 的自然档位（防御之后）推进；侦察产能缺口改由
+    # `opening_order_ready` 之后的无人机配额线补（见 recon_produce_intent 的闸门）。
+    bases = [info for info in by_name.values() if info.get("type") == "command_center"
+             and info.get("constructed") is not False]
+    # The ordinary cap limits extra buildings; each completed HQ still needs
+    # one refinery and one of each requested defense type. Pending structures
+    # count as coverage, so repeated ticks cannot open duplicate support sites.
+    support_loads = {building: [0] * len(bases) for building in pending_order
+                     if building == "ore_refinery" or is_turret_building(building)}
+    base_positions = [_pos2d(base) for base in bases]
+    if bases and support_loads:
+        for info in by_name.values():
+            loads = support_loads.get(str(info.get("type", "")))
+            if loads is None:
+                continue
+            position = _pos2d(info)
+            nearest = min(range(len(bases)), key=lambda index: math.hypot(
+                position[0] - base_positions[index][0],
+                position[1] - base_positions[index][1]))
+            loads[nearest] += 1
     for building in pending_order:
         if building not in buildable_ids:
             continue
-        if building_counts.get(building, 0) >= int(BUILD_LIMITS.get(building, 1)):
+        limit = int(BUILD_LIMITS.get(building, 1))
+        loads = support_loads.get(building, [])
+        if bases and loads:
+            limit = max(limit, building_counts.get(building, 0)
+                        + sum(count == 0 for count in loads))
+        if building_counts.get(building, 0) >= limit:
+            continue
+        # 【2026-10-11 C-024 阶段 desired count】产能建筑的第二座不是"立即目标"：
+        # 经济未点火（无矿场/无矿车）时只保留第一座，第二座等经济运转后再开
+        # （提示词 §A1："第二兵营/车厂由经济、队列负载、战损或战术需求开启"）。
+        if (building in ("barracks", "vehicle_factory")
+                and building_counts.get(building, 0) >= 1
+                and not economy_ignited(by_name)):
             continue
         scene = scene_index.get(building, "")
         if not scene:
             continue
         builders = list(idle_builders)
         source = construction_progress_source(rules, building)
-        if not builders and building == "command_center" and expansion_cc_open:
+        # 【2026-10-11 用户口径：副官不再让工人造建筑】demo 全部建筑都是 automatic
+        # （`constructionProgressSource:"automatic"`，施工由权威 Tick 推进，权威端
+        # `AssignBuildersAfterPlacement` 对 Automatic 直接 return）。旧口径"没有空闲
+        # 工人就 release 一个工人去当分基地建造者"是残留：它会把正在采矿的矿车从采集
+        # 上拉开（`release_unit_for_expansion_cc` 会丢弃其 gather 意图），而施工根本
+        # 不需要它。automatic/hybrid 一律走下面的"名义载体"分支，不动工人。
+        if (not builders and building == "command_center" and expansion_cc_open
+                and source not in NO_BUILDER_REQUIRED_SOURCES):
             suspended = {str(item) for item in (prefs.get("suspended_objects") or [])}
             for name in ai_units:
                 if name in suspended:
@@ -3519,6 +4408,19 @@ def _development_intents_raw(state: Dict[str, Any], *, tactical=None, rules=None
         # "SurfaceNotBuildable"]}。这里取**主基地附近**的偏移点：基地一定在视野内，
         # 且周围通常是可建平地（比用建造者自身位置更稳）。
         anchor = _base_anchor_pos(by_name) or _pos2d(by_name.get(builder, {}))
+        if bases and building != "command_center":
+            # Remember the opening production base; recover at the closest
+            # survivor when it is lost. Expansions receive economy and defense.
+            home = state.get("build_home_anchor")
+            if not isinstance(home, (list, tuple)) or len(home) < 2:
+                home = list(anchor)
+                state["build_home_anchor"] = home
+            if building == "ore_refinery" or is_turret_building(building):
+                loads = support_loads[building]
+                anchor = base_positions[min(range(len(bases)), key=lambda index: loads[index])]
+            else:
+                anchor = _pos2d(min(bases, key=lambda base: math.hypot(
+                    _pos2d(base)[0]-home[0], _pos2d(base)[1]-home[1])))
         # 落点：**离己方单位与采矿通道最远**（实测旧落点"基地+5m 轮换方位"压在
         # 基地→矿点的通道上：barracks(10,12) 对工人 (8~10,13~14.6)，把工人堵在
         # 1.5m 口袋里采矿——用户反馈"兵营造的位置会卡住工人采矿"）。
@@ -3528,7 +4430,8 @@ def _development_intents_raw(state: Dict[str, Any], *, tactical=None, rules=None
             # 分基地：**不能**贴着主基地盖（那样毫无收益），要选远端矿点附近。
             place = pick_expansion_spot(by_name, resources, anchor,
                                         blocked=blocked_spots,
-                                        bounds=state.get("map_bounds"))
+                                        bounds=state.get("map_bounds"),
+                                        rules=rules, building=building)
             if not place:
                 # 没有"离主基地较远的可见矿点"→ 不建假分基地，继续看下级。**必须留痕**：
                 # 阶段 0 记录扩张路径原本一个日志点都没有，"整局不扩张"无从归因。
@@ -3537,23 +4440,44 @@ def _development_intents_raw(state: Dict[str, Any], *, tactical=None, rules=None
                       visible_resources=len(resources),
                       note="没有可见且够远的矿点：不发假分基地命令")
                 continue
-            site_note = "派工人到远端矿点附近建造"
+            # 【2026-10-11】措辞去"派工人"：automatic 建筑不需要建造者，命令只带名义
+            # 载体；description 尾部已是"（自动放置）"。
+            site_note = "分基地：远端矿点附近"
         elif building == "ore_refinery":
-            # 矿场（2026-09-23）：与分基地同政策——必须去**远端新矿**旁边。
-            # 贴着基地盖矿场毫无收益（工人本来就在基地采）；矿场的价值在
-            # "本地短 loop"：工人被矿场指派后在矿点旁采、回矿场交货。
+            # 【2026-10-11 首个矿场=经济点火，允许近点】新玩法：矿场完工赠一辆矿车、
+            # 矿车向矿场交付——首座矿场必须尽快落地，不能等"远端新矿"（旧政策把首矿
+            # 永远挡死：用户局 802 轮无矿场）。已有经济建筑（矿场或车厂）后，后续矿场
+            # 仍走远端扩张政策（分矿语义，与 M08 一致）。
+            # 【2026-10-11 修正】首座矿场**只**由"还没有矿场"决定，和有没有车厂无关。
+            # 旧判据把 `vehicle_factory` 也算进"已有经济"，于是"先开车厂"的正常顺序
+            # 会把首座矿场降级成**远端扩张**（受 `EXPANSION_MIN_DISTANCE_M` 约束）：
+            # 近处明明有可采矿点却因为不够远而被跳过，首矿永远落不了地（提示词 §A1 第 2 条）。
+            owned_types_now = {str(info.get("type", "")) for info in by_name.values()
+                               if info.get("type")}
+            first_economy = "ore_refinery" not in owned_types_now
+            completed_bases = [info for info in by_name.values()
+                               if info.get("type") == "command_center"
+                               and info.get("constructed") is not False]
+            # Support a completed expansion at its own observed local ore.
+            # Main-base separation is not a minimum ore-to-new-HQ distance.
+            refinery_min_distance = (0.0 if first_economy or len(completed_bases) > 1
+                                      else EXPANSION_MIN_DISTANCE_M)
             place = pick_expansion_spot(by_name, resources, anchor,
                                         blocked=blocked_spots,
-                                        bounds=state.get("map_bounds"))
+                                        bounds=state.get("map_bounds"),
+                                        rules=rules, building=building,
+                                        min_distance_m=refinery_min_distance,
+                                        prefer_near=(first_economy or len(completed_bases) > 1))
             if not place:
-                # 没有可见的远端新矿 → 不开矿场（贴主基地盖矿场毫无收益）。留痕是为了
-                # 能回答"这一局为什么没矿场"：是矿没探到，还是阶梯根本没轮到它。
+                # 没有可见的（够远的）矿点 → 不开矿场。留痕是为了能回答"这一局为什么
+                # 没矿场"：是矿没探到，还是阶梯根本没轮到它。
                 _note(state, "expansion_spot_exhausted", building="ore_refinery",
-                      min_distance_m=EXPANSION_MIN_DISTANCE_M,
+                      min_distance_m=refinery_min_distance,
                       visible_resources=len(resources),
-                      note="没有可见且够远的矿点：不发贴脸假矿场命令")
+                      note="没有可见矿点：不发矿场命令")
                 continue
-            site_note = "派工人到远端新矿旁建造（工人自动指派本地采矿）"
+            site_note = ("首个矿场：最近可采矿点旁（完工赠矿车）" if first_economy
+                         else "远端新矿旁（矿车自动指派本地采矿）")
         elif is_turret_building(building):
             # 防御塔：当前视野最外围（接近路），不是指挥中心 4m 环。
             enemy_pts = [_pos2d(item) for item in _living_enemies(tactical)]
@@ -3561,13 +4485,14 @@ def _development_intents_raw(state: Dict[str, Any], *, tactical=None, rules=None
                                     blocked=blocked_spots,
                                     bounds=state.get("map_bounds"),
                                     state=state, enemies=enemy_pts)
-            site_note = "派工人到基地外围建造"
+            site_note = "基地外围（接近路方向）"
         else:
             place = pick_build_spot(by_name, resources, anchor,
                                    blocked=blocked_spots,
                                    bounds=state.get("map_bounds"),
-                                   state=state)   # 传 state 只为了留痕（候选全不可用时记账）
-            site_note = "派工人到基地附近建造"
+                                   state=state,   # 传 state 只为了留痕（候选全不可用时记账）
+                                   rules=rules, building=building)
+            site_note = "基地附近"
         # ---------- 自动相邻放置（2026-09-23 用户口径"建筑自动相邻造"） ----------
         # 落点交给**权威端**（游戏侧 `StructurePlacementRuntime.FindAutoSpot`：
         # base 模式贴己方基地、resource 模式贴远端新矿逐环搜第一个合法点）。
@@ -3576,6 +4501,12 @@ def _development_intents_raw(state: Dict[str, Any], *, tactical=None, rules=None
         # `place`（旧口径算出的政策点）只作为留痕与 `continue` 判据用：
         # command_center 没有"远端新矿"时仍然不建假分基地（政策不变）。
         if not place:
+            continue
+        if economy_unbootstrapped(rules, tactical, state, by_name):
+            # 【经济没点火 → 建造本轮让位给矿车】阶梯是"逐级 return"结构：建造只要还有候选，
+            # 阶梯 1.8（补矿车）就永远轮不到。离线复现（1 座完工车厂 + 队列全空 + 余额 6000
+            # + 0 矿车）四轮都只返回 `rule-build-*`；真实局同一形状 —— 150 秒内
+            # `worker` 意图 0 条、余额 9400→100、之后什么都不再生产（矿车是收入的唯一来源）。
             continue
         # intent_id 必须**带上 tick**：游戏侧按 intent_id 幂等缓存回执，
         # 若沿用固定 id，重试会一直命中最早那次拒绝（实测 `intent_replay: true` +
@@ -3595,7 +4526,17 @@ def _development_intents_raw(state: Dict[str, Any], *, tactical=None, rules=None
     # 施工本身在 `PlaceStructure` 成功时就通过 `AssignBuilders` 指给了工人，
     # **工人留在工地就会自动建完**；真正的病根是我们的指挥层把工人调走去采集，
     # 工地从此没人干活。所以这里只负责"把工人送回去"。
-    unfinished = list(inputs.get("unfinished_buildings") or [])
+    # 【2026-10-11 用户口径：副官不再让工人造建筑】续建只对**真需要建造者的建筑**
+    # （progress source = worker）发：automatic/hybrid 的工地由权威 Tick 自动推进，
+    # 派空闲工人"到场续建"只会把矿车/工人从采集上抽走（`Constructing.is_applicable`
+    # 会给工人挂上施工订单），是旧口径残留。demo 现役建筑全部 automatic → 这条阶梯
+    # 在正常对局里不再产出任何意图。
+    unfinished = [
+        name for name in (inputs.get("unfinished_buildings") or [])
+        if construction_progress_source(
+            rules, str((by_name.get(name) or {}).get("type", "")))
+        not in NO_BUILDER_REQUIRED_SOURCES
+    ]
     if unfinished and idle_builders:
         site = str(unfinished[0])
         x, z = _pos2d(by_name.get(site, {}))
@@ -3757,8 +4698,14 @@ def _development_intents_raw(state: Dict[str, Any], *, tactical=None, rules=None
                         {"scene": recon_scene, "producer": recon_producer}, 3,
                         "侦察补充：专职侦察在编不足，机场补无人机",
                         "rule-produce-drone")]
+    # 【2026-10-13 用户口径】开局顺序：矿场+矿车 → 基础防御 → 才是小兵/坦克/直升机。
+    # 经济或防御未就绪时作战档整体让位（留痕，便于复盘"这一局为什么没出兵"），
+    # 工人档（阶梯 1）与建造档不受影响。
     for product, producer_type in PRODUCT_LADDER:
         if producer_type not in own_types:
+            continue
+        if product == "helicopter" and helicopter_blocked_by_recon(
+                state, inputs, by_name, tactical, scene_index):
             continue
         scene = scene_index.get(product, "")
         if not scene:
@@ -3776,6 +4723,16 @@ def _development_intents_raw(state: Dict[str, Any], *, tactical=None, rules=None
         combat_ids = combat_types_of(state, rules)
         if not combat_production_allowed(state, tactical, tick, rules):
             options = [item for item in options if item[0] not in combat_ids]
+    if options:
+        # 【经济启动金不许被作战生产吃掉】见 `worker_bootstrap_reserve`：矿车还没补齐时，
+        # 本批作战生产只允许花掉"留出补矿车钱"之后的余额，否则一等车厂完工就没钱造
+        # 矿车，收入永远起不来（实测整局 workers=0、余额 9400→100）。
+        bootstrap_reserve = worker_bootstrap_reserve(rules, tactical, state, by_name)
+        if bootstrap_reserve > 0:
+            spendable_a = max(0, bank_a(tactical) - bootstrap_reserve)
+            options = [item for item in options
+                       if _production_cost_a(rules, item[0]) <= 0
+                       or _production_cost_a(rules, item[0]) <= spendable_a]
     if options:
         # 【缺口口径 = 现有 + 队列 + 在途】只数现有会让"刚下单的产品"被重复押注，
         # 也让车/机（一落地就计数）长期挤掉步兵（2026-09-15 用户要求）。

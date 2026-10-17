@@ -40,10 +40,30 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 #: 落点距地图边缘的最小余量（米）= 建筑 footprint 半径 + 裕度。
 BUILD_BOUND_MARGIN_M = 3.0
+#: 权威端相邻余量（米）：落点必须与某个己方实体满足
+#: `d ≤ 本建筑半径 + 对方半径 + AdjacencyGap`（同 `GodotStructurePlacementWorldPort.AdjacencyGap`，
+#: 两侧必须同口径 —— 这里的值一漂，协调器产出的点就在权威端被拒成 `NotAdjacent`）。
+ADJACENCY_GAP_M = 6.0
+#: 权威端**是否**还校验"整圈 footprint 必须在视野内"。
+#: 事实核查（2026-09-29 02:39 之后的 `GodotStructurePlacementWorldPort`）：
+#: `FullyVisible` 已被移除、`NotVisible` 无人再产出（`Reveals()` 成孤儿）。
+#: 但**协调器侧仍保留这道否决**，理由是产品意图而不是权威端报错：
+#: `test_no_second_base_when_far_resource_is_unseen`（"看不见的远方不能选分基地"）、
+#: `test_frame_build_spots_stay_within_vision`、`TurretPerimeterTest.test_stays_in_vision`
+#: 等 7 条用例都把"不许在没开图的地方下子基地/塔"钉成硬约束；
+#: 去掉否决会让副官在未探明区盲建（权威端现在还会接受它 —— 更糟，不是更安全）。
+#: 若哪天确认"盲建"是可接受的策略，把这里改回 True 之外，还要同轮换掉上述用例。
+AUTHORITY_CHECKS_VISION = True
 #: 落点必须落在己方**任一实体**的这个半径内（米）。
-#: 依据：建造被拒的唯一原因是 `NotVisible`，而视野半径是 5m 量级
-#: （历史事实："基地+5m"能建成兵营，8/12/16m 全被拒）→ 8m 是保守上界。
+#: 【旧口径，仅在没有视野数据时兜底】它的前提是"视野半径是 5m 量级、footprint≈2m"，
+#: 2026-09-27 尺寸统一把建筑 footprint 放大到 6.0~9.8m 后，这条近似就不再等价于
+#: 权威端的真实判据（见 `SIGHT_COMPENSATION_M` / `within_vision`）。
 VISION_SAFE_RADIUS_M = 8.0
+#: 权威端视野判据的边缘补偿（米）：唯一实现是
+#: `GodotStructurePlacementWorldPort.FullyVisible` —— footprint 圆周上**每个**采样点
+#: 都必须被某个己方单位的 `sight + SightCompensation` 覆盖。这里必须同口径，
+#: 否则协调器产出的落点会在权威端被拒成 `NotVisible`（2026-09 实测 172 条的来源）。
+SIGHT_COMPENSATION_M = 2.0
 #: 落点与己方实体的最小净空（米）：太近会把工人/部队堵住（实测被堵在 1.5m 口袋）。
 MIN_OWN_CLEARANCE_M = 3.5
 #: 防御塔"内圈"半径（米）：距基地锚点 < 此值算"留在基地内"。
@@ -105,6 +125,22 @@ REJECT_SITE = "site"
 #: 依据：工地不存在是**终态**（已完工 / 已被摧毁）；留一个上限只是为了让账本数值可解释。
 SITE_BAN_TICKS = 180_000
 
+#: **资源点采不了**（实测错误码：`ResourceDepleted`；`ResourceTargetNotFound` 同类）。
+#: 修正维度是"**换成别的矿**"：换点/换工人/停发都没用，但也**不能永久拉黑** ——
+#: 矿点是会**再生**的（`ResourceUnit`：ready → depleted → ready，`regen_remaining_ms`）。
+#: 为什么必须有这一档（2026-10-09 实测）：一局里 **gather 154 条只有 14 条接受（9%）**，
+#: 拒因 140/140 全是 `ResourceDepleted`，而同期 `attack_move` 接受率 98%。
+#: 根因之一是副官查的矿点字段名与游戏发的对不上（`ore_remaining`/`ore_depleted`
+#: vs `remaining`/`depleted`，已修）；修完接受率升到 33%，**但仍有 105 条被拒**，
+#: 且接受/拒绝随时间**交错**（翻转 55 次）—— 说明剩下的不是"挑错了矿"，
+#: 而是**我们发出去之后矿被采空了（竞争/滞后）**。所以需要按"这个单位采不了这个矿"
+#: 记一笔短期账，下一轮直接换矿，而不是原地重试同一条命令。
+REJECT_RESOURCE = "resource"
+#: 资源点拉黑时长（tick，900 = 15 秒）。矿点再生计时实测 90000ms = 90 秒，
+#: 但"别人刚把它采空"通常几十秒内会有别的矿可用，所以 15 秒足够换矿、
+#: 又不至于让一个矿被永久误伤。
+RESOURCE_BAN_TICKS = 900
+
 #: 几何类拒绝：都可以靠"换一个点"解决。
 GEOMETRY_KINDS = (REJECT_GEOMETRY, REJECT_VISION, REJECT_OCCUPANCY)
 #: 内容类拒绝：换点没用，必须**停止产出**这类意图（否则就是刷屏噪音）。
@@ -113,6 +149,8 @@ CONTENT_KINDS = (REJECT_CONTRACT, REJECT_CAPABILITY)
 TARGET_KINDS = (REJECT_TARGET,)
 #: 工地类拒绝：**清账**（把该工地移出未完工清单 + 停发它的续建意图）。见 `REJECT_SITE`。
 SITE_KINDS = (REJECT_SITE,)
+#: 资源点类拒绝：**换成别的矿**（按"单位 × 矿点"记一笔**有限时长**的账）。见 `REJECT_RESOURCE`。
+RESOURCE_KINDS = (REJECT_RESOURCE,)
 #: 按**意图前缀**停发的类别（= 内容类 + 无原因 + 工地类）。这些拒绝换点/换单位都没用。
 PREFIX_BAN_KINDS = CONTENT_KINDS + (REJECT_UNSPECIFIED, REJECT_SITE)
 
@@ -129,6 +167,7 @@ _REASON_MAP: Tuple[Tuple[str, str], ...] = (
     ("NotVisible", REJECT_VISION),
     ("Occupied", REJECT_OCCUPANCY),
     ("NotEnoughSpace", REJECT_OCCUPANCY),
+    ("BlocksPassage", REJECT_OCCUPANCY),
     ("InvalidScene", REJECT_CONTRACT),
     ("UnknownProduct", REJECT_CONTRACT),
     ("MissingTarget", REJECT_CONTRACT),
@@ -150,6 +189,12 @@ _REASON_MAP: Tuple[Tuple[str, str], ...] = (
     ("ConstructionAlreadyCompleted", REJECT_SITE),
     ("ConstructionSiteNotActive", REJECT_SITE),
     ("SiteNotFound", REJECT_SITE),
+    # 资源点类（见 `REJECT_RESOURCE`）：权威端说"这个矿现在采不了"。
+    # 注意它**不是终态** —— 矿点会再生（`ResourceUnit` 状态机 ready→depleted→ready），
+    # 所以修正维度是"**换成别的矿**"，且拉黑要有**有限**时长。
+    ("ResourceDepleted", REJECT_RESOURCE),
+    ("资源已耗尽", REJECT_RESOURCE),
+    ("ResourceTargetNotFound", REJECT_RESOURCE),
 )
 
 
@@ -242,22 +287,73 @@ def clamp_into_bounds(spot: Any, bounds: Any,
             round(min(max(z, margin), max(margin, size_z - margin)), 1)]
 
 
+def point_geometry(item: Any) -> Optional[Dict[str, float]]:
+    """把"己方实体"归一成 `{x, z, sight, radius}`。
+
+    观测里的实体条目带 `sight` / `radius`（`DebugControlServer._tactical_self_entry`），
+    但历史调用点也传裸坐标 `[x, z]` —— 裸坐标时 sight/radius 记 0，判据自动退回
+    `VISION_SAFE_RADIUS_M` 的旧近似（不改变老调用方的结果）。
+    """
+    if isinstance(item, dict):
+        pos = item.get("pos")
+        pair = _as_pair(pos if pos is not None else [item.get("x"), item.get("z")])
+        if pair is None:
+            return None
+        return {"x": pair[0], "z": pair[1],
+                "sight": float(item.get("sight") or 0.0),
+                "radius": float(item.get("radius") or 0.0)}
+    pair = _as_pair(item)
+    if pair is None:
+        return None
+    return {"x": pair[0], "z": pair[1], "sight": 0.0, "radius": 0.0}
+
+
+def _geometry_list(own_points: Iterable[Any]) -> List[Dict[str, float]]:
+    out: List[Dict[str, float]] = []
+    for item in own_points or ():
+        point = point_geometry(item)
+        if point is not None:
+            out.append(point)
+    return out
+
+
+def vision_ceiling(revealers: Sequence[Dict[str, float]], footprint: float) -> float:
+    """当前视野能给这个 footprint **留出多大半径的落点环**。
+
+    权威端判据是"footprint 圆周每个采样点都要被 `sight + 补偿` 覆盖"，
+    对一个离侦察者 d 米的落点等价于 `d + footprint ≤ sight + SIGHT_COMPENSATION_M`
+    → `d ≤ sight + 补偿 - footprint`。**footprint 越大，可用环越小**：
+    这正是尺寸统一（footprint 2.0 → 6~9.8）之后副官"造的地点全被 NotVisible 拒"的机制。
+    没有视野数据时退回 `VISION_SAFE_RADIUS_M` 旧近似。
+    """
+    sighted = [item for item in revealers if item["sight"] > 0.0]
+    if not sighted:
+        return VISION_SAFE_RADIUS_M
+    return max(item["sight"] + SIGHT_COMPENSATION_M - footprint for item in sighted)
+
+
 def within_vision(spot: Any, own_points: Iterable[Any],
-                  radius: float = VISION_SAFE_RADIUS_M) -> bool:
-    """点是否在己方视野内（近似：离某个己方实体不过远）。
+                  radius: float = VISION_SAFE_RADIUS_M,
+                  footprint: float = 0.0) -> bool:
+    """点是否真的**造得下去**（视野判据）。
 
     **没有己方实体时返回 True**：此时"看不见任何地方"是事实缺失，不是否决理由，
-    交由其它判定处理（不在这里替调用方猜）。
+    交由其它判定处理（这里不替调用方猜）。
+    带视野数据时按 `vision_ceiling` 的权威口径判定；否则退回"离某个己方实体不过远"。
     """
     point = _as_pair(spot)
     if point is None:
         return False
-    own = [_as_pair(item) for item in own_points or ()]
-    own = [item for item in own if item is not None]
-    if not own:
+    revealers = _geometry_list(own_points)
+    if not revealers:
         return True
     x, z = point
-    return any((x - ox) ** 2 + (z - oz) ** 2 <= radius * radius for ox, oz in own)
+    if any(item["sight"] > 0.0 for item in revealers):
+        ceiling = vision_ceiling(revealers, footprint)
+        return any((x - item["x"]) ** 2 + (z - item["z"]) ** 2 <= ceiling * ceiling
+                   for item in revealers)
+    return any((x - item["x"]) ** 2 + (z - item["z"]) ** 2 <= radius * radius
+               for item in revealers)
 
 
 def first_own_distance(spot: Any, own_points: Iterable[Any]) -> float:
@@ -265,18 +361,33 @@ def first_own_distance(spot: Any, own_points: Iterable[Any]) -> float:
     point = _as_pair(spot)
     if point is None:
         return float("inf")
-    own = [_as_pair(item) for item in own_points or ()]
-    own = [item for item in own if item is not None]
+    own = _geometry_list(own_points)
     if not own:
         return float("inf")
     x, z = point
-    return min(math.hypot(x - ox, z - oz) for ox, oz in own)
+    return min(math.hypot(x - item["x"], z - item["z"]) for item in own)
 
 
 def too_close_to_own(spot: Any, own_points: Iterable[Any],
-                     clearance: float = MIN_OWN_CLEARANCE_M) -> bool:
-    """点是否离己方实体太近（会把工人/部队堵住）。"""
-    return first_own_distance(spot, own_points) < clearance
+                     clearance: float = MIN_OWN_CLEARANCE_M,
+                     footprint: float = 0.0) -> bool:
+    """点是否离己方实体太近（会把工人/部队堵住，或与既有建筑压盖）。
+
+    带 footprint 时按**相切**判定：两圆不重叠要求 `d ≥ 对方半径 + 本建筑半径`，
+    再叠加 `clearance` 的通行净空。旧调用方（footprint=0）行为不变。
+    """
+    point = _as_pair(spot)
+    if point is None:
+        return True
+    revealers = _geometry_list(own_points)
+    if not revealers:
+        return False
+    x, z = point
+    for item in revealers:
+        limit = clearance if footprint <= 0.0 else max(clearance, item["radius"] + footprint)
+        if math.hypot(x - item["x"], z - item["z"]) < limit:
+            return True
+    return False
 
 
 def spot_issue(spot: Any,
@@ -285,17 +396,21 @@ def spot_issue(spot: Any,
                rejected: Any = None,
                margin: float = BUILD_BOUND_MARGIN_M,
                vision_radius: float = VISION_SAFE_RADIUS_M,
-               clearance: float = MIN_OWN_CLEARANCE_M) -> Optional[str]:
+               clearance: float = MIN_OWN_CLEARANCE_M,
+               footprint: float = 0.0) -> Optional[str]:
     """返回该落点的**问题类别**（`None` = 可用）。
 
     这是全项目唯一的"落点能不能用"判据：越界 → `geometry`；视野外 → `vision`；
     贴住己方实体 → `occupancy`；已被拉黑 → 原类别。调用方只需判 `None`。
+    `footprint`（要建的那个建筑的占地半径，米）一旦给出，视野与压盖都按权威端的
+    真实几何判定；不给则维持旧的近似口径（裸坐标调用方不受影响）。
     """
-    if not in_bounds(spot, bounds, margin):
+    # 越界余量同样必须随 footprint 放大：footprint 9.8 的矿场压出边界 = OutOfBounds。
+    if not in_bounds(spot, bounds, max(margin, footprint)):
         return REJECT_GEOMETRY
-    if not within_vision(spot, own_points, vision_radius):
+    if AUTHORITY_CHECKS_VISION and not within_vision(spot, own_points, vision_radius, footprint):
         return REJECT_VISION
-    if too_close_to_own(spot, own_points, clearance):
+    if too_close_to_own(spot, own_points, clearance, footprint):
         return REJECT_OCCUPANCY
     if rejected is not None and is_banned(rejected, spot):
         return REJECT_OCCUPANCY
@@ -311,15 +426,41 @@ def spot_key(spot: Any) -> str:
 # ------------------------------------------------------------------- 候选生成
 
 
+def build_ring_band(revealers: Sequence[Dict[str, float]],
+                    anchor_radius: float,
+                    footprint: float,
+                    clearance: float = MIN_OWN_CLEARANCE_M,
+                    rings: int = 4) -> Tuple[float, ...]:
+    """按**当前几何**推出建造环：下界=与锚点建筑相切，上界=视野还能容下这个 footprint。
+
+    返回空 tuple 表示"这个 footprint 在当前视野/占位下根本没有合法环"—— 这是真实
+    结论（要么先开图、要么先造小建筑），不是失败。旧实现写死 (4, 6, 8)：footprint 2.0
+    的年代勉强够用，尺寸统一后 6.65~9.8 的建筑在 8m 环上必然与主基地压盖，
+    产出的每个点都被权威端拒成 `Occupied`/`NotVisible`。
+    """
+    if footprint <= 0.0:
+        return (4.0, 6.0, 8.0)
+    floor = max(clearance, anchor_radius + footprint)
+    # 上界同时受两条判据约束：视野（`vision_ceiling`）与权威端的相邻上限
+    # （`d ≤ 相切 + AdjacencyGap`，太远会被拒成 `NotAdjacent`）。取**更紧**的那条。
+    ceiling = min(vision_ceiling(revealers, footprint), floor + ADJACENCY_GAP_M)
+    if ceiling <= floor:
+        return ()
+    span = (ceiling - floor) / (rings + 1)
+    return tuple(round(floor + span * (index + 1), 1) for index in range(rings))
+
+
 def candidate_spots(anchor_x: float,
                     anchor_z: float,
                     bounds: Any = None,
                     own_points: Iterable[Any] = (),
                     rejected: Any = None,
-                    radii: Sequence[float] = (4.0, 6.0, 8.0),
+                    radii: Optional[Sequence[float]] = None,
                     slots: int = 8,
                     clearance: float = MIN_OWN_CLEARANCE_M,
-                    vision_radius: float = VISION_SAFE_RADIUS_M) -> List[Tuple[float, float]]:
+                    vision_radius: float = VISION_SAFE_RADIUS_M,
+                    footprint: float = 0.0,
+                    anchor_radius: float = 0.0) -> List[Tuple[float, float]]:
     """围绕锚点生成**可行**落点候选，按"净空大 → 半径近 → 槽位序"降序返回。
 
     **任何产出建造落点的代码都必须用这个函数**（地板 `rules_fallback` 与模型侧
@@ -333,8 +474,9 @@ def candidate_spots(anchor_x: float,
       那会把**朝内侧那些本来合法**的候选一起杀掉（贴边基地甚至会把整圈清空），
       是"两个机制各管一半"的老毛病。界外/视野外/压占/被拉黑的点在这里**逐点**剔除即可。
     """
-    own = [_as_pair(item) for item in own_points or ()]
-    own = [item for item in own if item is not None]
+    own = _geometry_list(own_points)
+    if radii is None:
+        radii = build_ring_band(own, anchor_radius, footprint, clearance)
     scored: List[Tuple[Tuple[float, float, int], Tuple[float, float]]] = []
     for radius_index, radius in enumerate(radii):
         offset = math.pi / slots * radius_index
@@ -343,7 +485,8 @@ def candidate_spots(anchor_x: float,
             spot = (round(anchor_x + math.cos(angle) * radius, 1),
                     round(anchor_z + math.sin(angle) * radius, 1))
             if spot_issue(spot, bounds, own, rejected, clearance=clearance,
-                          vision_radius=vision_radius) is not None:
+                          vision_radius=vision_radius,
+                          footprint=footprint) is not None:
                 continue
             distance = first_own_distance(spot, own)
             # 净空优先；同等净空取更近的半径（更可能在视野内、也少堵路）；再按槽位定序。
@@ -482,7 +625,8 @@ def retreat_spot(anchor_x: float, anchor_z: float,
                  steps: Sequence[float] = (3.0, 5.0, 7.0),
                  margin: float = BUILD_BOUND_MARGIN_M,
                  clearance: float = MIN_OWN_CLEARANCE_M,
-                 vision_radius: float = VISION_SAFE_RADIUS_M) -> Optional[List[float]]:
+                 vision_radius: float = VISION_SAFE_RADIUS_M,
+                 footprint: float = 0.0) -> Optional[List[float]]:
     """环上候选全被淘汰时的兜底：**朝地图中心**逐级后退，跳过不可用的点。
 
     为什么不是固定的"x + 5"：基地贴边时那个点本身就在界外，于是兜底点变成
@@ -500,10 +644,13 @@ def retreat_spot(anchor_x: float, anchor_z: float,
             pass
     for step in steps:
         # 先量化再校验（同 `candidate_spots`）：返回值必须就是被校验过的点。
-        spot = (round(anchor_x + direction[0] * step, 1),
-                round(anchor_z + direction[1] * step, 1))
+        # 后退量按 footprint 外推：footprint 6.65 的建筑退 3m 还压在锚点建筑上。
+        radius = float(step) + max(0.0, footprint)
+        spot = (round(anchor_x + direction[0] * radius, 1),
+                round(anchor_z + direction[1] * radius, 1))
         if spot_issue(spot, bounds, own_points, rejected, margin=margin,
-                      vision_radius=vision_radius, clearance=clearance) is not None:
+                      vision_radius=vision_radius, clearance=clearance,
+                      footprint=footprint) is not None:
             continue
         return [spot[0], spot[1]]
     return None

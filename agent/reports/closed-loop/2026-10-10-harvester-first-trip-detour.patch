@@ -1,0 +1,105 @@
+diff --git a/source/match/units/OreRefinery.gd b/source/match/units/OreRefinery.gd
+index 37ddea4..61f5f59 100644
+--- a/source/match/units/OreRefinery.gd
++++ b/source/match/units/OreRefinery.gd
+@@ -142,6 +142,13 @@ func _grant_free_miner():
+ 	MatchSignals.setup_and_spawn_unit.emit(
+ 		miner, Transform3D(Basis.IDENTITY, placement), player
+ 	)
++	# 【回归修复 B（2026-10-10，对齐 923 观感）】赠车**立刻点火自选采集**。
++	# 为什么必须在这里点火：赠车走的是 GDScript 出生链路（MatchSignals.setup_and_spawn_unit），
++	# 不经过 C# 生产命令，因此不会拿到"默认侵略姿态"⇒ 出厂 action == null。
++	# 结果是每辆新车的第一个任务都由矿场指派发一条"到矿点背面报到"的**普通移动令**，
++	# 既绕道又要在移动结束后空转到下一次 2s 心跳才挂上采集。
++	# 923 发布版的开局矿车同样出厂空闲，但玩家的采集单不会被矿场顶掉，所以观感正常。
++	miner.call_deferred("request_legacy_start_auto_gather")
+ 	print("[REFINERY] %s 完工赠送矿车 %s" % [name, miner.name])
+ 
+ 
+@@ -403,6 +410,15 @@ const GATHERING_ACTIONS := [
+ 	"CollectingResourcesWhileInRange.gd",
+ ]
+ 
++## 【回归修复 A（2026-10-10，对齐 923 契约与观感）】**接管**只针对**空闲**矿车。
++## 923 的契约原话就是"把**空闲工人**指派到本矿场"；但它的实现额外放行了
++## `AutoGatheringResources.gd`（自选采集循环的顶层动作），于是**已经在去采矿的路上**的车
++## 也会被抢走、改下一条"到矿点背向矿场一侧报到"的纯移动令 ⇒ 绕到矿点背面 + 移动结束后空转。
++## 当前工作区把这个口子进一步放大到采集三件套，问题更明显（用户实报"第一次采矿都要绕道
++## 到那里停下来"）。修复口径：只接管空闲车 —— 已经在采（自选或玩家采集单）的一律不碰。
++## 注：`GATHERING_ACTIONS` 仍然保留，它管的是"在册工人要不要留名额"，与接管是两件事。
++const CLAIMABLE_ACTIONS := []
++
+ 
+ func _action_script_name(unit) -> String:
+ 	var action = unit.get("action")
+@@ -420,7 +436,7 @@ func _is_claimable(unit) -> bool:
+ 	var action_name := _action_script_name(unit)
+ 	if action_name.is_empty():
+ 		return true
+-	return action_name in GATHERING_ACTIONS
++	return action_name in CLAIMABLE_ACTIONS
+ 
+ 
+ ## 指派一名工人；**只有真的找到可采的矿点才算占一个名额**（旧实现无矿也占，
+diff --git a/source/match/units/actions/MovingToUnit.gd b/source/match/units/actions/MovingToUnit.gd
+index 22d6ed6..5f8ad38 100644
+--- a/source/match/units/actions/MovingToUnit.gd
++++ b/source/match/units/actions/MovingToUnit.gd
+@@ -68,20 +68,49 @@ func _on_movement_finished():
+ 
+ 
+ ## 矿点不挖导航洞，structure_approach_point 用不上。站位必须仍在贴合距离内。
++##
++## 【回归修复 C（2026-10-10，对齐 923 发布口径）】落点从"固定世界轴四象限"改回
++## **以车自己的来向为基准**，同矿多车只在 ±35° 内按车道错开。
++## 为什么：原实现 `angle = approach_slot(unit) % 4 * 90°` 用的是**世界轴**（±X/±Z），
++## 与车从哪一侧来无关；矿点又不挖洞（affect_navigation_mesh=false）⇒ 必然走这条分支，
++## 于是车经常要绕到矿点另一侧再停下（用户实报"第一次采矿都要绕道这里停下来"）。
++## 923 发布版是 `矿点 + normalize(车−矿点) × 矿半径`，永远从车自己这一侧贴上去，没有绕行。
++##
++## ⚠️ 必须**缓存**首次算出的世界落点：本方法在 `_ready()` 与 `_on_movement_finished()`
++## （未贴合重下）两处被调用；若每次都按"车当前位置"重算，落点会跟着车转，
++## 车一靠近落点就翻到另一侧 ⇒ 目标来回抖、`units_adhere` 永远不成立
++## （2026-10-10 实测：矿车卡在离矿心 1.92m 处每帧重建 MOVING_TO_RESOURCE）。
++var _stand_cache: Vector3 = Vector3.INF
++
++
+ func _resource_stand_position() -> Vector3:
++	if _stand_cache.is_finite():
++		return _stand_cache
+ 	var ore_r := 1.2
+-	var worker_r := 1.0
+ 	var ore_radius = _target_unit.get("radius")
+-	var worker_radius = _unit.get("radius")
+ 	if ore_radius != null:
+ 		ore_r = float(ore_radius)
+-	if worker_radius != null:
+-		worker_r = float(worker_radius)
+-	var stand_off := ore_r + worker_r * 0.85
+-	var lane := Utils.Match.Unit.Movement.approach_slot(_unit) % 4
+-	var angle := float(lane) * (PI * 0.5)
++	var stand_off := ore_r
++	# 【回归修复 C2（2026-10-10）】落点距离改回 923 口径 `矿半径`（**落点在矿体内部**）。
++	# 为什么不能用"矿半径 + 车半径×0.85"：移动层的到点容差是 `arrive_radius = max(车半径, 0.35)`
++	# （`Movement.gd:782/821`）叠加逻辑路径航点容差 `LOGIC_WAYPOINT_RADIUS_M = 1.6`
++	# （`Movement.gd:389/955`）——车**可以在离目标 1.36~1.6m 处就判"到了"**。
++	# 当前半径口径（车 1.36 / 矿 1.2 / 贴合阈值 3.06m）下：
++	#   落点 2.36m + 容差 1.36m = 3.72m > 3.06m ⇒ 车"合法地"停在贴不上的位置，
++	#   `CollectingResourcesSequentially` 反复重下同一个点、永远贴不上（实测 3.58m / 5.35m 卡死）。
++	# 把落点压进矿体（1.2m）：碰撞推出层把车顶在 矿半径+车半径 = 2.56m，
++	# 最坏情况 1.2+1.36 = 2.56m ≤ 3.06m ⇒ **必然**满足贴合；`MovingToUnit._process`
++	# 一到贴合距离就 `Arrived`，完全不依赖移动层的到点精度。923 正是这么做的
++	# （`矿点 + normalize(车−矿点) × 矿点半径`），所以同一颗矿它从不失败。
++	var from: Vector3 = (_unit.global_position - _target_unit.global_position) * Vector3(1, 0, 1)
++	if from.length() < 0.1:
++		from = Vector3.FORWARD
++	var base_angle := atan2(from.z, from.x)
++	var lane := (int(Utils.Match.Unit.Movement.approach_slot(_unit)) % 3) - 1
++	var angle := base_angle + float(lane) * deg_to_rad(35.0)
+ 	var origin: Vector3 = _target_unit.global_position
+-	return Vector3(origin.x + cos(angle) * stand_off, origin.y, origin.z + sin(angle) * stand_off)
++	_stand_cache = Vector3(origin.x + cos(angle) * stand_off, origin.y, origin.z + sin(angle) * stand_off)
++	return _stand_cache
+ 
+ 
+ ## 目标退出时以明确原因结束，供权威订单转换为 TargetLost。

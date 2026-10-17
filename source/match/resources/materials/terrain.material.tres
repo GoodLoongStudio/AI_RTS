@@ -2,5 +2,5 @@
 
 [resource]
 vertex_color_use_as_albedo = true
-albedo_color = Color(0.960784, 0.745098, 0.654902, 1)
+albedo_color = Color(0.528431, 0.409804, 0.360196, 1)   ; 原 (0.960784, 0.745098, 0.654902) 过亮 ⇒ 环境光下细节被推平（2026-10-07 修画质）
 metallic = 1.0

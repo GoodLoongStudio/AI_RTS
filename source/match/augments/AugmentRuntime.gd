@@ -15,6 +15,7 @@ var _opened_rounds: Dictionary = {}
 var _overlay: CanvasLayer = null
 var _tray: Control = null
 var _countdown_override_msec := -1
+var _client_state_requested := false
 
 
 func _ready() -> void:
@@ -34,6 +35,7 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	if not _enabled() or not _is_authority():
+		_maybe_request_network_state()
 		_tick_overlay_only()
 		return
 	_maybe_open_scheduled_rounds()
@@ -76,7 +78,13 @@ func pick(player: Node, augment_id: String, source: String) -> Dictionary:
 			break
 	if chosen.is_empty():
 		return {"ok": false, "reason": "id not in offer"}
-	_apply_choice(player, state, chosen, source)
+	if not _is_authority():
+		if player != _local_player():
+			return {"ok": false, "reason": "not local player"}
+		_rpc_request_pick.rpc_id(1, augment_id, int(state.get("round_index", -1)))
+		return {"ok": true, "pending_authority": true, "id": augment_id}
+	if not _apply_choice(player, state, chosen, source):
+		return {"ok": false, "reason": "resource grant rejected"}
 	return {"ok": true, "id": augment_id, "source": source}
 
 
@@ -101,6 +109,11 @@ func submit_recommendation(player: Node, payload: Dictionary) -> Dictionary:
 			return {"ok": false, "reason": "order must be a permutation of the offer"}
 		seen[key] = true
 	var reasons = payload.get("reasons", [])
+	if not _is_authority():
+		if player != _local_player():
+			return {"ok": false, "reason": "not local player"}
+		_rpc_request_recommendation.rpc_id(1, payload, int(state.get("round_index", -1)))
+		return {"ok": true, "pending_authority": true}
 	state["rank"] = {
 		"order": order.duplicate(),
 		"reasons": reasons.duplicate(true) if reasons is Array else [],
@@ -108,6 +121,7 @@ func submit_recommendation(player: Node, payload: Dictionary) -> Dictionary:
 		"starred_id": str(order[0]) if not order.is_empty() else "",
 	}
 	_refresh_overlay_if_local(player)
+	_sync_player_state(player)
 	return {"ok": true, "source": "live"}
 
 
@@ -200,6 +214,8 @@ func _maybe_open_scheduled_rounds() -> void:
 
 
 func _open_round_for(player: Node, round_index: int) -> Dictionary:
+	if not _is_authority():
+		return {"ok": false, "reason": "not authority"}
 	var state := _state_of(player)
 	if not (state.get("offer", []) as Array).is_empty():
 		return {"ok": false, "reason": "offer already open"}
@@ -235,6 +251,7 @@ func _open_round_for(player: Node, round_index: int) -> Dictionary:
 		if item is Dictionary:
 			offer_ids.append(str(item.get("id", "")))
 	_record_event(player, "augment_offered", round_index, ",".join(offer_ids), "offer")
+	_sync_player_state(player)
 	return {"ok": true, "offer": offer}
 
 
@@ -260,29 +277,25 @@ func _tick_overlay_only() -> void:
 		_overlay.tick()
 
 
-func _apply_choice(player: Node, state: Dictionary, chosen: Dictionary, source: String) -> void:
+func _apply_choice(player: Node, state: Dictionary, chosen: Dictionary, source: String) -> bool:
+	var effect: Dictionary = chosen.get("effect", {})
+	var effect_type := str(effect.get("type", ""))
+	# Commit a one-shot grant before consuming the offer; rejected transactions remain retryable.
+	if effect_type == "resource_grant":
+		var amount := int(effect.get("resource_a", 0))
+		if amount <= 0 or not player.has_method("add_resources") \
+				or not player.add_resources({"resource_a": amount}, "ScriptedAdjustment", player):
+			return false
 	var card_id := str(chosen.get("id", ""))
 	(state.get("owned", []) as Array).append(chosen.duplicate(true))
 	(state.get("owned_ids", []) as Array).append(card_id)
 	var tag := str(chosen.get("tag", ""))
 	if tag != "" and not (state.get("owned_tags", []) as Array).has(tag):
 		(state.get("owned_tags", []) as Array).append(tag)
-	var effect = chosen.get("effect", {})
-	var effect_type := str(effect.get("type", "")) if effect is Dictionary else ""
 	if effect_type != "" and not (state.get("owned_effects", []) as Array).has(effect_type):
 		(state.get("owned_effects", []) as Array).append(effect_type)
-	if effect is Dictionary and effect_type == "gather_mult":
+	if effect_type == "gather_mult":
 		state["gather_mult"] = float(effect.get("value", 1.0))
-	if effect is Dictionary and effect_type == "resource_grant":
-		var amount := int(effect.get("resource_a", 0))
-		if amount > 0 and player.has_method("add_resources") and player.get("_economy_runtime") != null:
-			# ⚠️ reason 必须是 C# `ResourceChangeReason` 的**枚举成员名**。传枚举里没有的字符串
-			# 时，`EconomyRuntime.ApplyLegacy` 在 Enum.TryParse 失败后**不打印任何日志**就返回
-			# InvalidTransaction —— 加钱卡会静默变成空操作（2026-09-15 实测：把 400 改成 5000
-			# 也没用，钱根本没进账，而日志里连一行痕迹都没有）。这里用枚举里为「脚本/兼容代码的
-			# 明确调整」保留的 ScriptedAdjustment；若要给加成单开 AugmentGrant 原因，必须在
-			# C# 侧加枚举成员并重新构建（本机 dotnet build 目前因 NuGet 解析故障跑不起来）。
-			player.add_resources({"resource_a": amount}, "ScriptedAdjustment", player)
 	_reapply_units(player)
 	var round_index := int(state.get("round_index", -1))
 	(state.get("picks", []) as Array).append({
@@ -303,22 +316,152 @@ func _apply_choice(player: Node, state: Dictionary, chosen: Dictionary, source: 
 		_refresh_tray(player)
 	_record_event(player, "augment_picked", round_index, card_id, source)
 	_contribute_report(player)
+	_sync_player_state(player)
+	return true
 
 
 func _reapply_units(player: Node) -> void:
 	var owned: Array = _state_of(player).get("owned", [])
 	for unit in get_tree().get_nodes_in_group("units"):
 		if _unit_owner(unit) == player:
-			Mods.apply_to_unit(unit, owned)
+			Mods.apply_to_unit(unit, owned, not _is_authority())
 
 
 func _on_unit_spawned(unit: Node) -> void:
+	apply_unit_bonuses(unit)
+
+
+func apply_unit_bonuses(unit: Node) -> void:
 	if unit == null:
 		return
 	var player = _unit_owner(unit)
-	if player == null or not _player_states.has(_player_id(player)):
+	if player == null:
 		return
-	Mods.apply_to_unit(unit, _state_of(player).get("owned", []))
+	Mods.apply_to_unit(unit, _state_of(player).get("owned", []), not _is_authority())
+
+
+func _maybe_request_network_state() -> void:
+	if not _enabled() or _is_authority() or _client_state_requested:
+		return
+	# A received authority snapshot proves both Match paths are ready; _live is server-only.
+	var sync := _match().get_node_or_null("NetSync")
+	if sync != null and sync.has_authoritative_snapshot():
+		_client_state_requested = true
+		_rpc_request_state.rpc_id(1)
+
+
+func _player_at_slot(slot: int) -> Node:
+	var players := _match().get_node_or_null("Players")
+	if players == null or slot < 0 or slot >= players.get_child_count():
+		return null
+	return players.get_child(slot)
+
+
+func _requesting_player() -> Node:
+	var sender := multiplayer.get_remote_sender_id()
+	var player := _player_at_slot(NetSession.slot_of(sender))
+	return player if sender > 1 and _is_human(player) else null
+
+
+@rpc("any_peer", "reliable")
+func _rpc_request_state() -> void:
+	if not _enabled() or not NetSession.is_server() or _requesting_player() == null:
+		return
+	var peer := multiplayer.get_remote_sender_id()
+	for player in _combatants():
+		_send_player_state(player, peer)
+
+
+@rpc("any_peer", "reliable")
+func _rpc_request_pick(augment_id: String, round_index: int) -> void:
+	if not _enabled() or not NetSession.is_server():
+		return
+	var player := _requesting_player()
+	if player == null:
+		return
+	var state := _state_of(player)
+	if int(state.get("round_index", -1)) != round_index \
+			or Time.get_ticks_msec() >= int(state.get("deadline_msec", 0)):
+		return
+	# Sender identity is bound to its server slot; clients cannot supply a player or effects.
+	pick(player, augment_id, "player")
+
+
+@rpc("any_peer", "reliable")
+func _rpc_request_recommendation(payload: Dictionary, round_index: int) -> void:
+	if not _enabled() or not NetSession.is_server():
+		return
+	var player := _requesting_player()
+	if player == null:
+		return
+	var state := _state_of(player)
+	if int(state.get("round_index", -1)) != round_index \
+			or Time.get_ticks_msec() >= int(state.get("deadline_msec", 0)):
+		return
+	submit_recommendation(player, payload)
+
+
+func _sync_player_state(player: Node) -> void:
+	if not NetSession.is_server():
+		return
+	for peer in multiplayer.get_peers():
+		_send_player_state(player, peer)
+
+
+func _send_player_state(player: Node, peer: int) -> void:
+	if NetSession.slot_of(peer) < 0:
+		return
+	var state := _state_of(player)
+	var payload := {
+		"owned": (state.get("owned", []) as Array).duplicate(true),
+		"picks": (state.get("picks", []) as Array).duplicate(true),
+		"gather_mult": float(state.get("gather_mult", 1.0)),
+	}
+	if NetSession.slot_of(peer) == player.get_index():
+		payload["offer"] = (state.get("offer", []) as Array).duplicate(true)
+		payload["round_index"] = int(state.get("round_index", -1))
+		payload["remaining_msec"] = maxi(0, int(state.get("deadline_msec", 0)) - Time.get_ticks_msec())
+		payload["rank"] = (state.get("rank", {}) as Dictionary).duplicate(true)
+	_rpc_receive_state.rpc_id(peer, player.get_index(), payload)
+
+
+@rpc("authority", "reliable")
+func _rpc_receive_state(slot: int, payload: Dictionary) -> void:
+	if not _enabled() or _is_authority():
+		return
+	var player := _player_at_slot(slot)
+	if player == null:
+		return
+	var state := _state_of(player)
+	var old_owned: Array = state.get("owned", [])
+	var old_offer: Array = state.get("offer", [])
+	var old_picks: Array = state.get("picks", [])
+	state["owned"] = (payload.get("owned", []) as Array).duplicate(true)
+	state["picks"] = (payload.get("picks", []) as Array).duplicate(true)
+	state["gather_mult"] = float(payload.get("gather_mult", 1.0))
+	# Remaining duration is transferred, never the server's process-relative clock epoch.
+	state["offer"] = (payload.get("offer", []) as Array).duplicate(true)
+	state["round_index"] = int(payload.get("round_index", -1))
+	state["deadline_msec"] = Time.get_ticks_msec() + int(payload.get("remaining_msec", 0))
+	state["rank"] = (payload.get("rank", {}) as Dictionary).duplicate(true)
+	if old_owned != state["owned"]:
+		_reapply_units(player)
+	if not _is_local_human(player):
+		return
+	_mount_hud()
+	_refresh_tray(player)
+	if (state["offer"] as Array).is_empty():
+		if _overlay != null:
+			_overlay.hide_draft()
+	else:
+		_show_overlay(player)
+		if old_offer != state["offer"]:
+			_record_event(player, "augment_offered", state["round_index"], "", "offer")
+	if (state["picks"] as Array).size() > old_picks.size():
+		var chosen: Dictionary = (state["picks"] as Array).back()
+		_record_event(player, "augment_picked", int(chosen.get("round", -1)),
+			str(chosen.get("id", "")), str(chosen.get("source", "player")))
+		_contribute_report(player)
 
 
 func _combatants() -> Array:

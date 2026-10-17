@@ -160,6 +160,7 @@ def build_strategy_context(
     *,
     strategic: Optional[Dict[str, Any]],
     rules: Optional[Dict[str, Any]],
+    tactical: Optional[Dict[str, Any]] = None,
     events: Optional[Iterable[Dict[str, Any]]] = None,
     budget: Optional[Dict[str, int]] = None,
     config: Optional[Dict[str, Any]] = None,
@@ -195,12 +196,42 @@ def build_strategy_context(
         "hint": "只输出 StrategicPlan；不要输出单位命令；不能引用观测之外的目标。",
     }
     context.update(config or {})
+    if tactical is not None:
+        # Narrow providers need real capabilities, not guesses from campaign tracks.
+        # This runs only on a strategic request; legacy full-plan input stays unchanged.
+        from .observation_view import normalized_units, resources
+        from .rules_fallback import combat_types_from_rules
+        from . import reserves as reserve_mod
+        controlled = set(state.ai_controlled_units) - set(state.player_controlled_units)
+        table = normalized_units(tactical)
+        combat_types = set(combat_types_from_rules(rules))
+        selected = [(name, info) for name, info in table.items() if name in controlled]
+        context["unit_facts"] = {
+            name: {key: info.get(key) for key in
+                   ("type", "movement", "gather", "construct", "queue", "constructed",
+                    "hp", "confirmed_dead")}
+            | {"combat": bool(info.get("movement")) and info.get("type") in combat_types}
+            for name, info in selected[:256]
+        }
+        context["unit_facts_coverage"] = dict(
+            coverage_note(tactical), available=True, controlled_total=len(controlled),
+            returned=len(context["unit_facts"]), omitted=max(0, len(controlled) - len(context["unit_facts"])))
+        context["resource_count"] = len(resources(tactical))
+        context["strategy_productions"] = list((rules or {}).get("productions") or [])
+        context["strategy_buildables"] = list((rules or {}).get("constructions") or [])
+        if not context["budget"]:
+            view = {"tactical": tactical, "strategic": strategic}
+            balance = reserve_mod.normalize_balance(view)
+            reserved = reserve_mod.normalize_reserve_setting(view)
+            if balance and reserved is not None:
+                context["budget"] = reserve_mod.spendable(balance, reserved, {})
     context["hint"] = (
         context["hint"]
         + "based_on_snapshot 必须不超过上下文 snapshot_id；"
         + "valid_until_tick 必须大于 server_tick（建议 server_tick + 6000 以内）；"
         + "tasks[].units 只能使用 ai_controlled_units 中的实体 ID；"
-        + "plan_version 必须是比 plan_version 字段更大的正整数。")
+        + "当前计划仍有效时 maintain_current=true 且 tasks 为空，plan_version 保持不变；"
+        + "只有任务变化时 plan_version 才增大，tasks 只列变化项。")
     return context
 
 

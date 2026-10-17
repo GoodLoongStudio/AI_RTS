@@ -13,6 +13,8 @@
 
 from __future__ import annotations
 
+import math
+import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, TypedDict
 
@@ -80,6 +82,12 @@ class GraphStateDict(TypedDict, total=False):
     reserves_initialized: bool
     reserves_percent: int
     task_progress: Dict[str, Any]
+    #: 连续行动监督（2026-10-07）：每个 AI 单位的停滞/闲置台账，以及本轮监督报告。
+    #: 必须声明为通道：`progress.supervise_continuity` 每轮**读上一轮**的 `last_moved_tick`
+    #: 来算"停了多久"，漏声明 → LangGraph 在图入口过滤掉它 → 每轮从零开始 →
+    #: 停滞永远到不了 2s/5s/10s 阈值（功能写了、单测也过、真机每轮归零的典型）。
+    continuity_units: Dict[str, Dict[str, Any]]
+    continuity_supervision: Dict[str, Any]
     #: 整局主线（阶段/里程碑/四条 track/next_frontier/interrupt_stack）。
     #: **必须声明为通道**：漏声明会被 LangGraph 在图入口 `_cleaned` 处过滤掉 →
     #: 状态每轮"从零开始"（里程碑永远重来、中断栈永远为空），正是纠偏要修的病根。
@@ -116,6 +124,19 @@ class GraphStateDict(TypedDict, total=False):
     army_cap: Dict[str, Any]
     combat_types: List[str]
     unattackable_targets: Dict[str, int]
+    #: **每轮**安全移动计数增量（`movement.note_round_delta` 写，随检查点持久化）。
+    #: 累计值看不出"这一轮发生了什么"，而判"重规划是否挤占共享下发预算"只能看增量。
+    movement_round_delta: Dict[str, Any]
+    #: 算增量用的上一轮基线快照 `{"tick":…, "counts":{…}}`。
+    movement_stats_snapshot: Dict[str, Any]
+    #: 单位名 → 最近一次到达的 tick（军事轨据此把"刚到达的"排到前面）。
+    unit_arrival_tick: Dict[str, int]
+    #: 「这个单位现在采不了这个矿」的限时账（键 `"<unit>|<entity>"` → 记账 tick）。
+    #: 权威回 `ResourceDepleted` 时写；采集轨据此**换矿**，900 tick 后自动失效
+    #: （矿点会再生）。漏了它每轮归零 ⇒ 每轮往刚被拒的矿上撞。
+    depleted_resources: Dict[str, int]
+    #: 军事轨**轮转服务顺序**的游标。漏了它每轮从 0 开始 ⇒ 等于没有轮转。
+    advance_cursor: int
     enemy_types: Dict[str, str]
     #: 我方单位名 → 类型：把"打不了"从个体升级到「单位类型 × 目标类型」的依据。
     own_unit_types: Dict[str, str]
@@ -124,7 +145,7 @@ class GraphStateDict(TypedDict, total=False):
     capability_version: str
     persistent_squads: List[Dict[str, Any]]
     engage_locks: Dict[str, str]
-    seen_arrivals: List[str]
+    seen_arrivals: Dict[str, int]
     #: 【U1/F01】探索前沿 + 访问记忆（`{"cells": {...}, "current": "cx,cz", "selected": n}`）。
     #: **必须声明**：这是"去过哪、下一个去哪"的跨轮记忆，漏声明就每轮清空 →
     #: 又回到"反复去同一个固定点"（审查 F01）。
@@ -141,12 +162,26 @@ class GraphStateDict(TypedDict, total=False):
     #: 拥塞退避失效（LedgerFull 猛发）。守门见 `tests/test_graph_state_channels.py` 的静态扫描。
     rejection_ledger: Dict[str, Any]
     blocked_build_spots: List[Any]
+    build_home_anchor: List[float]
     build_backoff_until_tick: int
     build_reject_streak: int
     #: 【2026-09-21】战略层失败退避（同步调用一次超时堵 15s；runner 配成
     #: strategy_interval_ticks）。与 build_backoff 同一模式：必须进通道 + dataclass，
     #: 否则每轮归零、退避失效。
     strategy_backoff_until_tick: int
+    measured_tick_hz: float
+    tick_rate_anchor_tick: int
+    tick_rate_anchor_mono: float
+    strategy_epoch: int
+    strategy_epoch_events: List[str]
+    last_strategy_event_tick: int
+    last_strategy_review_tick: int
+    strategy_request: Dict[str, Any]
+    strategy_metrics: Dict[str, Any]
+    plan_commit_count: int
+    plan_hold_count: int
+    #: 本轮战略调度器是否还有在途或排队请求。每轮按 stats() 重算，不进 checkpoint。
+    strategy_inflight: bool
     #: 退避等级（每次触发加倍：900→1800→3600→上限 7200 tick）：一片地形整体不可建时，
     #: "换点重试"会一直烧命令（实测一局 10 次 `SurfaceNotBuildable`）。
     build_backoff_level: int
@@ -165,6 +200,21 @@ class GraphStateDict(TypedDict, total=False):
     dispatch_pending: List[str]
     intent_arbitration: Dict[str, Any]
     last_checkpoint: Dict[str, Any]
+    #: 决策追踪（第一阶段 · 修改 1）：会话 id 与轮次序号必须走通道 + dataclass，
+    #: 否则 LangGraph 每轮把它们过滤掉 → 恢复后 session_id 归零、round_seq 撞号。
+    trace_session: str
+    trace_round_seq: int
+    #: 任务闭环台账（第一阶段 · 修改 2）：跨轮记忆，漏声明 = 每轮归零
+    #: （停滞判不出、重试预算永远满血——production_ledger 同类事故）。
+    task_ledger: Dict[str, Any]
+    task_ledger_feedback: Dict[str, Any]
+    task_loop_report: Dict[str, Any]
+    #: 闭环/经济评估配置（修改 2/3）：`node_ingest` 每轮从 GraphConfig 重算，
+    #: 同轮内由 `campaign.update` 的经济异常评估读取。**必须声明为通道**：
+    #: 漏声明会被 LangGraph 在节点间静默过滤（Fallback 不受影响），
+    #: 表现为"langgraph 引擎下 --econ-* 配置不生效、只有默认值"。
+    #: 不进 dataclass/checkpoint：每轮都新鲜，持久化反而会用上一个进程的配置快照。
+    loop_config: Dict[str, Any]
 
 
 ROUTE_TO_NODE = {
@@ -213,10 +263,122 @@ class GraphRunner:
 
     engine = ENGINE_FALLBACK
 
+    #: 每轮节点耗时的**有界**样本窗口（用于 p50/p95/p99）。
+    PHASE_SAMPLE_LIMIT = 240
+
     def __init__(self, services: GraphServices) -> None:
         self.services = services
         self._ctx = _TickContext(services)
         self._paused = False
+        self._phase_ms: Dict[str, List[float]] = {}
+        self._phase_round_ms: Dict[str, float] = {}
+
+    # ---- 分段计时（prompt §3-A：协调轮必须能分段归因） ----
+
+    def begin_round_timing(self) -> None:
+        """开始新一轮计时：清掉本轮累计（跨轮的 `phase_stats()` 仍保留历史样本）。"""
+        self._phase_round_ms = {}
+
+    def _time_phase(self, name: str) -> Callable[[], None]:
+        """返回一个"停止计时"的闭包；异常也必须记时（否则慢轮会被漏掉）。
+
+        【为什么不用装饰器/上下文管理器套在每个函数上】节点是图的一部分，
+        行为必须逐字不变；这里只在**调用点**夹一层计时，不改任何节点语义。
+        """
+        started = time.monotonic()
+
+        def _stop() -> None:
+            elapsed_ms = (time.monotonic() - started) * 1000.0
+            key = str(name)
+            self._phase_round_ms[key] = self._phase_round_ms.get(key, 0.0) + elapsed_ms
+            samples = self._phase_ms.setdefault(key, [])
+            samples.append(elapsed_ms)
+            if len(samples) > self.PHASE_SAMPLE_LIMIT:
+                del samples[0:len(samples) - self.PHASE_SAMPLE_LIMIT]
+
+        return _stop
+
+    def phase_stats(self) -> Dict[str, Dict[str, Any]]:
+        """每轮各阶段耗时：本轮合计 + 历史 p50/p95/p99/max（毫秒，一位小数）。
+
+        验收要回答的问题只有两个：
+        ① 这一轮为什么慢（哪个阶段）？→ `round_ms`
+        ② 慢轮是常态还是尾巴？→ `p95/p99/max_ms`
+        """
+        out: Dict[str, Dict[str, Any]] = {}
+        for name in sorted(set(self._phase_ms) | set(self._phase_round_ms)):
+            samples = sorted(self._phase_ms.get(name) or [])
+
+            def _pct(ratio: float) -> float:
+                if not samples:
+                    return 0.0
+                index = min(len(samples) - 1, max(0, int(math.ceil(ratio * len(samples))) - 1))
+                return round(samples[index], 1)
+
+            out[name] = {
+                "round_ms": round(float(self._phase_round_ms.get(name, 0.0)), 1),
+                "p50_ms": _pct(0.50), "p95_ms": _pct(0.95), "p99_ms": _pct(0.99),
+                "max_ms": round(samples[-1], 1) if samples else 0.0,
+                "samples": len(samples),
+            }
+        return out
+
+    # ---- 决策追踪（第一阶段 · 修改 1）----
+    #
+    # 追踪是**旁路**：录制失败只计数、绝不抛回调用方，也不改变任何节点语义。
+    # 节点 enter/exit/error 与阶段耗时在同一处夹取（调用点包装，不改节点本身）。
+
+    def _trace(self):
+        """取追踪记录器；未注入/禁用时为 None（零成本直跑）。"""
+        return getattr(self.services, "trace", None)
+
+    def _run_node(self, name: str, fn: Callable, state: Dict[str, Any],
+                  node_name: str = "") -> Dict[str, Any]:
+        """执行一个节点并记录 span（enter/exit/error + 耗时）。
+
+        两条执行器（LangGraph / Fallback）都走这里，保证追踪合同一致：
+        - `span_id` 用 round_seq + 节点名构造（不用 tick：相同 tick 的多轮不串）；
+        - 异常必须留 error span（"异常、超时、取消不能漏掉退出状态"）；
+        - 记录失败只累加诊断计数，不影响本节点结果。
+
+        `name` 是阶段计时键（历史口径），`node_name` 是追踪里的图节点名
+        （拓扑常量）；两者只在这一层换算，节点函数本身零改动。
+        """
+        trace = self._trace()
+        trace_node = str(node_name or name)
+        if trace is None:
+            stop = self._time_phase(name)
+            try:
+                return fn(state, self._ctx)
+            finally:
+                stop()
+        span_id = "r%d-%s" % (int(getattr(trace, "round_seq", 0) or 0), trace_node)
+        tick = int(self._ctx.tick)
+        try:
+            trace.node_enter(trace_node, span_id, server_tick=tick)
+        except Exception:  # noqa: BLE001 —— 旁路永不拖垮指挥链
+            pass
+        stop = self._time_phase(name)
+        try:
+            out = fn(state, self._ctx)
+        except Exception as exc:  # noqa: BLE001 —— 留 error span 后原样抛出
+            stop()
+            try:
+                trace.node_error(trace_node, span_id,
+                                 duration_ms=self._phase_round_ms.get(name, 0.0),
+                                 error=repr(exc)[:300], server_tick=tick)
+            except Exception:  # noqa: BLE001
+                pass
+            raise
+        stop()
+        try:
+            trace.node_exit(trace_node, span_id,
+                            duration_ms=self._phase_round_ms.get(name, 0.0),
+                            server_tick=tick,
+                            summary={"route": str(out.get("route", "")) if isinstance(out, dict) else ""})
+        except Exception:  # noqa: BLE001
+            pass
+        return out
 
     # ---- 对外 API ----
 
@@ -293,7 +455,7 @@ class FallbackRunner(GraphRunner):
 
     def _node(self, name: str, fn: Callable, state: Dict[str, Any]) -> Dict[str, Any]:
         self.executed.append(name)
-        return fn(state, self._ctx)
+        return self._run_node(name, fn, state)
 
 
 class LangGraphRunner(GraphRunner):
@@ -316,18 +478,18 @@ class LangGraphRunner(GraphRunner):
         from langgraph.graph import END, StateGraph
 
         builder = StateGraph(GraphStateDict)
-        builder.add_node(NODE_INGEST, self._wrap(node_ingest))
-        builder.add_node(NODE_CAMPAIGN, self._wrap(node_update_campaign))
-        builder.add_node(NODE_ADVANCE, self._wrap(node_advance_milestones))
-        builder.add_node(NODE_CLASSIFY, self._wrap(node_classify))
-        builder.add_node(NODE_RECONCILE, self._wrap(node_reconcile_plan))
-        builder.add_node(NODE_STRATEGIC, self._wrap(node_strategic_agent))
-        builder.add_node(NODE_TACTICAL, self._wrap(node_tactical_agent))
-        builder.add_node(NODE_WAIT, self._wrap(node_wait))
-        builder.add_node(NODE_ARBITRATE, self._wrap(node_arbitrate_intent))
-        builder.add_node(NODE_DISPATCH, self._wrap(node_dispatch_to_godot))
-        builder.add_node(NODE_OBSERVE, self._wrap(node_observe_receipt))
-        builder.add_node(NODE_PERSIST, self._wrap(node_persist_checkpoint))
+        builder.add_node(NODE_INGEST, self._wrap(node_ingest, NODE_INGEST))
+        builder.add_node(NODE_CAMPAIGN, self._wrap(node_update_campaign, NODE_CAMPAIGN))
+        builder.add_node(NODE_ADVANCE, self._wrap(node_advance_milestones, NODE_ADVANCE))
+        builder.add_node(NODE_CLASSIFY, self._wrap(node_classify, NODE_CLASSIFY))
+        builder.add_node(NODE_RECONCILE, self._wrap(node_reconcile_plan, NODE_RECONCILE))
+        builder.add_node(NODE_STRATEGIC, self._wrap(node_strategic_agent, NODE_STRATEGIC))
+        builder.add_node(NODE_TACTICAL, self._wrap(node_tactical_agent, NODE_TACTICAL))
+        builder.add_node(NODE_WAIT, self._wrap(node_wait, NODE_WAIT))
+        builder.add_node(NODE_ARBITRATE, self._wrap(node_arbitrate_intent, NODE_ARBITRATE))
+        builder.add_node(NODE_DISPATCH, self._wrap(node_dispatch_to_godot, NODE_DISPATCH))
+        builder.add_node(NODE_OBSERVE, self._wrap(node_observe_receipt, NODE_OBSERVE))
+        builder.add_node(NODE_PERSIST, self._wrap(node_persist_checkpoint, NODE_PERSIST))
 
         builder.set_entry_point(NODE_INGEST)
         builder.add_edge(NODE_INGEST, NODE_CAMPAIGN)
@@ -354,11 +516,16 @@ class LangGraphRunner(GraphRunner):
         self._app = builder.compile(checkpointer=MemorySaver(),
                                     interrupt_after=[NODE_RECONCILE])
 
-    def _wrap(self, fn: Callable) -> Callable:
+    def _wrap(self, fn: Callable, node_name: str = "") -> Callable:
         ctx = self._ctx
+        phase_name = str(getattr(fn, "__name__", "node"))
+        # 追踪里的节点名用图拓扑常量（ingest_observation…），与 FallbackRunner 一致；
+        # 阶段计时键保持历史名字（fn.__name__），不改既有 phases 日志口径。
+        trace_name = str(node_name or phase_name)
 
         def _node(state: Dict[str, Any]) -> Dict[str, Any]:
-            return fn(state, ctx)
+            return self._run_node(phase_name, lambda inner, context: fn(inner, context),
+                                  state, node_name=trace_name)
 
         _node.__name__ = fn.__name__
         return _node

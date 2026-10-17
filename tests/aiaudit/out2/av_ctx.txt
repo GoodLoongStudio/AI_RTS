@@ -1,0 +1,31 @@
+total 1185 AV at [1180]
+       [3] _ready (res://tests/automated/AdjutantCommandProtocolSmokeTest.gd:140)
+WARNING: [adjutant] 幂等账本已满，淘汰最早记录 flood-302（避免背压锁死指挥链）
+   at: push_warning (core/variant/variant_utility.cpp:1033)
+   GDScript backtrace (most recent call first):
+       [0] _adjutant_ledger_evict_one (res://source/net/DebugControlServer.gd:2420)
+       [1] _op_adjutant_command (res://source/net/DebugControlServer.gd:2020)
+       [2] _submit (res://tests/automated/AdjutantCommandProtocolSmokeTest.gd:209)
+       [3] _ready (res://tests/automated/AdjutantCommandProtocolSmokeTest.gd:140)
+WARNING: [adjutant] 幂等账本已满，淘汰最早记录 flood-303（避免背压锁死指挥链）
+   at: push_warning (core/variant/variant_utility.cpp:1033)
+   GDScript backtrace (most recent call first):
+       [0] _adjutant_ledger_evict_one (res://source/net/DebugControlServer.gd:2420)
+       [1] _op_adjutant_command (res://source/net/DebugControlServer.gd:2020)
+       [2] _submit (res://tests/automated/AdjutantCommandProtocolSmokeTest.gd:209)
+       [3] _ready (res://tests/automated/AdjutantCommandProtocolSmokeTest.gd:140)
+WARNING: [adjutant] 幂等账本已满，淘汰最早记录 flood-304（避免背压锁死指挥链）
+   at: push_warning (core/variant/variant_utility.cpp:1033)
+   GDScript backtrace (most recent call first):
+       [0] _adjutant_ledger_evict_one (res://source/net/DebugControlServer.gd:2420)
+       [1] _op_adjutant_command (res://source/net/DebugControlServer.gd:2020)
+       [2] _submit (res://tests/automated/AdjutantCommandProtocolSmokeTest.gd:209)
+       [3] _ready (res://tests/automated/AdjutantCommandProtocolSmokeTest.gd:151)
+Adjutant command protocol smoke test completed: 1 failure(s)
+[EXIT-TRACE] EXIT_TREE：场景树收尾（tick=79，场景=unknown，对局结果=无该节点）
+[EXIT-TRACE] PREDELETE：引擎收尾（Globals 释放，tick=unknown(已脱离场景树)）
+Fatal error. System.AccessViolationException: Attempted to read or write protected memory. This is often an indication that other memory is corrupt.
+   at Godot.NativeInterop.NativeFuncs.godotsharp_variant_destroy(Godot.NativeInterop.godot_variant ByRef)
+   at Godot.NativeInterop.godot_variant.Dispose()
+   at Godot.Variant+Disposer.Dispose(Boolean)
+   at Godot.Variant+Disposer.Finalize()

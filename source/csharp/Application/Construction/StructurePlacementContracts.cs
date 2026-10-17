@@ -40,7 +40,10 @@ public enum StructurePlacementIssue
     InsufficientResources,
 
     /// <summary>定义、空间或账户适配器暂时无法完成评估。</summary>
-    ValidationUnavailable
+    ValidationUnavailable,
+
+    /// <summary>历史：窄缝曾拒绝放置。现在放置不再发出；单位改由单车穿模通过。</summary>
+    BlocksPassage
 }
 
 /// <summary>请求只读评估一个建筑放置候选。</summary>

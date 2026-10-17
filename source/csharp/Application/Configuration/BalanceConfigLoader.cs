@@ -375,8 +375,6 @@ public sealed class BalanceConfigLoader
             }
             if (item.OreRefinery is not null)
             {
-                RequireFinitePositive(item.OreRefinery.ServiceRadiusMeters,
-                    $"{path}.oreRefinery.serviceRadiusMeters", errors);
                 RequirePositive(item.OreRefinery.WorkerCapacity,
                     $"{path}.oreRefinery.workerCapacity", errors);
                 RequireFinitePositive(item.OreRefinery.ClaimIntervalSeconds,
@@ -1004,7 +1002,6 @@ public sealed class BalanceConfigLoader
         item.Constructor is null ? null : new ConstructorDefinition(item.Constructor.WorkPerTick!.Value),
         item.Producer is null ? null : new ProducerDefinition(item.Producer.QueueLimit!.Value),
         item.OreRefinery is null ? null : new OreRefineryDefinition(
-            item.OreRefinery.ServiceRadiusMeters!.Value,
             item.OreRefinery.WorkerCapacity!.Value,
             item.OreRefinery.ClaimIntervalSeconds!.Value));
 

@@ -1,0 +1,23 @@
+[selfplay] 验收端口 24589 在专用段 24589-24592 内
+清理：没有属于本局端口的 Godot 进程
+[selfplay] 大厅就绪: 指挥官-309
+[selfplay] op=start -> {'map': 'res://source/match/maps/PlainAndSimple.tscn', 'ok': True, 'passive_ai_test': False, 'peaceful': False, 'seed': 0, 'with_ai': True}
+runner 启动 pid=46580 state_dir=G:\AIRTS\tmp_logs\langgraph_recon\selfplay\state_fs_ref5
+pidfile=49104
+[selfplay] 对局开始，采样 300s（backend=off difficulty=-1）
+[selfplay] 矿场前置：派 Unit_1 到 [174.27, 170.79] -> {'accepted': False, 'command_id': '', 'moved': ['Unit_1'], 'ok': False, 'reason': '命令未被接受（PendingAuthority），请根据 status 复
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 142.9, 'unit_xz': [89.2, 55.9]}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 104.1, 'unit_xz': [112.3, 87.2]}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 64.3, 'unit_xz': [136.0, 119.1]}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 24.5, 'unit_xz': [159.7, 151.1]}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': True, 'distance_m': 12.1, 'unit_xz': [167.0, 161.0]}
+[selfplay] 矿场建造第 1 次（auto）客户端={'accepted': False, 'builders': [], 'command_id': '68fd6a6f-a5b0-4775-c4ac-00001f8d610a',  权威={"found": false, "reason": "still_pending"}
+[selfplay] 矿场建造第 2 次（auto）客户端={'accepted': False, 'builders': [], 'command_id': '2be117ce-6662-4df7-ea75-00002631f66f',  权威={"found": false, "reason": "still_pending"}
+[selfplay] 矿场建造第 3 次（explicit_pos）客户端={'accepted': False, 'builders': [], 'command_id': 'd1138a93-eac6-47a6-09ea-00002c9bdd31',  权威={"found": false, "reason": "still_pending"}
+[selfplay] 矿场建造第 4 次（explicit_pos）客户端={'accepted': False, 'builders': [], 'command_id': 'b80ff5db-561b-494b-488d-000032ecd31d',  权威={"found": false, "reason": "still_pending"}
+[selfplay] 矿场建造第 5 次（explicit_pos）客户端={'accepted': False, 'builders': [], 'command_id': '25125ee3-c985-4371-1e11-0000394fecc6',  权威={"found": false, "reason": "still_pending"}
+[selfplay] 矿场建造第 6 次（explicit_pos）客户端={'accepted': False, 'builders': [], 'command_id': '81803eec-f77c-4eed-598d-00003f91fb17',  权威={"found": false, "reason": "query_failed", "error": "timed out"}
+停止 runner roots=[46580]（全部=[46580, 49104]，authority-port=24572）
+清理本局进程树 roots=[52324, 49428] (全部=[43652, 49428, 52324, 58416])
+[selfplay] 终局: verdict=timeout own=68 enemy=10 units={'command_center': 1, 'drone': 1, 'worker': 6, 'barracks': 2, 'soldier': 47, 'vehicle_factory': 1, 'tank': 8} balance={'a': 33800}
+[selfplay] written: G:\AIRTS\tmp_logs\langgraph_recon\selfplay\result_fs_ref5.json

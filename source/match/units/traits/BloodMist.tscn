@@ -1,0 +1,96 @@
+[gd_scene load_steps=14 format=3]
+
+[ext_resource type="Script" path="res://source/match/units/traits/BloodMist.gd" id="1_script"]
+
+[sub_resource type="Gradient" id="Gradient_soft"]
+offsets = PackedFloat32Array(0, 0.5, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0.55, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_soft"]
+gradient = SubResource("Gradient_soft")
+width = 64
+height = 64
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(0.97, 0.5)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_mist"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+billboard_mode = 1
+albedo_texture = SubResource("GradientTexture2D_soft")
+albedo_color = Color(0.45, 0.05, 0.05, 1)
+
+[sub_resource type="Gradient" id="Gradient_mist"]
+offsets = PackedFloat32Array(0, 0.35, 1)
+colors = PackedColorArray(0.5, 0.06, 0.05, 0.9, 0.35, 0.03, 0.03, 0.7, 0.18, 0.01, 0.01, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_mist"]
+gradient = SubResource("Gradient_mist")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_mist"]
+emission_shape = 3
+emission_sphere_radius = 0.3
+spread = 180.0
+initial_velocity_min = 3.6
+initial_velocity_max = 7.8
+gravity = Vector3(0, -1.3, 0)
+scale_min = 0.7
+scale_max = 1.3
+color_ramp = SubResource("GradientTexture1D_mist")
+
+[sub_resource type="QuadMesh" id="QuadMesh_mist"]
+size = Vector2(0.9, 0.9)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_droplets"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+billboard_mode = 1
+albedo_texture = SubResource("GradientTexture2D_soft")
+albedo_color = Color(0.62, 0.08, 0.06, 1)
+
+[sub_resource type="Gradient" id="Gradient_droplets"]
+offsets = PackedFloat32Array(0, 1)
+colors = PackedColorArray(0.7, 0.1, 0.08, 1, 0.4, 0.03, 0.03, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_droplets"]
+gradient = SubResource("Gradient_droplets")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_droplets"]
+emission_shape = 3
+emission_sphere_radius = 0.24
+spread = 70.0
+initial_velocity_min = 7.2
+initial_velocity_max = 13.8
+gravity = Vector3(0, -7, 0)
+scale_min = 0.4
+scale_max = 0.8
+color_ramp = SubResource("GradientTexture1D_droplets")
+
+[sub_resource type="QuadMesh" id="QuadMesh_droplets"]
+size = Vector2(0.24, 0.24)
+
+[node name="BloodMist" type="Node3D"]
+script = ExtResource("1_script")
+
+[node name="Mist" type="GPUParticles3D" parent="."]
+material_override = SubResource("StandardMaterial3D_mist")
+amount = 26
+lifetime = 0.55
+one_shot = true
+explosiveness = 1.0
+local_coords = false
+process_material = SubResource("ParticleProcessMaterial_mist")
+draw_pass_1 = SubResource("QuadMesh_mist")
+
+[node name="Droplets" type="GPUParticles3D" parent="."]
+material_override = SubResource("StandardMaterial3D_droplets")
+amount = 10
+lifetime = 0.35
+one_shot = true
+explosiveness = 1.0
+local_coords = false
+process_material = SubResource("ParticleProcessMaterial_droplets")
+draw_pass_1 = SubResource("QuadMesh_droplets")

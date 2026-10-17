@@ -15,8 +15,9 @@
 产出不匹配 `StrategyPlan` → `ModelInvalidOutput`。
 """
 import unittest
+from types import SimpleNamespace
 
-from adjutant_coordinator.graph.model_context import summarize_events
+from adjutant_coordinator.graph.model_context import build_strategy_context, summarize_events
 
 
 def raw_event(index, kind="queue_idle", tick=100):
@@ -58,6 +59,49 @@ class SummarizeEventsTest(unittest.TestCase):
     def test_tolerates_garbage_input(self):
         self.assertEqual(summarize_events(None), [])
         self.assertEqual(summarize_events([None, "x", {}, {"kind": ""}]), [])
+
+
+class StrategyCapabilitiesTest(unittest.TestCase):
+    def state(self, units):
+        return SimpleNamespace(match_id="m", player_id="Player_0", rules_version="r",
+                               server_tick=100, latest_snapshot_id=2, active_plan=None,
+                               plan_version=0, plan_adopt_generation=0, active_tasks={},
+                               ai_controlled_units=units, player_controlled_units=["player"],
+                               released_units=[], degraded_reason="", campaign_state={})
+
+    def test_legacy_strategy_input_does_not_gain_unit_table(self):
+        context = build_strategy_context(self.state([]), strategic={}, rules={})
+        self.assertNotIn("unit_facts", context)
+
+    def test_combat_uses_authoritative_rules_and_excludes_player(self):
+        tactical = {"entities": [
+            {"name": "cc", "kind": "unit_self", "unit_type": "command_center", "movement": False, "attack": True},
+            {"name": "drone", "kind": "unit_self", "unit_type": "drone", "movement": True, "attack": True},
+            {"name": "tank", "kind": "unit_self", "unit_type": "tank", "movement": True},
+            {"name": "player", "kind": "unit_self", "unit_type": "tank", "movement": True},
+        ]}
+        rules = {"unit_types": [
+            {"id": "command_center", "capabilities": {"attack": False, "move": False}},
+            {"id": "drone", "capabilities": {"attack": False, "move": True}},
+            {"id": "tank", "capabilities": {"attack": True, "move": True}},
+        ]}
+        context = build_strategy_context(self.state(["cc", "drone", "tank", "player"]),
+                                         strategic={}, rules=rules, tactical=tactical)
+        self.assertFalse(context["unit_facts"]["cc"]["combat"])
+        self.assertFalse(context["unit_facts"]["drone"]["combat"])
+        self.assertTrue(context["unit_facts"]["tank"]["combat"])
+        self.assertNotIn("player", context["unit_facts"])
+
+    def test_missing_rules_never_invents_combat_and_coverage_is_explicit(self):
+        names = ["tank_%d" % i for i in range(270)]
+        tactical = {"truncated": True, "entities": [
+            {"name": name, "kind": "unit_self", "unit_type": "tank", "movement": True}
+            for name in names]}
+        context = build_strategy_context(self.state(names), strategic={}, rules={}, tactical=tactical)
+        self.assertEqual(len(context["unit_facts"]), 256)
+        self.assertFalse(any(u["combat"] for u in context["unit_facts"].values()))
+        self.assertEqual(context["unit_facts_coverage"]["omitted"], 14)
+        self.assertTrue(context["unit_facts_coverage"]["truncated"])
 
 
 if __name__ == "__main__":

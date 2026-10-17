@@ -37,6 +37,7 @@ MOVE_SPEED = 1.0           # 米/tick
 
 SCENE = {
     "command_center": "res://buildings/CommandCenter.tscn",
+    "ore_refinery": "res://buildings/OreRefinery.tscn",
     "barracks": "res://buildings/Barracks.tscn",
     "vehicle_factory": "res://buildings/VehicleFactory.tscn",
     "aircraft_factory": "res://buildings/AircraftFactory.tscn",
@@ -56,9 +57,10 @@ RULES_VIEW = {
     "unit_types": [{"id": key, "scene_path": value} for key, value in SCENE.items()],
     "constructions": [
         {"id": key, "blueprint_scene_path": SCENE[key],
-         "cost": [{"kind": "A", "amount": 600}]}
+         "cost": [{"kind": "A", "amount": 600}],
+         "construction_progress_source": "automatic"}
         for key in ("barracks", "vehicle_factory", "aircraft_factory",
-                    "anti_air_turret", "anti_ground_turret", "command_center")
+                    "anti_air_turret", "anti_ground_turret", "command_center", "ore_refinery")
     ],
     "productions": [
         {"product_type_id": "worker", "allowed_producer_type_ids": ["command_center"],
@@ -83,6 +85,8 @@ class SimWorld:
         self._sites = []      # (完成 tick, 名称)
         self._orders = []     # (完成 tick, 生产者, 产物)
         self._moves = {}      # 单位 → [x, z]
+        self._gathers = {}    # 单位 → 矿点，只有完工矿场才能收货
+        self._next_delivery = {}
         self.accepted = []
         self.rejected = []
         # 真实开局编队：主基地 + 2 工人（采集/建造）+ 1 无人机（侦察）。
@@ -107,6 +111,10 @@ class SimWorld:
             "queue": bool(flags.get("queue", False)),
             "constructed": bool(flags.get("constructed", True)),
         }
+        if unit_type == "ore_refinery":
+            self.units[name]["refinery"] = {
+                "constructed": bool(flags.get("constructed", True)),
+                "delivered_count": 0, "delivered_amount": 0, "assigned": 0}
         return name
 
     def _next_name(self, unit_type):
@@ -134,11 +142,28 @@ class SimWorld:
                 name = site[1]
                 if name in self.units:
                     self.units[name]["constructed"] = True
+                    if self.units[name]["unit_type"] == "ore_refinery":
+                        self.units[name]["refinery"]["constructed"] = True
                 self._sites.remove(site)
         for order in list(self._orders):
             if self.tick >= order[0]:
                 self._orders.remove(order)
                 self._add(self._next_name(order[2]), order[2], order[1])
+        for worker, resource in self._gathers.items():
+            if worker not in self.units or resource not in self.resources:
+                continue
+            sites = [unit for unit in self.units.values()
+                     if unit["unit_type"] == "ore_refinery" and unit["constructed"]]
+            if not sites or self.tick < self._next_delivery.get(worker, self.tick):
+                continue
+            # The fixture models an entire round trip, independently of receipts.
+            site = min(sites, key=lambda unit: sum((unit["pos"][axis] -
+                       self.resources[resource][index]) ** 2
+                       for index, axis in enumerate((0, 2))))
+            site["refinery"]["delivered_count"] += 1
+            site["refinery"]["delivered_amount"] += 100
+            self.balance["A"] += 100
+            self._next_delivery[worker] = self.tick + 600
 
     # ---- 权威端 ----
 
@@ -163,9 +188,12 @@ class SimWorld:
         if action == "build":
             scene = str(params.get("scene", ""))
             building = SCENE_TO_ID.get(scene)
-            pos = params.get("pos") or [0.0, 0.0]
+            pos = params.get("hint") or params.get("pos") or list(BASE)
             if not building:
                 return "Rejected", "NotBuildable"
+            if self.balance["A"] < 600:
+                return "Rejected", "InsufficientResources"
+            self.balance["A"] -= 600
             name = self._next_name(building)
             self._add(name, building, (float(pos[0]), float(pos[1])),
                       queue=building != "worker", constructed=False)
@@ -179,6 +207,14 @@ class SimWorld:
                 return "Rejected", "ProductNotAllowed"
             if self.units[producer].get("constructed") is False:
                 return "Rejected", "ProducerNotConstructed"
+            relation = next((row for row in RULES_VIEW["productions"]
+                             if row["product_type_id"] == product), None)
+            if relation is None or self.units[producer]["unit_type"] not in relation["allowed_producer_type_ids"]:
+                return "Rejected", "ProductNotAllowed"
+            amount = relation["cost"][0]["amount"]
+            if self.balance["A"] < amount:
+                return "Rejected", "InsufficientResources"
+            self.balance["A"] -= amount
             self._orders.append((self.tick + PRODUCE_TICKS, list(
                 self.units[producer]["pos"])[::2], product))
             return "Accepted", ""
@@ -189,7 +225,15 @@ class SimWorld:
             for unit in units:
                 self._moves[unit] = [float(dest[0]), float(dest[1])]
             return "Accepted", ""
-        if action in ("gather", "attack", "hold", "stop"):
+        if action == "gather":
+            resource = str(params.get("target", ""))
+            if resource not in self.resources:
+                return "Rejected", "ResourceMissing"
+            for worker in units:
+                self._gathers[worker] = resource
+                self._next_delivery.setdefault(worker, self.tick + 600)
+            return "Accepted", ""
+        if action in ("attack", "hold", "stop"):
             return "Accepted", ""
         return "Rejected", "unsupported:%s" % action
 
@@ -267,6 +311,9 @@ class NoModelDevelopmentTest(unittest.TestCase):
                       for name in world.built(key)]
         self.assertTrue(production, "整局没有任何产能建筑完工")
         self.assertIn(cm.M02, done)
+        self.assertIn(cm.M01, done)
+        self.assertTrue(any(unit.get("refinery", {}).get("delivered_count", 0) > 0
+                            for unit in world.units.values()))
         # 3) 兵力真的增长（世界里的作战单位数）。
         combat = sum(world.count(key) for key in ("soldier", "tank", "helicopter"))
         self.assertGreaterEqual(combat, 2, "兵力没有增长（作战单位 %d）" % combat)

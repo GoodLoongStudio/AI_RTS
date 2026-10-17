@@ -10,6 +10,7 @@ using AI_RTS.GodotAdapter.Configuration;
 using AI_RTS.GodotAdapter.Construction;
 using AI_RTS.GodotAdapter.Production;
 using Godot;
+using System.Diagnostics;
 
 namespace AI_RTS.GodotAdapter.Queries;
 
@@ -21,6 +22,9 @@ public partial class WorldQueryRuntime : Node
     private IWorldQueryService? _queries;
     private Node? _playersRoot;
     private readonly List<Vector3> _spawnPoints = new();
+
+    /// <summary>规则 AI 标准会话集合（性能插桩按来源归属用，非授权用途）。</summary>
+    private readonly HashSet<Guid> _ruleAiSessions = new();
 
     /// <summary>由 Match 在玩家与权威经济账户建立后一次性签发标准和调试会话。</summary>
     public void Initialize(Node playersRoot, Node? humanPlayer)
@@ -72,6 +76,10 @@ public partial class WorldQueryRuntime : Node
                 GetParent(), economy.AccountService, commands, production),
             grants);
         _queries = queryService;
+        foreach (var grant in grants.Where(item => item.Source == QuerySourceKind.RuleAI))
+        {
+            _ruleAiSessions.Add(grant.SessionId.Value);
+        }
         BindRuleAiSessions(
             playersRoot,
             humanPlayer,
@@ -103,21 +111,45 @@ public partial class WorldQueryRuntime : Node
     }
 
     /// <summary>返回己方单位与建筑摘要，成功空集合也保留 entities 键。</summary>
-    public Godot.Collections.Dictionary GetOwnForces(string sessionId, int requestedFields) =>
-        ToGodot(Queries().GetOwnForces(Session(sessionId), Fields(requestedFields)));
+    public Godot.Collections.Dictionary GetOwnForces(string sessionId, int requestedFields)
+    {
+        var started = QueryPerfCounters.Enabled ? Stopwatch.GetTimestamp() : 0L;
+        var result = ToGodot(Queries().GetOwnForces(Session(sessionId), Fields(requestedFields)));
+        if (QueryPerfCounters.Enabled)
+        {
+            QueryPerfCounters.AddQuery(
+                "GetOwnForces",
+                Stopwatch.GetTimestamp() - started,
+                EntityCount(result),
+                IsRuleAiSession(sessionId));
+        }
+        return result;
+    }
 
     /// <summary>返回圆形范围内获准观察的实体，成功空集合也保留 entities 键。</summary>
     public Godot.Collections.Dictionary ScanCircle(
         string sessionId,
         Vector3 center,
         float radius,
-        int requestedFields) =>
-        ToGodot(Queries().ScanCircle(
+        int requestedFields)
+    {
+        var started = QueryPerfCounters.Enabled ? Stopwatch.GetTimestamp() : 0L;
+        var result = ToGodot(Queries().ScanCircle(
             Session(sessionId),
             new CircleObservationRequest(
                 new WorldPosition(center.X, center.Y, center.Z),
                 radius,
                 Fields(requestedFields))));
+        if (QueryPerfCounters.Enabled)
+        {
+            QueryPerfCounters.AddQuery(
+                "ScanCircle",
+                Stopwatch.GetTimestamp() - started,
+                EntityCount(result),
+                IsRuleAiSession(sessionId));
+        }
+        return result;
+    }
 
     /// <summary>仅在 Debug 构建返回指定己方实体的稳定引用；Release 构建始终返回空字典。</summary>
     public Godot.Collections.Dictionary GetOwnEntityReferenceForTests(Node entity, Node owner)
@@ -158,12 +190,48 @@ public partial class WorldQueryRuntime : Node
     }
 
     /// <summary>返回会话观察者自己的准确资源账户。</summary>
-    public Godot.Collections.Dictionary GetOwnEconomy(string sessionId) =>
-        ToGodot(Queries().GetOwnEconomy(Session(sessionId)));
+    public Godot.Collections.Dictionary GetOwnEconomy(string sessionId)
+    {
+        var started = QueryPerfCounters.Enabled ? Stopwatch.GetTimestamp() : 0L;
+        var result = ToGodot(Queries().GetOwnEconomy(Session(sessionId)));
+        if (QueryPerfCounters.Enabled)
+        {
+            QueryPerfCounters.AddQuery(
+                "GetOwnEconomy", Stopwatch.GetTimestamp() - started, 1L, IsRuleAiSession(sessionId));
+        }
+        return result;
+    }
 
     /// <summary>返回公开的轴对齐可玩战场边界，不表示区域内任意点都可导航。</summary>
-    public Godot.Collections.Dictionary GetBattlefieldBounds(string sessionId) =>
-        ToGodot(Queries().GetBattlefieldBounds(Session(sessionId)));
+    public Godot.Collections.Dictionary GetBattlefieldBounds(string sessionId)
+    {
+        var started = QueryPerfCounters.Enabled ? Stopwatch.GetTimestamp() : 0L;
+        var result = ToGodot(Queries().GetBattlefieldBounds(Session(sessionId)));
+        if (QueryPerfCounters.Enabled)
+        {
+            QueryPerfCounters.AddQuery(
+                "GetBattlefieldBounds",
+                Stopwatch.GetTimestamp() - started,
+                1L,
+                IsRuleAiSession(sessionId));
+        }
+        return result;
+    }
+
+    /// <summary>性能插桩导出：当前累计的查询/命令/选址计数（供无头探针写 JSON）。</summary>
+    public Godot.Collections.Dictionary GetQueryPerfStats() => QueryPerfCounters.Dump();
+
+    /// <summary>性能插桩分段清零。</summary>
+    public void ResetQueryPerfStats() => QueryPerfCounters.Reset();
+
+    private bool IsRuleAiSession(string sessionId) =>
+        Guid.TryParse(sessionId, out var parsed) && _ruleAiSessions.Contains(parsed);
+
+    private static long EntityCount(Godot.Collections.Dictionary result) =>
+        result.TryGetValue("entities", out var value) &&
+        value.VariantType == Variant.Type.Array ?
+            ((Godot.Collections.Array)value).Count :
+            0L;
 
     /// <summary>由 Match 组合根登记开局出生点（玩家开局即可见的公共知识，不受迷雾约束）。</summary>
     public void RegisterSpawnPoints(Vector3[] points)

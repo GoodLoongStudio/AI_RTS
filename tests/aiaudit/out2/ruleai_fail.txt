@@ -1,0 +1,20 @@
+#### rule-ai-battlegroup ####
+FAIL: 满编 Battlegroup 应通过稳定命令提交普通 Attack
+FAIL: Battlegroup 的 Attack 目标必须来自当前 VisibleNow 敌军观察
+FAIL: 外部移动替换后，编组应从己方订单观察恢复可见目标攻击
+Rule AI battlegroup smoke test completed: 3 failure(s)
+#### rule-ai-economy-query ####
+FAIL: 己方查询应返回规则 AI 的稳定 Worker ID
+FAIL: EconomyController 应通过稳定 ID Gather 为无订单 Worker 分配可见资源
+Rule AI economy query smoke test completed: 2 failure(s)
+#### rule-ai-expansion ####
+FAIL: Phase1: 扩张请求获准后应放置第二座 CommandCenter 蓝图
+Rule AI expansion smoke test completed: 1 failure(s)
+#### rule-ai-offense-logistics ####
+FAIL: OffenseController 应只向完工工厂按稳定 Producer ID 加入 Tank
+[AUTOSPOT] mode=resource anchor=(160.0,28.0) radius=7
+[AUTOSPOT] FOUND (156.9,0.0,13.3)
+[AUTOSPOT] mode=resource anchor=(156.9,13.3) radius=7
+[AUTOSPOT] FAIL mode=resource anchor=(156.9,13.3) limit=48.0 evaluations=256 stop=exhausted issues=ConstructionInProgress×256
+FAIL: 生产建筑损失后应由定时己方查询发现缺口并重新放置
+Rule AI offense logistics smoke test completed: 2 failure(s)

@@ -9,7 +9,15 @@ const LOAD_RADIUS := 4.5
 const UNLOAD_SPREAD := 1.2
 const BOARDING_META := "boarding_transport"
 
-@export var capacity := 10
+## 可登车的单位类型白名单（**唯一口径**：`unit_type_id`，由 C# BalanceConfigRuntime 注入）。
+## 运输车货舱只载小兵（2026-10-12 用户要求）：步兵/狙击兵/炮兵。
+## 历史坑：`_is_loadable_infantry()` 名字叫 infantry 但只判地形域，坦克/矿车也能上。
+## 登车入口（UnitActionsController）也必须引用这一份常量，不能各写一份。
+const LOADABLE_UNIT_TYPE_IDS: Array = ["soldier", "sniper", "rocketeer"]
+
+## 货舱容量（2026-10-12 用户要求：最多 8 位）。场景可覆盖（TransportTruck.tscn）。
+## 与 `LOADABLE_UNIT_TYPE_IDS` 一样：UI/测试读这里，不要另抄数字。
+@export var capacity := 8
 
 var _transport: Node3D = null
 var _passengers: Array = []
@@ -79,28 +87,40 @@ func load_unit(unit):
 	_passengers.append(unit)
 
 
+## 全部卸货（一次性清空货舱）。保留入口：运兵到位后一键下车。
 func unload_all():
 	var passengers := _passengers.duplicate()
 	_passengers.clear()
 	for i in range(passengers.size()):
-		var unit = passengers[i]
-		if not is_instance_valid(unit):
-			continue
-		var offset = Vector3(sin(i * 1.3) * UNLOAD_SPREAD, 0, cos(i * 1.3) * UNLOAD_SPREAD)
-		# 同上：`offset` 是弱类型局部变量，Vector3 + Variant 推不出类型。
-		var drop: Vector3 = _transport.global_position + offset
-		var match_node = _transport.find_parent("Match")
-		if match_node != null and match_node.has_method("ground_height_at"):
-			drop.y = float(match_node.ground_height_at(drop))
-		unit.global_position = drop
-		unit.process_mode = Node.PROCESS_MODE_INHERIT
-		for area in _collect_areas(unit):
-			area.set_deferred("collision_layer", 2)
-		unit._action_locked = false
+		_release_passenger(passengers[i], i)
+
+
+
+## 让一位乘客落位并恢复可用。返回是否成功（单位已失效返回 false）。
+func _release_passenger(unit, index: int) -> bool:
+	if not is_instance_valid(unit):
+		return false
+	var offset = Vector3(sin(index * 1.3) * UNLOAD_SPREAD, 0, cos(index * 1.3) * UNLOAD_SPREAD)
+	# 同上：`offset` 是弱类型局部变量，Vector3 + Variant 推不出类型。
+	var drop: Vector3 = _transport.global_position + offset
+	var match_node = _transport.find_parent("Match")
+	if match_node != null and match_node.has_method("ground_height_at"):
+		drop.y = float(match_node.ground_height_at(drop))
+	unit.global_position = drop
+	unit.process_mode = Node.PROCESS_MODE_INHERIT
+	for area in _collect_areas(unit):
+		area.set_deferred("collision_layer", 2)
+	unit._action_locked = false
+	return true
 
 
 func get_passenger_count() -> int:
 	return _passengers.size()
+
+
+## 货舱容量（UI 显示与测试读这里，避免各处硬编码数字）。
+func get_capacity() -> int:
+	return capacity
 
 
 func _transport_is_idle() -> bool:
@@ -111,6 +131,10 @@ func _transport_is_idle() -> bool:
 func _is_loadable_infantry(unit) -> bool:
 	if unit == _transport or not _same_owner(unit):
 		return false
+	# 【只载小兵】`unit_type_id` 白名单（2026-10-12 用户要求）：地形域只是必要条件，
+	# 坦克/矿车/装甲车同样是 terrain 域，必须靠类型白名单挡住。
+	if not _is_loadable_unit_type(unit):
+		return false
 	if unit.get("movement_domain") != Constants.Match.Navigation.Domain.TERRAIN:
 		return false
 	if unit.hp == null or unit.hp <= 0:
@@ -120,6 +144,13 @@ func _is_loadable_infantry(unit) -> bool:
 	if unit.get("_action_locked") == true:
 		return false
 	return true
+
+
+## 是否是可登车的单位类型（唯一判据：`unit_type_id ∈ LOADABLE_UNIT_TYPE_IDS`）。
+## UnitActionsController 的登车入口也调用同一常量，避免两处口径漂移。
+static func _is_loadable_unit_type(unit) -> bool:
+	var type_id := str(unit.get("unit_type_id"))
+	return type_id in LOADABLE_UNIT_TYPE_IDS
 
 
 func _same_owner(unit) -> bool:

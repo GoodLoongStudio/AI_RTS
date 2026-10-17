@@ -78,10 +78,18 @@ func _ready() -> void:
 	_check(node._select_hud_status([], "").is_empty(), "无候选且无身份返回空字典")
 
 	# --- 四行渲染：外部前缀 + 判据备注 ---
-	node._state_label = Label.new()
-	node._action_label = Label.new()
-	node._reason_label = Label.new()
-	node._result_label = Label.new()
+	var state_label := Label.new()
+	var action_label := Label.new()
+	var reason_label := Label.new()
+	var result_label := Label.new()
+	node.add_child(state_label)
+	node.add_child(action_label)
+	node.add_child(reason_label)
+	node.add_child(result_label)
+	node._state_label = state_label
+	node._action_label = action_label
+	node._reason_label = reason_label
+	node._result_label = result_label
 	node._apply_hud_status({
 		"phase": "分派任务",
 		"goal": "阶段：摸底 · 下一目标：工人开采",

@@ -1,0 +1,2228 @@
+Godot Engine v4.7.1.stable.mono.official.a13da4feb - https://godotengine.org
+
+[DBGCTL] 端口 24579 被占用, 调试控制端点未启动
+[DBGCTL] 本实例不可被调试控制；自动化模式下 MatchInstanceRegistry 会按严格模式退场（避免留下'看着在对局里、其实命令下不进去'的僵尸局）
+[godot_ai game_helper] registered mcp capture (debugger active=false, logger=true)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:95)
+       [3] _ready (res://tests/automated/ReachGeometryProbe.gd:46)
+SCRIPT ERROR: Invalid access to property or key 'navigation' on a base object of type 'null instance'.
+   at: _ready (res://source/match/units/traits/Movement.gd:232)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/Movement.gd:232)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:95)
+       [3] _ready (res://tests/automated/ReachGeometryProbe.gd:46)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/Tank.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:95)
+       [4] _ready (res://tests/automated/ReachGeometryProbe.gd:46)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _instantiate (res://tests/automated/ReachGeometryProbe.gd:145)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/RallyPoint.gd:10)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/RallyPoint.gd:10)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _instantiate (res://tests/automated/ReachGeometryProbe.gd:145)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _instantiate (res://tests/automated/ReachGeometryProbe.gd:145)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _instantiate (res://tests/automated/ReachGeometryProbe.gd:145)
+[reach] Tank(r=2.00 rng=7.50 sight=8.00) -> CommandCenter(r=7.00) 可达=9.80 射程判据=true 视野判据=true 旧口径可打=false
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/RallyPoint.gd:10)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/RallyPoint.gd:10)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Tank(r=2.00 rng=7.50 sight=8.00) -> Barracks(r=6.25) 可达=9.05 射程判据=true 视野判据=true 旧口径可打=false
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/RallyPoint.gd:10)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/RallyPoint.gd:10)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Tank(r=2.00 rng=7.50 sight=8.00) -> VehicleFactory(r=6.65) 可达=9.45 射程判据=true 视野判据=true 旧口径可打=false
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/RallyPoint.gd:10)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/RallyPoint.gd:10)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Tank(r=2.00 rng=7.50 sight=8.00) -> AircraftFactory(r=8.00) 可达=10.80 射程判据=true 视野判据=true 旧口径可打=false
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/OreRefinery.gd:60)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Tank(r=2.00 rng=7.50 sight=8.00) -> OreRefinery(r=9.80) 可达=12.60 射程判据=true 视野判据=true 旧口径可打=false
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/AntiGroundTurret.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Tank(r=2.00 rng=7.50 sight=8.00) -> AntiGroundTurret(r=2.20) 可达=5.00 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/AntiAirTurret.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Tank(r=2.00 rng=7.50 sight=8.00) -> AntiAirTurret(r=2.00) 可达=4.80 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/MachineGunTurret.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+G4PERF movement_us=15 unit=Tank
+[reach] Tank(r=2.00 rng=7.50 sight=8.00) -> MachineGunTurret(r=2.00) 可达=4.80 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Invalid access to property or key 'navigation' on a base object of type 'null instance'.
+   at: _ready (res://source/match/units/traits/Movement.gd:232)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/Movement.gd:232)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/Tank.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Tank(r=2.00 rng=7.50 sight=8.00) -> Tank(r=2.00) 可达=4.80 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Invalid access to property or key 'navigation' on a base object of type 'null instance'.
+   at: _ready (res://source/match/units/traits/Movement.gd:232)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/Movement.gd:232)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/Infantry.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Tank(r=2.00 rng=7.50 sight=8.00) -> Infantry(r=1.35) 可达=4.15 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Invalid access to property or key 'navigation' on a base object of type 'null instance'.
+   at: _ready (res://source/match/units/traits/Movement.gd:232)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/Movement.gd:232)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Tank(r=2.00 rng=7.50 sight=8.00) -> Worker(r=2.00) 可达=4.80 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:95)
+       [3] _ready (res://tests/automated/ReachGeometryProbe.gd:46)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Invalid access to property or key 'navigation' on a base object of type 'null instance'.
+   at: _ready (res://source/match/units/traits/Movement.gd:232)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/Movement.gd:232)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:95)
+       [3] _ready (res://tests/automated/ReachGeometryProbe.gd:46)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/HeavyTank.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:95)
+       [4] _ready (res://tests/automated/ReachGeometryProbe.gd:46)
+       [5] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [6] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _instantiate (res://tests/automated/ReachGeometryProbe.gd:145)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/RallyPoint.gd:10)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/RallyPoint.gd:10)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _instantiate (res://tests/automated/ReachGeometryProbe.gd:145)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _instantiate (res://tests/automated/ReachGeometryProbe.gd:145)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _instantiate (res://tests/automated/ReachGeometryProbe.gd:145)
+[reach] HeavyTank(r=2.25 rng=20.00 sight=10.00) -> CommandCenter(r=7.00) 可达=9.80 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/RallyPoint.gd:10)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/RallyPoint.gd:10)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] HeavyTank(r=2.25 rng=20.00 sight=10.00) -> Barracks(r=6.25) 可达=9.05 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/RallyPoint.gd:10)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/RallyPoint.gd:10)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] HeavyTank(r=2.25 rng=20.00 sight=10.00) -> VehicleFactory(r=6.65) 可达=9.45 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/RallyPoint.gd:10)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/RallyPoint.gd:10)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] HeavyTank(r=2.25 rng=20.00 sight=10.00) -> AircraftFactory(r=8.00) 可达=10.80 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/OreRefinery.gd:60)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] HeavyTank(r=2.25 rng=20.00 sight=10.00) -> OreRefinery(r=9.80) 可达=12.60 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/AntiGroundTurret.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] HeavyTank(r=2.25 rng=20.00 sight=10.00) -> AntiGroundTurret(r=2.20) 可达=5.00 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/AntiAirTurret.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+G4PERF movement_us=48 unit=Tank
+G4PERF movement_us=43 unit=HeavyTank
+[reach] HeavyTank(r=2.25 rng=20.00 sight=10.00) -> AntiAirTurret(r=2.00) 可达=4.80 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/MachineGunTurret.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] HeavyTank(r=2.25 rng=20.00 sight=10.00) -> MachineGunTurret(r=2.00) 可达=4.80 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Invalid access to property or key 'navigation' on a base object of type 'null instance'.
+   at: _ready (res://source/match/units/traits/Movement.gd:232)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/Movement.gd:232)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/Tank.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] HeavyTank(r=2.25 rng=20.00 sight=10.00) -> Tank(r=2.00) 可达=4.80 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Invalid access to property or key 'navigation' on a base object of type 'null instance'.
+   at: _ready (res://source/match/units/traits/Movement.gd:232)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/Movement.gd:232)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/Infantry.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] HeavyTank(r=2.25 rng=20.00 sight=10.00) -> Infantry(r=1.35) 可达=4.15 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Invalid access to property or key 'navigation' on a base object of type 'null instance'.
+   at: _ready (res://source/match/units/traits/Movement.gd:232)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/Movement.gd:232)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] HeavyTank(r=2.25 rng=20.00 sight=10.00) -> Worker(r=2.00) 可达=4.80 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:95)
+       [3] _ready (res://tests/automated/ReachGeometryProbe.gd:46)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Invalid access to property or key 'navigation' on a base object of type 'null instance'.
+   at: _ready (res://source/match/units/traits/Movement.gd:232)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/Movement.gd:232)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:95)
+       [3] _ready (res://tests/automated/ReachGeometryProbe.gd:46)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/Infantry.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:95)
+       [4] _ready (res://tests/automated/ReachGeometryProbe.gd:46)
+       [5] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [6] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _instantiate (res://tests/automated/ReachGeometryProbe.gd:145)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/RallyPoint.gd:10)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/RallyPoint.gd:10)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _instantiate (res://tests/automated/ReachGeometryProbe.gd:145)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _instantiate (res://tests/automated/ReachGeometryProbe.gd:145)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _instantiate (res://tests/automated/ReachGeometryProbe.gd:145)
+[reach] Infantry(r=1.35 rng=6.00 sight=6.00) -> CommandCenter(r=7.00) 可达=9.80 射程判据=true 视野判据=true 旧口径可打=false
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/RallyPoint.gd:10)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/RallyPoint.gd:10)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Infantry(r=1.35 rng=6.00 sight=6.00) -> Barracks(r=6.25) 可达=9.05 射程判据=true 视野判据=true 旧口径可打=false
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/RallyPoint.gd:10)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/RallyPoint.gd:10)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Infantry(r=1.35 rng=6.00 sight=6.00) -> VehicleFactory(r=6.65) 可达=9.45 射程判据=true 视野判据=true 旧口径可打=false
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/RallyPoint.gd:10)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/RallyPoint.gd:10)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Infantry(r=1.35 rng=6.00 sight=6.00) -> AircraftFactory(r=8.00) 可达=10.80 射程判据=true 视野判据=true 旧口径可打=false
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/OreRefinery.gd:60)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Infantry(r=1.35 rng=6.00 sight=6.00) -> OreRefinery(r=9.80) 可达=12.60 射程判据=true 视野判据=true 旧口径可打=false
+G4PERF movement_us=47 unit=Tank
+G4PERF movement_us=19 unit=HeavyTank
+G4PERF movement_us=19 unit=Infantry
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/AntiGroundTurret.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Infantry(r=1.35 rng=6.00 sight=6.00) -> AntiGroundTurret(r=2.20) 可达=5.00 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/AntiAirTurret.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Infantry(r=1.35 rng=6.00 sight=6.00) -> AntiAirTurret(r=2.00) 可达=4.80 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/MachineGunTurret.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Infantry(r=1.35 rng=6.00 sight=6.00) -> MachineGunTurret(r=2.00) 可达=4.80 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Invalid access to property or key 'navigation' on a base object of type 'null instance'.
+   at: _ready (res://source/match/units/traits/Movement.gd:232)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/Movement.gd:232)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/Tank.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Infantry(r=1.35 rng=6.00 sight=6.00) -> Tank(r=2.00) 可达=4.80 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Invalid access to property or key 'navigation' on a base object of type 'null instance'.
+   at: _ready (res://source/match/units/traits/Movement.gd:232)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/Movement.gd:232)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/Infantry.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Infantry(r=1.35 rng=6.00 sight=6.00) -> Infantry(r=1.35) 可达=4.15 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Invalid access to property or key 'navigation' on a base object of type 'null instance'.
+   at: _ready (res://source/match/units/traits/Movement.gd:232)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/Movement.gd:232)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Infantry(r=1.35 rng=6.00 sight=6.00) -> Worker(r=2.00) 可达=4.80 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:95)
+       [3] _ready (res://tests/automated/ReachGeometryProbe.gd:46)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Invalid access to property or key 'navigation' on a base object of type 'null instance'.
+   at: _ready (res://source/match/units/traits/Movement.gd:232)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/Movement.gd:232)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:95)
+       [3] _ready (res://tests/automated/ReachGeometryProbe.gd:46)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/Sniper.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:95)
+       [4] _ready (res://tests/automated/ReachGeometryProbe.gd:46)
+       [5] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [6] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _instantiate (res://tests/automated/ReachGeometryProbe.gd:145)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/RallyPoint.gd:10)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/RallyPoint.gd:10)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _instantiate (res://tests/automated/ReachGeometryProbe.gd:145)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _instantiate (res://tests/automated/ReachGeometryProbe.gd:145)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _instantiate (res://tests/automated/ReachGeometryProbe.gd:145)
+[reach] Sniper(r=1.35 rng=11.00 sight=11.00) -> CommandCenter(r=7.00) 可达=9.80 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/RallyPoint.gd:10)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/RallyPoint.gd:10)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Sniper(r=1.35 rng=11.00 sight=11.00) -> Barracks(r=6.25) 可达=9.05 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/RallyPoint.gd:10)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/RallyPoint.gd:10)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Sniper(r=1.35 rng=11.00 sight=11.00) -> VehicleFactory(r=6.65) 可达=9.45 射程判据=true 视野判据=true 旧口径可打=true
+G4PERF movement_us=25 unit=Tank
+G4PERF movement_us=37 unit=HeavyTank
+G4PERF movement_us=14 unit=Infantry
+G4PERF movement_us=13 unit=@Area3D@193
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/RallyPoint.gd:10)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/RallyPoint.gd:10)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Sniper(r=1.35 rng=11.00 sight=11.00) -> AircraftFactory(r=8.00) 可达=10.80 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/OreRefinery.gd:60)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Sniper(r=1.35 rng=11.00 sight=11.00) -> OreRefinery(r=9.80) 可达=12.60 射程判据=true 视野判据=true 旧口径可打=false
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/AntiGroundTurret.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Sniper(r=1.35 rng=11.00 sight=11.00) -> AntiGroundTurret(r=2.20) 可达=5.00 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/AntiAirTurret.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Sniper(r=1.35 rng=11.00 sight=11.00) -> AntiAirTurret(r=2.00) 可达=4.80 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/MachineGunTurret.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Sniper(r=1.35 rng=11.00 sight=11.00) -> MachineGunTurret(r=2.00) 可达=4.80 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Invalid access to property or key 'navigation' on a base object of type 'null instance'.
+   at: _ready (res://source/match/units/traits/Movement.gd:232)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/Movement.gd:232)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/Tank.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Sniper(r=1.35 rng=11.00 sight=11.00) -> Tank(r=2.00) 可达=4.80 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Invalid access to property or key 'navigation' on a base object of type 'null instance'.
+   at: _ready (res://source/match/units/traits/Movement.gd:232)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/Movement.gd:232)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/Infantry.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Sniper(r=1.35 rng=11.00 sight=11.00) -> Infantry(r=1.35) 可达=4.15 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Invalid access to property or key 'navigation' on a base object of type 'null instance'.
+   at: _ready (res://source/match/units/traits/Movement.gd:232)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/Movement.gd:232)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Sniper(r=1.35 rng=11.00 sight=11.00) -> Worker(r=2.00) 可达=4.80 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:95)
+       [3] _ready (res://tests/automated/ReachGeometryProbe.gd:46)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Invalid access to property or key 'navigation' on a base object of type 'null instance'.
+   at: _ready (res://source/match/units/traits/Movement.gd:232)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/Movement.gd:232)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:95)
+       [3] _ready (res://tests/automated/ReachGeometryProbe.gd:46)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/Rocketeer.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:95)
+       [4] _ready (res://tests/automated/ReachGeometryProbe.gd:46)
+       [5] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [6] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _instantiate (res://tests/automated/ReachGeometryProbe.gd:145)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/RallyPoint.gd:10)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/RallyPoint.gd:10)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _instantiate (res://tests/automated/ReachGeometryProbe.gd:145)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _instantiate (res://tests/automated/ReachGeometryProbe.gd:145)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _instantiate (res://tests/automated/ReachGeometryProbe.gd:145)
+[reach] Rocketeer(r=1.35 rng=7.00 sight=7.00) -> CommandCenter(r=7.00) 可达=9.80 射程判据=true 视野判据=true 旧口径可打=false
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/RallyPoint.gd:10)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/RallyPoint.gd:10)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Rocketeer(r=1.35 rng=7.00 sight=7.00) -> Barracks(r=6.25) 可达=9.05 射程判据=true 视野判据=true 旧口径可打=false
+G4PERF movement_us=42 unit=Tank
+G4PERF movement_us=17 unit=HeavyTank
+G4PERF movement_us=17 unit=Infantry
+G4PERF movement_us=12 unit=@Area3D@193
+G4PERF movement_us=15 unit=@Area3D@259
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/RallyPoint.gd:10)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/RallyPoint.gd:10)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Rocketeer(r=1.35 rng=7.00 sight=7.00) -> VehicleFactory(r=6.65) 可达=9.45 射程判据=true 视野判据=true 旧口径可打=false
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/RallyPoint.gd:10)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/RallyPoint.gd:10)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Rocketeer(r=1.35 rng=7.00 sight=7.00) -> AircraftFactory(r=8.00) 可达=10.80 射程判据=true 视野判据=true 旧口径可打=false
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/OreRefinery.gd:60)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Rocketeer(r=1.35 rng=7.00 sight=7.00) -> OreRefinery(r=9.80) 可达=12.60 射程判据=true 视野判据=true 旧口径可打=false
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/AntiGroundTurret.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Rocketeer(r=1.35 rng=7.00 sight=7.00) -> AntiGroundTurret(r=2.20) 可达=5.00 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/AntiAirTurret.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Rocketeer(r=1.35 rng=7.00 sight=7.00) -> AntiAirTurret(r=2.00) 可达=4.80 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/MachineGunTurret.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Rocketeer(r=1.35 rng=7.00 sight=7.00) -> MachineGunTurret(r=2.00) 可达=4.80 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Invalid access to property or key 'navigation' on a base object of type 'null instance'.
+   at: _ready (res://source/match/units/traits/Movement.gd:232)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/Movement.gd:232)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/Tank.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Rocketeer(r=1.35 rng=7.00 sight=7.00) -> Tank(r=2.00) 可达=4.80 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Invalid access to property or key 'navigation' on a base object of type 'null instance'.
+   at: _ready (res://source/match/units/traits/Movement.gd:232)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/Movement.gd:232)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/Infantry.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Rocketeer(r=1.35 rng=7.00 sight=7.00) -> Infantry(r=1.35) 可达=4.15 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Invalid access to property or key 'navigation' on a base object of type 'null instance'.
+   at: _ready (res://source/match/units/traits/Movement.gd:232)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/Movement.gd:232)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Rocketeer(r=1.35 rng=7.00 sight=7.00) -> Worker(r=2.00) 可达=4.80 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:95)
+       [3] _ready (res://tests/automated/ReachGeometryProbe.gd:46)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Invalid access to property or key 'navigation' on a base object of type 'null instance'.
+   at: _ready (res://source/match/units/traits/Movement.gd:232)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/Movement.gd:232)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:95)
+       [3] _ready (res://tests/automated/ReachGeometryProbe.gd:46)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/APC.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:95)
+       [4] _ready (res://tests/automated/ReachGeometryProbe.gd:46)
+       [5] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [6] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+G4PERF movement_us=27 unit=Tank
+G4PERF movement_us=14 unit=HeavyTank
+G4PERF movement_us=12 unit=Infantry
+G4PERF movement_us=32 unit=@Area3D@193
+G4PERF movement_us=12 unit=@Area3D@259
+G4PERF movement_us=12 unit=APC
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _instantiate (res://tests/automated/ReachGeometryProbe.gd:145)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/RallyPoint.gd:10)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/RallyPoint.gd:10)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _instantiate (res://tests/automated/ReachGeometryProbe.gd:145)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _instantiate (res://tests/automated/ReachGeometryProbe.gd:145)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _instantiate (res://tests/automated/ReachGeometryProbe.gd:145)
+[reach] APC(r=2.70 rng=5.50 sight=8.00) -> CommandCenter(r=7.00) 可达=9.80 射程判据=true 视野判据=true 旧口径可打=false
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/RallyPoint.gd:10)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/RallyPoint.gd:10)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] APC(r=2.70 rng=5.50 sight=8.00) -> Barracks(r=6.25) 可达=9.05 射程判据=true 视野判据=true 旧口径可打=false
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/RallyPoint.gd:10)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/RallyPoint.gd:10)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] APC(r=2.70 rng=5.50 sight=8.00) -> VehicleFactory(r=6.65) 可达=9.45 射程判据=true 视野判据=true 旧口径可打=false
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/RallyPoint.gd:10)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/RallyPoint.gd:10)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] APC(r=2.70 rng=5.50 sight=8.00) -> AircraftFactory(r=8.00) 可达=10.80 射程判据=true 视野判据=true 旧口径可打=false
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/OreRefinery.gd:60)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] APC(r=2.70 rng=5.50 sight=8.00) -> OreRefinery(r=9.80) 可达=12.60 射程判据=true 视野判据=true 旧口径可打=false
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/AntiGroundTurret.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] APC(r=2.70 rng=5.50 sight=8.00) -> AntiGroundTurret(r=2.20) 可达=5.00 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/AntiAirTurret.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] APC(r=2.70 rng=5.50 sight=8.00) -> AntiAirTurret(r=2.00) 可达=4.80 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/MachineGunTurret.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] APC(r=2.70 rng=5.50 sight=8.00) -> MachineGunTurret(r=2.00) 可达=4.80 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Invalid access to property or key 'navigation' on a base object of type 'null instance'.
+   at: _ready (res://source/match/units/traits/Movement.gd:232)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/Movement.gd:232)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/Tank.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] APC(r=2.70 rng=5.50 sight=8.00) -> Tank(r=2.00) 可达=4.80 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Invalid access to property or key 'navigation' on a base object of type 'null instance'.
+   at: _ready (res://source/match/units/traits/Movement.gd:232)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/Movement.gd:232)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/Infantry.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] APC(r=2.70 rng=5.50 sight=8.00) -> Infantry(r=1.35) 可达=4.15 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Invalid access to property or key 'navigation' on a base object of type 'null instance'.
+   at: _ready (res://source/match/units/traits/Movement.gd:232)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/Movement.gd:232)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+G4PERF movement_us=48 unit=Tank
+G4PERF movement_us=20 unit=HeavyTank
+G4PERF movement_us=16 unit=Infantry
+G4PERF movement_us=14 unit=@Area3D@193
+G4PERF movement_us=11 unit=@Area3D@259
+G4PERF movement_us=15 unit=APC
+G4PERF movement_us=16 unit=Worker
+[reach] APC(r=2.70 rng=5.50 sight=8.00) -> Worker(r=2.00) 可达=4.80 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:95)
+       [3] _ready (res://tests/automated/ReachGeometryProbe.gd:46)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Invalid access to property or key 'navigation' on a base object of type 'null instance'.
+   at: _ready (res://source/match/units/traits/Movement.gd:232)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/Movement.gd:232)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:95)
+       [3] _ready (res://tests/automated/ReachGeometryProbe.gd:46)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/Helicopter.gd:9)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:95)
+       [4] _ready (res://tests/automated/ReachGeometryProbe.gd:46)
+       [5] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [6] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _instantiate (res://tests/automated/ReachGeometryProbe.gd:145)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/RallyPoint.gd:10)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/RallyPoint.gd:10)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _instantiate (res://tests/automated/ReachGeometryProbe.gd:145)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _instantiate (res://tests/automated/ReachGeometryProbe.gd:145)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _instantiate (res://tests/automated/ReachGeometryProbe.gd:145)
+[reach] Helicopter(r=2.30 rng=5.50 sight=8.00) -> CommandCenter(r=7.00) 可达=9.80 射程判据=true 视野判据=true 旧口径可打=false
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/RallyPoint.gd:10)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/RallyPoint.gd:10)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Helicopter(r=2.30 rng=5.50 sight=8.00) -> Barracks(r=6.25) 可达=9.05 射程判据=true 视野判据=true 旧口径可打=false
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/RallyPoint.gd:10)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/RallyPoint.gd:10)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Helicopter(r=2.30 rng=5.50 sight=8.00) -> VehicleFactory(r=6.65) 可达=9.45 射程判据=true 视野判据=true 旧口径可打=false
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/RallyPoint.gd:10)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/RallyPoint.gd:10)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/ProductionQueue.gd:39)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Helicopter(r=2.30 rng=5.50 sight=8.00) -> AircraftFactory(r=8.00) 可达=10.80 射程判据=true 视野判据=true 旧口径可打=false
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/OreRefinery.gd:60)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Helicopter(r=2.30 rng=5.50 sight=8.00) -> OreRefinery(r=9.80) 可达=12.60 射程判据=true 视野判据=true 旧口径可打=false
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/AntiGroundTurret.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Helicopter(r=2.30 rng=5.50 sight=8.00) -> AntiGroundTurret(r=2.20) 可达=5.00 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/AntiAirTurret.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Helicopter(r=2.30 rng=5.50 sight=8.00) -> AntiAirTurret(r=2.00) 可达=4.80 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/MachineGunTurret.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:104)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Helicopter(r=2.30 rng=5.50 sight=8.00) -> MachineGunTurret(r=2.00) 可达=4.80 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Invalid access to property or key 'navigation' on a base object of type 'null instance'.
+   at: _ready (res://source/match/units/traits/Movement.gd:232)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/Movement.gd:232)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/Tank.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Helicopter(r=2.30 rng=5.50 sight=8.00) -> Tank(r=2.00) 可达=4.80 射程判据=true 视野判据=true 旧口径可打=true
+G4PERF movement_us=45 unit=Tank
+G4PERF movement_us=21 unit=HeavyTank
+G4PERF movement_us=14 unit=Infantry
+G4PERF movement_us=14 unit=@Area3D@193
+G4PERF movement_us=13 unit=@Area3D@259
+G4PERF movement_us=16 unit=APC
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Invalid access to property or key 'navigation' on a base object of type 'null instance'.
+   at: _ready (res://source/match/units/traits/Movement.gd:232)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/Movement.gd:232)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _ready (res://source/match/units/Infantry.gd:7)
+       [2] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [3] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Helicopter(r=2.30 rng=5.50 sight=8.00) -> Infantry(r=1.35) 可达=4.15 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Invalid access to property or key 'navigation' on a base object of type 'null instance'.
+   at: _ready (res://source/match/units/traits/Movement.gd:232)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/Movement.gd:232)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_pair (res://tests/automated/ReachGeometryProbe.gd:113)
+       [3] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [4] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Helicopter(r=2.30 rng=5.50 sight=8.00) -> Worker(r=2.00) 可达=4.80 射程判据=true 视野判据=true 旧口径可打=true
+SCRIPT ERROR: Cannot call method 'get_node' on a null value.
+   at: @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+   GDScript backtrace (most recent call first):
+       [0] @implicit_ready (res://source/match/units/traits/Selection.gd:14)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:95)
+       [3] _ready (res://tests/automated/ReachGeometryProbe.gd:46)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Invalid access to property or key 'navigation' on a base object of type 'null instance'.
+   at: _ready (res://source/match/units/traits/Movement.gd:232)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/traits/Movement.gd:232)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:95)
+       [3] _ready (res://tests/automated/ReachGeometryProbe.gd:46)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+SCRIPT ERROR: Attempt to call function 'is_node_ready' in base 'null instance' on a null instance.
+   at: _ready (res://source/match/units/Unit.gd:132)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://source/match/units/Unit.gd:132)
+       [1] _instantiate (res://tests/automated/ReachGeometryProbe.gd:143)
+       [2] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:95)
+       [3] _ready (res://tests/automated/ReachGeometryProbe.gd:46)
+       [4] _check_attacker (res://tests/automated/ReachGeometryProbe.gd:107)
+       [5] _check_pair (res://tests/automated/ReachGeometryProbe.gd:138)
+[reach] Scout 无武器，跳过
+[reach] 组合数=77，旧圆心距口径下打不到的组合=26（= 修复前的失效面）
+Reach geometry probe completed: 0 failure(s)
+[EXIT-TRACE] EXIT_TREE：场景树收尾（tick=-1，场景=unknown，对局结果=无该节点）
+[EXIT-TRACE] PREDELETE：引擎收尾（Globals 释放，tick=unknown(已脱离场景树)）

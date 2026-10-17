@@ -1,5 +1,7 @@
 extends Node
 
+const AiPerfStats = preload("res://source/match/players/simple-clairvoyant-ai/AiPerfStats.gd")
+
 const FIELD_POSITION := 1 << 0
 const FIELD_TYPE := 1 << 1
 const FIELD_RELATION := 1 << 2
@@ -52,14 +54,22 @@ func setup(world_query_runtime, query_session_id: String, command_gateway):
 func _refresh_patrols():
 	if _patrol_waypoints.is_empty():
 		return
-	var result: Dictionary = _world_query_runtime.GetOwnForces(
-		_query_session_id,
-		FIELD_POSITION | FIELD_TYPE | FIELD_ORDER
-	)
-	if result.get("status", "") != "Accepted":
-		push_warning("rule AI intelligence query was rejected: %s" % result)
-		return
-	var drones: Array = result.get("entities", []).filter(
+	# round-01：同帧去重 —— 真实对局里父节点是 SimpleClairvoyantAI，走它的按物理帧
+	# 缓存；独立实例化（无 AI 父节点）的单元测试保持原直查路径。
+	var own_entities: Array = []
+	var ai: Node = get_parent()
+	if ai != null and ai.has_method("own_forces_scan"):
+		own_entities = ai.own_forces_scan()
+	else:
+		var result: Dictionary = _world_query_runtime.GetOwnForces(
+			_query_session_id,
+			FIELD_POSITION | FIELD_TYPE | FIELD_ORDER
+		)
+		if result.get("status", "") != "Accepted":
+			push_warning("rule AI intelligence query was rejected: %s" % result)
+			return
+		own_entities = result.get("entities", [])
+	var drones: Array = own_entities.filter(
 		func(entity): return entity.get("type_id", "") == DRONE_TYPE_ID
 	)
 	drones.sort_custom(
@@ -98,16 +108,23 @@ func _refresh_patrols():
 
 ## 向一个空闲 Drone 提交下一网格点；被拒绝时保留索引供下一周期重试。
 func _issue_next_patrol_move(drone_id: String):
+	var perf_on := AiPerfStats.enabled()
+	var stale_started := Time.get_ticks_usec() if perf_on else 0
 	var waypoint_index: int = _next_waypoint_index_by_drone.get(drone_id, 0)
 	# 【2026-09-21 S3】复查优先：若有格子的"未被观察时长"超过难度目标
 	# （90/60/35 模拟秒），优先派它去那一格；否则按原轮转继续。
 	var stale_index := _most_stale_waypoint_index()
+	if perf_on:
+		AiPerfStats.add("intelligence_stale", Time.get_ticks_usec() - stale_started)
 	if stale_index >= 0:
 		waypoint_index = stale_index
+	var move_started := Time.get_ticks_usec() if perf_on else 0
 	var result: Dictionary = _command_gateway.Move(
 		[drone_id],
 		_patrol_waypoints[waypoint_index]
 	)
+	if perf_on:
+		AiPerfStats.add("intelligence_patrol_move", Time.get_ticks_usec() - move_started)
 	var accepted: bool = result.get("unit_results", []).any(
 		func(item): return item.get("unit_id", "") == drone_id and item.get("accepted", false)
 	)
@@ -221,8 +238,17 @@ func _setup_refresh_timer():
 
 
 func _on_refresh_timer_timeout():
+	var perf_on := AiPerfStats.enabled()
+	var _perf_start := Time.get_ticks_usec() if perf_on else 0
+	var patrol_started := _perf_start
 	_refresh_patrols()
+	if perf_on:
+		AiPerfStats.add("intelligence_patrol", Time.get_ticks_usec() - patrol_started)
+	var scan_started := Time.get_ticks_usec() if perf_on else 0
 	_refresh_enemy_composition()
+	if perf_on:
+		AiPerfStats.add("intelligence_scan", Time.get_ticks_usec() - scan_started)
+		AiPerfStats.add("intelligence", Time.get_ticks_usec() - _perf_start)
 
 
 ## 敌情汇总（AI-plan Part A Phase 6）：全局扫描 VisibleNow/LastKnown 敌军的

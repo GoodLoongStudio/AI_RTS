@@ -6,6 +6,14 @@ uniform sampler2D world_visibility_texture : hint_default_white, filter_linear, 
 uniform int texture_units_per_world_unit = 2;
 uniform float outer_margin_for_fade_out = 2.0;
 uniform bool debug_texture_view = false;
+// 【2026-10-02 修复·未探索区应为不透明黑】
+// 现象：开局未动单位时，视野圈外仍能看到暗色地形（像"历史迷雾"）。
+// 根因：模糊层（BlurrOverlay, blurr_factor=1.0）把视野圈向外扩散 ⇒ 圈外得到很小的非零可见度
+//       ⇒ ALPHA = 1 - visibility < 1 ⇒ 地形半透出来。
+// 口径：低于 fog_visibility_floor 一律视为**未探索** ⇒ 不透明纯黑（符合黑色底气与公式本意）；
+//       floor..soft_edge 保留自然过渡，避免视野边缘硬台阶。
+uniform float fog_visibility_floor = 0.15;
+uniform float fog_visibility_soft_edge = 0.55;
 uniform sampler2D depth_texture : hint_depth_texture;
 
 void vertex()

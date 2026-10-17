@@ -1,0 +1,15 @@
+{
+ "algo_version": "7.11.0",
+ "approved": true,
+ "approved_at": "test",
+ "approved_note": "Test fixture",
+ "created_at": "2026-10-11T23:26:35",
+ "gate": "G2",
+ "gate_seed": 12,
+ "input_hash": "g1-a",
+ "master_seed": 16,
+ "output_hash": {
+  "grid": "g2-a"
+ },
+ "params": {}
+}

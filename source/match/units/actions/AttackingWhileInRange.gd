@@ -214,7 +214,7 @@ func presentation_aim_point() -> Vector3:
 func _teardown_if_out_of_range():
 	if (
 		_unit.global_position_yless.distance_to(_target_unit.global_position_yless)
-		> _unit.attack_range
+		> _unit.reach_range_against(_target_unit)
 	):
 		queue_free()
 		return true

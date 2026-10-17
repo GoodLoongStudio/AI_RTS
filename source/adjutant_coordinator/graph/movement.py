@@ -59,6 +59,18 @@ PROTECTED_TYPES = ("worker", "command_center")
 #: `ENGAGE_ADVANTAGE_RATIO`（下方）独立判定（实测把本值回滚到 8.0 时
 #: `test_outnumbered_retreat_preempts_model_attack` 依然红 ⇒ 两者无关）。
 RELAY_VISION_RADIUS_M = 14.0
+#: 【B2 2026-10-11】一跳的**节奏上限**（米）。旧口径 `hop_limit = min(14, 自己视野)`
+#: 把"小队推进"也压到 14（诊断实测推进中位数 13.20m）：安全语义其实是
+#: "只能走**逐点连续可见**的前缀"（`_first_visible_span` 的 1m 采样判据），
+#: 而 14 只是当年对"看得见多远"的保守估计。现在把节奏上限放到 24（≈ scout 视野量级）：
+#: - 单兵无人给视野时：连续可见前缀 = 自己的真实视野（soldier 12 / tank 16），跳长不变；
+#: - 小队/前沿友军提供视野链时：可走更远（至多 24），全程仍逐点验证覆盖、遇缝即停；
+#: - 自我覆盖（mover_sight）仍封顶在**自己真实视野**（不许自我合法化看不见的地方）。
+RELAY_MAX_HOP_M = 24.0
+
+#: 【2026-10-11】"单位已走过路径起点"判定的垂距容差（米）：落点到权威折线的距离
+#: 小于它才算**在这条路上**，可以吸附并只向前遍历剩余段；掉在别处（归队途中）不吸附。
+PATH_CLAMP_TOLERANCE_M = 1.0
 
 #: 侦察确认的有效期（tick）：超过它没再看到，视为"侦察确认丢失"（计划 §7 第 ⑤ 条）。
 SCOUT_CONFIRM_TTL_TICKS = 600
@@ -278,6 +290,14 @@ REJECT_NAVMESH_UNAVAILABLE = "navmesh_unavailable"
 REJECT_PATH_TOO_SHORT = "path_too_short"
 #: 查询本身失败（TCP 超时/抖动）：环境问题，下一轮可重试。
 REJECT_NAV_TIMEOUT = "nav_timeout"
+#: 稀疏路径 + 单位已站在中继点：一跳位移 ≈ 0（"已到达/需下一段"，**不是**一次推进）。
+#:
+#: 【为什么必须与 `no_relay` 分开 · 2026-10-07】权威直路常常只回两个端点
+#: （`[[10,10],[70,10]]`）。旧 `safe_relay_point` 只在**已有拐点**里挑"仍被视野覆盖的最远点"，
+#: 60 米直路上两个点都可能命中 → 返回起点，调用层照签 `ok=true` + 位移 0 的推进意图：
+#: 命令数量在涨、部队一步没动（用户观察到的"走一小段后等很久"里就含这一类空跳）。
+#: 现在改为沿**权威路径线段**密集采样后的最远可见前缀，返回点不再可能等于起点。
+REJECT_RELAY_TOO_CLOSE = "relay_too_close"
 
 #: 权威端 `reason` → 我们的拒绝原因（**唯一映射处**，别处不许再自己判字符串）。
 NAV_REPLY_REASONS = {
@@ -330,6 +350,10 @@ REASON_FALLBACK: Dict[str, str] = {
     REJECT_NO_QUERY: FALLBACK_WAIT,
     REJECT_PATH_TOO_SHORT: FALLBACK_WAIT,
     REJECT_NAV_TIMEOUT: FALLBACK_WAIT,
+    # 【2026-10-07 零跳守卫】"没有可推进的下一段"= 拿不到证据，不是"在挨打"：
+    # 落进**显式等待**（`record_fallback` 会记账并作废缓存路线，下一轮重规划），
+    # 绝不因为"没路可走"就擅自撤退 —— 那会把不存在的威胁变成一次溃退。
+    REJECT_RELAY_TOO_CLOSE: FALLBACK_WAIT,
 }
 
 #: 求生移动的容差（米）：目标点必须比**当前位置**离最近可见敌人远这么多，才算"真的在脱离"。
@@ -547,39 +571,298 @@ def _pos2d(entity: Dict[str, Any]) -> Optional[Tuple[float, float]]:
 
 def covered_by_own(by_name: Dict[str, Dict[str, Any]], point: Sequence[float],
                    *, radius: float = RELAY_VISION_RADIUS_M,
+                   mover_sight: float = 0.0,
                    exclude: str = "") -> bool:
-    """该点是否落在**己方某个单位**的视野圈里（= 已经看得见的地方）。"""
+    """该点是否落在**己方某个单位**的视野圈里（= 已经看得见的地方）。
+
+    【2026-10-07 视野逐单位取权威值】优先用该单位观测里的 `sight`（米，来自
+    `DebugControlServer._tactical_self_entry` 的 `unit.sight_range`）；没有这个字段
+    （旧档案、手工观测、纯数据回放）才退回固定 `radius`。
+    为什么必须逐单位取：tank 16 / soldier 12 / drone 20 / scout 24 并不是同一个数，
+    用 14.0 一把尺子既会高估工人视野，也会低估侦察与坦克 —— 而"看得见才准走"是安全判据。
+
+    `mover_sight` > 0 时**推进单位自己的视野也算己方视野**（半径取 `mover_sight`，调用方
+    传的是已封顶的一跳长度）：它自己当然看得见脚前方，否则单人推进永远等不到别人给视野
+    —— 而真实观测里**每个已配置单位都带 `sight`**（`Unit.sight_range`，tank 16 / soldier 12），
+    所以这是生产路径的正常口径。0（缺字段）时保持旧口径：只认**别人**的视野。
+    """
     for name, info in (by_name or {}).items():
-        if str(name) == exclude:
-            continue
         if not info.get("movement"):
             continue          # 建筑不提供"推进视野"（它不会动，视野是静态的）
         position = _pos2d(info)
         if position is None:
             continue
-        if point_distance(position, point) <= radius:
+        is_mover = bool(exclude) and str(name) == exclude
+        if is_mover:
+            if float(mover_sight) <= 0.0:
+                continue      # 没有权威视野 → 不拿"别人看不见"当借口，也不给自己开后门
+            limit = float(mover_sight)
+        else:
+            limit = vision_radius_m(info, fallback=radius)
+        if point_distance(position, point) <= limit + 1e-9:
             return True
     return False
+
+
+#: 沿权威路径采样"是否仍被己方视野覆盖"的**最大步长**（米）。
+#: 比 `RELAY_VISION_RADIUS_M` 小两个数量级 —— 目的是让"连续覆盖"这句话真的逐点验过，
+#: 而不是只看拐点就假定整段可见（那正是零跳与穿视野空隙的成因）。
+RELAY_COVERAGE_SAMPLE_STEP_M = 1.0
+
+#: 单段最多采多少个样（**有界**，防 200 单位 × 长路线把每帧开销放大）：
+#: 256 × 1 米 = 单段最长 256 米按 1 米精度；更长的段自动放粗步长（仍是同一条判据）。
+RELAY_COVERAGE_MAX_SAMPLES = 256
+
+#: 一跳的**最小有效位移**（米）：中继点离单位当前位置不足这个数 = "没有推进"。
+#: 0.5 的取法：远小于任何一次真实推进（≥ 单位一个身位），又大于浮点/坐标舍入噪声。
+#: 触发它 = 权威路径没给出可推进的下一段（稀疏端点 / 已站在中继点）→
+#: 明确报告"需下一段"，**不发**一条位移为 0 的推进命令。
+MIN_HOP_DISTANCE_M = 0.5
+
+
+def vision_radius_m(info: Dict[str, Any], *,
+                    fallback: float = RELAY_VISION_RADIUS_M) -> float:
+    """**该单位**的视野半径（米）：观测里的权威 `sight`；缺失/非法才退回 `fallback`。
+
+    非正数按"未知"处理（权威端在拿不到 `sight_range` 时写 0.0）——未知**不许**当成
+    "视野无限"，也不许当成"视野为 0"把整条推进否掉，所以退回调用方给的保守默认。
+    """
+    value = authoritative_sight_m(info)
+    return value if value > 0.0 else float(fallback)
+
+
+def authoritative_sight_m(info: Dict[str, Any]) -> float:
+    """观测里**真实存在**的视野半径（米）；没有 / 非法 / 非正 → `0.0`。
+
+    与 `vision_radius_m` 的区别就是这里**不编默认值**：调用方需要区分"这单位视野 14 米"
+    和"这条观测根本没给视野字段"（纯数据回放、旧档案、手工构造的观测）。
+    生产观测里每个已配置单位都有 `sight`（`Unit.sight_range`），所以区分是有效的。
+    """
+    raw = (info or {}).get("sight")
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        return 0.0
+    if not math.isfinite(value) or value <= 0.0:
+        return 0.0
+    return value
+
+
+def _first_visible_span(by_name: Dict[str, Dict[str, Any]], start: Sequence[float],
+                        end: Sequence[float], *, limit: float, radius: float,
+                        exclude: str, mover_sight: float = 0.0
+                        ) -> Optional[Tuple[float, float]]:
+    """沿线段 `start→end` 找到**第一个不可见采样点**之前的最远点（含端点）。
+
+    返回 `None` = 起点之后**一个采样点都不可见**（这段根本出不去）。
+    返回 `end` = 整段可见（且没超过 `limit`）。
+
+    只做**线性采样**（步长 `RELAY_COVERAGE_SAMPLE_STEP_M`），不猜几何：
+    "连续可见"的判据就是"每个采样点都落在己方某个单位的视野圈（含推进单位自己的，
+    见 `covered_by_own` 的 `mover_sight`）里"。
+
+    【2026-10-11 反例修正】可见集合沿直线是**若干区间的并集**，只有"含起点的那一段"
+    保证连续；并集本身**不单调**——起点视野 4m 且 24m 处有友军视野 4m 时，
+    x∈(4,20) 是盲区而端点 x=24 可见。旧实现按"最后一个可见采样点"二分，会跨到后方
+    友军视野里（返回 24），把盲区走法合法化。现在只放行**第一个不可见点之前**的前缀。
+    """
+    span = point_distance(start, end)
+    if span <= 0.0:
+        return None
+    limit = max(0.0, float(limit))
+    if limit <= 0.0:
+        return None
+    reach = min(span, limit)
+    steps = int(math.ceil(reach / RELAY_COVERAGE_SAMPLE_STEP_M))
+    steps = max(1, min(steps, RELAY_COVERAGE_MAX_SAMPLES))
+    gap = reach / float(steps)
+
+    def sample(index: int) -> Tuple[float, float]:
+        fraction = (gap * index) / span
+        return (float(start[0]) + (float(end[0]) - float(start[0])) * fraction,
+                float(start[1]) + (float(end[1]) - float(start[1])) * fraction)
+
+    def visible(index: int) -> bool:
+        return covered_by_own(by_name, sample(index), radius=radius,
+                              mover_sight=mover_sight, exclude=exclude)
+
+    # 只放行"第一个不可见采样点之前"的连续前缀（见上方反例修正）：按采样顺序线性扫描，
+    # 一旦遇到不可见点立即停止，绝不越过缝隙去认领后方的孤立可见区间。
+    # 循环上界是 `steps`（已由 `RELAY_COVERAGE_MAX_SAMPLES` 封顶），开销仍有界。
+    last_index = 0
+    for index in range(1, steps + 1):
+        if not visible(index):
+            break
+        last_index = index
+    if last_index <= 0:
+        return None
+    return sample(last_index)
+
+
+def _clamp_origin_to_path(waypoints: Sequence[Sequence[float]],
+                          origin: Sequence[float]
+                          ) -> Optional[Tuple[Tuple[float, float], List[Tuple[float, float]]]]:
+    """把单位落点 `origin` 吸附到权威折线上，返回 `(吸附点, 吸附点之后的剩余拐点)`。
+
+    吸附点之后的折线就是"还能往前走的部分"；单位已在路径末端时剩余部分为空
+    （调用方据此返回空中继点，而不是发一条回程命令）。
+
+    **只对"确实落在这条路上"的单位吸附**（垂距 ≤ `PATH_CLAMP_TOLERANCE_M`）。单位根本
+    不在路径上（例如掉队后要归队）时返回 `None`，让调用方保留旧遍历语义 —— 否则掉队者
+    会被从 `squad_hop` 的可用成员里摘掉，"队形已散"这条安全判据反而看不到它（实测
+    `test_scattered_squad_regroups_instead_of_scattering` 会退化成 `no_relay`）。
+    """
+    points: List[Tuple[float, float]] = []
+    for point in waypoints:
+        try:
+            points.append((float(point[0]), float(point[1])))
+        except (TypeError, ValueError, IndexError):
+            break
+    if not points:
+        return None
+    if len(points) == 1:
+        return (points[0], [])
+    if point_distance(origin, points[0]) <= point_distance(origin, points[-1]):
+        # 落在首点之前：吸附到首点，整条路径都在前方。
+        return (points[0], list(points[1:]))
+    best_point = points[-1]
+    best_index = len(points) - 1
+    best_distance = point_distance(origin, best_point)
+    for index in range(len(points) - 1):
+        a, b = points[index], points[index + 1]
+        dx, dy = b[0] - a[0], b[1] - a[1]
+        squared = dx * dx + dy * dy
+        if squared <= 0.0:
+            continue
+        factor = ((origin[0] - a[0]) * dx + (origin[1] - a[1]) * dy) / squared
+        factor = max(0.0, min(1.0, factor))
+        candidate = (a[0] + dx * factor, a[1] + dy * factor)
+        distance = point_distance(origin, candidate)
+        if distance < best_distance:
+            best_distance = distance
+            best_point = candidate
+            best_index = index
+    if best_distance > PATH_CLAMP_TOLERANCE_M:
+        return None
+    return (best_point, list(points[best_index + 1:]))
 
 
 def safe_relay_point(waypoints: Sequence[Sequence[float]],
                      by_name: Dict[str, Dict[str, Any]], *,
                      unit: str = "",
+                     origin: Optional[Sequence[float]] = None,
                      radius: float = RELAY_VISION_RADIUS_M) -> List[float]:
-    """**安全中继点**：路径上"仍被己方视野覆盖"的**最远**那一点。
+    """**安全中继点**：沿权威路径"连续可见"的最远前缀终点（一跳的终点）。
 
     语义（计划 §7）：主力只推进到看得见的地方，到了以后再重新侦察、重新规划下一跳。
     路径全在视野外 → 返回空（= 没有安全中继点 → 不许推进，而不是"照直走"）。
 
-    注意**推进单位自己算覆盖**：它当然看得见自己前方这个半径内的地面，
-    "一跳 = 自己视野覆盖的最远点"正是"推进 → 到达 → 重观测 → 下一跳"的实现。
-    真正要被排除的是"靠敌人方向"——那由威胁分单独拦（见 `threat_score`）。
+    ## 本函数 2026-10-07 的两处修正（对应 prompt §3-A）
+
+    ① **沿线段采样，不再只挑已有拐点**：权威路径在开阔地上常常只有两个端点
+       （`[[10,10],[70,10]]`）。旧实现对每个拐点判"是否被覆盖"，于是一条 60 米合法直路
+       会返回**起点** —— 调用层照签 `ok=true`、位移 0 的推进意图（"零跳"）。
+       现在沿每段的 `RELAY_COVERAGE_SAMPLE_STEP_M` 采样，返回的必然是**路径上**、
+       离起点**大于 0** 的点，而且只走"逐点仍被己方视野覆盖"的连续前缀：
+       跨过看不见的间隙、绕过拐角后立刻失去视野的写法都不成立
+       （**不**从起点到终点自己画直线）。
+    ② **半径 = 该单位自己的权威视野**（`sight`，米）：14 米只是缺字段时的保守默认，
+       不再覆盖 tank 16 / soldier 12 / drone 20 / scout 24 的真实差异。
+
+    ## 一跳长度怎么定
+
+    `radius` 是"一跳最远走多少米"的上限（推进节奏，`RELAY_VISION_RADIUS_M` 的语义）；
+    可走距离 = `min(radius, 本单位视野)`，方向由权威路径给出。所以：
+
+    - 稀疏直路 → 返回**路径上**离起点 `min(radius, sight)` 米的那个点（不再是零跳）；
+    - 密集路径 → 仍是"最远的仍可见采样点"，与旧口径一致（回归测试钉住）；
+    - 视野断开的拐角 → 停在断开之前，绝不跳到拐角后面。
+
+    `origin`（单位当前位置）只是"这一跳从哪儿量"的起点；可见判据里的**推进单位自己**
+    由 `mover_sight` 表示（= 已封顶的一跳长度，0 表示该观测没有权威视野字段）。
     """
+    origin_pair: Optional[Tuple[float, float]] = None
+    if origin is not None and len(origin) >= 2:
+        try:
+            origin_pair = (float(origin[0]), float(origin[1]))
+        except (TypeError, ValueError):
+            origin_pair = None
+    info = (by_name or {}).get(str(unit)) or {}
+    own_sight = vision_radius_m(info, fallback=radius)
+    # 【B2 2026-10-11】一跳长度 = 节奏上限 `RELAY_MAX_HOP_M`（不再被"自己视野"封死）；
+    # **安全**由后面的"逐点连续可见前缀"裁剪保证：段内每个 1m 采样点都必须被
+    # "己方任一单位视野（含 mover 自己的真实视野）"覆盖，任何缝隙/拐角都会截断。
+    # 单兵（无友军给视野）时前缀自然只到自己的真实视野——行为与旧口径一致；
+    # 小队/前沿友军视野链存在时允许借链走更远（≤24），解决"离散分段蠕动"。
+    hop_limit = max(0.0, float(RELAY_MAX_HOP_M))
+    # 【2026-10-07 关键修正】推进单位**自己的视野**也算"已看得见的地方"，而且**总是**算：
+    # 旧口径把推进单位排除在覆盖之外，只认别人的视野 —— 单兵（或唯一能动的那个兵）
+    # 因此永远拿不到中继点，只能返回起点（= 用户看到的"走一小段后等很久"的零跳）。
+    # 【B2】自我覆盖仍封顶**自己真实视野**：不许借 hop_limit 把盲区合法化。
+    mover_sight = max(0.0, min(hop_limit, float(own_sight)))
+    # 【入口门槛】路径**起点**必须看得见。
+    #
+    # 旧实现是"逐个拐点判覆盖"，于是"路径起点在 28 米外"时整条路径直接判 `no_relay`；
+    # 新实现会沿段采样，如果起点看不见就可能给出"路径中段某个点"当一跳 —— 那是放行
+    # 一条**来路不明**的路（端点吸附 / 坐标口径不一致 / 权威端给了别人位置上的路）。
+    # 所以这里显式要求：路径首点必须在**己方视野**里（己方 = 任一己方单位，含本单位）；
+    # 更要紧的是，当路径首点既不在任何己方视野内、又超出一跳长度时，直接判 `no_relay`。
+    if waypoints:
+        try:
+            first_point = (float(waypoints[0][0]), float(waypoints[0][1]))
+        except (TypeError, ValueError, IndexError):
+            return []
+        first_seen = covered_by_own(by_name, first_point, radius=radius,
+                                    mover_sight=mover_sight, exclude=str(unit))
+        if not first_seen and (origin_pair is None
+                               or point_distance(origin_pair, first_point) > hop_limit):
+            return []
+    # `travelled` 从**单位当前落点**量：一跳的行程是"沿这条权威路径还能往前走多远"。
+    # 【2026-10-11 关键修正】`origin` 必须**吸附**到权威路径上，再从吸附点向前遍历。
+    # 旧实现直接 `previous = origin` 然后从路径**首点**开始遍历，于是"单位已走过路径首点"
+    # 时第一段是**倒退**（origin=18 → 路径首点=10），产出的中继点落在单位**后方**
+    # （实测 18 → 14，位移 4 被闸门当成合法一跳）。安全前缀改成严格连续后这条倒退段
+    # 不再被"端点恰好可见"掩盖，必须从源头禁止倒退：吸附后没有可前进的剩余路径 →
+    # 返回空（`no_relay`），由调用层记成显式拦下原因，而不是放行一条回程命令。
+    previous: Optional[Tuple[float, float]] = origin_pair
+    remaining_waypoints: List[Tuple[float, float]] = []
+    clamped = (_clamp_origin_to_path(waypoints, origin_pair)
+               if origin_pair is not None and waypoints else None)
+    if clamped is not None:
+        previous, remaining_waypoints = clamped
+    else:
+        # 没给 origin，或单位不在这条路上（掉队/归队）：保持旧遍历，从路径首点整条走。
+        if waypoints:
+            for point in waypoints:
+                try:
+                    remaining_waypoints.append(
+                        (float(point[0]), float(point[1])))
+                except (TypeError, ValueError, IndexError):
+                    break
+    travelled = 0.0
     relay: List[float] = []
-    for point in waypoints:
-        if not covered_by_own(by_name, point, radius=radius, exclude=""):
-            break
-        relay = [float(point[0]), float(point[1])]
+    for current in remaining_waypoints:
+        if previous is None:
+            # 没有起点（旧调用方不传 `origin`）：把路径首点当中继起点，再往下走。
+            previous = current
+            continue
+        segment = point_distance(previous, current)
+        if segment <= 0.0:
+            previous = current
+            continue
+        remaining = hop_limit - travelled
+        if remaining <= 1e-9:
+            break                   # 这一跳的最远距离已用完
+        span = _first_visible_span(by_name, previous, current, limit=remaining,
+                                   radius=radius, exclude=str(unit),
+                                   mover_sight=mover_sight)
+        if span is None:
+            if not relay:
+                return []           # 连第一段都不可见 = 没有安全中继点
+            break                   # 视野在这段断了 → 停在断点之前
+        relay = [span[0], span[1]]
+        travelled += point_distance(previous, span)
+        previous = current
     return relay
 
 
@@ -597,7 +880,8 @@ def scout_confirmation(state: Dict[str, Any], tactical: Dict[str, Any],
         position = _pos2d(info)
         if position is None or not info.get("movement"):
             continue
-        if point_distance(position, point) <= RELAY_VISION_RADIUS_M:
+        # 【2026-10-07】与 `covered_by_own` 同一把尺子：逐单位权威视野，缺字段才退回默认。
+        if point_distance(position, point) <= vision_radius_m(info):
             return "unit:%s@%d" % (name, int(tick))
     intel = state.get("intel") or {}
     if isinstance(intel, dict):
@@ -608,7 +892,8 @@ def scout_confirmation(state: Dict[str, Any], tactical: Dict[str, Any],
             if last_seen <= 0 or int(tick) - last_seen > int(ttl):
                 continue
             position = _pos2d(entry)
-            if position is not None and point_distance(position, point) <= RELAY_VISION_RADIUS_M:
+            if position is not None and \
+                    point_distance(position, point) <= vision_radius_m(entry):
                 return "intel:%s@%d" % (name, last_seen)
     return ""
 
@@ -687,10 +972,27 @@ def plan_safe_route(state: Dict[str, Any], tactical: Dict[str, Any], *,
         plan.relay_point = list(waypoints[-1])
         plan.scout_confirmation = "scout:%s@%d" % (str(unit), int(tick))
     else:
-        # ② 安全中继点：只推进到"己方视野覆盖得到"的最远点。
-        plan.relay_point = safe_relay_point(waypoints, by_name, unit=str(unit))
+        # ② 安全中继点：沿权威路径取"连续可见"的最远前缀终点（见 `safe_relay_point`）。
+        # 起点用**观测到的单位位置**（`by_name` 的 `pos[0]/pos[2]`，与 waypoint 同一平面坐标），
+        # 不是 `waypoints[0]` —— 后者是规划视角的起点，可能被端点吸附挪过。
+        here = _pos2d(info)
+        plan.relay_point = safe_relay_point(waypoints, by_name, unit=str(unit),
+                                            origin=here)
         if not plan.relay_point:
             plan.reason = REJECT_NO_RELAY
+            return plan
+        # ②b 零位移守卫（2026-10-07）：中继点必须**沿这条路径真的往前走了一步**。
+        # 稀疏直路只回两个端点时，旧实现会返回**起点**（`waypoints[0]`）→ 调用层照签
+        # `ok=true` 的空跳，命令账在涨、部队不动。
+        # 判据刻意选"中继点离路径首点有没有挪动"，而不是"离终点更近了没有"：
+        # 合法绕行（L 形/回折路径）会让中继点一时离终点更远，但它**确实在沿路径前进**，
+        # 不该在这里被判死（那种情况由威胁/降级链处理）。
+        path_start = waypoints[0]
+        if here is not None and (
+                point_distance(here, plan.relay_point) < MIN_HOP_DISTANCE_M
+                or point_distance(path_start, plan.relay_point) < MIN_HOP_DISTANCE_M):
+            plan.reason = REJECT_RELAY_TOO_CLOSE
+            plan.relay_point = []
             return plan
         # ③ 侦察确认：中继点必须有事实支撑（单位在附近 / 情报未过期）。
         plan.scout_confirmation = scout_confirmation(state, tactical, plan.relay_point,
@@ -949,6 +1251,15 @@ def hop_in_progress(state: Dict[str, Any], unit: str, nav_revision: int,
     entry = previous_route(state, unit)
     if not entry or not bool(entry.get("ok")):
         return False
+    # 【2026-10-09 守卫】这一跳**已经到达过**就不是"在路上"。
+    # 为什么单列一条而不是只靠 `ok`：`record_route` 会在同一目标被重新规划时
+    # 覆盖整条记录，历史上会把 `arrived_tick` 抹掉并写回 `ok=True`（见那里的注释）。
+    # 现在 `record_route` 已保留记号，这道守卫是**第二重**保证：即便记号因为
+    # 某条没预料到的路径留下来，也不会把"已到达"当成"在途"而每轮跳过这个单位。
+    if int(entry.get("arrived_tick", 0) or 0) > 0 \
+            and int(entry.get("arrived_tick", 0) or 0) >= int(
+                entry.get("last_replan_tick", 0) or 0):
+        return False
     if int(entry.get("nav_revision", -1)) != int(nav_revision):
         return False
     if len(entry.get("relay_point") or []) < 2:
@@ -1075,13 +1386,64 @@ def _accumulate_replan_latency(state: Dict[str, Any], previous: Dict[str, Any],
     stats["replan_latency_avg"] = round(total / float(samples + 1), 2)
 
 
+def _same_target(previous: Any, current: Any, *, tolerance: float = 0.5) -> bool:
+    """两次规划是不是**同一个目标点**（±0.5 米，与 `needs_replan` 的目标容差同源）。"""
+    if not isinstance(previous, (list, tuple)) or not isinstance(current, (list, tuple)):
+        return False
+    if len(previous) < 2 or len(current) < 2:
+        return False
+    try:
+        return point_distance((float(previous[0]), float(previous[1])),
+                              (float(current[0]), float(current[1]))) <= tolerance
+    except (TypeError, ValueError):
+        return False
+
+
 def record_route(state: Dict[str, Any], plan: RoutePlan) -> None:
-    """把路线记录进状态（计划 §7 要求逐字段留痕 + 供统计）。"""
+    """把路线记录进状态（计划 §7 要求逐字段留痕 + 供统计）。
+
+    ## 【2026-10-09 修复】重规划不许把"已经到达过"的记号抹掉
+
+    `note_arrival` 会把路线标成 `ok=False` + `arrived_tick=<到达时刻>`，
+    这正是"这一跳结束了、下一轮该规划下一跳"的唯一信号。
+    但本函数原来**整条替换** `routes[unit]`：
+
+    ```
+    routes[str(plan.unit)] = plan.to_dict()
+    ```
+
+    于是一个单位到达之后，只要**同一目标**又被规划一次（`record_route`），
+    `arrived_tick` 就被清成 0、`ok` 被写回 `True` ⇒ `unit_en_route` 又为真 ⇒
+    `rules_fallback._parallel_intents` 里 `if _en_route(name): continue` **每轮跳过它** ⇒
+    直到 `HOP_HOLD_MAX_TICKS`(1800 tick ≈ 30 秒) 的第二道保险才放行。
+
+    **实测（`archive_aa061295`，round-10）**：654 条到达里 **652 条**都正常调用了
+    `note_arrival`（只有 2 条被 1 秒去重窗口挡掉）—— 也就是说"到达没记账"不成立，
+    被抹掉的只能是**记号**。这与 C2 门禁的 p95 长期钉在 31.8~33.1 秒（≈30 秒保险 + 一轮）
+    完全一致，也与个案 `Unit_43`（到达 13674 → 13699 快照 `ok=True, arrived_tick=0`）
+    一致。
+
+    修法（**只保留记号，不改任何调度决策**）：对**同一目标**的重规划，
+    把上一跳的"已到达"事实带过来：
+      - `arrived_tick` 保留 ⇒ `hop_in_progress` 会否掉"在途"（见那里的守卫）；
+      - `ok` 保持 `False` ⇒ 不会把它当成可复用的在途路线。
+    换目标（真·下一跳）时照旧全新记录，不受影响。
+    """
     routes = state.setdefault("routes", {})
     previous = routes.get(str(plan.unit)) or {}
     if isinstance(previous, dict):
         _accumulate_replan_latency(state, previous, plan)
-    routes[str(plan.unit)] = plan.to_dict()
+    entry = plan.to_dict()
+    if isinstance(previous, dict) and int(previous.get("arrived_tick", 0) or 0) > 0 \
+            and _same_target(previous.get("target"), entry.get("target")):
+        # 同一目标的"已到达"事实必须活下来：否则这一跳看起来又在途了。
+        entry["arrived_tick"] = int(previous.get("arrived_tick", 0) or 0)
+        entry["invalidated_reason"] = str(previous.get("invalidated_reason", "arrived"))
+        entry["invalidated_tick"] = int(previous.get("invalidated_tick", 0) or 0)
+        entry["ok"] = False
+        stats = state.setdefault("movement_stats", {})
+        stats["arrival_marker_kept"] = int(stats.get("arrival_marker_kept", 0)) + 1
+    routes[str(plan.unit)] = entry
     # 统计累加（验收要"无路径移动数 / 越界数 / 侦察先行覆盖率"）。
     # 【求生移动不进这张账】它走 `record_survival()`：混进来会把"撤退不安全"报成"推进受阻"
     # （实测 240 秒局 `not_disengaging` 155 次盖过了真正的推进拒绝），所以 `plan_survival_route`
@@ -1240,3 +1602,52 @@ def movement_stats(state: Dict[str, Any]) -> Dict[str, Any]:
     stats["fallback_reasons"] = ({str(k): int(v or 0) for k, v in reasons.items()}
                                  if isinstance(reasons, dict) else {})
     return stats
+
+
+#: 每轮增量账要跟的键（`movement_stats` 的累计值 → 取相邻两轮的差）。
+ROUND_DELTA_KEYS = ("planned", "allowed", "invalidations", "arrival_events",
+                    "arrival_released_intents", "arrival_no_route",
+                    "arrival_marker_kept", "arrival_deduped")
+#: 上一轮计数快照在 state 里占的键（**必须随检查点持久化**）。
+ROUND_DELTA_SNAPSHOT_KEY = "movement_stats_snapshot"
+
+
+def note_round_delta(state: Dict[str, Any]) -> Dict[str, Any]:
+    """算出"上一轮到这一轮"`movement_stats` 几个关键计数的**增量**，写回 state。
+
+    ## 为什么放在这里（而不是在 runner 里算）
+
+    累计值一路单调增长，任何"这一轮到底发生了什么"的归因都会被它掩盖。
+    要判"被拒命令 / 频繁重规划是否挤占了共享下发预算"，**只能看每轮增量**。
+
+    第一版把它放在 `agent_runner` 里、快照用**模块级字典按 `id(state)` 索引** ——
+    结果**一条增量都没落盘**：`TickResult.state` 是 `self.state.summary()`，
+    **每轮都是一个新字典**，而且 runner 每轮还会从检查点重建状态对象 ⇒
+    `id()` 每次都不同 ⇒ 永远拿不到"上一轮"。
+    **这与 `to_dict` 漏字段是同一个病根**：把需要跨轮活下来的东西放在了不跨轮的地方。
+
+    现在快照写在 `state[ROUND_DELTA_SNAPSHOT_KEY]`：随检查点持久化，
+    且带 `tick` —— tick 没前进时不推进基线，避免同一次增量被算两遍。
+    本函数应由**每轮的决策节点**调用（在 `movement_stats` 被写过之后、本轮日志之前）。
+    """
+    if not isinstance(state, dict):
+        return {}
+    stats = state.get("movement_stats")
+    if not isinstance(stats, dict):
+        return {}
+    tick = int(state.get("server_tick", 0) or 0)
+    current = {key: int(stats.get(key, 0) or 0) for key in ROUND_DELTA_KEYS}
+    previous = state.get(ROUND_DELTA_SNAPSHOT_KEY)
+    if not isinstance(previous, dict):
+        state[ROUND_DELTA_SNAPSHOT_KEY] = {"tick": tick, "counts": current}
+        state["movement_round_delta"] = {}
+        return {}
+    if int(previous.get("tick", -1) or -1) == tick:
+        return state.get("movement_round_delta") or {}
+    before = previous.get("counts") or {}
+    state[ROUND_DELTA_SNAPSHOT_KEY] = {"tick": tick, "counts": current}
+    delta = {key: current[key] - int(before.get(key, 0) or 0)
+             for key in ROUND_DELTA_KEYS
+             if current[key] != int(before.get(key, 0) or 0)}
+    state["movement_round_delta"] = delta
+    return delta

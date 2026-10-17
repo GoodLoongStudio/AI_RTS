@@ -16,6 +16,7 @@ internal sealed class MatchOutcomeServiceTests
         RunTest(nameof(DoesNotResolveBeforeStart), DoesNotResolveBeforeStart);
         RunTest(nameof(TwoLivingSidesRemainInProgress), TwoLivingSidesRemainInProgress);
         RunTest(nameof(LastLivingSideWins), LastLivingSideWins);
+        RunTest(nameof(SideThatNeverFieldedDoesNotEndTheMatch), SideThatNeverFieldedDoesNotEndTheMatch);
         RunTest(nameof(AllOwnedCombatantsMustBeRemoved), AllOwnedCombatantsMustBeRemoved);
         RunTest(nameof(PlayersCanShareOneSide), PlayersCanShareOneSide);
         RunTest(nameof(BatchedAnnihilationDraws), BatchedAnnihilationDraws);
@@ -71,6 +72,42 @@ internal sealed class MatchOutcomeServiceTests
             "最后存活阵营应进入 Won");
         Check(result.WinningSideIds.SequenceEqual([fixture.FirstSide]),
             "胜方应为仍有实体的第一阵营");
+    }
+
+    /// <summary>验证还没有计入建筑的一方不会让对局在开局被判结束。</summary>
+    private void SideThatNeverFieldedDoesNotEndTheMatch()
+    {
+        var service = NewService();
+        var local = Player(1);
+        var enemy = Player(2);
+        var localSide = Side(1);
+        var enemySide = Side(2);
+        var localBase = Unit(1);
+        service.RegisterParticipant(new MatchParticipant(local, localSide, true));
+        service.RegisterParticipant(new MatchParticipant(enemy, enemySide, false));
+        service.RegisterCombatant(new MatchCombatant(localBase, local, true));
+
+        var started = service.StartMatch();
+        Check(started.Kind == MatchResolutionKind.InProgress,
+            "对方尚未登场时不得开局判胜");
+        Check(started.WinningSideIds.Count == 0,
+            "未登场不得写出胜方");
+
+        service.RemoveCombatant(localBase);
+        Check(service.Evaluate().Kind == MatchResolutionKind.InProgress,
+            "对方还没登场时，本方建筑消失也不得判终局");
+
+        var enemyBase = Unit(2);
+        service.RegisterCombatant(new MatchCombatant(enemyBase, enemy, true));
+        service.RegisterCombatant(new MatchCombatant(Unit(3), local, true));
+        Check(service.Evaluate().Kind == MatchResolutionKind.InProgress,
+            "双方都曾有计入建筑后，对局继续");
+        service.RemoveCombatant(enemyBase);
+        var won = service.Evaluate();
+        Check(won.Kind == MatchResolutionKind.Won,
+            "登场后的计入建筑被清空才判胜");
+        Check(won.WinningSideIds.SequenceEqual([localSide]),
+            "胜方应是仍有计入建筑的一方");
     }
 
     /// <summary>验证同一玩家的多个计分实体全部退出后才会淘汰。</summary>

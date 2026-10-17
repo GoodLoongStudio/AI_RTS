@@ -49,90 +49,90 @@ transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 10, 0,
 [node name="Spot0" type="Node3D" parent="Resources" index="0"]
 
 [node name="ResourceA" parent="Resources/Spot0" index="0" instance=ExtResource("3_qa7u8")]
-transform = Transform3D(-0.97989, 0, -0.199539, 0, 1, 0, 0.199539, 0, -0.97989, 13.8154, 0, 23.5681)
+transform = Transform3D(-0.97989, 0, -0.199539, 0, 1, 0, 0.199539, 0, -0.97989, 26.326, 0, 2.478)
 
 [node name="ResourceA2" parent="Resources/Spot0" index="1" instance=ExtResource("3_qa7u8")]
-transform = Transform3D(-0.97989, 0, -0.199539, 0, 1, 0, 0.199539, 0, -0.97989, 12.1009, 0, 22.2808)
+transform = Transform3D(-0.97989, 0, -0.199539, 0, 1, 0, 0.199539, 0, -0.97989, 19.1914, 0, -3.77154)
 
 [node name="ResourceA3" parent="Resources/Spot0" index="2" instance=ExtResource("3_qa7u8")]
-transform = Transform3D(-0.97989, 0, -0.199539, 0, 1, 0, 0.199539, 0, -0.97989, 9.51845, 0, 22.2094)
+transform = Transform3D(-0.97989, 0, -0.199539, 0, 1, 0, 0.199539, 0, -0.97989, 7.65563, 0, -7.92761)
 
 [node name="Spot1" type="Node3D" parent="Resources" index="1"]
 
 [node name="ResourceA" parent="Resources/Spot1" index="0" instance=ExtResource("3_qa7u8")]
-transform = Transform3D(0.249248, 0, -0.96844, 0, 1, 0, 0.96844, 0, 0.249248, 29.9356, -3.8147e-06, 4.75756)
+transform = Transform3D(0.249248, 0, -0.96844, 0, 1, 0, 0.96844, 0, 0.249248, 11.7246, -3.8147e-06, -14.0937)
 
 [node name="ResourceA2" parent="Resources/Spot1" index="1" instance=ExtResource("3_qa7u8")]
-transform = Transform3D(0.249248, 0, -0.96844, 0, 1, 0, 0.96844, 0, 0.249248, 27.8888, -3.8147e-06, 6.33517)
+transform = Transform3D(0.249248, 0, -0.96844, 0, 1, 0, 0.96844, 0, 0.249248, 2.55519, -3.8147e-06, -6.72077)
 
 [node name="ResourceA3" parent="Resources/Spot1" index="2" instance=ExtResource("3_qa7u8")]
-transform = Transform3D(0.249248, 0, -0.96844, 0, 1, 0, 0.96844, 0, 0.249248, 28.7978, -3.8147e-06, 9.11820)
+transform = Transform3D(0.249248, 0, -0.96844, 0, 1, 0, 0.96844, 0, 0.249248, 3.3186, -3.8147e-06, 5.49569)
 
 [node name="Spot2" type="Node3D" parent="Resources" index="2"]
 
 [node name="ResourceA" parent="Resources/Spot2" index="0" instance=ExtResource("3_qa7u8")]
-transform = Transform3D(-0.350224, 0, 0.936666, 0, 1, 0, -0.936666, 0, -0.350224, 71.2323, -3.8147e-06, 12.5624)
+transform = Transform3D(-0.350224, 0, 0.936666, 0, 1, 0, -0.936666, 0, -0.350224, 97.3708, -3.8147e-06, 23.3092)
 
 [node name="ResourceA2" parent="Resources/Spot2" index="1" instance=ExtResource("3_qa7u8")]
-transform = Transform3D(-0.350224, 0, 0.936666, 0, 1, 0, -0.936666, 0, -0.350224, 72.9683, -3.8147e-06, 10.7116)
+transform = Transform3D(-0.350224, 0, 0.936666, 0, 1, 0, -0.936666, 0, -0.350224, 102.849, -3.8147e-06, 13.3801)
 
 [node name="ResourceA3" parent="Resources/Spot2" index="2" instance=ExtResource("3_qa7u8")]
-transform = Transform3D(-0.350224, 0, 0.936666, 0, 1, 0, -0.936666, 0, -0.350224, 71.9028, -3.8147e-06, 8.10596)
+transform = Transform3D(-0.350224, 0, 0.936666, 0, 1, 0, -0.936666, 0, -0.350224, 97.3059, -3.8147e-06, 1.13566)
 
 [node name="Spot3" type="Node3D" parent="Resources" index="3"]
 
 [node name="ResourceA" parent="Resources/Spot3" index="0" instance=ExtResource("3_qa7u8")]
-transform = Transform3D(-0.975242, 0, -0.22114, 0, 1, 0, 0.22114, 0, -0.975242, 94.8869, -3.8147e-06, 25.3542)
+transform = Transform3D(-0.975242, 0, -0.22114, 0, 1, 0, 0.22114, 0, -0.975242, 116.454, -3.8147e-06, 4.85141)
 
 [node name="ResourceA2" parent="Resources/Spot3" index="1" instance=ExtResource("3_qa7u8")]
-transform = Transform3D(-0.975242, 0, -0.22114, 0, 1, 0, 0.22114, 0, -0.975242, 93.3679, -3.8147e-06, 23.2059)
+transform = Transform3D(-0.975242, 0, -0.22114, 0, 1, 0, 0.22114, 0, -0.975242, 104.212, -3.8147e-06, 1.32929)
 
 [node name="ResourceA3" parent="Resources/Spot3" index="2" instance=ExtResource("3_qa7u8")]
-transform = Transform3D(-0.975242, 0, -0.22114, 0, 1, 0, 0.22114, 0, -0.975242, 90.561, -3.8147e-06, 24.0908)
+transform = Transform3D(-0.975242, 0, -0.22114, 0, 1, 0, 0.22114, 0, -0.975242, 93.3079, -3.8147e-06, -4.84333)
 
 [node name="Spot4" type="Node3D" parent="Resources" index="4"]
 
 [node name="ResourceA" parent="Resources/Spot4" index="0" instance=ExtResource("3_qa7u8")]
-transform = Transform3D(0.991342, 0, 0.131305, 0, 1, 0, -0.131305, 0, 0.991342, 84.7421, -3.8147e-06, 73.7477)
+transform = Transform3D(0.991342, 0, 0.131305, 0, 1, 0, -0.131305, 0, 0.991342, 59.056, -3.8147e-06, 92.0561)
 
 [node name="ResourceA2" parent="Resources/Spot4" index="1" instance=ExtResource("3_qa7u8")]
-transform = Transform3D(0.991342, 0, 0.131305, 0, 1, 0, -0.131305, 0, 0.991342, 86.059, -3.8147e-06, 76.0256)
+transform = Transform3D(0.991342, 0, 0.131305, 0, 1, 0, -0.131305, 0, 0.991342, 71.6633, -3.8147e-06, 98.036)
 
 [node name="ResourceA3" parent="Resources/Spot4" index="2" instance=ExtResource("3_qa7u8")]
-transform = Transform3D(0.991342, 0, 0.131305, 0, 1, 0, -0.131305, 0, 0.991342, 88.9349, -3.8147e-06, 75.4003)
+transform = Transform3D(0.991342, 0, 0.131305, 0, 1, 0, -0.131305, 0, 0.991342, 82.9372, -3.8147e-06, 105.81)
 
 [node name="Spot5" type="Node3D" parent="Resources" index="5"]
 
 [node name="ResourceA" parent="Resources/Spot5" index="0" instance=ExtResource("3_qa7u8")]
-transform = Transform3D(-0.306194, 0, 0.951969, 0, 1, 0, -0.951969, 0, -0.306194, 71.2856, -3.8147e-06, 94.4847)
+transform = Transform3D(-0.306194, 0, 0.951969, 0, 1, 0, -0.951969, 0, -0.306194, 91.0493, -3.8147e-06, 108.586)
 
 [node name="ResourceA2" parent="Resources/Spot5" index="1" instance=ExtResource("3_qa7u8")]
-transform = Transform3D(-0.306194, 0, 0.951969, 0, 1, 0, -0.951969, 0, -0.306194, 72.5844, -3.8147e-06, 92.5449)
+transform = Transform3D(-0.306194, 0, 0.951969, 0, 1, 0, -0.951969, 0, -0.306194, 98.1818, -3.8147e-06, 101.134)
 
 [node name="ResourceA3" parent="Resources/Spot5" index="2" instance=ExtResource("3_qa7u8")]
-transform = Transform3D(-0.306194, 0, 0.951969, 0, 1, 0, -0.951969, 0, -0.306194, 72.163, -3.8147e-06, 90.0643)
+transform = Transform3D(-0.306194, 0, 0.951969, 0, 1, 0, -0.951969, 0, -0.306194, 102.998, -3.8147e-06, 90.3411)
 
 [node name="Spot6" type="Node3D" parent="Resources" index="6"]
 
 [node name="ResourceA" parent="Resources/Spot6" index="0" instance=ExtResource("3_qa7u8")]
-transform = Transform3D(0.244326, 0, -0.969693, 0, 1, 0, 0.969693, 0, 0.244326, 29.1414, -3.8147e-06, 85.0513)
+transform = Transform3D(0.244326, 0, -0.969693, 0, 1, 0, 0.969693, 0, 0.244326, 9.40809, -3.8147e-06, 68.3828)
 
 [node name="ResourceA2" parent="Resources/Spot6" index="1" instance=ExtResource("3_qa7u8")]
-transform = Transform3D(0.244326, 0, -0.969693, 0, 1, 0, 0.969693, 0, 0.244326, 27.6346, -3.8147e-06, 86.8774)
+transform = Transform3D(0.244326, 0, -0.969693, 0, 1, 0, 0.969693, 0, 0.244326, 1.3953, -3.8147e-06, 75.7531)
 
 [node name="ResourceA3" parent="Resources/Spot6" index="2" instance=ExtResource("3_qa7u8")]
-transform = Transform3D(0.244326, 0, -0.969693, 0, 1, 0, 0.969693, 0, 0.244326, 27.9815, -3.8147e-06, 89.4061)
+transform = Transform3D(0.244326, 0, -0.969693, 0, 1, 0, 0.969693, 0, 0.244326, 3.11395, -3.8147e-06, 87.3018)
 
 [node name="Spot7" type="Node3D" parent="Resources" index="7"]
 
 [node name="ResourceA" parent="Resources/Spot7" index="0" instance=ExtResource("3_qa7u8")]
-transform = Transform3D(0.974331, 0, 0.225121, 0, 1, 0, -0.225121, 0, 0.974331, 4.39248, -3.8147e-06, 74.789)
+transform = Transform3D(0.974331, 0, 0.225121, 0, 1, 0, -0.225121, 0, 0.974331, -16.6149, -3.8147e-06, 92.7299)
 
 [node name="ResourceA2" parent="Resources/Spot7" index="1" instance=ExtResource("3_qa7u8")]
-transform = Transform3D(0.974331, 0, 0.225121, 0, 1, 0, -0.225121, 0, 0.974331, 5.9203, -3.8147e-06, 76.9311)
+transform = Transform3D(0.974331, 0, 0.225121, 0, 1, 0, -0.225121, 0, 0.974331, -9.27583, -3.8147e-06, 102.748)
 
 [node name="ResourceA3" parent="Resources/Spot7" index="2" instance=ExtResource("3_qa7u8")]
-transform = Transform3D(0.974331, 0, 0.225121, 0, 1, 0, -0.225121, 0, 0.974331, 8.72352, -3.8147e-06, 76.0348)
+transform = Transform3D(0.974331, 0, 0.225121, 0, 1, 0, -0.225121, 0, 0.974331, 3.06747, -3.8147e-06, 102.775)
 
 [node name="Wall0" type="Node3D" parent="Decorations" index="0"]
 

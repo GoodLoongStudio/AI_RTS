@@ -1,0 +1,17 @@
+[adjutant-command-protocol] rc=0 marker_ok=True fails=0 secs=4.4
+[adjutant-credential] rc=0 marker_ok=True fails=0 secs=2.0
+[adjutant-connectivity] rc=0 marker_ok=True fails=0 secs=2.1
+[adjutant-observation] rc=0 marker_ok=True fails=0 secs=4.3
+[adjutant-rules-export] rc=0 marker_ok=True fails=0 secs=3.9
+[rule-ai-aggression] rc=0 marker_ok=True fails=0 secs=5.2
+[reach-geometry] rc=0 marker_ok=True fails=0 secs=7.6
+[rule-ai-battlegroup] rc=1 marker_ok=False fails=0 secs=10.7
+[rule-ai-defense] rc=0 marker_ok=True fails=0 secs=6.1
+[rule-ai-economy-query] rc=1 marker_ok=False fails=0 secs=15.4
+[rule-ai-expansion] rc=1 marker_ok=False fails=0 secs=16.6
+[rule-ai-intelligence] rc=1 marker_ok=False fails=0 secs=5.7
+[rule-ai-offense-logistics] rc=1 marker_ok=False fails=0 secs=16.1
+[adjutant-hud-status-discovery] rc=0 marker_ok=True fails=0 secs=2.2
+[adjutant-model-service] rc=0 marker_ok=True fails=0 secs=3.1
+[match-end-navigation] rc=1 marker_ok=True fails=0 secs=658.4
+DONE 16 tests, 5 red

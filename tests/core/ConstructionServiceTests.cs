@@ -37,6 +37,9 @@ internal sealed class ConstructionServiceTests
             HasActiveConstructionSiteTracksLifecycle);
         RunTest(nameof(RatePortScalesAutomaticWork),
             RatePortScalesAutomaticWork);
+        RunTest(nameof(RemoteFactorPreservesFractionalWork), RemoteFactorPreservesFractionalWork);
+        RunTest(nameof(RemoteFactorLeavesWorkerContributionIntact), RemoteFactorLeavesWorkerContributionIntact);
+        RunTest(nameof(InvalidAutomaticFactorsAreRejected), InvalidAutomaticFactorsAreRejected);
         Console.WriteLine(
             $"Construction service tests completed: {_tests} test(s), {_failures} failure(s).");
         return _failures;
@@ -296,13 +299,65 @@ internal sealed class ConstructionServiceTests
             "第三 Tick 累计 4.5 应完成 RequiredWork=4 的现场");
     }
 
+    private void RemoteFactorPreservesFractionalWork()
+    {
+        var fixture = CreateFixture(2, progressSource: ConstructionProgressSource.Automatic,
+            automaticWorkPerTick: 1, automaticWorkFactor: 0.2);
+        for (var tick = 1; tick <= 4; tick++) fixture.Service.Advance(tick);
+        Check(fixture.Service.Find(fixture.SiteId)?.CompletedWork == 0,
+            "远程 0.2 工效不得被最低整数一点覆盖");
+        fixture.Service.Advance(5);
+        Check(fixture.Service.Find(fixture.SiteId)?.CompletedWork == 1,
+            "五 tick 的小数工作必须累计成一点");
+        fixture.Service.Advance(5);
+        Check(fixture.Service.Find(fixture.SiteId)?.CompletedWork == 1,
+            "重复 tick 不得重复记工作量");
+        for (var tick = 6; tick <= 10; tick++) fixture.Service.Advance(tick);
+        Check(fixture.Service.Find(fixture.SiteId)?.State == ConstructionSiteState.Completed
+            && fixture.Sites.CompleteCalls == 1, "第十 tick 完成且只发布一次");
+        var boosted = CreateFixture(3, progressSource: ConstructionProgressSource.Automatic,
+            automaticWorkPerTick: 1, automaticWorkFactor: 0.2, constructionRate: 1.5);
+        for (var tick = 1; tick <= 10; tick++) boosted.Service.Advance(tick);
+        Check(boosted.Service.Find(boosted.SiteId)?.State == ConstructionSiteState.Completed,
+            "多基地倍率和距离倍率相乘后仍保留小数");
+    }
+
+    private void RemoteFactorLeavesWorkerContributionIntact()
+    {
+        var fixture = CreateFixture(10, progressSource: ConstructionProgressSource.Hybrid,
+            automaticWorkPerTick: 1, automaticWorkFactor: 0.2);
+        fixture.Service.Construct(Context(fixture), new ConstructStructureCommand(fixture.Workers, fixture.SiteId));
+        fixture.Service.Advance(1);
+        Check(fixture.Service.Find(fixture.SiteId)?.CompletedWork == 2,
+            "混合工地仅 automatic 受距离倍率，现场工人贡献不衰减");
+    }
+
+    private void InvalidAutomaticFactorsAreRejected()
+    {
+        var fixture = CreateFixture(2);
+        foreach (var factor in new[] { 0.0, -1.0, double.NaN, double.PositiveInfinity })
+        {
+            var rejected = false;
+            try
+            {
+                rejected = !fixture.Service.Register(new RegisterConstructionSite(
+                    new UnitId(Guid.NewGuid()), fixture.OwnerId,
+                    new StructureDefinitionId("test_structure"), 2, [],
+                    ConstructionProgressSource.Automatic, 1, factor));
+            }
+            catch (ArgumentOutOfRangeException) { rejected = true; }
+            Check(rejected, $"非法 automatic factor {factor} 必须拒绝");
+        }
+    }
+
     /// <summary>创建已经预扣建筑成本并注册现场的纯 C# 测试夹具。</summary>
     private static Fixture CreateFixture(
         int requiredWork,
         int constructionWorkPerTick = 1,
         ConstructionProgressSource progressSource = ConstructionProgressSource.Worker,
         int automaticWorkPerTick = 0,
-        double constructionRate = 1.0)
+        double constructionRate = 1.0,
+        double automaticWorkFactor = 1.0)
     {
         var owner = new PlayerId(Guid.NewGuid());
         var match = new MatchId(Guid.NewGuid());
@@ -335,7 +390,8 @@ internal sealed class ConstructionServiceTests
             requiredWork,
             [new ResourceAmount(ResourceKind.A, 4)],
             progressSource,
-            automaticWorkPerTick));
+            automaticWorkPerTick,
+            automaticWorkFactor));
         if (!registered)
         {
             throw new InvalidOperationException("测试施工现场注册失败。");

@@ -1,0 +1,32 @@
+[
+  {
+    "id": "rule-ai-battlegroup",
+    "category": "traditional-ai",
+    "scene": "res://tests/automated/RuleAiBattlegroupSmokeTest.tscn",
+    "returncode": 0,
+    "seconds": 4.8,
+    "marker_ok": true,
+    "marker": "Rule AI battlegroup smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 137
+  },
+  {
+    "id": "rule-ai-economy-query",
+    "category": "traditional-ai",
+    "scene": "res://tests/automated/RuleAiEconomyQuerySmokeTest.tscn",
+    "returncode": 1,
+    "seconds": 14.8,
+    "marker_ok": false,
+    "marker": "Rule AI economy query smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "2"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 234
+  }
+]

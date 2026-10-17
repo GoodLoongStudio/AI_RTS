@@ -11,6 +11,7 @@ func _ready():
 	var tank = match_instance.get_node("Players/Human/Tank")
 	var enemy = match_instance.get_node("Players/PolicyTestEnemy/TargetCommandCenter")
 	var expected_tank_position: Vector3 = tank.global_position
+	expected_tank_position.y = match_instance.ground_height_at(expected_tank_position)
 	var expected_enemy_position: Vector3 = enemy.global_position
 	for _frame_index in range(4):
 		await get_tree().process_frame

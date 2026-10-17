@@ -30,6 +30,7 @@ import os
 import re
 import signal
 import socket
+import struct
 import sys
 import threading
 import time
@@ -130,33 +131,67 @@ def assert_port_allowed(port: int, allow_other: bool) -> None:
                 port, AUTHORITY_PORT, sorted(TEST_PORTS), TEST_PORT_RANGE))
 
 
-def tcp_json(port: int, payload: Dict[str, Any], timeout: float = DEFAULT_TCP_TIMEOUT) -> Dict[str, Any]:
-    """与游戏调试端点同协议：一行 JSON 请求 → 一行 JSON 回包。
+def _tcp_remaining(deadline: float) -> float:
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+        raise socket.timeout()
+    return remaining
 
-    注意：端点响应后不一定关闭连接，因此按"第一个 '{' 到其后第一个换行"截取。
+
+def _tcp_read_exact(sock: socket.socket, size: int, deadline: float) -> bytes:
+    body = bytearray()
+    while len(body) < size:
+        sock.settimeout(_tcp_remaining(deadline))
+        chunk = sock.recv(min(size - len(body), 65536))
+        if not chunk:
+            raise EOFError()
+        body.extend(chunk)
+    return bytes(body)
+
+
+def tcp_json(port: int, payload: Dict[str, Any], timeout: float = DEFAULT_TCP_TIMEOUT) -> Dict[str, Any]:
+    """Send once; read the authority's u32LE length and exact UTF8 JSON body.
+
+    Local failures leave execution unknown. Connection errors still propagate
+    to existing lifecycle callers; a valid authority dictionary is unchanged.
     """
-    with socket.create_connection(("127.0.0.1", port), timeout=timeout) as sock:
-        sock.settimeout(timeout)
-        sock.sendall((json.dumps(payload) + "\n").encode("utf-8"))
-        buffer = b""
-        deadline = time.time() + timeout
-        while time.time() < deadline:
-            try:
-                chunk = sock.recv(65536)
-            except socket.timeout:
-                break
-            if not chunk:
-                break
-            buffer += chunk
-            start = buffer.find(b"{")
-            end = buffer.find(b"\n", start)
-            if start >= 0 and end > start:
-                line = buffer[start:end].decode("utf-8", errors="replace")
-                try:
-                    return json.loads(line)
-                except ValueError:
-                    return {"error": "non-json", "raw": line[:500]}
-    return {"error": "timeout", "raw": buffer.decode("utf-8", "replace")[:500]}
+    deadline = time.monotonic() + timeout
+    request = (json.dumps(payload) + "\n").encode("utf-8")
+    stage = "connect"
+
+    def failed(error: str) -> Dict[str, Any]:
+        return {"ok": False, "error": error, "stage": stage,
+                "execution_status": "unknown", "retryable": False}
+
+    try:
+        with socket.create_connection(("127.0.0.1", port),
+                                      timeout=_tcp_remaining(deadline)) as sock:
+            stage = "send"
+            sock.settimeout(_tcp_remaining(deadline))
+            sock.sendall(request)
+            stage = "header"
+            size = struct.unpack("<I", _tcp_read_exact(sock, 4, deadline))[0]
+            # DebugControlServer.TCP_RESPONSE_LIMIT includes its trailing newline.
+            if not 0 < size <= 1048576:
+                return failed("invalid-length")
+            stage = "body"
+            body = _tcp_read_exact(sock, size, deadline)
+    except socket.timeout:
+        return failed("timeout")
+    except EOFError:
+        return failed("short-frame")
+    stage = "decode"
+    try:
+        decoded = body.decode("utf-8")
+    except UnicodeDecodeError:
+        return failed("invalid-utf8")
+    try:
+        value = json.loads(decoded)
+    except (ValueError, RecursionError):
+        return failed("invalid-json")
+    if not isinstance(value, dict):
+        return failed("non-object")
+    return value
 
 
 def port_listening(port: int, timeout: float = 1.0) -> bool:
@@ -373,6 +408,38 @@ class AuthorityIntentTransport:
             self.port, self.op, self.sent_count)
 
 
+class VariantRequestProvider:
+    """Allocate immutable per-request display options and capture local metadata."""
+
+    requires_unit_facts = True
+
+    def __init__(self, inner, rotation=0, relabel=True):
+        self.inner = inner
+        self.rotation = int(rotation)
+        self.relabel = bool(relabel)
+        self._lock = threading.Lock()
+        self._requests = 0
+        self._local = threading.local()
+        inner.logger = self._capture
+
+    def _capture(self, payload):
+        # Publication is synchronous on the thread that owns this request.
+        self._local.meta = dict(payload)
+
+    def request_meta(self):
+        return dict(getattr(self._local, "meta", {}))
+
+    def propose_plan(self, context):
+        from adjutant_coordinator.graph.strategy_variants import SelectionOptions
+        with self._lock:
+            sequence = self._requests
+            self._requests += 1
+        options = SelectionOptions(rotation=self.rotation + sequence,
+                                   relabel=self.relabel)
+        self._local.meta = {}
+        return self.inner.propose_plan(context, options=options)
+
+
 class MeteredModel:
     """记录模型调用延迟与结果（慢模型调度节流的依据）。
 
@@ -386,9 +453,15 @@ class MeteredModel:
         self.inner = inner
         self.sink = sink
         self.sink_writer = sink_writer
+        self.total_calls = 0
+        self._emit_lock = threading.Lock()
 
     def _emit(self, record: Dict[str, Any]) -> None:
-        self.sink.append(record)
+        with self._emit_lock:
+            self.total_calls += 1
+            self.sink.append(record)
+            if len(self.sink) > 2048:
+                del self.sink[:-2048]
         if self.sink_writer is not None:
             try:
                 self.sink_writer(record)
@@ -397,6 +470,7 @@ class MeteredModel:
 
     def _invoke(self, method: str, context: Dict[str, Any]) -> Any:
         started = time.time()
+        started_mono = time.perf_counter()
         record: Dict[str, Any] = {"role": self.role, "method": method,
                                   "tick": int(context.get("server_tick", 0) or 0),
                                   "started_at": started}
@@ -407,10 +481,29 @@ class MeteredModel:
         except Exception as exc:
             if not _is_model_error(exc):
                 raise
-            record.update({"ok": False, "kind": type(exc).__name__, "error": str(exc)})
+            record.update({"ok": False, "kind": type(exc).__name__, "error": type(exc).__name__})
             self._emit(dict(record, latency_ms=int((time.time() - started) * 1000)))
             raise
-        record["latency_ms"] = int((time.time() - started) * 1000)
+        record["latency_ms"] = int((time.perf_counter() - started_mono) * 1000)
+        if self.role == "strategy":
+            meta = self.inner.request_meta() if hasattr(self.inner, "request_meta") else {}
+            keys = ("variant", "source", "model_called", "native_valid", "request_id",
+                    "chosen", "chosen_display_id", "plan_id", "rotation", "relabel",
+                    "candidate_order", "scores", "gap", "ambiguous", "arbitrated", "fallback")
+            record["selection"] = {k: meta[k] for k in keys if k in meta}
+            for key in ("request_id", "chosen", "chosen_display_id", "plan_id", "fallback"):
+                if key in record["selection"]:
+                    record["selection"][key] = str(record["selection"][key])[:200]
+            if not meta:
+                source = getattr(self.inner, "decision_source", "unknown")
+                record["selection"] = {"source": source,
+                    "model_called": source in ("model_native", "fake"),
+                    "native_valid": source == "model_native"}
+            plan = (value.to_plan_dict() if hasattr(value, "to_plan_dict") else
+                    value.model_dump() if hasattr(value, "model_dump") else
+                    value if isinstance(value, dict) else {})
+            record["plan_id"] = str(plan.get("plan_id", ""))[:200]
+            record["task_ids"] = [str(t.get("task_id", ""))[:100] for t in plan.get("tasks", [])[:16]]
         self._emit(record)
         return value
 
@@ -446,7 +539,7 @@ class MeteredModel:
         except Exception as exc:
             if not _is_model_error(exc):
                 raise
-            record.update({"ok": False, "kind": type(exc).__name__, "error": str(exc)})
+            record.update({"ok": False, "kind": type(exc).__name__, "error": type(exc).__name__})
             self._emit(dict(record, latency_ms=int((time.time() - started) * 1000)))
             raise
         record["latency_ms"] = int((time.time() - started) * 1000)
@@ -562,6 +655,8 @@ def _proposal_digest(value: Any, limit: int = 600) -> str:
     try:
         if hasattr(value, "model_dump"):
             value = value.model_dump()
+        elif hasattr(value, "to_plan_dict"):
+            value = value.to_plan_dict()
         elif hasattr(value, "to_dict"):
             value = value.to_dict()
     except Exception:  # noqa: BLE001
@@ -569,8 +664,8 @@ def _proposal_digest(value: Any, limit: int = 600) -> str:
     try:
         if isinstance(value, dict):
             keep = {key: value.get(key) for key in
-                    ("plan_id", "phase_goal", "intents", "task_patch", "reasoning",
-                     "rationale", "notes")
+                    ("plan_id", "plan_version", "maintain_current", "phase_goal",
+                     "intents", "task_patch", "reasoning", "rationale", "notes")
                     if value.get(key) not in (None, "", [], {})}
             if keep:
                 value = keep
@@ -680,7 +775,8 @@ class AgentRunner:
         self._mark("env")
         # 【冷启动优化①】重依赖预热与"等权威口/等对局"并行跑（见 `_warm_imports`）。
         self._warm_thread = None
-        if str(getattr(self.args, "model", "on") or "on") != "off":
+        needs_sdk = (str(self.args.strategy_mode) == "plan" or str(getattr(self.args, "tactics", "on")) == "on")
+        if self.args.provider == "real" and needs_sdk and str(getattr(self.args, "model", "on") or "on") == "on":
             import threading
             self._warm_thread = threading.Thread(target=self._warm_imports, daemon=True)
             self._warm_thread.start()
@@ -764,6 +860,7 @@ class AgentRunner:
             # 等预热线程把重依赖导完（它多半早已完成——等待窗通常比导入长）。
             self._warm_thread.join(timeout=30.0)
         strategy_model, tactics_model = self._build_models()
+        self.strategy_model, self.tactics_model = strategy_model, tactics_model
         self._mark("build_models")
         self.transport = AuthorityIntentTransport(self.port)
         # 【10Hz 扫描层】只读缓存型快速状态 + 增量事件；线程只写有界队列，
@@ -777,6 +874,7 @@ class AgentRunner:
         # 有界异步调度（计划 §7.C）：模型调用在工作线程里跑，主循环不再被 1~15s 的
         # 推理阻塞；结果到达时按"本地接收期限 / 观测推进 / 逐对象代际"判定接受或拒绝。
         scheduler = self._build_scheduler(tactics_model)
+        strategy_scheduler = self._build_strategy_scheduler(strategy_model)
         self._mark("scheduler")
         # 副官强度（面板三个等级按钮 → 生产/面板写进 runner 参数 → 规则地板的出击阈值）：
         # 唯一实现见 `graph/intensity.py`。**放在这里而不是参数解析期**：导入 `graph` 包会
@@ -793,11 +891,14 @@ class AgentRunner:
             self.match_id, self.player, transport=self.transport,
             strategy_model=strategy_model, tactics_model=tactics_model,
             tactics_scheduler=scheduler,
+            strategy_scheduler=strategy_scheduler,
             checkpoint_store=JsonCheckpointStore(self.args.state_dir,
                                                 self.match_id, self.player),
             logger=self.structured_logger,
             config=RuntimeConfig(
                 strategy_interval_ticks=int(self.args.strategy_interval),
+                strategy_review_seconds=float(
+                    getattr(self.args, "strategy_review_seconds", 0) or 0),
                 # 战略失败也按满间隔再试（同步调用一次超时堵 15s；真机实测教训
                 # 见 GraphConfig.strategy_backoff_ticks 与验证报告 §4.5）。
                 strategy_backoff_ticks=int(self.args.strategy_interval),
@@ -808,7 +909,28 @@ class AgentRunner:
                 # 每轮意图配额（原默认 8 太小，见 --max-batch 的说明）。
                 max_batch=int(self.args.max_batch),
                 pause_on_player_interrupt=True,
-                engine=str(self.args.engine)),
+                engine=str(self.args.engine),
+                # 【决策追踪 · 修改 1】追踪文件随 --log-dir 走（观测/排障目录一致），
+                # 可由 --trace-file 显式覆盖；--trace off 时完全关闭（零成本）。
+                trace_enabled=str(getattr(self.args, "trace", "on")) == "on",
+                trace_path=str(getattr(self.args, "trace_file", "") or "")
+                or os.path.join(str(self.args.log_dir), "trace.jsonl"),
+                # 【任务闭环 · 修改 2】期限/预算（秒；0=按任务类型默认表）。
+                loop_no_progress_seconds=float(
+                    getattr(self.args, "loop_no_progress_seconds", 0.0) or 0.0),
+                loop_deadline_seconds=float(
+                    getattr(self.args, "loop_deadline_seconds", 0.0) or 0.0),
+                loop_retry_budget=int(getattr(self.args, "loop_retry_budget", 0) or 0),
+                loop_cooldown_seconds=float(
+                    getattr(self.args, "loop_cooldown_seconds", 0.0) or 0.0),
+                # 【经济异常窗口 · 修改 3】（秒）。
+                econ_delivery_stall_seconds=float(
+                    getattr(self.args, "econ_delivery_stall_seconds", 90.0) or 90.0),
+                econ_post_delivery_stall_seconds=float(
+                    getattr(self.args, "econ_post_delivery_stall_seconds", 120.0) or 120.0),
+                econ_grace_seconds=float(
+                    getattr(self.args, "econ_grace_seconds", 60.0) or 60.0),
+            ),
             recheck_fn=self._recheck,
             tick_provider=self._tick_provider,
             # 安全移动硬闸门的权威路径来源（必须在 `setup` 之前定义好，见 run()）。
@@ -883,78 +1005,97 @@ class AgentRunner:
         print("[runner] 调度=async：单一在途工作槽 + 观测合并 + 过期结果拒绝 + 单调时钟退避")
         return scheduler
 
+    def _build_strategy_scheduler(self, strategy_model):
+        """战略 submit/poll。与战术共用同一套有界调度，不另开指挥中心。"""
+        if strategy_model is None or not hasattr(strategy_model, "propose_plan"):
+            return None
+        if str(self.args.scheduling) != "async":
+            return None
+        from adjutant_coordinator.graph.async_scheduler import build_strategy_scheduler
+        timeout = float(getattr(self.args, "llm_timeout", 0) or 45.0)
+        scheduler = build_strategy_scheduler(
+            strategy_model,
+            hard_timeout_seconds=max(45.0, timeout),
+            max_tick_drift=10 ** 9)
+        print("[runner] 战略调度=async：图线程只提交/收取，思考期间规则与 Laya 继续推进")
+        return scheduler
+
+    def _model_call_count(self):
+        return sum(model.total_calls for model in
+                   (getattr(self, "strategy_model", None), getattr(self, "tactics_model", None))
+                   if isinstance(model, MeteredModel))
+
     def _build_models(self):
-        # 【验收档】`--model off|timeout|empty|invalid`：纠偏 §五要求"模型关闭/超时/空/
-        # 非法时副官仍靠规则中台持续运营"。off 必须能在**没有凭据**的机器上直接起，
-        # 否则验收根本执行不了（真实 Provider 缺 key 会在装配期直接 RunnerError）。
         model_mode = str(getattr(self.args, "model", "on") or "on")
+        tactics_enabled = str(getattr(self.args, "tactics", "on")) == "on"
         if model_mode == "off":
-            print("[runner] 决策模型=off：仅规则中台 + 行为树（baseline 验收档）")
             return None, None
         if model_mode in ("timeout", "empty", "invalid"):
-            print("[runner] 决策模型=故障注入档(%s)：走真实调用路径，按档抛错/回空"
-                  % model_mode)
-            return None, MeteredModel("tactics", FaultTacticsModel(model_mode),
-                                      self.model_sink)
-        # 战略层默认**开启**（2026-09-21 混合架构定版：System 2 生成层 = 本机 2B，
-        # 与 System 1 选择层分工；提示词 §0"生成用 LLM"）。同步阻塞风险用两个手段
-        # 兜住：① 间隔保持 1800 tick≈30s（`--strategy-interval` 的实测警告：砍到 900
-        # 以下会把微操层饿死）；② 超时收敛到 STRATEGY_TIMEOUT_SECONDS（.env.local）。
-        # 历史上它被关掉的原因（2026-09-12：18 次 ModelInvalidOutput、同步重试把主循环
-        # 拖到 4.7s/轮）对应的是"高频 + 长超时"组合，不是"开"本身；真机对照见
-        # docs/程序文档/AI副官_Laya接入_验证报告_2026-09-20.md §4。
-        strategy_enabled = str(self.args.strategy_mode) == "plan"
-        if not strategy_enabled:
-            print("[runner] 战略层=off（四列单入口，高层意图缺省；--strategy-mode plan 可开）")
-        if self.args.provider == "fake":
-            try:
-                from server_e2e import ContextScriptedStrategy, ContextScriptedTactics
-            except ImportError as exc:  # pragma: no cover
-                raise RunnerError("fake 模式需要同目录 server_e2e.py：%s" % exc)
-            strategy_inner = (ContextScriptedStrategy() if strategy_enabled else None)
-            tactics_inner = ContextScriptedTactics(int(self.args.ttl), int(self.args.emergency_ttl))
-        else:
-            from adjutant_coordinator.graph.pydantic_agents import (
-                GraphModelSettings, ModelUnavailable, PydanticAIStrategyAgent,
-                PydanticAITacticsAgent, PydanticAITaskPatchAgent,
-                pydantic_ai_available,
-            )
-            availability = pydantic_ai_available()
+            return (None, MeteredModel("tactics", FaultTacticsModel(model_mode), self.model_sink)
+                    if tactics_enabled else None)
+        mode = str(self.args.strategy_mode)
+        narrow = mode in ("template", "choice", "score")
+        strategy_llm = mode == "plan" or narrow
+        fake = self.args.provider == "fake"
+        strategy_inner = tactics_inner = None
+        settings = None
+        # Disabled roles and no-model strategies do not check keys or SDKs.
+        if not fake and (strategy_llm or tactics_enabled):
+            from adjutant_coordinator.graph.pydantic_agents import GraphModelSettings
             settings = GraphModelSettings.from_env()
             if self.args.llm_timeout:
                 settings.timeout_seconds = float(self.args.llm_timeout)
-            if strategy_enabled:
-                # 三层在环的启动确认（System 2 生成层 = 本机 2B；同步调用，
-                # 超时/间隔见 .env.local 与 --strategy-interval 的实测警告）。
-                print("[runner] 战略层=on（System 2 生成层：%s，%ss/次超时，%d tick/次）"
-                      % (settings.model_for("strategy"),
-                         settings.timeout_for("strategy"),
-                         int(self.args.strategy_interval)))
+                settings.strategy_timeout_seconds = float(self.args.llm_timeout)
+            for role, enabled in (("strategy", strategy_llm), ("tactics", tactics_enabled)):
+                if enabled and (not settings.model_for(role) or not settings.resolve_api_key_for(role)):
+                    raise RunnerError("Enabled %s role requires model and credential configuration" % role)
+        if mode == "rules":
+            from adjutant_coordinator.graph.campaign import RulesSafeStrategy
+            strategy_inner = RulesSafeStrategy()
+            strategy_inner.decision_source = "rules_fallback"
+        elif mode == "score_only" or narrow:
+            from adjutant_coordinator.graph.strategy_variants import (
+                ChoiceStrategy, TemplateStrategy, ScoringStrategy, ScoringOnlyStrategy,
+                LocalChat, OfflineChat)
+            if mode == "score_only":
+                strategy_inner = ScoringOnlyStrategy()
+            else:
+                chat = (OfflineChat('{"template":"economy"}' if mode == "template" else '{"choice":"P1"}')
+                        if fake else LocalChat(settings.base_url_for("strategy"),
+                            settings.model_for("strategy"), timeout=settings.timeout_for("strategy"),
+                            api_key_resolver=lambda: settings.resolve_api_key_for("strategy")))
+                klass = {"template": TemplateStrategy, "choice": ChoiceStrategy, "score": ScoringStrategy}[mode]
+                strategy_inner = klass(chat=chat, model_source="fake" if fake else "model_native")
+            strategy_inner = VariantRequestProvider(strategy_inner,
+                rotation=int(getattr(self.args, "selection_rotation", 0)),
+                relabel=not bool(getattr(self.args, "selection_canonical_labels", False)))
+        elif mode == "plan" and fake:
+            from server_e2e import ContextScriptedStrategy
+            strategy_inner = ContextScriptedStrategy()
+            strategy_inner.decision_source = "fake"
+        # Only the enabled full-plan/tactics SDK roles require pydantic-ai.
+        if not fake and (mode == "plan" or tactics_enabled):
+            from adjutant_coordinator.graph.pydantic_agents import (
+                ModelUnavailable, PydanticAIStrategyAgent, PydanticAITacticsAgent,
+                PydanticAITaskPatchAgent, pydantic_ai_available)
+            availability = pydantic_ai_available()
             if not availability["available"]:
-                raise RunnerError("pydantic-ai 不可用：%s" % availability["reason"])
-            if not settings.resolve_api_key() or not settings.model_for("strategy"):
-                raise RunnerError("真实 Provider 配置缺失（LLM_API_KEY / 模型名）。")
+                raise RunnerError("Enabled model SDK unavailable")
             try:
-                strategy_inner = (PydanticAIStrategyAgent(settings)
-                                  if strategy_enabled else None)
-                if str(self.args.interface) == "four-col":
-                    # 四列接口（默认）：单一决策入口，输出短任务修改。
-                    tactics_inner = PydanticAITaskPatchAgent(
-                        settings, mode=str(self.args.tactics_mode))
-                else:
-                    tactics_inner = PydanticAITacticsAgent(settings)
+                if mode == "plan":
+                    strategy_inner = PydanticAIStrategyAgent(settings)
+                    strategy_inner.decision_source = "model_native"
+                if tactics_enabled:
+                    tactics_inner = (PydanticAITaskPatchAgent(settings, mode=str(self.args.tactics_mode))
+                                     if str(self.args.interface) == "four-col"
+                                     else PydanticAITacticsAgent(settings))
             except ModelUnavailable as exc:
-                raise RunnerError("真实模型 Agent 装配失败：%s" % exc)
-            print("[runner] 真实模型 strategy=%s tactics=%s(%s) timeout=%ss" % (
-                settings.model_for("strategy"), settings.model_for("tactics"),
-                self.args.interface, settings.timeout_seconds))
-        # 关掉的层必须返回 **None**，不能包成"里层为 None 的空壳 MeteredModel"：
-        # 实测（2026-09-12）空壳会让 `ctx.services.strategy_model is None` 判断失效，
-        # 战略节点照样去调 propose_plan → 46 次 `'NoneType' object has no attribute
-        # 'propose_plan'` 降级 → 冷却 → 战术节点被跳过 → 决策结果永远不落地（applied=0）。
-        return (MeteredModel("strategy", strategy_inner, self.model_sink)
-                if strategy_inner is not None else None,
-                MeteredModel("tactics", tactics_inner, self.model_sink))
+                raise RunnerError("Enabled model Agent unavailable") from exc
+        elif fake and tactics_enabled:
+            from server_e2e import ContextScriptedTactics
+            tactics_inner = ContextScriptedTactics(int(self.args.ttl), int(self.args.emergency_ttl))
+        return (MeteredModel("strategy", strategy_inner, self.model_sink) if strategy_inner is not None else None,
+                MeteredModel("tactics", tactics_inner, self.model_sink) if tactics_inner is not None else None)
 
     # ---------- 下发前/复核钩子 ----------
 
@@ -1092,7 +1233,15 @@ class AgentRunner:
                 try:
                     loop_started = time.time()
                     observe_started = time.time()
-                    tick_value, obs = self._observe()
+                    try:
+                        tick_value, obs = self._observe()
+                    except (ConnectionRefusedError, ConnectionResetError,
+                            ConnectionAbortedError):
+                        # 正常退局可先关闭权威端；复用既有存活判据，未知仍走原异常路径。
+                        if match_active(self.port) is False:
+                            self._log({"kind": "stop", "reason": "no_active_match"})
+                            break
+                        raise
                     observe_ms = int((time.time() - observe_started) * 1000)
                     # 对局结局（打到结算/投降）——留档要能回答"这局谁赢了"。
                     outcome = (obs.get("tactical") or {}).get("outcome")
@@ -1127,20 +1276,41 @@ class AgentRunner:
                     self._log({
                         "kind": "tick", "server_tick": tick_value, "elapsed_ms": elapsed_ms,
                         "coord_hz": coord_hz, "observe_ms": observe_ms,
+                        # 【分段计时 · 2026-10-07】`elapsed_ms` 只回答"这一轮多慢"，
+                        # 回答不了"慢在哪一段"。把图内每阶段的本轮合计 + 历史
+                        # p50/p95/p99/max 一并落日志，最长轮才能分段归因
+                        # （上一轮审计的 41.9s 最长轮就是缺这个才无法归因）。
+                        "phases": dict(getattr(result, "phases", {}) or {}),
+                        # 【连续行动监督 · 2026-10-07】停滞/闲置的诊断与对账/恢复账
+                        # （有界）：验收要读"接续延迟"和"无理由 idle"，不能只读任务数。
+                        "continuity": _continuity_summary(result.state),
                         "route": result.route, "paused": bool(getattr(result, "paused", False)),
                         "accepted": list(result.accepted_intents),
                         "dropped": list(result.dropped_intents),
                         "degraded_reason": result.degraded_reason,
                         "live_intents": self.runtime.state.live_intents(
                             self.runtime.state.server_tick),
-                        "model_calls": len(self.model_sink),
+                        "model_calls": self._model_call_count(),
                         "sent": self.transport.sent_count,
+                        # 【决策追踪 · 修改 1】追踪开销与本轮事件数（有界、旁路）：
+                        # "开启追踪前后的轮次耗时、写入量及内存保留上限"据此核对。
+                        "trace": self._trace_summary(),
                         # 【P1 验收指标】五条线路的处理次数/饿死账 + 批量提交效果。
                         "lanes": dict(result.state.get("lanes") or {}),
                         # 【P2 验收指标】安全移动：allowed / blocked_reasons / ungated /
                         # scout_first_coverage / bound_clamped。`ungated` 必须为 0
                         # （非 0 = 有移动意图没经过权威寻路闸门）。
                         "movement": dict(result.state.get("movement_stats") or {}),
+                        # 【每轮增量账 · 2026-10-09】上面 `movement` 是**累计**值，
+                        # 看不出"这一轮到底产出了多少、重规划了多少"。
+                        # 而"被拒命令/重规划是否挤占了共享下发预算"这个问题
+                        # （round-19 推断、round-23 想验）**必须看每轮增量**：
+                        # 累计值一路单调增长，任何单轮归因都会被它掩盖。
+                        # 与上一轮比：`result.state` 是 `summary()` 的**视图快照**，
+                        # 写进去回不到真实状态，所以基线由 tick 循环在**每一轮开始时**
+                        # 用 `_seed_movement_baseline(live_state)` 写在真实状态上
+                        # （见那里的说明与 `_movement_delta`）。
+                        "round_delta": _movement_delta(result.state),
                         "nav_revision": int(result.state.get("nav_revision")
                                            if result.state.get("nav_revision") is not None
                                            else -1),
@@ -1244,7 +1414,7 @@ class AgentRunner:
                 "outcome": self._last_outcome,
                 "exit_code": exit_code,
                 "sent": self.transport.sent_count if self.transport else 0,
-                "model_calls": len(self.model_sink),
+                "model_calls": self._model_call_count(),
                 "degraded_reason": str(getattr(state, "degraded_reason", "") or ""),
                 "route": str(getattr(state, "route", "") or ""),
                 "plan_version": str(getattr(state, "plan_version", "") or ""),
@@ -1255,11 +1425,20 @@ class AgentRunner:
                     self.runtime.checkpoint()
             except Exception as exc:  # noqa: BLE001
                 self._log({"kind": "checkpoint_error", "error": repr(exc)})
+            # 【决策追踪 · 修改 1】收尾：追踪统计进 exit 事件与留档（轮次/事件数/
+            # 内存上限/写入错误），随后关闭文件句柄（不丢已写行）。
+            trace_stats = {}
+            try:
+                if self.runtime is not None:
+                    trace_stats = self.runtime.trace.stats()
+                    self.runtime.trace.close()
+            except Exception as exc:  # noqa: BLE001 —— 追踪收尾失败不影响退出码
+                self._log({"kind": "trace_close_error", "error": repr(exc)})
             self._remove_pidfile()
             self._release_single_instance()
             self._log({"kind": "exit", "code": exit_code, "reason": self._stop_reason,
                        "sent": self.transport.sent_count if self.transport else 0,
-                       "model_calls": len(self.model_sink)})
+                       "model_calls": self._model_call_count(), "trace": trace_stats})
             self._close_log()
         return exit_code
 
@@ -1792,30 +1971,79 @@ class AgentRunner:
         raw = re.sub(r"[\"'`{}\[\]]", " ", raw)
         return " ".join(raw.split())[:60]
 
-    def _log_decision_delta(self, tick: int) -> None:
-        """把本轮 `_decide()` 的留痕落进 runner 日志。
+    def _trace_summary(self) -> Dict[str, Any]:
+        """追踪概览（tick 日志用）：轮次/累计事件/内存占用/写入错误。
 
-        为什么必须单独捞：`_decide()` 写的是**图内 `state.decision_log`**，
-        **不经过** `GraphServices.log` —— 所以"只注入 logger"仍然看不到它。
-        交接时"grep runner.out 找不到 `behavior_tree_added`"正是这个原因。
-        按 tick 过滤 + 单调守卫：同一 tick 重复跑不会重复打印。
+        刻意只取几个标量：tick 日志每轮都写，不能把 sink 的路径等细节反复复制。
+        """
+        try:
+            if self.runtime is None:
+                return {}
+            stats = self.runtime.trace.stats()
+        except Exception:  # noqa: BLE001 —— 统计失败不影响 tick 日志
+            return {}
+        return {
+            "rounds": int(stats.get("rounds", 0) or 0),
+            "events": int(stats.get("events", 0) or 0),
+            "memory": int(stats.get("memory", 0) or 0),
+            "memory_limit": int(stats.get("memory_limit", 0) or 0),
+            "diagnostic_errors": int(stats.get("diagnostic_errors", 0) or 0),
+        }
+
+    def _log_decision_delta(self, tick: int) -> None:
+        """把图内**新增**的决策明细落盘（runner.out + `decisions.jsonl`）。
+
+        ## 为什么改成"排空"而不是"按 tick 相等过滤"（2026-10-09，round-35 实测）
+
+        旧实现每次从 `runtime.state.decision_log` 里挑
+        `entry["server_tick"] == tick` 的条目落盘。而 `decision_log` 是**有界的**
+        （`MAX_DECISION_LOG = 512`，用 `.pop(0)` 从**头部**淘汰）。
+
+        后果是**大量 round 的决策永久丢失**：`server_tick` 由观测给出、**比决策轮推进得慢**，
+        于是一批决策带着**同一个旧 tick** 堆在日志里；等 tick 终于前进、
+        这个函数被用**新** tick 调用时，旧 tick 的条目**一条都不匹配**、被整批 `continue`；
+        而它们在日志里继续变老，最终被 `pop(0)` 淘汰 —— **再也不可能被归档**。
+
+        **实测证据**（这是关键诊断口径）：
+
+        | 档案 | `decisions.jsonl` 覆盖 | `events.jsonl` 覆盖 |
+        |---|---|---|
+        | `81893e7b` | **159** 个 tick | **572** 个 tick |
+        | `591dbd61` | **89** 个 tick | **363** 个 tick |
+
+        ⇒ 决策账只留下约 **1/4** 的 round，且是**散布**的（符合"只有 tick 恰好对齐时才落盘"
+        的形状，而不是"前面缺、后面全"的单调截断）。这直接导致 round-34 的拖尾归属里
+        **一半以上样本"看不到 `busy` 记录"** —— 不是当时没有 `busy`，
+        而是那个 tick 的明细**根本没被归档**。
+
+        ## 新口径
+
+        **每次调用排空整个 `decision_log`**，不再按 tick 相等过滤：
+          - 条目自带 `server_tick`，归档里记的仍是**真实 tick**，信息不丢；
+          - 排空后日志不再堆积 ⇒ 不会因 `pop(0)` 丢掉尚未归档的条目；
+          - 不再需要 `_decision_logged_tick` 单调守卫（日志已被取走，不存在重复打印）。
+        取走后**原地清空**（`del ...[:]`）而不是重新赋值 —— 图内持有的是同一个 list 对象，
+        重新赋值会让图继续往旧表上写。
         """
         runtime = self.runtime
         if runtime is None:
             return
-        if int(tick) <= int(self._decision_logged_tick):
-            return
-        self._decision_logged_tick = int(tick)
         try:
-            entries = list(getattr(runtime.state, "decision_log", []) or [])
+            entries = list(getattr(runtime.state, "decision_log", None) or [])
         except Exception:  # noqa: BLE001 —— 日志失败绝不影响指挥链
             return
+        if not entries:
+            return
+        # 先清空再落盘：即使下面的写失败，也不会让日志继续堆积（避免丢掉尚未归档的条目）。
+        try:
+            del runtime.state.decision_log[:]
+        except Exception:  # noqa: BLE001
+            pass
         for entry in entries:
             if not isinstance(entry, dict):
                 continue
-            if int(entry.get("server_tick", -1) or 0) != int(tick):
-                continue
-            self._log({"kind": "decision", "server_tick": int(tick),
+            entry_tick = int(entry.get("server_tick", -1) or 0)
+            self._log({"kind": "decision", "server_tick": entry_tick,
                        "decision": entry})
             # 同一份决策也进留档（分析时不必再解析 runner.out）。
             if self.archive is not None:
@@ -1872,6 +2100,15 @@ class AgentRunner:
                 "event_seq": fast.get("event_seq"),
                 "augments": fast.get("augments"),
                 "movement": dict((getattr(result, "state", {}) or {}).get("movement_stats") or {}),
+                # 【每轮增量账 · 2026-10-09】上面 `movement` 是**累计**值（一路单调增长），
+                # 看不出"这一轮到底产出了多少、重规划了多少"，而判"被拒命令/重规划
+                # 是否挤占共享下发预算"只能看增量。
+                # 第一版我把它加到了**另一个** tick 记录、还试过在 runner 里自己算
+                # （快照放进程内字典按 `id(state)` 索引）—— 两处都没落盘：
+                # 前者不是 `rounds.jsonl` 的记录，后者因为 `TickResult.state` 是
+                # `summary()` 生成的**新字典**、且每轮重建状态对象 ⇒ 永远没有"上一轮"。
+                # 现在增量由图内 `movement.note_round_delta` 算好、随检查点持久化。
+                "round_delta": _movement_delta(getattr(result, "state", {}) or {}),
                 "lanes": dict((getattr(result, "state", {}) or {}).get("lanes") or {}),
                 # 【任务侧事实】每轮把"我们的意图状态"也落档：否则"生产完成了但任务仍 unknown"
                 # 这类问题在档案里看不见（只能去 raw 逐行猜）。见 `_compact_intents`。
@@ -1921,6 +2158,21 @@ class AgentRunner:
                         "order_id": _first_order_id(receipt),
                         "generation": receipt.get("generation"),
                         "task_id": str(receipt.get("task_id", "")),
+                        # 【幂等回放标记 · 2026-10-09（round-55）】
+                        # 游戏侧在**命中幂等账本**时会回 `intent_replay = true`
+                        # （`DebugControlServer.gd:2235`），表示"这条我以前收过，
+                        # 回你缓存里那份回执，**没有重新执行**"。
+                        #
+                        # 不进这一列会怎样（实测 round-53/55）：同一 `intent_id`
+                        # 被重发 10 次时，命令账会显示 **10 条 `Accepted`**，
+                        # 而实际**只执行了 1 次** —— 于是"命令条数/接受率"这类指标
+                        # **系统性偏高**。
+                        #
+                        # 为什么现在才补：这一列此前**整个 runner 里都没出现过**
+                        # （`archive.command` 用固定字段清单，清单里没有它），
+                        # 所以只有 `runner.out` 的原样回执能看到它。
+                        # 与 round-50 的"目标点丢失"是同一个病根。
+                        "intent_replay": bool(receipt.get("intent_replay", False)),
                     })
             # 主线时间线：抽成 `MatchArchive.campaign_moments`（纯逻辑、有单测）。
             # 放这里只是为了"每轮调一次"，判断与去重都在留档层。
@@ -1959,9 +2211,38 @@ class AgentRunner:
             print("[runner] 留档收尾失败：%r" % exc, file=sys.stderr)
 
     def _log(self, record: Dict[str, Any]) -> None:
+        """写一行结构化日志。
+
+        ## 为什么要有那个 `UnicodeEncodeError` 兜底（2026-10-09，round-29 实测）
+
+        原实现直接 `print("[runner] " + line)`。当 stdout 的编码是 **GBK**
+        （中文 Windows 控制台的默认值）时，日志载荷里只要出现一个 GBK 编不出来的字符
+        （例如 `⇒` U+21D2、`→` U+2192、emoji），`print` 就抛 `UnicodeEncodeError`。
+
+        而这个调用点在 **tick 循环里**：异常会一路冒到 tick 的兜底 `except`，
+        被记成 `tick_error`，**每一轮都挂一次** ⇒ `rounds.jsonl`/`events.jsonl` 等
+        一条都写不出来，**整局作废**（round-29 实测：一轮候选改动因此打挂对局两次，
+        `run_health` 两次都判"不可用"）。
+
+        **这是产品级隐患**：任何人在任意 `_note`/日志字段里写个箭头，就能打挂真实对局。
+        所以修复要点是"**日志永远不许把调用方打挂**"：
+          1. 先试原样打印（控制台支持 UTF-8 时保持干净输出）；
+          2. 失败就**降级**成 `backslashreplace` 再打一次（信息不丢，只是转义显示）；
+          3. 再失败（stdout 已关闭等）就静默放弃 —— 日志是旁路，绝不能影响指挥链。
+        落盘那份用的是 `open(..., encoding="utf-8")`，本来就与 stdout 编码无关。
+        """
         record.setdefault("ts", time.time())
         line = json.dumps(record, ensure_ascii=False, default=str)
-        print("[runner] " + line, flush=True)
+        try:
+            print("[runner] " + line, flush=True)
+        except UnicodeEncodeError:
+            try:
+                print("[runner] " + line.encode("ascii", "backslashreplace")
+                      .decode("ascii"), flush=True)
+            except Exception:  # noqa: BLE001 —— 日志是旁路，不许影响指挥链
+                pass
+        except Exception:  # noqa: BLE001
+            pass
         if self._log_handle is not None:
             try:
                 self._log_handle.write(line + "\n")
@@ -1976,6 +2257,16 @@ class AgentRunner:
             except OSError:
                 pass
             self._log_handle = None
+
+
+def _selection_rotation(value: str) -> int:
+    try:
+        rotation = int(value)
+    except (TypeError, ValueError):
+        raise argparse.ArgumentTypeError("selection rotation must be a nonnegative integer") from None
+    if rotation < 0:
+        raise argparse.ArgumentTypeError("selection rotation must be a nonnegative integer")
+    return rotation
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -1996,9 +2287,15 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--tactics-mode", choices=("fast", "deep"), default="fast",
                         help="四列接口的推理模式：fast=关注范围小/输出 96 token（默认）；"
                              "deep=信息范围更完整/输出 256 token")
-    parser.add_argument("--strategy-mode", choices=("off", "plan"), default="plan",
+    parser.add_argument("--tactics", choices=("off", "on"), default="on",
+                        help="独立启用战术模型；off保留正常规则基线")
+    parser.add_argument("--selection-rotation", type=_selection_rotation, default=0)
+    parser.add_argument("--selection-canonical-labels", action="store_true")
+    parser.add_argument("--strategy-mode", choices=("off", "plan", "rules", "score_only", "template", "choice", "score"), default="plan",
                         help="战略层：plan=启用低频战略计划（默认，2026-09-21 混合架构定版："
                              "System 2 生成层用本机 2B，30s/次，失败自动降级不影响微操）；"
+                             "rules=不调用战略模型，沿用程序主线并允许复核维持现计划"
+                             "（模型服务没起来时的降级证据，不能当成模型战略已修好）；"
                              "off=关闭（四列单入口/高层意图缺省，仅对照用）")
     parser.add_argument("--scheduling", choices=("async", "sync"), default="async",
                         help="调度方式：async=有界异步（默认，主循环不被推理阻塞）；"
@@ -2012,12 +2309,15 @@ def build_parser() -> argparse.ArgumentParser:
                         help="副官强度：conservative=保守（攒够 4 个作战单位才出击）；"
                              "standard=标准（默认，2 个）；aggressive=激进（1 个就出击）")
     parser.add_argument("--strategy-interval", type=int, default=1800,
-                        help="战略模型最小间隔（tick，默认 1800≈30s）。"
-                             "【不要砍到 900 以下】实测把战略间隔砍半后，战略模型失败次数与"
-                             "重试耗时反而把主循环占满：5 分钟内 strategy_request=28 次、"
-                             "tactics_request 只剩 **2** 次 → 微操层（发展阶梯+行为树）被饿死、"
-                             "整局 0 生产、看不到任何批量指挥。战略层是低频慢层，"
-                             "提速要靠微操高频跑（见 --tactics-interval / --event-interval）。")
+                        help="还没测到 tick 率时的战略回退间隔（tick，默认 1800）。"
+                             "测到 Hz 之后，普通复核间隔改为 "
+                             "--strategy-review-seconds × 实测 Hz，不再用这个固定 tick。"
+                             "不要把默认复核秒数改成 5 并声称已经安全：先记下真实发起间隔。")
+    parser.add_argument("--strategy-review-seconds", type=float, default=10.0,
+                        help="普通战略复核的目标模拟秒数（默认 10）。"
+                             "必须乘上本局实测 tick 率换算成 tick，不能写死 300 或 600。"
+                             "暂停时 server tick 不涨，不会按墙钟补发错过的请求。"
+                             "库内 RuntimeConfig 默认仍是 0（沿用 tick 间隔），避免单测被改口径。")
     parser.add_argument("--tactics-interval", type=int, default=15,
                         help="战术决策最小间隔（tick，默认 15）。"
                         "【2026-09-15 用户反复要求提高操控频率】原默认 60≈1s → 30 → 现在 15。"
@@ -2034,6 +2334,24 @@ def build_parser() -> argparse.ArgumentParser:
                              "（实测 14~40s），否则意图会在下一批到来前过期，部队出现空窗。")
     parser.add_argument("--emergency-ttl", type=int, default=1200,
                         help="紧急意图有效期（tick，默认 1200≈20s）")
+    # ---- 任务反馈闭环（修改 2；单位：秒，0=按任务类型默认表）----
+    parser.add_argument("--loop-no-progress-seconds", type=float, default=0.0,
+                        help="任务无进展期限（秒；0=按类型默认：建造45/采集60/移动30…）。"
+                             "低于该值一律判正常等待，防止把施工中误报成卡死")
+    parser.add_argument("--loop-deadline-seconds", type=float, default=0.0,
+                        help="任务总期限（秒；0=按类型默认：建造240/采集300…）。"
+                             "到点走 timeout 边进诊断，不等无进展")
+    parser.add_argument("--loop-retry-budget", type=int, default=0,
+                        help="同一目标的恢复尝试预算（0=默认 3；耗尽即受阻）")
+    parser.add_argument("--loop-cooldown-seconds", type=float, default=0.0,
+                        help="失败方案冷却（秒；0=默认 15）。冷却内不重试同一指纹")
+    # ---- 经济异常窗口（修改 3；单位：秒，0=默认）----
+    parser.add_argument("--econ-delivery-stall-seconds", type=float, default=90.0,
+                        help="矿场完工后零交付停滞窗口（秒，默认 90）")
+    parser.add_argument("--econ-post-delivery-stall-seconds", type=float, default=120.0,
+                        help="曾交货后经济中断窗口（秒，默认 120）")
+    parser.add_argument("--econ-grace-seconds", type=float, default=60.0,
+                        help="开局宽限（秒，默认 60）：首次建造/首次交货的正常等待不判失败")
     parser.add_argument("--tick-interval", type=float, default=0.25,
                         help="协调周期（秒，默认 0.25=4Hz；原 0.5=2Hz 是"
                              "“操作频率低”的主频上限）。实测单轮 elapsed_ms 150~350ms，"
@@ -2070,6 +2388,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--engine", default="auto", choices=("auto", "langgraph", "fallback"))
     parser.add_argument("--state-dir", default="/opt/airts-agent/state")
     parser.add_argument("--log-dir", default="/opt/airts-agent/logs")
+    # 【决策追踪 · 修改 1】运行时追踪：JSONL 流式证据（节点 span/选边/候选条件/
+    # 任务/命令/模型调用）。默认 on：旁路写入、有界轮转、不进模型上下文。
+    # 排查性能问题或磁盘敏感部署可关（off 只影响事后回放能力）。
+    parser.add_argument("--trace", default="on", choices=("on", "off"),
+                        help="运行时决策追踪开关（默认 on；写 <log-dir>/trace.jsonl）")
+    parser.add_argument("--trace-file", default="",
+                        help="追踪文件路径（默认 <log-dir>/trace.jsonl；空=仅内存环）")
     parser.add_argument("--env-file", default="", help=".env 路径（默认 /opt/airts-agent/.env）")
     parser.add_argument("--pidfile", default="/opt/airts-agent/state/agent_runner.pid")
     parser.add_argument("--wait-port-seconds", type=float, default=60.0)
@@ -2078,6 +2403,55 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-idle-checks", type=int, default=6,
                         help="连续 match=false 检查上限（超过则正常退出）")
     return parser
+
+
+#: 每轮增量账要跟的键（`movement_stats` 里的累计值 → 取相邻两轮的差）。
+ROUND_DELTA_KEYS = ("planned", "allowed", "invalidations", "arrival_events",
+                    "arrival_released_intents", "arrival_no_route",
+                    "arrival_marker_kept", "arrival_deduped")
+
+
+def _movement_delta(state: Dict[str, Any]) -> Dict[str, Any]:
+    """读**图内算好**的每轮增量（`state["movement_round_delta"]`）。
+
+    为什么不在这里自己算（2026-10-09，round-24 的教训）：
+    `TickResult.state` 是 `self.state.summary()` —— **每轮都是新字典**，
+    而 runner 每轮还会从检查点重建状态对象 ⇒ 在这里维护"上一轮快照"
+    （无论放模块级字典按 `id()` 索引，还是写进这个视图字典）**都不可能拿到上一轮**。
+    第一版就是因此**一条增量都没落盘**。
+    这与 round-23 抓到的 `to_dict` 漏字段是**同一个病根**：
+    把需要跨轮活下来的东西放在了不跨轮的地方。
+
+    现在快照与增量都在图内、随检查点持久化（`movement.note_round_delta`），
+    这里只做只读转发。
+    """
+    if not isinstance(state, dict):
+        return {}
+    delta = state.get("movement_round_delta")
+    return dict(delta) if isinstance(delta, dict) else {}
+
+
+def _continuity_summary(state: Dict[str, Any]) -> Dict[str, Any]:
+    """把连续行动监督压成**有界**的一行摘要（tick 日志用，别把整本台账塞进日志）。
+
+    只留验收真正要读的四个数：档位计数、恢复次数、闲置单位数、最长的"停住时长"。
+    """
+    report = (state or {}).get("continuity_supervision") or {}
+    units = report.get("units") or {}
+    worst = 0.0
+    worst_unit = ""
+    for name, row in units.items():
+        value = float(row.get("stop_seconds", 0.0) or 0.0)
+        if value > worst:
+            worst, worst_unit = value, str(name)
+    return {
+        "levels": dict(report.get("levels") or {}),
+        "recoveries": int(report.get("recoveries", 0) or 0),
+        "idle_units": len(report.get("idle_units") or []),
+        "tracked_units": len(units),
+        "worst_stop_s": worst,
+        "worst_stop_unit": worst_unit,
+    }
 
 
 def main(argv: Optional[List[str]] = None) -> int:

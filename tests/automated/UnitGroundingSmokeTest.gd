@@ -19,7 +19,8 @@ extends Node
 
 const NAVMESH_MAP := "res://source/match/maps/PlainAndSimple.tscn"
 const LOGIC_MAP := "res://source/match/maps/generated/16-0/map_16-0.tscn"
-const HOVER_OFFSET := 1.8
+## 镜像 Constants.Match.Air.HOVER_OFFSET（见 source/match/MatchConstants.gd）。
+const HOVER_OFFSET := 3.5
 ## 贴地误差上限：跑步动画的根骨起伏在厘米级，5cm 足够区分"贴地"与"浮空 0.6m"。
 const GROUND_EPSILON := 0.05
 

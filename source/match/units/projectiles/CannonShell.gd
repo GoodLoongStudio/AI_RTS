@@ -4,14 +4,17 @@ var attack_id := ""
 var projectile_runtime = null
 var launch_transform := Transform3D.IDENTITY
 var visible_snapshot := true
+var tracks_target := false
 
 ## 弹体飞行速度（米/秒）。**必须与射击距离无关**：用户 2026-09-12 报
 ## "不同射击距离炮弹的飞行速度不一样" —— 根因是原先按**固定飞行时长**建模
 ## （`flight_seconds` = 0.65），速度 = 距离 / 时长 → 距离越远飞得越快。
 ## 现在改成固定速度：飞行时长 = 实际距离 / 速度，任何射击距离上速度都一致。
 ## 不同武器想要不同速度，由场景 metadata `flight_speed_mps` 覆盖
-## （炮弹 12 m/s ≈ 原先 7.5m 处的手感；步枪曳光 45 m/s）。
-const FLIGHT_SPEED_MPS := 12.0
+## （权威是场景 meta，这里只是取不到 meta 时的兜底，两者必须同值）。
+## 【2026-10-12 用户要求】除重型坦克外所有弹种弹速 ×2：炮弹 12→24、步枪曳光 45→90、
+## 火箭 5.33→10.66；HeavyCannonShell 自持 15 m/s（重坦慢榴弹是刻意手感，豁免加速）。
+const FLIGHT_SPEED_MPS := 24.0
 ## 兜底飞行时长：只在取不到有效瞄准点（拿不到距离）时才用，正常路径不会走到。
 const FLIGHT_SECONDS := 0.5
 ## 飞行时长下限：贴脸射击距离≈0 时避免出现 0/负时长。
@@ -27,6 +30,7 @@ var _impacted := false
 var _flight_seconds := FLIGHT_SECONDS
 var _arc_height := ARC_HEIGHT
 var _show_impact_explosion := true
+var _aim_point := Vector3.INF
 ## 【2026-09-27 重坦榴弹抛物线】场景 meta `trajectory = "parabola"` 时走**真抛物线**：
 ## `arc_height` 表示弹道峰高（米），弹体爬升过峰再落到目标——榴弹炮的观感。
 ## 默认（直线模式）行为不变：`arc_height` 表示末端下坠幅度，直线飞行 + 平方递增下坠。
@@ -44,6 +48,8 @@ func _ready():
 	# 固定速度模型：飞行时长由**真实发射距离**反推，保证同一武器在任何射击距离上速度一致。
 	var speed := float(get_meta("flight_speed_mps", FLIGHT_SPEED_MPS))
 	var launch_aim: Vector3 = projectile_runtime.GetAimPoint(attack_id)
+	_aim_point = launch_aim
+	tracks_target = bool(get("tracks_target"))
 	if is_finite(speed) and speed > 0.0 and launch_aim.is_finite():
 		_flight_seconds = maxf(
 			launch_transform.origin.distance_to(launch_aim) / speed, MIN_FLIGHT_SECONDS
@@ -64,8 +70,8 @@ func _ready():
 ##
 ## 用户 2026-09-15 报"子弹射出会旋转"：原实现在 `_process` 里每帧
 ## `look_at(global_position + (当前瞄准点 - 发射点), UP)`，而权威端
-## `ProjectileRuntime.GetAimPoint` 对**活着的目标**会持续返回目标当前位置（追瞄是玩法设计，
-## 落点/伤害口径不动）——于是瞄准点一移动，弹体每帧都被重新定向，看起来就是边飞边转。
+## `ProjectileRuntime.GetAimPoint` 对**防空武器**会持续返回目标当前位置；普通弹体在开火时冻结落点。
+## 之前瞄准点逐帧刷新但朝向锁定，会造成弹体横向移动、视觉轨迹和炮口方向不一致。
 ## 探针实测（`tools/probe_projectile_orientation.gd`）：目标横移时弹体偏航 -10°→-35°，单帧最大 6.96°；修后 0.000°。
 ## 现在朝向在发射时锁死：弹体只平移不旋转，与"炮弹沿发射方向飞"的直觉一致。
 func _lock_flight_orientation(launch_aim: Vector3) -> void:
@@ -89,7 +95,7 @@ func _process(delta: float):
 	if _impacted:
 		return
 	_elapsed += delta
-	var aim_point: Vector3 = projectile_runtime.GetAimPoint(attack_id)
+	var aim_point: Vector3 = projectile_runtime.GetAimPoint(attack_id) if tracks_target else _aim_point
 	if not aim_point.is_finite():
 		return
 
@@ -117,19 +123,24 @@ func _perform_impact():
 	if _impacted:
 		return
 	_impacted = true
-	var impact_point: Vector3 = projectile_runtime.GetAimPoint(attack_id)
+	var impact_point: Vector3 = projectile_runtime.GetAimPoint(attack_id) if tracks_target else _aim_point
 	if impact_point.is_finite():
+		# ⚠ 必须在 ResolveImpact **之前**取判定半径：权威侧结算完就把这条攻击从 _active 摘掉了，
+		# 之后再问只会拿到 0，特效于是永远缩不回真实爆炸范围（2026-10-12 实测踩到）。
+		var blast_radius := float(projectile_runtime.GetWarheadRadius(attack_id))
 		projectile_runtime.ResolveImpact(attack_id, impact_point)
 		if _show_impact_explosion:
-			_spawn_explosion(impact_point)
+			_spawn_explosion(impact_point, blast_radius)
 	queue_free()
 
 
 ## 落点一次性爆炸：橙红火光 + 黑烟升腾（挂到 Projectiles 容器避免随弹体销毁）。
-func _spawn_explosion(impact_point: Vector3):
+## 权威判定半径交给特效自己缩放（键名与算法见 ShellExplosion.gd），直击弹头为 0 时保持原尺寸。
+func _spawn_explosion(impact_point: Vector3, blast_radius: float):
 	var explosion = EXPLOSION_SCENE.instantiate()
 	var parent := get_parent()
 	if parent == null:
 		return
+	explosion.set_meta("blast_radius_m", blast_radius)
 	parent.add_child(explosion)
-	explosion.global_position = impact_point + Vector3(0.0, 0.2, 0.0)
+	explosion.global_position = impact_point + Vector3(0.0, 1.2, 0.0)

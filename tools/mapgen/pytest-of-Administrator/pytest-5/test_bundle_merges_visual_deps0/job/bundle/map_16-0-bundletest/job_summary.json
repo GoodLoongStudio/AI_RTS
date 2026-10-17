@@ -1,0 +1,16 @@
+{
+ "algo_versions": {
+  "G1": "2.0.0",
+  "G2": "7.11.0",
+  "G3": "2.2.0",
+  "G4": "2.0.0"
+ },
+ "created_at": "now",
+ "job_id": "jobtest",
+ "map_id": "16-0-bundletest",
+ "map_pass": null,
+ "pipeline_version": "1.1.0",
+ "stage_versions": {},
+ "visual_seed": null,
+ "visual_version": null
+}

@@ -3,6 +3,7 @@ extends Node
 const AttackingWhileInRange = preload(
 	"res://source/match/units/actions/AttackingWhileInRange.gd"
 )
+const AiPerfStats = preload("res://source/match/players/simple-clairvoyant-ai/AiPerfStats.gd")
 
 const TARGET_REFRESH_INTERVAL := 1.0 / 6.0
 
@@ -23,6 +24,14 @@ func _ready():
 
 ## 重新读取移动射击能力与停火策略，并选择不会干扰底盘导航的射界内目标。
 func refresh_weapon_target():
+	var perf_on := AiPerfStats.enabled()
+	var scan_started := Time.get_ticks_usec() if perf_on else 0
+	_refresh_weapon_target()
+	if perf_on:
+		AiPerfStats.add("move_fire_scan", Time.get_ticks_usec() - scan_started)
+
+
+func _refresh_weapon_target():
 	if not _unit.can_fire_while_moving or _command_runtime.GetFirePolicy(_unit) == "HoldFire":
 		_clear_attack_action()
 		return

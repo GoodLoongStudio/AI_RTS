@@ -1,0 +1,188 @@
+Godot Engine v4.7.1.stable.mono.official.a13da4feb - https://godotengine.org
+
+[DBGCTL] 端口 24579 被占用, 调试控制端点未启动
+[DBGCTL] 本实例不可被调试控制；自动化模式下 MatchInstanceRegistry 会按严格模式退场（避免留下'看着在对局里、其实命令下不进去'的僵尸局）
+[godot_ai game_helper] registered mcp capture (debugger active=false, logger=true)
+WARNING: Parent path './DetachTransform/Geometry/SM_Veh_Turret_Large_01' for node 'ProjectileOrigin' has vanished when instantiating: 'res://tests/perfgrid/TmpTurretHead.tscn'.
+   at: instantiate (scene/resources/packed_scene.cpp:213)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://tests/automated/RuleAiDefenseSmokeTest.gd:14)
+WARNING: Parent path './DetachTransform/Geometry/SM_Veh_Turret_Large_01' for node 'MuzzleL' has vanished when instantiating: 'res://tests/perfgrid/TmpTurretHead.tscn'.
+   at: instantiate (scene/resources/packed_scene.cpp:213)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://tests/automated/RuleAiDefenseSmokeTest.gd:14)
+WARNING: Parent path './DetachTransform/Geometry/SM_Veh_Turret_Large_01' for node 'MuzzleR' has vanished when instantiating: 'res://tests/perfgrid/TmpTurretHead.tscn'.
+   at: instantiate (scene/resources/packed_scene.cpp:213)
+   GDScript backtrace (most recent call first):
+       [0] _ready (res://tests/automated/RuleAiDefenseSmokeTest.gd:14)
+规则 AI 难度=NORMAL 首波=32s 再派=17s 情报复查=60s
+G4PERF fog_resize 416x416 px_per_m=2
+    ... [last line repeated 1 more times]
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=2 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=1 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=1 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=3 tint=(0.4, 0.6941, 1.0, 1.0)
+ERROR: System.InvalidOperationException: 场景 res://tests/perfgrid/TmpTurretHead.tscn 没有受信任的单位类型定义。
+   at AI_RTS.GodotAdapter.Configuration.BalanceConfigRuntime.ConfigureUnit(Node unit) in G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Configuration\BalanceConfigRuntime.cs:line 209
+   at AI_RTS.GodotAdapter.Configuration.BalanceConfigRuntime.InvokeGodotClassMethod(godot_string_name& method, NativeVariantPtrArgs args, godot_variant& ret) in G:\AIRTS\AI_RTS\.godot\mono\temp\obj\Debug\Godot.SourceGenerators\Godot.SourceGenerators.ScriptMethodsGenerator\AI_RTS.GodotAdapter.Configuration.BalanceConfigRuntime_ScriptMethods.generated.cs:line 151
+   at Godot.Bridge.CSharpInstanceBridge.Call(IntPtr godotObjectGCHandle, godot_string_name* method, godot_variant** args, Int32 argCount, godot_variant_call_error* refCallError, godot_variant* ret) in /root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:line 24
+   at: void Godot.NativeInterop.ExceptionUtils.LogException(System.Exception) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/NativeInterop/ExceptionUtils.cs:113)
+   GDScript backtrace (most recent call first):
+       [0] _setup_properties_from_balance_catalog (res://source/match/units/Unit.gd:848)
+       [1] _ready (res://source/match/units/Unit.gd:135)
+       [2] _ready (res://tests/automated/RuleAiDefenseSmokeTest.gd:21)
+   C# backtrace (most recent call first):
+       [0] void Godot.GD.PushError(string) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/GD.cs:366)
+       [1] void Godot.NativeInterop.ExceptionUtils.LogException(System.Exception) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/NativeInterop/ExceptionUtils.cs:113)
+       [2] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=4 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=4 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=8 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=11 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+[G4PERF] minimap viewport=416x416 scale=2.000
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+       [2] _ready (res://source/match/hud/Minimap.gd:107)
+       [3] _ready (res://tests/automated/RuleAiDefenseSmokeTest.gd:21)
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+       [2] _follow_minimap_fog_mask (res://source/match/hud/Minimap.gd:118)
+       [3] _ready (res://source/match/hud/Minimap.gd:111)
+       [4] _ready (res://tests/automated/RuleAiDefenseSmokeTest.gd:21)
+G4PERF command_runtime_us=6591 frames=1
+G4PERF production_runtime_us=1657 frames=1
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+[INPUT] UnitActionsController waiting for local player player=Human
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+G4PERF command_runtime_us=169 frames=2
+G4PERF production_runtime_us=28 frames=2
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+       [2] _follow_minimap_fog_mask (res://source/match/hud/Minimap.gd:118)
+NAVDBG air polygons=2 vertices=4 rid_valid=true region_on_our_map=true map_active=true
+NAVDBG bake map=/root/RuleAiDefenseSmokeTest/Match/Map StaticBody3D in subtree=0
+WARNING: Property agent_height is ceiled to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:367)
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+NAVDBG polygons=223 vertices=201
+[ECO] PublishSnapshot player=9f5aef66 a=0
+[ECO] PublishSnapshot player=3bef88c4 a=0
+[TINT] apply_team_tint (1.0, 0.3608, 0.451, 1.0) on Geometry
+[TINT] override meshes=16 tint=(1.0, 0.3608, 0.451, 1.0)
+[TINT] apply_team_tint (1.0, 0.3608, 0.451, 1.0) on Geometry
+[TINT] override meshes=4 tint=(1.0, 0.3608, 0.451, 1.0)
+WARNING: [FOG] 单位缺 sight_range（平衡目录未命中）type_id=|AntiGroundTurret.gd 节点=AntiGroundTurret，迷雾圈改用兜底视野 8m
+   at: push_warning (core/variant/variant_utility.cpp:1033)
+   GDScript backtrace (most recent call first):
+       [0] _warn_missing_sight_range (res://source/match/FogOfWar.gd:125)
+       [1] _resolved_sight_range_m (res://source/match/FogOfWar.gd:247)
+       [2] _sync_revealed_circles (res://source/match/FogOfWar.gd:98)
+       [3] refresh_now (res://source/match/FogOfWar.gd:84)
+       [4] _ready (res://source/match/Match.gd:147)
+       [5] _setup_subsystems_dependent_on_map (res://source/match/Match.gd:370)
+       [6] setup (res://source/match/Navigation.gd:57)
+       [7] bake (res://source/match/TerrainNavigation.gd:110)
+WARNING: [MatchHistoryHook] 未找到对局根节点，本局不写入历史。
+   at: push_warning (core/variant/variant_utility.cpp:1033)
+   GDScript backtrace (most recent call first):
+       [0] _begin_recording (res://source/history/MatchHistoryHook.gd:116)
+[INPUT] UnitActionsController enabled player=Human
+G4PERF command_runtime_us=21 frames=40
+G4PERF production_runtime_us=3 frames=40
+G4PERF movement_us=28 unit=Drone
+G4PERF movement_us=21 unit=Helicopter
+G4PERF movement_us=50 unit=Tank
+G4PERF movement_us=45 unit=Worker
+G4PERF movement_us=19 unit=Unit_1
+[TINT] apply_team_tint (1.0, 0.3608, 0.451, 1.0) on Geometry
+[TINT] override meshes=11 tint=(1.0, 0.3608, 0.451, 1.0)
+[ACT] Unit_2 puppet=false in_tree=true locked=false script=res://source/match/units/actions/WaitingForTargets.gd
+[ACT] Unit_2 attached child=false
+[ACT] Unit_2 已 add_child: in_tree=true
+WARNING: Property agent_height is ceiled to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:367)
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+G4PERF command_runtime_us=109 frames=80
+G4PERF production_runtime_us=6 frames=80
+G4PERF movement_us=82 unit=Drone
+G4PERF movement_us=37 unit=Helicopter
+G4PERF movement_us=98 unit=Tank
+G4PERF movement_us=47 unit=Worker
+G4PERF movement_us=72 unit=Unit_1
+G4PERF movement_us=44 unit=Unit_2
+NAVDBG polygons=223 vertices=201
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=11 tint=(0.4, 0.6941, 1.0, 1.0)
+[ACT] Unit_3 puppet=false in_tree=true locked=false script=res://source/match/units/actions/WaitingForTargets.gd
+[ACT] Unit_3 attached child=false
+[ACT] Unit_3 已 add_child: in_tree=true
+G4PERF command_runtime_us=74 frames=120
+G4PERF production_runtime_us=3 frames=120
+G4PERF movement_us=49 unit=Drone
+G4PERF movement_us=20 unit=Helicopter
+G4PERF movement_us=63 unit=Tank
+G4PERF movement_us=43 unit=Worker
+G4PERF movement_us=41 unit=Unit_3
+G4PERF movement_us=56 unit=Unit_1
+G4PERF movement_us=37 unit=Unit_2
+[DAMAGE] source=3bef88c4-01ec-4561-b6f8-a330e335cfb0 target=Unit_3 owner=Human amount=3.5 mode=Area
+[DAMAGE] source=9f5aef66-312c-4ddc-ac9e-78c1c433a3f0 target=Unit_3 owner=Human amount=2.1 mode=Area
+[DAMAGE] source=9f5aef66-312c-4ddc-ac9e-78c1c433a3f0 target=Unit_0 owner=SimpleClairvoyantAI amount=4.2 mode=Area
+[DAMAGE] source=9f5aef66-312c-4ddc-ac9e-78c1c433a3f0 target=Unit_2 owner=SimpleClairvoyantAI amount=4.2 mode=Area
+[ACT] Unit_2 puppet=false in_tree=true locked=false script=res://source/match/units/actions/Moving.gd
+[ACT] Unit_2 attached child=false
+[ACT] Unit_2 已 add_child: in_tree=true
+G4PERF command_runtime_us=68 frames=160
+G4PERF production_runtime_us=3 frames=160
+G4PERF movement_us=42 unit=Drone
+G4PERF movement_us=32 unit=Helicopter
+G4PERF movement_us=196 unit=Tank
+G4PERF movement_us=89 unit=Worker
+G4PERF movement_us=52 unit=Unit_3
+G4PERF movement_us=51 unit=Unit_1
+G4PERF movement_us=35 unit=Unit_2
+Rule AI defense smoke test completed: 0 failure(s)
+[EXIT-TRACE] EXIT_TREE：场景树收尾（tick=-1，场景=unknown，对局结果=无该节点）
+[EXIT-TRACE] PREDELETE：引擎收尾（Globals 释放，tick=unknown(已脱离场景树)）

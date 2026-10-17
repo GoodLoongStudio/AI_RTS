@@ -28,6 +28,17 @@ func _ready():
 	await get_tree().process_frame
 	await get_tree().physics_frame
 	await get_tree().process_frame
+	# Match 要在导航烘焙之后才给规则 AI 绑定标准查询会话（AI 侧自己轮询等它，最长 600 帧）。
+	# 单位尺寸统一后烘焙更慢，旧的"三帧后直接查询"会在 Nil 上调 GetOwnForces：脚本错误会
+	# 中断整条 _ready，用例连结论行都打不出来（实测 rc=1、0 条 assertion）。与同族用例
+	# （RuleAiOffenseLogisticsSmokeTest 2026-09-19 修 flaky）同口径：先等边界就位再断言。
+	var boundary_wait := 0.0
+	while (rule_ai.get("_world_query_runtime") == null
+			or rule_ai.get("_query_session_id") == "") and boundary_wait < 10.0:
+		await get_tree().physics_frame
+		boundary_wait += 0.05
+	_check(rule_ai.get("_world_query_runtime") != null,
+		"Match 必须为规则 AI 绑定标准查询会话（10s 内未就位）")
 
 	var human = match_instance.get_node("Players/Human")
 	var human_tank = human.get_node("Tank")

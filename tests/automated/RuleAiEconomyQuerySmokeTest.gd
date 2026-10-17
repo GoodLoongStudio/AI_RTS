@@ -1,6 +1,7 @@
 extends Node
 
-const MatchScene = preload("res://tests/manual/TestPlayerVsAI.tscn")
+const MatchScene = preload("res://source/match/Match.tscn")
+const FIELD_POSITION := 1 << 0
 const FIELD_TYPE := 1 << 1
 const FIELD_CONSTRUCTION := 1 << 4
 const FIELD_PRODUCTION := 1 << 5
@@ -12,6 +13,17 @@ var _failures := 0
 ## 验证 Match 为传统规则 AI 绑定自己的标准会话，且资源准入通过公共查询完成。
 func _ready():
 	var match_instance = MatchScene.instantiate()
+	# Normal spawn and a visible ore seed; the old manual fixture predates
+	# the current map scale and starts the economy far from every ore node.
+	var settings = load("res://source/data-model/MatchSettings.gd").new()
+	for controller in [Constants.PlayerType.HUMAN, Constants.PlayerType.SIMPLE_CLAIRVOYANT_AI]:
+		var player = load("res://source/data-model/PlayerSettings.gd").new()
+		player.controller = controller
+		player.color = Constants.Player.COLORS[settings.players.size()]
+		settings.players.append(player)
+	match_instance.settings = settings
+	match_instance.map = load("res://source/match/maps/PlainAndSimple.tscn").instantiate()
+	match_instance.map.get_node("Resources").get_child(0).position = Vector3(412, 0.6, 70)
 	add_child(match_instance)
 	# 不能假设固定帧数就绪：`Match._ready` 的首个 await 是导航烘焙（Match.gd:80
 	# `await _setup_subsystems_dependent_on_map()`），玩家创建、查询运行时注入与
@@ -34,29 +46,47 @@ func _ready():
 		"公共己方经济查询应拒绝超过当前余额的请求")
 	_check(rule_ai.has_node("RuleAiCommandGateway"),
 		"Match 应为传统规则 AI 注入固定身份的稳定 ID 命令适配器")
-	var forces: Dictionary = rule_ai.get("_world_query_runtime").GetOwnForces(
-		rule_ai.get("_query_session_id"),
-		FIELD_TYPE | FIELD_CONSTRUCTION | FIELD_PRODUCTION | FIELD_ORDER
+	# Keep this query/command contract fixture independent of opening-bank tuning.
+	# Grant after the exact-balance assertions; normal Match still owns spawning
+	# and the refinery -> automatic completion -> free miner chain.
+	var income_applied: bool = rule_ai.add_resources(
+		{"resource_a": 10000},
+		"ScriptedAdjustment"
 	)
-	var workers: Array = forces["entities"].filter(
-		func(entity): return entity.get("type_id", "") == "worker"
-	)
-	var completed_structures: Array = forces["entities"].filter(
-		func(entity):
-			var construction = entity.get("construction", null)
-			return construction != null and construction.get("state", "") == "Completed"
-	)
-	var producers: Array = forces["entities"].filter(
-		func(entity): return entity.get("production", null) != null
-	)
+	_check(income_applied, "测试应能给规则 AI 注入开局资金（经济点火需要矿场造价）")
+	var forces: Dictionary = {}
+	var workers: Array = []
+	var completed_structures: Array = []
+	var producers: Array = []
+	# 【2026-09-28 红警2 口径】矿车不随开局送：第一辆由"矿场完工赠送"产生，需要等
+	# 资源请求 → 放置矿场 → 自动施工 → 赠车 这条点火链跑完（实测 8~15 秒）。
+	# 断言内容不变，只把"一次性读快照"改成"轮询同一条己方查询直到出现矿车"，上限 30s。
+	var ignite_waited := 0.0
+	while ignite_waited < 30.0:
+		forces = rule_ai.get("_world_query_runtime").GetOwnForces(
+			rule_ai.get("_query_session_id"),
+			FIELD_TYPE | FIELD_CONSTRUCTION | FIELD_PRODUCTION | FIELD_ORDER
+		)
+		var entities: Array = forces.get("entities", [])
+		workers = entities.filter(
+			func(entity): return entity.get("type_id", "") == "worker"
+		)
+		completed_structures = entities.filter(
+			func(entity):
+				var construction = entity.get("construction", null)
+				return construction != null and construction.get("state", "") == "Completed"
+		)
+		producers = entities.filter(
+			func(entity): return entity.get("production", null) != null
+		)
+		if not workers.is_empty():
+			break
+		await get_tree().create_timer(1.0).timeout
+		ignite_waited += 1.0
 	_check(not workers.is_empty(), "己方查询应返回规则 AI 的稳定 Worker ID")
-	# 【2026-09-21 观测方式修正（目标不变、证据更直接）】原断言读 WorldQuery 的
-	# `order.kind == "Gather"`——但底层 C# `UnitOrderKind` **没有 Gather**：采集在权威侧是
-	# GDScript 单位动作 `CollectingResourcesSequentially`，不是订单种类，因此 `order`
-	# 投影里**永远**不出现它（实测：Gather 被 Accepted、单位进入 MOVING_TO_RESOURCE，
-	# 同拍重查 order 仍为 null）⇒ 原断言必然失败。
-	# 现改为用**权威侧实际行为**验证同一目标：AI 的 Worker 节点上挂着的 action
-	# 就是采集动作（`Unit.action` 是公开访问器，采集动作提供 `get_resource_unit()`）。
+	# Observe the actual collection action, including the free miner's AutoGather
+	# wrapper, then explicitly exercise the stable-ID Gather and Stop gateways.
+	# A snapshot immediately after Accepted is not proof of gathering progress.
 	var worker_ids := {}
 	for worker in workers:
 		worker_ids[worker["id"]] = true
@@ -74,6 +104,18 @@ func _ready():
 	if not gathering_workers.is_empty():
 		var gather_action = gathering_workers[0]["action"]
 		var resource_node = gather_action.get_resource_unit()
+		var resource_scan: Dictionary = rule_ai.get("_world_query_runtime").ScanCircle(
+			rule_ai.get("_query_session_id"), resource_node.global_position, 2.0,
+			FIELD_POSITION | FIELD_TYPE)
+		var resource_refs: Array = resource_scan.get("entities", []).filter(
+			func(entity): return entity.get("type_id", "") == "resource_a")
+		_check(not resource_refs.is_empty(), "visible ore must have a public stable resource ID")
+		if not resource_refs.is_empty():
+			var valid_gather: Dictionary = rule_ai.get_node("RuleAiCommandGateway").Gather(
+				[gathering_workers[0]["id"]], resource_refs[0]["id"])
+			_check(valid_gather.get("status", "") == "Accepted", "stable-ID Gather must execute")
+			await get_tree().physics_frame
+			gather_action = gathering_workers[0]["node"].action
 		var resource_script := ""
 		if resource_node != null and resource_node.get_script() != null:
 			resource_script = str(resource_node.get_script().resource_path)
@@ -96,8 +138,8 @@ func _ready():
 			"测试应能用稳定 ID 定位正在 Gather 的 AI Worker")
 		if gathering_worker_node != null:
 			var stop_result: Dictionary = (
-				match_instance
-				. get_node("Players/Human/UnitCommandGateway")
+				match_instance.get_local_player()
+				. get_node("UnitCommandGateway")
 				. StopUnits([gathering_worker_node], rule_ai)
 			)
 			_check(stop_result.get("status", "") == "Accepted",
@@ -155,9 +197,13 @@ func _ready():
 func _collect_gathering_workers(rule_ai, worker_ids: Dictionary) -> Array:
 	var result: Array = []
 	for unit in get_tree().get_nodes_in_group("units"):
-		if unit.action == null or not unit.action.has_method("get_resource_unit"):
+		var gather_action = unit.action
+		if gather_action != null and gather_action.get_script() != null \
+				and str(gather_action.get_script().resource_path).ends_with("AutoGatheringResources.gd"):
+			gather_action = gather_action.get("_sub_action")
+		if gather_action == null or not gather_action.has_method("get_resource_unit"):
 			continue
-		if unit.action.get_resource_unit() == null:
+		if gather_action.get_resource_unit() == null:
 			continue
 		var reference: Dictionary = (
 			rule_ai
@@ -166,7 +212,7 @@ func _collect_gathering_workers(rule_ai, worker_ids: Dictionary) -> Array:
 		)
 		var unit_id: String = str(reference.get("id", ""))
 		if worker_ids.has(unit_id):
-			result.append({"id": unit_id, "node": unit, "action": unit.action})
+			result.append({"id": unit_id, "node": unit, "action": gather_action})
 	return result
 
 
@@ -185,7 +231,9 @@ func _await_rule_ai_ready(match_instance: Node, timeout_s := 30.0):
 	var waited := 0.0
 	var rule_ai = null
 	while waited < timeout_s:
-		rule_ai = match_instance.get_node_or_null("Players/SimpleClairvoyantAI")
+		var players := match_instance.get_node("Players").get_children().filter(
+			func(player): return player.has_method("own_forces_scan"))
+		rule_ai = players[0] if not players.is_empty() else null
 		if rule_ai != null \
 				and rule_ai.get("_world_query_runtime") != null \
 				and rule_ai.get("_economy_runtime") != null:

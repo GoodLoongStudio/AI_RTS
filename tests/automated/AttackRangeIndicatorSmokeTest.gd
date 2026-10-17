@@ -60,10 +60,18 @@ func _ready():
 	turret_selection.select()
 	await get_tree().process_frame
 	_check(turret_indicator.is_range_visible(), "选中炮塔后应显示攻击范围圈")
+	# 【2026-10-01 随表面到表面射程口径更新】圈 = attack_range + 自身半径
+	# （对点目标的精确可及范围；权威判定 Unit.reach_range_against 再加目标半径）。
+	var turret_own_r: float = (
+		float(turret.body_radius()) if turret.has_method("body_radius") else 0.0
+	)
 	_check(
-		is_equal_approx(turret_indicator.get_range_radius(), float(turret.get("attack_range"))),
-		"炮塔范围圈半径应等于 attack_range（实际 %s vs %s）"
-		% [turret_indicator.get_range_radius(), turret.get("attack_range")]
+		is_equal_approx(
+			turret_indicator.get_range_radius(),
+			float(turret.get("attack_range")) + turret_own_r
+		),
+		"炮塔范围圈半径应等于 attack_range+自身半径（实际 %s vs %s+%.2f）"
+		% [turret_indicator.get_range_radius(), turret.get("attack_range"), turret_own_r]
 	)
 
 	# 2) 取消选中 → 圈消失。
@@ -77,11 +85,18 @@ func _ready():
 	tank_selection.select()
 	await get_tree().process_frame
 	_check(tank_indicator != null and tank_indicator.is_range_visible(), "选中坦克后应显示攻击范围圈")
+	# 【2026-10-01 随表面到表面射程口径更新】同上：圈 = attack_range + 自身半径。
+	var tank_own_r: float = (
+		float(tank.body_radius()) if tank.has_method("body_radius") else 0.0
+	)
 	_check(
 		tank_indicator != null and is_equal_approx(
-			tank_indicator.get_range_radius(), float(tank.get("attack_range"))
+			tank_indicator.get_range_radius(),
+			float(tank.get("attack_range")) + tank_own_r
 		),
-		"坦克范围圈半径应等于 attack_range"
+		"坦克范围圈半径应等于 attack_range+自身半径（实际 %s vs %s+%.2f）" % [
+			tank_indicator.get_range_radius() if tank_indicator != null else -1.0,
+			tank.get("attack_range"), tank_own_r]
 	)
 
 	# 4) Worker：无武器 → 选中也不显示。

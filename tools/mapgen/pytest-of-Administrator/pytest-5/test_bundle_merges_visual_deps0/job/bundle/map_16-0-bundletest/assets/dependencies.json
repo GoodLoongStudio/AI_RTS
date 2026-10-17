@@ -1,0 +1,56 @@
+{
+ "assets": [
+  {
+   "install_to": "assets/models/scifi-worlds/pack/atlas.png",
+   "res_path": "res://assets/pack/atlas.png",
+   "sha256": "dbbbd746f2a0209eb5b0c6ebe2e6c500aaf97ebb5a41b820a3508892ce001201",
+   "source_hint": "G:\\AIRTS\\AI_RTS\\tools\\mapgen\\pytest-of-Administrator\\pytest-5\\test_bundle_merges_visual_deps0\\srcroot\\assets\\pack\\atlas.png"
+  },
+  {
+   "install_to": "assets/models/scifi-worlds/pack/g3rock.fbx",
+   "res_path": "res://assets/pack/g3rock.fbx",
+   "sha256": "093765d964e446acb062ddb1eb48b2e22d75bf52fab6196af1fb6f6de2fe0223",
+   "source_hint": "G:\\AIRTS\\AI_RTS\\tools\\mapgen\\pytest-of-Administrator\\pytest-5\\test_bundle_merges_visual_deps0\\srcroot\\assets\\pack\\g3rock.fbx"
+  },
+  {
+   "install_to": "assets/models/scifi-worlds/pack/visrock.fbx",
+   "res_path": "res://assets/pack/visrock.fbx",
+   "sha256": "1a176ec7765c0dae07b8189a7357bb4d412dac504a0f32d9f6ba27ff386e56d7",
+   "source_hint": "G:\\AIRTS\\AI_RTS\\tools\\mapgen\\pytest-of-Administrator\\pytest-5\\test_bundle_merges_visual_deps0\\srcroot\\assets\\pack\\visrock.fbx"
+  }
+ ],
+ "runtime_requirements": {
+  "algo_versions": {
+   "G1": "2.0.0",
+   "G2": "7.11.0",
+   "G3": "2.2.0",
+   "G4": "2.0.0"
+  },
+  "engine_min": "4.7",
+  "godot": "4.7.1-stable_mono",
+  "note": "生成地图坡道依赖 terrain navmesh agent_max_climb>=0.3（1 voxel，cell_height=0.3）；AI_RTS Match.tscn 的 NavigationMesh_exfwj 已配套设为 0.5，崖壁 3m 台阶仍不可爬。目标工程若为 0.0 需先应用此配套。",
+  "pipeline_version": "1.1.0",
+  "terrain_navmesh_agent_max_climb": 0.5
+ },
+ "runtime_scripts": [
+  {
+   "bundled": "runtime/GeneratedTerrain.gd",
+   "install_to": "source/match/maps/generated/GeneratedTerrain.gd",
+   "res_path": "res://source/match/maps/generated/GeneratedTerrain.gd",
+   "sha256": "819d3948268fcf32e856a7f284ef6777b6d070f53cf86790fabb2d8c3f788332"
+  },
+  {
+   "bundled": "runtime/ApplyAtlas.gd",
+   "install_to": "source/match/maps/generated/ApplyAtlas.gd",
+   "res_path": "res://source/match/maps/generated/ApplyAtlas.gd",
+   "sha256": "bd6585548df175283290f7a09906f6d2b444278210eb57839425e51867c5cf51"
+  },
+  {
+   "bundled": "runtime/ridge_rock.png",
+   "install_to": "assets/models/scifi-worlds/generated/ridge_rock.png",
+   "res_path": "res://assets/models/scifi-worlds/generated/ridge_rock.png",
+   "sha256": "06782b67cd46ef0aa9d8f54ca6384640637e9314e2f5c8327fbfaaf0494f50e2"
+  }
+ ],
+ "target_project": "AI_RTS (Godot 4.7 mono)"
+}

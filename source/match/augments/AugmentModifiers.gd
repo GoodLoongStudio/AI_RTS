@@ -22,8 +22,10 @@ static func is_structure_unit(unit: Node) -> bool:
 	return unit != null and is_instance_valid(unit) and unit is Structure
 
 
-static func apply_to_unit(unit: Node, owned: Array) -> void:
-	if unit == null or not is_instance_valid(unit):
+static func apply_to_unit(unit: Node, owned: Array, preserve_current_hp := false) -> void:
+	if unit == null or not is_instance_valid(unit) or unit.is_queued_for_deletion():
+		return
+	if unit.get("hp") != null and float(unit.get("hp")) <= 0.0:
 		return
 	_ensure_baselines(unit)
 	# 成长（永久加点）倍率由 GrowthModifiers 写入 meta，这里**合并进同一次计算**：
@@ -53,7 +55,7 @@ static func apply_to_unit(unit: Node, owned: Array) -> void:
 			damage_mult *= value
 		elif effect_type == "sight_mult":
 			sight_mult *= value
-	_apply_hp(unit, hp_mult)
+	_apply_hp(unit, hp_mult, preserve_current_hp)
 	_apply_damage(unit, damage_mult)
 	_apply_sight(unit, sight_mult)
 
@@ -64,7 +66,8 @@ static func _scope_matches(unit: Node, scope: String) -> bool:
 	if scope == "structure":
 		return is_structure_unit(unit)
 	if scope == "unit":
-		return not is_structure_unit(unit)
+		return not is_structure_unit(unit) and unit.get("attack_damage") != null \
+			and float(unit.get("attack_damage")) > 0.0
 	return true
 
 
@@ -77,17 +80,24 @@ static func _ensure_baselines(unit: Node) -> void:
 		unit.set_meta(META_SIGHT, float(unit.get("sight_range")))
 
 
-static func _apply_hp(unit: Node, mult: float) -> void:
+static func _apply_hp(unit: Node, mult: float, preserve_current_hp: bool) -> void:
 	if not unit.has_meta(META_HP):
 		return
 	var base_max := float(unit.get_meta(META_HP))
 	var new_max := maxf(1.0, base_max * mult)
 	var old_max = unit.get("hp_max")
 	var old_hp = unit.get("hp")
+	if old_max != null and is_equal_approx(float(old_max), new_max):
+		return
 	unit.set("hp_max", new_max)
-	if old_max != null and old_hp != null and float(old_max) > 0.0:
-		var ratio := float(old_hp) / float(old_max)
-		unit.set("hp", maxf(1.0, new_max * ratio))
+	# Client HP belongs to NetSync; replicated cards must not heal or re-damage it.
+	if not preserve_current_hp and old_max != null and old_hp != null and float(old_max) > 0.0:
+		var ratio := clampf(float(old_hp) / float(old_max), 0.0, 1.0)
+		var new_hp := new_max * ratio
+		if unit.has_method("set_hp_without_damage"):
+			unit.set_hp_without_damage(new_hp)
+		else:
+			unit.set("hp", new_hp)
 
 
 static func _apply_damage(unit: Node, mult: float) -> void:

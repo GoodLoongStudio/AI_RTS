@@ -2,6 +2,8 @@ extends Node
 
 const AdjutantRunnerLauncher := preload("res://source/ui/AdjutantRunnerLauncher.gd")
 const AdjutantModelService := preload("res://source/ui/AdjutantModelService.gd")
+## 战略聊天适配层（2026-10-02 阶段 1）：面板到战略模型之间的唯一调用者。
+const AdjutantChatService := preload("res://source/ui/AdjutantChatService.gd")
 
 ## AI 副官按钮组：对局 HUD 右上角的"AI 接管/停止"开关 + 连通性测试
 ## + 左上角实时思考状态面板（轮询副官会话日志尾部）。
@@ -129,6 +131,20 @@ var _reserve_label: Label
 var _reserve_buttons: Array = []
 var _reserve_values := {}
 var _balance_values := {}
+
+## ---- 战略聊天（2026-10-02 阶段 1）----
+var _chat_adapter: Node = null
+var _match_node: Node = null
+var _chat_open := false
+var _chat_section: VBoxContainer = null
+var _chat_toggle_button: Button = null
+var _chat_history_box: VBoxContainer = null
+var _chat_scroll: ScrollContainer = null
+var _chat_status_label: Label = null
+var _chat_input: LineEdit = null
+var _chat_send_button: Button = null
+var _chat_last_player_text := ""
+var _chat_busy := false
 ## 同一时刻只允许一个预留请求在飞（权威通道是短连接，避免打满）。
 var _reserve_busy := false
 
@@ -345,6 +361,7 @@ func _reparent_without_sfx_noise(node: Control, new_parent: Node) -> void:
 
 
 func _install(match_node: Node) -> void:
+	_match_node = match_node
 	# 【2026-09-14 修：无头/专用服**不装**面板】专用服没有玩家、没有鼠标，装上面板只会
 	# 每 5 秒去探一堆候选端口：实测服务器日志被 `[ADJ] 权威端回复不是合法 JSON（port=24580,
 	# …）` + `Parse JSON failed` 刷屏 —— 24580 上跑的是 nginx，回的是 HTML，永远解析失败。
@@ -363,7 +380,10 @@ func _install(match_node: Node) -> void:
 	var ui_parent: Node = _container if (_container != null and is_instance_valid(_container)) else hud
 	_button = Button.new()
 	_button.text = "AI 副官：接管"
-	_button.tooltip_text = "让服务器上的 Hermes AI 全权托管本局（采集/建造/出兵/进攻）"
+	# 文案口径（2026-10-12 用户纠正）：副官跑在**本机**（langgraph runner），不是
+	# "服务器上的 Hermes"；也不是"全权托管"——玩家手动命令优先（会取消副官租约），
+	# 且随时可点「停止」。故只说它做什么 + 玩家随时能收回。
+	_button.tooltip_text = "接管本局：副官按你的指令与战况自动采集/建造/出兵/进攻（你手动操作优先，随时可停止）"
 	_button.position = Vector2(470, 8)
 	_button.z_index = 100
 	ui_parent.add_child(_button)
@@ -417,6 +437,12 @@ func _install(match_node: Node) -> void:
 	vbox.add_child(_reason_label)
 	vbox.add_child(_result_label)
 	_build_reserve_row(vbox)
+	# 【2026-10-06 用户要求：现在不要战略讨论】实验开关关闭 ⇒ 不构建聊天区 ✓（代码保留 ✓ 可一键恢复）
+	if _strategic_chat_enabled():
+		_build_chat_section(vbox)
+	# 暂停时聊天照常：面板子树（含输入框/滚动）不被 tree.pause 冻结。
+	# 只影响这个面板子树，不改变战斗模拟的暂停行为（模拟在 Match 子树）。
+	_panel.process_mode = Node.PROCESS_MODE_ALWAYS
 	ui_parent.add_child(_panel)
 	_set_panel_texts(PANEL_IDLE, PANEL_DASH, PANEL_DASH, PANEL_DASH)
 	_reserve_label.text = "预留：等待对局"
@@ -537,10 +563,17 @@ func _start_local_runner() -> void:
 	# 【端口必须先解析再起 runner】用配置里那个死值起 runner，是"面板连对了、副官却在
 	# 指挥另一局/连不上"的根因：面板和 runner 必须**对准同一个权威口**。
 	var authority_port := await _ensure_authority_port()
+	# 【2026-10-12 多开修复】本进程 DCS 的**实际**监听端口才是"本局"的权威口。
+	# 多开时另一个实例占着 24579，本进程 DCS 会回退到 dynamic 段端口；此时按候选
+	# 端口探测会连到**别人的局**，表现为"链路正常（runner 活着）但副官尚未接管本局"
+	#（2026-10-12 用户实机复现）。本进程端口无条件优先于探测结果。
+	var local_dcs_port := AdjutantRunnerLauncher.local_dcs_port()
+	if local_dcs_port > 0:
+		authority_port = local_dcs_port
 	if authority_port <= 0:
 		authority_port = int(cfg["authority_port"])
 		push_warning("[ADJ] 没探测到在跑的权威端，按配置端口 %d 启动 runner" % authority_port)
-	var log_dir := ProjectSettings.globalize_path(RUNNER_LOG_DIR)
+	var log_dir := AdjutantRunnerLauncher.log_dir()
 	DirAccess.make_dir_recursive_absolute(log_dir)
 	# ⚠**不要**在这里放 `-m adjutant_coordinator.deploy.agent_runner`：引导文件已经
 	# `from ... import main` 直接调用了，这两个参数会被 runner 自己的 argparse 当成
@@ -575,7 +608,7 @@ func _start_local_runner() -> void:
 	#      （源码里含 JSON 双引号）→ 子进程秒退、且**看不到任何输出**（GUI 父进程不转发）。
 	# 现在改为：把引导源码**写成文件**，只把文件路径作为唯一参数传给 python
 	# （不含空格/引号的路径参数不需要转义）——这是同类问题里唯一"不会再犯"的形态。
-	var bootstrap_path := ProjectSettings.globalize_path(RUNNER_LOG_DIR).path_join(
+	var bootstrap_path := AdjutantRunnerLauncher.log_dir().path_join(
 		"runner_bootstrap.py")
 	var bootstrap_file := FileAccess.open(bootstrap_path, FileAccess.WRITE)
 	if bootstrap_file == null:
@@ -630,6 +663,11 @@ func _stop_local_runner() -> void:
 
 
 func _exit_tree() -> void:
+	# 【2026-10-04 P0-2】退出时释放战略聊天适配层（取消在途 HTTP）。
+	if _chat_adapter != null and is_instance_valid(_chat_adapter):
+		_chat_adapter.cancel_pending()
+		_chat_adapter.queue_free()
+		_chat_adapter = null
 	# 只结束**本次会话创建**的 runner（避免留孤儿进程占端口）；
 	# 认领来的外部 runner 不是我们起的，退出对局时**不杀**。
 	if _runner_owned and _runner_pid > 0:
@@ -738,7 +776,7 @@ func _poll_tail() -> void:
 
 ## 读本机 runner 日志目录里最新的 jsonl，取最后若干行原始文本。
 func _read_local_runner_tail() -> Array:
-	var dir_path := ProjectSettings.globalize_path(RUNNER_LOG_DIR)
+	var dir_path := AdjutantRunnerLauncher.log_dir()
 	var dir := DirAccess.open(dir_path)
 	if dir == null:
 		return []
@@ -781,7 +819,7 @@ func _read_local_runner_tail() -> Array:
 ## 为什么不用"扫目录 + tail 事件 jsonl"：实测在游戏进程里读出来是空的（同一文件
 ## 外部工具读得到），而它只是表现层，不值得为它继续深挖 —— 一个单行文件最小、最稳。
 func _read_hud_status() -> Dictionary:
-	return _read_hud_status_in(ProjectSettings.globalize_path(RUNNER_LOG_DIR))
+	return _read_hud_status_in(AdjutantRunnerLauncher.log_dir())
 
 
 ## 读**指定目录**里的 hud_status.json（单行 JSON：阶段/在想什么/为什么/结果/目标/单位数）。
@@ -814,7 +852,7 @@ func _own_hud_dirs() -> Array:
 	var overridden := AdjutantRunnerLauncher.log_dir()
 	if not overridden.is_empty() and not dirs.has(overridden):
 		dirs.append(overridden)
-	var default_dir := ProjectSettings.globalize_path(RUNNER_LOG_DIR)
+	var default_dir := AdjutantRunnerLauncher.log_dir()
 	if not default_dir.is_empty() and not dirs.has(default_dir):
 		dirs.append(default_dir)
 	return dirs
@@ -994,7 +1032,7 @@ func _apply_hud_status(status: Dictionary, state_prefix := "", result_note := ""
 ## 存在的意义就是"不许猜"：2026-09-11 面板正文长期停在兜底文案，
 ## 靠它把目录是否可打开、有几个 jsonl、能否打开最新那个一次性钉死。
 func _tail_diag() -> String:
-	var dir_path := ProjectSettings.globalize_path(RUNNER_LOG_DIR)
+	var dir_path := AdjutantRunnerLauncher.log_dir()
 	var text := ""
 	var dir := DirAccess.open(dir_path)
 	if dir == null:
@@ -1175,7 +1213,7 @@ func _query_status_inner() -> void:
 ## 删掉"上一局残留"的握手文件（仅当文件内容仍等于 `expected_pid` 时才删，绝不误删别人的）。
 ## 返回是否真的删掉了。
 func _clear_stale_pidfile(expected_pid: int) -> bool:
-	var path := ProjectSettings.globalize_path(RUNNER_LOG_DIR).path_join("agent_runner.pid")
+	var path := AdjutantRunnerLauncher.log_dir().path_join("agent_runner.pid")
 	if not FileAccess.file_exists(path):
 		return false
 	if _read_runner_pidfile() != expected_pid:
@@ -1372,7 +1410,7 @@ func _own_unit_names() -> Dictionary:
 ## 会把所有外部 runner 全部拒之门外 —— 这正是此前"永远尚未启动"的写法）。
 ## 返回 0 表示没有可认领的 runner。
 func _read_runner_pidfile() -> int:
-	var path := ProjectSettings.globalize_path(RUNNER_LOG_DIR).path_join("agent_runner.pid")
+	var path := AdjutantRunnerLauncher.log_dir().path_join("agent_runner.pid")
 	if not FileAccess.file_exists(path):
 		return 0
 	var fh := FileAccess.open(path, FileAccess.READ)
@@ -1390,7 +1428,7 @@ func _read_runner_pidfile() -> int:
 ## 取该目录里最新 `*.jsonl` 的修改时间，超过 `LIVENESS_FRESH_SECONDS` 视为已停。
 ## 为什么用"心跳"而不是 pid 存活：见 `_query_status` 的实测结论。
 func _runner_heartbeat_fresh() -> bool:
-	var dir_path := ProjectSettings.globalize_path(RUNNER_LOG_DIR)
+	var dir_path := AdjutantRunnerLauncher.log_dir()
 	var dir := DirAccess.open(dir_path)
 	if dir == null:
 		return false
@@ -1450,12 +1488,26 @@ func _find_agent_hud() -> Node:
 
 ## HUD 标题文案：与面板标题同一份 state（唯一口径，别处不许自己拼）。
 func _hud_state_text(state: String) -> String:
+	# 【2026-10-03 复核第 4 项】"副官尚未启动"与"战略聊天可用"是两件事：
+	# 指挥接管（runner/模型指挥）≠ 战略聊天（本地模型直接对话，无需 runner）。
+	if not _active:
+		var chat_ready: bool = AdjutantModelService.is_ready()
+		if chat_ready:
+			return "● 副官未接管（战略聊天可用：展开下方聊天区）"
+		if AdjutantModelService.is_warming():
+			return "● 副官未接管（战略模型启动中…）"
 	return ("● 副官%s" % state) if _active else "● 副官尚未启动"
 
 
 func _update_status_line() -> void:
 	var engine_label: String = {"langgraph": "LangGraph", "hermes": "Hermes"}.get(_engine, _engine)
 	var state := "运行中" if _active else "已停止"
+	# 【2026-10-04 复核第 3 项】未接管但模型就绪 → 标题含"战略聊天可用"。
+	# 与 _hud_state_text 的"副官未接管"区分：标题给玩家看，必须一眼看到聊天能用。
+	if not _active and AdjutantModelService.is_ready():
+		state = "已停止（战略聊天可用）"
+	elif not _active and AdjutantModelService.is_warming():
+		state = "启动中（战略模型预热中…）"
 	# 【2026-09-15】本面板刚起的 runner 在挂上对局前（冷启动 30~65 秒）如实显示"启动中"，
 	# 而不是先报"运行中"让人以为已经在指挥（实测这一分钟里玩家会以为副官坏了）。
 	if _active and _runner_owned and not _runner_heartbeat_fresh():
@@ -1495,6 +1547,10 @@ func _update_status_line() -> void:
 func current_state_text() -> String:
 	var engine_label: String = {"langgraph": "LangGraph", "hermes": "Hermes"}.get(_engine, _engine)
 	var state := "运行中" if _active else "已停止"
+	if not _active and AdjutantModelService.is_ready():
+		state = "已停止（战略聊天可用）"
+	elif not _active and AdjutantModelService.is_warming():
+		state = "启动中（战略模型预热中…）"
 	if _active and _runner_owned and not _runner_heartbeat_fresh():
 		state = "启动中（等待挂上对局…）"
 	elif _active and _external_runner:
@@ -1866,63 +1922,88 @@ func _authority_call(payload: Dictionary) -> Dictionary:
 	return await _tcp_json(port, payload)
 
 
+## 响应读取总时限（秒）：原合同值。分包/慢到不放宽（2026-10-11 明确保留）。
+const AUTHORITY_RESPONSE_DEADLINE_S := 1.0
+## 连接建立时限（秒）：原合同值。
+const AUTHORITY_CONNECT_DEADLINE_S := 0.5
+## 响应正文上限（字节，**含末尾换行**）：与服务端 `TCP_RESPONSE_LIMIT` 对齐
+## （source/net/DebugControlServer.gd:50）。超限声明显式失败，不按声明无界分配。
+const AUTHORITY_RESPONSE_BODY_LIMIT := 1048576
+
+
 ## 裸 TCP 一问一答（带端口参数）。`_authority_call` 解析完端口后走这里。
+##
+## 协议（与 source/net/DebugControlServer.gd 输出端一致）：
+##   请求：UTF-8 JSON + 换行；
+##   回应：4 字节小端 u32 正文长度 + 指定长度的 UTF-8 JSON 正文。
+##   长度**包含**服务端追加的末尾换行；该换行**不是**接收完成判据。
+##
+## 【2026-10-11 解帧根因】旧实现在 raw 中发现任意 0x0A 就停止收包，与长度帧协议
+## 冲突：长度前缀本身就可能含 0x0A（266 → `0A 01 00 00`，65546 → `0A 00 01 00`），
+## 头/首片一到就提前结束、永不剥前缀 → JSON 解析失败（面板读不到权威端）。
+## 现在：先攒够 4 字节 → 读 declared_length（越界即失败）→ 收满 declared_length
+## 字节才算完成；截断帧显式失败，绝不回退成"可能是裸 JSON"。
+## 保留 2026-09-13 的教训：按**字节**攒、完整正文只解码一次 UTF-8（中文码点跨包安全）。
 func _tcp_json(port: int, payload: Dictionary) -> Dictionary:
 	var peer := StreamPeerTCP.new()
 	if peer.connect_to_host(AUTHORITY_HOST, port) != OK:
 		return {}
-	var waited := 0.0
-	while waited < 0.5:
+	# 连接建立：单调墙钟 deadline（原 0.5s 合同），不忙等。
+	var connect_deadline_ms := Time.get_ticks_msec() + int(AUTHORITY_CONNECT_DEADLINE_S * 1000.0)
+	while Time.get_ticks_msec() < connect_deadline_ms:
 		peer.poll()
 		if peer.get_status() != StreamPeerTCP.STATUS_CONNECTING:
 			break
 		await get_tree().create_timer(0.02).timeout
-		waited += 0.02
 	peer.poll()
 	if peer.get_status() != StreamPeerTCP.STATUS_CONNECTED:
 		peer.disconnect_from_host()
 		return {}
-	peer.put_data((JSON.stringify(payload) + "\n").to_utf8_buffer())
-	# 【必须按**字节**攒，见到换行再整体解码】（2026-09-13 实测根因）
-	#
-	# 原写法 `buffer += peer.get_utf8_string(available)` 是按**每次 TCP 分片**解码的：
-	# 回复里带中文时，一个多字节字符很容易被切在两个分片之间，Godot 直接报
-	# `Unicode parsing error: Byte 4 is not a correct continuation byte`，
-	# 拼出来的字符串也成了乱码 → `JSON.parse_string` 失败 → 面板**永远读不到权威端数据**
-	# （实测客户端日志里这类报错刷屏，面板就一直显示"副官尚未启动"，哪怕副官正在指挥）。
-	# 修法：字节进 `PackedByteArray`，找 0x0A 判行尾，最后 `get_string_from_utf8()` 解一次。
+	var sent = peer.put_data((JSON.stringify(payload) + "\n").to_utf8_buffer())
+	if sent != OK:
+		# 发送失败 = 请求状态未知；这不是"命令未执行"的证明（无回执、不重放）。
+		peer.disconnect_from_host()
+		return {}
+	# 接收完成只以"收满 declared_length 字节"判定；头/正文跨任意 TCP 分片均合法。
+	# 超时用**单调墙钟** deadline（不随帧率漂移，也不因每收一字节而延期）。
+	var deadline_ms := Time.get_ticks_msec() + int(AUTHORITY_RESPONSE_DEADLINE_S * 1000.0)
 	var raw := PackedByteArray()
-	waited = 0.0
-	while waited < 1.0:
+	var declared := -1
+	var complete := false
+	while Time.get_ticks_msec() < deadline_ms:
 		await get_tree().create_timer(0.02).timeout
 		peer.poll()
+		if peer.get_status() != StreamPeerTCP.STATUS_CONNECTED:
+			break  # EOF/RST：显式失败（不把截断内容当响应）
 		var available := peer.get_available_bytes()
 		if available > 0:
 			var chunk = peer.get_data(available)
 			if chunk[0] == OK:
 				raw.append_array(chunk[1])
-			if raw.find(10) >= 0:
-				break
-		waited += 0.02
+		if declared < 0 and raw.size() >= 4:
+			declared = raw.decode_u32(0)
+			if declared <= 0 or declared > AUTHORITY_RESPONSE_BODY_LIMIT:
+				# 非法/超限声明：失败并释放连接（不按声明无界分配）。
+				push_warning("[ADJ] 权威端长度帧声明非法（port=%d, declared=%d, 上限=%d）"
+					% [port, declared, AUTHORITY_RESPONSE_BODY_LIMIT])
+				peer.disconnect_from_host()
+				return {}
+		if declared > 0 and raw.size() >= 4 + declared:
+			complete = true
+			break
 	peer.disconnect_from_host()
-	# 【关键：剥掉 4 字节小端长度前缀】权威端的回复帧是 `[u32 长度][JSON 字节]`
-	# （实测十六进制：`e5010000 7b2262616c616e636522...` = 489 字节 + `{"balance":...`）。
-	# 不剥前缀直接 UTF-8 解码 → 前缀字节解出替换字符 → `Parse JSON failed` →
-	# 面板**永远读不到权威端数据**（历史上"副官在指挥、面板说尚未启动"的最终根因）。
-	# 判据：前缀声明的长度 + 4 必须落在实际收到的字节数之内（否则当成没有前缀）。
-	var body := raw
-	if raw.size() > 4:
-		var declared := raw.decode_u32(0)
-		if declared > 0 and declared + 4 <= raw.size():
-			body = raw.slice(4, 4 + declared)
-	var text := body.get_string_from_utf8().strip_edges()
-	var parsed = JSON.parse_string(text)
-	if parsed == null and not text.is_empty():
-		# 解析失败时把收到的原文与原始字节打出来（截断）：否则只看到 "Parse JSON failed"，
-		# 分不清"端口连错/协议带前缀/被切断"（2026-09-13 排查正是卡在这里才挖到前缀）。
-		push_warning("[ADJ] 权威端回复不是合法 JSON（port=%d, %d 字节）：%s"
-			% [port, raw.size(), text.substr(0, 120)])
-		push_warning("[ADJ] 原始字节：%s" % raw.slice(0, 24).hex_encode())
+	if not complete:
+		push_warning("[ADJ] 权威端响应未完整到达（port=%d, 已收 %d 字节, declared=%d）"
+			% [port, raw.size(), declared])
+		return {}
+	# 完整正文只解码一次 UTF-8；坏报文是通信失败，不应触发引擎解析错误。
+	var text := raw.slice(4, 4 + declared).get_string_from_utf8()
+	var parser := JSON.new()
+	if parser.parse(text.strip_edges()) != OK:
+		push_warning("[ADJ] 权威端回复不是合法 JSON（port=%d, %d 字节，line=%d）"
+			% [port, declared, parser.get_error_line()])
+		return {}
+	var parsed = parser.data
 	return parsed if parsed is Dictionary else {}
 
 
@@ -1953,3 +2034,320 @@ func _set_panel_texts(state_text: String, action_text: String, why_text: String,
 	_result_label.text = "执行结果：%s" % result_text
 
 # __write_probe__
+
+
+## ---------------- 战略聊天（2026-10-02 阶段 1）----------------
+
+## 在现有副官面板里加可折叠聊天区。全部控件挂在 _panel 的 vbox 下，
+## 随面板一起被"岚"容器 reparent，不新增第二个配置探测/模型端点来源。
+## 实验开关：局内战略聊天是否启用 ✓（默认关闭 ⇒ 面板不出现聊天区 ✓）
+func _strategic_chat_enabled() -> bool:
+	var flags := get_node_or_null("/root/FeatureFlags")
+	return flags != null and bool(flags.get("strategic_chat_enabled"))
+
+
+func _build_chat_section(vbox: VBoxContainer) -> void:
+	_chat_toggle_button = Button.new()
+	_chat_toggle_button.text = "▶ 战略聊天（只讨论战略，不执行命令）"
+	_chat_toggle_button.add_theme_font_size_override("font_size", 12)
+	_chat_toggle_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_chat_toggle_button.pressed.connect(_toggle_chat)
+	vbox.add_child(_chat_toggle_button)
+
+	_chat_section = VBoxContainer.new()
+	_chat_section.visible = false
+	vbox.add_child(_chat_section)
+
+	var conv_label := Label.new()
+	conv_label.name = "ChatConversation"
+	conv_label.add_theme_font_size_override("font_size", 10)
+	conv_label.add_theme_color_override("font_color", Color(0.6, 0.7, 0.8))
+	conv_label.text = "会话：待进入对局"
+	_chat_section.add_child(conv_label)
+
+	_chat_scroll = ScrollContainer.new()
+	_chat_scroll.custom_minimum_size = Vector2(264, 130)
+	_chat_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_chat_section.add_child(_chat_scroll)
+	_chat_history_box = VBoxContainer.new()
+	_chat_history_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_chat_history_box.add_theme_constant_override("separation", 2)
+	_chat_scroll.add_child(_chat_history_box)
+	_append_chat_line("副官", "本阶段我只讨论战略（目标/风险/取舍），不会执行任何战斗命令。", Color(0.3, 0.85, 1.0))
+
+	_chat_status_label = Label.new()
+	_chat_status_label.add_theme_font_size_override("font_size", 11)
+	_chat_status_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.6))
+	_chat_status_label.text = "未连接（发送后自动连接本地战略模型）"
+	_chat_section.add_child(_chat_status_label)
+
+	var input_row := HBoxContainer.new()
+	input_row.add_theme_constant_override("separation", 4)
+	_chat_section.add_child(input_row)
+	_chat_input = LineEdit.new()
+	_chat_input.placeholder_text = "输入战略问题…"
+	_chat_input.custom_minimum_size = Vector2(190, 0)
+	_chat_input.add_theme_font_size_override("font_size", 12)
+	_chat_input.text_submitted.connect(func(_text): _on_chat_send_pressed())
+	# 打字期间屏蔽全局快捷键（从当前对局取输入模式运行时；与旧"对岚说"条同机制）。
+	var input_runtime: Node = _match_node.get_node_or_null("InputBindingRuntime")
+	if input_runtime != null:
+		_chat_input.focus_entered.connect(input_runtime.EnterTextInputMode)
+		_chat_input.focus_exited.connect(input_runtime.ExitTextInputMode)
+	input_row.add_child(_chat_input)
+	_chat_send_button = Button.new()
+	_chat_send_button.text = "发送"
+	_chat_send_button.add_theme_font_size_override("font_size", 12)
+	_chat_send_button.pressed.connect(_on_chat_send_pressed)
+	input_row.add_child(_chat_send_button)
+
+	# 适配层：面板到战略模型之间的唯一调用者（模型端点/提示词/日志都住在它里面）。
+	# 【2026-10-04 P0-2】释放旧适配层（含取消在途 HTTP、断开信号）：
+	# 不释放的话旧迟到回复会写入新局界面，且旧实例泄漏（复核 P0-2）。
+	if _chat_adapter != null and is_instance_valid(_chat_adapter):
+		_chat_adapter.cancel_pending()
+		_chat_adapter.reply_ready.disconnect(_on_chat_reply)
+		_chat_adapter.queue_free()
+	_chat_adapter = null
+	_chat_adapter = AdjutantChatService.new()
+	add_child(_chat_adapter)
+	_chat_adapter.reply_ready.connect(_on_chat_reply)
+	# 聊天路径的模型服务自动保障（非阻塞）：没有 runner 也要让"战略聊天可用"状态机跑起来。
+	AdjutantModelService.ensure_started(self)
+	_chat_adapter.model_confirmed_ready.connect(func(_model): _update_status_line())
+	# 紧凑战局摘要（只读，一行）：资源/己方单位计数/可见敌情/模拟时间。
+	# 阶段 1 口径：只有稳定只读来源，没有的维度宁可不说（适配层会标"当前状态不可用"）。
+	_chat_adapter.context_provider = Callable(self, "_compact_game_summary")
+	_chat_reset_for_match()
+
+
+## 换局/重装时重置会话（新 conversation_id，不清空屏幕历史但标记上局已结束）。
+func _chat_reset_for_match() -> void:
+	var match_key := "match-%d" % abs(hash(str(get_tree().current_scene.get_path()))) 		if get_tree().current_scene != null else "match-0"
+	var player_name := str(_local_player_cache) if not str(_local_player_cache).is_empty() else "local_player"
+	_chat_adapter.setup(match_key, player_name)
+	if _chat_status_label != null:
+		_chat_status_label.text = "未连接（发送后自动连接本地战略模型）"
+	_refresh_conv_caption()
+
+
+func _refresh_conv_caption() -> void:
+	var conv = _chat_section.find_child("ChatConversation", true, false)
+	if conv != null:
+		conv.text = "会话 %s · 对局 %s" % [_chat_adapter.conversation_id, _chat_adapter.match_id]
+
+
+func _toggle_chat() -> void:
+	_chat_open = not _chat_open
+	_chat_section.visible = _chat_open
+	_chat_toggle_button.text = ("▼ 战略聊天（只讨论战略，不执行命令）"
+		if _chat_open else "▶ 战略聊天（只讨论战略，不执行命令）")
+
+
+## 发送（按钮/回车）。在途时按钮与输入框都已禁用，这里再挡一层（防编程重复触发）。
+func _on_chat_send_pressed() -> void:
+	if _chat_busy or _chat_adapter == null:
+		return
+	var text: String = _chat_input.text
+	var result: Dictionary = _chat_adapter.send(text)
+	if not bool(result.get("queued", false)):
+		_set_chat_status(_chat_adapter.error_text(str(result.get("error_code", ""))))
+		return
+	_chat_busy = true
+	_chat_last_player_text = text.strip_edges()
+	_chat_input.clear()
+	_chat_input.editable = false
+	_chat_send_button.disabled = true
+	_append_chat_line("你", _chat_last_player_text, Color.WHITE)
+	_set_chat_status("等待战略层…（本地模型，通常几秒到半分钟）")
+
+
+## 适配层异步回包（成功/失败同一信号）。迟到响应已被适配层按 request_id 丢弃，
+## 这里只会收到当前请求的结果。
+func _on_chat_reply(result: Dictionary) -> void:
+	# 【2026-10-04 P0-2】迟到/旧局回复守门：conversation_id 必须匹配当前适配层。
+	var reply_conv: String = str(result.get("conversation_id", ""))
+	if _chat_adapter != null and is_instance_valid(_chat_adapter) 			and not reply_conv.is_empty() and reply_conv != _chat_adapter.conversation_id:
+		return
+	_chat_busy = false
+	_chat_input.editable = true
+	_chat_send_button.disabled = false
+	# 【2026-10-04 复核第 3 项】每次回复后立刻刷新标题——否则模型服务状态变了
+	# 但标题要等 5 秒 tail timer 才更新，玩家在窗口期看到"副官尚未启动"+成功回复并存。
+	_update_status_line()
+	var elapsed_ms: int = int(result.get("elapsed_ms", 0))
+	if bool(result.get("ok", false)):
+		_append_chat_line("副官", str(result.get("assistant_text", "")), Color(0.3, 0.85, 1.0))
+		_set_chat_status("已回复（%.1fs · %s）" % [elapsed_ms / 1000.0, str(result.get("model", ""))])
+		return
+	# 失败：明确显示错误/降级，保留上一句玩家输入供一键重发。
+	var error_code := str(result.get("error_code", ""))
+	_set_chat_status("错误：%s" % _chat_adapter.error_text(error_code))
+	_chat_input.text = _chat_last_player_text
+	_append_chat_line("系统", "（战略层没有回复：%s）" % _chat_adapter.error_text(error_code),
+		Color(1.0, 0.55, 0.4))
+
+
+## 紧凑战局摘要 provider（只读一行，≤240 字符）：给战略聊天的上下文。
+## 只报告聊天适配层能稳定拿到的对局事实；缺失维度不编造。
+func _compact_game_summary() -> String:
+	var match_node: Node = get_tree().current_scene
+	if match_node == null or not match_node.name.begins_with("Match"):
+		return ""
+	var player: Node = match_node.get_node_or_null("Players/Human")
+	if player == null:
+		player = match_node.get_node_or_null("Players").get_children()[0] 			if match_node.has_node("Players") and match_node.get_node("Players").get_child_count() > 0 			else null
+	if player == null:
+		return ""
+	var units := {}
+	var enemy_visible := 0
+	for u in get_tree().get_nodes_in_group("units"):
+		if not is_instance_valid(u) or u.get_parent() != player:
+			continue
+		var t := str(u.get("unit_type_id"))
+		if t == "<null>":
+			continue
+		units[t] = int(units.get(t, 0)) + 1
+	var my_count := 0
+	for k in units:
+		my_count += int(units[k])
+	for u in get_tree().get_nodes_in_group("adversary_units"):
+		if is_instance_valid(u) and u.is_inside_tree() and u.visible:
+			enemy_visible += 1
+	var clock: Node = match_node.get_node_or_null("SimulationClock")
+	var minutes := 0.0
+	if clock != null:
+		minutes = clock.get_msec() / 60000.0
+	var res_a: Variant = player.get("resource_a")
+	var parts: Array = ["时间%.1f分 资源A=%s 己方单位=%d" % [
+		minutes, str(res_a) if res_a != null else "?", my_count]]
+	if not units.is_empty():
+		var detail: Array = []
+		for k in units:
+			detail.append("%s×%d" % [k, units[k]])
+		parts.append("构成：" + ",".join(detail))
+	parts.append("视野内敌人=%d" % enemy_visible)
+	# 敌我态势：以我方部队重心为原点的八方位+距离（玩家口头惯用的"北/东"口径）
+	var enemy_detail := _enemy_posture_text(player)
+	if not enemy_detail.is_empty():
+		parts.append("敌情：" + enemy_detail)
+	var ranges := _weapon_range_text()
+	if not ranges.is_empty():
+		parts.append("射程：" + ranges)
+	var summary: String = "；".join(parts)
+	return summary.substr(0, 400)
+
+
+## 八方位口径：把相对方向转成玩家口头惯用的"北/东北/东…"。
+func _compass_direction(offset: Vector2) -> String:
+	var angle := rad_to_deg(atan2(offset.x, -offset.y))  # 0°=北(+Z 反向即 -Z 为北)，顺时针
+	if angle < 0.0:
+		angle += 360.0
+	var names := ["北", "东北", "东", "东南", "南", "西南", "西", "西北"]
+	return names[int((angle + 22.5) / 45.0) % 8]
+
+
+## 视野内敌人的方位/距离态势（只读；距离按最近己方单位算）。
+func _enemy_posture_text(player: Node) -> String:
+	var mine_positions: Array = []
+	for u in get_tree().get_nodes_in_group("units"):
+		if is_instance_valid(u) and u.get_parent() == player and u.is_inside_tree():
+			mine_positions.append((u as Node3D).global_position)
+	if mine_positions.is_empty():
+		return ""
+	var by_type := {}
+	for u in get_tree().get_nodes_in_group("adversary_units"):
+		if not is_instance_valid(u) or not u.is_inside_tree() or not u.visible:
+			continue
+		var t := str(u.get("unit_type_id"))
+		var pos: Vector3 = (u as Node3D).global_position
+		var nearest := INF
+		for mp in mine_positions:
+			nearest = minf(nearest, Vector2(pos.x - mp.x, pos.z - mp.z).length())
+		var key := "%s" % t
+		if not by_type.has(key):
+			by_type[key] = {"count": 0, "dist": nearest}
+		by_type[key]["count"] = int(by_type[key]["count"]) + 1
+		by_type[key]["dist"] = minf(float(by_type[key]["dist"]), nearest)
+	var parts: Array = []
+	for key in by_type:
+		var info: Dictionary = by_type[key]
+		var sample_pos := Vector3.ZERO
+		for u in get_tree().get_nodes_in_group("adversary_units"):
+			if is_instance_valid(u) and u.is_inside_tree() and u.visible 					and str(u.get("unit_type_id")) == key:
+				sample_pos = (u as Node3D).global_position
+				break
+		var anchor: Vector3 = mine_positions[0]
+		var dir := _compass_direction(Vector2(
+			sample_pos.x - anchor.x, sample_pos.z - anchor.z))
+		parts.append("%s×%d（%s向 %.0fm）" % [key, int(info["count"]), dir, float(info["dist"])])
+	return "；".join(parts)
+
+
+## 关键武器射程（静态，读一次平衡 JSON 后缓存；玩家问"打得着吗"时的硬数据）。
+var _range_text_cache := ""
+
+func _weapon_range_text() -> String:
+	if not _range_text_cache.is_empty():
+		return _range_text_cache
+	var handle := FileAccess.open("res://config/balance/demo.balance.v1.json", FileAccess.READ)
+	if handle == null:
+		return ""
+	var parsed = JSON.parse_string(handle.get_as_text())
+	handle.close()
+	if not parsed is Dictionary:
+		return ""
+	var weapons := {}
+	for w in (parsed as Dictionary).get("weapons", []):
+		weapons[w.get("id")] = float(w.get("rangeMeters", 0.0))
+	var unit_names := {"tank": "坦克", "heavy_tank": "重坦", "soldier": "步兵",
+		"sniper": "狙击", "rocketeer": "火箭", "anti_ground_turret": "对地塔",
+		"anti_air_turret": "对空塔", "machine_gun_turret": "机枪塔", "helicopter": "直升机",
+		"apc": "装甲车"}
+	var out: Array = []
+	for ut in (parsed as Dictionary).get("unitTypes", []):
+		var uid := str(ut.get("id", ""))
+		if not unit_names.has(uid):
+			continue
+		var wids = ut.get("weaponIds", [])
+		if wids.is_empty():
+			continue
+		var r: float = float(weapons.get(str(wids[0]), 0.0))
+		if r > 0.0:
+			out.append("%s%.1fm" % [unit_names[uid], r])
+	var ranges := "、".join(out)
+	_range_text_cache = ranges
+	return ranges
+
+
+## 热键 legacy.chat_focus 的落点：展开聊天区并聚焦输入框（AICommandHUD 路由到这里）。
+func focus_strategic_chat() -> void:
+	if _chat_adapter == null:
+		return
+	if not _chat_open:
+		_toggle_chat()
+	if _chat_input != null and is_instance_valid(_chat_input):
+		_chat_input.grab_focus()
+
+
+## 状态行文案（未连接/连接中/等待战略层/已回复/超时/错误/已降级 都走这里，单一来源）。
+func _set_chat_status(text: String) -> void:
+	if _chat_status_label != null:
+		_chat_status_label.text = text
+
+
+func _append_chat_line(sender: String, text: String, color: Color) -> void:
+	if _chat_history_box == null:
+		return
+	var label := RichTextLabel.new()
+	label.bbcode_enabled = false
+	label.fit_content = true
+	label.scroll_active = false
+	label.custom_minimum_size = Vector2(250, 0)
+	label.add_theme_font_size_override("normal_font_size", 12)
+	label.text = "%s：%s" % [sender, text]
+	label.add_theme_color_override("default_color", color)
+	_chat_history_box.add_child(label)
+	await get_tree().process_frame
+	if _chat_scroll != null and is_instance_valid(_chat_scroll):
+		_chat_scroll.scroll_vertical = int(_chat_scroll.get_v_scroll_bar().max_value)

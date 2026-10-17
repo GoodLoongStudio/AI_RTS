@@ -1,0 +1,2 @@
+[rule-ai-offense-logistics] rc=1 marker_ok=False fails=0 secs=15.6
+DONE 1 tests, 1 red

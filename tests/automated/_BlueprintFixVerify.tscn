@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tests/automated/_BlueprintFixVerify.gd" id="1_bf"]
+
+[node name="BlueprintFixVerify" type="Node"]
+script = ExtResource("1_bf")

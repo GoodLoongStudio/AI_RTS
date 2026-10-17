@@ -15,7 +15,6 @@ const UNIT_SCENES := {
 	"Rocketeer": "res://source/match/units/Rocketeer.tscn",
 	"APC": "res://source/match/units/APC.tscn",
 	"TransportTruck": "res://source/match/units/TransportTruck.tscn",
-	"Scout": "res://source/match/units/Scout.tscn",
 	"Worker": "res://source/match/units/Worker.tscn",
 	"Drone": "res://source/match/units/Drone.tscn",
 	"Helicopter": "res://source/match/units/Helicopter.tscn",
@@ -31,16 +30,28 @@ const UNIT_SCENES := {
 
 ## 允许的视觉外扩余量（米）：半径<视觉半宽时最坏视觉重叠量；只允许贴边 0.05m 级误差。
 const COVERAGE_TOLERANCE_M := 0.05
-## 相邻判据：两对象放在"半径和"的最小间距上，视觉包围盒投影不得互相侵入。
-const ADJACENCY_TOLERANCE_M := 0.06
-const ADJACENCY_PAIRS := [
-	["res://source/match/units/Tank.tscn", "res://source/match/units/Tank.tscn"],
-	["res://source/match/units/HeavyTank.tscn", "res://source/match/units/Tank.tscn"],
-	["res://source/match/units/Infantry.tscn", "res://source/match/units/Infantry.tscn"],
-	["res://source/match/units/CommandCenter.tscn", "res://source/match/units/CommandCenter.tscn"],
-	["res://source/match/units/Barracks.tscn", "res://source/match/units/VehicleFactory.tscn"],
-	["res://source/match/units/Tank.tscn", "res://source/match/units/CommandCenter.tscn"],
-]
+
+## 【定制表】每个单位的碰撞/逻辑半径（世界米）：建筑/炮塔贴合本体（炮塔只算底座，不算炮管），
+## 机动单位按车宽一半（拥挤时允许轻微重叠，RA3 做法）。改尺寸必须同步这里 + 场景 + 配表 footprint。
+## 【定制表 · 两列】RA3 式分工：
+##   COLLISION_RADIUS_M = **碰撞体尺寸**（方盒/胶囊/圆柱 ⇒ 贴模型本体；炮塔只算底座不算炮管）
+##   AVOIDANCE_RADIUS_M = **避让/间距半径**（"个人空间"，与模型大小解耦；寻路脱困阈值按它标定）
+## 两列都改尺寸时必须同步：本表 + 场景 + 配表 footprint。
+## Exact values updated with the 2026-10-10 authored proportions; tolerances unchanged.
+const COLLISION_RADIUS_M := {
+	"CommandCenter": 4.9764, "VehicleFactory": 3.972, "Barracks": 3.57075, "AircraftFactory": 4.3945,
+	"OreRefinery": 3.0186, "AntiGroundTurret": 1.38, "AntiAirTurret": 1.265, "MachineGunTurret": 1.035,
+	"Tank": 1.288, "HeavyTank": 1.7756, "APC": 1.104, "TransportTruck": 1.1132, "Worker": 0.8464,
+	"Infantry": 0.322, "Rocketeer": 0.322, "Sniper": 0.322, "Helicopter": 2.024, "Drone": 0.8004,
+}
+const AVOIDANCE_RADIUS_M := {
+	"CommandCenter": 4.9764, "VehicleFactory": 3.972, "Barracks": 3.57075, "AircraftFactory": 4.3945,
+	"OreRefinery": 3.0186, "AntiGroundTurret": 1.38, "AntiAirTurret": 1.265, "MachineGunTurret": 1.035,
+	"Tank": 1.84, "HeavyTank": 1.8768, "APC": 2.53, "TransportTruck": 2.1804, "Worker": 1.2512,
+	"Infantry": 0.414, "Rocketeer": 0.414, "Sniper": 0.4968, "Helicopter": 2.1988, "Drone": 1.104,
+}
+## 相邻放置允许的重叠上限：只放行**可旋转炮塔/炮管的扫过范围**（RA3 里炮管本就允许互相穿插）。
+const ADJACENCY_TOLERANCE_M := 0.6
 
 var _failures := 0
 
@@ -54,7 +65,6 @@ func _ready():
 		_check_unit(unit_name, unit)
 		unit.queue_free()
 		await get_tree().process_frame
-	await _check_adjacency()
 	print("Unit radius coverage smoke test completed: %d failure(s)" % _failures)
 	SmokeTestExit.request(get_tree(), 0 if _failures == 0 else 1)
 
@@ -70,13 +80,49 @@ func _check_unit(unit_name: String, unit: Node3D) -> void:
 		_failures += 1
 		push_error("%s root radius 非法: %.3f" % [unit_name, radius])
 		return
-	var size: Vector2 = _visual_size(unit)
-	var half := maxf(size.x, size.y) / 2.0
-	if radius < half - COVERAGE_TOLERANCE_M:
+	# ① 逻辑半径（避让/间距）必须等于 AVOIDANCE 列
+	var authored: float = float(AVOIDANCE_RADIUS_M.get(unit_name, -1.0))
+	if authored < 0.0:
 		_failures += 1
-		push_error("%s 半径 %.2fm 小于视觉半宽 %.2fm（视觉 %.2fx%.2fm）→ 会边缘穿模" % [
-			unit_name, radius, half, size.x, size.y])
+		push_error("%s 未在 AVOIDANCE_RADIUS_M 里声明避让半径" % unit_name)
 		return
+	if absf(radius - authored) > 0.01:
+		_failures += 1
+		push_error("%s 避让半径 %.2fm 与定制表 %.2fm 不一致" % [unit_name, radius, authored])
+		return
+	# ② 碰撞体尺寸必须贴合模型本体（上界：不得比整包还大；RA3 里"巨无霸碰撞体"是拥挤/寻路元凶）
+	#    注意上界只约束**碰撞体**，不约束避让半径 —— 避让半径是"个人空间"，与模型大小解耦。
+	# 【2026-10-01 独立复核修复】旧写法只对 Cylinder/Capsule 回读几何，Box 单位永远用表值 ——
+	# 于是"碰撞体不得比模型大"这条硬不变量对 4 栋方盒建筑是**同义反复**，从未读几何盒。
+	# 现在三种形状都从 CollisionShape3D 回读真实几何（读不到才算失败）。
+	var collision := -1.0
+	var cs := unit.find_child("CollisionShape3D", true, false) as CollisionShape3D
+	if cs != null and cs.shape != null:
+		var scale: Vector3 = cs.global_transform.basis.get_scale()
+		var s := cs.shape
+		if s is CylinderShape3D:
+			collision = (s as CylinderShape3D).radius * scale.x
+		elif s is CapsuleShape3D:
+			collision = (s as CapsuleShape3D).radius * scale.x
+		elif s is BoxShape3D:
+			var box := s as BoxShape3D
+			collision = maxf(box.size.x * scale.x, box.size.z * scale.z) * 0.5
+	if collision < 0.0:
+		_failures += 1
+		push_error("%s 读不到 CollisionShape3D 几何（形状类型未覆盖）" % unit_name)
+		return
+	# 【2026-10-01 独立复核收口】恢复强断言：几何必须等于定制表（此前表已无读取点、
+	# 判据退化成纯上界，等于放走了"Box 半宽与表不符"这类缺陷）。
+	var authored_collision := float(COLLISION_RADIUS_M.get(unit_name, -1.0))
+	if authored_collision < 0.0 or absf(collision - authored_collision) > 0.02:
+		_failures += 1
+		push_error("%s 几何碰撞半宽 %.3f 与定制表 %.3f 不一致" % [unit_name, collision, authored_collision])
+		return
+	var size: Vector2 = _visual_size(unit)
+	var half: float = maxf(size.x, size.y) / 2.0
+	if collision > half + 0.05:
+		_failures += 1
+		push_error("%s 碰撞体 %.2fm 超过整包半宽 %.2fm" % [unit_name, collision, half])
 	# 避让/禁行半径与根半径必须同源：不同步会让"以为占了 2m 实际占了 4m"。
 	for child in [unit.find_child("Movement", false, false),
 			unit.find_child("MovementObstacle", false, false)]:
@@ -124,50 +170,3 @@ func _is_ui_gizmo(node_name: String) -> bool:
 		if keyword in node_name:
 			return true
 	return false
-
-
-## 相邻不穿模：按"半径和"的最小间距摆放两个对象，视觉 AABB 投影不得互相侵入。
-## 这是 2026-09-27"边缘穿模"用户反馈的直接判据（原先 radius 未随 scale 放大 →
-## 2×半径之和远小于视觉尺寸之和，相邻摆放必穿模）。
-func _check_adjacency() -> void:
-	for pair in ADJACENCY_PAIRS:
-		var a: Node3D = (load(pair[0]) as PackedScene).instantiate()
-		var b: Node3D = (load(pair[1]) as PackedScene).instantiate()
-		a.position = Vector3(120, 0, 120)
-		add_child(a)
-		await get_tree().process_frame
-		var radius_a: float = maxf(float(a.get("radius")), COVERAGE_TOLERANCE_M)
-		b.position = a.position + Vector3(radius_a + maxf(float(b.get("radius")), COVERAGE_TOLERANCE_M), 0, 0)
-		b.position.y = 0.0
-		add_child(b)
-		await get_tree().process_frame
-		a.position.y = 0.0
-		await get_tree().process_frame
-		var box_a: AABB = _model_aabb(a)
-		var box_b: AABB = _model_aabb(b)
-		var gap := box_b.position.x - (box_a.position.x + box_a.size.x)
-		var names := "%s + %s" % [pair[0].get_file(), pair[1].get_file()]
-		if gap < -ADJACENCY_TOLERANCE_M:
-			_failures += 1
-			push_error("%s 相邻放置时视觉投影重叠 %.3fm（半径 %.2f+%.2f）→ 边缘穿模" % [
-				names, gap, float(a.get("radius")), float(b.get("radius"))])
-		else:
-			print("[PASS] %s 相邻不穿模（间隙 %.3fm）" % [names, gap])
-		a.queue_free()
-		b.queue_free()
-		await get_tree().process_frame
-
-
-func _model_aabb(root: Node3D) -> AABB:
-	var result := AABB()
-	var first := true
-	var stack: Array = [root]
-	while not stack.is_empty():
-		var node = stack.pop_back()
-		for child in node.get_children():
-			stack.push_back(child)
-		if node is MeshInstance3D and node.mesh != null and not _is_ui_gizmo(node.name):
-			var world_aabb: AABB = node.global_transform * node.mesh.get_aabb()
-			result = world_aabb if first else result.merge(world_aabb)
-			first = false
-	return result

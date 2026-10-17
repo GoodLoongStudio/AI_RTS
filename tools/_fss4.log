@@ -1,0 +1,23 @@
+[selfplay] 验收端口 24589 在专用段 24589-24592 内
+清理：没有属于本局端口的 Godot 进程
+[selfplay] 大厅就绪: 指挥官-309
+[selfplay] op=start -> {'map': 'res://source/match/maps/PlainAndSimple.tscn', 'ok': True, 'passive_ai_test': False, 'peaceful': False, 'seed': 0, 'with_ai': True}
+runner 启动 pid=23740 state_dir=G:\AIRTS\tmp_logs\langgraph_recon\selfplay\state_fs_ref4
+pidfile=49612
+[selfplay] 对局开始，采样 320s（backend=off difficulty=-1）
+[selfplay] 矿场前置：派 Unit_1 到 [174.27, 170.79] -> {'accepted': False, 'command_id': '', 'moved': ['Unit_1'], 'ok': False, 'reason': '命令未被接受（PendingAuthority），请根据 status 复
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 221.0}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 213.8}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 196.2}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 182.7}
+[selfplay] 矿场前置：改走权威端直执行 -> {'accepted': True, 'command_id': '8bbcee59-ad91-431c-9cbc-11690286daa6', 'moved': ['Unit_1'], 'ok': True, 'reason': '', 'result': {'command_id': '8bbcee59-ad91-
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 178.6}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 176.0}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 174.8}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 18.0}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 1046.0}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 2223.2}
+停止 runner roots=[23740]（全部=[23740, 49612]，authority-port=24572）
+清理本局进程树 roots=[52616, 57956] (全部=[52616, 53760, 55548, 57956])
+[selfplay] 终局: verdict=timeout own=70 enemy=4 units={'command_center': 1, 'drone': 1, 'worker': 6, 'barracks': 2, 'soldier': 47, 'vehicle_factory': 1, 'tank': 12} balance={'a': 49150}
+[selfplay] written: G:\AIRTS\tmp_logs\langgraph_recon\selfplay\result_fs_ref4.json

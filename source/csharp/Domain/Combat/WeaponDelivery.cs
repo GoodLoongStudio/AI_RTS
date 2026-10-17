@@ -54,7 +54,9 @@ public sealed record AttackLaunchSnapshot(
     float WarheadRadius,
     float FriendlyFireDamageMultiplier,
     ImpactSelectionMode ImpactSelectionMode,
-    bool AllowsFriendlyDamage = false);
+    bool AllowsFriendlyDamage = false,
+    /// <summary>是否在飞行期间刷新实体目标位置；当前仅防空炮保留制导。</summary>
+    bool TracksTarget = false);
 
 /// <summary>提供爆点结算所需的最小可伤害对象快照。</summary>
 public readonly record struct ImpactCandidateSnapshot(

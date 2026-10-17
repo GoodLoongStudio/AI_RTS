@@ -1,0 +1,70 @@
+[
+  {
+    "id": "rule-ai-battlegroup",
+    "category": "traditional-ai",
+    "scene": "res://tests/automated/RuleAiBattlegroupSmokeTest.tscn",
+    "returncode": 1,
+    "seconds": 10.3,
+    "marker_ok": false,
+    "marker": "Rule AI battlegroup smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "3"
+    ],
+    "fail_lines": [],
+    "errors": [
+      "System.InvalidOperationException: 场景 res://tests/perfgrid/TmpTurretHead.tscn 没有受信任的单位类型定义。"
+    ],
+    "log_lines": 177
+  },
+  {
+    "id": "rule-ai-economy-query",
+    "category": "traditional-ai",
+    "scene": "res://tests/automated/RuleAiEconomyQuerySmokeTest.tscn",
+    "returncode": 1,
+    "seconds": 14.6,
+    "marker_ok": false,
+    "marker": "Rule AI economy query smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "2"
+    ],
+    "fail_lines": [],
+    "errors": [
+      "System.InvalidOperationException: 场景 res://tests/perfgrid/TmpTurretHead.tscn 没有受信任的单位类型定义。"
+    ],
+    "log_lines": 269
+  },
+  {
+    "id": "rule-ai-expansion",
+    "category": "traditional-ai",
+    "scene": "res://tests/automated/RuleAiExpansionSmokeTest.tscn",
+    "returncode": 1,
+    "seconds": 16.4,
+    "marker_ok": false,
+    "marker": "Rule AI expansion smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "1"
+    ],
+    "fail_lines": [],
+    "errors": [
+      "System.InvalidOperationException: 场景 res://tests/perfgrid/TmpTurretHead.tscn 没有受信任的单位类型定义。"
+    ],
+    "log_lines": 294
+  },
+  {
+    "id": "rule-ai-offense-logistics",
+    "category": "traditional-ai",
+    "scene": "res://tests/automated/RuleAiOffenseLogisticsSmokeTest.tscn",
+    "returncode": 1,
+    "seconds": 12.1,
+    "marker_ok": false,
+    "marker": "Rule AI offense logistics smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "2"
+    ],
+    "fail_lines": [],
+    "errors": [
+      "System.InvalidOperationException: 场景 res://tests/perfgrid/TmpTurretHead.tscn 没有受信任的单位类型定义。"
+    ],
+    "log_lines": 291
+  }
+]

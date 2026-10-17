@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using AI_RTS.Application.Commands;
 using AI_RTS.Application.Commands.Units;
 using AI_RTS.Application.Combat;
@@ -18,6 +19,7 @@ using AI_RTS.GodotAdapter.Common;
 using AI_RTS.GodotAdapter.Configuration;
 using AI_RTS.GodotAdapter.Construction;
 using AI_RTS.GodotAdapter.Economy;
+using AI_RTS.GodotAdapter.Queries;
 using AI_RTS.GodotAdapter.Simulation;
 using AI_RTS.GodotAdapter.Skills;
 using AI_RTS.GodotAdapter.Units;
@@ -110,6 +112,12 @@ public partial class CommandRuntime : Node
     {
         var economy = GetParent().GetNode<EconomyRuntime>("EconomyRuntime");
         _balance = GetParent().GetNode<BalanceConfigRuntime>("BalanceConfigRuntime");
+        if (!_balance.IsHealthy())
+        {
+            SetMeta("initialization_blocked", true);
+            GD.PrintErr("[CommandRuntime] BalanceConfigRuntime 不健康，跳过命令服务装配");
+            return;
+        }
         _simulationClock = new GodotSimulationClock(GetParent().GetNode("SimulationClock"));
         _matchId = economy.MatchId;
         _orders.StateChanged += OnOrderStateChanged;
@@ -156,6 +164,10 @@ public partial class CommandRuntime : Node
     /// <summary>每个物理 Tick 只推进一次权威施工工作量。</summary>
     public override void _PhysicsProcess(double delta)
     {
+        if (_construction is null || _commands is null || _simulationClock is null)
+        {
+            return;
+        }
         if (IsNetworkClientPuppet())
         {
             return;
@@ -329,7 +341,8 @@ public partial class CommandRuntime : Node
             construction.RequiredWork,
             construction.Placement.ConstructionCost,
             construction.ProgressSource,
-            DistanceScaledWorkPerTick(site, owner, construction.AutomaticWorkPerTick)));
+            construction.AutomaticWorkPerTick,
+            DistanceScaledWorkFactor(site, owner)));
         if (registered)
         {
             site.TreeExiting += () => _construction.Destroy(
@@ -345,17 +358,18 @@ public partial class CommandRuntime : Node
     private const float SlowestSpeedFactor = 0.2f;
 
     /// <summary>按与最近己方指挥中心的距离衰减自动施工速率（≤20m 全速，≥50m 慢至 1/5）。</summary>
-    private static int DistanceScaledWorkPerTick(Node site, Node owner, int automaticWorkPerTick)
+    private static double DistanceScaledWorkFactor(Node site, Node owner)
     {
-        if (automaticWorkPerTick <= 0 || site is not Node3D siteNode)
+        if (site is not Node3D siteNode)
         {
-            return automaticWorkPerTick;
+            return 1.0;
         }
         var nearest = float.MaxValue;
         foreach (var child in owner.GetChildren())
         {
-            if (child is not Node3D node || node.GetScript().As<Script>() is not { } script ||
-                !script.ResourcePath.Contains("CommandCenter"))
+            if (child == site || child is not Node3D node ||
+                node.Get("unit_type_id").AsString() != "command_center" ||
+                !node.HasMethod("is_constructed") || !node.Call("is_constructed").AsBool())
             {
                 continue;
             }
@@ -365,10 +379,12 @@ public partial class CommandRuntime : Node
         }
         if (nearest == float.MaxValue || nearest <= FullSpeedMeters)
         {
-            return automaticWorkPerTick;
+            return 1.0;
         }
         var t = Math.Min((nearest - FullSpeedMeters) / (SlowestMeters - FullSpeedMeters), 1.0f);
-        return Math.Max(1, (int)Math.Round(automaticWorkPerTick * (1.0f - t * (1.0f - SlowestSpeedFactor))));
+        // The balance rate is usually one work/tick. Preserve fractional work:
+        // rounding 1 * 0.2 back to 1 silently disabled the distance penalty.
+        return 1.0 - t * (1.0 - SlowestSpeedFactor);
     }
 
     /// <summary>代表控制器向一组 Worker 提交同一施工现场任务。</summary>
@@ -405,23 +421,42 @@ public partial class CommandRuntime : Node
     /// <summary>返回建筑可公开给查询层的施工阶段、工作量与活动建造者数量。</summary>
     internal ConstructionObservation? ObserveConstruction(Node structure)
     {
+        var perf = QueryPerfCounters.Enabled;
+        var mark = perf ? Stopwatch.GetTimestamp() : 0L;
+        void Part(string name)
+        {
+            if (!perf)
+            {
+                return;
+            }
+            var now = Stopwatch.GetTimestamp();
+            QueryPerfCounters.AddCapturePhase(name, now - mark);
+            mark = now;
+        }
+
         if (!structure.HasMethod("is_constructed") ||
             _balance.FindConstruction(structure) is not { } definition)
         {
+            Part("obs_def");
             return null;
         }
+        Part("obs_def");
         var siteId = GodotStableIdentity.Unit(structure);
         if (_construction.Find(siteId) is { } site)
         {
+            var count = _construction.GetActiveBuilderCount(siteId);
+            Part("obs_site");
             return new ConstructionObservation(
                 site.State == ConstructionSiteState.Completed ?
                     ConstructionObservationState.Completed :
                     ConstructionObservationState.UnderConstruction,
                 site.CompletedWork,
                 site.RequiredWork,
-                _construction.GetActiveBuilderCount(siteId));
+                count);
         }
+        Part("obs_site");
         var completed = structure.Call("is_constructed").AsBool();
+        Part("obs_call");
         return new ConstructionObservation(
             completed ? ConstructionObservationState.Completed :
                 ConstructionObservationState.UnderConstruction,

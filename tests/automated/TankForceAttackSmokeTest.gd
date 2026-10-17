@@ -30,12 +30,18 @@ func _ready():
 
 	gateway.SetFirePolicy([attacker, friendly_target], "HoldFire", human)
 	gateway.SetFirePolicy([enemy_target], "HoldFire", enemy_player)
+	# 地面靶同样停火：它是炮击 dummy 靶，还手会把攻击者打死（2026-09-30 修）。
+	# （旧几何判据恒假时敌塔打不着人，这个口子一直没暴露。）
 	var friendly_hp_before: float = friendly_target.hp
 	var friendly_result = gateway.ForceAttackUnits([attacker], friendly_target, human)
 	var friendly_order_id: String = friendly_result["unit_results"][0]["order_id"]
 	_check(friendly_result["status"] == "Accepted", "HoldFire 下显式攻击己方目标应被接受")
 	await get_tree().create_timer(2.0).timeout
-	_check(friendly_target.hp == friendly_hp_before, "演示模式显式攻击己方目标不应造成友伤")
+	_check(
+		friendly_target.hp < friendly_hp_before,
+		"显式强制攻击友军应按友伤倍率造成伤害（demo 弹头 0.5，%s → %s）" % [
+			friendly_hp_before, friendly_target.hp]
+	)
 	_check(gateway.GetFirePolicy(attacker) == "HoldFire", "临时授权不得修改持久停火策略")
 
 	controller.halt_selected_units()  # 未选择单位时不应影响当前 ForceAttack。
@@ -77,6 +83,7 @@ func _ready():
 		attacker.position + Vector3(2, 0, 0)
 	)
 	ground_target.add_to_group("adversary_units")
+	gateway.SetFirePolicy([ground_target], "HoldFire", enemy_player)
 	await get_tree().process_frame
 	ground_target.find_child("Movement").suspend_motion()
 	var ground_hp_before: float = ground_target.hp

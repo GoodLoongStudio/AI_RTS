@@ -10,9 +10,11 @@ extends Node3D
 ## 8 米的炮塔射程圈在拉远视角下也不会细到看不见；而该 shader 关闭了深度测试
 ## （depth_test_disabled / depth_draw_never），贴着地形、建筑也能看清。
 ##
-## 半径口径与权威判定完全一致：所有射程比较都是"单位中心到目标中心的水平距离
-## <= attack_range"（actions/AttackingWhileInRange、UnitCommandService.ValidateAttack），
-## 所以"以单位中心为圆心、attack_range 为半径"的圆就是精确的攻击范围。
+## 半径口径与权威判定同源（2026-10-01 更新）：权威射程判定是**表面到表面**——
+## Unit.reach_range_against(target) = attack_range + 自身半径 + 目标半径（圆心距比较，
+## 见 actions/AttackingWhileInRange、AutoAttacking、ExplicitForceAttacking、UnitCommandService）。
+## 本圈画"attack_range + 自身半径" = 对**点目标**的精确可及范围：目标表面触及圈沿
+## = 刚好可及；对有半径的目标再按其半径外扩（同一公式的目标项，无法用单一圆表达）。
 
 ## 线宽（屏幕像素）与内外边缘渐变，保持细而清晰的一条线。
 const CIRCLE_WIDTH_PIXELS := 6.0

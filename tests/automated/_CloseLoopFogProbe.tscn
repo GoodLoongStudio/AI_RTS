@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tests/automated/_CloseLoopFogProbe.gd" id="1_cl"]
+
+[node name="CloseLoopFogProbe" type="Node"]
+script = ExtResource("1_cl")

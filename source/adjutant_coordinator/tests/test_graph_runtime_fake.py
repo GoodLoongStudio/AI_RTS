@@ -82,6 +82,24 @@ class RuntimeFixture:
                               match_id=match_id))
 
 
+#: 规则地板的下发前缀（见 model_sends 的理由）。
+FLOOR_INTENT_PREFIXES = ("rule-", "bt-")
+
+
+def is_floor_intent(intent_id) -> bool:
+    return str(intent_id or "").startswith(FLOOR_INTENT_PREFIXES)
+
+
+def model_sends(sent):
+    """只挑**模型来源**的下发。
+
+    2026-09-12 架构纠偏（§三-3）后规则地板每轮常驻，会另外下发 `rule-*` / `bt-*` 意图
+    （这是设计要的：模型慢或缺席时 AI 照常指挥）。因此"模型不许自己乱发命令"这类
+    契约必须按**来源**判，而不是数总条数 —— 数总条数会把地板的正常下发算成违规。
+    """
+    return [item for item in sent if not is_floor_intent(item.get("intent_id"))]
+
+
 class PlanAndDispatchTest(unittest.TestCase):
     def test_strategy_plan_then_emergency_intent_is_dispatched(self):
         fixture = RuntimeFixture(
@@ -91,13 +109,14 @@ class PlanAndDispatchTest(unittest.TestCase):
         first = fixture.tick(0)
         self.assertEqual(first.route, "strategic")
         self.assertEqual(fixture.runtime.state.plan_version, "plan-a:v1")
-        self.assertEqual(fixture.transport.sent, [])
+        self.assertEqual(model_sends(fixture.transport.sent), [],
+                         "只有计划被采纳、战术还没答话 → 不许有模型来源的命令")
 
         second = fixture.tick(5, events=[events_for("enemy_spotted", ["Unit_1"], 5)])
         self.assertEqual(second.route, "emergency_tactical")
         self.assertEqual(second.accepted_intents, ["i-1"])
-        self.assertEqual(len(fixture.transport.sent), 1)
-        envelope = fixture.transport.sent[0]
+        self.assertEqual(len(model_sends(fixture.transport.sent)), 1)
+        envelope = model_sends(fixture.transport.sent)[0]
         self.assertEqual(envelope["op"], "adjutant_intent")
         self.assertEqual(envelope["generation"], fixture.runtime.state.generation_of("Unit_1"))
         self.assertEqual(second.receipts[0]["status"], "Accepted")
@@ -126,8 +145,286 @@ class PlanAndDispatchTest(unittest.TestCase):
             strategy_script=[{"behavior": "completed", "plan": make_plan()}],
             tactics_script=[])
         fixture.tick(0)
-        self.assertEqual(fixture.transport.sent, [])
+        self.assertEqual(model_sends(fixture.transport.sent), [],
+                         "战略层不得自己下命令（规则地板的常驻下发不在此约束内）")
         self.assertEqual(fixture.runtime.state.active_tasks, {"t-1": "pending"})
+
+
+class PhaseTimingTest(unittest.TestCase):
+    """分段计时（2026-10-07）：协调轮必须能回答"慢在哪一段"。
+
+    背景：上一轮审计拿到 167 轮 p50=227ms / p95=4956ms / max=41931ms，但**无法分段归因**
+    —— `elapsed_ms` 只是总时长，看不出那 41.9 秒花在战略、战术、仲裁还是下发。
+    这里钉住：每轮结果都带各阶段的本轮合计与历史 p50/p95/p99/max，且异常轮也计入。
+    """
+
+    def test_each_round_reports_phase_durations(self):
+        fixture = RuntimeFixture(
+            strategy_script=[{"behavior": "completed", "plan": make_plan()}],
+            tactics_script=[{"behavior": "completed", "intents": make_batch(
+                [make_intent("i-1", issued_tick=5, expires_tick=605)])}])
+        first = fixture.tick(0)
+        self.assertTrue(first.phases, "战略轮必须留下分段计时")
+        self.assertIn("strategic_agent", first.phases,
+                      "战略调用是最可疑的慢点，必须单独计量：%s" % sorted(first.phases))
+        for name, stats in first.phases.items():
+            self.assertGreaterEqual(stats["round_ms"], 0.0, name)
+            self.assertGreaterEqual(stats["p95_ms"], 0.0, name)
+            self.assertLessEqual(stats["p50_ms"], stats["p95_ms"] + 1e-9, name)
+            self.assertLessEqual(stats["p95_ms"], stats["max_ms"] + 1e-9, name)
+        self.assertGreaterEqual(first.phases["strategic_agent"]["samples"], 1)
+
+        # 第二轮：`round_ms` 只算本轮，样本数累加（历史 p95 才有意义）。
+        second = fixture.tick(5, events=[events_for("enemy_spotted", ["Unit_1"], 5)])
+        self.assertIn("tactical_agent", second.phases)
+        self.assertGreaterEqual(second.phases["strategic_agent"]["samples"], 1)
+        self.assertTrue(second.to_dict()["phases"], "序列化结果必须带上分段计时（留档用）")
+
+    def test_phase_stats_are_serializable_and_bounded(self):
+        fixture = RuntimeFixture(strategy_script=[], tactics_script=[])
+        for index in range(6):
+            result = fixture.tick(index)
+            self.assertIsInstance(result.to_dict()["phases"], dict)
+        stats = fixture.runtime.runner.phase_stats()
+        self.assertTrue(all(set(item) >= {"round_ms", "p50_ms", "p95_ms", "p99_ms",
+                                          "max_ms", "samples"}
+                            for item in stats.values()))
+        limit = fixture.runtime.runner.PHASE_SAMPLE_LIMIT
+        self.assertTrue(all(item["samples"] <= limit for item in stats.values()),
+                        "计时样本必须有界（不许随对局时长无限增长）")
+
+    def test_continuity_ledger_is_visible_to_the_tick_log(self):
+        """连续行动台账必须出现在 `summary()` 里（2026-10-07 实测踩过）。
+
+        runner 的 tick 日志读的是 `TickResult.state` = `state.summary()`。
+        台账只加进 dataclass/to_dict、没进 `summary()` 时，日志里那一栏**永远是 0**，
+        而同一局的 decisions 日志里其实有 255 条 `continuity_supervision`
+        —— 埋点读错了路径，看起来像"监督没接线"。
+        """
+        fixture = RuntimeFixture(strategy_script=[], tactics_script=[])
+        result = fixture.tick(0)
+        self.assertIn("continuity_supervision", result.state,
+                      "summary() 必须带监督报告：%s" % sorted(result.state)[:12])
+        self.assertIn("continuity_units", result.state)
+        state = fixture.runtime.state
+        state.continuity_units = {"Unit_4": {"last_moved_tick": 60, "stop_seconds": 5.0}}
+        state.continuity_supervision = {"updated_tick": 300, "recoveries": 1,
+                                        "levels": {"recover": 1}}
+        summary = state.summary()
+        self.assertEqual(summary["continuity_units"]["Unit_4"]["stop_seconds"], 5.0)
+        self.assertEqual(summary["continuity_supervision"]["recoveries"], 1)
+
+
+class ArrivalDedupTest(unittest.TestCase):
+    """到达事件**不许被永久键吃掉**（2026-10-07 实测 bug，C2 门禁 p95 尾巴的根因）。
+
+    旧去重用永久键 `"<unit>|<target>"`：单位**再次回到同一个目标点**时，第二次到达
+    直接命中同一个 key → 整段 `continue`（既不 `note_arrival` 也不做侦察段 COMPLETED）。
+    后果是链条式的：到达不记账 → 路线缓存不作废 → `unit_en_route` 恒真 →
+    `rules_fallback._parallel_intents` 里 `if _en_route(name): continue` **每轮跳过它** →
+    直到 `HOP_HOLD_MAX_TICKS`(1800 tick ≈ 30 秒) 才放行。
+
+    实测证据（对照档案 `archive_edf8bd9a`）：522 条 arrival 里 **48 条（9.2%）** 被吃掉；
+    工人 `Unit_19` 的 37 次到点里 **14 次**被吃掉（基地↔矿区往返，目标点反复相同）。
+    """
+
+    def _ctx(self, events):
+        from adjutant_coordinator.graph.nodes import (GraphConfig, GraphServices,
+                                                     NodeContext)
+        services = GraphServices(config=GraphConfig())
+        observation = {"tactical": {"entities": [], "production": [], "truncated": False},
+                       "strategic": {"enemy_intel": []},
+                       "fast_events": list(events)}
+        return NodeContext(services=services, observation=observation, tick=0)
+
+    def _arrival(self, unit, target, tick, seq):
+        return {"kind": "arrival", "unit": unit, "target": list(target),
+                "pos": [0.0, 0.0, 0.0], "server_tick": tick, "seq": seq,
+                "navigation_finished": True}
+
+    def _state_with_route(self, unit, tick):
+        from adjutant_coordinator.graph import movement as mv
+        state = {"server_tick": tick, "active_intents": [], "active_tasks": {},
+                 "routes": {}, "pending_events": []}
+        mv.record_route(state, mv.RoutePlan(
+            unit=unit, ok=True, relay_point=[14.0, 7.0], target=[30.0, 7.0],
+            nav_revision=1, last_replan_tick=tick,
+            route_id="route-%s" % unit))
+        return state
+
+    def test_second_arrival_at_the_same_target_still_invalidates_the_route(self):
+        from adjutant_coordinator.graph import movement as mv
+        from adjutant_coordinator.graph import nodes
+
+        state = self._state_with_route("Unit_19", 1000)
+        self.assertTrue(state["routes"]["Unit_19"]["ok"])
+        # 第一次到达（worker 回到基地，目标点固定）
+        nodes._consume_fast_events(state, self._ctx(
+            [self._arrival("Unit_19", [14.0, 7.0], 1000, 1)]))
+        self.assertFalse(state["routes"]["Unit_19"]["ok"], "第一次到达必须作废路线")
+        # 重新批准一跳（模拟下一轮重规划），然后再回到**同一个点**
+        mv.record_route(state, mv.RoutePlan(
+            unit="Unit_19", ok=True, relay_point=[14.0, 7.0], target=[30.0, 7.0],
+            nav_revision=1, last_replan_tick=1100, route_id="route-2"))
+        state["server_tick"] = 1200
+        nodes._consume_fast_events(state, self._ctx(
+            [self._arrival("Unit_19", [14.0, 7.0], 1200, 2)]))
+        self.assertFalse(state["routes"]["Unit_19"]["ok"],
+                         "**再次**到达同一个目标点也必须作废路线"
+                         "（旧实现被永久键吃掉，于是单位被当作'还在路上'跳过 30 秒）")
+
+    def test_arrival_closes_the_movement_intent_and_frees_the_unit(self):
+        """到达必须**结束移动意图**，否则单位留在 `busy` 里出不来。
+
+        `note_arrival` 只作废**路线缓存**；意图本身若还活着，单位就在
+        `busy_units` 里（= `active_intents` 里 `state ∈ INTENT_LIVE_STATES` 的单位），
+        而规则地板军事轨的第一道出口是 `_free(name)` ⇒ **每轮被跳过**直到 TTL 到期。
+
+        实测（round-15，`archive_72501fe6`）：军事轨挡掉的单位里 **73.8% 是 `busy`**
+        （1232 次），与 round-14 观测到的"到达后 20~30 秒生成侧一条推进意图都不产出"对上。
+
+        原先只有侦察段这么做；同样的死锁对 `move` / `attack_move` 一样成立。
+        """
+        from adjutant_coordinator.graph import nodes, rules_fallback as rf
+        state = self._state_with_route("Unit_19", 1000)
+        state["active_intents"] = [
+            {"intent_id": "rule-fill-advance-Unit_19-1000", "state": "active",
+             "action": nodes.ACTION_ATTACK_MOVE, "unit_ids": ["Unit_19"]},
+            # 点攻击驻留**不**该被到达结掉（它的语义是停在射程内持续输出）
+            {"intent_id": "rule-fill-attack-Unit_20", "state": "active",
+             "action": nodes.ACTION_ATTACK, "unit_ids": ["Unit_20"]},
+        ]
+        self.assertIn("Unit_19", rf.busy_units(state), "前提：移动意图活着 ⇒ 单位算忙")
+        nodes._consume_fast_events(state, self._ctx(
+            [self._arrival("Unit_19", [14.0, 7.0], 1000, 1)]))
+        self.assertNotIn("Unit_19", rf.busy_units(state),
+                         "到达后必须释放单位（否则军事轨每轮跳过它直到 TTL）")
+        self.assertEqual(state["active_intents"][0]["state"], nodes.INTENT_COMPLETED)
+        self.assertEqual(state["active_intents"][0]["drop_reason"], "arrival")
+        self.assertIn("Unit_20", rf.busy_units(state),
+                      "点攻击驻留不能被到达结掉（否则单位打一下就走）")
+
+    def test_every_arrival_is_accounted_by_counters_not_by_log(self):
+        """到达账必须**每个出口都有计数**，且不依赖会被挤掉的决策日志。
+
+        round-28 的教训：该局 `arrival_events == arrival_note`（764 = 764）、
+        `arrival_deduped = 0`，**按计数看"每条到达都记了账"**，
+        但逐例追踪时 `Unit_18` 在 t=2458 的到达**根本没有 `arrival_seen` 记录**
+        —— 因为 `arrival_seen` 是 `_decide` 写的、**受 `MAX_DECISION_LOG` 上限约束**，
+        会被后续条目挤掉。所以"用日志条目或对不上口径的计数去证没有漏处理"是无效的。
+
+        本测试钉住口径：**`arrival_events == arrival_deduped + arrival_note`
+        （+ `arrival_no_unit`）**，覆盖全部出口，且都写在不受上限影响的
+        `movement_stats` 里。
+        """
+        from adjutant_coordinator.graph import nodes
+        state = {"server_tick": 1000, "active_intents": [], "active_tasks": {},
+                 "routes": {}, "pending_events": [], "movement_stats": {}}
+        # ① 正常到达（有路线）
+        state = self._state_with_route("Unit_19", 1000)
+        state["active_intents"] = []
+        state["movement_stats"] = {}
+        nodes._consume_fast_events(state, self._ctx(
+            [self._arrival("Unit_19", [14.0, 7.0], 1000, 1)]))
+        stats = state["movement_stats"]
+        self.assertEqual(stats.get("arrival_events"), 1)
+        self.assertEqual(stats.get("arrival_note"), 1)
+        self.assertIsNone(stats.get("arrival_deduped"),
+                          "正常路径不该被记成去重")
+        # ② 无 `unit` 的到达：必须被计数，而不是静默消失
+        state2 = {"server_tick": 1000, "active_intents": [], "active_tasks": {},
+                  "routes": {}, "pending_events": [], "movement_stats": {}}
+        nodes._consume_fast_events(state2, self._ctx(
+            [{"kind": "arrival", "target": [1.0, 2.0], "server_tick": 1000,
+              "seq": 1}]))
+        self.assertEqual(state2["movement_stats"].get("arrival_events"), 1,
+                         "无 unit 的到达也必须计入 arrival_events")
+        self.assertEqual(state2["movement_stats"].get("arrival_no_unit"), 1,
+                         "无 unit 的到达必须单独计数（旧条件会整条跳过它）")
+
+    def test_arrival_releases_the_intent_even_without_a_route(self):
+        """**无路线**的到达也必须结束移动意图（round-23 实测的 `Unit_16` 30 秒停滞）。
+
+        `movement.note_arrival` 在 `previous_route` 为空时**直接 early-return**
+        （`if not entry: return`）—— 路线没作废，而"结束意图"原先**内联在到达分支尾部**、
+        挂在 `note_arrival` 之后。于是"路线早被别的原因作废"的到达**什么都不做**，
+        意图继续活着、单位继续留在 `busy_units` 里被军事轨每轮跳过。
+
+        实测（`archive_353bf7a3`）：`Unit_16` 到达 t=2129（dist=0.22）之后
+        `rule-fill-advance-Unit_16-2121` 连续挡它 **26 轮（30.75 秒）**，
+        而该局 `arrival_note == arrival_events`（798=798）证明到达**都记了账**
+        —— 所以问题不在投递，在**释放动作没覆盖这条路径**。
+        """
+        from adjutant_coordinator.graph import nodes, rules_fallback as rf
+        state = {"server_tick": 1000, "active_intents": [], "active_tasks": {},
+                 "routes": {}, "pending_events": [], "movement_stats": {}}
+        # 关键：**不**建路线（模拟"路线已被别的原因作废"）
+        state["active_intents"] = [
+            {"intent_id": "rule-fill-advance-Unit_16-2121", "state": "active",
+             "action": nodes.ACTION_ATTACK_MOVE, "unit_ids": ["Unit_16"]},
+        ]
+        self.assertIn("Unit_16", rf.busy_units(state), "前提：意图活着 ⇒ 单位算忙")
+        nodes._consume_fast_events(state, self._ctx(
+            [self._arrival("Unit_16", [36.09, 54.27], 1000, 7)]))
+        self.assertNotIn("Unit_16", rf.busy_units(state),
+                         "无路线的到达也必须释放单位"
+                         "（否则它被 busy 挡到意图 TTL 到期 = 30 秒级停滞）")
+        self.assertEqual(state["active_intents"][0]["state"], nodes.INTENT_COMPLETED)
+
+    def test_deduped_arrival_also_releases_the_intent(self):
+        """被 1 秒去重窗口挡掉的到达**也要**释放 —— 旧实现在那个 `continue` 之前就返回了。
+
+        ⚠ 注意与"同一条事件重复投递"区分：后者由 `fast_event_seq` 游标挡掉
+        （那是**事件级**去重，在进入到达分支之前就 `return` 了，本条覆盖不到）。
+        这里模拟的是**两条不同的到达事件**（不同 `seq`）落在同一个 `unit|target`
+        键的 1 秒窗口内 —— 那才会走到到达分支里的 `deduped` 出口。
+        """
+        from adjutant_coordinator.graph import nodes, rules_fallback as rf
+        state = {"server_tick": 1000, "active_intents": [], "active_tasks": {},
+                 "routes": {}, "pending_events": [], "movement_stats": {}}
+        # 第一条（seq=7）走正常路径，把 `unit|target` 写进去重表
+        nodes._consume_fast_events(state, self._ctx(
+            [self._arrival("Unit_16", [36.09, 54.27], 1000, 7)]))
+        # 挂一条活的移动意图，然后 **20 tick 后**再来一条同 key 的到达（seq=8）
+        state["active_intents"] = [
+            # The duplicate can release an older unfinished segment. A newly
+            # issued next hop is covered separately in test_fast_scan.
+            {"intent_id": "rule-fill-advance-Unit_16-990", "state": "active",
+             "action": nodes.ACTION_ATTACK_MOVE, "unit_ids": ["Unit_16"],
+             "issued_tick": 990, "target": {"pos": [36.09, 54.27]}},
+        ]
+        state["server_tick"] = 1020
+        nodes._consume_fast_events(state, self._ctx(
+            [self._arrival("Unit_16", [36.09, 54.27], 1020, 8)]))
+        self.assertNotIn("Unit_16", rf.busy_units(state),
+                         "去重分支不许绕过释放（否则同样是 30 秒级停滞）")
+
+    def test_double_delivery_of_one_event_is_still_deduplicated(self):
+        """去重仍要挡住"同一条事件被投递两次"（这是它原本存在的理由）。"""
+        from adjutant_coordinator.graph import nodes
+
+        state = self._state_with_route("Unit_19", 1000)
+        event = self._arrival("Unit_19", [14.0, 7.0], 1000, 1)
+        nodes._consume_fast_events(state, self._ctx([event]))
+        arrivals_after_first = state["movement_stats"]["arrivals"]
+        nodes._consume_fast_events(state, self._ctx([event]))
+        self.assertEqual(state["movement_stats"]["arrivals"], arrivals_after_first,
+                         "同一条事件重复投递不许重复计数")
+
+    def test_seen_arrivals_is_bounded(self):
+        """去重表必须有界（旧实现是长度 64 的 list；新实现按时间窗清理）。"""
+        from adjutant_coordinator.graph import nodes
+
+        state = self._state_with_route("Unit_19", 0)
+        for index in range(40):
+            state["server_tick"] = index * 200        # 远超去重窗口
+            nodes._consume_fast_events(state, self._ctx(
+                [self._arrival("Unit_%d" % index, [float(index), 0.0],
+                               index * 200, index + 1)]))
+        seen = state.get("seen_arrivals")
+        self.assertIsInstance(seen, dict, "新格式是 dict（携带时间戳）")
+        self.assertLessEqual(len(seen), 4,
+                             "过期键必须被清掉（窗口 60 tick，200 tick 间隔 → 只留最新）")
 
 
 class PlanVersionEchoTest(unittest.TestCase):
@@ -177,7 +474,7 @@ class PlayerInterruptRuntimeTest(unittest.TestCase):
         fixture = self.make_fixture()
         fixture.tick(0)
         fixture.tick(5, events=[events_for("enemy_spotted", ["Unit_1"], 5)])
-        self.assertEqual(len(fixture.transport.sent), 1)
+        self.assertEqual(len(model_sends(fixture.transport.sent)), 1)
 
         record = fixture.runtime.on_player_command(["Unit_1"], server_tick=8)
         self.assertEqual(fixture.runtime.state.find_intent("i-1")["state"], "dropped")
@@ -187,18 +484,18 @@ class PlayerInterruptRuntimeTest(unittest.TestCase):
         paused = fixture.tick(8)
         self.assertEqual(paused.route, "player_interrupt")
         self.assertTrue(paused.paused)
-        # 暂停期间不下发命令（等宿主/玩家决定后再恢复）。
-        self.assertEqual(len(fixture.transport.sent), 1)
+        # 暂停期间图不下发命令（等宿主/玩家决定后再恢复）。
+        self.assertEqual(len(model_sends(fixture.transport.sent)), 1)
 
         resumed = fixture.tick(9)
         self.assertFalse(resumed.paused)
-        self.assertEqual(len(fixture.transport.sent), 1)
+        self.assertEqual(len(model_sends(fixture.transport.sent)), 1)
 
         # 旧模型响应（同一个单位的旧代际）不能抢回控制。
         after = fixture.tick(10, events=[events_for("queue_idle", ["Unit_1"], 10)])
         dropped = {item["intent_id"]: item["reason"] for item in after.dropped_intents}
         self.assertEqual(dropped.get("i-2"), "lease_owner_player:Unit_1")
-        self.assertEqual(len(fixture.transport.sent), 1)
+        self.assertEqual(len(model_sends(fixture.transport.sent)), 1)
         self.assertEqual(fixture.runtime.state.player_controlled_units, ["Unit_1"])
 
     def test_release_then_ai_can_control_again(self):
@@ -215,8 +512,11 @@ class PlayerInterruptRuntimeTest(unittest.TestCase):
         fixture.tick(20)                     # 玩家打断：暂停
         result = fixture.tick(21, events=[events_for("queue_idle", ["Unit_1"], 21)])
         self.assertEqual(result.accepted_intents, ["i-3"])
-        self.assertEqual(len(fixture.transport.sent), 2)
-        self.assertEqual(fixture.transport.sent[1]["intent_id"], "i-3")
+        # 只数模型来源：地板在第 0 轮已发过一次 fill-advance 且之后不再重复（实测），
+        # 按总条数判会把那条地板命令错算成"玩家归还后又下了一单"。
+        sent_by_model = model_sends(fixture.transport.sent)
+        self.assertEqual(len(sent_by_model), 2)
+        self.assertEqual(sent_by_model[1]["intent_id"], "i-3")
         self.assertEqual(result.receipts[0]["status"], "Accepted")
 
     def test_reacquire_intent_carries_flag_to_authority(self):
@@ -252,7 +552,10 @@ class PlayerInterruptRuntimeTest(unittest.TestCase):
 
 class PendingAuthorityTest(unittest.TestCase):
     def test_pending_authority_is_not_resubmitted_and_resolves_by_receipt(self):
-        transport = RecordingTransport(script=[{"accepted": False, "status": "PendingAuthority"}])
+        # 回执脚本按 intent_id 精确匹配：地板那条命令也在同一局里下发，
+        # 位置式脚本会让它先吃掉 "PendingAuthority"，模型命令反而拿到 Accepted。
+        transport = RecordingTransport(
+            script=[{"intent_id": "i-1", "accepted": False, "status": "PendingAuthority"}])
         recheck = lambda command_id: {"command_id": command_id, "intent_id": "i-1",
                                       "status": "Accepted", "accepted": True, "result": {}}
         fixture = RuntimeFixture(
@@ -264,22 +567,22 @@ class PendingAuthorityTest(unittest.TestCase):
         result = fixture.tick(5, events=[events_for("enemy_spotted", ["Unit_1"], 5)])
         self.assertEqual(result.receipts[0]["status"], "PendingAuthority")
         self.assertIn("i-1", fixture.runtime.state.pending_requests)
-        self.assertEqual(len(transport.sent), 1)
+        self.assertEqual(len(model_sends(transport.sent)), 1)
 
         # 在途未复核：**路由不再被全局压制**（2026-09-12 晚修正：原来这里断言
         # route=="wait"、tactics 只调 1 次，导致主循环 0.58 秒/轮却每 4.7 秒才思考一次），
         # 但"不对同一单位重复下单"这条保证仍然成立 —— 由仲裁层的
-        # `pending_authority_unresolved` 指纹去重拦下，**发送计数不变**。
+        # `pending_authority_unresolved` 指纹去重拦下，**模型发送计数不变**。
         again = fixture.tick(6, events=[events_for("queue_idle", ["Unit_1"], 6)])
         self.assertGreaterEqual(again.server_tick, 6)
-        self.assertEqual(len(transport.sent), 1,
+        self.assertEqual(len(model_sends(transport.sent)), 1,
                          "在途未复核的命令不得重复下发（仲裁层应拦下同一指纹）")
 
         # 复核终态：pending 结算，意图进入 active，不需要重下单。
         resolved = fixture.tick(7)
         self.assertEqual(fixture.runtime.state.pending_requests, {})
         self.assertEqual(fixture.runtime.state.find_intent("i-1")["state"], "active")
-        self.assertEqual(len(transport.sent), 1)
+        self.assertEqual(len(model_sends(transport.sent)), 1)
         kinds = [item["kind"] for item in fixture.runtime.state.decision_log]
         self.assertIn("pending_resolved", kinds)
         self.assertGreaterEqual(resolved.server_tick, 7)
@@ -303,12 +606,18 @@ class DegradeTest(unittest.TestCase):
 
         # 战术超时：既有计划保留，图不抛异常；降级原因必须保留可见——
         # 否则分不清"模型恢复"与"兜底顶上"。
-        # 注意：本 fixture 的观测里没有 resource 实体，规则兜底判定"无事实可依"→
-        # 不产出意图，所以这里仍然不下发；兜底"能派工"由 test_rules_fallback 覆盖。
-        third = fixture.tick(5, events=[events_for("enemy_spotted", ["Unit_1"], 5)])
+        # 模型这条线确实一条没发（timeout），但**规则地板照常指挥**：观测里有敌军
+        # 就顶上进攻（2026-09-12 架构纠偏 §三-3：模型缺席时 AI 不能整轮静默）。
+        third = fixture.tick(
+            5, events=[events_for("enemy_spotted", ["Unit_1"], 5)],
+            enemies=[{"name": "Enemy_1", "unit_type": "tank", "pos": [30.0, 0.0, 30.0]}])
         self.assertIn("tactics_model_ModelTimeout", third.degraded_reason)
         self.assertIsNotNone(fixture.runtime.state.active_plan)
-        self.assertEqual(fixture.transport.sent, [])
+        self.assertEqual(model_sends(fixture.transport.sent), [])
+        floor = [item for item in fixture.transport.sent
+                 if is_floor_intent(item.get("intent_id"))]
+        self.assertEqual(len(floor), 1, "模型超时时规则地板必须顶上，而不是整轮零下发")
+        self.assertIn("Unit_1", floor[0]["params"]["units"])
 
     def test_model_cooldown_after_repeated_failures(self):
         fixture = RuntimeFixture(
@@ -333,10 +642,20 @@ class DegradeTest(unittest.TestCase):
             tactics_script=[{"behavior": "completed", "intents": make_batch(
                 [make_intent("i-1", issued_tick=5, expires_tick=605)])}])
         fixture.tick(0)
+        # 这条要钉的性质是"**漂移轮起，一条都不许多发**"（绝不把命令送进别的对局），
+        # 不是"整局累计零条"：规则地板自 2026-09-12 架构纠偏后每轮常驻，
+        # 漂移之前的那一轮本就允许有下发（那是**本局**的命令，不是泄漏）。
+        # 因此以漂移前的下发数为基线，只要求漂移轮及其后不再增长。
+        sent_before_drift = len(fixture.transport.sent)
         drifted = fixture.tick(5, events=[events_for("enemy_spotted", ["Unit_1"], 5)],
-                               match_id="other-match")
+                              match_id="other-match")
         self.assertEqual(drifted.degraded_reason, "identity_drift")
-        self.assertEqual(fixture.transport.sent, [])
+        self.assertEqual(len(fixture.transport.sent), sent_before_drift,
+                         "身份漂移轮不得新增任何下发（漂移前 %d 条，现在 %d 条）" % (
+                             sent_before_drift, len(fixture.transport.sent)))
+        # 且已下发的每一条都必须仍归属**绑定的那个对局**，不能漂到别的局。
+        for envelope in fixture.transport.sent:
+            self.assertEqual(envelope["match_id"], fixture.runtime.state.match_id)
 
 
 class CheckpointRestoreTest(unittest.TestCase):
@@ -353,7 +672,11 @@ class CheckpointRestoreTest(unittest.TestCase):
             store=store)
         first.tick(0)
         first.tick(5, events=[events_for("enemy_spotted", ["Unit_1"], 5)])
-        self.assertEqual(len(first.transport.sent), 1)
+        self.assertEqual(len(model_sends(first.transport.sent)), 1,
+                         "恢复检查点后模型意图只许重放一次（幂等）")
+        command_ids = [str(item.get("command_id", "")) for item in first.transport.sent]
+        self.assertEqual(len(command_ids), len(set(command_ids)),
+                         "恢复后不得重复下发同一条命令：%s" % command_ids)
         saved = first.runtime.checkpoint()
         self.assertTrue(saved["saved"], saved)
 
@@ -364,13 +687,17 @@ class CheckpointRestoreTest(unittest.TestCase):
         self.assertTrue(outcome["restored"], outcome)
         state = restarted.runtime.state
         self.assertEqual(state.plan_version, "plan-a:v1")
-        self.assertEqual([item["intent_id"] for item in state.active_intents], ["i-1"])
+        # 恢复的是**模型意图** i-1。规则地板每轮常驻，它的 `rule-*` 意图同样会进
+        # active_intents（见 model_sends 的理由），所以按来源挑出来再比。
+        self.assertEqual([item["intent_id"] for item in state.active_intents
+                          if not is_floor_intent(item.get("intent_id"))], ["i-1"])
         self.assertEqual(state.generation_of("Unit_1"), first.runtime.state.generation_of("Unit_1"))
         self.assertEqual(state.active_tasks, first.runtime.state.active_tasks)
 
-        # 恢复后继续 tick：不会重放已接受的意图（不重复下单）。
+        # 恢复后继续 tick：不会重放已接受的模型意图（不重复下单）；
+        # 规则地板这一轮照常下发，那不是"重放"。
         result = restarted.tick(30)
-        self.assertEqual(transport.sent, [])
+        self.assertEqual(model_sends(transport.sent), [])
         self.assertEqual(result.accepted_intents, [])
 
     def test_restore_refuses_rules_version_drift(self):
@@ -411,7 +738,8 @@ class LangGraphEngineTest(unittest.TestCase):
 
         second = fixture.tick(5, events=[events_for("enemy_spotted", ["Unit_1"], 5)])
         self.assertEqual(second.accepted_intents, ["i-1"])
-        self.assertEqual(len(fixture.transport.sent), 1)
+        # 与 fallback 侧同口径：只数模型来源（地板第 0 轮已发过 fill-advance，见 model_sends）。
+        self.assertEqual(len(model_sends(fixture.transport.sent)), 1)
 
         fixture.runtime.on_player_command(["Unit_1"], server_tick=8)
         paused = fixture.tick(8)
@@ -420,7 +748,7 @@ class LangGraphEngineTest(unittest.TestCase):
 
         resumed = fixture.tick(9)
         self.assertFalse(resumed.paused)
-        self.assertEqual(len(fixture.transport.sent), 1)
+        self.assertEqual(len(model_sends(fixture.transport.sent)), 1)
 
         after = fixture.tick(10, events=[events_for("queue_idle", ["Unit_1"], 10)])
         dropped = {item["intent_id"]: item["reason"] for item in after.dropped_intents}

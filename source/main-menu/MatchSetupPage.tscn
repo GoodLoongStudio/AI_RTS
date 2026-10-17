@@ -184,6 +184,12 @@ autowrap_mode = 3
 text = "尚未连接"
 horizontal_alignment = 1
 
+[node name="SandboxButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "战略模式（测试）"
+tooltip_text = "进入封闭战略讨论，不创建对局"
+
 [node name="BackButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 text = "返回"
@@ -194,4 +200,5 @@ text = "返回"
 [connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ReadyRow/ReadyButton" to="." method="_on_ready_button_pressed"]
 [connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/ReadyRow/StartButton" to="." method="_on_start_button_pressed"]
 [connection signal="toggled" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/TitleRow/RandomMapButton" to="." method="_on_random_map_toggled"]
+[connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/SandboxButton" to="." method="_on_sandbox_pressed"]
 [connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/VBoxContainer/BackButton" to="." method="_on_back_button_pressed"]

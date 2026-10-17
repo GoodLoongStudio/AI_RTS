@@ -15,6 +15,7 @@ import math
 import os
 import sys
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 
@@ -114,7 +115,14 @@ class GateTest(unittest.TestCase):
         self.assertEqual(plan.relay_point, [])
 
     def test_no_relay_when_route_leaves_vision(self):
-        """整条路径都在视野外 → 没有安全中继点 → 不许推进。"""
+        """整条路径都在视野外 → 没有安全中继点 → 不许推进。
+
+        2026-10-07 判据更新（**产品口径确实变了，不是把测试改绿**）：
+        中继点现在按"沿权威路径**逐点**仍被己方视野覆盖的连续前缀"取，而"己方视野"
+        包含推进单位自己（旧口径把它排除掉，于是单兵永远只能返回起点 = 零跳 bug）。
+        所以"路径在视野外"要用**真的超出自己视野**的路径来验：单位在 (10,7)、
+        视野默认 14 米时，(30,30) 已经在 28 米外 —— 第一段就不可见 → `no_relay`。
+        """
         plan = mv.plan_safe_route(self._state(),
                                   tactical([unit("Unit_4", "soldier", (10, 7))]),
                                   unit="Unit_4", target=[45.0, 45.0], tick=600,
@@ -123,14 +131,24 @@ class GateTest(unittest.TestCase):
         self.assertEqual(plan.reason, mv.REJECT_NO_RELAY)
 
     def test_relay_stops_at_the_edge_of_vision(self):
-        """中继点 = 路径上仍被己方视野覆盖的**最远**点（推进一跳，不是走到终点）。"""
+        """中继点 = 路径上仍被己方视野覆盖的**最远**点（推进一跳，不是走到终点）。
+
+        2026-10-07：一跳长度按**沿路径走过的里程**从起点算（旧实现是"逐个拐点判覆盖"，
+        拐点稀疏时一步都走不动）。单位在 (10,7)、默认半径 14 米 →
+        一跳上限 14 米；路径 [10,7]→[14,7]→[18,7]→[30,7] 上最远可见点是 x=24
+        （离单位 14 米，正好在上限上；x=30 是 20 米，超出）。
+        """
         plan = mv.plan_safe_route(self._state(),
                                   tactical([unit("Unit_4", "soldier", (10, 7))]),
                                   unit="Unit_4", target=[30.0, 7.0], tick=600,
                                   nav_query=nav_ok([[10, 7], [14, 7], [18, 7], [30, 7]]))
         self.assertTrue(plan.ok, plan.reason)
         self.assertLess(plan.relay_point[0], 30.0, "不该一步走到终点")
-        self.assertAlmostEqual(plan.relay_point[0], 18.0, places=1)
+        self.assertAlmostEqual(plan.relay_point[0], 24.0, places=1)
+        self.assertAlmostEqual(
+            mv.point_distance([10.0, 7.0], plan.relay_point),
+            mv.RELAY_VISION_RADIUS_M, places=1,
+            msg="一跳长度必须真的用满推进半径，而不是停在某个稀疏拐点上")
 
     def test_stale_nav_revision_forces_replan(self):
         state = self._state(routes={"Unit_4": {"ok": True, "nav_revision": 1,
@@ -414,6 +432,578 @@ def _intent(units, pos, action="attack_move"):
             "priority": 3, "issued_tick": 600, "expires_tick": 1200}
 
 
+class RelayStartDedupTest(unittest.TestCase):
+    """中继点必须**真的把单位往前挪**（2026-10-07 零跳修复的守门测试）。
+
+    背景（用户实测："单个兵走一小段后等很久"）：`safe_relay_point` 旧实现对每个**已有拐点**
+    判"是否被己方视野覆盖"，而权威路径在开阔地上常常只回两个端点 → 60 米合法直路返回**起点**，
+    调用层照签 `ok=true` 的推进意图 = 位移 0 的空跳（命令账在涨、部队不动）。
+    这里钉住四件事：
+    ① 稀疏直路 → 沿路径取 `min(半径, 单位视野)` 米处的点（不是起点、不是终点）；
+    ② 一跳长度**逐单位**取权威 `sight`，缺字段才退回 14 米；
+    ③ 用满视野半径（不再停在稀疏拐点上）；
+    ④ 单位已经站在中继点上时不签推进（`relay_too_close`），而不是发一条零位移命令。
+    """
+
+    def _state(self, bounds=(200.0, 200.0), **extra):
+        state = {"map_bounds": list(bounds), "server_tick": 600,
+                 "ai_controlled_units": ["Unit_4"]}
+        state.update(extra)
+        return state
+
+    def _plan(self, tactical_view, waypoints, *, target=(70.0, 10.0), unit="Unit_4",
+              role=mv.ROLE_MAIN):
+        return mv.plan_safe_route(self._state(), tactical_view, unit=unit,
+                                  target=list(target), tick=600,
+                                  nav_query=nav_ok(waypoints), role=role)
+
+    def test_sparse_direct_route_no_longer_collapses_to_the_origin(self):
+        """权威直路只有两个端点时，也必须沿路径给出一跳（回归：旧实现返回起点）。"""
+        view = tactical([unit("Unit_4", "tank", (10, 10), sight=16.0)])
+        plan = self._plan(view, [[10.0, 10.0], [70.0, 10.0]])
+        self.assertTrue(plan.ok, plan.reason)
+        self.assertNotEqual(plan.relay_point, [10.0, 10.0],
+                            "中继点等于起点 = 零位移推进，不许再签发")
+        self.assertAlmostEqual(plan.relay_point[1], 10.0, places=3,
+                               msg="点必须在权威路径上（不许自己画直线）")
+        self.assertAlmostEqual(
+            mv.point_distance([10.0, 10.0], plan.relay_point),
+            min(16.0, mv.RELAY_MAX_HOP_M), places=3,
+            msg="稀疏直路的一跳长度 = min(B2 节奏上限, 单位视野=16)；无友军视野链时单兵不越自己视野")
+
+    def test_hop_length_uses_authoritative_sight_per_unit(self):
+        """一跳长度逐单位取 `sight`（tank 16 / scout 24 不是同一个数）。"""
+        blocked_on_radius = tactical([unit("Unit_4", "soldier", (10, 10), sight=4.0)])
+        short = self._plan(blocked_on_radius, [[10.0, 10.0], [70.0, 10.0]])
+        self.assertTrue(short.ok, short.reason)
+        self.assertAlmostEqual(
+            mv.point_distance([10.0, 10.0], short.relay_point), 4.0, places=3,
+            msg="视野 4 米 → 一跳只有 4 米（不许用固定 14 米越过真实视野）")
+
+        far_sight = tactical([unit("Unit_4", "scout", (10, 10), sight=24.0)])
+        long_hop = self._plan(far_sight, [[10.0, 10.0], [70.0, 10.0]])
+        self.assertTrue(long_hop.ok, long_hop.reason)
+        self.assertAlmostEqual(
+            mv.point_distance([10.0, 10.0], long_hop.relay_point),
+            min(24.0, mv.RELAY_MAX_HOP_M), places=3,
+            msg="【B2 2026-10-11 口径】一跳上限 = 节奏上限 RELAY_MAX_HOP_M（24）："
+                "视野 24 的 scout 单兵可走满 24；更远仍要靠友军视野链逐点覆盖")
+
+    def test_dense_route_uses_the_full_radius_not_sparse_corners(self):
+        """密集路径：一跳长度仍由**半径**决定，沿途拐点只是"路径在那里"，不是跳长上限。"""
+        view = tactical([unit("Unit_4", "soldier", (10, 7))])
+        plan = self._plan(view, [[10, 7], [20, 7], [40, 7], [60, 7]],
+                          target=(60.0, 7.0))
+        self.assertTrue(plan.ok, plan.reason)
+        self.assertLess(plan.relay_point[0], 60.0, "不该一步走到终点")
+        self.assertAlmostEqual(plan.relay_point[0], 10.0 + mv.RELAY_VISION_RADIUS_M,
+                               places=1)
+
+    def test_blind_gap_is_not_crossed(self):
+        """路径上第一段就看不见 → 不许推进（`no_relay`），更不许跳过缺口到后面。"""
+        view = tactical([unit("Unit_4", "soldier", (10, 7))])
+        plan = self._plan(view, [[30.0, 30.0], [40.0, 40.0], [45.0, 45.0]],
+                          target=(45.0, 45.0))
+        self.assertFalse(plan.ok)
+        self.assertEqual(plan.reason, mv.REJECT_NO_RELAY)
+        self.assertEqual(plan.relay_point, [])
+
+    def test_zero_displacement_relay_is_rejected(self):
+        """单位已经站在中继点上 → `relay_too_close`，不发零位移推进命令。
+
+        构造：权威路径从 (10,10) 起，单位已经走到 (11,10)（上一跳几乎走完），
+        视野 4 米 → 下一条中继点只比当前位置远 ~3 米，但守卫要求"必须挪动 ≥ 0.5 米"，
+        这里同时验证"守卫真的在算位移"，而不是永远返回 ok。
+        """
+        view = tactical([unit("Unit_4", "soldier", (11, 10), sight=4.0)])
+        plan = self._plan(view, [[10.0, 10.0], [70.0, 10.0]], target=(70.0, 10.0))
+        self.assertTrue(plan.ok, "路径起点仍在视野内，这一跳应该被批准：%s" % plan.reason)
+        self.assertGreaterEqual(
+            mv.point_distance([11.0, 10.0], plan.relay_point), mv.MIN_HOP_DISTANCE_M,
+            "被批准的一跳必须真的挪动")
+
+    def test_unit_already_at_or_past_the_path_start(self):
+        """【B2 2026-10-11 口径】单位已过路径起点分两种：
+        ① **仍能向前走一小步**（前缀在该单位自身视野内可继续）→ 允许签"位置在前方"的一跳；
+        ② **已过起点远超一跳 / 起点已不可见** → 必须拦（`no_relay`/`relay_too_close`），
+           不许静默 ok。两条都必须显式报原因。
+        """
+        view = tactical([unit("Unit_4", "soldier", (14, 10), sight=4.0)])
+        state = self._state()
+        plan = self._plan(view, [[10.0, 10.0], [70.0, 10.0]], target=(70.0, 10.0))
+        self.assertTrue(plan.ok, plan.reason)
+        self.assertGreater(plan.relay_point[0], 14.0,
+                           "签出的中继点必须在单位**前方**（不是已走过的回程点）")
+        self.assertTrue(state["map_bounds"], "state 未被改动（只读规划）")
+
+        # ② 已过起点 30 米（远超一跳 24）且起点已不可见：必须拦。
+        far = tactical([unit("Unit_4", "soldier", (40, 10), sight=4.0)])
+        plan_far = self._plan(far, [[10.0, 10.0], [70.0, 10.0]], target=(70.0, 10.0))
+        self.assertFalse(plan_far.ok, "已过起点远超一跳：不许再签")
+        self.assertIn(plan_far.reason, (mv.REJECT_RELAY_TOO_CLOSE, mv.REJECT_NO_RELAY))
+        self.assertEqual(plan_far.relay_point, [])
+
+    def test_zero_displacement_is_counted_as_a_block(self):
+        """调用层（闸门）把"没有可推进的下一段"记成显式原因，不再放行零位移命令。
+
+        【B2 2026-10-11 构造更新】旧构造（单位在 (14,10)、路径 10→70）在新节奏上限下
+        是**合法前向小步**（4m），不再属于"零位移"。真·零位移改由"单位已走过路径首点
+        且首点已不可见"构造（与 `test_zero_displacement_relay_is_rejected` 同语义）。
+        """
+        from adjutant_coordinator.graph import nodes
+        state = {"map_bounds": [200.0, 200.0], "server_tick": 600,
+                 "ai_controlled_units": ["Unit_4"]}
+        view = tactical([unit("Unit_4", "soldier", (18, 10), sight=4.0)])
+        ctx = _ctx_with(nav_ok([[10.0, 10.0], [18.0, 10.0]]), view)
+        kept, blocked = nodes._gate_movement(
+            state, ctx, [_intent(["Unit_4"], (18.0, 10.0))])
+        self.assertEqual(kept, [], "零位移推进不许出现在下发候选里")
+        self.assertTrue(blocked, "必须留下可统计的拦下原因")
+        reasons = [item["reason"] for item in blocked]
+        self.assertTrue(
+            any(mv.REJECT_RELAY_TOO_CLOSE in reason or mv.REJECT_NO_RELAY in reason
+                for reason in reasons),
+            "原因必须是 relay_too_close / no_relay 之一：%s" % reasons)
+
+    def test_relay_must_not_jump_over_a_blind_gap_into_rear_ally_vision(self):
+        """【2026-10-11 反例】可见集合是圆盘的**并集**，沿直线不一定单调。
+
+        推进单位在 x=0（视野 4m），友军在 x=24（视野 4m）：x∈(4,20) 是盲区，
+        但**端点 x=24 恰好可见**。旧实现对"最后一个可见采样点"做二分（依据是
+        "前缀单调"这一错误假定），会直接跨到后方友军视野里返回 24 —— 主力于是
+        穿过自己完全看不见的 16 米。现在只放行**第一个不可见点之前**的连续前缀。
+
+        这条断言有区分力：132 条旧用例在修前全绿，因为它们要么单单位自视野
+        （前缀确实单调），要么友军视野与起点连通。
+        """
+        by_name = mv._by_name(tactical([
+            unit("mover", "soldier", (0, 0), sight=4.0),
+            unit("ally", "soldier", (24, 0), sight=4.0),
+        ]))
+        relay = mv.safe_relay_point([[0.0, 0.0], [24.0, 0.0]], by_name,
+                                    unit="mover", origin=[0.0, 0.0])
+        self.assertTrue(relay, "起点自己看得见，应给出前缀内的中继点")
+        self.assertLessEqual(relay[0], 4.0 + 1e-6,
+                             "不许越过盲区：%r 跨进了后方友军视野" % (relay,))
+        self.assertGreater(relay[0], 0.0, "仍是有效前向小步，不退化成零跳")
+
+    def test_contiguous_vision_chain_still_allows_the_longer_hop(self):
+        """盲区判据不能顺手把**真正连续**的视野链也砍短：友军一格一格接得上时，
+        一跳仍应走到节奏上限（`RELAY_MAX_HOP_M`），这是 B2 放宽 24m 的目的。
+        """
+        entities = [unit("mover", "soldier", (0, 0), sight=4.0)]
+        for x in (4, 8, 12, 16, 20, 24):
+            entities.append(unit("ally_%d" % x, "soldier", (x, 0), sight=4.0))
+        relay = mv.safe_relay_point([[0.0, 0.0], [40.0, 0.0]],
+                                    mv._by_name(tactical(entities)),
+                                    unit="mover", origin=[0.0, 0.0])
+        self.assertTrue(relay)
+        self.assertAlmostEqual(relay[0], mv.RELAY_MAX_HOP_M, delta=1.0)
+
+
+class MilitaryTrackLoopControlTest(unittest.TestCase):
+    """一个单位算不出航点，**不许**把整条军事轨剩下的单位一起饿掉。
+
+    `_parallel_intents` 的军事轨原来写的是：
+
+    ```python
+    point = military_waypoint(...)
+    if not point:
+        break          # ← 终止整条轨，把它之后的**所有**作战单位一起跳过
+    ```
+
+    `military_waypoint` 在 `not base or len(base) < 2` 时返回空，而调用处传的是
+    `origin or base`（`origin` 可能为 `None`）⇒ 它确实会返回空。
+    一个单位的异常不该让整条轨停摆 —— 这是"有的兵在动、有的兵一直不动"的一个直接机制。
+    """
+
+    def _view(self):
+        return {
+            "entities": [
+                unit("Unit_0", "command_center", (8, 7), movement=False, queue=True),
+                unit("Unit_1", "drone", (12, 8)),
+                unit("Unit_2", "soldier", (10, 7)),
+                unit("Unit_3", "soldier", (11, 7)),
+                unit("Unit_4", "soldier", (12, 7)),
+            ],
+            "balance": {"A": 50000},
+        }
+
+    def _state(self):
+        return {"map_bounds": [50.0, 50.0], "server_tick": 600, "snapshot_id": 1,
+                # `nav_revision` 必须是**标量**才是合法形状：`parse_nav_revision`
+                # 对 dict/list 一律返回 -1（实测探针），于是 `hop_in_progress` 永远为假、
+                # "在路上"根本判不出来 —— 测试里设错形状会静默地测不到东西。
+                "nav_revision": 1,
+                "routes": {}, "movement_stats": {}, "active_intents": [],
+                "active_tasks": [], "combat_types": ["soldier"],
+                "ai_controlled_units": ["Unit_0", "Unit_1", "Unit_2", "Unit_3",
+                                        "Unit_4"],
+                "enemy_intel_points": [[40.0, 40.0]]}
+
+    def test_a_unit_without_a_waypoint_does_not_starve_the_rest(self):
+        from adjutant_coordinator.graph import rules_fallback as rf
+        state = self._state()
+        view = self._view()
+        real = rf.military_waypoint
+
+        def fake(origin, **kwargs):
+            if str(kwargs.get("unit", "")) == "Unit_2":
+                return None            # 只有中间这个单位算不出航点
+            return real(origin, **kwargs)
+
+        with mock.patch.object(rf, "military_waypoint", fake):
+            out = rf._parallel_intents(state, tactical=view, primary=[],
+                                       ttl_ticks=3600, server_tick=600, snapshot_id=1)
+        units_with_intents = {str(u) for item in out
+                              for u in (item.get("unit_ids") or [])}
+        self.assertIn("Unit_3", units_with_intents,
+                      "排在『算不出航点』那个单位**之后**的作战单位必须照样拿到意图"
+                      "（旧实现 `break` 会把它们一起饿掉）")
+        skipped = {(str(item.get("unit")), str(item.get("reason")))
+                   for item in (state.get("decision_log") or [])
+                   if str(item.get("kind")) == "advance_skipped"}
+        self.assertIn(("Unit_2", "no_waypoint"), skipped,
+                      "算不出航点要逐条留痕（计数会被 `movement_stats` 视图掩盖）")
+        self.assertTrue(any(reason in ("busy", "used", "suspended", "not_combat")
+                            for _unit, reason in skipped),
+                        "其它出口（名额/占用/类型）也要留痕并带原因：%s" % sorted(skipped))
+
+    def test_en_route_veto_is_counted(self):
+        """`_en_route` 否决是"通往新命令的唯一道路"，必须可计数（否则只能靠推理）。"""
+        from adjutant_coordinator.graph import rules_fallback as rf
+        from adjutant_coordinator.graph import movement as mv
+        state = self._state()
+        view = self._view()
+        mv.record_route(state, mv.RoutePlan(
+            unit="Unit_2", ok=True, relay_point=[14.0, 7.0], target=[30.0, 7.0],
+            nav_revision=1, last_replan_tick=600, route_id="r-1"))
+        out = rf._parallel_intents(state, tactical=view, primary=[],
+                                   ttl_ticks=3600, server_tick=600, snapshot_id=1)
+        units_with_intents = {str(u) for item in out
+                              for u in (item.get("unit_ids") or [])}
+        self.assertNotIn("Unit_2", units_with_intents, "在路上的单位不该被改令")
+        skipped = [item for item in state.get("decision_log") or []
+                   if str(item.get("kind")) == "advance_skipped"]
+        self.assertTrue(any(str(item.get("unit")) == "Unit_2"
+                            and str(item.get("reason")) == "en_route"
+                            for item in skipped),
+                        "被 `_en_route` 否决要逐条留痕（否则只能靠推理）")
+
+
+def rf_arrival_override_enabled() -> bool:
+    """`rules_fallback.ARRIVAL_BUSY_OVERRIDE` 的只读探针（供 skipUnless 用）。
+
+    为什么要有它：round-29 追出的竞态是真的（到达被处理 → 同轮又新建意图 →
+    下轮重新算 `busy` → 被挡到 30.07 秒），实现也已就位，
+    但第一版**把对局打挂了两次**（日志载荷里的 `⇒` 在 GBK 控制台 print 不了），
+    `run_health` 两次都判"不可用" ⇒ **没有可采信的读数**。
+    按 prompt §4（未验证的不算成果）本轮先关闭候选；
+    测试跟着开关走，**不把"未启用"伪装成"通过"**。
+    """
+    from adjutant_coordinator.graph import rules_fallback as rf
+    return bool(getattr(rf, "ARRIVAL_BUSY_OVERRIDE", False))
+
+
+class ArrivalPriorityServiceTest(unittest.TestCase):
+    """**刚到达的单位要排到前面**（prompt §3-C 原文的"arrival 触发下一段优先服务"）。
+
+    依据（round-26 实测）：
+      - 接续 p95 = 4.68 秒，而"等到下一决策轮"的 p95 只有 1.45 秒
+        ⇒ 单位平均**多等 2~3 轮**才被服务到（排队，不是不能动）；
+      - 40.1% 的接续落在 1~5 秒、全是战斗单位；只有 4.4% 超过 5 秒
+        ⇒ **要动的不是尾巴**，是"多等的那 1~4 轮"。
+
+    做法：`node_ingest` 到达时写 `state["unit_arrival_tick"]`，
+    军事轨把它作**主排序键**（降序 = 最近到达的在前）。
+    """
+
+    def _view(self, count: int):
+        entities = [unit("Unit_0", "command_center", (8, 7), movement=False, queue=True),
+                    unit("Unit_1", "drone", (12, 8))]
+        for index in range(count):
+            entities.append(unit("Unit_%d" % (index + 10), "soldier", (10 + index, 7)))
+        return {"entities": entities, "balance": {"A": 50000}}
+
+    def _state(self, count: int, arrivals=None):
+        names = ["Unit_0", "Unit_1"] + ["Unit_%d" % (index + 10)
+                                        for index in range(count)]
+        return {"map_bounds": [50.0, 50.0], "server_tick": 600, "snapshot_id": 1,
+                "nav_revision": 1, "routes": {}, "movement_stats": {},
+                "active_intents": [], "active_tasks": [],
+                "combat_types": ["soldier"], "ai_controlled_units": names,
+                "unit_arrival_tick": dict(arrivals or {}),
+                "enemy_intel_points": [[40.0, 40.0]]}
+
+    def test_recently_arrived_units_are_served_first(self):
+        """最近到达的单位要出现在输出**前部**（每轮上限之下，靠后就是没被服务）。"""
+        from adjutant_coordinator.graph import rules_fallback as rf
+        count = 24                       # 远超每轮上限，位置差别才有意义
+        # 只有字母序**最后**两个单位有到达记录 —— 固定顺序下它们永远排在最后
+        state = self._state(count, arrivals={"Unit_32": 599, "Unit_33": 580})
+        view = self._view(count)
+        out = rf._parallel_intents(state, tactical=view, primary=[],
+                                   ttl_ticks=3600, server_tick=600, snapshot_id=1)
+        served = [str(name) for item in out
+                  if str(item.get("intent_id", "")).startswith("rule-fill-advance")
+                  for name in (item.get("unit_ids") or [])]
+        self.assertIn("Unit_33", served,
+                      "刚到达的单位必须被优先服务（否则它要再等 2~3 轮）")
+        self.assertIn("Unit_32", served, "到达更晚的排在更前面，也应被服务")
+        # 到达更晚的应当排在到达更早的之前
+        self.assertLess(served.index("Unit_32"), served.index("Unit_33"),
+                        "排序键必须按到达时刻**降序**（越近越靠前）")
+
+    def test_recently_arrived_unit_can_override_busy(self):
+        """**刚到达且不在途**的单位要被放行（第一道闸 `busy`）。
+
+        ⚠ 本测试**只钉到"放行"这一层**，不钉"最终产出推进意图" —— 因为
+        round-31 用逐出口追踪（`AIRTS_ADVANCE_TRACE`）查出：**有的单位根本
+        没进入军事轨的循环**（追踪里 `enter` 从 index=1 开始，**index=0 缺失**），
+        与 `busy` 这道闸无关。那是另一个（更靠前的）缺口，见 C-112。
+
+        ⚠ 另记一个测试自身的坑（round-30 误判的根源）：
+        **不能在同一个 state 上把 `_parallel_intents` 调两次** —— 它会推进
+        `advance_cursor`（轮转游标），第二次调用换了起点，结论就变了。
+        """
+        from adjutant_coordinator.graph import rules_fallback as rf
+        count = 6
+        state = self._state(count)
+        state["server_tick"] = 600
+        state["active_intents"] = [
+            {"intent_id": "rule-fill-advance-Unit_%d-500" % (i + 10), "state": "active",
+             "action": "attack_move", "unit_ids": ["Unit_%d" % (i + 10)]}
+            for i in range(count)]
+        state["unit_arrival_tick"] = {"Unit_12": 500}
+        rf._parallel_intents(state, tactical=self._view(count), primary=[],
+                             ttl_ticks=3600, server_tick=600, snapshot_id=1)
+        self.assertEqual(
+            state["movement_stats"].get("advance_busy_overridden"), 1,
+            "刚到达且不在途的单位必须被放行（否则被新意图挡到 TTL）")
+
+    def test_stale_arrival_does_not_override_busy(self):
+        """**早就到达**的单位不许绕过 `busy` —— 这条纪律不能被改动的窗口废掉。"""
+        from adjutant_coordinator.graph import rules_fallback as rf
+        count = 6
+        view = self._view(count)
+        state = self._state(count)
+        state["server_tick"] = 600
+        state["active_intents"] = [
+            {"intent_id": "rule-fill-advance-Unit_%d-500" % (i + 10), "state": "active",
+             "action": "attack_move", "unit_ids": ["Unit_%d" % (i + 10)]}
+            for i in range(count)]
+        # 到达发生在 5000 tick 之前 ⇒ 远超窗口
+        state["unit_arrival_tick"] = {"Unit_12": -4400}
+        out = rf._parallel_intents(state, tactical=view, primary=[],
+                                   ttl_ticks=3600, server_tick=600, snapshot_id=1)
+        served = {str(n) for item in out
+                  if str(item.get("intent_id", "")).startswith("rule-fill-advance")
+                  for n in (item.get("unit_ids") or [])}
+        self.assertNotIn("Unit_12", served,
+                         "久远到达的单位仍须遵守 busy 纪律（窗口必须有限）")
+
+    def test_combat_track_reserve_stays_reverted(self):
+        """作战轨**不许**自行加保底名额 —— round-37 试过，实测更差，round-38 已撤销。
+
+        ## 为什么这条要写成"防回退"测试
+
+        机制不对称看起来很像疏漏：**侦察轨早有 `scout_reserve = 1`**（经济轨/建造轨用
+        `_room(reserve=scout_reserve)` 给它让位），而作战轨用裸 `_room()`。
+        round-37 我据此把同一模式对称地用到作战轨 —— **实测反而更差**：
+
+        | 口径 | 对照 `81893e7b` | 无保底 `ab487d43` | **有保底 `9d887277`** |
+        |---|---|---|---|
+        | `advance_batch_full` 轮次占比 | 82.4% | 83.1% | **87.1%** |
+        | 军事意图/轮（`skipped`+`emitted`） | 10.45 | **19.79** | **16.39** |
+        | `emitted` 合计 | 1048 | **1304** | **1127** |
+
+        根因：`PARALLEL_FILL_CAP = 8` 是**硬上限**，`emitted` 分布从 `{8:131}`
+        变成 `{7:137, 8:21}` —— 保底只是"把一格从别的轨挪给军事轨"，
+        总量不变，而军事轨的 `_room` 反而**更早**为假。
+        ⇒ **硬上限下保底 = 零和搬运（此处净损）。**
+
+        本测试防止后来者（或我自己）看到那个"不对称"又把保底加回去。
+        """
+        from adjutant_coordinator.graph import rules_fallback as rf
+        import inspect
+        src = inspect.getsource(rf._parallel_intents)
+        # ⚠ 只在**代码行**里找，不在注释里找 —— 撤销说明的注释里合法地提到了这个字符串
+        # （round-38 第一版断言踩过：它被注释里的说明文字误判成"代码又加回来了"）。
+        code_lines = [line.split("#", 1)[0] for line in src.splitlines()]
+        code = "\n".join(code_lines)
+        self.assertNotIn(
+            "_room(reserve=military_reserve)", code,
+            "作战轨的保底名额已在 round-38 撤销（实测更差）；"
+            "重新加回前必须先读军事轨循环处的实测对照表")
+        # 侦察轨的保底必须保留（它是既有设计，不在本次撤销范围）
+        self.assertIn("_room(reserve=scout_reserve)", code,
+                      "侦察轨的保底是既有设计，不许被这次撤销连带删掉")
+
+    def test_without_arrivals_it_still_rotates(self):
+        """没有到达记录时行为不变（仍按轮转游标）—— 优先层不能破坏原有轮转。"""
+        from adjutant_coordinator.graph import rules_fallback as rf
+        count = 24
+        state = self._state(count)
+        view = self._view(count)
+        out = rf._parallel_intents(state, tactical=view, primary=[],
+                                   ttl_ticks=3600, server_tick=600, snapshot_id=1)
+        self.assertTrue(state.get("advance_cursor") is not None,
+                        "没有到达记录时游标仍要推进（轮转不能被优先层吃掉）")
+        self.assertTrue(any(str(item.get("intent_id", "")).startswith("rule-fill-advance")
+                            for item in out))
+
+
+class AdvanceRotationFairnessTest(unittest.TestCase):
+    """军事轨的服务顺序必须**轮转**，否则靠后的单位会被周期性饿（2026-10-09）。
+
+    `ai_units` 是 `nodes.py` 里 `sorted(...)` 出来的**固定字母序**，而本轨每轮有产出上限
+    （`PARALLEL_FILL_CAP = 8`）。两者叠加 ⇒ 靠前的单位每轮先被服务、靠后的**每次都被截断**。
+
+    实测（`archive_9e5627fe`，`rotation_fairness.py`）：推进意图在列表里的
+    **平均排名跨度 0.0 → 16.7**（完全没有轮转），而**排在最后的正是停最久的**
+    （`Unit_41` 16.2 / `Unit_36` 11.5 / `Unit_37` 12.4）。真停滞样本的恢复时刻还**成簇**、
+    同一簇内"到达越早停得越久"—— 正是排队的形状。
+    """
+
+    def _view(self, count: int):
+        entities = [unit("Unit_0", "command_center", (8, 7), movement=False, queue=True),
+                    unit("Unit_1", "drone", (12, 8))]
+        for index in range(count):
+            entities.append(unit("Unit_%d" % (index + 10), "soldier",
+                                 (10 + index, 7)))
+        return {"entities": entities, "balance": {"A": 50000}}
+
+    def _state(self, count: int):
+        names = ["Unit_0", "Unit_1"] + ["Unit_%d" % (index + 10)
+                                        for index in range(count)]
+        return {"map_bounds": [50.0, 50.0], "server_tick": 600, "snapshot_id": 1,
+                "nav_revision": 1, "routes": {}, "movement_stats": {},
+                "active_intents": [], "active_tasks": [],
+                "combat_types": ["soldier"], "ai_controlled_units": names,
+                "enemy_intel_points": [[40.0, 40.0]]}
+
+    def _advance_units(self, state, view):
+        """只取**军事轨的前压**意图（`rule-fill-advance`）。
+
+        注意不能用"所有意图里的单位"：无人机走的是**侦察轨**（`rule-fill-scout`），
+        它出现在输出里是**对的** —— 第一版断言因此误报（把侦察轨的产物当成军事轨的）。
+        """
+        from adjutant_coordinator.graph import rules_fallback as rf
+        out = rf._parallel_intents(state, tactical=view, primary=[],
+                                   ttl_ticks=3600, server_tick=600, snapshot_id=1)
+        found = set()
+        for item in out:
+            if not str(item.get("intent_id", "")).startswith("rule-fill-advance"):
+                continue
+            for name in (item.get("unit_ids") or []):
+                found.add(str(name))
+        return found
+
+    def test_cursor_advances_so_the_tail_gets_a_turn(self):
+        """连续多轮里，**排最后的单位**必须至少有一次进入被服务的头部。
+
+        旧实现（固定顺序）下，`Unit_1x` 里字母序最大的那几个**永远**排在
+        `PARALLEL_FILL_CAP` 之后 ⇒ 每轮都被截断。
+        """
+        count = 24                      # 远超每轮上限，必然有单位被截断
+        state = self._state(count)
+        view = self._view(count)
+        served_first_round = self._advance_units(state, view)
+        self.assertTrue(state.get("advance_cursor"), "轮转游标必须被持久化（否则没有轮转）")
+        # 游标前移 ⇒ 下一轮的起点不同 ⇒ 服务的头部集合会变化
+        cursor_after_first = state["advance_cursor"]
+        for tick in range(601, 620):
+            state["server_tick"] = tick
+            self._advance_units(state, view)
+        self.assertNotEqual(state["advance_cursor"], cursor_after_first,
+                            "游标必须在每轮推进")
+        # 逐轮累积：被服务过的单位应当覆盖**全部**作战单位（轮转的直接效果）
+        state2 = self._state(count)
+        view2 = self._view(count)
+        seen = set()
+        for tick in range(600, 900):
+            state2["server_tick"] = tick
+            seen |= self._advance_units(state2, view2)
+        expected = {"Unit_%d" % (index + 10) for index in range(count)}
+        missing = expected - seen
+        self.assertFalse(missing,
+                         "轮转之后每个作战单位都该轮到过；仍然没被服务的是 %s"
+                         % sorted(missing))
+
+    def test_rotation_does_not_change_filters(self):
+        """轮转只改**顺序**，不许改变"谁合格" —— 无人机的类型判定不受影响。"""
+        count = 6
+        state = self._state(count)
+        view = self._view(count)
+        served = self._advance_units(state, view)
+        self.assertNotIn("Unit_1", served, "无人机不是作战单位，不许被军事轨推进")
+
+
+class ArrivedHopNotInProgressTest(unittest.TestCase):
+    """**到达过的跳不许再算"在路上"**（2026-10-09，C2 门禁 32 秒尾巴的根因）。
+
+    `note_arrival` 把路线标成 `ok=False` + `arrived_tick=<到达时刻>`，这是"这一跳结束了"的
+    唯一信号。但 `record_route` 原来**整条替换** `routes[unit]`：同一目标被重新规划一次，
+    `arrived_tick` 就被清成 0、`ok` 被写回 `True` ⇒ `unit_en_route` 又为真 ⇒
+    `rules_fallback._parallel_intents` 里 `if _en_route(name): continue` **每轮跳过它** ⇒
+    直到 `HOP_HOLD_MAX_TICKS`(1800 tick ≈ 30 秒) 的第二道保险才放行。
+
+    实测（`archive_aa061295`，round-10）：654 条到达里 **652 条**都正常调用了 `note_arrival`，
+    所以被抹掉的是**记号**而不是"到达没记账"；门禁 p95 长期钉在 31.8~33.1 秒
+    （≈30 秒保险 + 一轮）与之吻合。
+    """
+
+    def _state(self):
+        return {"server_tick": 0, "routes": {}, "movement_stats": {},
+                "active_intents": [], "active_tasks": []}
+
+    def _plan(self, tick, target=(30.0, 7.0), relay=(14.0, 7.0)):
+        return mv.RoutePlan(unit="Unit_9", ok=True, relay_point=list(relay),
+                            target=list(target), nav_revision=1,
+                            last_replan_tick=tick, route_id="r-%d" % tick)
+
+    def test_replan_to_the_same_target_keeps_the_arrived_marker(self):
+        state = self._state()
+        mv.record_route(state, self._plan(100))
+        self.assertTrue(mv.hop_in_progress(state, "Unit_9", 1, 110),
+                        "刚规划的一跳当然算在途")
+        mv.note_arrival(state, "Unit_9", 200)
+        self.assertFalse(mv.hop_in_progress(state, "Unit_9", 1, 210),
+                         "到达之后不算在途")
+        mv.record_route(state, self._plan(300))
+        entry = state["routes"]["Unit_9"]
+        self.assertEqual(entry.get("arrived_tick"), 200,
+                         "同一目标的重规划必须保留 arrived_tick"
+                         "（否则这一跳看起来又在途）")
+        self.assertFalse(entry.get("ok"), "已到达的跳不许被写回可复用")
+        self.assertFalse(mv.hop_in_progress(state, "Unit_9", 1, 310),
+                         "**到达之后**，同一目标的重规划不许把它变回'在路上'"
+                         "（否则规则地板会每轮跳过它直到 30 秒保险）")
+        self.assertGreaterEqual(state["movement_stats"].get("arrival_marker_kept", 0), 1,
+                                "保留记号这件事要可计数（验收要能读）")
+
+    def test_replan_to_a_new_target_starts_a_fresh_hop(self):
+        """真·下一跳（换了目标）必须照旧算在途，不能被上面的保护误伤。"""
+        state = self._state()
+        mv.record_route(state, self._plan(100))
+        mv.note_arrival(state, "Unit_9", 200)
+        mv.record_route(state, self._plan(300, target=(80.0, 40.0), relay=(24.0, 14.0)))
+        entry = state["routes"]["Unit_9"]
+        self.assertEqual(int(entry.get("arrived_tick", 0) or 0), 0,
+                         "换目标 = 新的一跳，不该继承上一跳的到达记号")
+        self.assertTrue(entry.get("ok"))
+        self.assertTrue(mv.hop_in_progress(state, "Unit_9", 1, 310))
+
+    def test_stale_arrived_route_still_expires(self):
+        """记号保留不等于永久在途：换网格版本仍要能重新规划。"""
+        state = self._state()
+        mv.record_route(state, self._plan(100))
+        mv.note_arrival(state, "Unit_9", 200)
+        mv.record_route(state, self._plan(300))
+        self.assertFalse(mv.hop_in_progress(state, "Unit_9", 2, 310),
+                         "网格换版本 → 旧路作废")
+
+
 class GateInArbitrationTest(unittest.TestCase):
     """闸门挂在**仲裁前**（通往下发的唯一咽喉）：能改写目标、能摘掉意图、能计数。
 
@@ -603,6 +1193,7 @@ class HopHoldTest(unittest.TestCase):
         """基地锚点 + 专职无人机：士兵不会被转交侦察，前压也才有合法圆心。"""
         state["combat_types"] = ["soldier"]
         state["ai_controlled_units"] = ["Unit_0", "Unit_1", "Unit_4"]
+        state["enemy_intel_points"] = [[40.0, 40.0]]
         return {
             "entities": [
                 unit("Unit_0", "command_center", (8, 7), movement=False, queue=True),

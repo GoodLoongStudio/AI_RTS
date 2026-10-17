@@ -154,7 +154,7 @@ internal sealed class StructurePlacementServiceTests
         Check(fixture.World.Calls == 0, "无并发额度时不应再执行更贵的空间评估");
     }
 
-    /// <summary>验证新问题插在 NotAuthorized 之后、空间/资源问题之前（稳定优先级）。</summary>
+    /// <summary>验证命中「建造中」时提前返回唯一问题，不再执行更贵的空间/余额评估。</summary>
     private void ConstructionInProgressSitsBetweenAuthorizationAndWorld()
     {
         var fixture = CreateFixture(resourceA: 1);
@@ -163,12 +163,9 @@ internal sealed class StructurePlacementServiceTests
 
         var result = fixture.Service.Evaluate(Query(fixture, 0.0f));
 
-        Check(result.Issues.SequenceEqual(new[]
-        {
-            StructurePlacementIssue.ConstructionInProgress,
-            StructurePlacementIssue.Occupied,
-            StructurePlacementIssue.InsufficientResources
-        }), "ConstructionInProgress 应排在授权之后、空间与资源问题之前");
+        Check(result.Issues.SequenceEqual(new[] { StructurePlacementIssue.ConstructionInProgress }),
+            "命中建造中应提前返回，只报告该问题（其余问题等工地空出后自然会暴露）");
+        Check(fixture.World.Calls == 0, "提前返回不得进入世界端口");
     }
 
     /// <summary>建立带默认合法定义和资源账户的测试夹具。</summary>

@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tests/perfgrid/GeoProbe.gd" id="1_geo"]
+
+[node name="GeoProbe" type="Node"]
+script = ExtResource("1_geo")

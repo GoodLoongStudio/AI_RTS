@@ -69,10 +69,19 @@ func _ready():
 func _verify_unit_configuration(runtime):
 	var tank = TankScene.instantiate()
 	runtime.ConfigureUnit(tank)
+	var tank_def := _find_by_id(_load_balance().get("unitTypes", []), "tank")
 	_check(tank.unit_type_id == "tank", "Tank 应获得稳定 UnitTypeId")
 	_check(tank.hp == 10.0 and tank.hp_max == 10.0, "Tank HP 应来自 Catalog")
-	_check(tank.sight_range == 8.0, "Tank 视野应来自 Catalog")
-	_check(tank.find_child("Movement").speed == 2.75, "Tank 速度应来自 Catalog")
+	# 【2026-10-11 口径同步】sight/speed 原写死 8.0/2.75，demo.balance.v1.json 的 tank
+	# 早已是 16→本轮全体单位视野 +4m→20、速度 5.5（多轮平衡未同步断言，长期假红）。
+	# 按本文件头部"与配置比对"的既定哲学改为派生，调平衡不再误红。
+	var expected_sight := float(tank_def.get("sightRangeMeters", -1.0))
+	var expected_speed := float(
+		(tank_def.get("movement", {}) as Dictionary).get("speedMetersPerSecond", -1.0))
+	_check(expected_sight > 0.0 and tank.sight_range == expected_sight,
+		"Tank 视野应来自 Catalog（期望 %s）" % expected_sight)
+	_check(expected_speed > 0.0 and tank.find_child("Movement").speed == expected_speed,
+		"Tank 速度应来自 Catalog（期望 %s）" % expected_speed)
 	_check(tank.can_reverse and tank.can_fire_while_moving, "Tank 移动能力应来自 Catalog")
 	var weapon := _primary_weapon(_load_balance(), "tank")
 	var expected_damage := float(weapon.get("baseDamage", -1.0))

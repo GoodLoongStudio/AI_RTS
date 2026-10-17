@@ -13,9 +13,31 @@ const MAPS = {
 		# 【2026-09-15 用户要求】50×50 → 100×100 → 200×200（2026-09-27 单位/建筑放大后地图同步 ×2；出生点四角外圈）。
 		# 该 size 只用于菜单文案与小地图等 UI；**运行时以 `Map.size`（场景根节点属性）为准**，
 		# 两者必须同步改，否则菜单显示与实际地图不一致。
-		"size": Vector2i(208, 208),
+		"size": Vector2i(512, 512),
 	},
-	# G4 四人图只挂 256×256。512 旧包已删，不要再登记。
+	# 【2026-09-29 用户要求】把工作台最新产出的 3 张合规图挂进大厅（"把这3个好地图加上去"）。
+	# 这批图按最新 G3 规则生成（矿点不落水面/桥面/山岩，含 12 个随机散矿），已逐张验证
+	# 场景可加载。名字沿用工作台标题，方便和「RTS 地图工作台」的生成记录对上。
+	# 注意：大厅不自动发现生成图（DISCOVER_GENERATED_MAPS=false），新图出片后在这里手动登记。
+	"res://source/match/maps/generated/47-903520021-767a002977/map_47-903520021-767a002977.tscn":
+	{
+		"name": "布局 47 · 地貌 903520021",
+		"players": 4,
+		"size": Vector2i(512, 512),
+	},
+	"res://source/match/maps/generated/36-1846106761-767a002977/map_36-1846106761-767a002977.tscn":
+	{
+		"name": "布局 36 · 地貌 1846106761",
+		"players": 4,
+		"size": Vector2i(512, 512),
+	},
+	"res://source/match/maps/generated/8-561215132-767a002977/map_8-561215132-767a002977.tscn":
+	{
+		"name": "布局 8 · 地貌 561215132",
+		"players": 4,
+		"size": Vector2i(512, 512),
+	},
+	# 大厅统一512世界米；生成器源栅格256不等于实际地图大小。
 	# 8 人 BigArena 已从大厅拿掉（2026-09-15）；场景文件仍保留。
 	# 【2026-09-20】"G4 大湖 seed16"已从大厅移除（用户要求）：它由
 	# tools/mapgen/tools/regen_large_lake_256.py 生成，作为随机地图 G1-G4
@@ -58,11 +80,11 @@ static func _load_generated_maps() -> Dictionary:
 					var parsed = JSON.parse_string(f.get_as_text())
 					f.close()
 					if parsed is Dictionary and parsed.has("path"):
-						var size_arr: Array = parsed.get("size", [256, 256])
+						var size_arr: Array = parsed.get("size", [0, 0])
 						var players := int(parsed.get("players", 4))
 						var size := Vector2i(int(size_arr[0]), int(size_arr[1]))
-						# 大厅只收 4 人 256×256，避免 8 人图、旧 512 包或残包进菜单。
-						if players != 4 or size != Vector2i(256, 256):
+						# 旧尺寸和缺少尺寸合同的残包不进菜单。
+						if players != 4 or size != Vector2i(512, 512):
 							continue
 						result[parsed["path"]] = {
 							"name": str(parsed.get("name", entry)),
@@ -97,7 +119,9 @@ class Air:
 	const Y = 40.0
 	const PLANE = Plane(Vector3.UP, Y)
 	## 飞机相对脚下地表的离地高度（世界米）。
-	const HOVER_OFFSET = 1.8
+	## 1.8 是单位放大前定的；现在最大地面载具半径 2.8m、空中单位半径 2.3m，
+	## 贴地 1.8m 会让飞机看起来擦着地面/车顶滑行，提到 3.5m（约 1.5× 空中单位半径）。
+	const HOVER_OFFSET = 3.5
 
 	class Navmesh:
 		# 2048m 大地图：cell 过小会让 Recast 栅格超限，触发引擎崩溃防护
@@ -107,7 +131,7 @@ class Air:
 		# 【2026-09-27 单位整体放大】原 0.8 是按 0.8~0.9m 半径的单位定的，
 		# 现在最大空中单位（直升机）半径 2.3m：agent 半径必须 ≥ 单位半径，
 		# 否则烘焙出的走廊比单位窄（单位会卡墙/穿模）。cell_size 0.8 < 2.3 仍合法。
-		const MAX_AGENT_RADIUS = 2.3
+		const MAX_AGENT_RADIUS = 0.9  # 空中域同值（空中实体不参与 carve）
 
 
 class Terrain:
@@ -120,7 +144,15 @@ class Terrain:
 		# 【2026-09-27 单位整体放大】原 0.9 是按半径 ≤0.9 的单位定的；现在最大地面
 		# 载具（运输卡车）半径 2.8m——agent 半径必须 ≥ 单位半径，否则单位比走廊宽，
 		# 表现为"贴着墙走/绕墙到达误差巨大"。cell_size 0.6 < 2.8 仍合法。
-		const MAX_AGENT_RADIUS = 2.8  # max radius of movable units
+		const MAX_AGENT_RADIUS = 0.9  # 与 navmesh.agent_radius 同步；大单位靠逻辑推出层兜底（见 skills 碰撞约定）
+		# 建筑 carve 轮廓在碰撞表面外再扩的距离。体素化+轮廓简化会把 agent 腐蚀吃掉一部分，
+		# 洞边离表面实际只有约 0.5~0.9m；外扩后洞边须 ≥ 矿车推出层的表面距离（≈1.21m），
+		# 否则寻路会把矿车送进推出层不让站的环带里来回顶。取值依据见 docs/plan/navigation-clearance-plan.md。
+		const STRUCTURE_CARVE_MARGIN_M = 0.6
+		# 挖洞建筑是否同时作为 RVO 障碍。开着时两楼之间的窄口会被 RVO 障碍+人群锁死
+		# （movement-recovery override 场景坦克 40s 退不出）；关掉后 RVO 会把单位往楼里挤、
+		# 由推出层顶回，因此 Movement 里被动推挤不改朝向、推出前先截断步长。
+		const STRUCTURE_AVOIDANCE_ENABLED = false
 
 
 class Resources:
@@ -224,6 +256,7 @@ class VoiceNarrator:
 
 	## 建筑选中语音：unit_type_id → 音频流。
 	const STRUCTURE_HELLO_MAPPING = {
+		"ore_refinery": preload("res://assets/voice/chinese/structure_ore_refinery.tres"),
 		"command_center": preload("res://assets/voice/chinese/structure_command_center.mp3"),
 		"barracks": preload("res://assets/voice/chinese/structure_barracks.mp3"),
 		"vehicle_factory": preload("res://assets/voice/chinese/structure_vehicle_factory.mp3"),

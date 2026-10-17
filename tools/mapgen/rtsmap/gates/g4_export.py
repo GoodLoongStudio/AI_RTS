@@ -61,11 +61,8 @@ EXT_WATER_NORM = ('[ext_resource type="Texture2D" '
                   'path="res://assets/terrain_pbr/dense_sand_normal.jpg" id="10_wnorm"]')
 
 G4_PARAMS_DEFAULTS = {
-    # G2 remains a 256 m strategic raster; G4 exports it at 8 m per cell.
-    # AI_RTS runtime uses the logical 512x512 playfield directly.  Scaling
-    # this to 2048m multiplies navigation, culling and terrain workload and
-    # makes the map effectively unplayable on the target client.
-    "world_scale_m": 1.0,
+    # Export-only XZ conversion. Runtime roots and gameplay coordinates are metres.
+    "world_scale_m": 2.0,
     # 显示几何（不改变逻辑语义；见 g4_terrain 文档）
     "apron_cells": 4,        # 崖脚坡水平展宽（格）
     "shore_cells": 3,        # 岸坡水平展宽（格）
@@ -137,22 +134,33 @@ def copy_assets(seeds, runs_root, airts_root=None, extra_res=()):
     return sorted(fbx_all), sorted(atlas_all), copied
 
 
-# Map instance 的世界缩放（由 build_scene_text 设置）：fbx 模型尺寸需反向补偿
-_MODEL_SCALE_DIV = 1.0
+EXPORT_CONTRACT_VERSION = "world-meters-v2"
 
 
-def fmt_transform(x, y, z, yaw_deg=0.0, scale=1.0):
+def world_contract(params=None):
+    factor = float((params or G4_PARAMS_DEFAULTS)["world_scale_m"])
+    return dict(export_contract_version=EXPORT_CONTRACT_VERSION,
+                size=[int(W * factor), int(H * factor)], source_size=[int(W), int(H)],
+                cell_m=factor, root_scale=[1, 1, 1], height_scale=1)
+
+
+def read_world_contract(folder):
+    contract = read_json(Path(folder) / "geometry_contract.json")
+    if contract.get("export_contract_version") != EXPORT_CONTRACT_VERSION:
+        raise ValueError("Old map export contract; rebuild G4 before installing")
+    return contract
+
+
+def fmt_transform(x, y, z, yaw_deg=0.0, scale=1.0, xz_scale=1.0):
     """绕 Y 旋转 + 均匀缩放的 Transform3D 文本（Basis 行主序 = Godot roty 约定）。
 
-    模型尺寸反向补偿：Map instance 以 world_scale 缩放（地形几何 格->世界），
-    物件/桥等 fbx 模型必须 / world_scale 才能保持原生尺寸（否则 ×4 变成巨石）。
-    位置 (x,y,z) 是父（instance）坐标系：不受自身 scale 影响，贴地仍自动一致。
+    Source-grid props expand horizontally at export; their height stays native.
+    No shared mutable scale state and no runtime Map scale.
     """
-    scale = scale / _MODEL_SCALE_DIV
     a = math.radians(yaw_deg)
     c, s = math.cos(a) * scale, math.sin(a) * scale
-    return (f"Transform3D({c}, 0, {s}, 0, {scale}, 0, {-s}, 0, {c}, "
-            f"{x:.3f}, {y:.3f}, {z:.3f})")
+    return (f"Transform3D({c*xz_scale}, 0, {s*xz_scale}, 0, {scale}, 0, {-s*xz_scale}, 0, {c*xz_scale}, "
+            f"{x*xz_scale:.3f}, {y:.3f}, {z*xz_scale:.3f})")
 
 
 def _grid_runs(mask):
@@ -188,6 +196,7 @@ def make_map_id(seed, terrain_seed, config=None):
     if not config:
         return base
     key = {
+        "export_contract": world_contract(),
         "controls": config.get("controls") or {},
         "algo_version": config.get("algo_version"),
         "schema_version": config.get("schema_version"),
@@ -431,6 +440,8 @@ def build_scene_text(map_id, runs_root, seed, out_dir, g4_params, visual_seed=No
     """生成 map_<map_id>.tscn 及伴随数据文件，返回产物路径 dict。"""
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
+    world_scale = float(g4_params.get("world_scale_m", 2.0))
+    geometry_contract = world_contract(g4_params)
     rd = run_dir(runs_root, seed, "G4")
     rd.mkdir(parents=True, exist_ok=True)
 
@@ -484,7 +495,7 @@ def build_scene_text(map_id, runs_root, seed, out_dir, g4_params, visual_seed=No
     for key in ("dist_plateau_d", "dist_shore_d", "dist_lake_d"):
         a = meta[key]
         up = _ndi.zoom(a, (size - 1) / max(a.shape[0] - 1, 1), order=1)
-        chan.append(np.clip(up / 600.0 + 0.5, 0.0, 1.0))
+        chan.append(np.clip(up * world_scale / 600.0 + 0.5, 0.0, 1.0))
     cls_up = _ndi.zoom(meta["dist_cls"], (size - 1) / max(meta["dist_cls"].shape[0] - 1, 1), order=1)
     chan.append(np.clip((cls_up + 1.0) / 2.0, 0.0, 1.0))
     mask_img = (np.dstack(chan) * 255.0).astype(np.uint8)
@@ -502,8 +513,11 @@ def build_scene_text(map_id, runs_root, seed, out_dir, g4_params, visual_seed=No
     bridge_asm = []
     bridge_res = set()
     for br in (g2_spec.get("bridges") or []):
+        world_bridge = dict(br, a=[v * world_scale for v in br["a"]],
+                            b=[v * world_scale for v in br["b"]],
+                            width=float(br.get("width", 8)) * world_scale)
         asm = ba.build_bridge_assembly(
-            br, lambda x, z: g4_terrain.sample_height(hf, x, z))
+            world_bridge, lambda x, z: g4_terrain.sample_height(hf, x/world_scale, z/world_scale))
         bridge_asm.append(asm)
         for p in asm["parts"]:
             bridge_res.add(p["res"])
@@ -534,9 +548,8 @@ def build_scene_text(map_id, runs_root, seed, out_dir, g4_params, visual_seed=No
         visual_seed = gate_seed_int(seed, "G4", ALGO_VERSION["G4"]) ^ (int(g4_params.get("terrain_seed", 0) or 0) * 2654435761)
         visual_seed &= 0x7FFFFFFF
     context = dict(
-        map_id=map_id, world_size_m=[W * float(g4_params.get("world_scale_m", 1.0)),
-                                     H * float(g4_params.get("world_scale_m", 1.0))],
-        cell_m=float(g4_params.get("world_scale_m", 1.0)),
+        # VisualPlan protection and sampling remain in the source raster domain.
+        map_id=map_id, world_size_m=[W, H], cell_m=1.0,
         height=grid.get("height"), heightfield=hf,
         water_footprint=grid.get("water_footprint").astype(bool),
         blocking=blocking, blocking_g2=grid.get("blocking_g2"),
@@ -600,21 +613,15 @@ def build_scene_text(map_id, runs_root, seed, out_dir, g4_params, visual_seed=No
         "roughness = 0.95",
     ]
 
-    world_scale = float(g4_params.get("world_scale_m", 1.0))
-    global _MODEL_SCALE_DIV
-    _MODEL_SCALE_DIV = world_scale
     node_lines = ['[node name="Map" instance=ExtResource("1_map")]',
                   f"size = Vector2({W * world_scale:.1f}, {H * world_scale:.1f})",
-                  # Y 缩放与 XZ 一致：游戏内高度 = 语义 x world_scale（与 review 的
-                    # 语义 x logical_cell 同尺度）。AI_RTS 无高度硬编码常量，
-                    # 单位贴地走 navmesh/物理自动跟随。
-                    f"scale = Vector3({world_scale:.6f}, {world_scale:.6f}, {world_scale:.6f})",
+                  "scale = Vector3(1, 1, 1)",
                   "",
                   '[node name="Terrain" parent="Geometry" index="1"]',
                   'script = ExtResource("5_terrain")',
                   f'height_data_path = "{height_res}"',
-                  f'semantic_span = {W:.1f}',
-                  f'world_scale = {world_scale:.4f}',
+                  f'semantic_span = {W * world_scale:.1f}',
+                  'world_scale = 1.0',
                   f'terrain_albedo = Color({visual["materials"]["terrain_albedo_color"]})',
                   ""]
     # SpawnPoints（真实地表高度）
@@ -624,10 +631,9 @@ def build_scene_text(map_id, runs_root, seed, out_dir, g4_params, visual_seed=No
         # the pivot, so keep the pivot slightly below the sampled ground.
         y = g4_terrain.sample_height(hf, x, z) - 0.75
         node_lines.append(f'[node name="{name}" type="Marker3D" parent="SpawnPoints"]')
-        # Map instance scales the terrain to world metres; SpawnPoints are
-        # siblings of Map, so their positions must be scaled explicitly.
+        # Map child positions are already world metres; marker basis stays unit scale.
         node_lines.append("transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, "
-                          f"8.74228e-08, 0, -1, {x * world_scale:.3f}, {(y + 0.2) * world_scale:.3f}, {z * world_scale:.3f})")
+                          f"8.74228e-08, 0, -1, {x * world_scale:.3f}, {y + 0.2:.3f}, {z * world_scale:.3f})")
         node_lines.append("")
     # Resources（真实地表高度）
     # B 已从玩法移除（见 Structure.gd：建造与出售退款只用 resource_a）⇒ 导出层**跳过 B 类型资源点**，
@@ -645,11 +651,9 @@ def build_scene_text(map_id, runs_root, seed, out_dir, g4_params, visual_seed=No
         # the base touches the generated terrain instead of hovering.
         y = g4_terrain.sample_height(hf, r["x"], r["z"]) - 0.45
         node_lines.append(f'[node name="{name}" parent="Resources" instance=ExtResource("{eid}")]')
-        # Resources are also siblings of the scaled Map instance.  Leaving
-        # logical 512-grid coordinates here puts all 24 mines in the first
-        # quarter of the 2048 m scene, outside the visible terrain/camera.
+        # Resource instances retain native dimensions; expand only XZ positions.
         node_lines.append(f"transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, "
-                          f"{r['x'] * world_scale:.3f}, {y * world_scale:.3f}, {r['z'] * world_scale:.3f})")
+                          f"{r['x'] * world_scale:.3f}, {y:.3f}, {r['z'] * world_scale:.3f})")
         node_lines.append("")
     # Decorations（G3 结构性遮挡实例：纯视觉，碰撞由下方游程盒统一承担）
     node_lines.append('[node name="Decorations" parent="." index="3"]')
@@ -665,7 +669,7 @@ def build_scene_text(map_id, runs_root, seed, out_dir, g4_params, visual_seed=No
         y = ground_y + (-min_y if min_y > 0 else 0.0)
         node_lines.append(f'[node name="Obj{k}" parent="Decorations" '
                           f'instance=ExtResource("{eid}")]')
-        node_lines.append(f"transform = {fmt_transform(o['x'], y, o['z'], o['yaw'], o['scale'])}")
+        node_lines.append(f"transform = {fmt_transform(o['x'], y, o['z'], o['yaw'], o['scale'], xz_scale=world_scale)}")
         node_lines.append(f'metadata/atlas = "{_res_to_dst(o["atlas"])}"')
         node_lines.append(f"metadata/blocking = {'true' if o['blocking'] else 'false'}")
         if o["terrain"] in (1, 2, 3):
@@ -685,7 +689,7 @@ def build_scene_text(map_id, runs_root, seed, out_dir, g4_params, visual_seed=No
         y = ground_y + (-min_y if min_y > 0 else 0.0)
         node_lines.append(f'[node name="Vis{k}" parent="Visual" '
                           f'instance=ExtResource("{eid}")]')
-        node_lines.append(f"transform = {fmt_transform(ins['x'], y, ins['z'], ins['yaw'], ins['scale'])}")
+        node_lines.append(f"transform = {fmt_transform(ins['x'], y, ins['z'], ins['yaw'], ins['scale'], xz_scale=world_scale)}")
         node_lines.append(f'metadata/atlas = "{_res_to_dst(ins["atlas"])}"')
         node_lines.append('metadata/blocking = false')
         tint = ins.get("tint")
@@ -729,14 +733,14 @@ def build_scene_text(map_id, runs_root, seed, out_dir, g4_params, visual_seed=No
         cy = (bottom + top) / 2.0
         sub_lines.append("")
         sub_lines.append(f'[sub_resource type="BoxShape3D" id="BoxShape3D_s{k}"]')
-        sub_lines.append(f"size = Vector3({w:.1f}, {top - bottom:.2f}, {s:.1f})")
+        sub_lines.append(f"size = Vector3({w*world_scale:.1f}, {top - bottom:.2f}, {s*world_scale:.1f})")
         node_lines.append(f'[node name="Solid{k}" type="StaticBody3D" '
                           f'parent="Collision" groups=["terrain_navigation_input"]]')
         # AI_RTS 约定：地形/障碍 StaticBody 用 collision_layer 2（navmesh 解析 mask 只含它）
         node_lines.append("collision_layer = 2")
         node_lines.append("collision_mask = 0")
         node_lines.append(f"transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, "
-                          f"{cx:.1f}, {cy:.2f}, {cz:.1f})")
+                          f"{cx*world_scale:.1f}, {cy:.2f}, {cz*world_scale:.1f})")
         node_lines.append("")
         node_lines.append(f'[node name="CollisionShape3D" type="CollisionShape3D" '
                           f'parent="Collision/Solid{k}"]')
@@ -764,13 +768,13 @@ def build_scene_text(map_id, runs_root, seed, out_dir, g4_params, visual_seed=No
         cy = htop - thick / 2.0
         sub_lines.append("")
         sub_lines.append(f'[sub_resource type="BoxShape3D" id="BoxShape3D_w{k}"]')
-        sub_lines.append(f"size = Vector3({w:.1f}, {thick:.2f}, {stride:.1f})")
+        sub_lines.append(f"size = Vector3({w*world_scale:.1f}, {thick:.2f}, {stride*world_scale:.1f})")
         node_lines.append(f'[node name="Walk{k}" type="StaticBody3D" '
                           f'parent="Collision" groups=["terrain_navigation_input"]]')
         node_lines.append("collision_layer = 2")
         node_lines.append("collision_mask = 0")
         node_lines.append(f"transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, "
-                          f"{cx:.1f}, {cy:.2f}, {cz:.1f})")
+                          f"{cx*world_scale:.1f}, {cy:.2f}, {cz*world_scale:.1f})")
         node_lines.append("")
         node_lines.append(f'[node name="CollisionShape3D" type="CollisionShape3D" '
                           f'parent="Collision/Walk{k}"]')
@@ -851,13 +855,13 @@ def build_scene_text(map_id, runs_root, seed, out_dir, g4_params, visual_seed=No
         cx = j0 + w / 2.0
         cz = i + 0.5
         sub_lines += ["", f'[sub_resource type="BoxMesh" id="BoxMesh_w{k}"]',
-                      f"size = Vector3({w:.1f}, 0.1, 1)"]
+                      f"size = Vector3({w*world_scale:.1f}, 0.1, {world_scale:.1f})"]
         node_lines.append(f'[node name="WaterMesh{k}" type="MeshInstance3D" '
                           f'parent="WaterBody"]')
         node_lines.append(f'mesh = SubResource("BoxMesh_w{k}")')
         node_lines.append('material_override = SubResource("Mat_water")')
         node_lines.append(f"transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, "
-                          f"{cx:.1f}, {ws:.2f}, {cz:.1f})")
+                          f"{cx*world_scale:.1f}, {ws:.2f}, {cz*world_scale:.1f})")
         node_lines.append("")
 
     n_sub = sum(1 for ln in sub_lines if ln.startswith("[sub_resource"))
@@ -867,6 +871,10 @@ def build_scene_text(map_id, runs_root, seed, out_dir, g4_params, visual_seed=No
     tscn = out_dir / f"map_{map_id}.tscn"
     tscn.write_text(text, encoding="utf-8", newline="\n")
 
+    for target in nav["targets"] + [p for group in nav["forbidden"].values() for p in group]:
+        target["x"] *= world_scale
+        target["z"] *= world_scale
+    write_json(out_dir / "geometry_contract.json", geometry_contract)
     write_json(rd / "nav_targets.json", nav)
     write_json(rd / "heightfield_report.json", hf_report)
     write_json(rd / "visual_plan.json", visual)
@@ -874,6 +882,7 @@ def build_scene_text(map_id, runs_root, seed, out_dir, g4_params, visual_seed=No
         "gate": "G4", "master_seed": seed, "map_id": map_id,
         "gate_seed": gate_seed_int(seed, "G4", ALGO_VERSION["G4"]),
         "algo_version": ALGO_VERSION["G4"], "params": g4_params,
+        "geometry_contract": geometry_contract,
         "visual_seed": int(visual_seed), "visual_style_version": visual["style_version"],
         "visual_dependencies": visual["asset_dependencies"],
         "bridge_assets": [dict(asset=r, atlas=ba.ATLAS) for r in sorted(bridge_res)],
@@ -950,7 +959,8 @@ def install_map(out_dir, map_id, airts_root=None):
     # 此前不在拷贝清单里：新 map_id 装机后 GeneratedTerrain._load_mask_uvs 读不到
     # 掩码会**静默返回全零 UV**（use_masks=1 的分支于是把整图按 distance=0 着色），
     # 表现为"新装地图配色整体不对"却没有任何报错。缺失必须直接报错。
-    names = [f"map_{map_id}.tscn", "height_data.bin", "terrain_masks.png", "minimap_preview.png"]
+    geometry = read_world_contract(out_dir)
+    names = [f"map_{map_id}.tscn", "height_data.bin", "terrain_masks.png", "minimap_preview.png", "geometry_contract.json"]
     for name in names:
         src = out_dir / name
         if not src.exists():
@@ -966,10 +976,7 @@ def install_map(out_dir, map_id, airts_root=None):
         "path": scene_res,
         "name": f"Generated {map_id}",
         "players": 4,
-        "size": [int(W), int(H)],
-        # 世界米 / 语义格：512 格 × 4.0 = 2048m（与 Map 基座 scale 一致）。
-        # 旧值 8.0 与 size=2048 互斥（2048/8 = 256 格），属历史漂移，未被消费但会误导。
-        "cell_m": float(G4_PARAMS_DEFAULTS["world_scale_m"]),
+        **geometry,
         "map_id": map_id,
         "height_data": f"res://source/match/maps/generated/{map_id}/height_data.bin",
         "height_data_sha256": sha256_file(out_dir / "height_data.bin"),

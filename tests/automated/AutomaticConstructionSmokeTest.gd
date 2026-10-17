@@ -20,8 +20,8 @@ const TankScene = preload("res://source/match/units/Tank.tscn")
 const TurretScene = preload("res://source/match/units/AntiGroundTurret.tscn")
 const Warmup = preload("res://tests/automated/SmokeTestWarmup.gd")
 
-## requiredWork=200 / automaticWorkPerTick=1 ⇒ 200 物理 Tick（60 Hz 约 3.3 秒）完工。
-## 给 4 倍余量吸收导航烘焙与首帧抖动。
+## requiredWork=100（2026-10-12 生产/建造统一 2 倍速，200 ÷ 2）/ automaticWorkPerTick=1
+## ⇒ 100 物理 Tick（60 Hz 约 1.7 秒）完工；远距离施工最慢会衰减到 1/5 工效，上限仍留 4 倍余量。
 const CONSTRUCTION_TIMEOUT_FRAMES := 1200
 ## 载具生产周期按 balance 的 production time 走，这里只等"实体真的出现"。
 const PRODUCTION_TIMEOUT_FRAMES := 1500
@@ -160,7 +160,14 @@ func _ready():
 			turret != null and is_instance_valid(turret) and turret.is_constructed(),
 			"零工人炮塔应在 %d 物理 Tick 内自动完工" % CONSTRUCTION_TIMEOUT_FRAMES
 		)
-		_check(worker.action == null, "炮塔自动施工不得占用采矿 Worker")
+		# 【2026-09-30 口径修正】判据意图是"工人不得被拉去施工"，而不是"工人必须一动不动"：
+		# 采矿/待命都是工人的本职状态，旧写法 action == null 会把"正在采矿"误判成被占用。
+		var worker_action = worker.action
+		var worker_action_script := "" if worker_action == null else str(worker_action.get_script().resource_path)
+		_check(
+			not worker_action_script.contains("Constructing"),
+			"炮塔自动施工不得占用采矿 Worker（实际 action=%s）" % (worker_action_script if worker_action_script != "" else "空闲")
+		)
 		if turret != null and is_instance_valid(turret):
 			# attack_range 由 BalanceConfigRuntime 在生成时按武器配置写入；
 			# 为 null 或非正说明防御能力根本没挂上，"建成了"也就没有意义。
@@ -236,7 +243,16 @@ func _ready():
 		"取消后同一落点应重新可建，否则说明 footprint 没释放（issues=%s）"
 		% str(reevaluate.get("issues", []))
 	)
-	_check(worker.action == null, "全程采矿 Worker 都不得被施工占用")
+	# 【2026-09-29 收窄断言口径】原判据 `worker.action == null` 会把"被建筑挤开"
+	# （PlanDisplacements 的驱逐位移，Moving 动作）误判成"被抓去施工"。本条断言的本意
+	# （与上面 88/105/137/163 行同）是**不得被当成建造者**，因此只禁 Construct 类动作。
+	var held_by_construction := (
+		worker.action != null
+		and worker.action.get_script() != null
+		and "Constructing" in str(worker.action.get_script().resource_path)
+	)
+	_check(not held_by_construction, "全程采矿 Worker 都不得被施工占用（动作=%s）"
+		% [str(worker.action.get_script().resource_path.get_file()) if worker.action != null and worker.action.get_script() != null else "无"])
 
 	_finish()
 
@@ -259,7 +275,20 @@ func _wait_for_spawned_unit(player: Node, scene_suffix: String, max_frames: int)
 func _find_legal_transform(runtime, human, scene, anchor: Vector3):
 	var histogram := {}
 	var evaluations := 0
-	for radius in [10.0, 14.0, 18.0, 22.0, 26.0, 30.0, 34.0, 38.0, 42.0, 46.0]:
+	# 【2026-09-30 用户重平衡后修复：写死的半径序列整带跳过了合法环带】
+	# 邻接判定是上界（candidate + existing + EdgeClearance 0.75）、占位是下界
+	# ⇒ 合法环带只有 0.75m 宽，且位置随两者半径移动。旧序列从 10m 起、4m 一跳：
+	# 旧尺寸下炮塔合法带在 9.20~9.95（刚好被 10 覆盖）所以能过；重平衡后
+	# 炮塔半径 2.2→3.3、主基地 7.0→3.5 ⇒ 带移到 **6.80~7.55**，而搜索从 10m 起跳 ⇒ 全灭。
+	# 修法：近距按 0.5m 细扫（4~16m，覆盖贴建筑的所有合法带），远距保持 4m 粗扫。
+	var radii: Array = []
+	var near := 4.0
+	while near <= 16.0:
+		radii.append(near)
+		near += 0.5
+	for far in [20.0, 24.0, 28.0, 32.0, 36.0, 40.0, 44.0, 48.0]:
+		radii.append(far)
+	for radius in radii:
 		for step in range(24):
 			var angle := TAU * float(step) / 24.0
 			var candidate := Transform3D(

@@ -1,0 +1,14 @@
+[adjutant-command-protocol] rc=3221225477 marker_ok=False fails=1 secs=8.9
+[adjutant-credential] rc=0 marker_ok=True fails=0 secs=2.4
+[adjutant-connectivity] rc=0 marker_ok=True fails=0 secs=2.2
+[adjutant-observation] rc=0 marker_ok=True fails=0 secs=4.5
+[adjutant-rules-export] rc=1 marker_ok=False fails=3 secs=3.8
+[rule-ai-aggression] rc=0 marker_ok=True fails=0 secs=5.8
+[rule-ai-battlegroup] rc=1 marker_ok=False fails=0 secs=11.0
+[rule-ai-defense] rc=0 marker_ok=True fails=0 secs=6.6
+[rule-ai-economy-query] rc=1 marker_ok=False fails=0 secs=15.4
+[rule-ai-expansion] rc=1 marker_ok=False fails=0 secs=17.0
+[rule-ai-intelligence] rc=0 marker_ok=True fails=0 secs=5.8
+[rule-ai-offense-logistics] rc=1 marker_ok=False fails=0 secs=12.6
+[adjutant-hud-status-discovery] rc=0 marker_ok=True fails=0 secs=2.3
+[adjutant-model-service] rc=0 marker_ok=True fails=0 secs=3.2

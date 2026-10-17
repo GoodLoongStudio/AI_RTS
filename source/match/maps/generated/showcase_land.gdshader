@@ -575,6 +575,11 @@ float scree = smoothstep(0.58, 0.90, value_noise(base_uv * 0.045 + vec2(53.0, 11
 
  // 法线贴图 20m 平铺在光照下会形成规则条纹（实测水平波纹的主因）：
  // 扰动 UV + 双尺度混合后周期互消，保留颗粒感而去掉条纹。
+ // 【2026-10-12 P2 结论】用户报的"密集斜纹"经单因素 A/B 复现验证是 **P1 掩码跨度
+ // 缺陷**（mask_world_size=256 时沙地出现密集波浪斜纹，与用户截图一致；修 P1 后
+ // 同机位干净）。阴影参数（bias/normal_bias/pancake/blur/max_distance）A/B 对沙地
+ // 无可测影响，不存在需要修的阴影 acne；此处曾试过"沙地法线距离衰减"，实测只削
+ // 近景细粒（-66% 高频）且不针对报告缺陷，已回退，不留无依据改动。
  vec3 n_sand = normalize(mix(texture(sand_normal, wxz / max(tile_m * 3.2, 24.0)).xyz,
                              texture(sand_normal, wxz / max(tile_m * 4.6, 32.0) + vec2(0.41, 0.23)).xyz,
                              0.5) * 2.0 - 1.0 + vec3(0.0, 1.0, 0.0));

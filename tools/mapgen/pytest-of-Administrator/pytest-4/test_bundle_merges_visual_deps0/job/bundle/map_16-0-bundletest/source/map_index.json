@@ -1,0 +1,24 @@
+{
+ "cell_m": 2.0,
+ "export_contract_version": "world-meters-v2",
+ "height_data": "res://source/match/maps/generated/16-0-bundletest/height_data.bin",
+ "height_data_sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+ "height_scale": 1,
+ "map_id": "16-0-bundletest",
+ "name": "Generated 16-0-bundletest",
+ "path": "res://source/match/maps/generated/16-0-bundletest/map_16-0-bundletest.tscn",
+ "players": 4,
+ "root_scale": [
+  1,
+  1,
+  1
+ ],
+ "size": [
+  512,
+  512
+ ],
+ "source_size": [
+  256,
+  256
+ ]
+}

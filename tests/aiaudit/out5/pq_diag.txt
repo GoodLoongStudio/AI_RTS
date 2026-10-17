@@ -1,0 +1,13 @@
+roductionService.TryComplete(AI_RTS.Domain.Production.ProductionItemSnapshot, long) (G:\AIRTS\AI_RTS\source\csharp\Application\Production\ProductionService.cs:288)
+       [4] void AI_RTS.Application.Production.ProductionService.Advance(long) (G:\AIRTS\AI_RTS\source\csharp\Application\Production\ProductionService.cs:248)
+       [5] void AI_RTS.GodotAdapter.Production.ProductionRuntime._PhysicsProcess(double) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Production\ProductionRuntime.cs:59)
+       [6] bool Godot.Node.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/Node.cs:2648)
+       [7] bool AI_RTS.GodotAdapter.Production.ProductionRuntime.InvokeGodotClassMethod(Godot.NativeInterop.godot_string_name&, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (G:\AIRTS\AI_RTS\.godot\mono\temp\obj\Debug\Godot.SourceGenerators\Godot.SourceGenerators.ScriptMethodsGenerator\AI_RTS.GodotAdapter.Production.ProductionRuntime_ScriptMethods.generated.cs:120)
+       [8] Godot.NativeInterop.godot_bool Godot.Bridge.CSharpInstanceBridge.Call(nint, Godot.NativeInterop.godot_string_name*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant_call_error*, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Bridge/CSharpInstanceBridge.cs:24)
+Production deployment diagnostic: [{ "item_id": "f18421da-4546-4d44-be8c-31179efeac03", "producer_id": "de33500d-b10f-4483-8b56-3f22cda66175", "definition_id": "tank", "required_work": 360, "completed_work": 360, "state": "AwaitingDeployment", "version": 363, "produced_unit_id": "" }, { "item_id": "b526e17d-7831-426d-a6d6-bb834c79dd62", "producer_id": "de33500d-b10f-4483-8b56-3f22cda66175", "definition_id": "tank", "required_work": 360, "completed_work": 0, "state": "Queued", "version": 1, "produced_unit_id": "" }]
+ERROR: Production queue assertion failed: 首个 Tank 应在有限时间内只部署一次
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check (res://tests/automated/ProductionQueueSmokeTest.gd:114)
+       [1] _ready (res://tests/automated/ProductionQueueSmokeTest.gd:84)
+ERROR: Production queue assertion failed: 首项完成后应从活动队列移除

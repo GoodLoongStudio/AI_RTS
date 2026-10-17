@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tests/automated/_VolOffShot.gd" id="1_vo"]
+
+[node name="VolOffShot" type="Node"]
+script = ExtResource("1_vo")

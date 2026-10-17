@@ -167,6 +167,9 @@ class Workbench:
         skip_engine_check = False
         if isinstance(request, dict):
             request = dict(request)
+            required_size = request.pop('required_world_size_m', None)
+            if required_size is not None and required_size != pipeline.g4_export.world_contract()['size']:
+                raise ValueError('This service cannot export the requested world dimensions')
             target = request.pop('target', 'full')
             if target not in ('full', 'g2'):
                 raise ValueError('生成目标不正确。')
@@ -313,7 +316,24 @@ class Workbench:
                 finished = dict(result=summary(read_json(spec_path)) if spec_path.exists() else None,
                                 status='done')
             else:
-                result = self._generate_g2(job, folder, progress)
+                # 【2026-10-11 进度合同补齐】快速预览以前**完全不写 `job['stages']`**：
+                # 中心总进度流程图的唯一状态源是 stages，于是预览局五个节点全程"等待"，
+                # 任务已经 error 了流程图也看不出错在 G2。这里用与 `run_pipeline` 同一套
+                # `StageRecorder` 口径补记 G1/G2（不在 UI 层靠延时猜阶段）。
+                rec = pipeline.StageRecorder(job, folder, self._locked_save)
+                rec.mark_t0('g1_input')
+                rec.begin('g1_input', stage='G1')
+                rec.done('g1_input')
+                job['stages']['g1_input']['pass'] = True
+                rec.mark_t0('g2_terrain')
+                rec.begin('g2_terrain', stage='G2')
+                try:
+                    result = self._generate_g2(job, folder, progress)
+                except Exception as error:
+                    rec.fail('g2_terrain', error, kind='g2_error')
+                    raise
+                rec.done('g2_terrain', summary=summary(result['mapspec']))
+                job['stages']['g2_terrain']['pass'] = bool(result['mapspec'].get('all_pass'))
                 seed = job['config']['layout_seed']
                 progress(dict(attempt=result['mapspec']['generation']['chosen_attempt'],
                               limit=job['config']['controls']['layout_attempts'], phase='绘制总览与路线'))
@@ -588,7 +608,9 @@ def make_server(project, port=8765, output=None):
                         algo_versions=dict(ALGO_VERSION), pipeline_version=pipeline.PIPELINE_VERSION,
                         layouts=app.layouts, controls=CONTROLS, choices=CHOICES, check_labels=CHECK_LABELS,
                         stage_labels=STAGE_LABELS,
-                        fixed=dict(map_size_m=[W, H], grid_size=[GRID_W, GRID_H], cell_m=CELL, plateau_height_difference_m=3,
+                        fixed=dict(map_size_m=[W, H], world_size_m=pipeline.g4_export.world_contract()['size'],
+                                   export_contract_version=pipeline.g4_export.EXPORT_CONTRACT_VERSION,
+                                   grid_size=[GRID_W, GRID_H], cell_m=CELL, plateau_height_difference_m=3,
                                    home_clearance_m=20, home_plateaus=2, bridge_width_m=8), **app.snapshot()))
                 if path == '/api/jobs':
                     return self.send(200, app.snapshot())

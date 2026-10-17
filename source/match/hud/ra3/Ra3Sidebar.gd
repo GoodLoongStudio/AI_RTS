@@ -27,16 +27,18 @@ const OreRefineryUnit := "res://source/match/units/OreRefinery.tscn"
 ## RA3 式生产分类。place=true 走蓝图放置（automatic/hybrid 建筑由权威 Tick 自动施工）；
 ## 否则 producer 建筑排队生产。
 ##
-## 【格子顺序 = 玩家找东西的顺序（2026-09-28 用户："矿场放第一个"，红警2 式经济中心）】
-## 建筑页第一格是**矿场**（经济核心），其后是生产建筑（基地/车厂/机场/兵营），
-## 下半区放**防御设施**（对地炮/对空炮/机枪塔）。
-## 改动这里只会挪格子位置，不影响任何玩法（点击行为由 `_on_cell_pressed` 按 scene 决定）。
+## 【格子顺序 = 玩家找东西的顺序】
+## **2026-10-10 用户口径：「主基地肯定在最上面最左边」⇒ 建筑页第 1 格是基地**，
+## 其后是经济核心**矿场**，再生产建筑（车厂/机场/兵营），下半区放**防御设施**（对地炮/对空炮/机枪塔）。
+## ⚠ 本条**覆盖** 2026-09-28 的旧口径（当时要求"矿场放第一个"）；两处只有这一个权威清单，
+##   改这里只挪格子位置，不影响任何玩法（点击行为由 `_on_cell_pressed` 按 scene 决定）。
+##   建筑页是 `place == true` 页签，`_sorted_items_for()` 对它**不排序** ⇒ 下面的字面顺序就是显示顺序。
 const TABS = [
 	{
 		"id": "structures", "caption": "建筑", "place": true,
 		"items": [
-			{"scene": OreRefineryUnit, "caption": "矿场", "icon": "ore_refinery"},
 			{"scene": CommandCenterUnit, "caption": "基地", "icon": "command_center"},
+			{"scene": OreRefineryUnit, "caption": "矿场", "icon": "ore_refinery"},
 			{"scene": VehicleFactoryUnit, "caption": "车厂", "icon": "vehicle_factory"},
 			{"scene": AircraftFactoryUnit, "caption": "机场", "icon": "aircraft_factory"},
 			{"scene": BarracksUnit, "caption": "兵营", "icon": "barracks"},
@@ -75,18 +77,21 @@ const TABS = [
 		"id": "aircraft", "caption": "飞机", "producer": AircraftFactoryUnit,
 		"producer_caption": "航空工厂",
 		"items": [
-			# 按价格升序：无人机 200 → 直升机 900（2026-09-15 用户要求）。
+			# 按价格升序：无人机 200 → 战斗机 900（2026-09-15 用户要求）。
 			{"scene": DroneUnit, "caption": "无人机", "icon": "drone"},
-			{"scene": HelicopterUnit, "caption": "直升机", "icon": "helicopter"},
+			{"scene": HelicopterUnit, "caption": "战斗机", "icon": "helicopter"},
 		],
 	},
 ]
 
-const SIDEBAR_WIDTH := 288.0
+const SIDEBAR_WIDTH := 336.0
 ## 侧栏内边距 10+10 后的正方形边长，让小地图铺满、不再缩在扁框里。
 const MINIMAP_EDGE := SIDEBAR_WIDTH - 20.0
-const CELL_SIZE := 64.0
-const CELL_WIDTH := 123.0
+## 【2026-10-10 用户要求"建造条太小"】格子从 123x64 放大到 150x88：
+## 2 列 150+4 间距+边框 2+内边距 20 = 326，仍在 SIDEBAR_WIDTH=336 内；
+## 卡片内部全是锚点相对布局（图标 FULL_RECT、名称/造价贴底），加高自动放大图标区。
+const CELL_SIZE := 88.0
+const CELL_WIDTH := 150.0
 const GRID_COLUMNS := 2
 const GRID_CAPACITY := 12
 const REFRESH_INTERVAL := 0.4
@@ -532,7 +537,8 @@ func _tab_by_id(tab_id: String):
 func _make_cell(item: Dictionary) -> Dictionary:
 	## 生产卡片。布局按用户口径：
 	## 左上图标（尽量放大）/ 右上状态角标 / 中部名称 / 底部造价·时间 / 右下队列数量。
-	## 卡片高度刻意压在 CELL_SIZE，保证 1280x720 下同屏能看到主要单位。
+	## 【2026-10-10 用户要求"建造条太小"】高度随 CELL_SIZE=88 放大；图标区自动变高，
+	## 名称/造价行仍贴底，锚点布局无需改。1280x720 下同屏行数减少，由 grid_scroll 滚动兜底。
 	var button = Button.new()
 	button.custom_minimum_size = Vector2(CELL_WIDTH, CELL_SIZE)
 	_make_button_styles(button)
@@ -569,7 +575,7 @@ func _make_cell(item: Dictionary) -> Dictionary:
 	var name_label = Label.new()
 	name_label.text = str(item.caption)
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_label.add_theme_font_size_override("font_size", 11)
+	name_label.add_theme_font_size_override("font_size", 13)
 	name_label.add_theme_color_override("font_color", ProductionTheme.TEXT)
 	name_label.clip_text = true
 	name_label.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
@@ -584,7 +590,7 @@ func _make_cell(item: Dictionary) -> Dictionary:
 	var cost = Label.new()
 	cost.text = _cost_caption(item)
 	cost.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	cost.add_theme_font_size_override("font_size", 10)
+	cost.add_theme_font_size_override("font_size", 12)
 	cost.add_theme_color_override("font_color", ProductionTheme.AMBER)
 	cost.clip_text = true
 	cost.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
@@ -731,6 +737,7 @@ func _on_unload_pressed():
 			cargo.unload_all()
 			unloaded += 1
 	_set_status("已卸货 %s 台运输车" % unloaded if unloaded > 0 else "卸货：请先选中载有士兵的运输车")
+
 
 
 ## 出售按钮：进入出售指定模式，随后左键点击己方建筑精准出售（右键取消）。

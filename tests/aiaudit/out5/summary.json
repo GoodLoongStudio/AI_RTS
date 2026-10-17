@@ -1,0 +1,27 @@
+[
+  {
+    "id": "production-queue",
+    "category": "production",
+    "scene": "res://tests/automated/ProductionQueueSmokeTest.tscn",
+    "returncode": 1,
+    "seconds": 29.9,
+    "marker_ok": false,
+    "marker": "Production queue smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "5"
+    ],
+    "fail_lines": [
+      "首个 Tank 应在有限时间内只部署一次",
+      "首项完成后应从活动队列移除",
+      "首项部署后第二项应取得生产线",
+      "C# 权威队列应与 Legacy HUD 视图一致",
+      "取消第二项后队列应为空"
+    ],
+    "errors": [
+      "Failed to load script \"res://source/match/units/CommandCenter.gd\" with error \"Compilation failed\".",
+      "Parse Error: Too many arguments for \"_is_agent_placement_position_valid()\" call. Expected at most 5 but received 6.",
+      "System.InvalidOperationException: 场景 res://tests/perfgrid/TmpTurretHead.tscn 没有受信任的单位类型定义。"
+    ],
+    "log_lines": 4221
+  }
+]

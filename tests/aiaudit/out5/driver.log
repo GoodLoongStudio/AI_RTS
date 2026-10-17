@@ -1,0 +1,8 @@
+[force-attack-friendly] rc=1 marker_ok=False fails=2 secs=26.9
+[movement-recovery] rc=1 marker_ok=False fails=4 secs=31.4
+[production-queue] rc=1 marker_ok=False fails=10 secs=29.9
+[rule-ai-battlegroup] rc=1 marker_ok=False fails=0 secs=10.3
+[rule-ai-economy-query] rc=1 marker_ok=False fails=0 secs=15.0
+[rule-ai-expansion] rc=1 marker_ok=False fails=0 secs=16.4
+[rule-ai-offense-logistics] rc=1 marker_ok=False fails=0 secs=12.4
+DONE 7 tests, 7 red

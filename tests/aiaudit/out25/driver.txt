@@ -1,0 +1,3 @@
+[rule-ai-economy-query] rc=1 marker_ok=False fails=0 secs=8.4
+[rule-ai-offense-logistics] rc=1 marker_ok=False fails=0 secs=41.7
+DONE 2 tests, 2 red

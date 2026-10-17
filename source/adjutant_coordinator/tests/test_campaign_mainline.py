@@ -21,7 +21,7 @@ import os
 import re
 import unittest
 
-from adjutant_coordinator.graph import campaign as cm
+from adjutant_coordinator.graph import campaign as cm, task_loop as tl
 from adjutant_coordinator.graph import decision_map, rules_fallback as rf
 from adjutant_coordinator.graph.state import AdjutantGraphState
 
@@ -195,8 +195,9 @@ class RefineryMilestoneTest(unittest.TestCase):
 
     def test_second_command_center_does_not_impersonate_refinery_milestone(self):
         """第二座指挥中心只证明"分基地"（M05），不得顺手把"分矿"（M08）也标成完成。"""
-        entities = [unit("Unit_cc", "command_center", pos=(10.0, 0.0, 10.0)),
-                    unit("Unit_cc2", "command_center", pos=(120.0, 0.0, 120.0)),
+        # E4: 此夹具明确表示两座已完工基地，必须提供权威 True；缺字段是 unknown。
+        entities = [unit("Unit_cc", "command_center", pos=(10.0, 0.0, 10.0), constructed=True),
+                    unit("Unit_cc2", "command_center", pos=(120.0, 0.0, 120.0), constructed=True),
                     unit("Unit_w", "worker", pos=(12.0, 0.0, 12.0), construct=True)]
         state = self._run_to(entities)
         campaign = state["campaign_state"]
@@ -225,7 +226,7 @@ class RefineryMilestoneTest(unittest.TestCase):
 
 
 class MilestoneEvidenceTest(unittest.TestCase):
-    def test_workers_gathering_requires_authoritative_receipt(self):
+    def test_economy_requires_real_refinery_delivery(self):
         state = base_state()
         entities = [unit("Unit_1", "worker", gather=True),
                     resource("R_1", (8.0, 0.0, 8.0))]
@@ -233,15 +234,24 @@ class MilestoneEvidenceTest(unittest.TestCase):
         cm.update(state, observation(entities), 0)
         self.assertNotEqual(state["campaign_state"]["milestones"][cm.M01]["status"],
                             "done")
-        # 出现权威 Accepted 回执 → 完成，并记下证据。
+        # 接受采集命令不能证明收入；没有矿场时满载矿车也无法交货。
         state["command_receipts"] = [{
             "status": "Accepted", "accepted": True, "action": "gather",
             "intent_id": "rule-gather-Unit_1-100"}]
         cm.update(state, observation(entities), 60)
+        self.assertNotEqual(state["campaign_state"]["milestones"][cm.M01]["status"], "done")
+        refinery = unit("Unit_ref", "ore_refinery", constructed=True,
+                        refinery={"constructed": True, "delivered_count": 0})
+        entities.append(refinery)
+        cm.update(state, observation(entities), 120)
+        self.assertNotEqual(state["campaign_state"]["milestones"][cm.M01]["status"], "done")
+        refinery["refinery"]["delivered_count"] = 1
+        cm.update(state, observation(entities), 180)
         entry = state["campaign_state"]["milestones"][cm.M01]
         self.assertEqual(entry["status"], "done")
         self.assertTrue(entry["done_tick"])
         self.assertTrue(entry["last_evidence"])
+        self.assertIn("交付", entry["last_evidence"])
 
     def test_generated_plan_or_task_does_not_complete_milestone(self):
         state = base_state()
@@ -642,7 +652,11 @@ class InterruptStackTest(unittest.TestCase):
     def test_defense_branch_only_when_interrupt_active(self):
         from adjutant_coordinator.graph import behavior_tree as bt
         state = {"ai_controlled_units": ["Unit_2"], "server_tick": 600,
-                 "latest_snapshot_id": 1, "campaign_state": {}}
+                 "latest_snapshot_id": 1, "campaign_state": {},
+                 # Advancing requires confirmed intelligence; keep the original
+                 # attack/defend assertions with their real input prerequisite.
+                 "enemy_intel_points": [{"name": "E_base", "pos": [80.0, 0.0, 80.0],
+                                         "last_seen_tick": 600, "confirmed_dead": False}]}
         entities = [unit("Unit_0", "command_center", queue=True),
                     unit("Unit_2", "soldier", pos=(6.0, 0.0, 6.0))]
         tac = tactical(entities, tick=600)
@@ -1401,6 +1415,73 @@ class DecisionMapTest(unittest.TestCase):
         available = {item["id"] for item in retrieved["available"]}
         self.assertIn("D12", available)
         self.assertNotIn("D11", available)
+
+
+class ConstructionFactsWiringTest(unittest.TestCase):
+    """E3/E4: raw observations must retain site identity and three-state status."""
+
+    @staticmethod
+    def _facts(entities):
+        obs = {"tactical": {"entities": list(entities), "balance": {"A": 1000}},
+               "strategic": {"enemy_intel": []}}
+        return cm.build_facts({}, obs, 100)
+
+    def test_named_site_full_lifecycle_uses_raw_observations(self):
+        record = tl.new_record("build-site-a", kind="build", tick=0)
+        record.update({"building_type": "ore_refinery", "site_entity": "SiteA",
+                       "state": tl.TASK_RUNNING, "no_progress_limit_ticks": 1000,
+                       "deadline_tick": 10000})
+        cases = [
+            ([unit("SiteA", "ore_refinery", constructed=False)],
+             {"SiteA": False}, "waiting"),
+            ([unit("SiteA", "ore_refinery")], {"SiteA": None}, "unknown"),
+            ([unit("SiteB", "ore_refinery", constructed=True)],
+             {"SiteB": True}, "unknown"),
+            ([unit("SiteA", "ore_refinery", constructed=True),
+              unit("SiteB", "ore_refinery", constructed=True)],
+             {"SiteA": True, "SiteB": True}, "succeeded"),
+        ]
+        for tick, (entities, own, expected) in enumerate(cases, 1):
+            with self.subTest(tick=tick):
+                facts = self._facts(entities)
+                self.assertEqual(facts["own_constructed"], own)
+                verdict, _, _, _ = tl.evaluate_record(
+                    record, facts=facts, state={"measured_tick_hz": 30.0},
+                    tick=tick, mono=float(tick))
+                self.assertEqual(verdict, expected)
+
+    def test_only_explicit_true_counts_as_completed(self):
+        null_site = unit("SiteC", "ore_refinery")
+        null_site["constructed"] = None
+        facts = self._facts([
+            unit("SiteA", "ore_refinery", constructed=True,
+                 refinery={"constructed": True}),
+            unit("SiteB", "ore_refinery", constructed=False,
+                 refinery={"constructed": False}),
+            null_site, unit("SiteD", "ore_refinery"),
+        ])
+        self.assertEqual(facts["counts"]["ore_refinery"], 4)
+        self.assertEqual(facts["constructed"]["ore_refinery"], 1)
+        self.assertEqual(facts["constructed_unknown"]["ore_refinery"], 2)
+        self.assertEqual(facts["own_constructed"],
+                         {"SiteA": True, "SiteB": False, "SiteC": None, "SiteD": None})
+        self.assertEqual(facts["refinery_constructed"], 1)
+        record = tl.new_record("build-type", kind="build", tick=0)
+        record["building_type"] = "ore_refinery"
+        self.assertEqual(tl.metric_value(record, facts=facts, state={}, tick=1)[0], "unknown")
+        record.update({"baseline_captured": True, "baseline": 0, "attribution": "type"})
+        self.assertEqual(tl.metric_value(record, facts=facts, state={}, tick=1)[0], 1)
+
+    def test_unknown_building_does_not_advance_campaign(self):
+        for utype, evidence in (("barracks", cm._evidence_production_building),
+                                ("command_center", cm._evidence_second_base)):
+            for status in (None, False, True):
+                with self.subTest(utype=utype, status=status):
+                    facts = self._facts([
+                        unit("Base", "command_center", constructed=True),
+                        unit("Candidate", utype, constructed=status)])
+                    passed, _ = evidence(facts, {})
+                    self.assertEqual(passed, status is True)
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -308,6 +308,59 @@ class DecisionScheduler:
         self._pool.shutdown(wait=wait)
 
 
+@dataclass
+class StrategyRequestFrame:
+    """战略请求的只读快照。工作线程只读它，不碰图状态，也不带 future。"""
+
+    context: Dict[str, Any]
+    match_id: str
+    player_id: str
+    server_tick: int
+    snapshot_id: int = 0
+    plan_version: str = ""
+    plan_adopt_generation: int = 0
+    control_generation: int = 0
+    strategy_epoch: int = 0
+    generations: Dict[str, int] = field(default_factory=dict)
+    deadline_seconds: float = 45.0
+    created_monotonic: float = field(default_factory=time.monotonic)
+
+    @property
+    def deadline_monotonic(self) -> float:
+        return float(self.created_monotonic) + float(self.deadline_seconds)
+
+    def to_checkpoint(self) -> Dict[str, Any]:
+        """可放进 checkpoint 的请求身份。不含 context 正文和线程。"""
+        return {
+            "match_id": self.match_id,
+            "player_id": self.player_id,
+            "server_tick": int(self.server_tick),
+            "snapshot_id": int(self.snapshot_id),
+            "plan_version": self.plan_version,
+            "plan_adopt_generation": int(self.plan_adopt_generation),
+            "control_generation": int(self.control_generation),
+            "strategy_epoch": int(self.strategy_epoch),
+        }
+
+
+def build_strategy_scheduler(agent: Any, **kwargs: Any) -> DecisionScheduler:
+    """战略 submit/poll。与战术共用同一个有界调度器，不另开指挥中心。
+
+    `propose_plan` 在工作线程里跑。超时后底层推理可能还在算；调度器不因此
+    再塞进第二个工作槽。Agent 自己的在途标记会挡住叠上去的 GPU 请求。
+    """
+
+    def _call(request: Request) -> Any:
+        frame = request.frame
+        context = getattr(frame, "context", None)
+        return agent.propose_plan(context if isinstance(context, dict) else {})
+
+    kwargs.setdefault("max_normal_queue", 1)
+    kwargs.setdefault("max_tick_drift", 10 ** 9)
+    kwargs.setdefault("hard_timeout_seconds", 45.0)
+    return DecisionScheduler(_call, **kwargs)
+
+
 def build_scheduler_for_agent(agent: Any, **kwargs: Any) -> DecisionScheduler:
     """把四列 Agent 包装成调度器可调用的形式（生产接线用）。
 

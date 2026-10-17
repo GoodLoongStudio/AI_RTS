@@ -608,6 +608,8 @@ class DecisionFrame:
     #: 这里的每个字段都来自 `campaign.context_view()`（唯一实现），
     #: 渲染层只负责排版，不自行推导主线状态。
     campaign: Dict[str, Any] = field(default_factory=dict)
+    #: 当前战略任务的短摘要（task_id:目的）。Laya 只看渲染出来的文本。
+    strategic_tasks: Tuple[str, ...] = ()
 
     @property
     def deadline_monotonic(self) -> float:
@@ -1045,9 +1047,15 @@ def modifications_to_intents(result: DecodeResult, frame: DecisionFrame) -> Inte
                 producer = str(modification.units[0])
             target["producer"] = producer
             if action == ACTION_BUILD:
+                # A model chooses the task/area; the same authority as rule AI
+                # must choose the final footprint, passages and production exit.
                 pos = payload.get("pos")
-                if isinstance(pos, (list, tuple)) and len(pos) >= 2:
-                    target["pos"] = [float(pos[0]), float(pos[1])]
+                scene = str(payload.get("scene", "")).lower()
+                if "commandcenter" in scene or "command_center" in scene or "orerefinery" in scene or "ore_refinery" in scene:
+                    # No coordinate: the authority resolves the resource anchor.
+                    pass
+                elif isinstance(pos, (list, tuple)) and len(pos) >= 2:
+                    target["hint"] = [float(pos[0]), float(pos[1])]
         if action == ACTION_GATHER:
             entity = str(payload.get("entity_id", ""))
             if entity:

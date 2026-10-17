@@ -59,6 +59,8 @@ func _ready() -> void:
 	await _check_wiring()
 	await _check_first_match()
 	await _check_double_finish()
+	await _check_victory_before_start()
+	await _check_records_local_facts()
 	await _check_second_match_aborted()
 	_check_real_match_structure()
 
@@ -173,6 +175,62 @@ func _check_double_finish() -> void:
 	await _frames(2)
 	_check(_report_count() == before,
 		"重复结算不新增报告（%d → %d）" % [before, _report_count()])
+
+
+# ==================== 4b. 胜负早于开局：只落一份，不留第二个记录器 ====================
+
+func _check_victory_before_start() -> void:
+	_fake_root.queue_free()
+	await _frames(1)
+	_fake_root = _make_fake_root()
+	var before := _report_count()
+	MatchSignals.match_finished_with_victory.emit()
+	MatchSignals.match_started.emit()
+	await _frames(3)
+	_check(_report_count() == before + 1,
+		"胜负早于开局只落 1 份报告（%d → %d）" % [before, _report_count()])
+	_check(_recorder() == null, "早到的胜负收尾后不再留下空转记录器")
+	_check(str(_latest_report().get("outcome", "")) == "victory",
+		"早到的结算仍记为 victory")
+
+
+# ==================== 4c. 本方事实记账，敌方生产不混进来 ====================
+
+func _check_records_local_facts() -> void:
+	_fake_root.queue_free()
+	await _frames(1)
+	_fake_root = _make_fake_root()
+	MatchSignals.match_started.emit()
+	await _frames(2)
+	var recorder := _recorder()
+	_check(recorder != null and bool(recorder.get("damage_tracking")),
+		"记录器订上了伤害信号")
+	var local := Node.new()
+	local.name = "LocalTank"
+	local.add_to_group("controlled_units")
+	var enemy := Node.new()
+	enemy.name = "EnemyTank"
+	enemy.add_to_group("adversary_units")
+	_fake_root.add_child(local)
+	_fake_root.add_child(enemy)
+	MatchSignals.unit_production_finished.emit(local, null)
+	MatchSignals.unit_production_finished.emit(enemy, null)
+	MatchSignals.unit_construction_finished.emit(local)
+	local.set_meta("damage_presentation", {"amount": 4.0, "source_player_id": "other"})
+	MatchSignals.unit_damaged.emit(local)
+	MatchSignals.match_finished_with_victory.emit()
+	await _frames(2)
+	var report := _latest_report()
+	var overview: Dictionary = report.get("overview", {})
+	_check(int(overview.get("units_produced", -1)) == 1,
+		"只记本方生产（%s）" % str(overview.get("units_produced", null)))
+	_check(int(overview.get("structures_built", -1)) == 1,
+		"只记本方建造（%s）" % str(overview.get("structures_built", null)))
+	_check(is_equal_approx(float(overview.get("damage_taken", -1.0)), 4.0),
+		"本方受伤金额记入承受伤害（%s）" % str(overview.get("damage_taken", null)))
+	var combat_damage: Dictionary = (report.get("combat", {}) as Dictionary).get("damage", {})
+	_check(is_equal_approx(float(combat_damage.get("taken", -1.0)), 4.0),
+		"总览承伤与战斗分区是同一个数")
 
 
 # ==================== 5. 第二局：开 -> 中途退出 ====================

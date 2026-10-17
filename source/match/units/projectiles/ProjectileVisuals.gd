@@ -49,8 +49,12 @@ const PROJECTILE_BY_UNIT_SCENE := {
 ## 客户端专用的"投射物运行时"桩：给场景提供瞄准点，命中**不做任何结算**。
 class PresentationRuntime extends RefCounted:
 	var aim := Vector3.ZERO
+	var tracks_target := false
+	var target: Node3D = null
 
 	func GetAimPoint(_attack_id: String) -> Vector3:
+		if tracks_target and target != null and is_instance_valid(target) and target.is_inside_tree():
+			aim = target.global_position
 		return aim
 
 	func ResolveImpact(_attack_id: String, _point: Vector3) -> void:
@@ -107,7 +111,12 @@ static func _alternating_muzzle(unit):
 ## `authoritative_aim` 由权威端在开火广播里带来（`Unit._fired_aim_payload`）。
 ## 有它就用它当弹道终点 —— 与权威端同一落点；没有才退回"炮口朝向前方 attack_range 米"
 ## 的近似（该近似在敌人比射程近时会明显打过头，即用户报的"子弹落点不对"）。
-static func present(unit, authoritative_aim: Vector3 = Vector3.INF) -> void:
+static func present(
+	unit,
+	authoritative_aim: Vector3 = Vector3.INF,
+	tracks_target: bool = false,
+	tracked_target_path: String = ""
+) -> void:
 	if unit == null or not is_instance_valid(unit) or not unit.is_inside_tree():
 		return
 	if not NetSession.is_client_puppet():
@@ -144,11 +153,14 @@ static func present(unit, authoritative_aim: Vector3 = Vector3.INF) -> void:
 		reach = 8.0
 
 	var runtime := PresentationRuntime.new()
+	runtime.tracks_target = tracks_target
+	if tracks_target and not tracked_target_path.is_empty():
+		runtime.target = match_node.get_node_or_null(NodePath(tracked_target_path))
 	if authoritative_aim.is_finite():
-		# 权威落点：与服务器同一条弹道的终点（+0.3 与 CannonShell 的视觉抬升同口径）。
-		runtime.aim = authoritative_aim + Vector3(0.0, 0.3, 0.0)
+		# 权威落点保持真实世界坐标；CannonShell 只在自己的视觉位置计算中抬高一次。
+		runtime.aim = authoritative_aim
 	else:
-		runtime.aim = muzzle.origin + forward * reach + Vector3(0.0, 0.3, 0.0)
+		runtime.aim = muzzle.origin + forward * reach
 	var projectile = packed.instantiate()
 	# 场景 `_ready` 会对这两个字段做非空断言；`attack_id` 只作本地标识。
 	projectile.set("attack_id", "present-%d-%d" % [
@@ -156,4 +168,5 @@ static func present(unit, authoritative_aim: Vector3 = Vector3.INF) -> void:
 	projectile.set("projectile_runtime", runtime)
 	projectile.set("launch_transform", muzzle)
 	projectile.set("visible_snapshot", true)
+	projectile.set("tracks_target", tracks_target)
 	container.add_child(projectile)

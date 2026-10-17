@@ -51,6 +51,7 @@ const TEAM_TINT_SHADER: Shader = preload("res://source/shaders/3d/team_tint.gdsh
 const COMBAT_SFX = preload("res://source/match/units/traits/CombatSfx.gd")
 ## 客户端弹道表现回放（用 preload 而不是依赖 class_name：headless 不重扫项目注册类名）
 const PROJECTILE_VISUALS = preload("res://source/match/units/projectiles/ProjectileVisuals.gd")
+const AiPerfStats = preload("res://source/match/players/simple-clairvoyant-ai/AiPerfStats.gd")
 static var _team_material_cache := {}
 ## 战斗音效：命中冷却与上次 HP 快照（_process 轮询受击）
 var _sfx_last_hp = null
@@ -87,9 +88,21 @@ var construction_work_rate := 1.0
 ## 真实伤害在 C# 结算（`ProjectileRuntime` 用武器 catalog 的 BaseDamage），
 ## GDScript 的 `attack_damage` 只是 HUD 镜像，所以倍率必须走这个属性让 C# 读。
 var damage_multiplier := 1.0
-## 成长系统写入的生产工效：C# `ProductionService` 每个 tick 的推进量（默认 1.0）。
+## 成长系统写入的生产工效基数（"生产调度"每级 +8%）。
+## 最终工效 = growth_production_rate × same_type_production_rate，
+## 由 refresh_production_work_rate() 合成 —— 两个来源都不要直接写
+## production_work_per_tick（那是 C# 每 tick 实时读取的最终值）。
+var growth_production_rate := 1.0
+## 同类建筑加成（"多一座已完工同类建筑 +50%"，2026-09-29 用户规则）。
+## 由 SameTypeProductionRate 维护；单位自己不要写这个值。
+var same_type_production_rate := 1.0
+## C# `ProductionService` 每个 tick 的推进量（最终合成值，默认 1.0）。
 var production_work_per_tick := 1.0
 var sight_range = null
+## 平衡目录未命中、ConfigureUnit 没写入时的视野（米）。
+## 已定义单位仍用目录里的 sightRangeMeters，这里不会覆盖。
+# 【2026-10-01 尺度 ×2】未配置单位的视野回退值同步 ×2（原 8.0）。
+const UNCONFIGURED_SIGHT_RANGE_M := 16.0
 var player:
 	get:
 		return get_parent()
@@ -118,13 +131,36 @@ var _presented_action_path := ""
 
 
 func _ready():
+	# 自动选址把「有 MovementObstacle、没有 Movement」的节点当作己方建筑锚点。
+	# 进场时记一次，避免每次搜索都对全场单位 FindChild。
+	if has_method("is_constructed") \
+			and find_child("MovementObstacle", false, false) != null \
+			and find_child("Movement", false, false) == null:
+		set_meta("placement_anchor_structure", true)
 	if not _match.is_node_ready():
 		await _match.ready
+	var perf_on := AiPerfStats.enabled()
+	var color_started := Time.get_ticks_usec() if perf_on else 0
 	_setup_color()
+	if perf_on:
+		AiPerfStats.add("spawn_color", Time.get_ticks_usec() - color_started)
+	var catalog_started := Time.get_ticks_usec() if perf_on else 0
 	_setup_properties_from_balance_catalog()
+	if perf_on:
+		AiPerfStats.add("spawn_catalog", Time.get_ticks_usec() - catalog_started)
+	var growth_started := Time.get_ticks_usec() if perf_on else 0
 	# 成长（永久加点）加成：**必须**在属性注入之后施加 —— 此时读到的是平衡表基线，
 	# 任何更早的写入都会被注入覆盖掉。幂等，且只对本地玩家单位生效。
 	GrowthModifiers.apply_to_unit(self)
+	if perf_on:
+		AiPerfStats.add("spawn_growth", Time.get_ticks_usec() - growth_started)
+	# Capture catalog baselines before network HP mirrors arrive; include owned cards on spawn.
+	var augments := _match.get_node_or_null("AugmentRuntime")
+	var augment_started := Time.get_ticks_usec() if perf_on else 0
+	if augments != null:
+		augments.apply_unit_bonuses(self)
+	if perf_on:
+		AiPerfStats.add("spawn_augment", Time.get_ticks_usec() - augment_started)
 	assert(_safety_checks())
 	_setup_combat_sfx()
 
@@ -133,6 +169,14 @@ func _setup_combat_sfx():
 	if not has_signal("attack_fired"):
 		return
 	attack_fired.connect(_on_combat_sfx_fired)
+
+
+## 合成最终生产工效：成长加成 × 同类建筑加成。
+## 只有一个写入点，避免两个加成来源互相覆盖（2026-09-29 引入同类加成时改造）。
+func refresh_production_work_rate() -> void:
+	production_work_per_tick = maxf(
+		0.1, growth_production_rate * same_type_production_rate
+	)
 
 
 ## 开火音效：攻击动作发射投射物时由 attack_fired 触发。
@@ -168,6 +212,12 @@ func _fired_aim_payload() -> Dictionary:
 	if not aim.is_finite():
 		return payload
 	payload["aim"] = aim
+	# 防空炮是唯一保留飞行制导的武器；客户端回放必须与权威端一致。
+	payload["tracks_target"] = bool(get_meta("projectile_tracks_target", false))
+	if payload["tracks_target"]:
+		var tracked_target = aim_source.get("_target_unit")
+		if tracked_target is Node3D and tracked_target.is_inside_tree():
+			payload["target_path"] = str(_match.get_path_to(tracked_target))
 	return payload
 
 
@@ -260,7 +310,12 @@ func present_fired(payload: Dictionary = {}) -> void:
 	if payload.has("yaw"):
 		_snap_presentation_yaw(float(payload["yaw"]))
 	attack_fired.emit()
-	PROJECTILE_VISUALS.present(self, payload.get("aim", Vector3.INF))
+	PROJECTILE_VISUALS.present(
+		self,
+		payload.get("aim", Vector3.INF),
+		bool(payload.get("tracks_target", false)),
+		str(payload.get("target_path", ""))
+	)
 
 
 ## 当前动作脚本路径：本地跑 Action 就用真实值；傀儡端退回权威镜像。
@@ -298,7 +353,21 @@ func is_revealing():
 func request_legacy_move(target_position: Vector3) -> bool:
 	if find_child("Movement") == null:
 		return false
-	action = LegacyMovingAction.new(target_position, true)
+	var perf_on := AiPerfStats.enabled()
+	var bind_started := Time.get_ticks_usec() if perf_on else 0
+	var hold_started := bind_started
+	_clear_player_hold()
+	if perf_on:
+		AiPerfStats.add("move_hold", Time.get_ticks_usec() - hold_started)
+	var ctor_started := Time.get_ticks_usec() if perf_on else 0
+	var moving := LegacyMovingAction.new(target_position, true)
+	if perf_on:
+		AiPerfStats.add("move_ctor", Time.get_ticks_usec() - ctor_started)
+	var set_started := Time.get_ticks_usec() if perf_on else 0
+	action = moving
+	if perf_on:
+		AiPerfStats.add("move_set", Time.get_ticks_usec() - set_started)
+		AiPerfStats.add("move_bind", Time.get_ticks_usec() - bind_started)
 	return true
 
 
@@ -306,6 +375,7 @@ func request_legacy_move(target_position: Vector3) -> bool:
 func request_legacy_approach_entity(target_unit) -> bool:
 	if not LegacyMovingToUnitAction.is_applicable(self):
 		return false
+	_clear_player_hold()
 	var approach_action = LegacyMovingToUnitAction.new(target_unit)
 	approach_action.ended.connect(approach_ended.emit)
 	action = approach_action
@@ -316,6 +386,7 @@ func request_legacy_approach_entity(target_unit) -> bool:
 func request_legacy_follow_entity(target_unit) -> bool:
 	if not LegacyFollowingAction.is_applicable(self):
 		return false
+	_clear_player_hold()
 	var follow_action = LegacyFollowingAction.new(target_unit)
 	follow_action.ended.connect(follow_ended.emit)
 	action = follow_action
@@ -327,6 +398,7 @@ func request_legacy_follow_entity(target_unit) -> bool:
 func request_legacy_ground_attack_move(target_position: Vector3) -> bool:
 	if find_child("Movement") == null or attack_range == null:
 		return false
+	_clear_player_hold()
 	action = LegacyGroundAttackMovingAction.new(target_position)
 	return true
 
@@ -340,6 +412,7 @@ func request_legacy_entity_attack_move(target_unit) -> bool:
 		or not is_instance_valid(target_unit)
 	):
 		return false
+	_clear_player_hold()
 	var attack_move = LegacyGroundAttackMovingAction.new(target_unit)
 	attack_move.final_target_ended.connect(entity_attack_move_ended.emit)
 	action = attack_move
@@ -351,6 +424,7 @@ func request_legacy_entity_attack_move(target_unit) -> bool:
 func request_legacy_tactical_withdraw(target_position: Vector3) -> bool:
 	if find_child("Movement") == null or not can_reverse:
 		return false
+	_clear_player_hold()
 	action = LegacyTacticalWithdrawingAction.new(target_position)
 	return true
 
@@ -367,6 +441,7 @@ func request_legacy_return_to_base(command_center) -> bool:
 		or not command_center.is_constructed()
 	):
 		return false
+	_clear_player_hold()
 	var return_action = LegacyReturningToBaseAction.new(command_center)
 	if return_action.has_signal("ended"):
 		return_action.ended.connect(return_to_base_ended.emit)
@@ -389,6 +464,8 @@ func request_legacy_start_return_to_base() -> bool:
 
 ## 临时 C# 迁移桥：Worker 在侵略姿态下自动寻找最近资源并循环采集。
 func request_legacy_start_auto_gather() -> bool:
+	if has_meta("player_hold_auto"):
+		return false
 	if resources_max <= 0 or not has_method("request_legacy_gather"):
 		return false
 	if action != null and action.get_script() == LegacyAutoGatherAction:
@@ -415,12 +492,19 @@ func request_legacy_halt_movement() -> bool:
 
 ## 迁移期统一 Stop 桥：暂停移动类任务并取消当前普通/强制攻击，不改变持续战斗策略。
 ## 采集和施工迁移后应在这里改为“保留任务、暂停且不自动恢复”，而不是丢弃任务身份。
+func _clear_player_hold() -> void:
+	if has_meta("player_hold_auto"):
+		remove_meta("player_hold_auto")
+
+
 func request_legacy_stop() -> bool:
 	if action != null and action.get_script() == LegacyGatherAction:
+		set_meta("player_hold_auto", true)
 		return action.suspend_task()
 	if action != null and action.get_script() == LegacyConstructingAction:
 		# 施工任务尚未具备保留阶段的暂停桥，必须明确拒绝，不能返回假成功。
 		return false
+	set_meta("player_hold_auto", true)
 	if action != null and action.get_script() in [
 		LegacyMovingAction,
 		LegacyMovingToUnitAction,
@@ -441,6 +525,7 @@ func request_legacy_stop() -> bool:
 func request_legacy_gather(resource_unit) -> bool:
 	if not LegacyGatherAction.is_applicable(self, resource_unit):
 		return false
+	_clear_player_hold()
 	var gather_action = LegacyGatherAction.new(resource_unit)
 	gather_action.task_ended.connect(gather_task_ended.emit)
 	action = gather_action
@@ -458,6 +543,7 @@ func request_legacy_suspend_work() -> bool:
 func request_legacy_construct(construction_site) -> bool:
 	if not LegacyConstructingAction.is_applicable(self, construction_site):
 		return false
+	_clear_player_hold()
 	action = LegacyConstructingAction.new(construction_site)
 	return true
 
@@ -518,31 +604,12 @@ func request_legacy_refresh_combat_policy():
 		action.refresh_combat_policy()
 
 
-## 回基地命令到达时交付 Worker 当前携带资源；无货物时保持幂等成功。
-func request_legacy_deliver_resources_to_base() -> bool:
-	if resources_max <= 0 or player == null:
-		return false
-	var resource_a_amount: int = int(get("resource_a"))
-	var resource_b_amount: int = int(get("resource_b"))
-	if resource_a_amount <= 0 and resource_b_amount <= 0:
-		return true
-	var accepted = player.add_resources(
-		{"resource_a": resource_a_amount, "resource_b": resource_b_amount},
-		"WorkerDelivery",
-		self
-	)
-	if not accepted:
-		return false
-	set("resource_a", 0)
-	set("resource_b", 0)
-	return true
-
-
 # Temporary C# migration bridge. Ordinary Attack only accepts authorization
 # already granted by the Application command service.
 func request_legacy_attack(target_unit) -> bool:
 	if attack_range == null or target_unit == null or not "hp" in target_unit:
 		return false
+	_clear_player_hold()
 	var ordinary_attack = LegacyOrdinaryAttackAction.new(target_unit)
 	ordinary_attack.attack_ended.connect(ordinary_attack_ended.emit)
 	action = ordinary_attack
@@ -560,6 +627,7 @@ func request_legacy_force_attack(target_unit) -> bool:
 	# ≠ `ExplicitForceAttacking` 自身，而后者在追击子动作结束时会用 `_unit.action != self`
 	# 判"已被顶掉"⇒ **误判早退**、射程外强制实体攻击静默不开火（步兵/坦克/APC/直升机全中，
 	# 2026-09-14 定位）。机动单位改走下面的顶层挂法，该判据即成立。
+	_clear_player_hold()
 	if action != null and action.has_method("force_attack") and find_child("Movement") == null:
 		return action.force_attack(target_unit)
 	var force_attack = LegacyForceAttackAction.new(target_unit)
@@ -572,6 +640,7 @@ func request_legacy_force_attack(target_unit) -> bool:
 func request_legacy_ground_force_attack(target_position: Vector3) -> bool:
 	if not can_force_fire_ground or attack_range == null or find_child("Movement") == null:
 		return false
+	_clear_player_hold()
 	action = LegacyGroundForceAttackAction.new(target_position)
 	return true
 
@@ -626,6 +695,51 @@ func _get_radius():
 	return null
 
 
+## 本体碰撞半径（无 Movement/MovementObstacle 时按 0 处理，不参与几何补偿）。
+func body_radius() -> float:
+	var value = radius
+	return float(value) if value != null else 0.0
+
+
+## 目标的本体半径：建筑取 MovementObstacle 的 footprint 半径（可达 7~9.8 米）。
+static func target_body_radius(target) -> float:
+	if target == null or not is_instance_valid(target):
+		return 0.0
+	var value = target.get("radius")
+	return float(value) if value != null else 0.0
+
+
+## 尺寸无关的几何判据：balance 里的 `attack_range` / `sight_range` 是**表面到表面**
+## 的可及距离，而 `distance_to` 量的是圆心距。2026-09-27 单位尺寸统一把碰撞半径放大
+## 3~3.5 倍（建筑 footprint 2.0→7.0）、射程与视野数值没跟着放大，于是沿用圆心距的判据
+## 变成恒假命题（坦克射程 7.5 却要 7.0+2.25=9.25 米才够到敌方基地），电脑玩家与副官的
+## 索敌/交战整条失效。本方法是这条换算的**唯一实现**：判据 = 基准值 + 双方半径。
+func center_distance_limit_for(base_meters: float, target) -> float:
+	return base_meters + body_radius() + target_body_radius(target)
+
+
+## 空间网格**查询圆**的半径：补偿必须**有界**。逐候选判定用目标真实半径，但查询圆
+## 若按敌方建筑（footprint 7~9.8 米）放宽，面积会放大数倍、吃掉第二轮索敌优化成果，
+## 而网格查询只要"不漏掉单位与炮塔"即可（打建筑靠显式攻击命令，不靠自主索敌）。
+const TARGET_RADIUS_QUERY_ALLOWANCE_M := 4.0
+
+
+func center_distance_scan_range_for(base_meters: float) -> float:
+	return center_distance_limit_for(base_meters, null) + TARGET_RADIUS_QUERY_ALLOWANCE_M
+
+
+## 对 `target` 的有效射程（圆心距口径）。
+func reach_range_against(target) -> float:
+	var base_range = attack_range
+	return center_distance_limit_for(float(base_range) if base_range != null else 0.0, target)
+
+
+## 对 `target` 的有效视野（圆心距口径）。
+func sight_range_against(target) -> float:
+	var base_sight = sight_range
+	return center_distance_limit_for(float(base_sight) if base_sight != null else 0.0, target)
+
+
 func _get_movement_domain():
 	if find_child("Movement") != null:
 		return find_child("Movement").domain
@@ -645,6 +759,8 @@ func _is_movable():
 
 
 func _setup_color():
+	var perf_on := AiPerfStats.enabled()
+	var albedo_started := Time.get_ticks_usec() if perf_on else 0
 	var material = player.get_color_material()
 	Utils.Match.traverse_node_tree_and_replace_materials_matching_albedo(
 		find_child("Geometry"),
@@ -652,16 +768,22 @@ func _setup_color():
 		MATERIAL_ALBEDO_TO_REPLACE_EPSILON,
 		material
 	)
+	if perf_on:
+		AiPerfStats.add("spawn_albedo", Time.get_ticks_usec() - albedo_started)
 	# Synty 换模单位的阵营色（2026-09-05）：图集材质与玩家阵营色相乘，
 	# 让步兵/兵营/工厂等新模型在小地图之外也能直观区分阵营。
 	var geometry = find_child("Geometry")
 	if geometry == null:
 		return
+	var tint_started := Time.get_ticks_usec() if perf_on else 0
 	for node in geometry.find_children("*", "Node", true, false):
 		if node.has_method("apply_team_tint"):
 			node.apply_team_tint(player.color)
+	if perf_on:
+		AiPerfStats.add("spawn_tint", Time.get_ticks_usec() - tint_started)
 	# 无 binder 的网格（GLB 步兵等）：逐面片覆盖阵营 ShaderMaterial。
 	# 已有 material_override 的（binder 单位）跳过，避免双重着色。
+	var shader_started := Time.get_ticks_usec() if perf_on else 0
 	for mesh_instance in geometry.find_children("*", "MeshInstance3D", true, false):
 		if mesh_instance.material_override != null:
 			continue
@@ -670,6 +792,8 @@ func _setup_color():
 				surface_id,
 				_team_shader_material(mesh_instance.get_active_material(surface_id), player.color)
 			)
+	if perf_on:
+		AiPerfStats.add("spawn_shader", Time.get_ticks_usec() - shader_started)
 
 
 func _team_shader_material(source_material: Material, color: Color) -> Material:
@@ -693,14 +817,6 @@ func _team_shader_material(source_material: Material, color: Color) -> Material:
 
 
 func _set_action(action_node):
-	if action_node != null and name in ["Unit_2", "Unit_3"]:
-		print(
-			"[ACT] ", name,
-			" puppet=", NetSession.is_client_puppet(),
-			" in_tree=", is_inside_tree(),
-			" locked=", _action_locked,
-			" script=", action_node.get_script().resource_path if action_node.get_script() != null else "null"
-		)
 	if NetSession.is_client_puppet():
 		if action_node != null:
 			action_node.queue_free()
@@ -709,19 +825,34 @@ func _set_action(action_node):
 		if action_node != null:
 			action_node.queue_free()
 		return
+	var perf_on := AiPerfStats.enabled()
+	var enter_started := Time.get_ticks_usec() if perf_on else 0
 	_action_locked = true
+	if perf_on:
+		AiPerfStats.add("move_enter", Time.get_ticks_usec() - enter_started)
+	var teardown_started := Time.get_ticks_usec() if perf_on else 0
 	_teardown_current_action()
+	if perf_on:
+		AiPerfStats.add("action_teardown", Time.get_ticks_usec() - teardown_started)
+	var reenter_started := Time.get_ticks_usec() if perf_on else 0
 	action = action_node
-	if action_node != null and name in ["Unit_2", "Unit_3"]:
-		print("[ACT] ", name, " attached child=", action_node.get_parent() == self)
+	if perf_on:
+		AiPerfStats.add("move_reenter", Time.get_ticks_usec() - reenter_started)
 	if action != null:
 		var action_copy = action  # bind() performs copy itself, but lets force copy just in case
+		var connect_started := Time.get_ticks_usec() if perf_on else 0
 		action.tree_exited.connect(_on_action_node_tree_exited.bind(action_copy))
+		if perf_on:
+			AiPerfStats.add("move_connect", Time.get_ticks_usec() - connect_started)
+		var add_started := Time.get_ticks_usec() if perf_on else 0
 		add_child(action_node)
-		if action_node.name in ["Unit_2", "Unit_3"] or name in ["Unit_2", "Unit_3"]:
-			print("[ACT] ", name, " 已 add_child: in_tree=", action_node.is_inside_tree())
+		if perf_on:
+			AiPerfStats.add("action_add", Time.get_ticks_usec() - add_started)
 	_action_locked = false
+	var emit_started := Time.get_ticks_usec() if perf_on else 0
 	action_changed.emit(action)
+	if perf_on:
+		AiPerfStats.add("action_emit", Time.get_ticks_usec() - emit_started)
 
 
 func _get_type():
@@ -740,25 +871,20 @@ func _teardown_current_action():
 
 
 func _safety_checks():
-	if movement_domain == Constants.Match.Navigation.Domain.AIR:
-		assert(
-			(
-				radius < Constants.Match.Air.Navmesh.MAX_AGENT_RADIUS
-				or is_equal_approx(radius, Constants.Match.Air.Navmesh.MAX_AGENT_RADIUS)
-			),
-			"Unit radius exceeds the established limit"
-		)
-	elif movement_domain == Constants.Match.Navigation.Domain.TERRAIN:
-		assert(
-			(
-				not _is_movable()
-				or (
-					radius < Constants.Match.Terrain.Navmesh.MAX_AGENT_RADIUS
-					or is_equal_approx(radius, Constants.Match.Terrain.Navmesh.MAX_AGENT_RADIUS)
-				)
-			),
-			"Unit radius exceeds the established limit"
-		)
+	# 【2026-10-01 契约变更 · 逐单位碰撞包围任务】
+	# 旧契约：navmesh.agent_radius = 最大机动单位半径(2.8)，断言"单位半径 ≤ agent"。
+	#   代价（运行时实测）：洞口 = 障碍半径 + 2.8 ⇒ 半宽仅 0.92m 的工兵被顶在 5m 外，
+	#   对兵营的表面间隙 1.0~2.15m（任务目标 0.05~0.15m）。
+	# 新契约：导航网格按"最小机动单位量级"烘焙(0.9)，导航退化为**粗通道**；
+	#   "硬占位真相"交给 Movement._push_out_of_static_obstacles —— 它用
+	#   [障碍轮廓 radius + 单位个人空间 radius + margin] 逐帧把单位推出真实轮廓，
+	#   ⇒ 大单位不会穿墙（由 tests/automated/_FourDirectionClearanceProbe 四方向贴边实测把关）。
+	# 因此本断言改为新契约下**真正有意义**的两条：机动单位必须有推出层、半径必须为正。
+	# 不再断言"单位半径 ≤ agent_radius"（那是旧设计的前提，会导致工兵这类小单位白留 2.8m 空隙）。
+	if _is_movable():
+		var movement := find_child("Movement", false, false)
+		assert(movement != null, "机动单位必须有 Movement 节点（硬占位/推出层）")
+		assert(radius > 0.0, "单位半径必须为正")
 	return true
 
 

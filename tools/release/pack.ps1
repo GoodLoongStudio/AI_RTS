@@ -1,18 +1,34 @@
-$ErrorActionPreference = "Continue"
+param(
+    [string]$Destination = "",
+    [switch]$DryRun
+)
+
+$ErrorActionPreference = "Stop"
 # ASCII only! PowerShell 5.1 reads .ps1 as GBK.
 
-$stage = "G:\AIRTS\release_v4"
+$repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "../..")).ProviderPath
+$manifest = Get-Content -LiteralPath (Join-Path $repoRoot "agent/manifest.json") -Raw -Encoding UTF8 | ConvertFrom-Json
+$stage = if ($Destination) { [IO.Path]::GetFullPath($Destination) } else { $manifest.workspace_layout.packaged_delivery_root }
+$sourceBuild = Join-Path $repoRoot "build"
 $7z = "C:\Program Files\7-Zip\7z.exe"
 
-New-Item -ItemType Directory -Force -Path $stage | Out-Null
+if ($DryRun) {
+    [PSCustomObject]@{
+        source_build = $sourceBuild
+        delivery_directory = $stage
+        game_archive = Join-Path $stage "AI_RTS_Game_v0.4.zip"
+        runtime_archive = Join-Path $stage "AI_RTS_Adjutant_Runtime.7z"
+        dry_run = $true
+    } | ConvertTo-Json
+    return
+}
 
-Get-Process -Name "7z*" -ErrorAction SilentlyContinue | Stop-Process -Force
-Start-Sleep -Seconds 2
+New-Item -ItemType Directory -Force -Path $stage | Out-Null
 
 # Work from build dir so archive paths are correct:
 #   Pack A -> AI_RTS_Demo.exe, data_..., *.bat, adjutant_runtime\src\
 #   Pack B -> adjutant_runtime\python|ollama|models
-Set-Location "g:\AIRTS\AI_RTS\build"
+Set-Location -LiteralPath $sourceBuild
 
 # ================= Pack A : game (zip, repack every update) =================
 Write-Host "[A] game package ..."

@@ -190,6 +190,8 @@ func _emit_ended(reason: String):
 	if reason == "Arrived":
 		# Arrived is an observable waypoint, not the end of the persistent stance.
 		# Keep this Action alive so a destroyed/overridden base can be reselected.
+		# 【2026-09-30】到基地不再自动交矿：矿车只能把矿交给矿场（见
+		# CollectingResourcesSequentially.find_drop_off），回防到达只停队不记账。
 		if _ended or _arrival_reported:
 			return
 		_arrival_reported = true
@@ -197,8 +199,6 @@ func _emit_ended(reason: String):
 		_retry_remaining = 0.0
 		if _movement != null and is_instance_valid(_movement):
 			_movement.stop()
-		if _unit != null and _unit.has_method("request_legacy_deliver_resources_to_base"):
-			_unit.request_legacy_deliver_resources_to_base()
 		ended.emit(reason)
 		return_to_base_ended.emit(reason)
 		return
@@ -292,5 +292,12 @@ func _is_at_base(base) -> bool:
 	var unit_radius := 0.5
 	if _unit != null and "radius" in _unit and _unit.radius != null:
 		unit_radius = maxf(0.1, float(_unit.radius))
-	var stand_off := base_radius + unit_radius + 0.35
+	# 【2026-09-30 修复：单位永远回不到基地】旧阈值 = 基地半径 + 单位半径 + 0.35，
+	# 而基地的 carve 洞 = 基地半径 + navmesh.agent_radius（2.8m）⇒ 单位被顶在洞外，
+	# 永远进不了旧阈值内 ⇒ 回基地姿态永远不判到达（实测 group-return 只有 1/8 到位）。
+	# 新阈值取两者较大值：既覆盖「贴到基地边上」，也覆盖「被 carve 洞挡在更外面」。
+	var carve_clearance: float = 0.0
+	if base != null:
+		carve_clearance = Utils.Match.Unit.Movement.carve_clearance_of(base, _unit.global_position)
+	var stand_off := maxf(base_radius + unit_radius + 0.35, carve_clearance + unit_radius + 0.35)
 	return _unit.global_position_yless.distance_to(base.global_position_yless) <= stand_off + ARRIVAL_EPSILON

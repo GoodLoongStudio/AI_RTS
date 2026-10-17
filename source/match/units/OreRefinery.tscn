@@ -8,40 +8,40 @@
 [ext_resource type="PackedScene" uid="uid://c3ssj2p6voauk" path="res://source/match/units/traits/HealthBar.tscn" id="6_hpb"]
 [ext_resource type="PackedScene" uid="uid://d4cm4yhtf11ur" path="res://source/match/units/traits/Targetability.tscn" id="7_tgt"]
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_refn"]
-height = 1.600
-radius = 3.267
+[sub_resource type="BoxShape3D" id="CylinderShape3D_refn"]
+size = Vector3(5.928, 4.0872, 6.0372)
 
 [node name="OreRefinery" type="Area3D"]
-scale = Vector3(3.00, 3.00, 3.00)
 collision_layer = 2
 collision_mask = 0
 script = ExtResource("1_refn")
 
 [node name="Geometry" parent="." instance=ExtResource("2_geom")]
+transform = Transform3D(1.559999, 0, 0, 0, 1.559999, 0, 0, 0, 1.559999, 0, 0, 0)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0436, 0)
 shape = SubResource("CylinderShape3D_refn")
 
 [node name="Highlight" parent="." instance=ExtResource("3_high")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
-radius = 2.0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0499999, 0)
+radius = 3.432
 
 [node name="Selection" parent="." instance=ExtResource("4_sele")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
-radius = 2.0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0499999, 0)
+radius = 3.432
 
 [node name="MovementObstacle" parent="." instance=ExtResource("5_obst")]
-radius = 9.80
+radius = 3.0186
 vertices = PackedVector3Array(0, 0, -1.4, 0.99, 0, -0.99, 1.4, 0, 0, 0.99, 0, 0.99, 0, 0, 1.4, -0.99, 0, 0.99, -1.4, 0, 0, -0.99, 0, -0.99)
 affect_navigation_mesh = true
 path_height_offset = 0.6
 
+carve_from_collision_bounds = true
 [node name="HealthBar" parent="." instance=ExtResource("6_hpb")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
-size = Vector2(380, 10)
+transform = Transform3D(3, 0, 0, 0, 3, 0, 0, 0, 3, 0, 3.12, 0)
+size = Vector2(126.667, 3.33333)
 
 [node name="Targetability" parent="." instance=ExtResource("7_tgt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
-radius = 2.0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0499999, 0)
+radius = 3.432

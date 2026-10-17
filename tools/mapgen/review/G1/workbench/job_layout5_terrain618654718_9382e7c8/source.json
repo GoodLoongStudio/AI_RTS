@@ -1,0 +1,36 @@
+{
+  "job_id": "9382e7c8ccad42d8adea82eeb0acb114",
+  "seed": 5,
+  "terrain": 618654718,
+  "target": "g2",
+  "status": "error",
+  "title": "布局 5 · 地貌 618654718",
+  "label": null,
+  "map_pass": null,
+  "created_at": "2026-10-11T23:18:05",
+  "reverified_with_current_code": false,
+  "visual_version": 1,
+  "visual_profile": "default",
+  "map_id": null,
+  "checks_summary": {},
+  "failed_paths": [],
+  "failed_forbidden": [],
+  "nav_all": null,
+  "smoke_assertions": {},
+  "stages": {
+    "G1": {
+      "state": "需检查",
+      "images": [
+        "contact.png"
+      ],
+      "preview": "contact.png",
+      "version": null,
+      "history_versions": []
+    }
+  },
+  "folder": "job_layout5_terrain618654718_9382e7c8",
+  "gate": "G1",
+  "source_job": "G:\\AIRTS\\AI_RTS\\tools\\mapgen\\workbench_output\\9382e7c8ccad42d8adea82eeb0acb114\\job.json",
+  "synced_at": "2026-10-11T23:18:11",
+  "note": "图像来自本任务权威数据/真实引擎输出；生成或导航通过不等于实战通过。"
+}

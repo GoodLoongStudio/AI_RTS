@@ -3,8 +3,9 @@ extends Node
 ## 步兵骨骼动画驱动：原厂 50 骨架的七段剪辑（Infantry_native_v3.glb
 ## 内嵌 AnimationPlayer）按实际开火事件 + 实际位移速度映射播放。
 ## 剪辑清单（单角色基线，全部携枪）：循环 Idle/Run/Crawl，
-## 单发 Hit(快速中弹)/HitHeavy(爆炸击飞死亡)/Fire(射击)/Death(普通死亡)。
-## 致死爆炸由独立视觉节点播完 HitHeavy；存活受击使用短促 Hit。
+## 单发 HitHeavy(爆炸击飞死亡)/Fire(射击)/Death(普通死亡)；Hit 剪辑在 GLB
+## 资产里保留但**不再播放**——存活受击反馈已改为出血雾粒子
+## （2026-09-29 用户要求去掉受轻击动画），致死爆炸仍由独立视觉节点播完 HitHeavy。
 ## Crawl 暂无对应玩法状态，作为资产保留待"匍匐指令"接入。
 ## 死亡时只复制 Geometry，单位仍立即退出战斗；视觉播完后自动清理。
 
@@ -20,9 +21,11 @@ const FIRE_PENDING_WINDOW := 0.25
 const TELEPORT_SPEED_FACTOR := 4.0
 ## 位移速度低通滤波系数：每物理帧向瞬时速度收敛的比例。
 const SPEED_SMOOTHING := 0.5
-## 动作资源缺失时的受击覆盖兜底；正常播放以剪辑实际长度为准。
-const HIT_OVERLAY_MSEC := 300
 const DEATH_HOLD_SECONDS := 1.0
+## 存活受击的出血雾反馈场景（2026-09-29：替代原 Hit 受击动画）。
+const BLOOD_MIST_SCENE := preload("res://source/match/units/traits/BloodMist.tscn")
+## 血雾生成高度（单位几何空间）：步兵总高约 1.1m（0.8m × 1.35 缩放），取胸口。
+const BLOOD_MIST_HEIGHT := 0.5
 const LOOP_CLIPS := ["Idle", "Run", "Crawl"]
 
 ## ---------------------------------------------------------------------------
@@ -45,12 +48,12 @@ const LOOP_CLIPS := ["Idle", "Run", "Crawl"]
 const MUZZLE_MARKER_NAME := "ProjectileOrigin"
 const MUZZLE_MESH_NAME := "Rifle"
 const MUZZLE_BONE_NAME := "Hand_R"
+const _PerfBuckets = preload("res://source/match/PerfBuckets.gd")
 
 var _player: AnimationPlayer
 var _unit: Node
 var _last_position := Vector3.INF
 var _speed := 0.0
-var _hit_overlay_remaining := 0.0
 var _fire_pending := false
 var _fire_pending_window := 0.0
 ## 挂起开火事件所属的指挥上下文（事件到达时单位的 action 节点）。
@@ -59,12 +62,14 @@ var _fire_pending_window := 0.0
 ## 据此与"追击刹停第一枪"（攻击动作贯穿切换、上下文保持）精确区分。
 var _fire_pending_action: Node = null
 var _fire_active := false
-var _hit_clip := "Hit"
 var _last_hp = null
 var _death_started := false
 ## 枪口跟随：Marker 节点、其所属骨架、骨骼索引、枪口在该骨骼空间的位置。
 ## 枪口微调偏移（单位几何空间）：不同枪械的枪口顶点拾取可能略低，按单位微调。
 @export var muzzle_offset := Vector3.ZERO
+## 模型枪管最长轴的出弹端：0 自动，1 高端，-1 低端。
+## 火箭筒的后端更长，不能用距持枪手最远的一端当主筒出口。
+@export var muzzle_axis_end := 0
 var _muzzle: Node3D = null
 var _muzzle_skeleton: Skeleton3D = null
 var _muzzle_bone := -1
@@ -97,17 +102,16 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	var t0 := 0
+	if _PerfBuckets.enabled:
+		t0 = Time.get_ticks_usec()
 	_update_muzzle()
-	_hit_overlay_remaining = maxf(0.0, _hit_overlay_remaining - delta * absf(_player.speed_scale))
+	if t0 != 0:
+		_PerfBuckets.add("anim_muzzle", int(Time.get_ticks_usec() - t0))
 	if _unit.hp != null:
 		_last_hp = _unit.hp
 	_fire_pending_window = maxf(0.0, _fire_pending_window - delta)
-	# 当前资产是全身站姿射击；中弹立即丢弃待播开火（受击优先且不补播）。
-	if _hit_overlay_remaining > 0.0:
-		_fire_pending = false
-		_fire_pending_action = null
-		_fire_active = false
-	elif _speed > MOVE_SPEED_EPSILON:
+	if _speed > MOVE_SPEED_EPSILON:
 		_fire_active = false
 		# 挂起中的开火只会来自"发射时已无移动意图"（站定/刹停第一枪），
 		# 速度滤波衰减过阈值即播；被动位移（避让推挤）拖住超过窗口则丢弃。
@@ -130,13 +134,16 @@ func _process(delta: float) -> void:
 			_player.play("Fire", 0.015)
 			_player.advance(0.0)
 	_play(_desired_clip())
-	# 受击剪辑带根骨水平位移；不锁住的话跑步中弹会整个人滑出去。
-	# 只钉 Root/Hips 的 XZ，不改剪辑选择，避免再把待机/开火误判成跑步。
-	if _hit_overlay_remaining > 0.0:
-		_pin_hit_root()
 	# 站定时把脚骨落到单位原点：单机图原点在高度场上，Idle 后脚仍可能离开沙面。
 	if _speed <= MOVE_SPEED_EPSILON:
+		var plant_t0 := 0
+		if t0 != 0:
+			plant_t0 = Time.get_ticks_usec()
 		_plant_feet_on_origin()
+		if plant_t0 != 0:
+			_PerfBuckets.add("anim_plant", int(Time.get_ticks_usec() - plant_t0))
+	if t0 != 0:
+		_PerfBuckets.add("anim_process", int(Time.get_ticks_usec() - t0))
 
 
 ## 位移只在物理帧真实发生：本地单位由 Movement 的 velocity_computed 移动，
@@ -163,7 +170,7 @@ func _physics_process(delta: float) -> void:
 
 
 func _on_attack_fired() -> void:
-	if _death_started or _hit_overlay_remaining > 0.0 or _player == null or not _player.has_animation("Fire"):
+	if _death_started or _player == null or not _player.has_animation("Fire"):
 		return
 	# 移动开火直接丢弃：当前资产是全身站姿射击，且发射后哪怕立刻停下，
 	# 也不能把陈旧射击补播成 Fire（否则"移动中开火→100ms 后停止"会假开火）。
@@ -217,19 +224,20 @@ func _on_hp_changed() -> void:
 	_last_hp = _unit.hp
 	if loss <= 0.0:
 		return
-	_fire_pending = false
-	_fire_pending_action = null
-	_fire_active = false
-	_hit_clip = "Hit"
-	var duration_msec := HIT_OVERLAY_MSEC
-	if _player != null and _player.has_animation(_hit_clip):
-		duration_msec = ceili(_player.get_animation(_hit_clip).length * 1000.0)
-	_hit_overlay_remaining = float(duration_msec) / 1000.0
-	# 每次命中都从冲击首帧重启，连续子弹不会被同名动画吞掉。
-	_player.stop()
-	_player.play(_hit_clip, 0.015)
-	_player.advance(0.0)
-	_pin_hit_root()
+	# 【2026-09-29 用户要求】存活受击不再播 Hit 动画（原动画还会打断待播开火），
+	# 改为在胸口迸一团出血雾；连续命中各自生成一团，互不吞并。
+	_spawn_blood_mist()
+
+
+## 存活受击的出血雾：挂到 Match 根（不随单位销毁而中断粒子），胸口高度迸发。
+## 权威端与联机镜像都在 hp 变化处本地触发（与原 Hit 动画的播放端一致），无同步负担。
+func _spawn_blood_mist() -> void:
+	var match_root: Node3D = _unit.find_parent("Match")
+	if match_root == null:
+		return
+	var mist: Node3D = BLOOD_MIST_SCENE.instantiate()
+	match_root.add_child(mist)
+	mist.global_position = _unit.global_position + Vector3(0, BLOOD_MIST_HEIGHT, 0)
 
 
 func _spawn_death_visual() -> void:
@@ -274,28 +282,11 @@ func _spawn_death_visual() -> void:
 
 
 func _desired_clip() -> String:
-	if _hit_overlay_remaining > 0.0:
-		return _hit_clip
 	if _speed > MOVE_SPEED_EPSILON:
 		return "Run"
 	if _fire_active:
 		return "Fire"
 	return "Idle"
-
-
-func _pin_hit_root() -> void:
-	var skeleton := _muzzle_skeleton
-	if skeleton == null:
-		skeleton = _unit.find_child("Skeleton3D", true, false) as Skeleton3D
-	if skeleton == null:
-		return
-	for bone_name in ["Root", "Hips"]:
-		var bone := skeleton.find_bone(bone_name)
-		if bone < 0:
-			continue
-		var rest: Vector3 = skeleton.get_bone_rest(bone).origin
-		var pose: Vector3 = skeleton.get_bone_pose_position(bone)
-		skeleton.set_bone_pose_position(bone, Vector3(rest.x, pose.y, rest.z))
 
 
 ## 把 Toes/Ball 世界高度压到单位原点平面。只改 Geometry 本地 Y，不改寻路原点。
@@ -394,6 +385,8 @@ func _pick_muzzle_vertex(aabb: AABB, hand_rest: Vector3) -> Vector3:
 	low[axis] = aabb.position[axis]
 	var high := center
 	high[axis] = aabb.position[axis] + size[axis]
+	if muzzle_axis_end != 0:
+		return high if muzzle_axis_end > 0 else low
 	return low if low.distance_squared_to(hand_rest) > high.distance_squared_to(hand_rest) else high
 
 

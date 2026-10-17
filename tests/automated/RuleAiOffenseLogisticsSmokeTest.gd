@@ -48,6 +48,9 @@ func _ready():
 		"测试资源应通过权威账户成功注入")
 
 	var factory_blueprint: Dictionary = {}
+	# 注：试过把预算放大到 900 轮（≈30s）来验证"只是矿场点火抢了工地时间"，实测**无用**：
+	# 车厂在 30s 里一次都没被放下（`ConstructionInProgress` 持续拒），所以这不是窗口问题，
+	# 而是 AI 的工地排程问题（见下条待办）。保持原预算，不掩盖真实缺陷。
 	for _attempt in range(120):
 		await get_tree().physics_frame
 		await get_tree().physics_frame

@@ -46,8 +46,8 @@ public partial class MatchOutcomeRuntime : Node
         _configured = true;
         _match = GetParent();
         _service = new MatchOutcomeService(new LastSurvivingSideRule());
-        // 建造建筑判定的唯一事实来源：同 Match 下的平衡配置运行时（ConfigureUnit 会把
-        // `unit_type_id` 注入每个单位）。拿不到时不猜 —— 见 CountsForElimination 的兜底。
+        // 建造建筑判定来自同 Match 的权威场景映射与平衡目录。
+        // 预置单位可能尚未执行 ConfigureUnit，不能依赖 unit_type_id 的注入顺序。
         _balanceConfig = GetNodeOrNull<BalanceConfigRuntime>("../BalanceConfigRuntime");
 
         foreach (var player in playersContainer.GetChildren().OfType<Node>())
@@ -245,11 +245,12 @@ public partial class MatchOutcomeRuntime : Node
     /// </remarks>
     private bool CountsForElimination(Node unit)
     {
-        if (_balanceConfig is null || !_balanceConfig.HasTrustedUnitType(unit))
+        if (_balanceConfig is null || _balanceConfig.FindUnitType(unit) is not { } unitType)
         {
             return true;
         }
-        return _balanceConfig.IsBuildStructure(unit);
+        return _balanceConfig.Catalog.FindConstruction(
+            new StructureDefinitionId(unitType.Id.Value)) is not null;
     }
 
     /// <summary>确保终态只向 Godot 展示层发布一次。</summary>

@@ -76,6 +76,14 @@ internal sealed class UnitCommandServiceTests
         RunTest(nameof(AreaWarheadUsesImpactPointAndFootprints), AreaWarheadUsesImpactPointAndFootprints);
         RunTest(nameof(WarheadResultsAreStableUniqueAndRespectFriendlyFire), WarheadResultsAreStableUniqueAndRespectFriendlyFire);
         RunTest(nameof(ForceAttackSnapshotDamagesFriendly), ForceAttackSnapshotDamagesFriendly);
+        RunTest(nameof(NonTrackingDirectProjectileMustMissMovedTarget),
+            NonTrackingDirectProjectileMustMissMovedTarget);
+        RunTest(nameof(AntiAirTrackingDirectProjectileMayHitMovedTarget),
+            AntiAirTrackingDirectProjectileMayHitMovedTarget);
+        RunTest(nameof(NonTrackingDirectProjectileUsesExpandedToleranceWindow),
+            NonTrackingDirectProjectileUsesExpandedToleranceWindow);
+        RunTest(nameof(AreaSplashSparesFriendlyWithoutForceAttack),
+            AreaSplashSparesFriendlyWithoutForceAttack);
         RunTest(nameof(ResourceTransactionAppliesMultipleKindsAtomically), ResourceTransactionAppliesMultipleKindsAtomically);
         RunTest(nameof(ResourceTransactionRejectsPartialPayment), ResourceTransactionRejectsPartialPayment);
         RunTest(nameof(ResourceTransactionReplayIsIdempotent), ResourceTransactionReplayIsIdempotent);
@@ -917,7 +925,10 @@ internal sealed class UnitCommandServiceTests
             null,
             radius: 3.0f,
             selectionMode: ImpactSelectionMode.Area,
-            friendlyFireMultiplier: 0.5f);
+            friendlyFireMultiplier: 0.5f,
+            // 2026-10-12 起溅射默认不再波及自己人；本用例要验的是"显式下令打自己单位时
+            // 按倍率结算 + 去重 + 稳定排序"，所以走显式 ForceAttack 路径。
+            allowsFriendlyDamage: true);
         var resolver = new WarheadDamageResolver();
         var friendlyCandidate = new ImpactCandidateSnapshot(
             friendly, sourcePlayer, new WorldPosition(0, 0, 0), 0.5f, true);
@@ -972,6 +983,115 @@ internal sealed class UnitCommandServiceTests
         var damage = resolver.Resolve(forced, new WorldPosition(0, 0, 0), candidates);
         Check(damage.Count == 1 && damage[0].Damage == 5.0f,
             "强制攻击友军应按友伤倍率造成伤害");
+    }
+
+    /// <summary>冻结落点的实体弹体不能在目标移开后隔空命中。</summary>
+    private void NonTrackingDirectProjectileMustMissMovedTarget()
+    {
+        var sourcePlayer = NewPlayerId();
+        var target = NewUnitId();
+        var launch = LaunchSnapshot(
+            sourcePlayer,
+            target,
+            radius: 0.0f,
+            selectionMode: ImpactSelectionMode.IntendedTargetOnly,
+            tracksTarget: false);
+        var resolver = new WarheadDamageResolver();
+        var damage = resolver.Resolve(
+            launch,
+            new WorldPosition(0, 0, 0),
+            [new ImpactCandidateSnapshot(
+                target, NewPlayerId(), new WorldPosition(5, 0, 0), 0.5f, true)]);
+
+        Check(damage.Count == 0, "非制导直击弹的目标移出冻结落点后必须脱靶");
+    }
+
+    /// <summary>2026-10-12 口径：直击命中窗 = 弹头半径 + 目标碰撞半径 + 2m 容差，且不得外溢成溅射。</summary>
+    private void NonTrackingDirectProjectileUsesExpandedToleranceWindow()
+    {
+        var sourcePlayer = NewPlayerId();
+        var target = NewUnitId();
+        var bystanderOwner = NewPlayerId();
+        var launch = LaunchSnapshot(
+            sourcePlayer,
+            target,
+            radius: 0.0f,
+            selectionMode: ImpactSelectionMode.IntendedTargetOnly,
+            tracksTarget: false);
+        var resolver = new WarheadDamageResolver();
+
+        // 窗口 = 0（直击弹头半径）+ 0.5（目标碰撞半径）+ 2.0（容差）= 2.5m。
+        var inside = resolver.Resolve(
+            launch,
+            new WorldPosition(0, 0, 0),
+            [new ImpactCandidateSnapshot(
+                target, bystanderOwner, new WorldPosition(2.4f, 0, 0), 0.5f, true)]);
+        Check(inside.Count == 1, "目标移出 2.4m 应命中（容差窗 2.5m 内）");
+
+        var outside = resolver.Resolve(
+            launch,
+            new WorldPosition(0, 0, 0),
+            [new ImpactCandidateSnapshot(
+                target, bystanderOwner, new WorldPosition(2.6f, 0, 0), 0.5f, true)]);
+        Check(outside.Count == 0, "目标移出 2.6m 必须脱靶（超出容差窗）");
+
+        var bystander = resolver.Resolve(
+            launch,
+            new WorldPosition(0, 0, 0),
+            [new ImpactCandidateSnapshot(
+                NewUnitId(), bystanderOwner, new WorldPosition(0.1f, 0, 0), 0.5f, true)]);
+        Check(bystander.Count == 0, "容差只放宽 intended target，不得把直击弹变成溅射");
+    }
+
+    /// <summary>2026-10-12 用户口径：普通溅射不得误伤友军，只有显式 ForceAttack 才对自己人结算。</summary>
+    private void AreaSplashSparesFriendlyWithoutForceAttack()
+    {
+        var sourcePlayer = NewPlayerId();
+        var enemyPlayer = NewPlayerId();
+        var friendly = NewUnitId();
+        var enemy = NewUnitId();
+        var resolver = new WarheadDamageResolver();
+        var candidates = new[]
+        {
+            new ImpactCandidateSnapshot(enemy, enemyPlayer, new WorldPosition(1, 0, 0), 0.5f, true),
+            new ImpactCandidateSnapshot(friendly, sourcePlayer, new WorldPosition(1.5f, 0, 0), 0.5f, true)
+        };
+
+        var normal = resolver.Resolve(
+            LaunchSnapshot(sourcePlayer, null, 3.0f, ImpactSelectionMode.Area,
+                friendlyFireMultiplier: 0.5f),
+            new WorldPosition(0, 0, 0), candidates);
+        Check(normal.Count == 1 && normal[0].UnitId == enemy,
+            "普通溅射应只结算敌方：友军即使站在爆点里也不掉血");
+
+        var forced = resolver.Resolve(
+            LaunchSnapshot(sourcePlayer, null, 3.0f, ImpactSelectionMode.Area,
+                friendlyFireMultiplier: 0.5f, allowsFriendlyDamage: true),
+            new WorldPosition(0, 0, 0), candidates);
+        Check(forced.Count == 2 &&
+            forced.Single(item => item.UnitId == friendly).Damage == 5.0f,
+            "显式强制攻击自己单位时仍按友伤倍率结算（不该把主动机制一起砍掉）");
+    }
+
+    /// <summary>防空炮的制导例外仍按目标当前位置结算直击伤害。</summary>
+    private void AntiAirTrackingDirectProjectileMayHitMovedTarget()
+    {
+        var sourcePlayer = NewPlayerId();
+        var target = NewUnitId();
+        var launch = LaunchSnapshot(
+            sourcePlayer,
+            target,
+            radius: 0.0f,
+            selectionMode: ImpactSelectionMode.IntendedTargetOnly,
+            tracksTarget: true);
+        var resolver = new WarheadDamageResolver();
+        var damage = resolver.Resolve(
+            launch,
+            new WorldPosition(0, 0, 0),
+            [new ImpactCandidateSnapshot(
+                target, NewPlayerId(), new WorldPosition(5, 0, 0), 0.5f, true)]);
+
+        Check(damage.Count == 1, "防空制导弹仍应允许命中飞行中的移动目标");
     }
 
     /// <summary>验证一笔 A/B 交易只增加一次版本并完整应用。</summary>
@@ -2358,7 +2478,8 @@ internal sealed class UnitCommandServiceTests
         float radius,
         ImpactSelectionMode selectionMode,
         float friendlyFireMultiplier = 1.0f,
-        bool allowsFriendlyDamage = false) => new(
+        bool allowsFriendlyDamage = false,
+        bool tracksTarget = false) => new(
             new AttackInstanceId(Guid.NewGuid()),
             NewUnitId(),
             sourcePlayer,
@@ -2370,7 +2491,8 @@ internal sealed class UnitCommandServiceTests
             radius,
             friendlyFireMultiplier,
             selectionMode,
-            allowsFriendlyDamage);
+            allowsFriendlyDamage,
+            tracksTarget);
 
     private void RunTest(string name, Action test)
     {

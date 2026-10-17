@@ -72,7 +72,11 @@ extends RefCounted
 ##
 ## 7) state_of 是 **UI 侧粗判**，权威判定永远在 C#（ProductionService.cs:73 的
 ##    `queue.Count >= producer.QueueLimit`、EconomyRuntime 的资源账户等）。
-##    本项目**没有**数量上限、也没有"受损影响生产"的语义，对应状态不会假装判定成功。
+##    本项目**没有**数量上限；**受损不影响生产**（产量只看
+##    `Unit.production_work_per_tick`，见 Unit.gd:152-155），
+##    因此这里**不再**返回任何"受损"状态 —— 2026-10-10 用户口径：
+##    「不要这种 UI 显示，容易引起误导，我不希望有受损减速这种东西」。
+##    对应概念一律不假装判定成功（没有数据支撑的状态不出现在 STATES 里）。
 ##
 ## 8) hermes_advice 的数据源是 GrowthStore 的画像快照
 ##    （source/growth/GrowthStore.gd:132 get_profile_snapshot()；GrowthStore 在 project.godot [autoload] 注册）。
@@ -99,7 +103,7 @@ const ICON_DIR_UI := "res://assets/ui/icons"
 ## state_of 允许返回的状态（与 UI 契约一致）。用 Array 而不是 PackedStringArray：
 ## const 只接受常量表达式，Packed* 构造器不保证可常量折叠。
 const STATES := [
-	"ready", "insufficient_resource", "queue_full", "unlocked_off", "producing", "maxed", "damaged",
+	"ready", "insufficient_resource", "queue_full", "unlocked_off", "producing", "maxed",
 ]
 
 ## 构建结果缓存：{"entries", "by_id", "categories", "queue_limits"}。
@@ -217,21 +221,13 @@ static func state_of(item_id: String, context: Dictionary) -> Dictionary:
 					"insufficient_resource", "资源不足：需要 %d，当前 %d" % [need, have], []
 				)
 
-	# 5) 生产建筑受损 → damaged。数据是真的（Unit.gd:60-63 的 hp / hp_max），
-	#    但本项目**没有**"受损影响生产效率"的规则，所以 reason 里必须写明这只是提示。
-	if producer_valid:
-		var damage_note := _damage_note(producer)
-		if not damage_note.is_empty():
-			return _state_result(
-				"damaged",
-				("%s；注：本项目未实现受损对生产的影响，此处仅作提示" % damage_note),
-				[primary_action, "repair"]
-			)
-
-	# 6) 其余情况 → ready，并明确写出"判了什么 / 没判什么"。
+	# 5) 其余情况 → ready，并明确写出"判了什么 / 没判什么"。
 	#
 	#    ⚠ "maxed" 永远不会返回：项目没有 max_count（数量上限）概念，
 	#      没有数据支撑就不假装判定成功。
+	#    ⚠ 【2026-10-10 用户口径】这里**不再**有"生产建筑受损 → damaged"分支：
+	#      受损不影响生产（产量只在 Unit.gd:152-155），显示受损徽标会被理解成"受损会减速"，
+	#      属误导信息，已整条移除（连同 ProductionTheme 的 damaged 样式）。
 	var checked: Array[String] = []
 	if has_producer_key:
 		checked.append("生产建筑")
@@ -844,21 +840,9 @@ static func _queue_limit_for(row: Dictionary, producer, context: Dictionary) -> 
 	return QUEUE_LIMIT_DEFAULT
 
 
-## 生产建筑受损提示；无 hp/hp_max 数据时返回空串（不猜）。
-static func _damage_note(producer) -> String:
-	if not _is_valid_node(producer):
-		return ""
-	if not ("hp" in producer) or not ("hp_max" in producer):
-		return ""
-	var current = producer.get("hp")
-	var maximum = producer.get("hp_max")
-	if not (current is int or current is float) or not (maximum is int or maximum is float):
-		return ""
-	var hp_value := float(current)
-	var hp_max_value := float(maximum)
-	if hp_max_value <= 0.0 or hp_value >= hp_max_value:
-		return ""
-	return "生产建筑受损：%.0f/%.0f" % [hp_value, hp_max_value]
+## 【2026-10-10 已移除】原先这里返回"生产建筑受损：x/y"提示串，供 state_of 产出 damaged 状态。
+## 用户口径是不希望出现会被理解成"受损会减速"的显示，故连同 damaged 状态一起删除。
+## 血量信息仍然在基地状态条（BaseStatusStrip）与单位详情里正常展示，不丢信息。
 
 
 # ------------------------------------------------------------------ hermes_advice 辅助

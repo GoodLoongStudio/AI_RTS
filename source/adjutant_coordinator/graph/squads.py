@@ -54,10 +54,10 @@ WORKER_GROUP_MAX = 20
 SQUAD_INFANTRY_TYPES = ("soldier",)
 SQUAD_TANK_TYPES = ("tank", "heavy_tank")
 #: 空中单位（`Domain.AIR`）：**不与地面同队** —— 空中/地面是**两套导航网格**
-#: （`MatchConstants.gd`: `enum Domain { AIR, TERRAIN }`；`Drone/Helicopter/Scout.tscn`
+#: （`MatchConstants.gd`: `enum Domain { AIR, TERRAIN }`；`Drone/Helicopter.tscn`
 #: 里 `Movement.domain = 0` = AIR），小队"一个中继点/一个队形"在空中+地面混合队里
 #: 根本没有意义（实测确实出现过 `drone` 被编进地面小队）。
-SQUAD_AIR_TYPES = ("drone", "helicopter", "scout")
+SQUAD_AIR_TYPES = ("drone", "helicopter")
 
 #: 建造落点距地图边缘的最小余量（米）；**唯一口径在 `placement`**（此处只是别名）。
 BUILD_BOUND_MARGIN_M = placement.BUILD_BOUND_MARGIN_M
@@ -564,6 +564,7 @@ def build_decision_frame(
     deadline_seconds: Optional[float] = None,
     map_bounds: Optional[Sequence[float]] = None,
     campaign: Optional[Dict[str, Any]] = None,
+    strategic_tasks: Optional[Sequence[str]] = None,
 ) -> DecisionFrame:
     """观测 → `DecisionFrame`（含 actor/skill/target/params 四张引用表）。"""
     squads = derive_squads(tactical, authorized=authorized_units,
@@ -840,6 +841,7 @@ def build_decision_frame(
         # 整局主线上下文（阶段/前沿/里程碑/四线/决策地图候选）：由 `frame_from_state`
         # 从 campaign_state 取 `context_view()`，本函数只透传（不自行推导）。
         campaign=dict(campaign or {}),
+        strategic_tasks=tuple(str(item) for item in (strategic_tasks or ()) if str(item)),
     )
 
 

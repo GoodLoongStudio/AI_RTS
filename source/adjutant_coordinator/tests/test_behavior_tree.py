@@ -169,9 +169,12 @@ class MicroTreeTest(unittest.TestCase):
                                     (0.0, 0.0), quota=1),
             ["U_f1"])
 
-    def test_respond_radius_covers_max_weapon_range(self):
-        """响应半径必须覆盖当前平衡表的最大武器射程（反地炮塔 16m）——否则
-        "圈内"单位够不着贴楼的敌人，回防形同虚设。这是常量之间的关系，不许谁单改。"""
+    def test_raid_detection_covers_weapons_and_response_keeps_recall_bounded(self):
+        """检测圈覆盖武器射程；响应圈决定局部兵力，圈外召回另受配额限制。
+
+        旧断言把两种半径混同，要求响应圈 >=40m 且 <40m。按已有局部回防
+        和空家最多召回3人的行为合同校验实际选择，避免扩大圈导致全军往返。
+        """
         import json
         import os
 
@@ -188,10 +191,18 @@ class MicroTreeTest(unittest.TestCase):
                 max_range = max(max_range, float(weapon.get("rangeMeters") or 0.0))
         except OSError:
             self.skipTest("平衡配置不可读：%s" % balance_path)
-        self.assertGreaterEqual(rf.DEFEND_RESPOND_RADIUS_M, max_range,
-                                "响应半径小于最大武器射程时回防够不着敌人")
-        # 响应半径必须显著小于判定半径，否则又变成"整局泡在回防圈"。
+        self.assertGreaterEqual(rf.DEFENSE_RADIUS_M, max_range)
         self.assertLess(rf.DEFEND_RESPOND_RADIUS_M, rf.DEFENSE_RADIUS_M)
+        homes = {"HQ": {"type":"command_center","pos":[0.0,0.0,0.0]}}
+        enemy = {"name":"siege","type":"heavy_tank","pos":[max_range,0.0,0.0]}
+        self.assertTrue(rf.home_raid_visible(homes, [enemy]))
+        self.assertFalse(rf.unit_near_base((max_range,0.0), (0.0,0.0)))
+        troops = {"U_%d" % index: {"type":"soldier","pos":[max_range+index,0.0,0.0]}
+                  for index in range(6)}
+        recalled = rf.defense_recall_names(list(troops),troops,(0.0,0.0))
+        self.assertEqual(recalled,["U_0","U_1","U_2"])
+        troops["U_home"]={"type":"soldier","pos":[10.0,0.0,0.0]}
+        self.assertEqual(rf.defense_recall_names(list(troops),troops,(0.0,0.0)),[])
 
     def test_not_outnumbered_engages_nearest_enemy(self):
         self.state["ai_controlled_units"] = ["U_s1", "U_s2"]
@@ -309,6 +320,7 @@ class MicroTreeTest(unittest.TestCase):
         旧行为（本用例曾断言"空闲即静默"）导致 13 个单位、46800 余额全部杵在基地。
         """
         self.state["ai_controlled_units"] = ["U_s1"]
+        self.state["enemy_intel_points"] = [[180.0, 180.0]]
         tac = _tactical([
             _entity("unit_self", "U_s1", "soldier", pos=(50, 0, 50)),
             _entity("unit_self", "U_cc", "command_center", pos=(0, 0, 0)),
@@ -323,9 +335,21 @@ class MicroTreeTest(unittest.TestCase):
         self.assertGreaterEqual(math.hypot(point[0] - 50.0, point[1] - 50.0), 14.0,
                                 "前压必须从单位自己往外走，不能再围着主基地转圈")
 
+    def test_no_confirmed_intel_does_not_send_the_army_forward(self):
+        """没有情报点、也看不见敌人时，作战单位不发 attack_move。"""
+        self.state["ai_controlled_units"] = ["U_s1"]
+        tac = _tactical([
+            _entity("unit_self", "U_s1", "soldier", pos=(50, 0, 50)),
+            _entity("unit_self", "U_cc", "command_center", pos=(0, 0, 0)),
+        ])
+        intents = behavior_tree.micro_intents(self.state, tactical=tac)
+        self.assertFalse(any(item["action"] == "attack_move" for item in intents))
+        self.assertFalse(any(item["action"] == "scout" for item in intents))
+
     def test_forward_advance_is_deterministic(self):
         """同一 tick 必然得到同一航点（可复现、可单测；不是凭空游走）。"""
         self.state["ai_controlled_units"] = ["U_s1"]
+        self.state["enemy_intel_points"] = [[180.0, 180.0]]
         tac = _tactical([
             _entity("unit_self", "U_s1", "soldier", pos=(50, 0, 50)),
             _entity("unit_self", "U_cc", "command_center", pos=(0, 0, 0)),
@@ -333,6 +357,58 @@ class MicroTreeTest(unittest.TestCase):
         first = behavior_tree.micro_intents(self.state, tactical=tac)[0]["target"]["pos"]
         second = behavior_tree.micro_intents(self.state, tactical=tac)[0]["target"]["pos"]
         self.assertEqual(first, second)
+
+    def test_advance_intent_id_changes_when_the_waypoint_changes(self):
+        """**前压意图 id 必须跟着目标走**（2026-10-09，30 秒级停滞的机制）。
+
+        `_advance_slot` 只用 `tick // ADVANCE_HOLD_TICKS`（15 秒）当 id 序号，
+        而 `_advance_waypoint` 是按**单位当前位置**重算的 —— 单位一动航点就变，
+        id 却不变 ⇒ 游戏按 `intent_id` 做幂等缓存 ⇒ **新目标被当成旧命令丢掉**，
+        单位静置到下一个槽位为止。
+
+        实测（`archive_f2c668c0` 的 `Unit_36`，64.6 秒真停滞）：停滞期间生成侧反复产出
+        `bt-attack_move-Unit_36-10`（同一个 id），而同期 `commands.jsonl` 只有两条命令。
+        """
+        self.state["ai_controlled_units"] = ["U_s1"]
+        self.state["enemy_intel_points"] = [[180.0, 180.0]]
+        self.state["active_intents"] = [{
+            "intent_id": "hold-U_s1", "action": "hold", "state": "active",
+            "unit_ids": ["U_s1"], "expires_tick": 10 ** 9,
+        }]
+        near = _tactical([
+            _entity("unit_self", "U_s1", "soldier", pos=(50, 0, 50)),
+            _entity("unit_self", "U_cc", "command_center", pos=(0, 0, 0)),
+        ])
+        far = _tactical([
+            _entity("unit_self", "U_s1", "soldier", pos=(90, 0, 90)),
+            _entity("unit_self", "U_cc", "command_center", pos=(0, 0, 0)),
+        ])
+        first = behavior_tree.micro_intents(self.state, tactical=near)[0]
+        second = behavior_tree.micro_intents(self.state, tactical=far)[0]
+        self.assertNotEqual(first["target"]["pos"], second["target"]["pos"],
+                            "前提：换了位置就该换航点")
+        self.assertNotEqual(
+            first["intent_id"], second["intent_id"],
+            "换了目标就必须换 id —— 否则游戏按 id 幂等缓存会把新目标当成旧命令丢掉")
+
+    def test_advance_intent_id_is_stable_for_the_same_waypoint(self):
+        """同一目标在同一槽位内必须**保持同一 id**（幂等，不许每轮重置路径）。"""
+        self.state["ai_controlled_units"] = ["U_s1"]
+        self.state["enemy_intel_points"] = [[180.0, 180.0]]
+        self.state["active_intents"] = [{
+            "intent_id": "hold-U_s1", "action": "hold", "state": "active",
+            "unit_ids": ["U_s1"], "expires_tick": 10 ** 9,
+        }]
+        tac = _tactical([
+            _entity("unit_self", "U_s1", "soldier", pos=(50, 0, 50)),
+            _entity("unit_self", "U_cc", "command_center", pos=(0, 0, 0)),
+        ])
+        first = behavior_tree.micro_intents(self.state, tactical=tac)[0]["intent_id"]
+        # 推进若干 tick（仍落在 900 tick 的同一个槽位内），位置与目标都不变
+        self.state["server_tick"] = int(self.state.get("server_tick", 0) or 0) + 300
+        second = behavior_tree.micro_intents(self.state, tactical=tac)[0]["intent_id"]
+        self.assertEqual(first, second,
+                         "同一目标 + 同一槽位 = 同一 id（否则每轮都会重置单位的移动路径）")
 
     def test_forward_advance_disabled_falls_back_to_regroup(self):
         """关掉前压后仍可回退到前线集结（目标不是主基地）。"""
@@ -353,6 +429,7 @@ class MicroTreeTest(unittest.TestCase):
     def test_scattered_units_explore_instead_of_regroup(self):
         """散开的空闲作战单位必须前压，不能被拉回去集合。"""
         self.state["ai_controlled_units"] = ["U_s1", "U_s2", "U_s3"]
+        self.state["enemy_intel_points"] = [[180.0, 180.0]]
         tac = _tactical([
             _entity("unit_self", "U_s1", "soldier", pos=(60, 0, 60)),
             _entity("unit_self", "U_s2", "soldier", pos=(80, 0, 20)),
@@ -364,8 +441,9 @@ class MicroTreeTest(unittest.TestCase):
         self.assertEqual([it for it in intents if it["action"] == "regroup"], [])
 
     def test_field_units_do_not_regroup_to_command_center(self):
-        """野外空闲作战单位必须前压，不能被叫回主基地。"""
+        """野外空闲作战单位在有情报时前压，不能被叫回主基地。"""
         self.state["ai_controlled_units"] = ["U_s%d" % i for i in range(1, 6)]
+        self.state["enemy_intel_points"] = [[180.0, 180.0]]
         tac = _tactical(
             [_entity("unit_self", "U_s%d" % i, "soldier", pos=(50, 0, 50))
              for i in range(1, 6)]
@@ -381,8 +459,9 @@ class MicroTreeTest(unittest.TestCase):
         self.assertEqual(advance, ["U_s1", "U_s2", "U_s3", "U_s4", "U_s5"])
 
     def test_units_already_at_base_leave_with_field_units(self):
-        """空闲时家里的作战单位也出门前压，不再原地 hold。"""
+        """有情报时，家里的作战单位也出门前压，不再原地 hold。"""
         self.state["ai_controlled_units"] = ["U_home1", "U_home2", "U_field"]
+        self.state["enemy_intel_points"] = [[180.0, 180.0]]
         tac = _tactical([
             _entity("unit_self", "U_home1", "soldier", pos=(2, 0, 2)),
             _entity("unit_self", "U_home2", "soldier", pos=(3, 0, 3)),
@@ -543,22 +622,18 @@ class ScoutTest(unittest.TestCase):
         tac = _tactical([_entity("unit_self", "U_d1", "drone", pos=(40, 0, 40))])
         self.assertEqual(behavior_tree.micro_intents(self.state, tactical=tac), [])
 
-    def test_combat_unit_pushes_forward_not_scouting(self):
-        """作战单位不占用**专职侦察**分支，而是走"前压探索"（`attack_move`）。
-
-        契约变更（2026-09-12 晚，用户要求"有钱就该派兵去探索"）：
-        旧断言是"作战单位只能 regroup 回基地" —— 那正是"部队只会停下来等待"的来源；
-        现在无可见敌人时它们必须向外前压。这里钉住两点：
-        ① 不能用 `scout`（专职侦察航点是给无人机的，半径小、绕圈）；
-        ② 必须真的给出一条向外推进的移动命令。
-        """
+    def test_combat_unit_does_not_scout_or_wander_without_intel(self):
+        """没有确认敌情时，作战单位既不占用专职侦察，也不全体 attack_move。"""
         self.state["ai_controlled_units"] = ["U_s1"]
         tac = _tactical([
             _entity("unit_self", "U_s1", "soldier", pos=(20, 0, 20)),
             _entity("unit_self", "U_cc", "command_center", pos=(10, 0, 10)),
         ])
         intents = behavior_tree.micro_intents(self.state, tactical=tac)
-        self.assertEqual({item["action"] for item in intents}, {"attack_move"})
+        self.assertFalse(any(item["action"] in ("attack_move", "scout") for item in intents))
+        self.state["enemy_intel_points"] = [[180.0, 180.0]]
+        confirmed = behavior_tree.micro_intents(self.state, tactical=tac)
+        self.assertEqual({item["action"] for item in confirmed}, {"attack_move"})
 
 
 class RegroupTest(unittest.TestCase):

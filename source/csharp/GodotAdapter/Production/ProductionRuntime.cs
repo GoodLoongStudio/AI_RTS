@@ -28,6 +28,12 @@ public partial class ProductionRuntime : Node
     {
         var economy = GetParent().GetNode<EconomyRuntime>("EconomyRuntime");
         var configuration = GetParent().GetNode<BalanceConfigRuntime>("BalanceConfigRuntime");
+        if (!configuration.IsHealthy())
+        {
+            SetMeta("initialization_blocked", true);
+            GD.PrintErr("[ProductionRuntime] BalanceConfigRuntime 不健康，跳过生产服务装配");
+            return;
+        }
         _matchId = economy.MatchId;
         _definitions = new GodotProductionDefinitionRepository(
             configuration.Catalog,
@@ -50,6 +56,10 @@ public partial class ProductionRuntime : Node
     /// <summary>每个物理 Tick 只推进一次生产线。</summary>
     public override void _PhysicsProcess(double delta)
     {
+        if (_service is null)
+        {
+            return;
+        }
         if (GetTree().GetMultiplayer().MultiplayerPeer is ENetMultiplayerPeer
             && !GetTree().GetMultiplayer().IsServer())
         {

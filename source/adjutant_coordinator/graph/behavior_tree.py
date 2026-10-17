@@ -475,7 +475,8 @@ def _should_advance(bb: Blackboard) -> bool:
       "空闲集结（默认开启）"，等于把部队钉在基地上不动。
     航点必须有方向依据（基地 / 地图边界 / 敌情 / 前线点）才发。
     """
-    return bool(bb.get("allow_forward_advance", True)) and bool(
+    confirmed = bool(bb.get("enemy_intel_points") or bb.get("visible_enemies"))
+    return bool(bb.get("allow_forward_advance", True)) and confirmed and bool(
         bb.get("home_anchor") or bb.get("map_bounds")
         or bb.get("enemy_intel_points") or bb.get("forward_rally"))
 
@@ -555,7 +556,7 @@ SCOUT_MAX_RADIUS = 70.0
 
 
 def _is_scout(bb: Blackboard) -> bool:
-    """是否**专职侦察单位**（默认 `scout_types = ("drone", "scout")`）。
+    """是否**专职侦察单位**（默认 `scout_types = ("drone",)`）。
 
     刻意只认专职侦察，不把作战单位也算进来：让坦克/步兵满地图乱跑是
     无依据的战场动作（见 `_should_regroup` 的教训），而无人机本来就是"眼睛"。
@@ -657,9 +658,43 @@ ADVANCE_MAX_RADIUS = 120.0
 ADVANCE_HOLD_TICKS = 900
 
 
-def _advance_slot(bb: Blackboard) -> int:
+def _target_hash(point: Any, *, span: int = 4096) -> int:
+    """把目标点哈希成 `[0, span)` 的稳定小整数（同一目标 ⇒ 同一值）。
+
+    为什么需要：意图 id 里除了"槽位"还得带**目标**。
+    见 `_advance`：`ADVANCE_HOLD_TICKS = 900`（15 秒）内槽位不变，
+    而 `_advance_waypoint` 是按**单位当前位置**重算的 —— 单位一动，航点就变，
+    但 id 不变 ⇒ 游戏按 `intent_id` 做幂等缓存 ⇒ **新目标被当成旧命令丢掉**。
+    （实测 `archive_f2c668c0` 的 `Unit_36`：64.6 秒停滞期间生成侧反复产出
+     `bt-attack_move-Unit_36-10`（同一个 id），而 `commands.jsonl` 里那段时间
+     只有两条命令 —— 新的目标点一条都没下发。）
+
+    取整到 0.5 米再哈希：航点在同一位置附近的抖动不该换 id（否则单位每轮被重置路径）。
+    """
+    if not isinstance(point, (list, tuple)) or len(point) < 2:
+        return 0
+    try:
+        degree = (int(round(float(point[0]) * 2.0)) * 73856093
+                  ^ int(round(float(point[1]) * 2.0)) * 19349663)
+    except (TypeError, ValueError):
+        return 0
+    return degree % int(span)
+
+
+def _advance_slot(bb: Blackboard, point: Any = None) -> int:
+    """前压意图的稳定 id 序号：**槽位 + 目标哈希**。
+
+    - 同一槽位、同一目标 ⇒ 同一 id（幂等，重复上报命中同一回执，不会每轮重置路径）；
+    - 同一槽位、**换了目标** ⇒ 换 id（否则新目标会被游戏的幂等缓存吃掉，单位静置
+      到下一个槽位为止 —— 这正是 30 秒级停滞的机制，见 `_target_hash` 的说明）。
+    """
     hold = max(1, int(bb.get("advance_hold_ticks") or ADVANCE_HOLD_TICKS))
-    return int(bb.get("server_tick") or 0) // hold
+    slot = int(bb.get("server_tick") or 0) // hold
+    return slot * TARGET_HASH_SPAN + _target_hash(point, span=TARGET_HASH_SPAN)
+
+
+#: `_advance_slot` 里给"目标哈希"预留的取值空间（槽位乘上它再相加）。
+TARGET_HASH_SPAN = 4096
 
 
 def _advance_waypoint(bb: Blackboard):
@@ -707,9 +742,49 @@ def _advance(bb: Blackboard) -> str:
     point = _advance_waypoint(bb)
     if not point:
         return Status.FAILURE
+    slot = _advance_slot(bb, point)
+    _trace_advance(bb, slot, point)
     return bb.emit("attack_move", {"pos": point}, priority=45,
-                   id_tick=_advance_slot(bb),
+                   id_tick=slot,
                    rationale="无可见敌人：向外前压探索 %s（优先于集合）" % (point,))
+
+
+#: 前压槽位轨迹的记账键（放进 state，供归档复盘读）。
+ADVANCE_TRACE_KEY = "advance_slots"
+#: 前压槽位轨迹最多记多少个单位（有界）。
+ADVANCE_TRACE_LIMIT = 256
+
+
+def _trace_advance(bb: Blackboard, slot: int, point: Any) -> None:
+    """**只读**记一笔"这个单位的前压槽位变了"。
+
+    为什么要它（round-13 遗留问题）：改掉"重复 id"之后，真停滞中位数仍然是
+    **28.13 秒 ≈ 2 × `ADVANCE_HOLD_TICKS`(900 tick = 15 秒)** ——
+    提示"槽位每 15 秒才换一次"本身就内建了最坏空等。要判定这一点，必须知道
+    **停滞期间这个单位换了几个槽位**，而不是只看它有没有拿到意图。
+
+    **只记变化**（槽位与上次不同才写），所以有界：每单位每 15 秒最多一条，
+    不是每轮一条 —— 否则会把决策账刷爆、把 `movement_gate` 的路线快照挤出保留窗口。
+    """
+    state = bb.get("state_ref")
+    if not isinstance(state, dict):
+        return
+    unit = str(bb.get("unit") or "")
+    if not unit:
+        return
+    ledger = state.setdefault(ADVANCE_TRACE_KEY, {})
+    if not isinstance(ledger, dict):
+        return
+    tick = int(bb.get("server_tick") or 0)
+    previous = ledger.get(unit)
+    if isinstance(previous, dict) and int(previous.get("slot", -1)) == int(slot):
+        return
+    ledger[unit] = {"slot": int(slot), "tick": tick,
+                    "point": [round(float(point[0]), 1), round(float(point[1]), 1)]}
+    if len(ledger) > ADVANCE_TRACE_LIMIT:
+        oldest = sorted(ledger, key=lambda name: int(ledger[name].get("tick", 0)))
+        for stale in oldest[:len(ledger) - ADVANCE_TRACE_LIMIT]:
+            ledger.pop(stale, None)
 
 
 #: 当前目标分数不超过最优的这么多倍就保持（防每轮因轻微排序抖动换目标）。
@@ -1093,9 +1168,8 @@ def micro_parts(
     # 影响树的"我方作战单位数"与接敌/撤离判据）。统一走 `rf.combat_types_of()`：
     # state（本轮派生并落档）→ rules 现算 → 兜底常量。
     cfg = {"combat_types": rf.combat_types_of(state or {}, rules),
-           # 专职侦察单位：无人机是这局里唯一的"眼睛"（`scout` 对应 Scout.tscn 的单位类型）。
-           # 只认这两类，作战单位不参与侦察（见 `_is_scout` 的说明）。
-           "scout_types": ("drone", "scout")}
+           # Scout retired on 2026-10-10; the scout action still uses Drone.
+           "scout_types": ("drone",)}
     cfg.update(config or {})
     tick = int(server_tick or (state or {}).get("server_tick", 0) or 0)
     snapshot = int(snapshot_id or (state or {}).get("latest_snapshot_id", 0) or 0)

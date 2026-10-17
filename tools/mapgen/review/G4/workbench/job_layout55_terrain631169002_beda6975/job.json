@@ -1,0 +1,435 @@
+{
+  "id": "beda6975d89a49cab4b84d147e768d9b",
+  "baseline": false,
+  "status": "error",
+  "config": {
+    "schema_version": 2,
+    "algo_version": "7.11.0",
+    "layout_seed": 55,
+    "terrain_seed": 631169002,
+    "player_spacing": "any",
+    "controls": {
+      "river_layout": 2,
+      "river_enabled": 1,
+      "lake_count": 0,
+      "lake_area": 5000,
+      "neutral_plateau_scale": 1.7,
+      "plateau_max": 8,
+      "landform_elongation": 1.2,
+      "landform_recess": 0.2,
+      "landform_softness": 0.16,
+      "plateau_ramp_width": 8,
+      "river_width": 18,
+      "river_bend_scale": 1.0,
+      "river_crossings": 6,
+      "obstacle_percent": 40,
+      "cover_cluster_max": 10,
+      "layout_attempts": 4
+    }
+  },
+  "target": "full",
+  "spacing": "standard",
+  "created_at": "2026-09-29T00:07:37",
+  "started": 1790614828.9288402,
+  "duration": 0.5,
+  "title": "布局 55 · 地貌 631169002",
+  "pipeline_version": "1.0.0",
+  "stage_versions": {
+    "G1": "2.0.0",
+    "G2": "7.11.0",
+    "G3": "2.2.0",
+    "G4": "2.0.0"
+  },
+  "stages": {
+    "g1_input": {
+      "status": "done",
+      "started_at": "2026-09-29T00:08:25",
+      "duration_s": 0.1,
+      "error": null,
+      "pass": true,
+      "stage": "G1",
+      "version": "2.0.0",
+      "finished_at": "2026-09-29T00:08:25",
+      "source": "G:\\AIRTS\\AI_RTS\\tools\\mapgen\\runs\\55\\G1",
+      "source_hashes": {
+        "manifest.json": "63d07b99c4146c9304f0082c14541c95677810f866aa26c2bc4eb0378913cab9",
+        "mapgrid.npz": "88eacff3d26b3dd5c2898d3f9deaa4e08634f867f2970d92dacb7b5647f20869",
+        "mapspec.json": "b798392ad02625f5057c95bbee3e94b514922cdf0b7bd6a0d87c8aac35e829ba",
+        "starts.png": "3a3d7321f4761e087ff49400adbdf7ebed95f8769d09bffc3644a2eb16d51e6f",
+        "starts.png.import": "7e3812fd610d1b866bc6af53cea817a74ed459e169e0aefbe8a7f1c44653ff52",
+        "starts_table.png": "2035b4ec255d0b63acadd0d98df1bfc4909503ba186f4de5cb5a2a83f5c7c15c",
+        "starts_table.png.import": "dbfd92003ea1342a30f38c89634cf7a2b0e21f7b3263594388c05fa28df95d2e",
+        "territory.png": "ec96a43c9ab4fa0db4d560afe7184e356afe17db2a8b79e7b5592d2c36746298",
+        "territory.png.import": "b3b654e69ddb5ecbbc8f9d536bb36bf049057133fdf43fdc935701cc27acdacb"
+      },
+      "starts": [
+        [
+          204.46,
+          44.72
+        ],
+        [
+          52.8,
+          26.13
+        ],
+        [
+          63.13,
+          226.08
+        ],
+        [
+          195.63,
+          208.34
+        ]
+      ],
+      "spacing": "standard",
+      "g1_approved": false,
+      "output_hashes": {
+        "mapgrid.npz": "88eacff3d26b3dd5c2898d3f9deaa4e08634f867f2970d92dacb7b5647f20869"
+      }
+    },
+    "g2_terrain": {
+      "status": "done",
+      "started_at": "2026-09-29T00:08:25",
+      "duration_s": 7.4,
+      "error": null,
+      "pass": true,
+      "stage": "G2",
+      "version": "7.11.0",
+      "finished_at": "2026-09-29T00:08:32",
+      "all_pass": true,
+      "checks": {
+        "solid_frac_pass": true,
+        "solid_comp_pass": true,
+        "max_block_pass": true,
+        "open_single_pass": true,
+        "keypoints_pass": true,
+        "struct_connect_pass": true,
+        "plateau_full_pass": true,
+        "plateau_area_pass": true,
+        "plateau_strategy_pass": true,
+        "plateau_ramps_pass": true,
+        "home_plateau_pass": true,
+        "river_presence_pass": true,
+        "lake_count_pass": true,
+        "lake_size_pass": true,
+        "lake_strategy_pass": true,
+        "lake_shape_pass": true,
+        "water_connected_pass": true,
+        "water_crossings_pass": true,
+        "crossing_count_pass": true,
+        "water_semantics_pass": true,
+        "bridge_redundancy_pass": true,
+        "contest_fair_pass": true,
+        "plateau_fair_pass": true,
+        "expansion_fair_pass": true,
+        "neutral_contest_pass": true,
+        "flank_width_pass": true,
+        "routes_clear_pass": true,
+        "route_alternatives_pass": true,
+        "bridge_width_pass": true,
+        "home_clear_pass": true,
+        "path_fairness_pass": true
+      },
+      "input_hash": "88eacff3d26b3dd5c2898d3f9deaa4e08634f867f2970d92dacb7b5647f20869",
+      "output_hash": {
+        "mapgrid.npz": "d017ffb24b5c5e7564431ae42d3df0eef4b88ef501b86ebf9fcf04f44cd5079a",
+        "mapspec.json": "a0ce8031a1bb0023cb296f4a2e5c6f544059f3c5cbbcf6ae2a6711e60c7d93b0"
+      },
+      "params_version": "7.11.0",
+      "chosen_attempt": 4,
+      "summary": {
+        "all_pass": true,
+        "solid_percent": 40.2,
+        "plateaus": 6,
+        "rivers": 2,
+        "lakes": 0,
+        "lake_area_m2": 0,
+        "crossings": 6
+      }
+    },
+    "g3_content": {
+      "status": "done",
+      "started_at": "2026-09-29T00:08:33",
+      "duration_s": 1.0,
+      "error": null,
+      "pass": true,
+      "stage": "G3",
+      "version": "2.2.0",
+      "finished_at": "2026-09-29T00:08:34",
+      "all_pass": true,
+      "checks": {
+        "quota_equal": true,
+        "fairness_pass": true,
+        "recheck_components": true,
+        "recheck_keypoints": true,
+        "recheck_widths": true,
+        "cluster_cover": true,
+        "budget": true,
+        "no_resource_failures": true
+      },
+      "input_hash": "d017ffb24b5c5e7564431ae42d3df0eef4b88ef501b86ebf9fcf04f44cd5079a",
+      "output_hash": {
+        "mapgrid.npz": "3f39fdcb2e72a8d8112a7aa260615128f1d57121bbedb1fe87d55d9cb4706c51",
+        "mapspec.json": "ca18eb9e5d175101000133e8601ffc8f94e2fda8c613fbaafc3e19e2d5675266"
+      },
+      "instance_count": 177,
+      "resource_failures": []
+    },
+    "g4_scene": {
+      "status": "done",
+      "started_at": "2026-09-29T00:08:34",
+      "duration_s": 1.3,
+      "error": null,
+      "pass": true,
+      "stage": "G4",
+      "version": "2.0.0",
+      "finished_at": "2026-09-29T00:08:35",
+      "map_id": "55-631169002-767a002977",
+      "scene": "G:\\AIRTS\\AI_RTS\\tools\\mapgen\\workbench_output\\beda6975d89a49cab4b84d147e768d9b\\g4\\55-631169002-767a002977\\map_55-631169002-767a002977.tscn",
+      "scene_res": "res://source/match/maps/generated/55-631169002-767a002977/map_55-631169002-767a002977.tscn",
+      "height_data": "G:\\AIRTS\\AI_RTS\\tools\\mapgen\\workbench_output\\beda6975d89a49cab4b84d147e768d9b\\g4\\55-631169002-767a002977\\height_data.bin",
+      "height_data_sha256": "691e20857d2f325ef61c466a5271226f56d014029daa87b8ae0287d74e7d8a6b",
+      "heightfield_report": {
+        "vertex_shape": [
+          257,
+          257
+        ],
+        "min_height": -2.4,
+        "max_height": 46.925,
+        "max_step_all_m": 16.498,
+        "max_step_walkable_m": 1.317,
+        "walkable_slope_step_ok": false,
+        "plateau_level": 8.1,
+        "ground_level": 0.6,
+        "water_level": -2.4
+      },
+      "visual_seed": 1115445844,
+      "visual_version": 1,
+      "visual_profile": "default",
+      "visual_style_version": "1.0.0",
+      "visual_stats": {
+        "total": 40,
+        "cliff": 0,
+        "shore": 0,
+        "scatter": 40,
+        "tree": 0,
+        "grass": 0,
+        "stone": 0,
+        "shore_zone": 0,
+        "mountain_foot": 0,
+        "budget_total": 150
+      },
+      "visual_warnings": [],
+      "installed_runtime": [
+        "G:\\AIRTS\\AI_RTS\\source\\match\\maps\\generated\\55-631169002-767a002977\\map_55-631169002-767a002977.tscn",
+        "G:\\AIRTS\\AI_RTS\\source\\match\\maps\\generated\\55-631169002-767a002977\\height_data.bin",
+        "G:\\AIRTS\\AI_RTS\\source\\match\\maps\\generated\\55-631169002-767a002977\\terrain_masks.png",
+        "G:\\AIRTS\\AI_RTS\\source\\match\\maps\\generated\\55-631169002-767a002977\\minimap_preview.png",
+        "G:\\AIRTS\\AI_RTS\\assets\\map_previews\\map_55-631169002-767a002977.png",
+        "G:\\AIRTS\\AI_RTS\\source\\match\\maps\\generated\\55-631169002-767a002977\\map_index.json"
+      ],
+      "airts": "G:\\AIRTS\\AI_RTS"
+    },
+    "engine": {
+      "status": "error",
+      "started_at": "2026-09-29T01:00:29",
+      "duration_s": 0.3,
+      "error": "Unable to allocate 8.06 MiB for an array with shape (514, 514, 4) and data type float64",
+      "pass": true,
+      "stage": "ENGINE",
+      "version": "godot",
+      "finished_at": "2026-09-29T01:00:29",
+      "error_kind": "stage_error"
+    }
+  },
+  "layout_locked": false,
+  "terrain_locked": false,
+  "skip_engine_check": false,
+  "layout_pool": [
+    36,
+    5,
+    18,
+    38,
+    27,
+    17,
+    46,
+    49,
+    35,
+    55,
+    31,
+    15,
+    8,
+    4,
+    42,
+    12,
+    51,
+    47,
+    25,
+    54,
+    16,
+    13,
+    37,
+    39,
+    23,
+    3,
+    2,
+    14,
+    21,
+    61
+  ],
+  "layout_tried": [
+    {
+      "seed": 36,
+      "reason": "checks",
+      "attempts": 0,
+      "rejected": null
+    },
+    {
+      "seed": 5,
+      "reason": "checks",
+      "attempts": 0,
+      "rejected": null
+    },
+    {
+      "seed": 18,
+      "reason": "checks",
+      "attempts": 0,
+      "rejected": null
+    },
+    {
+      "seed": 38,
+      "reason": "checks",
+      "attempts": 0,
+      "rejected": null
+    },
+    {
+      "seed": 27,
+      "reason": "no_candidate",
+      "attempts": 4,
+      "rejected": "No connected river corridor clears the spawn plateaus; regenerate the layout, never cut the water."
+    },
+    {
+      "seed": 17,
+      "reason": "checks",
+      "attempts": 0,
+      "rejected": null
+    },
+    {
+      "seed": 46,
+      "reason": "no_candidate",
+      "attempts": 4,
+      "rejected": "No complete river corridors satisfy the selected layout and home clearance."
+    },
+    {
+      "seed": 49,
+      "reason": "checks",
+      "attempts": 0,
+      "rejected": null
+    },
+    {
+      "seed": 35,
+      "reason": "no_candidate",
+      "attempts": 4,
+      "rejected": "No connected river corridor clears the spawn plateaus; regenerate the layout, never cut the water."
+    }
+  ],
+  "preview_only": false,
+  "progress": {
+    "stage": "引擎",
+    "phase": "复制素材依赖（G3+视觉计划+桥组合）"
+  },
+  "hard_reject_streak": 3,
+  "map_id": "55-631169002-767a002977",
+  "visual_seed": 1115445844,
+  "scene_res": "res://source/match/maps/generated/55-631169002-767a002977/map_55-631169002-767a002977.tscn",
+  "g4_out_dir": "G:\\AIRTS\\AI_RTS\\tools\\mapgen\\workbench_output\\beda6975d89a49cab4b84d147e768d9b\\g4\\55-631169002-767a002977",
+  "map_pass": false,
+  "checks_summary": {
+    "g2_pass": true,
+    "g3_pass": true,
+    "engine_pass": null
+  },
+  "bundle": {
+    "path": "G:\\AIRTS\\AI_RTS\\tools\\mapgen\\workbench_output\\beda6975d89a49cab4b84d147e768d9b\\map_bundle_55-631169002-767a002977.zip",
+    "sha256": "36fd813ec3081d7fed1c60634581746db546c1420d53dc08714bb0ea79f73381",
+    "map_id": "55-631169002-767a002977",
+    "built_at": "2026-09-29T00:08:36"
+  },
+  "result": {
+    "version": "7.11.0",
+    "all_pass": true,
+    "solid_percent": 40.2,
+    "plateaus": 6,
+    "crossings": 6,
+    "plateau_top_percent": 12.4,
+    "rivers": 2,
+    "lakes": 0,
+    "lake_area_m2": 0,
+    "river_width_m": 18.6,
+    "nearest_pair_m": 133.7,
+    "neutral_ratio": 1.4179,
+    "expansion_ratio": 1.0016,
+    "neighbor_ratio": 1.2116,
+    "min_route_width": 8.0,
+    "chosen_attempt": 4,
+    "checks": {
+      "bridge_redundancy_pass": true,
+      "bridge_width_pass": true,
+      "contest_fair_pass": true,
+      "crossing_count_pass": true,
+      "expansion_fair_pass": true,
+      "flank_width_pass": true,
+      "home_clear_pass": true,
+      "home_plateau_pass": true,
+      "keypoints_pass": true,
+      "lake_count_pass": true,
+      "lake_shape_pass": true,
+      "lake_size_pass": true,
+      "lake_strategy_pass": true,
+      "max_block_pass": true,
+      "neutral_contest_pass": true,
+      "open_single_pass": true,
+      "path_fairness_pass": true,
+      "plateau_area_pass": true,
+      "plateau_fair_pass": true,
+      "plateau_full_pass": true,
+      "plateau_ramps_pass": true,
+      "plateau_strategy_pass": true,
+      "river_presence_pass": true,
+      "route_alternatives_pass": true,
+      "routes_clear_pass": true,
+      "solid_comp_pass": true,
+      "solid_frac_pass": true,
+      "struct_connect_pass": true,
+      "water_connected_pass": true,
+      "water_crossings_pass": true,
+      "water_semantics_pass": true
+    },
+    "attempts": [
+      {
+        "attempt": 1,
+        "failed_checks": [
+          "plateau_fair_pass"
+        ]
+      },
+      {
+        "attempt": 2,
+        "failed_checks": [
+          "plateau_fair_pass"
+        ]
+      },
+      {
+        "attempt": 3,
+        "failed_checks": [
+          "plateau_full_pass",
+          "plateau_fair_pass"
+        ]
+      },
+      {
+        "attempt": 4,
+        "failed_checks": []
+      }
+    ]
+  },
+  "error": "Unable to allocate 8.06 MiB for an array with shape (514, 514, 4) and data type float64",
+  "error_kind": "generation_error"
+}

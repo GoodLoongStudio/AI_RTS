@@ -13,10 +13,13 @@
 
 from __future__ import annotations
 
+import json
+
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from . import campaign as campaign_mod
 from . import placement
+from .contracts import ALLOWED_ACTIONS
 from .squads import build_decision_frame
 from .task_patch import (
     ACTION_TO_SKILL, MODE_FAST, DecisionFrame, DecodeResult, TaskPatchBatch,
@@ -79,7 +82,48 @@ def frame_from_state(state: Any, observation: Dict[str, Any],
         # 整局主线上下文（纠偏 §7 硬要求）：阶段/主线目标/已完成与阻塞里程碑/
         # 四条线/下一前沿/可选决策地图节点及其前置条件。
         campaign=_campaign_view(state),
+        strategic_tasks=_strategic_task_lines(state),
     )
+
+
+def _strategic_task_lines(state: Any):
+    """有界任务约束摘要；身份完整保留，超限仅标遗漏，不制造新身份。"""
+    plan = _get(state, "active_plan") or {}
+    tasks = plan.get("tasks") if isinstance(plan, dict) else None
+    controlled = {str(u) for u in (_get(state, "ai_controlled_units") or [])}
+    controlled -= {str(u) for u in (_get(state, "player_controlled_units") or [])}
+    lines = []
+    for task in (tasks or [])[:8]:
+        if not isinstance(task, dict):
+            continue
+        task_id = task.get("task_id")
+        if not isinstance(task_id, str) or not task_id:
+            continue
+        if len(task_id) > 160:
+            lines.append('{"omitted_task":"identity_length"}')
+            continue
+        all_units = [u for u in (task.get("units") or []) if isinstance(u, str) and u in controlled]
+        representable = [u for u in all_units if len(u) <= 128]
+        units = representable[:8]
+        actions = [a for a in (task.get("allowed_actions") or []) if a in ALLOWED_ACTIONS][:8]
+        entry = {"task_id": task_id, "units": units, "allowed_actions": actions}
+        omitted = len(all_units) - len(units)
+        if omitted:
+            entry["omitted_units"] = omitted
+        target = task.get("target_type")
+        if isinstance(target, str) and len(target) <= 80:
+            entry["target_type"] = target
+        elif target:
+            entry["target_type_omitted"] = "identity_length"
+        if any(a in ("build", "produce") for a in actions):
+            # PlanTask has no producer field. These are the unchanged named
+            # task units; actual capabilities and placement remain decoder gates.
+            entry["producer_candidates"] = units
+        entry["completion"] = str(task.get("completion") or "")[:120]
+        # JSON escaping prevents a newline/separator in descriptive text from
+        # masquerading as a separate prompt field or another task.
+        lines.append(json.dumps(entry, ensure_ascii=False, separators=(",", ":")))
+    return tuple(lines)
 
 
 def _campaign_view(state: Any) -> Dict[str, Any]:

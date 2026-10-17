@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tests/automated/_StrategicChatRealModelProbe.gd" id="1_real"]
+
+[node name="StrategicChatRealModelProbe" type="Node"]
+script = ExtResource("1_real")

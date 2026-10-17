@@ -111,7 +111,8 @@ func _pick_target():
 	# AIRTS_TARGETING=nomovinggrid 时回退全场扫描（本轮 A 对照）。
 	var scan_t0 := Time.get_ticks_usec()
 	var candidates: Array = (
-		_target_grid.acquire_candidates(_unit.global_position_yless, detection_range)
+		_target_grid.acquire_candidates(
+			_unit.global_position_yless, _unit.center_distance_scan_range_for(detection_range))
 		if _target_grid != null and _target_grid.use_moving_grid
 		else get_tree().get_nodes_in_group("units")
 	)
@@ -139,8 +140,10 @@ func _is_legal_target(target, maximum_distance: float) -> bool:
 		and target.is_inside_tree()
 		and target.player != _unit.player
 		and target.movement_domain in _unit.attack_domains
+		# 2026-09-29 尺寸统一遗留：maximum_distance 是"表面到表面"的基准值，
+		# 判据必须换算成圆心距口径（唯一实现见 Unit.center_distance_limit_for）。
 		and _unit.global_position_yless.distance_to(target.global_position_yless)
-		<= maximum_distance
+		<= _unit.center_distance_limit_for(maximum_distance, target)
 	)
 
 
@@ -170,7 +173,7 @@ func _may_continue_engagement() -> bool:
 	if stance == "HoldGround":
 		return _unit.global_position_yless.distance_to(
 			_engagement_target.global_position_yless
-		) <= _unit.attack_range
+		) <= _unit.reach_range_against(_engagement_target)
 	if stance == "Guard":
 		return _engagement_target.global_position_yless.distance_to(
 			_engagement_anchor * Vector3(1, 0, 1)

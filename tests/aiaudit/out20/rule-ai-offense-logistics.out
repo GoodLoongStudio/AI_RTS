@@ -1,0 +1,379 @@
+Godot Engine v4.7.1.stable.mono.official.a13da4feb - https://godotengine.org
+
+[DBGCTL] 端口 24579 被占用, 调试控制端点未启动
+[DBGCTL] 本实例不可被调试控制；自动化模式下 MatchInstanceRegistry 会按严格模式退场（避免留下'看着在对局里、其实命令下不进去'的僵尸局）
+[godot_ai game_helper] registered mcp capture (debugger active=false, logger=true)
+规则 AI 难度=NORMAL 首波=32s 再派=17s 情报复查=60s
+G4PERF fog_resize 416x416 px_per_m=2
+    ... [last line repeated 1 more times]
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=16 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=2 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=1 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=1 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=3 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=4 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=4 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=8 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=11 tint=(0.4, 0.6941, 1.0, 1.0)
+[TINT] apply_team_tint (0.4, 0.6941, 1.0, 1.0) on Geometry
+[TINT] override meshes=15 tint=(0.4, 0.6941, 1.0, 1.0)
+[G4PERF] minimap viewport=416x416 scale=2.000
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+       [2] _ready (res://source/match/hud/Minimap.gd:107)
+       [3] _ready (res://tests/automated/RuleAiOffenseLogisticsSmokeTest.gd:27)
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+       [2] _follow_minimap_fog_mask (res://source/match/hud/Minimap.gd:118)
+       [3] _ready (res://source/match/hud/Minimap.gd:111)
+       [4] _ready (res://tests/automated/RuleAiOffenseLogisticsSmokeTest.gd:27)
+G4PERF command_runtime_us=4611 frames=1
+G4PERF production_runtime_us=1185 frames=1
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+[INPUT] UnitActionsController waiting for local player player=Human
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+G4PERF command_runtime_us=183 frames=2
+G4PERF production_runtime_us=70 frames=2
+NAVDBG air polygons=2 vertices=4 rid_valid=true region_on_our_map=true map_active=true
+NAVDBG bake map=/root/RuleAiOffenseLogisticsSmokeTest/Match/Map StaticBody3D in subtree=0
+WARNING: Property agent_height is ceiled to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:367)
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+ERROR: Parameter "t" is null.
+   at: texture_2d_get (./servers/rendering/dummy/storage/texture_storage.h:110)
+   GDScript backtrace (most recent call first):
+       [0] _fog_texture_has_revealed_pixels (res://source/match/hud/Minimap.gd:198)
+       [1] _sync_minimap_fog_mask (res://source/match/hud/Minimap.gd:181)
+       [2] _follow_minimap_fog_mask (res://source/match/hud/Minimap.gd:118)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+NAVDBG polygons=223 vertices=201
+[ECO] PublishSnapshot player=b6012e40 a=0
+[ECO] PublishSnapshot player=d4ef29ed a=0
+[TINT] apply_team_tint (1.0, 0.3608, 0.451, 1.0) on Geometry
+[TINT] override meshes=16 tint=(1.0, 0.3608, 0.451, 1.0)
+[TINT] apply_team_tint (1.0, 0.3608, 0.451, 1.0) on Geometry
+[TINT] override meshes=4 tint=(1.0, 0.3608, 0.451, 1.0)
+WARNING: [MatchHistoryHook] 未找到对局根节点，本局不写入历史。
+   at: push_warning (core/variant/variant_utility.cpp:1033)
+   GDScript backtrace (most recent call first):
+       [0] _begin_recording (res://source/history/MatchHistoryHook.gd:116)
+[INPUT] UnitActionsController enabled player=Human
+[ECO] PublishSnapshot player=d4ef29ed a=10000
+[ECO] ApplyLegacy reason=ScriptedAdjustment player=d4ef29ed status=Applied a=10000
+G4PERF command_runtime_us=18 frames=40
+G4PERF production_runtime_us=2 frames=40
+G4PERF movement_us=25 unit=Drone
+G4PERF movement_us=21 unit=Helicopter
+G4PERF movement_us=40 unit=Tank
+G4PERF movement_us=34 unit=Worker
+G4PERF movement_us=19 unit=Unit_1
+[AUTOSPOT] mode=resource anchor=(160.0,28.0) radius=9.8
+[AUTOSPOT] FOUND (142.3,0.0,30.2)
+[ECO] PublishSnapshot player=d4ef29ed a=9100
+[ECO] ApplyLegacy reason=ConstructionCost player=d4ef29ed status=Applied a=9100
+[TINT] apply_team_tint (1.0, 0.3608, 0.451, 1.0) on SyntyParts
+[TINT] override meshes=1 tint=(1.0, 0.3608, 0.451, 1.0)
+[TINT] apply_team_tint (1.0, 0.3608, 0.451, 1.0) on OreCluster
+[TINT] override meshes=4 tint=(1.0, 0.3608, 0.451, 1.0)
+规则 AI 矿场已放置 (142.3367, 0.0, 30.20148)
+规则 AI 放置生产建筑被拒绝：{ "accepted": false, "status": "Rejected", "primary_issue": "ConstructionInProgress", "issues": ["ConstructionInProgress"], "construction_site_id": "" }
+WARNING: Property agent_height is ceiled to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:367)
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+NAVDBG polygons=223 vertices=201
+G4PERF command_runtime_us=137 frames=80
+G4PERF production_runtime_us=1 frames=80
+G4PERF movement_us=25 unit=Drone
+G4PERF movement_us=17 unit=Helicopter
+G4PERF movement_us=37 unit=Tank
+G4PERF movement_us=30 unit=Worker
+G4PERF movement_us=35 unit=Unit_1
+G4PERF command_runtime_us=129 frames=120
+G4PERF production_runtime_us=2 frames=120
+G4PERF movement_us=25 unit=Drone
+G4PERF movement_us=19 unit=Helicopter
+G4PERF movement_us=43 unit=Tank
+G4PERF movement_us=35 unit=Worker
+G4PERF movement_us=36 unit=Unit_1
+G4PERF command_runtime_us=222 frames=160
+G4PERF production_runtime_us=2 frames=160
+G4PERF movement_us=78 unit=Drone
+G4PERF movement_us=24 unit=Helicopter
+G4PERF movement_us=73 unit=Tank
+G4PERF movement_us=39 unit=Worker
+G4PERF movement_us=58 unit=Unit_1
+G4PERF command_runtime_us=123 frames=200
+G4PERF production_runtime_us=2 frames=200
+G4PERF movement_us=28 unit=Drone
+G4PERF movement_us=22 unit=Helicopter
+G4PERF movement_us=51 unit=Tank
+G4PERF movement_us=47 unit=Worker
+G4PERF movement_us=51 unit=Unit_1
+[TINT] apply_team_tint (1.0, 0.3608, 0.451, 1.0) on Geometry
+[TINT] override meshes=15 tint=(1.0, 0.3608, 0.451, 1.0)
+[REFINERY] Unit_2 完工赠送矿车 Unit_3
+[REFINERY] Unit_2 完工，接管计时器已启动（间隔 2.0s，容量 4，服务半径 30.0m）
+G4PERF command_runtime_us=4263 frames=240
+G4PERF production_runtime_us=3 frames=240
+G4PERF movement_us=30 unit=Drone
+G4PERF movement_us=22 unit=Helicopter
+G4PERF movement_us=48 unit=Tank
+G4PERF movement_us=36 unit=Worker
+G4PERF movement_us=44 unit=Unit_1
+[ACT] Unit_3 puppet=false in_tree=true locked=false script=res://source/match/units/actions/CollectingResourcesSequentially.gd
+[ACT] Unit_3 attached child=false
+[GATHER] action _ready unit=Unit_3 resource=true
+[GATHER] 进入 MOVING_TO_RESOURCE, resource=ResourceA4:<Area3D#239276657646>
+[ACT] Unit_3 已 add_child: in_tree=true
+WARNING: Property agent_height is ceiled to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:367)
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+FAIL: OffenseController 应通过稳定类型放置 VehicleFactory
+ERROR: OffenseController 应通过稳定类型放置 VehicleFactory
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check (res://tests/automated/RuleAiOffenseLogisticsSmokeTest.gd:177)
+       [1] _ready (res://tests/automated/RuleAiOffenseLogisticsSmokeTest.gd:63)
+[TINT] apply_team_tint (1.0, 0.3608, 0.451, 1.0) on Geometry
+[TINT] override meshes=1 tint=(1.0, 0.3608, 0.451, 1.0)
+[AUTOSPOT] mode=resource anchor=(160.0,28.0) radius=7
+[AUTOSPOT] FOUND (156.9,0.0,13.3)
+[ECO] PublishSnapshot player=d4ef29ed a=6700
+[ECO] ApplyLegacy reason=ConstructionCost player=d4ef29ed status=Applied a=6700
+[TINT] apply_team_tint (1.0, 0.3608, 0.451, 1.0) on Geometry
+[TINT] override meshes=16 tint=(1.0, 0.3608, 0.451, 1.0)
+[ECO] PublishSnapshot player=d4ef29ed a=6500
+[ECO] PublishSnapshot player=d4ef29ed a=6300
+[ECO] PublishSnapshot player=d4ef29ed a=6100
+[ECO] PublishSnapshot player=d4ef29ed a=5900
+[ECO] PublishSnapshot player=d4ef29ed a=5700
+NAVDBG polygons=239 vertices=215
+G4PERF command_runtime_us=118 frames=280
+G4PERF production_runtime_us=49 frames=280
+G4PERF movement_us=58 unit=Drone
+G4PERF movement_us=21 unit=Helicopter
+G4PERF movement_us=68 unit=Tank
+G4PERF movement_us=37 unit=Worker
+G4PERF movement_us=49 unit=Unit_1
+G4PERF movement_us=25 unit=Unit_3
+[ACT] Unit_3 puppet=false in_tree=true locked=false script=res://source/match/units/actions/Constructing.gd
+[ACT] Unit_3 attached child=false
+[ACT] Unit_3 已 add_child: in_tree=true
+[AUTOSPOT] mode=resource anchor=(160.0,28.0) radius=7
+[AUTOSPOT] FAIL mode=resource anchor=(160.0,28.0) limit=48.0 evaluations=256 stop=exhausted issues=ConstructionInProgress×256
+规则 AI 放置 CommandCenter 被拒绝：无合法落点 anchors=1
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "5918d32b-bf31-4fcb-9d52-738a876305fb" }
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "5ef279a4-9c3e-46c8-89bf-5d9af592e216" }
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "6f22d0f6-6610-43df-af39-52670921f878" }
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "c4cb3166-5099-4c68-91c9-d16b9a50b540" }
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "23ccb650-7e3b-4dc7-a0ce-c1976a41bcbb" }
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "93bbb319-8e71-4bac-a6c7-61ff4fd496e9" }
+规则 AI 生产作战单位被拒绝(5s 退避)：{ "accepted": false, "status": "QueueFull", "command_id": "f63630c2-443c-449c-b39b-b65d6dbcc1cc" }
+WARNING: Property agent_height is ceiled to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:367)
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+NAVDBG polygons=255 vertices=229
+G4PERF command_runtime_us=102 frames=320
+G4PERF production_runtime_us=46 frames=320
+G4PERF movement_us=37 unit=Drone
+G4PERF movement_us=25 unit=Helicopter
+G4PERF movement_us=70 unit=Tank
+G4PERF movement_us=51 unit=Worker
+G4PERF movement_us=49 unit=Unit_1
+G4PERF movement_us=34 unit=Unit_3
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "6a71d67b-c219-4ad7-901b-d139bc75e0d7" }
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "2f70caba-60e7-49d1-8101-fab1402b01cd" }
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "6fb6d70c-f1a2-4594-a59f-c762492d4185" }
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "b5fc6162-db68-42f6-a7c7-4b9c8da5061b" }
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "5b680be7-22a2-4e84-acf1-b567d5098419" }
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "78b9e1e3-ee40-4801-b7e6-872c54a26750" }
+[REFINERY-CLAIM] Unit_2 在册=0/4 无可接管工人：工人=1 已被占用=0 冷却=0 忙={ "Constructing.gd": 1 }
+G4PERF command_runtime_us=114 frames=360
+G4PERF production_runtime_us=52 frames=360
+G4PERF movement_us=31 unit=Drone
+G4PERF movement_us=19 unit=Helicopter
+G4PERF movement_us=46 unit=Tank
+G4PERF movement_us=37 unit=Worker
+G4PERF movement_us=36 unit=Unit_1
+G4PERF movement_us=24 unit=Unit_3
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "3a9b2468-f685-4ae4-bcfe-eeff0c0a5029" }
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "327e7afb-ee9a-4597-879e-eb7ba93a03c7" }
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "f19c1885-79ff-44ca-ac2a-e8164c703d06" }
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "b75b6c4a-24d8-444d-836c-6612364deae0" }
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "808bb526-0ab4-40fb-ab20-d1fe65a1eb76" }
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "dd38b704-a915-4b18-af49-5ee931b2ccdc" }
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "9bad3778-e17a-49f2-82e5-b8f12c19f15b" }
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "9e62dd5e-11a3-49e3-b53d-dfe488e8b3dc" }
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "28c1469c-d3c6-40e4-a181-cee5b540a765" }
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "793b7dde-22c1-4f26-b1ca-0a12f9f97366" }
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "e19fa5fa-75c8-492d-b796-cc2290d3d2ce" }
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "11c44afe-853d-43d2-9d9d-db03f74a244d" }
+G4PERF command_runtime_us=247 frames=400
+G4PERF production_runtime_us=76 frames=400
+G4PERF movement_us=76 unit=Drone
+G4PERF movement_us=33 unit=Helicopter
+G4PERF movement_us=79 unit=Tank
+G4PERF movement_us=49 unit=Worker
+G4PERF movement_us=51 unit=Unit_1
+G4PERF movement_us=34 unit=Unit_3
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "f94a32e8-632e-49f0-93a9-f717ac873270" }
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "a4b1dbf2-bb6d-4d6f-9b6d-742a575c8eb7" }
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "f4a8e7bd-4f73-407c-a25e-be165ff208f2" }
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "f503a901-50f7-4fd6-b8b9-c7d6bd6ceaec" }
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "837f0afe-c686-4226-8aa5-20d9454965ad" }
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "6a890b44-329f-4fa1-a72d-e7f3b27217fd" }
+G4PERF command_runtime_us=154 frames=440
+G4PERF production_runtime_us=40 frames=440
+G4PERF movement_us=29 unit=Drone
+G4PERF movement_us=22 unit=Helicopter
+G4PERF movement_us=50 unit=Tank
+G4PERF movement_us=46 unit=Worker
+G4PERF movement_us=40 unit=Unit_1
+G4PERF movement_us=30 unit=Unit_3
+[TINT] apply_team_tint (1.0, 0.3608, 0.451, 1.0) on Geometry
+[TINT] override meshes=15 tint=(1.0, 0.3608, 0.451, 1.0)
+[GATHER] action _ready unit=Unit_6 resource=true
+[GATHER] 进入 MOVING_TO_RESOURCE, resource=ResourceA5:<Area3D#239796751373>
+[ECO] PublishSnapshot player=d4ef29ed a=5500
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "8ddccfc9-e610-4b37-a477-9d320e555e8e" }
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "4c71fef6-c1cc-4643-9ea7-f3702c71d39a" }
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "059acc41-689f-4f34-b308-39744ef2599f" }
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "293f3a29-ba9f-4d91-9e1d-bacb11ac169a" }
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "8d338ef9-1d6c-40c5-b049-2a78f965a8df" }
+[REFINERY] Unit_2 指派工人 Unit_6 到矿场采矿（1/4） ore=(154.7086, 0.0, 44.53309)
+G4PERF command_runtime_us=110 frames=480
+G4PERF production_runtime_us=36 frames=480
+G4PERF movement_us=29 unit=Drone
+G4PERF movement_us=20 unit=Helicopter
+G4PERF movement_us=46 unit=Tank
+G4PERF movement_us=37 unit=Worker
+G4PERF movement_us=38 unit=Unit_1
+G4PERF movement_us=26 unit=Unit_3
+G4PERF movement_us=59 unit=Unit_6
+[GATHER] action _ready unit=Unit_6 resource=true
+[GATHER] 进入 MOVING_TO_RESOURCE, resource=ResourceA5:<Area3D#239796751373>
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "24ce60fb-4f37-4948-8a3d-e6ec126ce26d" }
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "c8683265-58e4-4119-845b-acb7ee29da40" }
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "4c4012ca-356b-48d5-b1a4-01895691a2f6" }
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "c328fb85-214b-4b9b-ad11-5eb3488cb110" }
+规则 AI 生产 Worker 被拒绝：{ "accepted": false, "status": "QueueFull", "command_id": "081f9330-c7e4-49ec-a9b4-b3f6c465cfc7" }
+FAIL: OffenseController 应只向完工工厂按稳定 Producer ID 加入 Tank
+ERROR: OffenseController 应只向完工工厂按稳定 Producer ID 加入 Tank
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check (res://tests/automated/RuleAiOffenseLogisticsSmokeTest.gd:177)
+       [1] _ready (res://tests/automated/RuleAiOffenseLogisticsSmokeTest.gd:112)
+G4PERF command_runtime_us=209 frames=520
+G4PERF production_runtime_us=1 frames=520
+G4PERF movement_us=32 unit=Drone
+G4PERF movement_us=26 unit=Helicopter
+G4PERF movement_us=45 unit=Tank
+G4PERF movement_us=39 unit=Worker
+G4PERF movement_us=40 unit=Unit_1
+G4PERF movement_us=24 unit=Unit_3
+G4PERF movement_us=25 unit=Unit_6
+规则 AI 放置生产建筑被拒绝：{ "accepted": false, "status": "Rejected", "primary_issue": "ConstructionInProgress", "issues": ["ConstructionInProgress"], "construction_site_id": "" }
+WARNING: Property agent_height is ceiled to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:367)
+WARNING: Property agent_max_climb is floored to cell_height voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:370)
+WARNING: Property agent_radius is ceiled to cell_size voxel units and loses precision.
+   at: generator_bake_from_source_geometry_data (modules/navigation_3d/3d/nav_mesh_generator_3d.cpp:373)
+NAVDBG polygons=263 vertices=237
+G4PERF command_runtime_us=128 frames=560
+G4PERF production_runtime_us=1 frames=560
+G4PERF movement_us=28 unit=Drone
+G4PERF movement_us=20 unit=Helicopter
+G4PERF movement_us=42 unit=Tank
+G4PERF movement_us=39 unit=Worker
+G4PERF movement_us=37 unit=Unit_1
+G4PERF movement_us=25 unit=Unit_3
+G4PERF movement_us=23 unit=Unit_6
+[GATHER] 到达资源点, 开始采集 unit=Unit_6
+G4PERF command_runtime_us=126 frames=600
+G4PERF production_runtime_us=2 frames=600
+G4PERF movement_us=24 unit=Drone
+G4PERF movement_us=17 unit=Helicopter
+G4PERF movement_us=41 unit=Tank
+G4PERF movement_us=33 unit=Worker
+G4PERF movement_us=31 unit=Unit_1
+G4PERF movement_us=21 unit=Unit_3
+G4PERF movement_us=31 unit=Unit_6
+G4PERF command_runtime_us=264 frames=640
+G4PERF production_runtime_us=2 frames=640
+G4PERF movement_us=35 unit=Drone
+G4PERF movement_us=28 unit=Helicopter
+G4PERF movement_us=57 unit=Tank
+G4PERF movement_us=55 unit=Worker
+G4PERF movement_us=53 unit=Unit_1
+G4PERF movement_us=53 unit=Unit_3
+G4PERF movement_us=143 unit=Unit_6
+G4PERF command_runtime_us=323 frames=680
+G4PERF production_runtime_us=2 frames=680
+G4PERF movement_us=41 unit=Drone
+G4PERF movement_us=23 unit=Helicopter
+G4PERF movement_us=46 unit=Tank
+G4PERF movement_us=37 unit=Worker
+G4PERF movement_us=40 unit=Unit_1
+G4PERF movement_us=36 unit=Unit_3
+G4PERF movement_us=35 unit=Unit_6
+G4PERF command_runtime_us=326 frames=720
+G4PERF production_runtime_us=2 frames=720
+G4PERF movement_us=31 unit=Drone
+G4PERF movement_us=21 unit=Helicopter
+G4PERF movement_us=48 unit=Tank
+G4PERF movement_us=44 unit=Worker
+G4PERF movement_us=36 unit=Unit_1
+G4PERF movement_us=37 unit=Unit_3
+G4PERF movement_us=35 unit=Unit_6
+[GATHER] Unit_6 满载回城
+FAIL: 生产建筑损失后应由定时己方查询发现缺口并重新放置
+ERROR: 生产建筑损失后应由定时己方查询发现缺口并重新放置
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] _check (res://tests/automated/RuleAiOffenseLogisticsSmokeTest.gd:177)
+       [1] _ready (res://tests/automated/RuleAiOffenseLogisticsSmokeTest.gd:135)
+Rule AI offense logistics smoke test completed: 3 failure(s)
+[EXIT-TRACE] EXIT_TREE：场景树收尾（tick=-1，场景=unknown，对局结果=无该节点）
+[EXIT-TRACE] PREDELETE：引擎收尾（Globals 释放，tick=unknown(已脱离场景树)）

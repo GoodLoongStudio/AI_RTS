@@ -63,15 +63,15 @@ settings = SubResource("Resource_rpdec")
 [node name="Terrain" parent="Map/Geometry" index="1"]
 mesh = SubResource("PlaneMesh_rqs88")
 
-[node name="ResourceA13" parent="Map/Resources" index="2" unique_id=1766916556 instance=ExtResource("6_414qe")]
+[node name="ResourceA13" parent="Map/Resources" index="2" unique_id=1766916556]
 transform = Transform3D(0.157813, 0, -0.987469, 0, 1, 0, 0.987469, 0, 0.157813, 8.48506, -7.15256e-06, 13.997)
 resource_a = 2
 
-[node name="ResourceA14" parent="Map/Resources" index="3" unique_id=246139362 instance=ExtResource("6_414qe")]
+[node name="ResourceA14" parent="Map/Resources" index="3" unique_id=246139362]
 transform = Transform3D(0.157813, 0, -0.987469, 0, 1, 0, 0.987469, 0, 0.157813, 10.6949, -7.15256e-06, 16.48)
 resource_a = 2
 
-[node name="ResourceA15" parent="Map/Resources" index="4" unique_id=24525374 instance=ExtResource("6_414qe")]
+[node name="ResourceA15" parent="Map/Resources" index="4" unique_id=24525374]
 transform = Transform3D(0.157813, 0, -0.987469, 0, 1, 0, 0.987469, 0, 0.157813, 11.6939, -7.15256e-06, 17.7958)
 resource_a = 2
 

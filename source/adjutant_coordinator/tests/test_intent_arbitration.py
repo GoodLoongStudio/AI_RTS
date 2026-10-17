@@ -114,7 +114,7 @@ class ArbitrationTest(unittest.TestCase):
             make_intent("i-low", units=["Unit_1"], priority=1, expires_tick=100,
                         target={"pos": [1.0, 1.0]}),
             make_intent("i-high", units=["Unit_2"], priority=9, expires_tick=100,
-                        target={"pos": [2.0, 2.0]}),
+                        target={"pos": [20.0, 20.0]}),
         ], max_batch=1)
         self.assertEqual([item["intent_id"] for item in result.accepted], ["i-high"])
         self.assertEqual(result.dropped_reasons["i-low"], "batch_limit_exceeded")
@@ -305,7 +305,7 @@ class MergeSameOrdersTest(unittest.TestCase):
     def test_different_target_is_not_merged(self):
         merged, _ = merge_same_orders([
             make_intent("i-a", "move", units=["Unit_1"], target={"pos": [1.0, 1.0]}),
-            make_intent("i-b", "move", units=["Unit_2"], target={"pos": [2.0, 2.0]}),
+            make_intent("i-b", "move", units=["Unit_2"], target={"pos": [20.0, 20.0]}),
         ])
         self.assertEqual(len(merged), 2)
 

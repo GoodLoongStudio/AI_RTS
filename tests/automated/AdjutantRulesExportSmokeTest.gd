@@ -55,8 +55,15 @@ func _ready():
 	var tank: Dictionary = types.get("tank", {})
 	_check(str(tank.get("display_name", "")) == "tank",
 		"当前工程无本地化资源时 display_name 暂等于稳定 ID（偏差已记录）")
-	_check(float(tank.get("max_hp", 0.0)) == 10.0 and float(tank.get("sight_range", 0.0)) == 8.0,
-		"tank 数值应来自当前 Catalog")
+	# 【2026-10-11 口径同步】sight 原写死 8.0，demo.balance.v1.json 的 tank 视野早已
+	# 随多轮平衡调整（本轮全体单位 +4m → 20）。按 expected_types 的"配置驱动"哲学
+	# 改为与实际加载的配置比对，调平衡不再误红；运行时不读配置时照样红。
+	var tank_sight_expected := float(
+		_config_entry(DEMO_BALANCE, "unitTypes", "tank").get("sightRangeMeters", -1.0))
+	_check(float(tank.get("max_hp", 0.0)) == 10.0
+		and tank_sight_expected > 0.0
+		and float(tank.get("sight_range", 0.0)) == tank_sight_expected,
+		"tank 数值应来自当前 Catalog（sight 期望 %s）" % tank_sight_expected)
 	var tank_caps: Dictionary = tank.get("capabilities", {})
 	_check(
 		bool(tank_caps.get("move", false)) and bool(tank_caps.get("attack", false))
@@ -77,8 +84,13 @@ func _ready():
 		and not bool(worker_caps.get("attack", false)),
 		"worker 应导出采集+施工能力且无攻击能力"
 	)
-	_check(int(worker.get("gatherer_carry_capacity", 0)) == 100,
-		"worker 载荷应来自 Catalog")
+	var worker_config := _config_entry(DEMO_BALANCE, "unitTypes", "worker")
+	var worker_capacity := int((worker_config.get("gatherer", {}) as Dictionary)
+		.get("carryCapacity", -1))
+	_check(worker_capacity > 0
+		and int(worker.get("gatherer_carry_capacity", 0)) == worker_capacity,
+		"worker 载荷应等于配置里的 carryCapacity（配置=%d 导出=%d）" % [
+			worker_capacity, int(worker.get("gatherer_carry_capacity", 0))])
 	var command_center: Dictionary = types.get("command_center", {})
 	_check(
 		bool((command_center.get("capabilities", {}) as Dictionary).get("produce", false))
@@ -128,10 +140,18 @@ func _ready():
 	_check(immobile_armed.size() > 0,
 		"固定防御（炮塔）应存在且**不带** move 能力——否则它会被当成兵力、还会被派去行军")
 	var tank_production: Dictionary = productions.get("tank", {})
+	var tank_config := _config_entry(DEMO_BALANCE, "productions", "tank")
 	_check(
-		str(tank_production.get("product_type_id", "")) == "tank"
-		and _cost_amount(tank_production.get("cost", []), "A") == 500,
-		"tank 生产成本应来自当前对局 Catalog（A×500）"
+		str(tank_production.get("product_type_id", ""))
+			== str(tank_config.get("productUnitTypeId", ""))
+		and _cost_amount(tank_production.get("cost", []), "A")
+			== _cost_amount(tank_config.get("cost", []), "A")
+		and _cost_amount(tank_config.get("cost", []), "A") > 0,
+		"tank 生产成本与产品口径应逐字来自当前对局 Catalog（配置 A×%d，导出 A×%d，产品=%s）" % [
+			_cost_amount(tank_config.get("cost", []), "A"),
+			_cost_amount(tank_production.get("cost", []), "A"),
+			str(tank_production.get("product_type_id", ""))
+		]
 	)
 	var tank_producers: Array = tank_production.get("allowed_producer_type_ids", [])
 	_check(
@@ -148,12 +168,18 @@ func _ready():
 	_check(constructions.size() == expected_constructions,
 		"应导出配置里的全部 %d 条施工定义（实际 %d）" % [expected_constructions, constructions.size()])
 	var factory_construction: Dictionary = constructions.get("vehicle_factory", {})
+	var factory_config := _config_entry(DEMO_BALANCE, "constructions", "vehicle_factory")
+	var config_footprint := float(factory_config.get("footprintRadiusMeters", -1.0))
 	_check(
-		_cost_amount(factory_construction.get("cost", []), "A") == 600
-		and float(factory_construction.get("footprint_radius_meters", 0.0)) == 1.5
+		_cost_amount(factory_construction.get("cost", []), "A")
+			== _cost_amount(factory_config.get("cost", []), "A")
+		and config_footprint > 0.0
+		and is_equal_approx(float(factory_construction.get("footprint_radius_meters", 0.0)),
+			config_footprint)
 		and str(factory_construction.get("blueprint_scene_path", "")).begins_with("res://"),
-		"vehicle_factory 施工定义应带成本/占地/受信任蓝图场景"
-	)
+		"vehicle_factory 施工定义应带成本/占地/受信任蓝图场景（配置 footprint=%.2f，导出 %.2f）" % [
+			config_footprint,
+			float(factory_construction.get("footprint_radius_meters", 0.0))])
 
 	# 资源口径：断言「导出的资源种类 == 当前实际加载的 Catalog 里定义的种类」。
 	# 原先写死「A/B 两种」，而 2026-09-15 `demo.balance.v1.json` 把 B 资源删掉后它恒红；
@@ -231,6 +257,26 @@ func _config_count(path: String, key: String) -> int:
 		return -1
 	var items = (parsed as Dictionary).get(key)
 	return (items as Array).size() if items is Array else -1
+
+
+## 取配置里某个 section 中指定 id 的条目（找不到返回空字典）。
+## 用例的本意是"规则视图**完全来自**实际加载的 Catalog"，所以期望值必须从配置读；
+## 写死数字会在每次调平衡/统一尺寸后变成"配置没错、断言恒红"的假故障
+## （2026-09-14 条数写死、2026-09-15 资源种类写死都踩过；2026-09-29 尺寸统一后
+## worker 载荷 100→400、tank 成本 500→1050、车厂 footprint 1.5→6.65 又踩第三次）。
+func _config_entry(path: String, section: String, entry_id: String) -> Dictionary:
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return {}
+	var parsed = JSON.parse_string(file.get_as_text())
+	file.close()
+	if not (parsed is Dictionary):
+		return {}
+	for item in (parsed as Dictionary).get(section, []):
+		var entry := item as Dictionary
+		if entry != null and str(entry.get("id", "")) == entry_id:
+			return entry
+	return {}
 
 
 func _cost_amount(costs: Array, kind: String) -> int:

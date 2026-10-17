@@ -2,7 +2,6 @@ extends Control
 
 signal squad_selected(squad_id)
 signal squad_command_executed(squad_id, command)
-signal player_text_submitted(text)
 
 const SQUAD_NAMES = {1: "突击队", 2: "侦察队", 3: "支援队"}
 const COMMAND_ACTIONS = {
@@ -32,7 +31,6 @@ var squad_status := {1: "待命", 2: "待命", 3: "待命"}
 var _squad_buttons := {}
 var _command_buttons := []
 var _chat_log: RichTextLabel
-var _input: LineEdit
 var _command_hint: Label
 var _agent_state: Label
 ## 左上角"副官专属区"里留给 `AdjutantButton`（副官链路的数据与控制源）的槽位：
@@ -48,8 +46,13 @@ var _current_suggestion := "保持待命，等待新的任务信息。"
 var _current_risk := "未知"
 var _current_phase := "观察"
 var _latest_decision := "尚未下达决定，正在观察战况。"
-var _mock_agent_busy := false
 @onready var _input_runtime = find_parent("Match").get_node("InputBindingRuntime")
+
+
+## 实验开关：局内战略聊天是否启用 ✓（默认关闭 ⇒ HUD 不再提示战略讨论 ✓）
+func _strategic_chat_enabled() -> bool:
+	var flags := get_node_or_null("/root/FeatureFlags")
+	return flags != null and bool(flags.get("strategic_chat_enabled"))
 
 
 func _ready():
@@ -60,10 +63,12 @@ func _ready():
 	MatchSignals.terrain_targeted.connect(_on_terrain_targeted)
 	MatchSignals.unit_targeted.connect(_on_unit_targeted)
 	MatchSignals.unit_died.connect(_on_unit_died)
-	if _is_hero_mode():
-		_append_ai("先锋链路已上线。你可以直接告诉我想做什么，也可以问我‘下一步做什么’或‘风险怎么样’。")
-	else:
-		_append_ai("指挥链路已上线。你可以直接下达自然语言命令，也可以让我评估当前风险和下一步行动。")
+	# 【2026-10-06 用户要求：现在不要战略讨论】实验开关关闭 ⇒ 不再提示"请用战略聊天" ✓
+	if _strategic_chat_enabled():
+		if _is_hero_mode():
+			_append_ai("先锋模式：战略讨论请用左上角副官面板的「战略聊天」。")
+		else:
+			_append_ai("战略讨论请用左上角副官面板的「战略聊天」（真模型，只讨论不执行）。")
 	_refresh_squad_ui()
 	_refresh_agent_context()
 	set_interface_visible(false)
@@ -73,8 +78,6 @@ func set_interface_visible(should_show: bool):
 	visible = should_show
 	if not should_show:
 		pending_command = ""
-		if _input != null:
-			_input.release_focus()
 	_input_runtime.SetContextActive("LegacyAgent", should_show)
 
 
@@ -86,7 +89,6 @@ func _on_input_action_pressed(action_id: String):
 	if not visible:
 		return
 	if action_id == "text.cancel":
-		_input.release_focus()
 		return
 	if action_id == "global.cancel":
 		if pending_command != "":
@@ -98,14 +100,15 @@ func _on_input_action_pressed(action_id: String):
 	if action_id == "legacy.hero_focus" and _is_hero_mode():
 		_handle_hero_focus_hotkey()
 		return
-	if _input.has_focus():
-		return
 	if action_id.begins_with("legacy.squad_"):
 		var squad_id := int(action_id.trim_prefix("legacy.squad_"))
 		if squad_id == 1 or not _is_hero_mode():
 			_select_squad(squad_id)
 	elif action_id == "legacy.chat_focus":
-		_input.grab_focus()
+		# 【2026-10-03 复核第 3 项】输入条统一到左上角副官面板的战略聊天。
+		var adjutant_button = get_node_or_null("/root/AdjutantButton")
+		if adjutant_button != null and adjutant_button.has_method("focus_strategic_chat"):
+			adjutant_button.focus_strategic_chat()
 	elif COMMAND_ACTIONS.has(action_id):
 		_begin_command(COMMAND_ACTIONS[action_id])
 
@@ -251,22 +254,9 @@ func _build_ui():
 		_command_buttons.append({"button": button, "action_id": item[0], "label": item[1]})
 	_refresh_command_captions()
 
-	var input_row := HBoxContainer.new()
-	bottom_box.add_child(input_row)
-	_input = LineEdit.new()
-	if _is_hero_mode():
-		_input.placeholder_text = "对岚说：去前面看看；下一步做什么；这里危险吗……"
-	else:
-		_input.placeholder_text = "对岚说：二队向右侦察；评估风险；一队原地防守……"
-	_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_input.text_submitted.connect(_on_text_submitted)
-	_input.focus_entered.connect(_input_runtime.EnterTextInputMode)
-	_input.focus_exited.connect(_input_runtime.ExitTextInputMode)
-	input_row.add_child(_input)
-	var send := Button.new()
-	send.text = "发送"
-	send.pressed.connect(func(): _on_text_submitted(_input.text))
-	input_row.add_child(send)
+	# 【2026-10-03 复核第 3 项】旧的规则 mock 输入条（字符串解析+0.28s 假延迟+预置话术）
+	# 已删除：它和新战略聊天（左上角副官面板）并存时玩家以为有两个副官入口。
+	# 真实的战略对话入口 = 左上角副官面板的「战略聊天」（真模型、带状态与错误处理）。
 
 
 func _build_hero_focus_card():
@@ -488,86 +478,6 @@ func _on_unit_targeted(unit, _target_position):
 	pending_command = ""
 	_refresh_squad_ui()
 	squad_command_executed.emit(active_squad, "ATTACK")
-
-
-func _on_text_submitted(text: String):
-	var command_text := text.strip_edges()
-	if command_text.is_empty() or _mock_agent_busy:
-		return
-	player_text_submitted.emit(command_text)
-	_append_player(command_text)
-	_input.clear()
-	_mock_agent_busy = true
-	_set_agent_state("● 岚正在分析……")
-	await get_tree().create_timer(0.28).timeout
-
-	var question := _parse_ai_question(command_text)
-	if not question.is_empty():
-		_respond_to_ai_question(question)
-		_mock_agent_busy = false
-		_restore_real_adjutant_state()
-		return
-
-	var squad_id = _parse_squad(command_text)
-	if squad_id != -1:
-		_select_squad(squad_id)
-	var command = _parse_command(command_text)
-	if command.is_empty():
-		_append_ai("我理解了你的意图，但还需要你在地图上确认目标位置。你可以直接说‘去前面看看’、‘原地警戒’、‘攻击目标’，或者问我‘下一步做什么’。")
-		_mock_agent_busy = false
-		_restore_real_adjutant_state()
-		return
-	_append_ai("我的理解：%s需要%s。%s" % [_control_display(active_squad), COMMAND_LABELS[command], _command_reasoning(command)])
-	_begin_command(command)
-	_mock_agent_busy = false
-	_restore_real_adjutant_state()
-
-
-func _parse_ai_question(text: String) -> String:
-	if text.contains("下一步") or text.contains("怎么办") or text.contains("做什么") or text.contains("去哪") or text.contains("建议"):
-		return "NEXT"
-	if text.contains("风险") or text.contains("危险") or text.contains("安全吗") or text.contains("敌情"):
-		return "RISK"
-	if text.contains("战况") or text.contains("情况") or text.contains("状态") or text.contains("任务是什么") or text.contains("目标是什么"):
-		return "STATUS"
-	return ""
-
-
-func _ask_mock_agent(question: String):
-	if _mock_agent_busy:
-		return
-	_mock_agent_busy = true
-	_set_agent_state("● 岚正在分析……")
-	await get_tree().create_timer(0.22).timeout
-	_respond_to_ai_question(question)
-	_mock_agent_busy = false
-	_restore_real_adjutant_state()
-
-
-func _respond_to_ai_question(question: String):
-	match question:
-		"NEXT":
-			_append_ai("建议：%s\n理由：这一步与当前任务目标直接相关，我不会假设战争迷雾外存在未确认目标。" % _current_suggestion)
-		"RISK":
-			_append_ai("当前风险评估：%s。这个判断只基于已经确认的情报；未知区域仍按未知处理。" % _current_risk)
-		"STATUS":
-			_append_ai("当前目标：%s\n%s状态：%s。" % [_current_objective, _control_display(active_squad), squad_status[active_squad]])
-
-
-func _command_reasoning(command: String) -> String:
-	match command:
-		"SCOUT":
-			return "我会把它当成侦察意图，而不是直接假定前方存在敌人。"
-		"RETREAT":
-			return "这是脱离当前区域的意图，具体撤退位置仍由你确认。"
-		"DEFEND":
-			return "这是原地保持警戒的安全命令，不需要额外目标点。"
-		"STOP":
-			return "这是立即中断当前任务的安全命令。"
-		"ATTACK":
-			return "攻击必须由你确认一个已识别敌方目标。"
-		_:
-			return "移动方向需要你在地图上确认，避免 AI 擅自决定路线。"
 
 
 func _parse_squad(text: String) -> int:

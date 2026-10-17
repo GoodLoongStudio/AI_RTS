@@ -12,17 +12,16 @@
 [ext_resource type="Script" path="res://source/match/units/SyntyMaterialBinder.gd" id="12_synty_binder"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_apc"]
-height = 1.200
-radius = 1.350
+height = 1.6376
+radius = 1.104
 
 [node name="APC" type="Area3D"]
-scale = Vector3(2.00, 2.00, 2.00)
 collision_layer = 2
 collision_mask = 0
 script = ExtResource("1_apcgd")
 
 [node name="Geometry" type="Node3D" parent="."]
-transform = Transform3D(0.6, 0, 0, 0, 0.6, 0, 0, 0, 0.6, 0, 0, 0)
+transform = Transform3D(1.104, 0, 0, 0, 1.104, 0, 0, 0, 1.104, 0, 0, 0)
 
 [node name="SM_Veh_Apc_02" parent="Geometry" instance=ExtResource("10_apc")]
 transform = Transform3D(-0.35, 0, 0, 0, 0.35, 0, 0, 0, -0.35, 0, 0.25, 0)
@@ -35,45 +34,45 @@ albedo_texture = ExtResource("11_scifi_atlas")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, -1.0)
 
 [node name="SelectionAnchor" type="Marker3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
+transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0.1, 0)
 
 [node name="HealthBarAnchor" type="Marker3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 0)
+transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 2.024, 0)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8188, 0)
 shape = SubResource("CylinderShape3D_apc")
 
 [node name="GroundFootprint" type="Marker3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
-radius = 0.85
+transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0.1, 0)
+radius = 1.27512
 
 [node name="Highlight" parent="." instance=ExtResource("1_n4t54")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
-radius = 0.85
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
+radius = 1.3156
 
 [node name="Selection" parent="." instance=ExtResource("2_mbcqe")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
-radius = 0.85
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
+radius = 1.3156
 
 [node name="Movement" parent="." instance=ExtResource("3_4m8ma")]
-path_desired_distance = 0.5
-target_desired_distance = 0.5
+path_desired_distance = 0.3
+target_desired_distance = 0.15
 path_height_offset = 0.6
 path_max_distance = 0.51
-radius = 2.70
+radius = 2.53
 neighbor_distance = 3.0
 max_neighbors = 16
 time_horizon_agents = 4.5
-speed = 2.3
+speed = 9.2
 
 [node name="HealthBar" parent="." instance=ExtResource("4_7l0rt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 0)
+transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 2.024, 0)
 size = Vector2(160, 10)
 
 [node name="Targetability" parent="." instance=ExtResource("8_ca2nt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
-radius = 0.85
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
+radius = 1.3156
 
 [node name="UnitVisualBindings" type="Node" parent="."]
 script = ExtResource("9_visual_bindings")

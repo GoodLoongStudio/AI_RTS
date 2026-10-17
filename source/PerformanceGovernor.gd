@@ -1,10 +1,11 @@
 extends Node
 
-## **帧率治理**（用户 2026-09-15：锁 30 帧减轻负载；单位多仍可再降画质）。
+## **帧率治理**（2026-10-09：取消硬编码的 30 帧上限；`Engine.max_fps = 0` 表示不设上限）。
 ##
 ## 【2026-09-24 用户明确要求删掉"降画质提帧率"】"这个对于游戏体感非常差"。
 ## 动态画质（前馈按单位数 + 反馈按帧时自动切 tier）已**默认关闭**：治理器只保留
-## 锁 30 帧与 `op=perf` 统计，不再改动任何渲染档位。`user://performance.cfg`
+## `op=perf` 统计，不再改动任何渲染档位，也不再把帧率夹在 30。垂直同步保持引擎默认。
+## `user://performance.cfg`
 ## 里的 `dynamic_quality` 置 true 可临时打开（供压测对比），默认值见
 ## `DYNAMIC_QUALITY_DEFAULT`。真正要提帧请用设置里的画质选项手动选。
 ##
@@ -28,9 +29,9 @@ extends Node
 const CONFIG_PATH := "user://performance.cfg"
 ##: 动态画质总开关（false = 永不自动升降画质档）。用户 2026-09-24 要求默认关闭。
 const DYNAMIC_QUALITY_DEFAULT := false
-##: 默认帧率上限（用户 2026-09-15 要求锁 30）。旧配置里的 60 会迁到 30。
-const DEFAULT_MAX_FPS := 30
-##: 锁 30 后的升降档：低于约 80% 上限才降，接近上限才升。
+##: 默认不设帧率上限（0）。旧配置里的 30 / 60 是硬编码上限，读到就迁回 0。
+const DEFAULT_MAX_FPS := 0
+##: 动态画质仍关闭。这两个门槛只在 `dynamic_quality` 打开时参与升降档。
 const DOWNGRADE_FPS := 24.0
 const UPGRADE_FPS := 29.0
 const DWELL_SECONDS := 2.5
@@ -90,9 +91,9 @@ const GLOBAL_UNIT_TIER_FLOOR := [
 ##: 顺序 = 从清晰到省，每档只比上一档更省（单调，便于解释与验收）。
 const TIERS := [
 	{"name": "full", "scale": 1.0, "lod": 1.0, "msaa": 2, "shadows": true,
-		"shadow_atlas": 4096, "ssao": true, "glow": true, "fog": true, "sdfgi": true},
+		"shadow_atlas": 4096, "ssao": true, "glow": false, "fog": true, "sdfgi": true},
 	{"name": "high", "scale": 0.9, "lod": 1.5, "msaa": 1, "shadows": true,
-		"shadow_atlas": 2048, "ssao": false, "glow": true, "fog": true, "sdfgi": false},
+		"shadow_atlas": 2048, "ssao": false, "glow": false, "fog": true, "sdfgi": false},
 	{"name": "medium", "scale": 0.75, "lod": 2.5, "msaa": 0, "shadows": true,
 		"shadow_atlas": 1024, "ssao": false, "glow": false, "fog": false, "sdfgi": false},
 	{"name": "low", "scale": 0.6, "lod": 4.0, "msaa": 0, "shadows": false,
@@ -306,8 +307,8 @@ func _ready() -> void:
 		set_process(false)
 		return
 	_original = _snapshot()
-	# 帧率上限**始终**生效：它是"锁 30 帧"（用户 2026-09-15 要求），与"动态降画质"
-	# （用户 2026-09-24 要求删掉）是两件事，不跟着 enabled 一起关。
+	# 0 = 不设上限。垂直同步仍开着时，帧率跟显示器刷新率走。
+	# 不跟着动态画质的 enabled 开关走：动态画质默认关，但帧率不再锁 30。
 	Engine.max_fps = int(max_fps)
 	if enabled:
 		_apply_tier(0, "start")
@@ -566,11 +567,16 @@ func _load_config() -> void:
 	enabled = bool(config.get_value("performance", "dynamic_quality",
 		DYNAMIC_QUALITY_DEFAULT))
 	var loaded_fps := int(config.get_value("performance", "max_fps", DEFAULT_MAX_FPS))
-	max_fps = mini(loaded_fps, DEFAULT_MAX_FPS)
-	# 旧锁 60 的降档门槛 50 会把锁 30 误判成掉帧，一并迁到新默认。
+	# 30 和更早的 60 是治理器写进配置的硬上限，不是画面设置里的玩家选项。
+	# 读到就改成 0 并写回，否则下次启动会把帧率再锁回 30。
+	if loaded_fps == 30 or loaded_fps == 60:
+		max_fps = 0
+	else:
+		max_fps = loaded_fps
+	# 旧锁 60 的降档门槛 50 只在动态画质打开时有意义；不设帧率上限后不再拿它和 0 比较。
 	var loaded_down := float(config.get_value("performance", "down_fps", DOWNGRADE_FPS))
 	down_fps = loaded_down
-	if down_fps > float(DEFAULT_MAX_FPS) or is_equal_approx(down_fps, 50.0):
+	if is_equal_approx(down_fps, 50.0):
 		down_fps = DOWNGRADE_FPS
 	if loaded_fps != max_fps or not is_equal_approx(loaded_down, down_fps):
 		config.set_value("performance", "max_fps", max_fps)

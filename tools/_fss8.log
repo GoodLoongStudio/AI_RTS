@@ -1,0 +1,35 @@
+[selfplay] 验收端口 24589 在专用段 24589-24592 内
+清理：没有属于本局端口的 Godot 进程
+[selfplay] 大厅就绪: 指挥官-309
+[selfplay] op=start -> {'map': 'res://source/match/maps/PlainAndSimple.tscn', 'ok': True, 'passive_ai_test': False, 'peaceful': False, 'seed': 0, 'with_ai': True}
+runner 启动 pid=49148 state_dir=G:\AIRTS\tmp_logs\langgraph_recon\selfplay\state_fs_ref8
+pidfile=40380
+[selfplay] 对局开始，采样 330s（backend=off difficulty=-1）
+[selfplay] 矿场前置：派 Unit_1 到 [174.27, 170.79] -> {'accepted': False, 'command_id': '', 'moved': ['Unit_1'], 'ok': False, 'reason': '命令未被接受（PendingAuthority），请根据 status 复
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 144.8, 'unit_xz': [83.4, 58.0]}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 104.9, 'unit_xz': [108.5, 89.1]}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 65.0, 'unit_xz': [133.5, 120.2]}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': False, 'distance_m': 24.9, 'unit_xz': [158.7, 151.4]}
+[selfplay] 矿场前置：侦察 Unit_1 -> {'arrived': True, 'distance_m': 12.5, 'unit_xz': [166.4, 161.0]}
+[selfplay] 矿场建造第 1 次（auto_hint hint=[169.95, 165.29]）客户端={'detail': '自动放置找不到合法落点（基地周围无可建地面/没有已探明的新矿点）。', 'error': 'no valid auto site', 'ok': False 权威={"found": false, "reason": "still_pending", "scanned": 60} 观测=[]
+[selfplay] 矿场建造第 2 次（auto_hint hint=[169.95, 165.29]）客户端={'detail': '自动放置找不到合法落点（基地周围无可建地面/没有已探明的新矿点）。', 'error': 'no valid auto site', 'ok': False 权威={"found": false, "reason": "still_pending", "scanned": 64} 观测=[]
+[selfplay] 矿场建造第 3 次（auto_hint hint=[169.95, 165.29]）客户端={'detail': '自动放置找不到合法落点（基地周围无可建地面/没有已探明的新矿点）。', 'error': 'no valid auto site', 'ok': False 权威={"found": false, "reason": "still_pending", "scanned": 64} 观测=[]
+[selfplay] 矿场建造第 4 次（auto_hint hint=[169.95, 165.29]）客户端={'detail': '自动放置找不到合法落点（基地周围无可建地面/没有已探明的新矿点）。', 'error': 'no valid auto site', 'ok': False 权威={"found": false, "reason": "still_pending", "scanned": 64} 观测=[]
+[selfplay] 矿场建造第 5 次（auto_hint hint=[169.95, 165.29]）客户端={'detail': '自动放置找不到合法落点（基地周围无可建地面/没有已探明的新矿点）。', 'error': 'no valid auto site', 'ok': False 权威={"found": false, "reason": "still_pending", "scanned": 64} 观测=[]
+Traceback (most recent call last):
+  File "G:\AIRTS\AI_RTS\source\adjutant_coordinator\deploy\selfplay_match.py", line 867, in <module>
+    with open(path, "w", encoding="utf-8") as handle:
+                     ^^^^^^
+  File "G:\AIRTS\AI_RTS\source\adjutant_coordinator\deploy\selfplay_match.py", line 683, in main
+    # 结果权威端连着 4 次 `SurfaceNotBuildable`（fs_ref7 实测）——
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\AIRTS\AI_RTS\source\adjutant_coordinator\deploy\selfplay_match.py", line 235, in _await_authority_terminal
+    entries = reply.get("commands") or []
+                    ^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\AIRTS\tmp_logs\langgraph_recon\restart_local.py", line 116, in dcs
+    return base.tcp_call(port, payload, timeout=timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\AIRTS\AI_RTS\source\adjutant_coordinator\e2e_dual_layer.py", line 85, in tcp_call
+    chunk = sock.recv(65536)
+            ^^^^^^^^^^^^^^^^
+TimeoutError: timed out

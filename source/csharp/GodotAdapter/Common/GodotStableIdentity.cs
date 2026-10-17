@@ -30,13 +30,19 @@ public static class GodotStableIdentity
     /// <summary>读取节点已有 Metadata ID；不存在时创建并保存新 Guid。</summary>
     private static TId GetOrCreateId<TId>(Node node, string metaKey, Func<Guid, TId> factory)
     {
-        if (node.HasMeta(metaKey) && Guid.TryParse(node.GetMeta(metaKey).AsString(), out var existing))
+        if (node.HasMeta(metaKey))
         {
-            return factory(existing);
+            // Metadata 持有自己的值；临时 String Variant 在 interop 仍有效时释放。
+            using var existingValue = node.GetMeta(metaKey);
+            if (Guid.TryParse(existingValue.AsString(), out var existing))
+            {
+                return factory(existing);
+            }
         }
 
         var value = Guid.NewGuid();
-        node.SetMeta(metaKey, value.ToString("D"));
+        using var newValue = Variant.From(value.ToString("D"));
+        node.SetMeta(metaKey, newValue);
         return factory(value);
     }
 }

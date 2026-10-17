@@ -1,0 +1,208 @@
+{
+  "id": "b2be5fc5655b44d29601a41c27e659b9",
+  "baseline": false,
+  "status": "done",
+  "config": {
+    "schema_version": 2,
+    "algo_version": "7.11.0",
+    "layout_seed": 14,
+    "terrain_seed": 1163439591,
+    "player_spacing": "any",
+    "controls": {
+      "river_layout": 2,
+      "river_enabled": 1,
+      "lake_count": 0,
+      "lake_area": 5000,
+      "neutral_plateau_scale": 1.7,
+      "plateau_max": 8,
+      "landform_elongation": 1.2,
+      "landform_recess": 0.2,
+      "landform_softness": 0.16,
+      "plateau_ramp_width": 8,
+      "river_width": 18,
+      "river_bend_scale": 1.0,
+      "river_crossings": 6,
+      "obstacle_percent": 40,
+      "cover_cluster_max": 10,
+      "layout_attempts": 4
+    }
+  },
+  "target": "full",
+  "spacing": "standard",
+  "created_at": "2026-10-12T01:31:32",
+  "started": 1791739892.140151,
+  "duration": 4.6,
+  "title": "布局 14 · 地貌 1163439591",
+  "pipeline_version": "1.1.0",
+  "stage_versions": {
+    "G1": "2.0.0",
+    "G2": "7.11.0",
+    "G3": "2.2.0",
+    "G4": "2.0.0"
+  },
+  "stages": {
+    "g1_input": {
+      "status": "done",
+      "started_at": "2026-10-12T01:31:32",
+      "duration_s": 0.1,
+      "error": null,
+      "pass": true,
+      "stage": "G1",
+      "version": "2.0.0",
+      "finished_at": "2026-10-12T01:31:32",
+      "source": "G:\\AIRTS\\AI_RTS\\tools\\mapgen\\runs\\14\\G1",
+      "source_hashes": {
+        "manifest.json": "8a0e4fb928b7c774b2e622b9c5fc4e470c933d3ea0eeab6f6f988d3f204dd3f1",
+        "mapgrid.npz": "0e58cd8a914abeaa8caa18dc78d336801d6fe3d2b00f8d4ac7b83acba01e8a86",
+        "mapspec.json": "42d326e69d7691ed2e411fc7c7298ef6c307b40c2f775672941ff9c0631c3ad7",
+        "starts.png": "b743ad76c2ddb2566276b8e3949a7029b40fb024b2e1be74532f2a48f013ba96",
+        "starts.png.import": "5fcd330492b1909b6320d6f22ffa3cbdc57d160a4c81c94ea645a557b78f54d7",
+        "starts_table.png": "978752b10f1472c4e6b97eb68813edd49fcafc8e1dd1f4d834864a8b06eeb44a",
+        "starts_table.png.import": "022728a5e634414cd16698467a2a67416e4914bafe682f0fb6a3b06b4ac7956f",
+        "territory.png": "7e15d6b546bf66af0f5abb38d1a099ee7cef3428d56323490687ec0686386804",
+        "territory.png.import": "4ff613a8e05b011ddda736511b7a2d2c39ec463cf942748088fbabd842594c87"
+      },
+      "starts": [
+        [
+          66.34,
+          71.19
+        ],
+        [
+          207.37,
+          199.2
+        ],
+        [
+          56.09,
+          215.0
+        ],
+        [
+          185.96,
+          30.0
+        ]
+      ],
+      "spacing": "standard",
+      "g1_approved": false,
+      "output_hashes": {
+        "mapgrid.npz": "0e58cd8a914abeaa8caa18dc78d336801d6fe3d2b00f8d4ac7b83acba01e8a86"
+      }
+    },
+    "g2_terrain": {
+      "status": "done",
+      "started_at": "2026-10-12T01:31:32",
+      "duration_s": 0.0,
+      "error": null,
+      "pass": true,
+      "stage": "G2",
+      "version": "7.11.0",
+      "finished_at": "2026-10-12T01:31:36",
+      "all_pass": true,
+      "checks": {},
+      "input_hash": "0e58cd8a914abeaa8caa18dc78d336801d6fe3d2b00f8d4ac7b83acba01e8a86",
+      "output_hash": {
+        "mapgrid.npz": "e1d809e4a2a9a438b6a4d12d74684958595c630c58cbf5558bbdca3886b42d88",
+        "mapspec.json": "20e013b1184fde6fa97787ebe97ac78b732bc4fe6b223b3f854292ec582e3eb6"
+      },
+      "params_version": "7.11.0",
+      "chosen_attempt": -1,
+      "summary": {
+        "all_pass": true,
+        "solid_percent": 92.8,
+        "plateaus": 6,
+        "rivers": 1,
+        "lakes": 1,
+        "lake_area_m2": 2472,
+        "crossings": 3
+      },
+      "baked": true
+    },
+    "g3_content": {
+      "status": "done",
+      "started_at": "2026-10-12T01:31:36",
+      "duration_s": 0.5,
+      "error": null,
+      "pass": false,
+      "stage": "G3",
+      "version": "2.2.0",
+      "finished_at": "2026-10-12T01:31:36",
+      "all_pass": false,
+      "checks": {
+        "quota_equal": false,
+        "fairness_pass": false,
+        "recheck_components": true,
+        "recheck_keypoints": false,
+        "recheck_widths": true,
+        "cluster_cover": true,
+        "budget": true,
+        "no_resource_failures": false
+      },
+      "input_hash": "0cea48c46254e4d7ad6a3a7496fcac9dbda2994a41e24ececba85ac831113355",
+      "output_hash": {
+        "mapgrid.npz": "621641fffb7d0a2db264c8ad909e5c316773fcf055da9fd49494173f7935ea25",
+        "mapspec.json": "206ee8d0d2a120f057753de823e0275a907e80c6e5c6de872662769e5d33006a"
+      },
+      "instance_count": 0,
+      "resource_failures": [
+        "near(P0): 无候选（距离带 (6.0, 9.0)）",
+        "near(P0): 无候选（距离带 (6.0, 9.0)）",
+        "near(P1): 无候选（距离带 (6.0, 9.0)）",
+        "near(P1): 无候选（距离带 (6.0, 9.0)）",
+        "near(P2): 无候选（距离带 (6.0, 9.0)）",
+        "near(P2): 无候选（距离带 (6.0, 9.0)）",
+        "near(P3): 无候选（距离带 (6.0, 9.0)）",
+        "near(P3): 无候选（距离带 (6.0, 9.0)）",
+        "shared(flank_0): 无候选",
+        "shared(flank_1): 无候选",
+        "shared(flank_2): 无候选",
+        "shared(flank_3): 无候选"
+      ]
+    },
+    "g4_scene": {
+      "status": "skipped",
+      "reason": "G3 检查未通过，依赖阶段不运行",
+      "finished_at": "2026-10-12T01:31:36"
+    },
+    "engine": {
+      "status": "skipped",
+      "reason": "G3 检查未通过，依赖阶段不运行",
+      "finished_at": "2026-10-12T01:31:36"
+    }
+  },
+  "layout_locked": true,
+  "terrain_locked": false,
+  "skip_engine_check": false,
+  "layout_pool": [
+    14
+  ],
+  "layout_tried": [],
+  "preview_only": false,
+  "progress": {
+    "stage": "G2",
+    "phase": "地形检查通过"
+  },
+  "map_pass": false,
+  "checks_summary": {
+    "g2_pass": true,
+    "g3_pass": false,
+    "engine_pass": null
+  },
+  "result": {
+    "version": "7.11.0",
+    "all_pass": true,
+    "solid_percent": 92.8,
+    "plateaus": 6,
+    "crossings": 3,
+    "plateau_top_percent": 0,
+    "rivers": 1,
+    "lakes": 1,
+    "lake_area_m2": 2472,
+    "river_width_m": 10.0,
+    "nearest_pair_m": 126.5,
+    "neutral_ratio": null,
+    "expansion_ratio": null,
+    "neighbor_ratio": null,
+    "min_route_width": null,
+    "chosen_attempt": null,
+    "checks": {},
+    "attempts": null
+  }
+}

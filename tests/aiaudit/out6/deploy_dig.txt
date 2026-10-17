@@ -1,0 +1,40 @@
+SCRIPT ERROR: Parse Error: Too many arguments for "_is_agent_placement_position_valid()" call. Expected at most 5 but received 6.
+SCRIPT ERROR: Parse Error: Too many arguments for "_is_agent_placement_position_valid()" call. Expected at most 5 but received 6.
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+ERROR: Failed to load script "res://source/match/units/CommandCenter.gd" with error "Compilation failed".
+ERROR: System.InvalidOperationException: 场景 res://tests/perfgrid/TmpTurretHead.tscn 没有受信任的单位类型定义。
+ERROR: Parameter "t" is null.
+ERROR: Parameter "t" is null.
+ERROR: Parameter "t" is null.
+ERROR: Parameter "t" is null.
+ERROR: Parameter "t" is null.
+ERROR: Parameter "t" is null.
+SCRIPT ERROR: Invalid call. Nonexistent function 'find_valid_position_radially_yet_skip_starting_radius' in base 'GDScript'.
+at: try_deploy_authoritative (res://source/match/units/traits/ProductionQueue.gd:306)
+[0] try_deploy_authoritative (res://source/match/units/traits/ProductionQueue.gd:306)
+[2] AI_RTS.Application.Production.ProductionDeploymentResult AI_RTS.GodotAdapter.Production.GodotProductionDeploymentPort.TryDeploy(AI_RTS.Domain.Production.ProductionItemSnapshot) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Production\GodotProductionDeploymentPort.cs:25)
+SCRIPT ERROR: Invalid call. Nonexistent function 'find_valid_position_radially_yet_skip_starting_radius' in base 'GDScript'.
+at: try_deploy_authoritative (res://source/match/units/traits/ProductionQueue.gd:306)
+[0] try_deploy_authoritative (res://source/match/units/traits/ProductionQueue.gd:306)
+[2] AI_RTS.Application.Production.ProductionDeploymentResult AI_RTS.GodotAdapter.Production.GodotProductionDeploymentPort.TryDeploy(AI_RTS.Domain.Production.ProductionItemSnapshot) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Production\GodotProductionDeploymentPort.cs:25)
+SCRIPT ERROR: Invalid call. Nonexistent function 'find_valid_position_radially_yet_skip_starting_radius' in base 'GDScript'.
+at: try_deploy_authoritative (res://source/match/units/traits/ProductionQueue.gd:306)
+[0] try_deploy_authoritative (res://source/match/units/traits/ProductionQueue.gd:306)
+[2] AI_RTS.Application.Production.ProductionDeploymentResult AI_RTS.GodotAdapter.Production.GodotProductionDeploymentPort.TryDeploy(AI_RTS.Domain.Production.ProductionItemSnapshot) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Production\GodotProductionDeploymentPort.cs:25)
+SCRIPT ERROR: Invalid call. Nonexistent function 'find_valid_position_radially_yet_skip_starting_radius' in base 'GDScript'.
+at: try_deploy_authoritative (res://source/match/units/traits/ProductionQueue.gd:306)
+[0] try_deploy_authoritative (res://source/match/units/traits/ProductionQueue.gd:306)
+[2] AI_RTS.Application.Production.ProductionDeploymentResult AI_RTS.GodotAdapter.Production.GodotProductionDeploymentPort.TryDeploy(AI_RTS.Domain.Production.ProductionItemSnapshot) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Production\GodotProductionDeploymentPort.cs:25)
+SCRIPT ERROR: Invalid call. Nonexistent function 'find_valid_position_radially_yet_skip_starting_radius' in base 'GDScript'.
+at: try_deploy_authoritative (res://source/match/units/traits/ProductionQueue.gd:306)
+[0] try_deploy_authoritative (res://source/match/units/traits/ProductionQueue.gd:306)
+[2] AI_RTS.Application.Production.ProductionDeploymentResult AI_RTS.GodotAdapter.Production.GodotProductionDeploymentPort.TryDeploy(AI_RTS.Domain.Production.ProductionItemSnapshot) (G:\AIRTS\AI_RTS\source\csharp\GodotAdapter\Production\GodotProductionDeploymentPort.cs:25)
+SCRIPT ERROR: Invalid call. Nonexistent function 'find_valid_position_radially_yet_skip_starting_radius' in base 'GDScript'.
+at: try_deploy_authoritative (res://source/match/units/traits/ProductionQueue.gd:306)

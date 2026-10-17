@@ -1,0 +1,51 @@
+[
+  {
+    "id": "vehicle-factory-worker-production",
+    "category": "production",
+    "scene": "res://tests/automated/VehicleFactoryWorkerProductionSmokeTest.tscn",
+    "returncode": 0,
+    "seconds": 6.9,
+    "marker_ok": true,
+    "marker": "Vehicle factory worker production smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [
+      "System.InvalidOperationException: 场景 res://tests/perfgrid/TmpTurretHead.tscn 没有受信任的单位类型定义。"
+    ],
+    "log_lines": 188
+  },
+  {
+    "id": "production-queue",
+    "category": "production",
+    "scene": "res://tests/automated/ProductionQueueSmokeTest.tscn",
+    "returncode": 0,
+    "seconds": 9.9,
+    "marker_ok": true,
+    "marker": "Production queue smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [
+      "System.InvalidOperationException: 场景 res://tests/perfgrid/TmpTurretHead.tscn 没有受信任的单位类型定义。"
+    ],
+    "log_lines": 222
+  },
+  {
+    "id": "runtime-placement",
+    "category": "placement",
+    "scene": "res://tests/automated/RuntimePlacementSmokeTest.tscn",
+    "returncode": 0,
+    "seconds": 3.4,
+    "marker_ok": true,
+    "marker": "Runtime placement smoke test completed: 0 failure(s)",
+    "conclusion": [
+      "0"
+    ],
+    "fail_lines": [],
+    "errors": [],
+    "log_lines": 51
+  }
+]

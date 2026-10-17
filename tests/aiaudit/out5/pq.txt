@@ -1,0 +1,11 @@
+ERROR: Production queue assertion failed: 容量内的生产项目应入队
+ERROR: Production queue assertion failed: 容量内的生产项目应入队
+ERROR: Production queue assertion failed: 容量内的生产项目应入队
+ERROR: Production queue assertion failed: 统一生产队列容量应为 5
+ERROR: Production queue assertion failed: 被 QueueFull 拒绝的项目不得额外扣款
+ERROR: Production queue assertion failed: 首个 Tank 应在有限时间内只部署一次
+ERROR: Production queue assertion failed: 首项完成后应从活动队列移除
+ERROR: Production queue assertion failed: 首项部署后第二项应取得生产线
+ERROR: Production queue assertion failed: C# 权威队列应与 Legacy HUD 视图一致
+ERROR: Production queue assertion failed: 取消第二项后队列应为空
+Production queue smoke test completed: 10 failure(s)

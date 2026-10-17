@@ -70,7 +70,11 @@ func _begin_offline_match(random_map: bool) -> void:
 	new_scene.map_path = selected_map_path()
 	if not random_map:
 		NetSession.selected_map_path = str(new_scene.map_path)
-	get_parent().add_child(new_scene)
+	# 【2026-10-01 修复「单人开不了房」】current_scene 必须是 root 的子节点，
+	# 旧写法挂到 get_parent()（页面嵌在容器里时不是 root）⇒ Godot 直接拒绝赋值：
+	# ERROR: Condition "p_scene && p_scene->get_parent() != root" is true.
+	# 表现就是点「开始游戏」毫无反应。挂到 root 与页面层级无关，稳。
+	get_tree().root.add_child(new_scene)
 	get_tree().current_scene = new_scene
 	queue_free()
 

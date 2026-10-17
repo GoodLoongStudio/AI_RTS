@@ -126,6 +126,12 @@ class AdjutantGraphState:
     reserves_percent: int = 0
     # 观测驱动的任务进度快照（方案 §4）：供 HUD 展示真实进展，与命令回执分离。
     task_progress: Dict[str, Any] = field(default_factory=dict)
+    # 连续行动监督（2026-10-07，prompt §3-C）：每个 AI 单位的停滞/闲置台账
+    # （最后移动 tick/墙钟、阶段、目标、路线游标、停止原因、下一次对账时间）+ 本轮报告。
+    # **必须是显式字段**：`progress.supervise_continuity` 靠上一轮的 `last_moved_tick`
+    # 算停顿时长，丢了它停滞就永远到不了阈值。
+    continuity_units: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    continuity_supervision: Dict[str, Any] = field(default_factory=dict)
 
     # 整局主线（2026-09-12 纠偏）：阶段 / 里程碑 / 四条 track / next_frontier /
     # interrupt_stack。**必须是显式字段**，否则 to_dict/from_dict 会把它丢掉 ——
@@ -148,6 +154,19 @@ class AdjutantGraphState:
     nav_revision: int = -1
     routes: Dict[str, Any] = field(default_factory=dict)
     movement_stats: Dict[str, Any] = field(default_factory=dict)
+    #: 单位名 → **最近一次到达的 tick**（`node_ingest` 到达分支写）。
+    #: 用途：军事轨据此把"**刚到达的**单位排到前面"（prompt §3-C 的
+    #: "arrival 触发下一段优先服务"）。依据 round-26 实测：接续 p95 是
+    #: "等待下一决策轮" p95 的 **3.2 倍** ⇒ 单位平均多等 2~3 轮。
+    #: **必须是显式字段**：不持久化的话每轮归零 ⇒ 到达优先永远看不到"刚到达"。
+    unit_arrival_tick: Dict[str, int] = field(default_factory=dict)
+    #: **上一轮 → 这一轮**的安全移动计数增量（由 `movement.note_round_delta` 写）。
+    #: 累计值看不出"这一轮发生了什么"，而"被拒命令/频繁重规划是否挤占共享下发预算"
+    #: 只能看增量。**必须是显式字段**：漏了它每轮会被 `from_dict` 丢掉 →
+    #: runner 永远读到空（round-24 就踩过：快照放在进程内字典里，一条都没落盘）。
+    movement_round_delta: Dict[str, Any] = field(default_factory=dict)
+    #: 上一轮计数快照（`{"tick":…, "counts":{…}}`）—— 算增量用的基线，随检查点持久化。
+    movement_stats_snapshot: Dict[str, Any] = field(default_factory=dict)
     movement_urgent: List[Dict[str, Any]] = field(default_factory=list)
     #: 生产台账（按 item_id 索引的开始/完成事实）。**必须是显式字段**：
     #: 队列是"当前状态"，队列项一消失就没有别的证据了；丢了它，生产完成永远结算不了
@@ -166,6 +185,18 @@ class AdjutantGraphState:
     #: 目标选择时读它（`attackable_enemies` / 行为树 `_attackable`），避免"出击 → 被拒 → 再出击"。
     #: **必须是显式字段**：漏了它每轮会被 `from_dict` 丢掉 → 记忆形同虚设。
     unattackable_targets: Dict[str, int] = field(default_factory=dict)
+    #: 「这个单位**现在**采不了这个矿」的账：键 `"<unit>|<entity>"`，值是记账时刻（tick）。
+    #: 由 `rules_fallback.ban_depleted_resource` 写（权威回 `ResourceDepleted` 时），
+    #: 采集轨下一轮据此**换矿**；`RESOURCE_BAN_TICKS`（900 tick）后自动失效 ——
+    #: 矿点是**会再生**的，所以这里是限时账，不是永久黑名单。
+    #: 为什么必须是显式字段：漏了它每轮会被 `from_dict` 丢掉 → 换矿记忆形同虚设，
+    #: 于是每轮都往刚被拒的矿上撞（实测 `archive_8d032e38`：gather 105 条被拒）。
+    depleted_resources: Dict[str, int] = field(default_factory=dict)
+    #: 军事轨**轮转服务顺序**的游标（下一轮从第几个单位开始）。
+    #: 背景：`ai_units` 是 `sorted()` 的固定字母序，而本轨每轮有产出上限
+    #: （`PARALLEL_FILL_CAP`）⇒ 靠后的单位每轮都被截断。
+    #: **必须是显式字段**：不持久化的话每轮都从 0 开始，等于没有轮转。
+    advance_cursor: int = 0
     #: 敌方实体 → 上次看到时的单位类型（`node_ingest` 每轮刷新，有界）。
     #: 用途单一：回执报"武器域不匹配"时把"这个目标"升级成"**这一类目标**"。
     enemy_types: Dict[str, str] = field(default_factory=dict)
@@ -181,12 +212,30 @@ class AdjutantGraphState:
     #: 守门的静态扫描在 `tests/test_graph_state_channels.py`（会扫节点里的 `state["x"] =`）。
     rejection_ledger: Dict[str, Any] = field(default_factory=dict)
     blocked_build_spots: List[Any] = field(default_factory=list)
+    # Opening production base; expansions supply economy and defense.
+    # Persist it through both graph channels and checkpoint round trips.
+    build_home_anchor: List[float] = field(default_factory=list)
     build_backoff_until_tick: int = 0
     build_reject_streak: int = 0
     #: 【2026-09-21】战略层失败退避到期 tick（同步战略一次超时堵 15s；runner 配成
     #: strategy_interval_ticks）。与 build_backoff 同一模式：跨轮记忆必须进
     #: dataclass + 图通道 + to_dict/from_dict，漏一个就每轮归零、退避失效。
     strategy_backoff_until_tick: int = 0
+    #: 实测模拟 tick 率（Hz）。0 表示还没采到至少 1 秒的样本，复核间隔先用 tick 配置。
+    measured_tick_hz: float = 0.0
+    tick_rate_anchor_tick: int = -1
+    tick_rate_anchor_mono: float = 0.0
+    #: 战略请求纪元。新的战略事件把它加一；对不上的迟到结果不能恢复旧目标。
+    strategy_epoch: int = 0
+    strategy_epoch_events: List[str] = field(default_factory=list)
+    last_strategy_event_tick: int = -1
+    last_strategy_review_tick: int = -1
+    #: 在途战略请求的身份（不含线程、不含提示词正文）。调度器空闲时清空。
+    strategy_request: Dict[str, Any] = field(default_factory=dict)
+    #: 调用次数、发起 tick、耗时。列表只留最近几十次。
+    strategy_metrics: Dict[str, Any] = field(default_factory=dict)
+    plan_commit_count: int = 0
+    plan_hold_count: int = 0
     #: 退避**等级**（每触发一次加倍：900 → 1800 → 3600 → 上限 7200 tick）。
     #: 为什么要有：几何类拒绝是"换点再试"，一片地形整体不可建时会一直换点烧命令
     #: （实测一局 10 次 `SurfaceNotBuildable`）；等级让复盘能看到"退避在升级"。
@@ -232,8 +281,27 @@ class AdjutantGraphState:
     persistent_squads: List[Dict[str, Any]] = field(default_factory=list)
     #: 单位 → 当前交火目标（滞回 + 火力分配）。
     engage_locks: Dict[str, str] = field(default_factory=dict)
-    #: T13：已处理过的到达键 `unit|[x, z]`，重复 arrival 不得再完成/换下一跳。
-    seen_arrivals: List[str] = field(default_factory=list)
+    #: Recent arrival facts, keyed by unit/goal and stamped with the event tick.
+    seen_arrivals: Dict[str, int] = field(default_factory=dict)
+
+    # ---------- 决策追踪（第一阶段 · 修改 1） ----------
+    #: 追踪会话 id：新对局生成；checkpoint 恢复后**沿用**（跨进程段可关联），
+    #: 重开对局 = 新 id（不串局）。**必须是显式字段**：漏了它恢复后 session_id
+    #: 每轮归零，"同一会话的不同进程段"就拼不起来。
+    trace_session: str = ""
+    #: 追踪轮次序号：每 tick +1（与 tick 值无关，相同 tick 的多轮不会串）。
+    #: 同样必须显式序列化，否则恢复后 round_seq 归零、与文件里的历史撞号。
+    trace_round_seq: int = 0
+
+    # ---------- 任务反馈闭环台账（第一阶段 · 修改 2） ----------
+    #: 任务台账 `{task_id: record}`：状态/尝试/最后进展/期限/预算/缺项。
+    #: **必须是显式字段 + 图通道**：漏一个就每轮归零——表现是"停滞永远判不出、
+    #: 重试预算永远满血"（与 production_ledger 同类事故）。
+    task_ledger: Dict[str, Any] = field(default_factory=dict)
+    #: 任务失败/恢复 → 上层目标的反馈（避免底层失败、上层被当成成功）。
+    task_ledger_feedback: Dict[str, Any] = field(default_factory=dict)
+    #: 本轮闭环评估报告（只读诊断视图；判定依据在 task_ledger）。
+    task_loop_report: Dict[str, Any] = field(default_factory=dict)
 
     # ---------- 代际与租约 ----------
 
@@ -356,7 +424,7 @@ class AdjutantGraphState:
         return record
 
     def find_intent(self, intent_id: str) -> Optional[Dict[str, Any]]:
-        for record in self.active_intents:
+        for record in reversed(self.active_intents):
             if record.get("intent_id") == intent_id:
                 return record
         return None
@@ -458,15 +526,31 @@ class AdjutantGraphState:
         record = self.find_intent(intent_id)
         if record is None:
             return
-        status = str(receipt.get("status", ""))
+        receipt_match = str(receipt.get("match_id", "") or "")
+        receipt_attempt = str(receipt.get("task_attempt_id", "") or "")
+        receipt_command = str(receipt.get("command_id", "") or "")
+        if (receipt_match and receipt_match != self.match_id) or (
+                receipt_attempt and receipt_attempt != str(record.get("task_attempt_id", "") or "")) or (
+                receipt_command and record.get("command_id") and
+                receipt_command != str(record["command_id"])):
+            return
+        status = str(receipt.get("status", "") or "")
         accepted = bool(receipt.get("accepted", False))
-        if status == "PendingAuthority":
+        previous_status = str(record.get("receipt_status", "") or "")
+        if previous_status and previous_status not in ("PendingAuthority", "Unknown"):
+            if not (previous_status == "Accepted" and status == "Completed" and accepted):
+                return
+        record["receipt_status"] = status
+        if status in ("PendingAuthority", "Unknown", ""):
             record["state"] = INTENT_PENDING_AUTHORITY
+            record["drop_reason"] = ""
+            previous_pending = self.pending_requests.get(intent_id) or {}
             self.pending_requests[intent_id] = {
                 "intent_id": intent_id,
                 "command_id": str(receipt.get("command_id", "")),
                 "state": INTENT_PENDING_AUTHORITY,
-                "since_tick": int(self.server_tick),
+                "task_attempt_id": receipt_attempt or str(record.get("task_attempt_id", "") or ""),
+                "since_tick": int(previous_pending.get("since_tick", self.server_tick)),
                 "task_id": str(record.get("task_id", "")),
                 "action": str(record.get("action", "")),
                 "unit_ids": [str(u) for u in record.get("unit_ids", [])],
@@ -553,6 +637,9 @@ class AdjutantGraphState:
             "reserves_initialized": bool(self.reserves_initialized),
             "reserves_percent": int(self.reserves_percent),
             "task_progress": dict(self.task_progress),
+            "continuity_units": {str(key): dict(value) if isinstance(value, dict) else value
+                                 for key, value in self.continuity_units.items()},
+            "continuity_supervision": dict(self.continuity_supervision),
             "campaign_state": dict(self.campaign_state),
             "fast_event_seq": int(self.fast_event_seq),
             "lane_cursor": int(self.lane_cursor),
@@ -563,13 +650,28 @@ class AdjutantGraphState:
             "routes": {str(key): dict(value) if isinstance(value, dict) else value
                        for key, value in (self.routes or {}).items()},
             "movement_stats": dict(self.movement_stats),
-            "movement_urgent": list(self.movement_urgent),
+            "movement_urgent": [dict(item) for item in (self.movement_urgent or [])
+                                if isinstance(item, dict)],
+            # 见字段说明：增量与基线快照必须一起序列化，否则每轮归零（round-24 的坑）。
+            "movement_round_delta": dict(self.movement_round_delta or {}),
+            "movement_stats_snapshot": dict(self.movement_stats_snapshot or {}),
+            # 到达优先服务的账（`node_ingest` 写、军事轨读）：不序列化则每轮归零，
+            # 到达优先就永远看不到"刚到达"（round-24/25 同类坑的第三次预防）。
+            "unit_arrival_tick": {str(k): int(v) for k, v in
+                                  (self.unit_arrival_tick or {}).items()},
             "production_ledger": {str(key): dict(value) if isinstance(value, dict) else value
                                   for key, value in (self.production_ledger or {}).items()},
             "army_cap": dict(self.army_cap),
             "combat_types": list(self.combat_types),
             "unattackable_targets": {str(k): int(v) for k, v in
                                      (self.unattackable_targets or {}).items()},
+            # 【2026-10-09 补】这两个字段漏进 `to_dict` ⇒ 每轮归零，而我原先只跑了
+            # "通道声明"守门测试（它只查注解），**没测到**真正的丢失。
+            # 一条 `round-trip` 探针才把它揪出来。教训：新增状态字段必须同时补
+            # `to_dict` / `from_dict`，并**用 round-trip 验证**，不能只靠声明测试。
+            "depleted_resources": {str(k): int(v) for k, v in
+                                   (self.depleted_resources or {}).items()},
+            "advance_cursor": int(self.advance_cursor or 0),
             "enemy_types": {str(k): str(v) for k, v in (self.enemy_types or {}).items()},
             "own_unit_types": {str(k): str(v) for k, v in
                                (self.own_unit_types or {}).items()},
@@ -581,7 +683,9 @@ class AdjutantGraphState:
             "persistent_squads": [dict(item) for item in (self.persistent_squads or [])
                                   if isinstance(item, dict)],
             "engage_locks": {str(k): str(v) for k, v in (self.engage_locks or {}).items()},
-            "seen_arrivals": [str(item) for item in (self.seen_arrivals or [])][-64:],
+            "seen_arrivals": {str(key): int(value) for key, value in
+                              sorted((self.seen_arrivals or {}).items(),
+                                     key=lambda item: int(item[1]))[-256:]},
             "enemy_intel_points": [[float(x) for x in item] for item in
                                    (self.enemy_intel_points or []) if len(item) >= 2],
             # 探索前沿与访问记忆（见字段处说明）：必须随 checkpoint 往返，
@@ -611,13 +715,36 @@ class AdjutantGraphState:
                                  for k, v in (self.rejection_ledger or {}).items()},
             "blocked_build_spots": [list(item) if isinstance(item, (list, tuple)) else item
                                     for item in (self.blocked_build_spots or [])],
+            "build_home_anchor": list(self.build_home_anchor),
             "build_backoff_until_tick": int(self.build_backoff_until_tick or 0),
             "build_reject_streak": int(self.build_reject_streak or 0),
             "strategy_backoff_until_tick": int(self.strategy_backoff_until_tick or 0),
+            "measured_tick_hz": float(self.measured_tick_hz or 0),
+            "tick_rate_anchor_tick": int(self.tick_rate_anchor_tick),
+            "tick_rate_anchor_mono": float(self.tick_rate_anchor_mono or 0),
+            "strategy_epoch": int(self.strategy_epoch or 0),
+            "strategy_epoch_events": [str(item) for item in (self.strategy_epoch_events or [])][-64:],
+            "last_strategy_event_tick": int(self.last_strategy_event_tick),
+            "last_strategy_review_tick": int(self.last_strategy_review_tick),
+            "strategy_request": dict(self.strategy_request or {}),
+            "strategy_metrics": dict(self.strategy_metrics or {}),
+            "plan_commit_count": int(self.plan_commit_count or 0),
+            "plan_hold_count": int(self.plan_hold_count or 0),
             "build_backoff_level": int(self.build_backoff_level or 0),
             "congestion_until_tick": int(self.congestion_until_tick or 0),
             "congestion_events": int(self.congestion_events or 0),
             "recent_orders": {str(k): int(v) for k, v in (self.recent_orders or {}).items()},
+            # 决策追踪会话与轮次（修改 1）：必须随 checkpoint 往返，否则恢复后
+            # session_id 归零、round_seq 与文件历史撞号（"跨进程段关联"直接失效）。
+            "trace_session": str(self.trace_session or ""),
+            "trace_round_seq": int(self.trace_round_seq or 0),
+            # 任务闭环台账（修改 2）：状态/尝试/最后进展/期限/预算必须跨轮存活，
+            # 否则"停滞判定"和"重试预算"每轮归零（同类事故第三次预防）。
+            "task_ledger": {str(key): dict(value) if isinstance(value, dict) else value
+                            for key, value in (self.task_ledger or {}).items()},
+            "task_ledger_feedback": {str(key): dict(value) if isinstance(value, dict) else value
+                                     for key, value in (self.task_ledger_feedback or {}).items()},
+            "task_loop_report": dict(self.task_loop_report or {}),
         })
 
     @classmethod
@@ -661,6 +788,9 @@ class AdjutantGraphState:
         state.reserves_initialized = bool(data.get("reserves_initialized", False))
         state.reserves_percent = int(data.get("reserves_percent", 0) or 0)
         state.task_progress = dict(data.get("task_progress") or {})
+        state.continuity_units = {str(key): dict(value) if isinstance(value, dict) else value
+                                  for key, value in (data.get("continuity_units") or {}).items()}
+        state.continuity_supervision = dict(data.get("continuity_supervision") or {})
         state.campaign_state = dict(data.get("campaign_state") or {})
         state.fast_event_seq = int(data.get("fast_event_seq", -1) or -1)
         state.lane_cursor = int(data.get("lane_cursor", 0) or 0)
@@ -674,6 +804,10 @@ class AdjutantGraphState:
             state.nav_revision = -1
         state.routes = dict(data.get("routes") or {})
         state.movement_stats = dict(data.get("movement_stats") or {})
+        state.movement_round_delta = dict(data.get("movement_round_delta") or {})
+        state.movement_stats_snapshot = dict(data.get("movement_stats_snapshot") or {})
+        state.unit_arrival_tick = {str(k): int(v) for k, v in
+                                   (data.get("unit_arrival_tick") or {}).items()}
         state.movement_urgent = [dict(item) for item in (data.get("movement_urgent") or [])
                                  if isinstance(item, dict)]
         state.production_ledger = {str(key): dict(value) if isinstance(value, dict) else value
@@ -683,6 +817,11 @@ class AdjutantGraphState:
         state.unattackable_targets = {
             str(key): int(value) for key, value in
             (data.get("unattackable_targets") or {}).items()}
+        # 见 `to_dict` 里的说明：这两个字段必须一起补，否则每轮归零。
+        state.depleted_resources = {
+            str(key): int(value) for key, value in
+            (data.get("depleted_resources") or {}).items()}
+        state.advance_cursor = int(data.get("advance_cursor") or 0)
         state.enemy_types = {str(key): str(value) for key, value in
                              (data.get("enemy_types") or {}).items()}
         state.own_unit_types = {str(key): str(value) for key, value in
@@ -697,7 +836,12 @@ class AdjutantGraphState:
                                    if isinstance(item, dict)]
         state.engage_locks = {str(key): str(value) for key, value in
                               (data.get("engage_locks") or {}).items()}
-        state.seen_arrivals = [str(item) for item in (data.get("seen_arrivals") or [])][-64:]
+        arrivals = data.get("seen_arrivals") or {}
+        if not isinstance(arrivals, dict):
+            # Old lists have no event time: keep keys without suppressing a new fact.
+            arrivals = {str(item): 0 for item in arrivals}
+        state.seen_arrivals = {str(key): int(value) for key, value in
+                               sorted(arrivals.items(), key=lambda item: int(item[1]))[-256:]}
         explore = data.get("explore") if isinstance(data.get("explore"), dict) else {}
         state.explore = {
             "cells": {str(key): dict(value) for key, value in
@@ -727,15 +871,38 @@ class AdjutantGraphState:
         state.rejection_ledger = {str(key): dict(value) if isinstance(value, dict) else value
                                   for key, value in (data.get("rejection_ledger") or {}).items()}
         state.blocked_build_spots = list(data.get("blocked_build_spots") or [])
+        state.build_home_anchor = list(data.get("build_home_anchor") or [])
         state.build_backoff_until_tick = int(data.get("build_backoff_until_tick", 0) or 0)
         state.build_reject_streak = int(data.get("build_reject_streak", 0) or 0)
         state.strategy_backoff_until_tick = int(
             data.get("strategy_backoff_until_tick", 0) or 0)
+        state.measured_tick_hz = float(data.get("measured_tick_hz", 0) or 0)
+        state.tick_rate_anchor_tick = int(data.get("tick_rate_anchor_tick", -1))
+        state.tick_rate_anchor_mono = float(data.get("tick_rate_anchor_mono", 0) or 0)
+        state.strategy_epoch = int(data.get("strategy_epoch", 0) or 0)
+        state.strategy_epoch_events = [str(item) for item in
+                                       (data.get("strategy_epoch_events") or [])][-64:]
+        state.last_strategy_event_tick = int(data.get("last_strategy_event_tick", -1))
+        state.last_strategy_review_tick = int(data.get("last_strategy_review_tick", -1))
+        request = data.get("strategy_request")
+        state.strategy_request = dict(request) if isinstance(request, dict) else {}
+        metrics = data.get("strategy_metrics")
+        state.strategy_metrics = dict(metrics) if isinstance(metrics, dict) else {}
+        state.plan_commit_count = int(data.get("plan_commit_count", 0) or 0)
+        state.plan_hold_count = int(data.get("plan_hold_count", 0) or 0)
         state.build_backoff_level = int(data.get("build_backoff_level", 0) or 0)
         state.congestion_until_tick = int(data.get("congestion_until_tick", 0) or 0)
         state.congestion_events = int(data.get("congestion_events", 0) or 0)
         state.recent_orders = {str(key): int(value) for key, value in
                                (data.get("recent_orders") or {}).items()}
+        state.trace_session = str(data.get("trace_session", "") or "")
+        state.trace_round_seq = int(data.get("trace_round_seq", 0) or 0)
+        state.task_ledger = {str(key): dict(value) if isinstance(value, dict) else value
+                             for key, value in (data.get("task_ledger") or {}).items()}
+        state.task_ledger_feedback = {
+            str(key): dict(value) if isinstance(value, dict) else value
+            for key, value in (data.get("task_ledger_feedback") or {}).items()}
+        state.task_loop_report = dict(data.get("task_loop_report") or {})
         return state
 
     @classmethod
@@ -772,7 +939,19 @@ class AdjutantGraphState:
             "lane_cursor": int(self.lane_cursor),
             # 安全移动（计划 §7）：闸门统计与网格版本，供验收读"无路径移动数/越界数"。
             "movement_stats": dict(self.movement_stats),
+            # 【每轮增量账 · 2026-10-09】**必须进 summary**：否则 runner 读到空，
+            # 与 `continuity_supervision` 踩过的是同一个坑（埋点读了不存在的路径）。
+            # 它由 `movement.note_round_delta` 在仲裁节点写好（随检查点持久化）。
+            # 用途：判"被拒命令 / 频繁重规划是否挤占了共享下发预算"—— 累计值看不出这个。
+            "movement_round_delta": dict(self.movement_round_delta or {}),
             "nav_revision": int(self.nav_revision),
+            # 连续行动监督（2026-10-07，prompt §3-C）：runner 的 tick 日志按这里读
+            # "有几轮停滞/闲置、发了几次对账恢复"。**必须进 summary**：它不在 summary 里
+            # 时 `_continuity_summary` 永远读到空账（实测前一轮 tick 日志全 0，
+            # 而同一局的 decisions 日志里其实有 255 条 `continuity_supervision` —— 埋点读错了路径）。
+            "continuity_units": {str(key): dict(value) if isinstance(value, dict) else value
+                                 for key, value in self.continuity_units.items()},
+            "continuity_supervision": dict(self.continuity_supervision),
             # 兵力上限（手册 04）：当前兵力/队列/被拦轮次 —— 归档据此分辨
             # "设计上停产"与"忘了出兵"。
             "army_cap": dict(self.army_cap),
@@ -804,6 +983,20 @@ class AdjutantGraphState:
             # 整局主线（诊断/HUD/验收共用一份口径，避免两处各算一套）。
             # 迟导入避免模块加载顺序耦合（campaign 只依赖 observation_view/placement）。
             "campaign": self._campaign_summary(),
+            # 决策追踪身份（修改 1）：回放/导出据此把"同一会话的不同进程段"拼起来。
+            "trace_session": str(self.trace_session or ""),
+            "trace_round_seq": int(self.trace_round_seq or 0),
+            # 任务闭环台账摘要（修改 2）：HUD/验收读"哪个任务什么状态、卡了多久"。
+            "task_loop": {
+                "tasks": {str(key): {"state": str((value or {}).get("state", "")),
+                                     "attempt": int((value or {}).get("attempt", 0) or 0),
+                                     "waiting_reason": str((value or {}).get("waiting_reason", "")),
+                                     "blocked_missing": list((value or {}).get("blocked_missing") or [])}
+                          for key, value in (self.task_ledger or {}).items()
+                          if isinstance(value, dict) and not value.get("ended")},
+                "feedback": {str(key): dict(value) if isinstance(value, dict) else value
+                             for key, value in (self.task_ledger_feedback or {}).items()},
+            },
         }
 
     def _campaign_summary(self) -> Dict[str, Any]:

@@ -1,0 +1,187 @@
+[PASS] PartialAcceptanceReturnsPerUnitResults
+[PASS] DuplicateUnitsAreExecutedOnce
+[PASS] InvalidDestinationDoesNotReachMovementPort
+[PASS] FailedReplacementPreservesActiveOrder
+[PASS] HaltSuspendsMovementOrder
+[PASS] UnifiedStopAppliesOrderSpecificSemantics
+[PASS] GatherReturnsPerWorkerResults
+[PASS] StopSuspendsGatherWithoutUsingGenericStop
+[PASS] CombatPoliciesAreIndependentAndOwnershipChecked
+[PASS] OrdinaryAttackRespectsHoldFire
+[PASS] ForceAttackOverridesHoldFire
+[PASS] GroundForceAttackRequiresExplicitCapability
+[PASS] AttackMoveKeepsMovingDuringHoldFire
+[PASS] TacticalWithdrawFallsBackToOrdinaryMovement
+[PASS] EntityMovementKeepsDistinctOrderSemantics
+[PASS] EntityMovementRejectsSelfAndMissingTargets
+[PASS] StopSuspendsEntityMovementOrders
+[PASS] PortFailuresMapToStableErrors
+[PASS] ReturnToBaseSelectsNearestCompletedCommandCenter
+[PASS] ReturnToBaseRejectsWithoutCommandCenter
+[PASS] StopSuspendsReturnToBaseOrder
+[PASS] OrderStorePublishesAuthoritativeStateChanges
+[PASS] AcceptedOrdersPreserveOriginalTargets
+[PASS] AreaWarheadUsesImpactPointAndFootprints
+[PASS] WarheadResultsAreStableUniqueAndRespectFriendlyFire
+[PASS] ForceAttackSnapshotDamagesFriendly
+[PASS] ResourceTransactionAppliesMultipleKindsAtomically
+[PASS] ResourceTransactionRejectsPartialPayment
+[PASS] ResourceTransactionReplayIsIdempotent
+[PASS] ResourceTransactionIdConflictIsRejected
+[PASS] ResourceTransactionRejectsInvalidAndOverflowingAmounts
+[PASS] ResourceAccountSupportsAllIncomeReasons
+[PASS] ResourceAccountSnapshotCannotMutateStore
+[PASS] CastSkillAcceptsOwnedUnitOnSelfActiveSkill
+[PASS] CastSkillRejectsMissingPassiveAndNonSelfSkills
+[PASS] CastSkillChecksOwnershipWithoutReplacingOrders
+[PASS] CastSkillDealDamageHitsSelfThroughWarheadResolver
+[PASS] CastSkillDealDamageHitsSpecifiedUnitAndSkipsUndamageable
+[PASS] CastSkillRejectsFriendOutOfRangeAndDeadTargets
+[PASS] CastSkillRecordsInRangeGroundTarget
+[PASS] CastSkillPaysCostThenStartsCooldownOnSimulationClock
+[PASS] CastSkillRejectsInsufficientResourcesWithoutStartingCooldown
+[PASS] CastSkillSecondEffectWaitsForSimulationDelay
+[PASS] CastSkillRestoreHealthClampsToMaximum
+[PASS] CastSkillStatusAppliesAndExpiresMoveSpeed
+[PASS] CastSkillStatusStackRulesRefreshOverwriteIgnore
+[PASS] CastSkillStatusIgnoresDeadTarget
+[PASS] CastSkillSimultaneousDamageAndHeal
+[PASS] CastSkillPeriodicTicksUseSimulationClock
+[PASS] CastSkillConditionSkipsWhenNotWounded
+[PASS] CastSkillSequentialAfterSimultaneousKeepsDelay
+[PASS] AutomaticEventSkillHealsOnDamageWithoutPlayerCast
+[PASS] AutomaticConditionAndPassiveSkillsEvaluateOnClock
+[PASS] CastSkillStopDuringWindupCancelsLaterEffects
+[PASS] CastSkillStopAfterActivationKeepsAppliedAndHonorsRefund
+[PASS] CastSkillWithoutInterruptKeepsDelayedEffectsAfterStop
+[PASS] CastSkillEmitEventWritesBattlefieldLog
+[PASS] CastSkillIssueCommandUsesExistingMoveAndAttack
+[PASS] CastSkillCreateObjectUsesExistingTemplate
+[PASS] HudSlotsShowEquippedActiveSkillsAndCooldown
+AI_RTS.Core tests completed: 60 test(s), 0 failure(s).
+[PASS] ValidCandidateNormalizesYaw
+[PASS] EvaluationReturnsAllIssuesInStableOrder
+[PASS] UnknownDefinitionStopsDependentQueries
+[PASS] InvalidTransformStopsDependentQueries
+[PASS] PreviewDoesNotMutateResourceAccount
+[PASS] AdapterFailureBecomesValidationUnavailable
+Structure placement tests completed: 6 test(s), 0 failure(s).
+[PASS] MultipleWorkersCompleteOnce
+[PASS] ConfiguredWorkerPowerAdvancesIntegerWork
+[PASS] SuspendedWorkerResumesSameOrder
+[PASS] ExitedWorkerLeavesNoAssignmentAfterOthersComplete
+[PASS] ActiveBuilderCountTracksOrderLifecycle
+[PASS] CancelRefundsButDestructionDoesNot
+[PASS] AutomaticProgressCompletesWithZeroWorkers
+[PASS] WorkerSourceStillStallsWithoutBuilders
+[PASS] HybridWorkersOnlyAccelerateAutomaticProgress
+[PASS] CancelRefundsOnlyTheRemainingWork
+Construction service tests completed: 10 test(s), 0 failure(s).
+[PASS] EnqueueValidatesCapabilityResourcesAndCapacity
+[PASS] OnlyFrontAdvancesAndDuplicateTickIsIgnored
+[FAIL] 解除阻挡后项目应部署完成
+[FAIL] 下一项应在完成后取得生产线但不在同 Tick 偷跑进度
+[FAIL] 重复 Tick 不得重复生成或发布完成事件
+[PASS] CancelRefundsOnceAndPromotesNextItem
+[PASS] ProducerLossTerminatesAllWithoutRefund
+[PASS] FreeDefinitionSkipsEmptyPaymentAndRefund
+Production service tests completed: 6 test(s), 3 failure(s).
+[PASS] PositionSupportsPartialSuccessAndIndependentState
+[PASS] TargetRulesRejectEnemyInvisibleAndSelf
+[PASS] SameTargetIsIdempotentAndReplacementVersions
+[PASS] TargetLossReturnsAllReferencesToDefaultExit
+[PASS] ClearAndProducerLossPublishStableReasons
+Rally point tests completed: 5 test(s), 0 failure(s).
+[FAIL] Tank 生产成本应匹配单币种基线（A×500，2026-09-03 同步）
+[FAIL] Resource B 采集时间应映射为 200 整数毫秒（2026-09-03 采集节奏调整为 20 秒/趟）
+[PASS] IdenticalContentProducesStableHash
+[PASS] UnknownPropertyRejectsWholeCatalog
+[PASS] UnsupportedSchemaRejectsWholeCatalog
+[PASS] DuplicateIdRejectsWholeCatalog
+[PASS] InvalidNumberAndEnumAreReportedTogether
+[FAIL] 同一成本内重复资源应返回 DuplicateResourceCost
+[PASS] DuplicateProductDefinitionIsRejected
+[PASS] ProfileRequirementsReportMissingDefinitions
+[PASS] InvalidJsonNeverCreatesCatalog
+[PASS] DemoSkillIsAvailableFromCatalog
+[FAIL] MissingSkillsCollectionRejectsWholeCatalog: unexpected System.ArgumentOutOfRangeException: length ('-1') must be a non-negative value. (Parameter 'length')
+Actual value was -1.
+   at System.ArgumentOutOfRangeException.ThrowNegative[T](T value, String paramName)
+   at System.ArgumentOutOfRangeException.ThrowIfNegative[T](T value, String paramName)
+   at System.String.ThrowSubstringArgumentOutOfRange(Int32 startIndex, Int32 length)
+   at System.String.Substring(Int32 startIndex, Int32 length)
+   at AI_RTS.Tests.Core.BalanceConfigLoaderTests.MissingSkillsCollectionRejectsWholeCatalog() in G:\AIRTS\AI_RTS\tests\core\BalanceConfigLoaderTests.cs:line 354
+   at AI_RTS.Tests.Core.BalanceConfigLoaderTests.RunTest(String name, Action test) in G:\AIRTS\AI_RTS\tests\core\BalanceConfigLoaderTests.cs:line 515
+[PASS] SkillInvalidIdRejectsWholeCatalog
+[PASS] SkillUnknownEffectKindRejectsWholeCatalog
+[PASS] SkillUnknownObjectTemplateRejectsWholeCatalog
+[PASS] SkillDuplicateIdRejectsWholeCatalog
+[FAIL] 应返回 MissingValue at $.skills[0].effects[0].repeatCount；实际：
+[FAIL] 缺少 repeatCount 不得创建 Catalog
+[FAIL] 应返回 InvalidEnum at $.skills[4].effects[0].condition；实际：
+[FAIL] 未知条件不得创建 Catalog
+[FAIL] 应返回 InvalidNumber at $.skills[6].effects[1].delayMilliseconds；实际：
+[FAIL] 同时与正延迟混用不得创建 Catalog
+[FAIL] 应返回 MissingValue at $.skills[9].event；实际：
+[FAIL] 事件技能缺少 event 不得创建 Catalog
+[FAIL] 应返回 MissingValue at $.skills[0].interrupt.phases；实际：
+[FAIL] 空中断阶段不得创建 Catalog
+[FAIL] 应返回 InvalidEnum at $.skills[13].effects[0].command；实际：
+[FAIL] 未知下达命令不得创建 Catalog
+Balance config tests completed: 17 test(s), 16 failure(s).
+PASS ModifierChordSuppressesBareKey
+PASS HigherPriorityContextWins
+PASS FirstDemoRejectsMultipleModifiers
+PASS InvalidOverrideIsAtomic
+PASS SameContextConflictIsRejected
+PASS ButtonOnlyActionCannotBeBound
+PASS OfficialUnitHotkeysResolve
+PASS LegacyAgentCommandHotkeysDoNotConflict
+PASS TabTogglesAiHud
+PASS F10OpensMenuAndEscapeCancels
+PASS SpaceFocusesLatestBattlefieldEvent
+Input binding tests completed: 11 test(s), 0 failure(s).
+[PASS] ReplaceDeduplicatesAndSorts
+[PASS] EmptyReplaceClearsAndEmptyRecallSucceeds
+[PASS] InvalidMembersAreFilteredAndCanClear
+[PASS] RecallPrunesChangedMembers
+[PASS] RemoveUnitCleansEveryGroup
+[PASS] PlayersAndGroupsAreIndependent
+[PASS] InvalidGroupDoesNotMutateStorage
+Control group tests completed: 7 test(s), 0 failure(s).
+PASS OwnInformationIsAccurateWithoutVisibility
+PASS ValidEmptyScanIsExplicitSuccess
+PASS NormalAndDebugSessionsHaveDifferentVisibility
+PASS VisibleFieldPermissionsDoNotLeakHealth
+PASS EnemyAndUnknownDirectInspectionAreIndistinguishable
+PASS OwnEconomyIsExactAndVersioned
+PASS OwnConstructionInformationIsAccurateAndPermissionScoped
+PASS ProductionInformationIsOwnOnlyExceptForDebug
+PASS OrderInformationIsOwnOnlyAndIdleIsExplicit
+PASS InvalidSessionDoesNotCaptureWorld
+PASS InvalidAreaIsRejected
+PASS EnemyStructureBecomesLastKnownButMobileDoesNot
+PASS ReobservedEmptyPositionClearsLastKnown
+PASS CommandTargetAuthorizationRequiresCurrentEnemyVisibility
+PASS BattlefieldBoundsArePublicAndSessionBound
+World query tests completed: 15 test(s), 0 failure(s).
+[PASS] DoesNotResolveBeforeStart
+[PASS] TwoLivingSidesRemainInProgress
+[PASS] LastLivingSideWins
+[PASS] AllOwnedCombatantsMustBeRemoved
+[PASS] PlayersCanShareOneSide
+[PASS] BatchedAnnihilationDraws
+[PASS] NonCountingEntitiesDoNotKeepSideAlive
+[PASS] DuplicateFactsAreIdempotent
+[PASS] TerminalResolutionIsImmutable
+[PASS] SnapshotVersionAndSidesAreStable
+[PASS] SingleSideDebugMatchDoesNotAutoFinish
+[PASS] ExplicitVictoryLocksWhileEnemiesRemain
+[PASS] ExplicitDefeatLocksWhileBothRemain
+[PASS] ExplicitVictoryDoesNotOverrideTerminal
+[PASS] ExplicitDefeatDoesNotOverrideExplicitVictory
+Match outcome tests completed: 15 test(s), 0 failure(s).
+PASS LatestImportantWins
+PASS UnimportantEventsAreSkipped
+PASS CapacityDropsOldest
+Battlefield event tests completed: 3 test(s), 0 failure(s).

@@ -34,7 +34,7 @@ const _UNIT_DISPLAY_NAMES := {
 	"command_center": "指挥中心",
 	"vehicle_factory": "车辆工厂",
 	"aircraft_factory": "航空工厂",
-	"helicopter": "直升机",
+	"helicopter": "战斗机",
 	"drone": "无人机",
 	"anti_ground_turret": "对地炮",
 	"anti_air_turret": "对空炮",

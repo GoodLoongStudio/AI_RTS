@@ -1,0 +1,4 @@
+[adjutant-command-protocol] rc=3221225477 marker_ok=False fails=1 secs=5.5
+[adjutant-observation] rc=0 marker_ok=True fails=0 secs=4.7
+[adjutant-rules-export] rc=1 marker_ok=False fails=3 secs=4.1
+DONE 3 tests, 2 red

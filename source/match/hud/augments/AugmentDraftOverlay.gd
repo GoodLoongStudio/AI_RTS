@@ -12,6 +12,12 @@ var _timer: Label = null
 var _cards: HBoxContainer = null
 var _deadline_msec := 0
 var _offer: Array = []
+## 关闭淡出（2026-10-12 用户口径 B）：本浮层是全屏压暗层，之前 `visible=false`
+## 硬切，选完瞬间画面"啪"地弹回高饱和高对比（真机实测关闭瞬间亮度对比度 +167%，
+## 玩家读作"色彩对比度突然升高"）。0.4s 淡出只影响本浮层，不改任何色彩口径。
+const FADE_OUT_SECONDS := 0.4
+var _fade_tween: Tween = null
+var _fading := false
 
 
 func _ready() -> void:
@@ -27,7 +33,9 @@ func show_draft(snapshot: Dictionary, networked: bool) -> void:
 	if _offer.is_empty():
 		hide_draft()
 		return
+	_kill_fade()
 	visible = true
+	_root.modulate.a = 1.0
 	_title.text = "战区补给 · 三选一"
 	if networked:
 		_hint.text = "联机战局仍在推进。点一张，或等倒计时用推荐项。"
@@ -38,9 +46,38 @@ func show_draft(snapshot: Dictionary, networked: bool) -> void:
 
 
 func hide_draft() -> void:
+	if not visible or _fading:
+		return
+	if _root == null:
+		visible = false
+		_offer = []
+		_deadline_msec = 0
+		return
+	# 淡出后再真正隐藏：消除"全屏压暗层硬切 → 画面弹回"的突兀感。
+	_fading = true
+	_fade_tween = create_tween()
+	_fade_tween.tween_property(_root, "modulate:a", 0.0, FADE_OUT_SECONDS)
+	_fade_tween.tween_callback(_finish_hide)
+
+
+func _finish_hide() -> void:
+	_fading = false
+	_fade_tween = null
+	if _root != null:
+		_root.modulate.a = 1.0
 	visible = false
 	_offer = []
 	_deadline_msec = 0
+
+
+## 淡出中途来了新的三选一：立即作废淡出并恢复不透明（show_draft 的正常展示前提）。
+func _kill_fade() -> void:
+	if _fade_tween != null and _fade_tween.is_valid():
+		_fade_tween.kill()
+	_fading = false
+	_fade_tween = null
+	if _root != null:
+		_root.modulate.a = 1.0
 
 
 func tick() -> void:
@@ -51,7 +88,7 @@ func tick() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not visible:
+	if not visible or _fading:
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_ESCAPE:
@@ -174,6 +211,6 @@ func _reason_text(reasons: Array, card_id: String) -> String:
 
 
 func _emit_pick(augment_id: String) -> void:
-	if augment_id.is_empty() or not visible:
+	if augment_id.is_empty() or not visible or _fading:
 		return
 	pick_requested.emit(augment_id)
